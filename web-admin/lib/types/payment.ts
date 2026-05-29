@@ -845,7 +845,7 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
   CARD:             'credit-card',
   PAY_ON_COLLECTION:'hand-coins',
   CHECK:            'receipt',
-  INVOICE:          'file-text',
+  [PAYMENT_METHODS.INVOICE]: 'file-text',
   HYPERPAY:         'credit-card',
   PAYTABS:          'credit-card',
   STRIPE:           'credit-card',

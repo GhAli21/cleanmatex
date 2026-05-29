@@ -269,8 +269,17 @@ export function useOrderSubmission() {
                     checkBank: paymentData.checkBank ? sanitizeInput(paymentData.checkBank) : undefined,
                     checkDate: paymentData.checkDate,
                     ...(state.state.branchId && { branchId: state.state.branchId }),
-                    ...((payload.totals.taxRate != null && payload.totals.taxRate > 0) && { additionalTaxRate: payload.totals.taxRate }),
-                    ...((payload.totals.taxAmount != null && payload.totals.taxAmount > 0) && { additionalTaxAmount: payload.totals.taxAmount }),
+                    ...((!payload.taxProfileIds || payload.taxProfileIds.length === 0) &&
+                      (payload.totals.taxRate != null && payload.totals.taxRate > 0) && {
+                        additionalTaxRate: payload.totals.taxRate,
+                      }),
+                    ...((!payload.taxProfileIds || payload.taxProfileIds.length === 0) &&
+                      (payload.totals.taxAmount != null && payload.totals.taxAmount > 0) && {
+                        additionalTaxAmount: payload.totals.taxAmount,
+                      }),
+                    ...(payload.taxProfileIds && payload.taxProfileIds.length > 0 && {
+                        taxProfileIds: payload.taxProfileIds,
+                    }),
                     customerMobile: state.state.customerSnapshotOverride?.phone != null
                         ? sanitizeInput(state.state.customerSnapshotOverride.phone)
                         : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),

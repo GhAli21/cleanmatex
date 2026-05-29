@@ -1,4 +1,4 @@
-# i18n Enhancement Plan â€” Files Created or Modified
+# i18n Enhancement Plan — Files Created or Modified
 
 Complete list of files created or modified during implementation of the i18n enhancement plan.
 

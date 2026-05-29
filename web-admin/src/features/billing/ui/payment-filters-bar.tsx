@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition, useCallback } from 'react';
+import { PAYMENT_METHODS } from '@/lib/constants/payment';
 
 const STATUS_OPTIONS = [
   'pending',
@@ -19,7 +20,7 @@ const METHOD_OPTIONS = [
   'CHECK',
   'BANK_TRANSFER',
   'PAY_ON_COLLECTION',
-  'INVOICE',
+  PAYMENT_METHODS.INVOICE,
   'MOBILE_PAYMENT',
   'HYPERPAY',
   'PAYTABS',

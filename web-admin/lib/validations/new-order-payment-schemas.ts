@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/order-types';
 
 export const OUTSTANDING_POLICIES = {
   NONE: 'NONE',
@@ -37,23 +38,28 @@ function optionalUuidJsonPreprocess(val: unknown): unknown {
   return trimmed;
 }
 
-// Payment method codes (server/action side – uppercase)
-const paymentMethodCodeSchema = z.enum([
-  'CASH',
-  'CARD',
-  'CHECK',
-  'PAY_ON_COLLECTION',
-  'INVOICE',
-  'HYPERPAY',
-  'PAYTABS',
-  'STRIPE',
-  'BANK_TRANSFER',
-  'MOBILE_PAYMENT',
+const canonicalPaymentMethodCodeSchema = z.enum([
+  PAYMENT_METHODS.CASH,
+  PAYMENT_METHODS.CARD,
+  PAYMENT_METHODS.CHECK,
+  PAYMENT_METHODS.PAY_ON_COLLECTION,
+  PAYMENT_METHODS.INVOICE,
+  PAYMENT_METHODS.HYPERPAY,
+  PAYMENT_METHODS.PAYTABS,
+  PAYMENT_METHODS.STRIPE,
+  PAYMENT_METHODS.BANK_TRANSFER,
+  PAYMENT_METHODS.MOBILE_PAYMENT,
   'WALLET',
   'CUSTOMER_CREDIT',
   'CUSTOMER_ADVANCE',
   'LOYALTY_CREDIT',
 ]);
+
+// Payment method codes (server/action side – uppercase)
+const paymentMethodCodeSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? normalizePaymentMethodCode(value) : value),
+  canonicalPaymentMethodCodeSchema
+);
 
 // ---------------------------------------------------------------------------
 // Payment leg (one leg in a multi-leg split payment)
@@ -126,6 +132,8 @@ export const newOrderPaymentPayloadSchema = z
     creditLimitOverride: z.boolean().optional(),
     /** OPEN cash-drawer session chosen for any cash-taking legs in this checkout. */
     cashDrawerSessionId: z.string().uuid().optional(),
+    /** Selected tax profile IDs shown in the payment modal tax panel. */
+    taxProfileIds: z.array(z.string().uuid()).optional(),
     /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal finalTotal. */
     paymentLegs: z.array(paymentLegSchema).optional(),
   })
@@ -163,6 +171,8 @@ export const previewPaymentRequestSchema = z.object({
   isExpress: z.boolean().optional(),
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
+  serviceCategories: z.array(z.string()).optional(),
+  taxProfileIds: z.array(z.string().uuid()).optional(),
   promoCode: z.string().optional(),
   giftCardNumber: z.string().optional(),
   giftCardAmount: z.number().min(0).optional(),
@@ -190,6 +200,8 @@ export const createWithPaymentRequestSchema = z.object({
   additionalTaxRate: z.number().min(0).max(100).optional(),
   /** Additional tax amount. If provided, overrides rate-based calculation. */
   additionalTaxAmount: z.number().min(0).optional(),
+  /** Canonical tax profile selection used by web-admin and external clients. */
+  taxProfileIds: z.array(z.string().uuid()).optional(),
   items: z.array(
     z.object({
       productId: z.string().uuid(),
@@ -245,7 +257,7 @@ export const createWithPaymentRequestSchema = z.object({
   customerNotes: z.string().optional(),
   paymentNotes: z.string().optional(),
   readyByAt: z.string().datetime().optional(),
-  paymentMethod: z.string(),
+  paymentMethod: paymentMethodCodeSchema,
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   promoCode: z.string().optional(),

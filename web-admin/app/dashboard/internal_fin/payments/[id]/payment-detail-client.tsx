@@ -51,7 +51,7 @@ export default function PaymentDetailClient({
 
   // ---- Formatters ----
   const fmtDate = (dateStr?: string) => {
-    if (!dateStr) return 'â€”';
+    if (!dateStr) return '-';
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -68,7 +68,7 @@ export default function PaymentDetailClient({
           decimalPlaces,
           locale: moneyLocale,
         })
-      : 'â€”';
+      : '-';
 
   // ---- Status Badge ----
   const statusBadge = (status: string) => {
@@ -457,7 +457,7 @@ export default function PaymentDetailClient({
                                   : entry.action_type}
                         </td>
                         <td className="py-2 pr-4 text-gray-600">
-                          {entry.changed_by || 'â€”'}
+                          {entry.changed_by || '-'}
                         </td>
                         <td className="py-2 text-gray-600">
                           {entry.action_type === 'NOTES_UPDATED' &&
@@ -465,7 +465,7 @@ export default function PaymentDetailClient({
                           entry.after_value &&
                           'rec_notes' in entry.before_value &&
                           'rec_notes' in entry.after_value
-                            ? `${t('audit.before')}: ${String((entry.before_value as { rec_notes?: string }).rec_notes || 'â€”')} â†’ ${t('audit.after')}: ${String((entry.after_value as { rec_notes?: string }).rec_notes || 'â€”')}`
+                            ? `${t('audit.before')}: ${String((entry.before_value as { rec_notes?: string }).rec_notes || '-')} â†’ ${t('audit.after')}: ${String((entry.after_value as { rec_notes?: string }).rec_notes || '→')}`
                             : entry.action_type === 'REFUNDED' && entry.after_value && 'refund_amount' in entry.after_value
                               ? `${t('audit.refundAmount')}: ${Number((entry.after_value as { refund_amount?: number }).refund_amount)}`
                               : entry.action_type}

@@ -14,10 +14,13 @@ import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { validatePromoCode, getBestDiscount } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
+import { calculateTax } from './tax-engine.service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
+import { TAX_TYPES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
+import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
 
 export interface OrderCalculationParams {
   tenantId: string;
@@ -41,6 +44,8 @@ export interface OrderCalculationParams {
   /** Pre-authenticated gift card UUID. When provided, bypasses number/PIN lookup and skips PIN re-verification. */
   giftCardId?: string;
   serviceCategories?: string[];
+  /** Canonical tax profile IDs selected by the client. */
+  taxProfileIds?: string[];
   /** Additional tax (order tax) rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
   additionalTaxRate?: number;
   /** Additional tax amount. If provided, overrides additionalTaxRate. Applied on top of base total. */
@@ -62,6 +67,7 @@ export interface OrderCalculationResult {
   additionalTaxAmount: number;
   vatTaxPercent: number;
   vatValue: number;
+  taxBreakdown: TaxLineItem[];
   giftCardApplied: number;
   finalTotal: number;
   currencyCode: string;
@@ -96,6 +102,7 @@ export async function calculateOrderTotals(
     giftCardAmount,
     giftCardId,
     serviceCategories,
+    taxProfileIds,
     additionalTaxRate,
     additionalTaxAmount: additionalTaxAmountParam,
   } = params;
@@ -124,6 +131,7 @@ export async function calculateOrderTotals(
       additionalTaxAmount: 0,
       vatTaxPercent: 0,
       vatValue: 0,
+      taxBreakdown: [],
       giftCardApplied: 0,
       finalTotal: 0,
       currencyCode,
@@ -236,20 +244,49 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
-  const vatTaxPercent = round(vatRate * 100, 2);
-  const vatValue = round(afterDiscounts * vatRate, decimalPlaces);
-  const taxAmount = vatValue;
+  let taxBreakdown = await calculateTax({
+    tenantId,
+    branchId,
+    customerId,
+    serviceTypes: serviceCategories,
+    baseAmount: afterDiscounts,
+    decimalPlaces,
+    selectedProfileIds: taxProfileIds,
+  });
 
-  let additionalTaxAmount = 0;
-  if (additionalTaxAmountParam != null && additionalTaxAmountParam > 0) {
-    additionalTaxAmount = round(additionalTaxAmountParam, decimalPlaces);
-  } else if (additionalTaxRate != null && additionalTaxRate > 0) {
-    additionalTaxAmount = round(
-      (afterDiscounts * additionalTaxRate) / 100,
-      decimalPlaces
-    );
+  let vatTaxPercent = round(
+    taxBreakdown.find((line) => line.taxType === TAX_TYPES.VAT || line.taxType === TAX_TYPES.GST)?.rate ?? 0,
+    2
+  );
+  let vatValue = round(
+    taxBreakdown
+      .filter((line) => line.taxType === TAX_TYPES.VAT || line.taxType === TAX_TYPES.GST)
+      .reduce((sum, line) => sum + line.taxAmount, 0),
+    decimalPlaces
+  );
+  let additionalTaxAmount = round(
+    taxBreakdown
+      .filter((line) => line.taxType === TAX_TYPES.CUSTOM)
+      .reduce((sum, line) => sum + line.taxAmount, 0),
+    decimalPlaces
+  );
+
+  if (taxBreakdown.length === 0) {
+    const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
+    vatTaxPercent = round(vatRate * 100, 2);
+    vatValue = round(afterDiscounts * vatRate, decimalPlaces);
+
+    if (additionalTaxAmountParam != null && additionalTaxAmountParam > 0) {
+      additionalTaxAmount = round(additionalTaxAmountParam, decimalPlaces);
+    } else if (additionalTaxRate != null && additionalTaxRate > 0) {
+      additionalTaxAmount = round(
+        (afterDiscounts * additionalTaxRate) / 100,
+        decimalPlaces
+      );
+    }
   }
+
+  const taxAmount = vatValue;
 
   const amountBeforeGiftCard = round(
     afterDiscounts + vatValue + additionalTaxAmount,
@@ -327,11 +364,12 @@ export async function calculateOrderTotals(
     autoRuleDiscount,
     promoDiscount,
     afterDiscounts,
-    taxRate: vatRate,
+    taxRate: vatTaxPercent / 100,
     taxAmount,
     additionalTaxAmount,
     vatTaxPercent,
     vatValue,
+    taxBreakdown,
     giftCardApplied,
     finalTotal,
     currencyCode,
@@ -341,8 +379,6 @@ export async function calculateOrderTotals(
 }
 
 // ── P8.1 — FinancialBreakdownSnapshot adapter ──────────────────────────────────
-
-import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
 
 /**
  * Convert a flat OrderCalculationResult into the structured FinancialBreakdownSnapshot

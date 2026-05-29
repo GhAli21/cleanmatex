@@ -89,6 +89,15 @@ export const createArInvoiceFromOrdersSchema = z.object({
   rec_notes: z.string().max(1000).optional(),
   idempotency_key: z.string().max(120).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  // Phase 3 (BVM Wiring): submit-order calls this writer inside its own tx and
+  // needs the invoice issued (status=OPEN, AR ledger debit, AR_INVOICE_ISSUED
+  // outbox event) atomically with order creation. API-route callers default to
+  // DRAFT and require a follow-up issueArInvoice call.
+  issueImmediately: z.boolean().optional(),
+  // Phase 3: order-submit knows the gift-card amount before the AR invoice
+  // exists; pass it through so the canonical writer can mirror the legacy
+  // `createInvoice` behavior of stamping the column for reporting.
+  gift_card_applied_amount: z.number().nonnegative().optional(),
 });
 
 export const updateArInvoiceSchema = z.object({

@@ -387,7 +387,7 @@ Each calls the appropriate utility with the current report data.
 
 After each phase, verify with:
 
-1. **Build check:** `cd web-admin && npm run build` â€” must pass with no errors
+1. **Build check:** `cd web-admin && npm run build` — must pass with no errors
 2. **Manual testing:**
    - Navigate to `/dashboard/reports/orders` (ensure feature flag is enabled)
    - Verify KPI cards show real numbers
@@ -397,7 +397,7 @@ After each phase, verify with:
    - Test filters (status, customer, branch)
 3. **Tenant isolation:** Verify different tenant logins see only their own data
 4. **RTL:** Switch to Arabic locale, verify layout flips correctly
-5. **Export (Phase 4):** Download CSV, Excel, PDF â€” verify content matches on-screen data
+5. **Export (Phase 4):** Download CSV, Excel, PDF — verify content matches on-screen data
 6. **Print (Phase 4):** Click print, verify print-optimized layout
 
 ---

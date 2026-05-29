@@ -1,6 +1,6 @@
-﻿# AGENTS.md â€” CleanMateX AI Assistant
+﻿# AGENTS.md — CleanMateX AI Assistant
 
-**Project:** CleanMateX â€” Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
+**Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
 **Last Update** 22-03-2026
 **Last Update Description** Added /storybook skill + storybook-generator agent to mandatory loading table
 
@@ -258,7 +258,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 **How to enforce:**
 - In plan mode: load skills during Phase 1 exploration, before Phase 2 design
 - In execution mode: load skills before writing the first line of code for that domain
-- If a skill was not loaded and you wrote code â€” stop, load the skill, verify compliance, fix if needed
+- If a skill was not loaded and you wrote code — stop, load the skill, verify compliance, fix if needed
 
 ## Agent-First Workflow
 
@@ -289,9 +289,9 @@ npm run build                     # Build (run after changes)
 
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
-- **NEVER modify existing migration files** â€” always create a NEW migration for fixes or changes. See `/database` skill.
-- **Migrations: always use last seq** â€” list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
-- **DROP ... CASCADE** â€” Before adding DROP CASCADE, fetch
+- **NEVER modify existing migration files** — always create a NEW migration for fixes or changes. See `/database` skill.
+- **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
+- **DROP ... CASCADE** — Before adding DROP CASCADE, fetch
   affected objects, prepare recreate statements, and include them
   in the same migration. See `docs/dev/
 drop-cascade-migration-workflow.md`
@@ -340,9 +340,9 @@ Ignoring events
 
 ## Constants & Types (single source of truth)
 
-- **Constants live in `lib/constants/`** â€” one file per domain (e.g. `payment.ts`, `order-types.ts`). Define const objects (`as const`) and derive types from them: `type X = (typeof CONST)[keyof typeof CONST]`.
-- **Types/interfaces live in `lib/types/`** â€” import const-derived types from constants; re-export types and optionally key consts so app code can use one import (e.g. `@/lib/types/payment` for both types and `PAYMENT_METHODS`, `INVOICE_STATUSES`, etc.).
-- **Do not duplicate** â€” same concept (e.g. payment method codes) in one place only; other files re-export or import. Validation (Zod) should align with the same constants where possible.
+- **Constants live in `lib/constants/`** — one file per domain (e.g. `payment.ts`, `order-types.ts`). Define const objects (`as const`) and derive types from them: `type X = (typeof CONST)[keyof typeof CONST]`.
+- **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and optionally key consts so app code can use one import (e.g. `@/lib/types/payment` for both types and `PAYMENT_METHODS`, `INVOICE_STATUSES`, etc.).
+- **Do not duplicate** — same concept (e.g. payment method codes) in one place only; other files re-export or import. Validation (Zod) should align with the same constants where possible.
 - **Order status:** workflow order status â†’ `lib/types/workflow.ts`; payment-related â†’ `lib/constants/payment.ts` and `lib/types/payment.ts`.
 
 **See:** `docs/dev/unification_types_order_payment_audit.md` for the payment/order unification audit.
@@ -389,7 +389,7 @@ Ignoring events
 
 - `/explain-code` - Code explanations with diagrams
 - `/codebase-visualizer` - Interactive codebase tree
-- `/storybook` - Story generation for Cmx components (RTL, a11y, variants) â€” also triggers `storybook-generator` agent
+- `/storybook` - Story generation for Cmx components (RTL, a11y, variants) — also triggers `storybook-generator` agent
 
 ## Structure
 
@@ -405,13 +405,13 @@ docs/         # All documentation
 ## Key Documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` â­ READ THIS
-- **UI Migration Guide:** `docs/dev/ui-migration-guide.md` â€” `@/components/ui` â†’ `@ui` gradual migration
+- **UI Migration Guide:** `docs/dev/ui-migration-guide.md` — `@/components/ui` â†’ `@ui` gradual migration
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Planning Backlog Note:** `docs/plan/` is the approved planning authority; reconcile useful material from `docs/plan_cr/` into `docs/plan/`
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
-- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` â€” per-item implementation details
+- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details
 - **Common Issues:** `.codex/skills/debugging/common-issues.md`
-- **Settings Reference:** `.codex/docs/settings-reference.md` â€” when to use `sys_tenant_settings_cd` vs Allsettings files
+- **Settings Reference:** `.codex/docs/settings-reference.md` — when to use `sys_tenant_settings_cd` vs Allsettings files
 - **Preferences (unified):** **`docs/dev/preferences-architecture-reference.md`** (canonical); `docs/features/Customer_Order_Item_Pieces_Preferences/README.md`; migrations 0165â€“0169 in `docs/dev/preferences-unified-migrations-0165-0169.md`
 
 ## Key Guardrails
@@ -425,11 +425,11 @@ docs/         # All documentation
 ## How to Make Cursor/Claude/Codex Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` (e.g. `uiuxrules.mdc`, `report-implement-or-build.mdc`, `web-admin-ui-imports.mdc`) are loaded into Cursor context automatically. Keep critical, short rules there.
-   **â†’ Claude equivalent:** The same rules are embedded in `.codex/skills/frontend/SKILL.md`, `.codex/skills/frontend/uiux-rules.md`, and `.codex/docs/web-admin-ui-imports.md` â€” Claude reads these when `/frontend` skill is active.
+   **â†’ Claude equivalent:** The same rules are embedded in `.codex/skills/frontend/SKILL.md`, `.codex/skills/frontend/uiux-rules.md`, and `.codex/docs/web-admin-ui-imports.md` — Claude reads these when `/frontend` skill is active.
 
-2. **CLAUDE.md (Claude):** Always in context â€” primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
+2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
 
-3. **AGENTS.md (Codex):** Always in context â€” primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
+3. **AGENTS.md (Codex):** Always in context — primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
 
 4. **Skills (Codex):** Use `/frontend`, `/i18n`, `/database`, etc. so the detailed skill loads. AGENTS.md points to the right skill per topic.
 
@@ -443,10 +443,10 @@ docs/         # All documentation
 
 ## Supabase MCPs
 
-- **NEVER apply migrations via MCP** â€” create the `.sql` migration file, then STOP and ask me to review and apply it
+- **NEVER apply migrations via MCP** — create the `.sql` migration file, then STOP and ask me to review and apply it
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`
-- MCP may be used for **read-only discovery queries** (e.g. finding affected objects before DROP CASCADE) â€” never for writes or migration execution
+- MCP may be used for **read-only discovery queries** (e.g. finding affected objects before DROP CASCADE) — never for writes or migration execution
 - **DROP ... CASCADE:** Use MCP read queries to discover affected objects, then include recreate statements in the migration file. See `docs/dev/drop-cascade-migration-workflow.md`.
 
 # CleanMateX Repository Additional Rules - from chatgpt

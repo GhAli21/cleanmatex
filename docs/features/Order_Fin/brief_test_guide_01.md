@@ -1,4 +1,4 @@
-# Order Financial Platform â€” Manual Test Guide
+# Order Financial Platform — Manual Test Guide
 
 ## Prerequisites
 - Dev server running: `cd web-admin && npm run dev`
@@ -11,7 +11,7 @@
 
 **Methods tab**
 - [ ] All seeded payment methods appear (CASH, CARD, CHECK, PAY_ON_COLLECTION, etc.)
-- [ ] Toggle a method on/off â€” page reflects change after reload
+- [ ] Toggle a method on/off — page reflects change after reload
 - [ ] Edit display name (EN + AR)
 
 **Cash Drawers tab**
@@ -43,7 +43,7 @@
 - [ ] Add a cash movement: type = CASH_IN, amount = 100, notes = "test deposit"
 - [ ] Movement appears in session detail
 - [ ] Close session: enter closing float â†’ session status â†’ CLOSED
-- [ ] Print session report â€” print page renders with movements + totals
+- [ ] Print session report — print page renders with movements + totals
 
 ---
 
@@ -79,7 +79,7 @@ Go to **New Order** for an existing customer:
 
 - [ ] Config page loads showing loyalty program
 - [ ] Tier list visible with earn/redeem rates
-- [ ] After creating a paid order â†’ check customer record for loyalty points earned (async via outbox â€” may need a moment)
+- [ ] After creating a paid order â†’ check customer record for loyalty points earned (async via outbox — may need a moment)
 
 ---
 
@@ -140,4 +140,4 @@ Go to **New Order** for an existing customer:
 
 ---
 
-**Start with flows 1 â†’ 2 â†’ 3 â†’ 4** in that order â€” each depends on the previous being configured. The rest can be tested in any order.
+**Start with flows 1 â†’ 2 â†’ 3 â†’ 4** in that order — each depends on the previous being configured. The rest can be tested in any order.

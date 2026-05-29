@@ -1,5 +1,57 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-29 — BVM Wiring Phase 3: AR Invoice canonical writer + Gift-card-as-voucher-line
+
+### Shipped in this session
+
+**No migration** — `org_invoice_mst` already had every column the new writer needs (`gift_card_id`, `gift_card_applied_amount`, `issued_at`, `issued_by`, …). Discovery via Supabase MCP confirmed before any code change. Two D9 `GIFT_CARD` payment-method-config rows already exist (one per tenant) so the synthesis path is safe out of the box.
+
+**Change 1 — AR Invoice canonical writer migration (`createInvoice` → `createArInvoiceFromOrders`)**
+- `ar-invoice.service.ts` `createArInvoiceFromOrders` now accepts an optional `tx?: PrismaTx` so submit-order threads its own transaction through. The producer runs inside the caller's tx with no outer `prisma.$transaction` wrapper — guarantees the AR invoice commits atomically with the order header and the voucher.
+- New input flags: `issueImmediately?: boolean` (default false; API route DRAFT semantics preserved) and `gift_card_applied_amount?: number`. When `issueImmediately === true`: status derived from OPEN via `deriveArInvoiceStatus`, `issued_at`/`issued_by` populated inline, AR ledger `INVOICE_ISSUED` DEBIT appended, `AR_INVOICE_ISSUED` outbox event emitted, status-history `actionCd = 'CREATE_FROM_ORDERS_ISSUED'`.
+- Mirrors the legacy `createInvoice` ERP-lite parity: `ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction` now fires inside the writer, gated by `assertBlockingInvoiceAutoPostSucceeded` (locally copied from `invoice-service.ts` — Phase 6 cleanup will extract a shared util).
+- Schema (`ar-invoice-schemas.ts`): `createArInvoiceFromOrdersSchema` now admits the two new optional fields.
+- Orchestrator (`order-submit-orchestrator.service.ts:565-588`): replaces `createInvoice(...)` with `createArInvoiceFromOrders({ order_ids:[orderId], ..., issueImmediately:true, idempotency_key:'${orderId}_ar' }, { tenantId, userId }, tx)`. Idempotency key matches the Phase 2 sub-key convention (`${orderId}_vch`, `${orderId}_vch_post`).
+- `createInvoice` is left in `invoice-service.ts` for the deprecated `createInvoiceAction` server action and its existing jest tests. Removal is Phase 6.
+
+**Change 2 — Gift-card-by-id as ORDER_CREDIT_APPLICATION voucher line (Phase 2.1 deferred item closed)**
+- Gift-card no longer debited in TX1. The orchestrator now synthesises a `ResolvedSettlementLeg` with `paymentNature = CREDIT_APPLICATION, creditApplicationType = GIFT_CARD, creditReferenceId = input.giftCardId, amount = serverTotals.giftCardApplied` and pushes it onto `settlementLegs` (NOT `paymentLegs`) BEFORE `buildSettlementPlan`.
+- Planner classification unchanged: the existing CREDIT_APPLICATION branch handles GIFT_CARD via STORED_VALUE_LOCK_ORDER (gift-card rank 0).
+- The existing TX2 voucher loop produces a `LINE_ROLE.ORDER_CREDIT_APPLICATION` voucher line + calls `applyStoredValueDebitTx({ creditType: GIFT_CARD, creditReferenceId: input.giftCardId, voucherId, voucherLineId, idempotencyKey: '${orderId}_sv_gc_${legIndex}' })`. Dispatcher (`order-credit-application.service.ts:177-191`) routes to `redeemGiftCardTx` with `fin_voucher_id` + `fin_voucher_trx_line_id` populated atomically — closes the Phase 2.1 deferred gap.
+- Throws `GIFT_CARD_PAYMENT_METHOD_NOT_CONFIGURED` if the tenant's D9 GIFT_CARD row is missing (operator setup error, no silent fallback).
+
+**Breakdown snapshot math fix** (`order-submit-orchestrator.service.ts:882-902`)
+- `creditsTotal: serverTotals.giftCardApplied` → `plan.creditAppliedAmount` (now sums every credit-application: gift-card + wallet + advance + credit-note + loyalty).
+- `outstanding: ... - amountToCharge` → `... - plan.realPaymentAmount` to remove the double-subtraction risk when wallet/advance legs arrive via `paymentLegs` (because `amountToCharge` filters only by `DEFERRED_METHODS`, not `paymentNature`).
+- `netReceivable = finalTotal - plan.creditAppliedAmount` (was `finalTotal - giftCardApplied`).
+
+### Tests added
+
+- `__tests__/services/ar-invoice.service.test.ts` — +5 Phase 3 cases (issueImmediately on/off, gift_card mirror, ERP-lite BLOCKING gate, caller-tx atomic invariant).
+- `__tests__/services/order-settlement-planner.service.test.ts` — +2 Phase 3 cases (synthesized gift-card leg classification, mixed cash+wallet+gift-card `creditAppliedAmount` sum).
+
+### Verification
+
+- `npx tsc --noEmit` filtered = 0 errors (the 3 pre-existing `payment-config` UI errors noted in the Phase 3 RESUME were closed by the intervening 28_05_2026_4/_5 commits; baseline is now genuinely clean).
+- Phase 2 baseline jest sweep (6 suites, 69 tests) **+ Phase 3 (8 new cases)** = **77/77 pass**.
+- `__tests__/services/gift-card-service.test.ts` — 40/40 pass (service untouched).
+- `npm run build` — succeeds.
+
+### Files modified
+
+- `web-admin/lib/services/ar-invoice.service.ts`
+- `web-admin/lib/validations/ar-invoice-schemas.ts`
+- `web-admin/lib/services/order-submit-orchestrator.service.ts`
+- `web-admin/__tests__/services/ar-invoice.service.test.ts`
+- `web-admin/__tests__/services/order-settlement-planner.service.test.ts`
+
+### Follow-ups (carried to Phase 6)
+
+- Retire `createInvoice` from `invoice-service.ts` once `createInvoiceAction` migrates to the canonical writer.
+- Extract `assertBlockingInvoiceAutoPostSucceeded` into `lib/services/erp-lite-auto-post.util.ts` (currently duplicated between `invoice-service.ts` and `ar-invoice.service.ts`).
+
+---
+
 ## 2026-05-28 (later in day) — BVM Wiring Phase 2: Stored-Value Consolidation
 
 ### Closed in this session

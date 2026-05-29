@@ -2,6 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { normalizePaymentMethodCode } from '@/lib/constants/payment';
 import type {
   GatewayConfig,
   OrgBranchPaymentMethodConfig,
@@ -294,13 +295,18 @@ async function loadTenantPaymentMethodRows({
   methodCodes,
   methodIds,
 }: Omit<PaymentMethodLookupFilters, 'branchId'>): Promise<PaymentMethodSourceRow[]> {
+  const normalizedMethodCodes =
+    methodCodes && methodCodes.length > 0
+      ? [...new Set(methodCodes.map((code) => normalizePaymentMethodCode(code)))]
+      : undefined;
+
   return withTenantContext(tenantId, async () => {
     const rows = await prisma.org_payment_methods_cf.findMany({
       where: {
         tenant_org_id: tenantId,
         ...(includeInactive ? {} : { is_active: true, rec_status: 1 }),
-        ...(methodCodes && methodCodes.length > 0
-          ? { payment_method_code: { in: methodCodes } }
+        ...(normalizedMethodCodes && normalizedMethodCodes.length > 0
+          ? { payment_method_code: { in: normalizedMethodCodes } }
           : {}),
         ...(methodIds && methodIds.length > 0
           ? { id: { in: methodIds } }

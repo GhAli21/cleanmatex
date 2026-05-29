@@ -59,6 +59,7 @@ import { getTranslations } from 'next-intl/server';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { buildDiscountLinesFromOrderInput, insertDiscountLinesTx } from '@/lib/db/order-discounts';
+import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/payment';
 
 // ============================================================================
 // Payment Method Management
@@ -126,7 +127,9 @@ export async function getAvailablePaymentTypes(): Promise<PaymentType[]> {
 export async function validatePaymentMethod(
   paymentMethod: PaymentMethodCode
 ): Promise<{ isValid: boolean; error?: string }> {
-  if (paymentMethod == null) {
+  const normalizedPaymentMethod = normalizePaymentMethodCode(paymentMethod);
+
+  if (normalizedPaymentMethod == null) {
     return {
       isValid: false,
       error: 'Payment method is required',
@@ -134,28 +137,28 @@ export async function validatePaymentMethod(
   }
   const method = await prisma.sys_payment_method_cd.findUnique({
     where: {
-      payment_method_code: paymentMethod,
+      payment_method_code: normalizedPaymentMethod,
     },
   });
 
   if (!method) {
     return {
       isValid: false,
-      error: `Payment method ${paymentMethod} not found`,
+      error: `Payment method ${normalizedPaymentMethod} not found`,
     };
   }
 
   if (!method.is_enabled) {
     return {
       isValid: false,
-      error: `Payment method ${paymentMethod} is currently disabled`,
+      error: `Payment method ${normalizedPaymentMethod} is currently disabled`,
     };
   }
 
   if (!method.is_active) {
     return {
       isValid: false,
-      error: `Payment method ${paymentMethod} is no longer active`,
+      error: `Payment method ${normalizedPaymentMethod} is no longer active`,
     };
   }
 
@@ -840,11 +843,11 @@ function assertBlockingAutoPostSucceeded(
 async function processPaymentByMethod(
   input: ProcessPaymentInput
 ): Promise<ProcessPaymentResult> {
-  switch (input.payment_method_code) {
-    case 'CASH':
-    case 'CHECK':
-    case 'PAY_ON_COLLECTION':
-    case 'INVOICE':
+  switch (normalizePaymentMethodCode(input.payment_method_code)) {
+    case PAYMENT_METHODS.CASH:
+    case PAYMENT_METHODS.CHECK:
+    case PAYMENT_METHODS.PAY_ON_COLLECTION:
+    case PAYMENT_METHODS.INVOICE:
       // These methods don't require gateway processing
       return {
         success: true,
@@ -854,10 +857,10 @@ async function processPaymentByMethod(
         remaining_balance: 0,
       };
 
-    case 'CARD':
-    case 'HYPERPAY':
-    case 'PAYTABS':
-    case 'STRIPE':
+    case PAYMENT_METHODS.CARD:
+    case PAYMENT_METHODS.HYPERPAY:
+    case PAYMENT_METHODS.PAYTABS:
+    case PAYMENT_METHODS.STRIPE:
       // TODO: Implement gateway processing in Phase 2
       // For now, mark as pending
       return {

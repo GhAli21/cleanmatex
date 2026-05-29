@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       isExpress: parsed.data.isExpress ?? false,
       percentDiscount: parsed.data.percentDiscount ?? 0,
       amountDiscount: parsed.data.amountDiscount ?? 0,
+      serviceCategories: parsed.data.serviceCategories,
+      taxProfileIds: parsed.data.taxProfileIds,
       promoCode: parsed.data.promoCode,
       giftCardNumber: parsed.data.giftCardNumber,
       giftCardAmount: parsed.data.giftCardAmount,
@@ -111,6 +113,17 @@ export async function POST(request: NextRequest) {
           errorCode: 'PRODUCT_NOT_FOUND',
           error: 'One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.',
           productId,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (message === 'INVALID_TAX_PROFILE_SELECTION') {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'INVALID_TAX_PROFILE_SELECTION',
+          error: 'One or more selected tax profiles are invalid or no longer active.',
         },
         { status: 400 }
       );

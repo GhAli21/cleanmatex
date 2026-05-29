@@ -15,11 +15,8 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
-// eslint-disable-next-line no-restricted-imports -- Order submit still bridges the legacy order-centric invoice shape until the AR service exposes a drop-in create API for this workflow.
-import { createInvoice } from '@/lib/services/invoice-service';
-import { allocateArPaymentTx } from '@/lib/services/ar-invoice.service';
+import { allocateArPaymentTx, createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
-import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
 import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrder } from '@/lib/services/order-settlement.service';
 import { recordPaymentTransaction } from '@/lib/services/payment-service';
@@ -30,10 +27,9 @@ import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/v
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
-import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
-import { TAX_TYPES, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
+import { TAX_TYPES, CREDIT_APPLICATION_TYPES, PAYMENT_NATURE } from '@/lib/constants/order-financial';
 import type { CreditApplicationType } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
 import { logger } from '@/lib/utils/logger';
@@ -298,6 +294,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     giftCardNumber:      input.giftCardNumber,
     giftCardAmount:      input.giftCardAmount,
     giftCardId:          input.giftCardId,
+    serviceCategories:   Array.from(new Set(input.items.map((item) => item.serviceCategoryCode).filter(Boolean))),
+    taxProfileIds:       input.taxProfileIds,
     additionalTaxRate:   input.additionalTaxRate,
     additionalTaxAmount: input.additionalTaxAmount,
   });
@@ -452,6 +450,65 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     };
   });
 
+  // Phase 3 (BVM Wiring) — gift-card-by-id as ORDER_CREDIT_APPLICATION voucher line.
+  //
+  // Why: pre-Phase-3, gift-card-by-id was debited at tx1 directly via
+  // `redeemGiftCardTx`, with no voucher backlink (voucher hadn't been created
+  // yet). Now we synthesize a CREDIT_APPLICATION settlement leg here so the
+  // planner classifies it like wallet/advance/credit-note/loyalty, and the
+  // existing tx2 voucher loop produces the ORDER_CREDIT_APPLICATION line +
+  // calls applyStoredValueDebitTx with voucherId/voucherLineId populated.
+  //
+  // The synthetic leg is added ONLY to `settlementLegs` — NOT `paymentLegs` —
+  // so it doesn't leak into `amountToCharge` (which sums real-payment legs).
+  // The planner zips `paymentLegs[i]` defensively (optional chains on every
+  // field), so the undefined orig leg at this index is safe for the
+  // CREDIT_APPLICATION branch which only reads `leg.creditReferenceId`.
+  if (input.giftCardId && serverTotals.giftCardApplied > 0) {
+    const gcMethodRows = await listEffectivePaymentMethodConfigs({
+      tenantId,
+      branchId,
+      methodCodes: ['GIFT_CARD'],
+    });
+    const row = gcMethodRows[0];
+    if (!row || row.credit_application_type !== CREDIT_APPLICATION_TYPES.GIFT_CARD) {
+      throw new Error('GIFT_CARD_PAYMENT_METHOD_NOT_CONFIGURED');
+    }
+
+    const gcOption: SettlementOption = {
+      id:                    row.id,
+      paymentMethodCode:     row.payment_method_code,
+      paymentNature:         row.payment_nature as SettlementOption['paymentNature'],
+      gatewayCode:           row.gateway_code,
+      displayName:           row.display_name,
+      displayName2:          row.display_name2,
+      settlementTypeCode:    row.settlement_type_code as SettlementOption['settlementTypeCode'],
+      creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
+      requiresCashDrawer:    row.requires_cash_drawer,
+      requiresTerminal:      row.requires_terminal,
+      minAmount:             row.min_amount,
+      maxAmount:             row.max_amount,
+      minOrderAmount:        row.min_order_amount,
+      maxOrderAmount:        row.max_order_amount,
+      isPlatformDisabled:    row.is_platform_disabled,
+      isGloballyDisabled:    row.is_globally_disabled,
+      defaultCreationStatus: row.default_creation_status ?? 'PENDING',
+      allowStatusOverride:   row.allow_status_override ?? false,
+      requiresReference:     row.requires_reference ?? false,
+      isUserIdRequired:      row.is_user_id_required ?? false,
+      allowedInPos:          row.allowed_in_pos ?? true,
+    };
+
+    settlementLegs.push({
+      settlementOption:  gcOption,
+      amount:            serverTotals.giftCardApplied,
+      cashTendered:      undefined,
+      reference:         undefined,
+      terminalId:        undefined,
+      creditReferenceId: input.giftCardId,
+    });
+  }
+
   // Respect an explicitly chosen session first; only auto-resolve when the
   // checkout payload omitted it and there is exactly one OPEN session in scope.
   const cashDrawerSessionId = settlementLegs.some(
@@ -512,9 +569,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       total:     serverTotals.finalTotal,
       vatRate:   serverTotals.vatTaxPercent,
       vatAmount: serverTotals.vatValue,
-      taxRate:   input.additionalTaxRate ?? (input.additionalTaxAmount != null && serverTotals.afterDiscounts > 0
-        ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
-        : undefined),
+      taxRate:   serverTotals.taxBreakdown.filter((line) => line.taxType === TAX_TYPES.CUSTOM).length === 1
+        ? serverTotals.taxBreakdown.find((line) => line.taxType === TAX_TYPES.CUSTOM)?.rate
+        : (input.additionalTaxRate ?? (input.additionalTaxAmount != null && serverTotals.afterDiscounts > 0
+          ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
+          : undefined)),
     },
     discountRate:           input.percentDiscount ?? 0,
     promoCodeId:            input.promoCodeId,
@@ -564,21 +623,28 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
       let invoiceId: string | null = null;
       if (shouldCreateArInvoice) {
-        const invoice = await createInvoice(
+        // Phase 3 (BVM Wiring): canonical AR writer replaces the deprecated
+        // `createInvoice` adapter. `issueImmediately: true` mirrors the legacy
+        // OPEN-with-ledger-debit semantics atomically inside this same tx.
+        // The `${orderId}_ar` idempotency key collapses replays onto the same
+        // invoice row via `withIdempotency` (24h TTL).
+        const invoiceDetail = await createArInvoiceFromOrders(
           {
-            order_id:               orderId,
-            subtotal:               serverTotals.subtotal,
-            discount:               serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
-            total:                  serverTotals.finalTotal,
-            promo_discount_amount:  serverTotals.promoDiscount,
+            order_ids:                [orderId],
+            customer_id:              input.customerId,
+            currency_code:            serverTotals.currencyCode,
             gift_card_applied_amount: serverTotals.giftCardApplied,
-            vatAmount:              serverTotals.vatValue,
-            tax:                    serverTotals.additionalTaxAmount ?? 0,
-            payment_method_code:    input.paymentMethod as PaymentMethodCode,
+            issueImmediately:         true,
+            idempotency_key:          `${orderId}_ar`,
+            allocation_policy:        'REMAINING_ONLY',
           },
-          tx
+          { tenantId, userId },
+          tx,
         );
-        invoiceId = invoice.id;
+        invoiceId = invoiceDetail.invoice.id;
+        // No reverse backlink on org_orders_mst — the link is unidirectional
+        // via org_invoice_mst.order_id (set by createArInvoiceFromOrders at
+        // the invoice header). `getInvoicesForOrder(orderId)` queries that.
       }
 
       if (input.promoCodeId && serverTotals.promoDiscount > 0) {
@@ -594,35 +660,18 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         });
       }
 
-      if (input.giftCardId && serverTotals.giftCardApplied > 0) {
-        await redeemGiftCardTx(tx, {
-          giftCardId:        input.giftCardId,
-          amount:            serverTotals.giftCardApplied,
-          orderId,
-          invoiceId:         invoiceId ?? undefined,
-          branchId,
-          processedBy:       userId,
-          tenantOrgId:       tenantId,
-          idempotencyKey:    `${orderId}:redeem`,
-        });
-      } else if (input.giftCardNumber && serverTotals.giftCardApplied > 0) {
-        const legacyCard = await tx.org_gift_cards_mst.findFirst({
-          where:  { tenant_org_id: tenantId, gift_card_code: input.giftCardNumber, is_active: true },
-          select: { id: true },
-        });
-        if (legacyCard) {
-          await redeemGiftCardTx(tx, {
-            giftCardId:     legacyCard.id,
-            amount:         serverTotals.giftCardApplied,
-            orderId,
-            invoiceId:      invoiceId ?? undefined,
-            branchId,
-            processedBy:    userId,
-            tenantOrgId:    tenantId,
-            idempotencyKey: `${orderId}:redeem`,
-          });
-        }
-      }
+      // Phase 3 (BVM Wiring): gift-card debit moved to tx2 (the voucher
+      // transaction) — synthesized as an ORDER_CREDIT_APPLICATION leg above
+      // the buildSettlementPlan call. The tx2 voucher loop now produces the
+      // voucher line + `applyStoredValueDebitTx` debit atomically with the
+      // voucher header, and the resulting ledger row carries
+      // `fin_voucher_id` + `fin_voucher_trx_line_id` backlinks (migration
+      // 0329 FKs). No tx1 gift-card debit remains.
+      //
+      // Legacy `input.giftCardNumber` (string-only) path: not in the current
+      // submit-order request schema; if reintroduced, add a `findFirst` on
+      // org_gift_cards_mst to resolve to `giftCardId` BEFORE the Step 4
+      // synthesis block above (not here).
 
       return { orderId, orderNo, invoiceId, currentStatus };
     })
@@ -776,44 +825,45 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // those rows via postAndWireBizVoucher. Without this flag, settleOrder would
   // duplicate the payment fact rows and double-count paid amounts.
   const discountTotal = serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount;
-  const taxTotal      = serverTotals.vatValue + (serverTotals.additionalTaxAmount ?? 0);
+  const taxLines: TaxLineItem[] = serverTotals.taxBreakdown.length > 0
+    ? serverTotals.taxBreakdown
+    : ((serverTotals.additionalTaxAmount ?? 0) > 0 || serverTotals.vatValue > 0)
+      ? [
+          ...(serverTotals.vatValue > 0
+            ? [{
+                taxType:    TAX_TYPES.VAT,
+                label:      'VAT',
+                label2:     'ضريبة القيمة المضافة',
+                rate:       serverTotals.vatTaxPercent,
+                isCompound: false,
+                baseAmount: serverTotals.afterDiscounts,
+                taxAmount:  serverTotals.vatValue,
+              }]
+            : []),
+          ...((serverTotals.additionalTaxAmount ?? 0) > 0
+            ? [{
+                taxType:    TAX_TYPES.CUSTOM,
+                label:      'Additional Tax',
+                label2:     'ضريبة إضافية',
+                rate:       input.additionalTaxRate ?? 0,
+                isCompound: false,
+                baseAmount: serverTotals.afterDiscounts,
+                taxAmount:  serverTotals.additionalTaxAmount!,
+              }]
+            : []),
+        ]
+      : [];
+  const taxTotal = taxLines.reduce((sum, line) => sum + line.taxAmount, 0);
 
-  // calculateTax() is the single source of truth for all tax line fields.
-  // It reads org_tax_profiles_cf directly, so label, label2, rate, taxAmount,
-  // and profileId are all internally consistent (rate × baseAmount = taxAmount).
-  const profileLines = await withTenantContext(tenantId, () =>
-    calculateTax({ tenantId, branchId, baseAmount: serverTotals.afterDiscounts, customerId: input.customerId ?? undefined })
-  );
-
-  const taxLines: TaxLineItem[] = [];
-  if (serverTotals.vatValue > 0) {
-    const profileLine = profileLines[0];
-    taxLines.push({
-      taxType:    profileLine?.taxType    ?? TAX_TYPES.VAT,
-      label:      profileLine?.label      ?? 'VAT',
-      label2:     profileLine?.label2     ?? 'ضريبة القيمة المضافة',
-      profileId:  profileLine?.profileId,
-      rate:       profileLine?.rate       ?? serverTotals.vatTaxPercent,
-      // isCompound comes from org_tax_profiles_cf.is_compound; default FALSE matches DB default
-      // when no profile is configured (additive VAT is the safe assumption).
-      isCompound: profileLine?.isCompound ?? false,
-      baseAmount: serverTotals.afterDiscounts,
-      // Use profile-computed amount — consistent with stored rate and taxable_amount.
-      taxAmount:  profileLine?.taxAmount  ?? serverTotals.vatValue,
-    });
-  }
-  if ((serverTotals.additionalTaxAmount ?? 0) > 0) {
-    taxLines.push({
-      taxType:    TAX_TYPES.CUSTOM,
-      label:      'Additional Tax',
-      label2:     'ضريبة إضافية',
-      rate:       input.additionalTaxRate ?? 0,
-      isCompound: false,
-      baseAmount: serverTotals.afterDiscounts,
-      taxAmount:  serverTotals.additionalTaxAmount!,
-    });
-  }
-
+  // Phase 3 (BVM Wiring): credits/outstanding math switched from
+  // `serverTotals.giftCardApplied` (gift-card only) to `plan.creditAppliedAmount`
+  // (gift-card + wallet + advance + credit-note + loyalty) so the order
+  // snapshot accurately reflects every credit-application leg now that
+  // gift-card flows through the planner. Outstanding uses
+  // `plan.realPaymentAmount` instead of `amountToCharge` because
+  // `amountToCharge` filters only by DEFERRED_METHODS — wallet/advance legs
+  // arriving via paymentLegs would otherwise leak into the subtraction and
+  // double-count.
   const breakdown: FinancialBreakdownSnapshot = {
     subtotal:         serverTotals.subtotal,
     chargesTotal:     0,
@@ -823,11 +873,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     taxBreakdown:     taxLines,
     taxTotal,
     grandTotal:       serverTotals.finalTotal,
-    creditsTotal:     serverTotals.giftCardApplied,
-    netReceivable:    serverTotals.finalTotal - serverTotals.giftCardApplied,
+    creditsTotal:     plan.creditAppliedAmount,
+    netReceivable:    serverTotals.finalTotal - plan.creditAppliedAmount,
     paymentLegsTotal: amountToCharge,
     changeReturned:   0,
-    outstanding:      Math.max(0, serverTotals.finalTotal - serverTotals.giftCardApplied - amountToCharge),
+    outstanding:      Math.max(0, serverTotals.finalTotal - plan.creditAppliedAmount - plan.realPaymentAmount),
     currencyCode:     serverTotals.currencyCode,
     decimalPlaces:    serverTotals.decimalPlaces,
   };

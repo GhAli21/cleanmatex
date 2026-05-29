@@ -4,6 +4,8 @@
  * Re-Design: PRD-010 Advanced Orders
  */
 
+import { PAYMENT_METHODS } from '@/lib/constants/payment';
+
 export interface OrderLineItem {
   id: string; // Unique identifier for this line item
   productId: string;
@@ -117,5 +119,5 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
   { id: 'CARD', label: 'Card', icon: '💳' },
   { id: 'PAY_ON_COLLECTION', label: 'Pay on Collection', isDefault: true, icon: '📦' },
   { id: 'CHECK', label: 'Check', icon: '🏦' },
-  { id: 'INVOICE', label: 'Invoice', icon: '📄' },
+  { id: PAYMENT_METHODS.INVOICE, label: 'Invoice', icon: '📄' },
 ];

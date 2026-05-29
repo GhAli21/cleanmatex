@@ -37,7 +37,7 @@ export const PAYMENT_METHODS = {
   CASH:           'CASH',
   CARD:           'CARD',
   CHECK:          'CHECK',
-  INVOICE:        'INVOICE',
+  INVOICE:        'CREDIT_INVOICE',
   PAY_ON_COLLECTION: 'PAY_ON_COLLECTION',
   BANK_TRANSFER:  'BANK_TRANSFER',
   MOBILE_PAYMENT: 'MOBILE_PAYMENT',
@@ -47,6 +47,31 @@ export const PAYMENT_METHODS = {
 } as const;
 
 export type PaymentMethodCode = (typeof PAYMENT_METHODS)[keyof typeof PAYMENT_METHODS];
+
+/**
+ * Legacy client aliases that still appear in older payloads and cached UI state.
+ *
+ * The database stores `CREDIT_INVOICE`, so every server-side boundary must
+ * normalize `INVOICE` before validation, config lookup, or persistence.
+ */
+const LEGACY_PAYMENT_METHOD_ALIASES = {
+  INVOICE: PAYMENT_METHODS.INVOICE,
+} as const;
+
+/**
+ * Normalizes inbound payment method codes to their canonical DB/API value.
+ *
+ * @param method Raw payment method code from UI state, URL params, or older clients.
+ * @returns Canonical payment method code, or the original input when no alias exists.
+ */
+export function normalizePaymentMethodCode<T extends string | null | undefined>(method: T): T | PaymentMethodCode {
+  if (method == null) {
+    return method;
+  }
+
+  return (LEGACY_PAYMENT_METHOD_ALIASES[method as keyof typeof LEGACY_PAYMENT_METHOD_ALIASES] ??
+    method) as T | PaymentMethodCode;
+}
 
 /**
  * Payment Type IDs (sys_payment_type_cd: PAY_IN_ADVANCE, PAY_ON_COLLECTION, etc.)
@@ -199,7 +224,7 @@ export type RefundStatus = (typeof REFUND_STATUSES)[keyof typeof REFUND_STATUSES
 
 /** Map payment method to payment type code (sys_payment_type_cd) for order/payment records */
 export function getPaymentTypeFromMethod(method: string): PaymentTypeId | undefined {
-  switch (method) {
+  switch (normalizePaymentMethodCode(method)) {
     case PAYMENT_METHODS.CASH:
     case PAYMENT_METHODS.CARD:
     case PAYMENT_METHODS.CHECK:

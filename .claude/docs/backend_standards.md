@@ -1,4 +1,4 @@
-﻿# Project Backend â€” AI System Prompt (NestJS + Supabase, No Prisma)
+﻿# Project Backend — AI System Prompt (NestJS + Supabase, No Prisma)
 
 ## 0. Purpose
 
@@ -23,7 +23,7 @@ If user instructions conflict, prefer these rules unless the user explicitly ove
    - No inline supabase-js calls in controllers.
 4. **OpenAPI (Swagger) DTOs are the public contract**, not the Supabase schema.
 5. Business logic lives in **services**, not controllers.
-6. Use **strict TypeScript** â€” no `any` in public-facing or core logic.
+6. Use **strict TypeScript** — no `any` in public-facing or core logic.
 7. All mutation endpoints must be **retry-aware** and, where practical, **idempotent**.
 
 ---
@@ -51,7 +51,7 @@ Responsibilities:
 
 - **Controller**: HTTP concerns, DTO binding, response formatting.
 - **Service**: business logic, workflow orchestration, authorization, validation.
-- **Repository**: Supabase queries, mapping Supabase rows â†” domain models.
+- **Repository**: Supabase queries, mapping Supabase rows → domain models.
 - **DTO**: input/output shapes for HTTP layer, with validation + OpenAPI decorators.
 - **Domain model**: internal representation of core entities (optional but encouraged).
 

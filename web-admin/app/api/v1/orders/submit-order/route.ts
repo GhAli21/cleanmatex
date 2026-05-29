@@ -60,6 +60,7 @@ const PRE_MUTATION_ERROR_CODES = new Set([
   'GATEWAY_NOT_CONFIGURED',
   'PAYMENT_REFERENCE_REQUIRED',
   'CREDIT_APPLICATION_TYPE_REQUIRED',
+  'INVALID_TAX_PROFILE_SELECTION',
   'PRODUCT_NOT_FOUND',
 ]);
 
@@ -360,6 +361,17 @@ export async function POST(request: NextRequest) {
     if (message === 'CHECK_NUMBER_REQUIRED') {
       return NextResponse.json(
         { success: false, errorCode: 'CHECK_NUMBER_REQUIRED', error: 'Check number is required for check payments.' },
+        { status: 400 }
+      );
+    }
+
+    if (message === 'INVALID_TAX_PROFILE_SELECTION') {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'INVALID_TAX_PROFILE_SELECTION',
+          error: 'One or more selected tax profiles are invalid or no longer active.',
+        },
         { status: 400 }
       );
     }

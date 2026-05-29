@@ -316,6 +316,88 @@ describe('buildSettlementPlan', () => {
     ]);
   });
 
+  it('Phase 3: orchestrator-synthesized gift-card credit-application leg (no paymentLegs counterpart) classifies correctly with creditReferenceId preserved', () => {
+    // Phase 3 (BVM Wiring): the orchestrator pushes a gift-card credit-app leg
+    // onto settlementLegs WITHOUT a matching paymentLegs entry — the planner
+    // zips `originalLegs[i]` defensively. For a CREDIT_APPLICATION leg the
+    // planner only reads `leg.creditReferenceId`, so an undefined `orig` is
+    // safe. This test pins that contract so a future planner refactor that
+    // forces `orig` lookup for credit-apps doesn't silently break submit-order.
+    const cash     = makeRealOption({ paymentMethodCode: 'CASH' });
+    const giftCard = makeCreditOption(CREDIT_APPLICATION_TYPES.GIFT_CARD);
+    const GIFT_CARD_ID = 'gc-99999999-9999-9999-9999-999999999999';
+
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      // Two resolved legs (cash + synthesized gift-card)
+      [
+        makeLeg(cash, 80),
+        makeLeg(giftCard, 20, { creditReferenceId: GIFT_CARD_ID }),
+      ],
+      // Only ONE original payment leg — gift-card has no counterpart
+      [makeOriginalLeg('CASH', 80)],
+      'PAY_IN_ADVANCE',
+      'session-1',
+    );
+
+    expect(plan.realPaymentLegs).toHaveLength(1);
+    expect(plan.realPaymentLegs[0].amount).toBe(80);
+    expect(plan.creditApplicationLegs).toHaveLength(1);
+    expect(plan.creditApplicationLegs[0].creditType).toBe(CREDIT_APPLICATION_TYPES.GIFT_CARD);
+    expect(plan.creditApplicationLegs[0].amount).toBe(20);
+    expect(plan.creditApplicationLegs[0].creditReferenceId).toBe(GIFT_CARD_ID);
+
+    // The plan covers the full 100 → no outstanding, voucher required, no AR invoice.
+    expect(plan.realPaymentAmount).toBe(80);
+    expect(plan.creditAppliedAmount).toBe(20);
+    expect(plan.immediateSettlementAmount).toBe(100);
+    expect(plan.outstandingAmount).toBe(0);
+    expect(plan.outstandingPolicy).toBe('NONE');
+    expect(plan.shouldCreateReceiptVoucher).toBe(true);
+    expect(plan.shouldCreateArInvoice).toBe(false);
+  });
+
+  it('Phase 3: mixed cash + wallet + gift-card → creditAppliedAmount sums ALL credit-apps (breakdown math correctness)', () => {
+    // Phase 3 Step 6 changed `breakdown.creditsTotal` to `plan.creditAppliedAmount`
+    // (was `serverTotals.giftCardApplied` only). This test pins the math the
+    // orchestrator now relies on: gift-card + wallet sum into creditAppliedAmount.
+    const cash     = makeRealOption({ paymentMethodCode: 'CASH' });
+    const wallet   = makeCreditOption(CREDIT_APPLICATION_TYPES.WALLET);
+    const giftCard = makeCreditOption(CREDIT_APPLICATION_TYPES.GIFT_CARD);
+
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [
+        makeLeg(cash, 40),
+        makeLeg(wallet, 30),
+        makeLeg(giftCard, 30, { creditReferenceId: 'gc-1' }),
+      ],
+      [
+        makeOriginalLeg('CASH', 40),
+        makeOriginalLeg('WALLET', 30),
+        // gift-card synthesized — no counterpart
+      ],
+      'PAY_IN_ADVANCE',
+      'session-1',
+    );
+
+    expect(plan.realPaymentAmount).toBe(40);
+    expect(plan.creditAppliedAmount).toBe(60); // wallet 30 + gift-card 30
+    expect(plan.immediateSettlementAmount).toBe(100);
+    expect(plan.outstandingAmount).toBe(0);
+
+    // Lock-order sort: GIFT_CARD (rank 0) precedes WALLET (rank 1) regardless
+    // of caller order (here: wallet first in input, gift-card second).
+    expect(plan.creditApplicationLegs.map(l => l.creditType)).toEqual([
+      CREDIT_APPLICATION_TYPES.GIFT_CARD,
+      CREDIT_APPLICATION_TYPES.WALLET,
+    ]);
+  });
+
   it('gateway leg resolves to PROCESSING by default-status fallback when D9 not set', () => {
     // defaultCreationStatus is empty string here → fallback kicks in
     const gateway = makeRealOption({

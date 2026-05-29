@@ -21,6 +21,8 @@ import {
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 import type {
   ArAgingCustomerRow,
   ArCustomerBalance,
@@ -1398,188 +1400,348 @@ export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActo
   );
 }
 
+/**
+ * Internal producer for `createArInvoiceFromOrders`. Always runs inside the
+ * provided Prisma transaction client. Extracted so the public wrapper can
+ * accept an optional caller-supplied `tx` (Phase 3 BVM Wiring — submit-order
+ * threads its own tx through so the AR invoice commits atomically with the
+ * order header and voucher).
+ */
+async function createArInvoiceFromOrdersInTx(
+  tx: PrismaTx,
+  input: CreateArInvoiceFromOrdersInput,
+  tenantId: string,
+  userId: string | null
+) {
+  return withIdempotency(tx, {
+    tenantId,
+    userId,
+    key: input.idempotency_key ?? null,
+    resourceType: 'ar_invoice_create_from_orders',
+    producer: async () => {
+      const orders = await tx.org_orders_mst.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          id: { in: input.order_ids },
+        },
+        select: {
+          id: true,
+          order_no: true,
+          customer_id: true,
+          branch_id: true,
+          total: true,
+          paid_amount: true,
+          outstanding_amount: true,
+          currency_code: true,
+          currency_ex_rate: true,
+          payment_type_code: true,
+          payment_due_date: true,
+          payment_terms: true,
+          b2b_contract_id: true,
+          cost_center_code: true,
+          po_number: true,
+          // Phase 3 (BVM Wiring): pulled so the AR invoice header mirrors the
+          // legacy `createInvoice` behavior of stamping the gift-card columns
+          // for reporting parity (RPT-AR-001 reads them).
+          gift_card_id: true,
+        },
+      });
+
+      if (!orders.length) {
+        throw new Error('No eligible orders found for AR invoice creation.');
+      }
+
+      const payOnCollectionOrder = orders.find(
+        (order) => order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
+      );
+      if (payOnCollectionOrder) {
+        throw new Error('PAY_ON_COLLECTION orders cannot generate an AR invoice.');
+      }
+
+      const customerIds = new Set(orders.map((order) => order.customer_id));
+      if (customerIds.size > 1) {
+        throw new Error('All orders on one AR invoice must belong to the same customer.');
+      }
+
+      const customerId = input.customer_id ?? orders[0]?.customer_id;
+      if (!customerId) {
+        throw new Error('Customer is required to create an AR invoice from orders.');
+      }
+
+      const currencyCode =
+        input.currency_code ??
+        orders.find((order) => order.currency_code)?.currency_code ??
+        ORDER_DEFAULTS.CURRENCY;
+      const branchId = orders[0]?.branch_id ?? null;
+      const subtotal = orders.reduce((sum, order) => {
+        const outstanding = toNumber(
+          order.outstanding_amount ??
+          calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
+        );
+        return sum + outstanding;
+      }, 0);
+      const invoiceDate = normalizeDateOnly(input.invoice_date) ?? new Date();
+      const dueDate = normalizeDateOnly(input.due_date) ?? orders[0]?.payment_due_date ?? invoiceDate;
+      const invoiceNo = await nextArInvoiceNumber(tenantId, tx);
+
+      // Phase 3: caller controls whether the invoice is born DRAFT (API route
+      // default — separate ISSUE step) or OPEN-and-ledger-posted (submit-order
+      // flow — atomic with order). When issuing immediately we still call
+      // `deriveArInvoiceStatus` so an already-past due_date opens as OVERDUE.
+      const issueImmediately = input.issueImmediately === true;
+      const initialStatus = issueImmediately
+        ? deriveArInvoiceStatus({
+            currentStatus: AR_INVOICE_STATUSES.OPEN,
+            totalAmount: subtotal,
+            paidAmount: 0,
+            dueDate,
+          })
+        : AR_INVOICE_STATUSES.DRAFT;
+
+      const created = await tx.org_invoice_mst.create({
+        data: {
+          tenant_org_id: tenantId,
+          order_id: orders[0]?.id ?? null,
+          customer_id: customerId,
+          branch_id: branchId,
+          invoice_no: invoiceNo,
+          invoice_date: invoiceDate,
+          due_date: dueDate,
+          due_date_source_cd: input.due_date
+            ? AR_DUE_DATE_SOURCES.MANUAL_OVERRIDE
+            : orders[0]?.b2b_contract_id
+              ? AR_DUE_DATE_SOURCES.B2B_CONTRACT
+              : AR_DUE_DATE_SOURCES.INVOICE_DATE,
+          payment_terms: orders[0]?.payment_terms ?? null,
+          currency_code: currencyCode,
+          currency_ex_rate: toNumber(orders[0]?.currency_ex_rate ?? 1),
+          subtotal,
+          discount: 0,
+          tax: 0,
+          total: subtotal,
+          paid_amount: 0,
+          outstanding_amount: subtotal,
+          status: initialStatus,
+          invoice_type_cd: orders[0]?.b2b_contract_id ? AR_INVOICE_TYPES.B2B_ORDER : AR_INVOICE_TYPES.ORDER_CREDIT,
+          numbering_doc_type_cd: AR_INVOICE_DOC_TYPES.AR_INV,
+          b2b_contract_id: orders[0]?.b2b_contract_id ?? null,
+          cost_center_code: orders[0]?.cost_center_code ?? null,
+          po_number: orders[0]?.po_number ?? null,
+          // Phase 3: parity with legacy `createInvoice` — mirror gift-card
+          // columns so RPT-AR-001 and the invoice print preview don't lose
+          // visibility on which orders applied a gift card.
+          gift_card_id: orders[0]?.gift_card_id ?? null,
+          gift_card_applied_amount: input.gift_card_applied_amount ?? null,
+          issued_at: issueImmediately ? invoiceDate : null,
+          issued_by: issueImmediately ? userId : null,
+          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
+          rec_notes: input.rec_notes ?? null,
+          created_by: userId,
+          updated_by: userId,
+        },
+      });
+
+      // Phase 3: ERP-lite auto-post dispatch — preserves the parity contract
+      // with the legacy `createInvoice` adapter so tenants with BLOCKING
+      // policies still gate invoice creation on ERP-lite success.
+      await assertBlockingInvoiceAutoPostSucceeded(
+        await ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction(tx, {
+          invoice_id: created.id,
+          invoice_no: created.invoice_no ?? null,
+          order_id: created.order_id ?? null,
+          branch_id: created.branch_id ?? null,
+          currency_code: created.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          exchange_rate: created.currency_ex_rate != null ? Number(created.currency_ex_rate) : 1,
+          invoice_date: invoiceDate.toISOString().slice(0, 10),
+          subtotal: Number(created.subtotal ?? 0),
+          discount_amount: Number(created.discount ?? 0),
+          tax_amount: Number(created.tax ?? 0),
+          vat_amount: Number(created.vat_amount ?? 0),
+          total_amount: Number(created.total ?? 0),
+          created_by: userId,
+        })
+      );
+
+      await tx.org_invoice_orders_dtl.createMany({
+        data: orders.map((order) => {
+          const outstanding = toNumber(
+            order.outstanding_amount ??
+            calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
+          );
+          return {
+            tenant_org_id: tenantId,
+            invoice_id: created.id,
+            order_id: order.id,
+            order_total_amount: toNumber(order.total),
+            invoiced_amount: outstanding,
+            paid_before_amount: toNumber(order.paid_amount),
+            credit_before_amount: 0,
+            outstanding_amount: outstanding,
+            allocation_policy: input.allocation_policy,
+            created_by: userId,
+            updated_by: userId,
+          };
+        }),
+      });
+
+      await tx.org_invoice_lines_dtl.createMany({
+        data: orders.map((order, index) => {
+          const outstanding = toNumber(
+            order.outstanding_amount ??
+            calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
+          );
+          return {
+            tenant_org_id: tenantId,
+            invoice_id: created.id,
+            line_no: index + 1,
+            line_type: 'ORDER_SUMMARY',
+            source_type: 'ORDER',
+            source_order_id: order.id,
+            source_order_item_id: null,
+            description: `Order ${order.order_no ?? order.id}`,
+            description2: null,
+            quantity: 1,
+            unit_price: outstanding,
+            subtotal_amount: outstanding,
+            discount_amount: 0,
+            taxable_amount: outstanding,
+            tax_rate: null,
+            tax_amount: 0,
+            total_amount: outstanding,
+            currency_code: currencyCode,
+            currency_ex_rate: toNumber(orders[0]?.currency_ex_rate ?? 1),
+            metadata: { order_no: order.order_no } as Prisma.InputJsonValue,
+            created_by: userId,
+            updated_by: userId,
+          };
+        }),
+      });
+
+      await recordStatusHistoryTx(tx, {
+        tenantId,
+        invoiceId: created.id,
+        toStatus: initialStatus,
+        actionCd: issueImmediately ? 'CREATE_FROM_ORDERS_ISSUED' : 'CREATE_FROM_ORDERS',
+        metadata: { order_count: orders.length, issued_immediately: issueImmediately },
+        userId,
+      });
+
+      // Phase 3: when issuing immediately, mirror the issueArInvoice tail —
+      // AR ledger DEBIT INVOICE_ISSUED + AR_INVOICE_ISSUED outbox event — so
+      // downstream consumers see the same shape as a DRAFT → ISSUE flow.
+      if (issueImmediately) {
+        await appendLedgerEntryTx(tx, {
+          tenantId,
+          customerId,
+          invoiceId: created.id,
+          currencyCode,
+          amount: subtotal,
+          entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
+          movementCd: AR_LEDGER_MOVEMENTS.INVOICE_ISSUED,
+          refDocNo: created.invoice_no,
+          eventAt: invoiceDate,
+          metadata: { issued_immediately: true, source_flow: 'submit_order' },
+          userId,
+        });
+
+        await emitEventTx(
+          tx,
+          tenantId,
+          OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
+          'ar_invoice',
+          created.id,
+          {
+            invoice_id: created.id,
+            invoice_no: created.invoice_no,
+            issued_at: invoiceDate.toISOString(),
+            issued_immediately: true,
+          }
+        );
+      }
+
+      const detail = await getArInvoiceDetail(created.id, { tenantId });
+      return { resourceId: created.id, data: detail };
+    },
+  });
+}
+
+/**
+ * Create an AR invoice from one or more orders.
+ *
+ * Phase 3 (BVM Wiring): added optional `tx` parameter so submit-order can
+ * thread its own transaction in for atomic order+voucher+AR-invoice commits.
+ * When `input.issueImmediately === true`, the invoice is born OPEN with an
+ * AR ledger debit + AR_INVOICE_ISSUED outbox event (no separate ISSUE call
+ * needed). Default behavior (DRAFT) preserved for API route callers.
+ *
+ * @param input  validated `createArInvoiceFromOrdersSchema` payload
+ * @param actor  tenant + user context (auth fallback when tenantId omitted)
+ * @param tx     optional caller-supplied transaction client; when present the
+ *               producer runs inside it and DOES NOT open its own
+ *               `prisma.$transaction` — atomicity is the caller's responsibility
+ * @returns the fully hydrated AR invoice detail (header + lines + ledger + history)
+ *
+ * @example
+ * // API route (DRAFT, owns its own tx):
+ * await createArInvoiceFromOrders({ order_ids: [...], ... });
+ *
+ * // submit-order (OPEN, joins the order tx):
+ * await prisma.$transaction(async (tx) => {
+ *   await createArInvoiceFromOrders(
+ *     { order_ids: [orderId], issueImmediately: true, idempotency_key: `${orderId}_ar`, ... },
+ *     { tenantId, userId },
+ *     tx,
+ *   );
+ * });
+ */
 export async function createArInvoiceFromOrders(
   input: CreateArInvoiceFromOrdersInput,
-  actor: ArActorContext = {}
+  actor: ArActorContext = {},
+  tx?: PrismaTx
 ) {
+  // Tenant resolved server-side from authenticated session when actor omits it.
   const tenantId = await resolveTenantId(actor.tenantId);
   const userId = actor.userId ?? null;
 
+  if (tx) {
+    return createArInvoiceFromOrdersInTx(tx, input, tenantId, userId);
+  }
+
   return withTenantContext(tenantId, async () =>
-    prisma.$transaction(async (tx) => {
-      return withIdempotency(tx, {
-        tenantId,
-        userId,
-        key: input.idempotency_key ?? null,
-        resourceType: 'ar_invoice_create_from_orders',
-        producer: async () => {
-          const orders = await tx.org_orders_mst.findMany({
-            where: {
-              tenant_org_id: tenantId,
-              id: { in: input.order_ids },
-            },
-            select: {
-              id: true,
-              order_no: true,
-              customer_id: true,
-              branch_id: true,
-              total: true,
-              paid_amount: true,
-              outstanding_amount: true,
-              currency_code: true,
-              currency_ex_rate: true,
-              payment_type_code: true,
-              payment_due_date: true,
-              payment_terms: true,
-              b2b_contract_id: true,
-              cost_center_code: true,
-              po_number: true,
-            },
-          });
-
-          if (!orders.length) {
-            throw new Error('No eligible orders found for AR invoice creation.');
-          }
-
-          const payOnCollectionOrder = orders.find(
-            (order) => order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
-          );
-          if (payOnCollectionOrder) {
-            throw new Error('PAY_ON_COLLECTION orders cannot generate an AR invoice.');
-          }
-
-          const customerIds = new Set(orders.map((order) => order.customer_id));
-          if (customerIds.size > 1) {
-            throw new Error('All orders on one AR invoice must belong to the same customer.');
-          }
-
-          const customerId = input.customer_id ?? orders[0]?.customer_id;
-          if (!customerId) {
-            throw new Error('Customer is required to create an AR invoice from orders.');
-          }
-
-          const currencyCode =
-            input.currency_code ??
-            orders.find((order) => order.currency_code)?.currency_code ??
-            ORDER_DEFAULTS.CURRENCY;
-          const branchId = orders[0]?.branch_id ?? null;
-          const subtotal = orders.reduce((sum, order) => {
-            const outstanding = toNumber(
-              order.outstanding_amount ??
-              calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-            );
-            return sum + outstanding;
-          }, 0);
-          const invoiceDate = normalizeDateOnly(input.invoice_date) ?? new Date();
-          const dueDate = normalizeDateOnly(input.due_date) ?? orders[0]?.payment_due_date ?? invoiceDate;
-          const invoiceNo = await nextArInvoiceNumber(tenantId, tx);
-
-          const created = await tx.org_invoice_mst.create({
-            data: {
-              tenant_org_id: tenantId,
-              order_id: orders[0]?.id ?? null,
-              customer_id: customerId,
-              branch_id: branchId,
-              invoice_no: invoiceNo,
-              invoice_date: invoiceDate,
-              due_date: dueDate,
-              due_date_source_cd: input.due_date
-                ? AR_DUE_DATE_SOURCES.MANUAL_OVERRIDE
-                : orders[0]?.b2b_contract_id
-                  ? AR_DUE_DATE_SOURCES.B2B_CONTRACT
-                  : AR_DUE_DATE_SOURCES.INVOICE_DATE,
-              payment_terms: orders[0]?.payment_terms ?? null,
-              currency_code: currencyCode,
-              currency_ex_rate: toNumber(orders[0]?.currency_ex_rate ?? 1),
-              subtotal,
-              discount: 0,
-              tax: 0,
-              total: subtotal,
-              paid_amount: 0,
-              outstanding_amount: subtotal,
-              status: AR_INVOICE_STATUSES.DRAFT,
-              invoice_type_cd: orders[0]?.b2b_contract_id ? AR_INVOICE_TYPES.B2B_ORDER : AR_INVOICE_TYPES.ORDER_CREDIT,
-              numbering_doc_type_cd: AR_INVOICE_DOC_TYPES.AR_INV,
-              b2b_contract_id: orders[0]?.b2b_contract_id ?? null,
-              cost_center_code: orders[0]?.cost_center_code ?? null,
-              po_number: orders[0]?.po_number ?? null,
-              metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
-              rec_notes: input.rec_notes ?? null,
-              created_by: userId,
-              updated_by: userId,
-            },
-          });
-
-          await tx.org_invoice_orders_dtl.createMany({
-            data: orders.map((order) => {
-              const outstanding = toNumber(
-                order.outstanding_amount ??
-                calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-              );
-              return {
-                tenant_org_id: tenantId,
-                invoice_id: created.id,
-                order_id: order.id,
-                order_total_amount: toNumber(order.total),
-                invoiced_amount: outstanding,
-                paid_before_amount: toNumber(order.paid_amount),
-                credit_before_amount: 0,
-                outstanding_amount: outstanding,
-                allocation_policy: input.allocation_policy,
-                created_by: userId,
-                updated_by: userId,
-              };
-            }),
-          });
-
-          await tx.org_invoice_lines_dtl.createMany({
-            data: orders.map((order, index) => {
-              const outstanding = toNumber(
-                order.outstanding_amount ??
-                calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-              );
-              return {
-                tenant_org_id: tenantId,
-                invoice_id: created.id,
-                line_no: index + 1,
-                line_type: 'ORDER_SUMMARY',
-                source_type: 'ORDER',
-                source_order_id: order.id,
-                source_order_item_id: null,
-                description: `Order ${order.order_no ?? order.id}`,
-                description2: null,
-                quantity: 1,
-                unit_price: outstanding,
-                subtotal_amount: outstanding,
-                discount_amount: 0,
-                taxable_amount: outstanding,
-                tax_rate: null,
-                tax_amount: 0,
-                total_amount: outstanding,
-                currency_code: currencyCode,
-                currency_ex_rate: toNumber(orders[0]?.currency_ex_rate ?? 1),
-                metadata: { order_no: order.order_no } as Prisma.InputJsonValue,
-                created_by: userId,
-                updated_by: userId,
-              };
-            }),
-          });
-
-          await recordStatusHistoryTx(tx, {
-            tenantId,
-            invoiceId: created.id,
-            toStatus: AR_INVOICE_STATUSES.DRAFT,
-            actionCd: 'CREATE_FROM_ORDERS',
-            metadata: { order_count: orders.length },
-            userId,
-          });
-
-          const detail = await getArInvoiceDetail(created.id, { tenantId });
-          return { resourceId: created.id, data: detail };
-        },
-      });
-    })
+    prisma.$transaction(async (innerTx) =>
+      createArInvoiceFromOrdersInTx(innerTx, input, tenantId, userId)
+    )
   );
+}
+
+/**
+ * Gate AR invoice creation on the ERP-lite auto-post dispatch result when the
+ * tenant's policy requires success. Mirrors `invoice-service.ts` — copied here
+ * to keep the canonical writer self-contained; Phase 6 cleanup will extract a
+ * shared util once `createInvoice` is fully retired.
+ */
+function assertBlockingInvoiceAutoPostSucceeded(
+  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchInvoiceCreated>>
+): void {
+  const shouldBlock =
+    !!dispatchResult.policy &&
+    (dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+      dispatchResult.policy.required_success === true);
+
+  if (!shouldBlock) return;
+
+  const success =
+    dispatchResult.status === 'executed' && dispatchResult.execute_result?.success === true;
+
+  if (success) return;
+
+  const failureMessage =
+    dispatchResult.status === 'skipped'
+      ? `ERP-Lite auto-post policy prevented invoice completion (${dispatchResult.skip_reason}).`
+      : dispatchResult.execute_result?.error_message ??
+        'ERP-Lite auto-post failed for the invoice.';
+
+  throw new Error(failureMessage);
 }
 
 export async function updateArInvoice(

@@ -8,6 +8,7 @@ export {
   PAYMENT_KINDS,
   PAYMENT_METHODS,
   getPaymentTypeFromMethod,
+  normalizePaymentMethodCode,
   type PaymentKind,
   type PaymentMethodCode,
 } from "./payment";

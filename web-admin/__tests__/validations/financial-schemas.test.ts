@@ -52,11 +52,19 @@ describe('paymentLegSchema', () => {
   });
 
   it('accepts all known method codes', () => {
-    const methods = ['CASH', 'CARD', 'CHECK', 'PAY_ON_COLLECTION', 'INVOICE',
+    const methods = ['CASH', 'CARD', 'CHECK', 'PAY_ON_COLLECTION', 'CREDIT_INVOICE', 'INVOICE',
                      'HYPERPAY', 'PAYTABS', 'STRIPE', 'BANK_TRANSFER', 'MOBILE_PAYMENT'];
     for (const method of methods) {
       const result = paymentLegSchema.safeParse({ method, amount: 1 });
       expect(result.success).toBe(true);
+    }
+  });
+
+  it('normalizes legacy INVOICE payloads to CREDIT_INVOICE', () => {
+    const result = paymentLegSchema.safeParse({ method: 'INVOICE', amount: 1 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.method).toBe('CREDIT_INVOICE');
     }
   });
 });

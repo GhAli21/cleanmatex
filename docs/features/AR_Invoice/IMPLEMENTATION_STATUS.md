@@ -89,6 +89,17 @@ Implementation rules:
 - [x] Test guide added
 - [x] Validation commands green
 
+## 2026-05-29 — BVM Wiring Phase 3 integration
+
+- `createArInvoiceFromOrders` now accepts an optional `tx?: PrismaTx` so callers can join the writer to their own transaction (submit-order does this to commit order header + voucher + AR invoice atomically).
+- New input flag `issueImmediately?: boolean` (default `false`):
+  - `false` (preserves existing API route DRAFT semantics, no behavior change for `POST /api/v1/ar/invoices/from-orders` callers)
+  - `true` (used by submit-order): status derived via `deriveArInvoiceStatus({ currentStatus: OPEN, … })`, `issued_at` + `issued_by` populated atomically, AR ledger `INVOICE_ISSUED` DEBIT appended, `AR_INVOICE_ISSUED` outbox event emitted, status-history `actionCd = 'CREATE_FROM_ORDERS_ISSUED'`
+- New input flag `gift_card_applied_amount?: number` mirrored onto `org_invoice_mst.gift_card_applied_amount` for reporting parity with the legacy `createInvoice` adapter.
+- `ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction` now fires inside the writer with the same `assertBlockingInvoiceAutoPostSucceeded` gating used by the legacy adapter.
+- Test coverage: 5 new cases in `__tests__/services/ar-invoice.service.test.ts` (issueImmediately on/off, gift_card mirror, ERP-lite BLOCKING gate, caller-tx atomic invariant).
+- Follow-up tracked in `docs/features/Order_Fin/bvm_wiring_phase3_implementation.md`: extract `assertBlockingInvoiceAutoPostSucceeded` into a shared util once legacy `createInvoice` retires.
+
 ## Risks And Watchpoints
 
 - current invoice numbering is count-based in some legacy non-AR services and must remain isolated from the sequence-based AR issuance path

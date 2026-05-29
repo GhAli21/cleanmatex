@@ -378,7 +378,15 @@ export function PaymentModalV4({
   // Tax state
   const [taxRate, setTaxRate] = useState<number>(0.06);
 
-  type TaxProfileEntry = { id: string; name: string; name2: string | null; tax_type: string; rate: number; enabled: boolean };
+  type TaxProfileEntry = {
+    id: string;
+    name: string;
+    name2: string | null;
+    tax_type: string;
+    rate: number;
+    is_compound: boolean;
+    enabled: boolean;
+  };
   const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
 
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
@@ -393,6 +401,16 @@ export function PaymentModalV4({
   const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
 
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
+  type TaxBreakdownLine = {
+    taxType: 'VAT' | 'GST' | 'CUSTOM';
+    label: string;
+    label2: string | null;
+    rate: number;
+    isCompound: boolean;
+    baseAmount: number;
+    taxAmount: number;
+    profileId?: string;
+  };
 
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
@@ -400,10 +418,12 @@ export function PaymentModalV4({
     autoRuleDiscount: number;
     promoDiscount: number;
     afterDiscounts: number;
+    additionalTaxAmount: number;
     vatValue: number;
     giftCardApplied: number;
     finalTotal: number;
     vatTaxPercent: number;
+    taxBreakdown: TaxBreakdownLine[];
     creditLimit?: {
       currentBalance: number;
       creditLimit: number;
@@ -543,6 +563,7 @@ export function PaymentModalV4({
             name2: p.name2,
             tax_type: p.tax_type,
             rate: Number(p.rate),
+            is_compound: p.is_compound,
             enabled: true,
           })));
         }
@@ -614,6 +635,8 @@ export function PaymentModalV4({
           isExpress,
           percentDiscount: percentDiscount ?? 0,
           amountDiscount: amountDiscount ?? 0,
+          serviceCategories: serviceCategories && serviceCategories.length > 0 ? serviceCategories : undefined,
+          taxProfileIds: taxProfileEntries.filter((entry) => entry.enabled).map((entry) => entry.id),
           ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
             promoCode: appliedPromoCode?.code || undefined,
             giftCardNumber: appliedGiftCard?.number || undefined,
@@ -631,10 +654,12 @@ export function PaymentModalV4({
           autoRuleDiscount: typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
           promoDiscount: d.promoDiscount,
           afterDiscounts: d.afterDiscounts,
+          additionalTaxAmount: d.additionalTaxAmount ?? 0,
           vatValue: d.vatValue,
           giftCardApplied: d.giftCardApplied,
           finalTotal: d.finalTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
+          taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
       } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
@@ -657,7 +682,7 @@ export function PaymentModalV4({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
 
   useEffect(() => {
     if (!open || items.length === 0) {
@@ -741,30 +766,56 @@ export function PaymentModalV4({
     return Math.max(0, subtotal - manualDiscount - promoDiscount);
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
 
+  const fallbackTaxBreakdown = useMemo<TaxBreakdownLine[]>(() => {
+    const selectedProfiles = taxProfileEntries.filter((entry) => entry.enabled);
+    if (selectedProfiles.length > 0) {
+      let accumulatedPriorTax = 0;
+      return selectedProfiles.map((entry) => {
+        const taxableBase = entry.is_compound ? afterDiscountsForTax + accumulatedPriorTax : afterDiscountsForTax;
+        const taxAmount = parseFloat((taxableBase * (entry.rate / 100)).toFixed(decimalPlaces));
+        accumulatedPriorTax += taxAmount;
+        return {
+          taxType: entry.tax_type as 'VAT' | 'GST' | 'CUSTOM',
+          label: entry.name,
+          label2: entry.name2,
+          rate: entry.rate,
+          isCompound: entry.is_compound,
+          baseAmount: taxableBase,
+          taxAmount,
+          profileId: entry.id,
+        };
+      });
+    }
+
+    if (taxRate > 0) {
+      return [{
+        taxType: 'VAT',
+        label: 'VAT',
+        label2: 'ضريبة القيمة المضافة',
+        rate: taxRate * 100,
+        isCompound: false,
+        baseAmount: afterDiscountsForTax,
+        taxAmount: parseFloat((afterDiscountsForTax * taxRate).toFixed(decimalPlaces)),
+      }];
+    }
+
+    return [];
+  }, [taxProfileEntries, afterDiscountsForTax, decimalPlaces, taxRate]);
+
+  const displayTaxBreakdown = serverTotals?.taxBreakdown?.length ? serverTotals.taxBreakdown : fallbackTaxBreakdown;
   const profilesTaxAmount = useMemo(
-    () => parseFloat(
-      taxProfileEntries
-        .filter(e => e.enabled)
-        .reduce((sum, e) => sum + afterDiscountsForTax * (e.rate / 100), 0)
-        .toFixed(decimalPlaces)
-    ),
-    [taxProfileEntries, afterDiscountsForTax, decimalPlaces]
+    () => parseFloat(displayTaxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0).toFixed(decimalPlaces)),
+    [displayTaxBreakdown, decimalPlaces]
   );
 
   const totals = useMemo(() => {
     if (serverTotals) {
-      const additionalTaxAmount = profilesTaxAmount;
-      const clientGiftCard  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-      const serverGiftCard  = serverTotals.giftCardApplied || 0;
-      const pendingGiftCard = Math.max(0, clientGiftCard - serverGiftCard);
-      const finalTotalWithExtra = Math.max(0, serverTotals.finalTotal + additionalTaxAmount - pendingGiftCard);
+      const serverTaxTotal = serverTotals.taxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0);
       return {
         ...serverTotals,
         taxRate: 0,
-        taxAmount: additionalTaxAmount,
-        giftCardApplied: serverGiftCard + pendingGiftCard,
-        finalTotal: finalTotalWithExtra,
-        totalSavings: serverTotals.subtotal + serverTotals.vatValue - finalTotalWithExtra,
+        taxAmount: serverTotals.additionalTaxAmount ?? 0,
+        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.finalTotal,
       };
     }
     const subtotal = total;
@@ -774,11 +825,20 @@ export function PaymentModalV4({
         : Math.min(amountDiscount, subtotal);
     const promoDiscount  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
-    const taxAmount      = profilesTaxAmount;
-    const afterTax       = afterDiscounts + taxAmount;
-    const vatValue       = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
+    const vatValue = parseFloat(
+      fallbackTaxBreakdown
+        .filter((line) => line.taxType === 'VAT' || line.taxType === 'GST')
+        .reduce((sum, line) => sum + line.taxAmount, 0)
+        .toFixed(decimalPlaces)
+    );
+    const taxAmount = parseFloat(
+      fallbackTaxBreakdown
+        .filter((line) => line.taxType === 'CUSTOM')
+        .reduce((sum, line) => sum + line.taxAmount, 0)
+        .toFixed(decimalPlaces)
+    );
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal     = Math.max(0, afterTax + vatValue - giftCardApplied);
+    const finalTotal     = Math.max(0, afterDiscounts + profilesTaxAmount - giftCardApplied);
     return {
       subtotal,
       manualDiscount,
@@ -787,13 +847,13 @@ export function PaymentModalV4({
       afterDiscounts,
       taxRate: 0,
       taxAmount,
-      vatTaxPercent: taxRate * 100,
+      vatTaxPercent: fallbackTaxBreakdown.find((line) => line.taxType === 'VAT' || line.taxType === 'GST')?.rate ?? (taxRate * 100),
       vatValue,
       giftCardApplied,
       finalTotal,
       totalSavings: subtotal + taxAmount + vatValue - finalTotal,
     };
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces]);
+  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
 
   const IMMEDIATE_METHOD_CODES = [
     PAYMENT_METHODS.CASH,
@@ -1359,6 +1419,16 @@ export function PaymentModalV4({
 
   // Submit handler
   const onSubmitForm = (data: PaymentFormData) => {
+    if (totalsLoading) {
+      cmxMessage.info(t('calculating'));
+      return;
+    }
+
+    if (!serverTotals && items.length > 0) {
+      cmxMessage.error(t('errors.invalidAmount'));
+      return;
+    }
+
     if (pinRequired) {
       setPinFieldError(t('giftCard.pinPendingError'));
       pinInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1426,6 +1496,11 @@ export function PaymentModalV4({
       creditLimitOverride: creditLimitOverride || undefined,
       ...(cashDrawerRequired && selectedCashDrawerSessionId && {
         cashDrawerSessionId: selectedCashDrawerSessionId,
+      }),
+      ...(taxProfileEntries.some((entry) => entry.enabled) && {
+        taxProfileIds: taxProfileEntries
+          .filter((entry) => entry.enabled)
+          .map((entry) => entry.id),
       }),
       ...(settlementLegEntries.length > 0 && {
         paymentLegs: settlementLegEntries.map(({ leg }) => leg),
@@ -1671,7 +1746,7 @@ export function PaymentModalV4({
     walletLegExceedsLiveBalance,
   ]);
 
-  const submitBusy = loading || totalsLoading;
+  const submitBusy = loading || totalsLoading || (items.length > 0 && !serverTotals);
   const submitHasBlockingIssues = validationItems.length > 0;
 
   const focusFirstBlockingIssue = useCallback(() => {
@@ -2824,19 +2899,19 @@ export function PaymentModalV4({
                     </CmxButton>
                     {taxPanelOpen && (
                       <CmxCardContent className="space-y-2 border-t">
-                        {taxProfileEntries.length === 0 ? (
+                        {displayTaxBreakdown.length === 0 ? (
                           <p className="text-xs text-slate-500">{t('tax.noProfiles')}</p>
                         ) : (
-                          taxProfileEntries.map((entry) => (
-                            <div key={entry.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          displayTaxBreakdown.map((entry, index) => (
+                            <div key={entry.profileId ?? `${entry.taxType}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-medium text-slate-700">{isRTL ? (entry.name2 || entry.name) : entry.name}</p>
+                                <p className="truncate text-xs font-medium text-slate-700">{isRTL ? (entry.label2 || entry.label) : entry.label}</p>
                                 <p className="text-xs text-slate-400">
                                   {t('tax.rate')}: {entry.rate.toFixed(2)}%
                                 </p>
                               </div>
                               <span className="text-sm font-semibold tabular-nums text-slate-900">
-                                {currencyCode} {formatAmount(afterDiscountsForTax * (entry.rate / 100))}
+                                {currencyCode} {formatAmount(entry.taxAmount)}
                               </span>
                             </div>
                           ))
