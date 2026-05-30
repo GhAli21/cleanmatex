@@ -95,7 +95,7 @@ export function OrderSettlementSummary({ viewModel }: OrderSettlementSummaryProp
             <OrderFinancialMoneyValue
               amount={amounts.totalCreditAppliedAmount}
               currencyCode={currencyCode}
-              variant="credit"
+              variant="creditTotal"
             />
           </div>
           <div className={`flex justify-between text-sm font-semibold ${isRTL ? 'flex-row-reverse' : ''}`}>

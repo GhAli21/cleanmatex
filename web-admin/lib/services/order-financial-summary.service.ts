@@ -1,10 +1,12 @@
 import 'server-only';
 
+import { Decimal } from '@prisma/client/runtime/library';
+
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
-import { Decimal } from '@prisma/client/runtime/library';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import { ORDER_FINANCIAL_SNAPSHOT_STATUS } from '@/lib/constants/order-financial';
 
 /**
  * Why:
@@ -20,21 +22,51 @@ export interface OrderFinancialSnapshot {
   paymentTypeCode: string | null;
   paymentStatus: string;
   subtotalAmount: number;
+  itemsBaseAmount: number;
+  pieceExtraPriceAmount: number;
+  preferenceExtraPriceAmount: number;
+  serviceChargeAmount: number;
+  deliveryChargeAmount: number;
+  expressChargeAmount: number;
+  otherChargesAmount: number;
   totalChargesAmount: number;
   totalDiscountAmount: number;
+  taxableAmount: number;
   totalTaxAmount: number;
   totalAmount: number;
   totalPaidAmount: number;
+  pendingPaymentAmount: number;
+  authorizedPaymentAmount: number;
+  failedPaymentAmount: number;
   totalCreditAppliedAmount: number;
-  totalRefundedAmount: number;
+  refundedAmount: number;
+  realPaymentRefundedAmount: number;
+  storedValueRestoredAmount: number;
+  customerCreditIssuedAmount: number;
+  netCollectedAmount: number;
   outstandingAmount: number;
+  overpaidAmount: number;
   payOnCollectionAmount: number;
-  giftCardAppliedAmount: number;
-  changeReturnedAmount: number;
-  serviceChargeAmount: number;
-  roundingAmount: number;
-  netReceivableAmount: number;
+  arReceivableAmount: number;
+  arInvoiceId: string | null;
+  arInvoiceNo: string | null;
+  arInvoiceStatus: string | null;
+  taxDocumentId: string | null;
+  taxDocumentNo: string | null;
+  taxDocumentStatus: string | null;
+  taxDocumentType: string | null;
+  financialSnapshotStatus: string;
+  financialMismatchWarningCount: number;
+  financialCalculationSnapshot: Record<string, unknown> | null;
+  financialCalculationHash: string | null;
+  financialCalculationTraceId: string | null;
   financialEngineVersion: number | null;
+  changeReturnedAmount: number;
+  roundingAmount: number;
+  // Temporary compatibility aliases during the canonical rollout.
+  totalRefundedAmount: number;
+  giftCardAppliedAmount: number;
+  netReceivableAmount: number;
   vatAmount: number;
 }
 
@@ -53,6 +85,7 @@ export interface OrderTaxRow {
   label: string;
   rate: number;
   tax_amount: number;
+  taxable_amount?: number;
   currency_code: string;
 }
 
@@ -80,6 +113,7 @@ export interface OrderCreditApplicationRow {
   applied_by: string | null;
   applied_at: string;
   fin_voucher_id: string | null;
+  fin_voucher_trx_line_id: string | null;
 }
 
 export interface OrderRefundRow {
@@ -148,6 +182,37 @@ function toIso(value: Date | string | null | undefined): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function sumProcessedRefunds(refunds: Array<{ refund_status: string | null; refund_amount: Decimal }>): number {
+  return refunds.reduce((sum, row) => {
+    return String(row.refund_status ?? '').trim().toUpperCase() === 'PROCESSED'
+      ? sum + toNumber(row.refund_amount)
+      : sum;
+  }, 0);
+}
+
+function sumRealPaymentRefunds(refunds: Array<{
+  refund_status: string | null;
+  refund_amount: Decimal;
+  refund_method_code: string | null;
+  original_payment_id: string | null;
+}>): number {
+  return refunds.reduce((sum, row) => {
+    if (String(row.refund_status ?? '').trim().toUpperCase() !== 'PROCESSED') return sum;
+
+    const method = String(row.refund_method_code ?? '').trim().toUpperCase();
+    if (method === 'CASH' || method === 'ORIGINAL_METHOD' || row.original_payment_id) {
+      return sum + toNumber(row.refund_amount);
+    }
+
+    return sum;
+  }, 0);
+}
+
 /**
  * Read the full Order Fin summary for one order under tenant scope.
  *
@@ -157,7 +222,7 @@ function toIso(value: Date | string | null | undefined): string {
  */
 export async function getOrderFinancialSummary(
   tenantId: string,
-  orderId: string
+  orderId: string,
 ): Promise<OrderFinancialSummary> {
   let adjustments: OrderAdjustmentRow[] = [];
 
@@ -181,12 +246,39 @@ export async function getOrderFinancialSummary(
           payment_status: true,
           subtotal: true,
           total: true,
+          subtotal_amount: true,
+          items_base_amount: true,
+          total_amount: true,
+          piece_extra_price_amount: true,
+          preference_extra_price_amount: true,
+          service_charge_amount: true,
+          delivery_charge_amount: true,
+          express_charge_amount: true,
+          other_charges_amount: true,
           total_charges_amount: true,
           total_discount_amount: true,
+          taxable_amount: true,
           total_tax_amount: true,
           total_credit_applied_amount: true,
           total_paid_amount: true,
+          pending_payment_amount: true,
+          authorized_payment_amount: true,
+          failed_payment_amount: true,
+          refunded_amount: true,
+          real_payment_refunded_amount: true,
+          stored_value_restored_amount: true,
+          customer_credit_issued_amount: true,
+          net_collected_amount: true,
           outstanding_amount: true,
+          overpaid_amount: true,
+          ar_receivable_amount: true,
+          ar_invoice_id: true,
+          ar_invoice_no: true,
+          ar_invoice_status: true,
+          tax_document_id: true,
+          tax_document_no: true,
+          tax_document_status: true,
+          tax_document_type: true,
           pay_on_collection_amount: true,
           gift_card_applied_amount: true,
           change_returned_amount: true,
@@ -195,38 +287,43 @@ export async function getOrderFinancialSummary(
           net_receivable_amount: true,
           financial_engine_version: true,
           vat_amount: true,
+          financial_snapshot_status: true,
+          financial_mismatch_warning_count: true,
+          financial_calculation_snapshot: true,
+          financial_calculation_hash: true,
+          financial_calculation_trace_id: true,
         },
-      })
+      }),
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_charges_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: orderId },
         orderBy: { created_at: 'asc' },
-      })
+      }),
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_taxes_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: orderId },
         orderBy: { created_at: 'asc' },
-      })
+      }),
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_payments_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
         orderBy: { created_at: 'asc' },
-      })
+      }),
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_credit_apps_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
         orderBy: { applied_at: 'asc' },
-      })
+      }),
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_refunds_dtl.findMany({
         where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
         orderBy: { created_at: 'asc' },
-      })
+      }),
     ),
     getDiscountLinesForOrder(tenantId, orderId),
   ]);
@@ -258,15 +355,18 @@ export async function getOrderFinancialSummary(
     }
   }
 
-  const totalRefundedAmount = refunds.reduce((sum, row) => {
-    return row.refund_status === 'PROCESSED'
-      ? sum + toNumber(row.refund_amount)
-      : sum;
-  }, 0);
+  const refundedAmount = toNumber(order.refunded_amount) || sumProcessedRefunds(refunds);
+  const realPaymentRefundedAmount = toNumber(order.real_payment_refunded_amount) || sumRealPaymentRefunds(refunds);
+  const totalPaidAmount = toNumber(order.total_paid_amount);
+  const totalCreditAppliedAmount = toNumber(order.total_credit_applied_amount);
+  const totalAmount = toNumber(order.total_amount) || toNumber(order.total);
+  const outstandingAmount = toNumber(order.outstanding_amount);
+  const payOnCollectionAmount = toNumber(order.pay_on_collection_amount);
+
   const normalizedPaymentStatus = normalizeOrderPaymentStatus(order.payment_status, {
     paymentTypeCode: order.payment_type_code ?? null,
-    payOnCollectionAmount: toNumber(order.pay_on_collection_amount),
-    outstandingAmount: toNumber(order.outstanding_amount),
+    payOnCollectionAmount,
+    outstandingAmount,
   });
 
   const snapshot: OrderFinancialSnapshot = {
@@ -275,22 +375,53 @@ export async function getOrderFinancialSummary(
     currencyCode: order.currency_code ?? null,
     paymentTypeCode: order.payment_type_code ?? null,
     paymentStatus: normalizedPaymentStatus,
-    subtotalAmount: toNumber(order.subtotal),
+    // Temporary deprecated header fallback chain until 0335 removes legacy columns.
+    subtotalAmount: toNumber(order.subtotal_amount) || toNumber(order.subtotal),
+    itemsBaseAmount: toNumber(order.items_base_amount) || toNumber(order.subtotal_amount) || toNumber(order.subtotal),
+    pieceExtraPriceAmount: toNumber(order.piece_extra_price_amount),
+    preferenceExtraPriceAmount: toNumber(order.preference_extra_price_amount),
+    serviceChargeAmount: toNumber(order.service_charge_amount) || toNumber(order.service_charge),
+    deliveryChargeAmount: toNumber(order.delivery_charge_amount),
+    expressChargeAmount: toNumber(order.express_charge_amount),
+    otherChargesAmount: toNumber(order.other_charges_amount),
     totalChargesAmount: toNumber(order.total_charges_amount),
     totalDiscountAmount: toNumber(order.total_discount_amount),
+    taxableAmount: toNumber(order.taxable_amount),
     totalTaxAmount: toNumber(order.total_tax_amount),
-    totalAmount: toNumber(order.total),
-    totalPaidAmount: toNumber(order.total_paid_amount),
-    totalCreditAppliedAmount: toNumber(order.total_credit_applied_amount),
-    totalRefundedAmount,
-    outstandingAmount: toNumber(order.outstanding_amount),
-    payOnCollectionAmount: toNumber(order.pay_on_collection_amount),
-    giftCardAppliedAmount: toNumber(order.gift_card_applied_amount),
-    changeReturnedAmount: toNumber(order.change_returned_amount),
-    serviceChargeAmount: toNumber(order.service_charge),
-    roundingAmount: toNumber(order.rounding_adjustment_amount),
-    netReceivableAmount: toNumber(order.net_receivable_amount),
+    totalAmount,
+    totalPaidAmount,
+    pendingPaymentAmount: toNumber(order.pending_payment_amount),
+    authorizedPaymentAmount: toNumber(order.authorized_payment_amount),
+    failedPaymentAmount: toNumber(order.failed_payment_amount),
+    totalCreditAppliedAmount,
+    refundedAmount,
+    realPaymentRefundedAmount,
+    storedValueRestoredAmount: toNumber(order.stored_value_restored_amount),
+    customerCreditIssuedAmount: toNumber(order.customer_credit_issued_amount),
+    netCollectedAmount: toNumber(order.net_collected_amount) || Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
+    outstandingAmount,
+    overpaidAmount: toNumber(order.overpaid_amount) || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
+    payOnCollectionAmount,
+    // Temporary deprecated fallback to the legacy receivable mirror until 0335.
+    arReceivableAmount: toNumber(order.ar_receivable_amount) || toNumber(order.net_receivable_amount),
+    arInvoiceId: order.ar_invoice_id ?? null,
+    arInvoiceNo: order.ar_invoice_no ?? null,
+    arInvoiceStatus: order.ar_invoice_status ?? null,
+    taxDocumentId: order.tax_document_id ?? null,
+    taxDocumentNo: order.tax_document_no ?? null,
+    taxDocumentStatus: order.tax_document_status ?? null,
+    taxDocumentType: order.tax_document_type ?? null,
+    financialSnapshotStatus: order.financial_snapshot_status ?? ORDER_FINANCIAL_SNAPSHOT_STATUS.RECALCULATION_REQUIRED,
+    financialMismatchWarningCount: order.financial_mismatch_warning_count ?? 0,
+    financialCalculationSnapshot: toRecord(order.financial_calculation_snapshot),
+    financialCalculationHash: order.financial_calculation_hash ?? null,
+    financialCalculationTraceId: order.financial_calculation_trace_id ?? null,
     financialEngineVersion: order.financial_engine_version ?? null,
+    changeReturnedAmount: toNumber(order.change_returned_amount),
+    roundingAmount: toNumber(order.rounding_adjustment_amount),
+    totalRefundedAmount: refundedAmount,
+    giftCardAppliedAmount: toNumber(order.gift_card_applied_amount),
+    netReceivableAmount: toNumber(order.net_receivable_amount),
     vatAmount: toNumber(order.vat_amount),
   };
 
@@ -314,13 +445,13 @@ export async function getOrderFinancialSummary(
           : null;
       })
       .filter((row): row is { voucherId: string; voucherLineId: string | null; source: 'REFUND' } => row !== null),
+    // BVM wiring (migrations 0318/0329) stores credit-app voucher backlinks in
+    // dedicated FK columns, not metadata. Reading metadata returned `{}` and
+    // hid the link on Order Details, even though the data was present.
     ...creditApplications
       .map((row) => {
-        const metadata = row.metadata as Record<string, unknown>;
-        const voucherId = typeof metadata.fin_voucher_id === 'string' ? metadata.fin_voucher_id : '';
-        const voucherLineId = typeof metadata.fin_voucher_trx_line_id === 'string'
-          ? metadata.fin_voucher_trx_line_id
-          : null;
+        const voucherId = row.fin_voucher_id ?? '';
+        const voucherLineId = row.fin_voucher_trx_line_id ?? null;
         return voucherId || voucherLineId
           ? { voucherId, voucherLineId, source: 'CREDIT_APPLICATION' as const }
           : null;
@@ -383,6 +514,7 @@ export async function getOrderFinancialSummary(
       label: row.label,
       rate: toNumber(row.rate),
       tax_amount: toNumber(row.tax_amount),
+      taxable_amount: toNumber(row.taxable_amount),
       currency_code: row.currency_code,
     })),
     payments: payments.map((row) => ({
@@ -408,6 +540,7 @@ export async function getOrderFinancialSummary(
       applied_by: row.applied_by ?? null,
       applied_at: toIso(row.applied_at),
       fin_voucher_id: row.fin_voucher_id ?? null,
+      fin_voucher_trx_line_id: row.fin_voucher_trx_line_id ?? null,
     })),
     refunds: refunds.map((row) => ({
       id: row.id,
