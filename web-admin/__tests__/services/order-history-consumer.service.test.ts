@@ -20,12 +20,14 @@
 const mockHistoryUpsert = jest.fn();
 const mockVoucherFindFirst = jest.fn();
 const mockInvoiceFindFirst = jest.fn();
+const mockPaymentFindFirst = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     org_order_history: { upsert: (...a: unknown[]) => mockHistoryUpsert(...a) },
     org_fin_vouchers_mst: { findFirst: (...a: unknown[]) => mockVoucherFindFirst(...a) },
     org_invoice_mst: { findFirst: (...a: unknown[]) => mockInvoiceFindFirst(...a) },
+    org_order_payments_dtl: { findFirst: (...a: unknown[]) => mockPaymentFindFirst(...a) },
   },
 }));
 
@@ -45,6 +47,7 @@ const TENANT_B = '22222222-2222-2222-2222-222222222222';
 const ORDER_ID = '00000000-0000-0000-0000-0000000000aa';
 const VOUCHER_ID = '00000000-0000-0000-0000-0000000000bb';
 const INVOICE_ID = '00000000-0000-0000-0000-0000000000cc';
+const PAYMENT_ID = '00000000-0000-0000-0000-0000000000dd';
 const EVENT_ID = '00000000-0000-0000-0000-0000000000ee';
 const NOW = new Date('2026-05-30T12:00:00Z');
 
@@ -202,6 +205,60 @@ describe('consumeOrderHistoryEvent', () => {
       event_type: OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
       aggregate_type: 'ar_invoice',
       aggregate_id: INVOICE_ID,
+    });
+
+    const outcome = await consumeOrderHistoryEvent(event);
+
+    expect(outcome).toEqual({ status: 'SKIPPED_NOT_ORDER_LINKED' });
+    expect(mockHistoryUpsert).not.toHaveBeenCalled();
+  });
+
+  it('resolves order_id from payment for PAYMENT_VERIFIED (BVM Phase 6)', async () => {
+    mockPaymentFindFirst.mockResolvedValue({
+      id: PAYMENT_ID,
+      order_id: ORDER_ID,
+      payment_method_code: 'CARD',
+    });
+    const event = baseEvent({
+      event_type: OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+      aggregate_type: 'order_payment',
+      aggregate_id: PAYMENT_ID,
+      payload: {
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        verified_by: 'user-xyz',
+        previousStatus: 'PENDING',
+        newStatus: 'COMPLETED',
+      },
+    });
+
+    const outcome = await consumeOrderHistoryEvent(event);
+
+    expect(outcome.status).toBe('WRITTEN');
+    expect(mockPaymentFindFirst).toHaveBeenCalledWith({
+      where: { id: PAYMENT_ID, tenant_org_id: TENANT_A },
+      select: expect.objectContaining({ id: true, order_id: true, payment_method_code: true }),
+    });
+    expect(mockHistoryUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          order_id: ORDER_ID,
+          action_type: OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+          from_value: 'PENDING',
+          to_value: 'COMPLETED',
+          done_by: 'user-xyz',
+          outbox_event_id: EVENT_ID,
+        }),
+      }),
+    );
+  });
+
+  it('skips PAYMENT_VERIFIED when the payment row was hard-deleted', async () => {
+    mockPaymentFindFirst.mockResolvedValue(null);
+    const event = baseEvent({
+      event_type: OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+      aggregate_type: 'order_payment',
+      aggregate_id: PAYMENT_ID,
     });
 
     const outcome = await consumeOrderHistoryEvent(event);

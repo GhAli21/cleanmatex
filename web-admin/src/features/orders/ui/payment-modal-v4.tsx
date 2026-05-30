@@ -49,6 +49,8 @@ import {
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
+  todayYyyyMmDd,
+  validateCheckDueDate,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
 
@@ -2647,6 +2649,17 @@ export function PaymentModalV4({
                                   type="date"
                                   label={t('splitPayment.checkDueDate')}
                                   value={activeLeg.checkDate ?? ''}
+                                  // BVM Phase 6 Sub-item 4: floor the picker
+                                  // at today's local date so the operator
+                                  // cannot accidentally tender a back-dated
+                                  // check. validateCheckDueDate also catches
+                                  // pasted/typed values that bypass the picker.
+                                  min={todayYyyyMmDd()}
+                                  error={
+                                    validateCheckDueDate(activeLeg.checkDate)
+                                      ? t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)
+                                      : undefined
+                                  }
                                   onChange={(event) => {
                                     const nextValue = event.target.value || undefined;
                                     updateLeg(activeLegIndex, 'checkDate', nextValue);

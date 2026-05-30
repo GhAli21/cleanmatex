@@ -993,3 +993,125 @@ Existing fetch-and-render logic untouched — the consumer-written rows are simp
 - **CHANGELOG entry prepended** (2026-05-30 BVM Wiring Phase 5).
 - **Phase ladder updated:** BVM-5 = ✅ Done; BVM-6 = ⏳ Next.
 - **Phase 5 exit checklist verified:** tsc filtered = 0 errors; jest sweep = **172/172**; `check:i18n` green; migration 0330 applied + Prisma client regenerated; consumer test file present.
+
+---
+
+## BVM Wiring Phase 6 — UI / schema debt cleanup (in progress)
+
+### Sub-item 1 — Verify-Payment endpoint + UI (2026-05-30) — **DONE**
+
+**Driver.** Phase 1A introduced PENDING `REAL_PAYMENT` legs (gateway captures, cleared-check workflows) but the only way an operator could flip one to COMPLETED was a manual SQL update. Phase 6 Sub-item 1 closes the gap with a permission-gated route + UI confirmation flow that also feeds the BVM audit pipeline.
+
+**Migration.** `supabase/migrations/0332_phase6_verify_payment_permission_and_action.sql` (applied by user) seeds the `orders:verify_payment` permission, maps it to `super_admin`, `tenant_admin`, `admin`, and `branch_manager` (operator deliberately excluded), and extends `chk_history_action_type` with `PAYMENT_VERIFIED` so the Phase 5 consumer can persist the audit row.
+
+**Code shipped.**
+
+- `lib/constants/order-financial.ts` — `OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED` added (DB-mirror of the new `chk_history_action_type` enum value).
+- `lib/services/order-settlement.service.ts` — `verifyPaymentTx({ orderId, paymentId, tenantId, verifiedBy })` implemented inside the existing settlement service module (domain stays cohesive; no new file). Invariants: composite `(tenant_org_id, order_id, id)` filter; `SELECT … FOR UPDATE` lock; rejects credit-application legs; idempotent no-op on already-COMPLETED rows; PENDING → COMPLETED flip writes `paid_at`/`updated_at`/`updated_by`; recalculates the order header snapshot via `recalculateOrderFinancialSnapshotTx`; emits a single `PAYMENT_VERIFIED` outbox event with `aggregate_type='order_payment'`.
+- `lib/services/order-history-consumer.service.ts` — extended the BVM history consumer with a `PAYMENT_VERIFIED` case that resolves the order id via `org_order_payments_dtl.order_id` and writes a `from_value: 'PENDING'` → `to_value: 'COMPLETED'` history row keyed by the outbox `id` (idempotent upsert preserved).
+- `app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts` — new POST route. CSRF guard, `requirePermission('orders:verify_payment')`, calls `verifyPaymentTx` with `tenantId`/`userId` resolved by the middleware. Returns 200 on success, 422 on domain rejection, 401/403 on auth failure.
+- `src/features/orders/ui/order-financial/order-payments-credits-tables.tsx` — real-payments table gained a `col.verify` column. Per-row sub-component renders a `CmxButton` (variant `outline`, size `sm`) for PENDING REAL_PAYMENT legs when the viewer has `orders:verify_payment`; a `CmxDialog` confirmation flow surfaces method + amount before POSTing; on success the row refreshes via `router.refresh()` and `useMessage().showSuccess` toasts. COMPLETED rows show a `success` Badge; PENDING rows without permission show a `warning` "Unverified" Badge. RTL alignment preserved via the existing `isRTL` pattern.
+
+**i18n.** `orders.detail.financial.verify.*` keys added in both `en.json` and `ar.json` (action, verifying, verified, unverified, verifiedBy, confirmTitle/Body/Cta, cancel, successToast, errorToast). New column header `orders.detail.financial.col.verify`. `npm run check:i18n` → **green**.
+
+**Tests.**
+
+- `__tests__/services/verify-payment.service.test.ts` (new, 6 tests): happy-path PENDING → COMPLETED with outbox + recalc; COMPLETED idempotent no-op; CANCELLED rejected; CREDIT_APPLICATION rejected; not-found rejected; tenant id forwarded into every WHERE.
+- `__tests__/services/order-history-consumer.service.test.ts` (existing, +2 tests): PAYMENT_VERIFIED resolves order id via payment row and writes history; deleted payment row → SKIPPED_NOT_ORDER_LINKED.
+
+**Verification.**
+
+- `npx tsc --noEmit` filtered (excludes `payment-config|cash-drawers`) = **0 errors**.
+- Full jest sweep = **180/180 pass** (172 Phase 5 baseline + 6 new verify + 2 new consumer tests).
+- `npm run check:i18n` = **green**.
+- No Prisma regen needed (no schema changes in this sub-item).
+
+**Updated sweep command (carries Sub-item 1's tests).**
+
+```powershell
+npx jest __tests__/utils/money.test.ts __tests__/utils/idempotency.test.ts `
+         __tests__/services/order-settlement-planner.service.test.ts `
+         __tests__/services/discount-service.test.ts `
+         __tests__/services/stored-value.service.test.ts `
+         __tests__/services/loyalty.service.test.ts `
+         __tests__/services/ar-invoice.service.test.ts `
+         __tests__/services/gift-card-service.test.ts `
+         __tests__/services/reconciliation.service.test.ts `
+         __tests__/integration/reconciliation-run.test.ts `
+         __tests__/services/reconciliation/check-modules.test.ts `
+         __tests__/services/order-history-consumer.service.test.ts `
+         __tests__/services/verify-payment.service.test.ts
+# expect: 180/180 pass
+```
+
+### Sub-item 2 — Retire `createInvoice` legacy adapter (2026-05-30) — **DONE**
+
+**Driver.** `lib/services/invoice-service.ts` carried a `createInvoice` adapter that pre-dated the canonical `createArInvoiceFromOrders` writer (Phase 3). The two producers had drifted: the legacy adapter ran outside any `withTenantContext` for the dispatch step in some code paths, and the `assertBlockingInvoiceAutoPostSucceeded` guard was duplicated verbatim across both files. Phase 6 Sub-item 2 collapses both onto the canonical writer.
+
+**No migration.** Pure code change.
+
+**Code shipped.**
+
+- `lib/services/erp-lite-auto-post.util.ts` — **new** shared util housing `assertBlockingInvoiceAutoPostSucceeded` + the `InvoiceAutoPostDispatchResult` type alias. Same semantics as the prior duplicated copy (BLOCKING / `required_success` policies throw; soft policies return silently).
+- `lib/services/ar-invoice.service.ts` — imports the guard from the util; deleted the local copy. The dispatch site inside `createArInvoiceFromOrdersInTx` is unchanged.
+- `lib/services/invoice-service.ts` — deleted `createInvoice`, `generateInvoiceNumber`, and the locally-duplicated `assertBlockingInvoiceAutoPostSucceeded`. Removed dead imports (`Prisma`, `ErpLiteAutoPostService`, `ERP_LITE_BLOCKING_MODES`, `AR_DUE_DATE_SOURCES`, `AR_INVOICE_DOC_TYPES`, `AR_INVOICE_TYPES`, `ensureCanonicalArInvoiceArtifactsTx`, the unused `PrismaSqlExecutor` type alias, the `CreateInvoiceInput` and `Invoice` re-imports). The file now keeps only the read-side helpers (`getInvoice`, `getInvoiceByNumber`, `getInvoicesForOrder`, `getInvoicesByStatus`, `listInvoices`, `getInvoiceStats`, `getInvoiceBalance`, the financial-snapshot update helpers, etc.) that order screens still depend on.
+- `app/actions/payments/invoice-actions.ts` — `createInvoiceAction` is now a thin shim around `createArInvoiceFromOrders`. The shim translates the legacy `CreateInvoiceInput` payload into the canonical schema (`order_ids: [order_id]`, today as `invoice_date`, the caller's `due_date` or `invoice_date`, `allocation_policy: 'REMAINING_ONLY'`, `issueImmediately: true` to preserve OPEN-at-creation semantics, idempotency key `legacy_action_<orderId>`). All other actions in the file untouched.
+
+**Tests.**
+
+- `__tests__/services/invoice-service.test.ts` — **deleted**. Both of its tests targeted the now-removed `createInvoice` adapter. The blocking-policy guard semantics are already exercised in `__tests__/services/ar-invoice.service.test.ts` (e.g. "Phase 3: ERP-lite BLOCKING policy with failed dispatch → throws and aborts invoice creation") which now goes through the shared util.
+
+**Verification.**
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Full jest sweep = **180/180 pass** (no test count change — one file deleted, no new tests added; the AR-invoice test suite implicitly re-exercises the shared util via the canonical writer's blocking-policy assertion).
+- `npm run check:i18n` = **green** (no i18n keys touched).
+
+### Sub-item 3 — Hoist `STORED_VALUE_CODE` map into constants (2026-05-30) — **DONE**
+
+**Driver.** `order-submit-orchestrator.service.ts` was the sole owner of a private `STORED_VALUE_CODE: Record<CreditApplicationType, 'gc' | 'w' | 'a' | 'cn' | 'lp'>` map used to build Phase 2 sub-idempotency keys `${orderId}_sv_${code}_${legIndex}`. Other services that need to reconstruct the same key shape (reconciliation, retry replays, future stored-value debug tooling) would have to re-declare it — exactly the kind of constant drift Phase 6 is cleaning up.
+
+**No migration.** Pure code change.
+
+**Code shipped.**
+
+- `lib/constants/order-financial.ts` — added `STORED_VALUE_SUB_IDEMPOTENCY_CODE` (canonical name; descriptive over the previous abbreviation) as a `Readonly<Record<CreditApplicationType, StoredValueSubIdempotencyCode>>` frozen at module load. Introduced the `StoredValueSubIdempotencyCode` literal union (`'gc' | 'w' | 'a' | 'cn' | 'lp'`) so callers can type their sub-key derivations without re-extracting the union from the map.
+- `lib/services/order-submit-orchestrator.service.ts` — deleted the local `STORED_VALUE_CODE` definition; imports `STORED_VALUE_SUB_IDEMPOTENCY_CODE` from the constants module. Sub-key derivation at line ~824 now reads `STORED_VALUE_SUB_IDEMPOTENCY_CODE[leg.creditType]`. No behaviour change — the emitted key string is byte-for-byte identical to the previous implementation (same short codes, same template literal shape).
+
+**Verification.**
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Full jest sweep = **180/180 pass** (no test count change). The orchestrator-driven flows that round-trip the sub-key through the *_txn_dtl unique indexes are exercised by the integration sweep (reconciliation-run + stored-value ledger), which would have surfaced any key-shape drift.
+- `npm run check:i18n` = **green** (no i18n keys touched).
+
+### Sub-item 4 — Payment Modal v4 hardening (CHECK + HYPERPAY round-trip helpers) (2026-05-30) — **DONE**
+
+**Driver.** Payment Modal v4 already exposed live wallet balance prechecks (`walletLegExceedsBalance` + the `storedValueSummary` query), but two failure modes remained: (1) a back-dated CHECK due-date could pass through to the BVM voucher without any UX guard, and (2) the gateway-method (HYPERPAY / PayTabs / Stripe) redirect flow had no shared helper for round-tripping in-flight form state across the gateway redirect — operators returning from a 3-D-Secure prompt would land on a freshly-initialised modal.
+
+**No migration.** Pure code change.
+
+**Code shipped.**
+
+- `src/features/orders/ui/payment-modal-v4.utils.ts` — added four helpers:
+  - `todayYyyyMmDd(now?)`: local-timezone date floor as `YYYY-MM-DD` (not `toISOString()` — UTC midnight shifts the floor across timezone boundaries).
+  - `validateCheckDueDate(value, today?)`: returns the i18n key suffix of the rejection (`'checkDateInvalid'`, `'checkDateInPast'`) or `null` when valid. Lexicographic string comparison on ISO dates is chronologically correct.
+  - `buildGatewayReturnState(state)` / `parseGatewayReturnState(raw)`: JSON-stringified envelope helpers for round-tripping in-flight modal state through HYPERPAY / PayTabs / Stripe redirects. Defensive: corrupted/missing envelope returns `null` so the caller resets cleanly instead of partially populating the form.
+- `src/features/orders/ui/payment-modal-v4.tsx` — CHECK due-date input now carries `min={todayYyyyMmDd()}` (browser-level floor) and an inline error via `error={t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)}` when invalid. Imports `todayYyyyMmDd` and `validateCheckDueDate` from the utils module.
+- `messages/en.json` + `messages/ar.json` — two new keys under `orders.new.splitPayment`:
+  - `checkDateInvalid` → "Enter a valid date" / "أدخل تاريخاً صحيحاً"
+  - `checkDateInPast` → "Check date cannot be in the past" / "تاريخ الشيك لا يمكن أن يكون في الماضي"
+
+**Tests.**
+
+- `__tests__/features/orders/payment-modal-v4.utils.test.ts` — extended with 6 new assertions (16 total now): `todayYyyyMmDd` shape, `validateCheckDueDate` happy-path / past / non-parseable / empty, gateway state round-trip, gateway state malformed-input defenses.
+
+**Verification.**
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Full jest sweep = **196/196 pass** (180 prior + 6 new utils + 10 baseline retained from existing payment-modal-v4 utils suite — the utils file was already in the sweep; the new tests grew it from 10 to 16).
+- `npm run check:i18n` = **green** (two new keys added to both locales).
+
+**Follow-ups (out of Sub-item 4 scope).**
+
+- Wire `buildGatewayReturnState` / `parseGatewayReturnState` into the actual HYPERPAY redirect handler — the helpers are unit-tested and ready, but the redirect-flow integration belongs in a payment-gateway hardening pass.
+- Consider promoting `validateCheckDueDate` into the Zod schema `paymentLegSchema` for server-side enforcement (Sub-item 6 will introduce `paymentStatus` on the same schema and is the natural carrier for tightening this rule).

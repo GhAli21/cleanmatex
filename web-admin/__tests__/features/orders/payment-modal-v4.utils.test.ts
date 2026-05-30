@@ -1,11 +1,15 @@
 import {
   applyKeypadInput,
+  buildGatewayReturnState,
   deriveOutstandingPolicy,
   getSuggestedStoredValueAmount,
   getWalletLegMaxAmount,
+  parseGatewayReturnState,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
+  todayYyyyMmDd,
+  validateCheckDueDate,
   walletLegExceedsBalance,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
@@ -69,5 +73,36 @@ describe('payment-modal-v4 utils', () => {
   it('detects when a live wallet refresh makes the applied leg invalid', () => {
     expect(walletLegExceedsBalance(40, 20)).toBe(true);
     expect(walletLegExceedsBalance(40, 40)).toBe(false);
+  });
+
+  // ─── BVM Phase 6 Sub-item 4 ──────────────────────────────────────────────
+
+  it('formats today as YYYY-MM-DD in local time', () => {
+    expect(todayYyyyMmDd(new Date('2026-03-05T10:00:00Z'))).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('validateCheckDueDate accepts today and future dates, rejects past', () => {
+    const today = '2026-05-30';
+    expect(validateCheckDueDate('', today)).toBeNull();
+    expect(validateCheckDueDate(undefined, today)).toBeNull();
+    expect(validateCheckDueDate('2026-05-30', today)).toBeNull();
+    expect(validateCheckDueDate('2026-06-15', today)).toBeNull();
+    expect(validateCheckDueDate('2026-05-29', today)).toBe('checkDateInPast');
+    expect(validateCheckDueDate('not-a-date', today)).toBe('checkDateInvalid');
+    expect(validateCheckDueDate('2026/05/30', today)).toBe('checkDateInvalid');
+  });
+
+  it('round-trips a gateway return-state envelope through JSON', () => {
+    const state = { selectedLeg: 1, customerId: 'c-123', draftAmount: '12.500' };
+    const serialised = buildGatewayReturnState(state);
+    expect(parseGatewayReturnState(serialised)).toEqual(state);
+  });
+
+  it('parseGatewayReturnState defends against malformed input', () => {
+    expect(parseGatewayReturnState(null)).toBeNull();
+    expect(parseGatewayReturnState('')).toBeNull();
+    expect(parseGatewayReturnState('not json')).toBeNull();
+    expect(parseGatewayReturnState('[1,2,3]')).toBeNull(); // arrays rejected
+    expect(parseGatewayReturnState('"plain string"')).toBeNull(); // primitives rejected
   });
 });

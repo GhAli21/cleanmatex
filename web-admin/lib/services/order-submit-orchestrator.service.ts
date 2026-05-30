@@ -28,7 +28,12 @@ import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
-import { TAX_TYPES, CREDIT_APPLICATION_TYPES, PAYMENT_NATURE } from '@/lib/constants/order-financial';
+import {
+  TAX_TYPES,
+  CREDIT_APPLICATION_TYPES,
+  PAYMENT_NATURE,
+  STORED_VALUE_SUB_IDEMPOTENCY_CODE,
+} from '@/lib/constants/order-financial';
 import type { CreditApplicationType } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
 import { logger } from '@/lib/utils/logger';
@@ -72,21 +77,6 @@ function withinTolerance(a: number, b: number): boolean {
 function toNum(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
-
-/**
- * Short code per stored-value type, used as the discriminator in the Phase 2
- * sub-idempotency key format `${orderId}_sv_${code}_${legIndex}`.
- *
- * Why short codes: keeps the unique-index entries in each *_txn_dtl ledger
- * table lean and matches the Round-2 Fix A pattern (orderId-prefixed sub-keys).
- */
-const STORED_VALUE_CODE: Record<CreditApplicationType, 'gc' | 'w' | 'a' | 'cn' | 'lp'> = {
-  [CREDIT_APPLICATION_TYPES.GIFT_CARD]:        'gc',
-  [CREDIT_APPLICATION_TYPES.WALLET]:           'w',
-  [CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE]: 'a',
-  [CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT]:  'cn',
-  [CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT]:   'lp',
-};
 
 function buildDifferences(
   client: { subtotal: number; manualDiscount?: number; promoDiscount?: number; vatValue: number; finalTotal: number },
@@ -821,7 +811,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             creditReferenceId: leg.creditReferenceId,
             appliedBy:         userId,
             currencyCode:      leg.currencyCode,
-            idempotencyKey:    `${result.orderId}_sv_${STORED_VALUE_CODE[leg.creditType]}_${leg.legIndex}`,
+            idempotencyKey:    `${result.orderId}_sv_${STORED_VALUE_SUB_IDEMPOTENCY_CODE[leg.creditType]}_${leg.legIndex}`,
             voucherId:         voucher.id,
             voucherLineId:     line.id,
             skipCreditAppRow:  true,

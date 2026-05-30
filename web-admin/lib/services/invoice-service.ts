@@ -2,40 +2,33 @@
 /**
  * Invoice Service for CleanMateX
  *
- * @deprecated Use `ar-invoice.service.ts` for all new AR invoice screens, APIs,
- * and reporting flows. This file remains as a compatibility adapter for older
- * order-centric flows that still expect the legacy `Invoice` shape.
+ * @deprecated New AR invoice screens, APIs, and reporting flows must use
+ * `ar-invoice.service.ts`. This file remains only for read/list/update and
+ * statistics compatibility helpers consumed by order screens that still
+ * project the legacy `Invoice` shape.
  *
- * Handles all invoice-related operations including:
- * - Invoice creation and management
- * - Invoice calculation (totals, discounts, taxes)
- * - Invoice status tracking
- * - Invoice retrieval and updates
+ * BVM Wiring Phase 6 Sub-item 2: the `createInvoice` adapter and its
+ * private helpers (`generateInvoiceNumber`, the duplicated
+ * `assertBlockingInvoiceAutoPostSucceeded` guard) were removed. The
+ * canonical writer `createArInvoiceFromOrders` in `ar-invoice.service.ts`
+ * is the sole AR-invoice producer; `createInvoiceAction` is now a thin
+ * shim around it.
  */
 
 import { prisma } from '@/lib/db/prisma';
-import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
-import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
-import { Prisma } from '@prisma/client';
 import {
-  AR_DUE_DATE_SOURCES,
-  AR_INVOICE_DOC_TYPES,
   AR_INVOICE_STATUSES,
-  AR_INVOICE_TYPES,
   deriveArInvoiceStatus,
   normalizeArInvoiceStatus,
 } from '@/lib/constants/ar-invoice';
 
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import { ensureCanonicalArInvoiceArtifactsTx } from '@/lib/services/ar-invoice.service';
 import type {
   Invoice,
   InvoiceStatus,
-  CreateInvoiceInput,
   UpdateInvoiceInput,
   InvoiceMetadata,
   PaymentSummary,
@@ -43,175 +36,6 @@ import type {
 
 function tenantInvoiceWhere(tenant_org_id: string, id: string) {
   return { id_tenant_org_id: { tenant_org_id, id } };
-}
-
-// ============================================================================
-// Invoice Creation
-// ============================================================================
-
-/**
- * Create an invoice for an order.
- * When tx is provided, all operations run inside that transaction.
- */
-export async function createInvoice(
-  input: CreateInvoiceInput,
-  tx?: PrismaTx
-): Promise<Invoice> {
-  const tenantId = await getTenantIdFromSession();
-  if (!tenantId) {
-    throw new Error('Unauthorized: Tenant ID required');
-  }
-
-  return withTenantContext(tenantId, async () => {
-    const createInvoiceInDb = async (db: PrismaTx): Promise<Invoice> => {
-      const order = await db.org_orders_mst.findUnique({
-        where: { id: input.order_id },
-        include: {
-          org_order_items_dtl: true,
-          org_customers_mst: true,
-        },
-      });
-
-      if (!order) {
-        throw new Error('Order not found');
-      }
-
-      const customer = order.org_customers_mst;
-      const isB2B =
-        customer?.type === 'b2b' ||
-        (order as { b2b_contract_id?: string | null }).b2b_contract_id != null;
-
-      const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
-
-      const vatAmount = input.vatAmount ?? Number(order.vat_amount ?? 0);
-      const additionalTax = input.tax ?? 0;
-      const total = input.total ?? calculateInvoiceTotal({
-        subtotal: input.subtotal,
-        discount: input.discount || 0,
-        vatAmount,
-        additionalTax,
-      });
-      const dueDate = input.due_date ? new Date(input.due_date) : undefined;
-      const initialStatus = deriveArInvoiceStatus({
-        currentStatus: AR_INVOICE_STATUSES.OPEN,
-        totalAmount: total,
-        paidAmount: 0,
-        dueDate,
-      });
-
-      const orderWithB2B = order as {
-        b2b_contract_id?: string | null;
-        cost_center_code?: string | null;
-        po_number?: string | null;
-      };
-
-      const now = new Date();
-      const invoice = await db.org_invoice_mst.create({
-        data: {
-          order_id: input.order_id,
-          customer_id: order.customer_id ?? input.customer_id,
-          tenant_org_id: order.tenant_org_id,
-          branch_id: order.branch_id ?? undefined,
-          invoice_no: invoiceNo,
-          invoice_date: now,
-          subtotal: input.subtotal,
-          discount: input.discount || 0,
-          promo_discount_amount: input.promo_discount_amount ?? undefined,
-          tax: additionalTax,
-          tax_rate: order.tax_rate ?? undefined,
-          vat_amount: vatAmount,
-          total,
-          outstanding_amount: total,
-          currency_code: order.currency_code ?? ORDER_DEFAULTS.CURRENCY,
-          currency_ex_rate: order.currency_ex_rate ?? 1,
-          status: initialStatus,
-          due_date: dueDate,
-          due_date_source_cd: dueDate ? AR_DUE_DATE_SOURCES.MANUAL_OVERRIDE : AR_DUE_DATE_SOURCES.INVOICE_DATE,
-          payment_method_code: input.payment_method_code,
-          payment_terms: order.payment_terms ?? undefined,
-          paid_amount: 0,
-          issued_at: now,
-          issued_by: input.metadata?.created_by ?? null,
-          numbering_doc_type_cd: AR_INVOICE_DOC_TYPES.AR_INV,
-          service_charge: order.service_charge ?? undefined,
-          service_charge_type: order.service_charge_type ?? undefined,
-          gift_card_id: order.gift_card_id ?? undefined,
-          gift_card_applied_amount: input.gift_card_applied_amount ?? (order as unknown as { gift_card_applied_amount?: number }).gift_card_applied_amount ?? undefined,
-          vat_rate: order.vat_rate ?? undefined,
-          metadata: input.metadata as Prisma.InputJsonValue | undefined,
-          rec_notes: input.rec_notes,
-          created_at: now,
-          invoice_type_cd: isB2B ? AR_INVOICE_TYPES.B2B_ORDER : AR_INVOICE_TYPES.ORDER_CREDIT,
-          b2b_contract_id: orderWithB2B.b2b_contract_id ?? null,
-          cost_center_code: orderWithB2B.cost_center_code ?? null,
-          po_number: orderWithB2B.po_number ?? null,
-        },
-      });
-
-      await assertBlockingInvoiceAutoPostSucceeded(
-        await ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction(db, {
-          invoice_id: invoice.id,
-          invoice_no: invoice.invoice_no ?? null,
-          order_id: invoice.order_id ?? null,
-          branch_id: invoice.branch_id ?? null,
-          currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
-          exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
-          invoice_date: now.toISOString().slice(0, 10),
-          subtotal: Number(invoice.subtotal ?? 0),
-          discount_amount: Number(invoice.discount ?? 0),
-          tax_amount: Number(invoice.tax ?? 0),
-          vat_amount: Number(invoice.vat_amount ?? 0),
-          total_amount: Number(invoice.total ?? 0),
-          created_by: input.metadata?.created_by ?? null,
-        })
-      );
-
-      await ensureCanonicalArInvoiceArtifactsTx(db, {
-        tenantId: order.tenant_org_id,
-        invoiceId: invoice.id,
-        orderId: input.order_id,
-        customerId: order.customer_id,
-        branchId: order.branch_id,
-        invoiceNo: invoice.invoice_no,
-        currencyCode: invoice.currency_code,
-        currencyExRate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
-        invoiceDate: invoice.invoice_date,
-        dueDate: invoice.due_date,
-        status: invoice.status,
-        totalAmount: Number(invoice.total ?? 0),
-        paidAmount: Number(invoice.paid_amount ?? 0),
-        outstandingAmount: Number(invoice.outstanding_amount ?? 0),
-        userId: input.metadata?.created_by ?? null,
-      });
-
-      return mapInvoiceToType(invoice);
-    };
-
-    if (tx) {
-      return createInvoiceInDb(tx);
-    }
-
-    return prisma.$transaction(async (dbTx) => createInvoiceInDb(dbTx));
-  });
-}
-
-/**
- * Generate unique invoice number for tenant
- */
-async function generateInvoiceNumber(
-  tenantOrgId: string,
-  db: PrismaSqlExecutor = prisma
-): Promise<string> {
-  const rows = await db.$queryRaw<Array<{ doc_no: string | null }>>(Prisma.sql`
-    SELECT fn_next_fin_doc_no(${tenantOrgId}::uuid, ${AR_INVOICE_DOC_TYPES.AR_INV}) AS doc_no
-  `);
-
-  const invoiceNo = rows[0]?.doc_no;
-  if (!invoiceNo) {
-    throw new Error('Failed to generate AR invoice number from fn_next_fin_doc_no.');
-  }
-
-  return invoiceNo;
 }
 
 // ============================================================================
@@ -862,34 +686,6 @@ function parseInvoiceMetadata(metadata: unknown): InvoiceMetadata | undefined {
   if (typeof metadata === 'object') return metadata as InvoiceMetadata;
   if (typeof metadata === 'string') return JSON.parse(metadata) as InvoiceMetadata;
   return undefined;
-}
-
-function assertBlockingInvoiceAutoPostSucceeded(
-  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchInvoiceCreated>>
-): void {
-  const shouldBlock =
-    !!dispatchResult.policy &&
-    (dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
-      dispatchResult.policy.required_success === true);
-
-  if (!shouldBlock) {
-    return;
-  }
-
-  const success =
-    dispatchResult.status === 'executed' && dispatchResult.execute_result?.success === true;
-
-  if (success) {
-    return;
-  }
-
-  const failureMessage =
-    dispatchResult.status === 'skipped'
-      ? `ERP-Lite auto-post policy prevented invoice completion (${dispatchResult.skip_reason}).`
-      : dispatchResult.execute_result?.error_message ??
-        'ERP-Lite auto-post failed for the invoice.';
-
-  throw new Error(failureMessage);
 }
 
 /**

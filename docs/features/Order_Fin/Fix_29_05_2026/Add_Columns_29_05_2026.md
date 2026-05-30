@@ -340,7 +340,11 @@ alter table public.org_orders_mst
   add column if not exists financial_last_calculated_by uuid null,
   add column if not exists financial_snapshot_status varchar(30) not null default 'CURRENT',
   add column if not exists financial_mismatch_warning_count integer not null default 0;
+  add column if not exists financial_calculation_snapshot jsonb null; 
+  
 ```
+comment on column public.org_orders_mst.financial_calculation_snapshot is
+'Versioned JSONB explanation of the latest order financial calculation. Used for audit, debugging, support, AI explanation, and reconciliation trace. Canonical financial reporting must use numeric snapshot columns, not this JSON.';
 
 # Columns you should deprecate later
 

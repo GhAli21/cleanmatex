@@ -2274,7 +2274,21 @@
           "voucher": "السند",
           "reference": "المرجع",
           "date": "التاريخ",
-          "creditType": "نوع الاعتماد"
+          "creditType": "نوع الاعتماد",
+          "verify": "التحقق"
+        },
+        "verify": {
+          "action": "تحقق",
+          "verifying": "جاري التحقق…",
+          "verified": "تم التحقق",
+          "unverified": "غير محقق",
+          "verifiedBy": "تم التحقق بواسطة {actor}",
+          "confirmTitle": "التحقق من الدفعة",
+          "confirmBody": "أكد أن دفعة {method} بقيمة {amount} قد تمت تسويتها لدى البوابة/البنك. لا يمكن التراجع عن هذا الإجراء.",
+          "confirmCta": "تحقق من الدفعة",
+          "cancel": "إلغاء",
+          "successToast": "تم التحقق من الدفعة",
+          "errorToast": "تعذر التحقق من الدفعة: {error}"
         },
         "warning": {
           "title": "اتساق مالي",
@@ -5183,6 +5197,8 @@
         "checkNumber": "رقم الشيك",
         "checkBankName": "اسم البنك",
         "checkDueDate": "تاريخ الاستحقاق",
+        "checkDateInvalid": "أدخل تاريخاً صحيحاً",
+        "checkDateInPast": "تاريخ الشيك لا يمكن أن يكون في الماضي",
         "bankReference": "المرجع البنكي",
         "gatewayCode": "كود البوابة",
         "gatewayTransactionId": "معرف المعاملة",

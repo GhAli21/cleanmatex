@@ -22,7 +22,7 @@ import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
-import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
+import { assertBlockingInvoiceAutoPostSucceeded } from '@/lib/services/erp-lite-auto-post.util';
 import type {
   ArAgingCustomerRow,
   ArCustomerBalance,
@@ -1748,36 +1748,6 @@ export async function createArInvoiceFromOrders(
       createArInvoiceFromOrdersInTx(innerTx, input, tenantId, userId)
     )
   );
-}
-
-/**
- * Gate AR invoice creation on the ERP-lite auto-post dispatch result when the
- * tenant's policy requires success. Mirrors `invoice-service.ts` — copied here
- * to keep the canonical writer self-contained; Phase 6 cleanup will extract a
- * shared util once `createInvoice` is fully retired.
- */
-function assertBlockingInvoiceAutoPostSucceeded(
-  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchInvoiceCreated>>
-): void {
-  const shouldBlock =
-    !!dispatchResult.policy &&
-    (dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
-      dispatchResult.policy.required_success === true);
-
-  if (!shouldBlock) return;
-
-  const success =
-    dispatchResult.status === 'executed' && dispatchResult.execute_result?.success === true;
-
-  if (success) return;
-
-  const failureMessage =
-    dispatchResult.status === 'skipped'
-      ? `ERP-Lite auto-post policy prevented invoice completion (${dispatchResult.skip_reason}).`
-      : dispatchResult.execute_result?.error_message ??
-        'ERP-Lite auto-post failed for the invoice.';
-
-  throw new Error(failureMessage);
 }
 
 export async function updateArInvoice(

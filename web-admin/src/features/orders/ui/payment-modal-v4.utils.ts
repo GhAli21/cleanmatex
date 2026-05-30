@@ -138,3 +138,97 @@ export function walletLegExceedsBalance(
 ): boolean {
   return appliedAmount - availableBalance > epsilon;
 }
+
+// ─── BVM Phase 6 Sub-item 4 helpers ─────────────────────────────────────────
+
+/**
+ * Return today's date as a `YYYY-MM-DD` string in the user's local timezone.
+ *
+ * Why local time:
+ * The CHECK due-date input is an ISO date string, no time component. Using
+ * `Date.toISOString()` would silently shift the floor across timezone
+ * boundaries (UTC midnight in Asia/Riyadh is the previous day in UTC-).
+ */
+export function todayYyyyMmDd(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Validate a CHECK leg's due-date input.
+ *
+ * Returns `null` when the value is valid (or empty — emptiness is handled by
+ * the requiredness rules in the form schema, not here). Returns the i18n key
+ * suffix of the rejection reason otherwise so the caller can resolve a
+ * localized message via `t(`splitPayment.${reason}`)`.
+ *
+ * Rules:
+ *  - Empty input → null (caller decides whether empty is allowed).
+ *  - Non-parseable date → `'checkDateInvalid'`.
+ *  - Date in the past (strictly before today's local midnight) →
+ *    `'checkDateInPast'`. A check post-dated for today's date is allowed —
+ *    operators occasionally take same-day dated checks at counter close.
+ *
+ * @param value ISO date string from the `<input type="date">` field.
+ * @param today Local-time today as `YYYY-MM-DD`. Defaults to `todayYyyyMmDd()`
+ *              — injectable for deterministic tests.
+ */
+export function validateCheckDueDate(
+  value: string | undefined | null,
+  today: string = todayYyyyMmDd(),
+): 'checkDateInvalid' | 'checkDateInPast' | null {
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'checkDateInvalid';
+  // String comparison works for ISO `YYYY-MM-DD` — lexicographic == chronological.
+  if (value < today) return 'checkDateInPast';
+  return null;
+}
+
+/**
+ * Build a state envelope to round-trip through the HYPERPAY (or PayTabs /
+ * Stripe) gateway redirect flow.
+ *
+ * Why:
+ * The gateway redirects the operator's browser away and back. Without an
+ * envelope, every in-flight form field (selected legs, discounts, customer
+ * id) would be lost. The envelope is opaque to the gateway — only the
+ * client posts it to sessionStorage before redirect and reads it back on
+ * return. The payload is JSON-stringified and the result is safe to embed
+ * in a sessionStorage value or URL query parameter.
+ *
+ * @param state Arbitrary serializable object. Callers should keep it small
+ *              (sessionStorage and URL limits both apply).
+ * @returns Compact JSON string. Returns `''` if `state` cannot be
+ *          serialised (e.g. circular references) so the caller can fall
+ *          back to a fresh form on return rather than throwing mid-redirect.
+ */
+export function buildGatewayReturnState(state: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(state);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Parse the envelope built by {@link buildGatewayReturnState}.
+ *
+ * Returns `null` for empty / malformed input so the caller can safely
+ * default-init the form. Rejecting the entire envelope on a parse error
+ * is the right call here — partial state is worse than a clean reload
+ * because the operator can re-enter values, but cannot diagnose half a
+ * form populated with stale gateway-flow data.
+ */
+export function parseGatewayReturnState(raw: string | null | undefined): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}

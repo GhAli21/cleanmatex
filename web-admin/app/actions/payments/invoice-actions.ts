@@ -12,7 +12,6 @@
 
 import { revalidatePath } from 'next/cache';
 import {
-  createInvoice,
   getInvoice,
   getInvoicesForOrder,
   updateInvoice,
@@ -20,24 +19,44 @@ import {
   getInvoiceStats,
   applyDiscountToInvoice,
 } from '@/lib/services/invoice-service';
+import { createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import type {
   CreateInvoiceInput,
   UpdateInvoiceInput,
-  Invoice,
 } from '@/lib/types/payment';
 import { createInvoiceInputSchema } from '@/lib/validations/new-order-payment-schemas';
 
 /**
- * Create a new invoice for an order
+ * Create an AR invoice for an order via the canonical writer.
  *
- * @param tenantOrgId - Tenant organization ID
- * @param input - Invoice creation input
- * @returns Created invoice or error
- * @deprecated Prefer canonical AR invoice creation routes for new work.
+ * BVM Wiring Phase 6 Sub-item 2: the previous body called the now-removed
+ * `createInvoice` legacy adapter in `invoice-service.ts`. This action is a
+ * thin shim around `createArInvoiceFromOrders` so the few remaining order
+ * screens that still rely on the action keep working while we migrate them
+ * to call the canonical writer directly.
+ *
+ * `issueImmediately: true` preserves the legacy behaviour of creating an
+ * OPEN invoice with an AR ledger debit + `AR_INVOICE_ISSUED` outbox event.
+ * The idempotency key mirrors the order-id-scoped shape used by submit-order
+ * so a replay produces the same invoice instead of a duplicate.
+ *
+ * @param tenantOrgId Tenant organization ID (forwarded to the writer's
+ *                    actor context — auth fallback still applies).
+ * @param input       Legacy invoice creation payload. Only `order_id`,
+ *                    `due_date`, `metadata.created_by`, and `rec_notes`
+ *                    are forwarded; the canonical writer derives the
+ *                    rest (totals, currency, customer) from the order
+ *                    snapshot at write time.
+ * @returns Result envelope with the created AR-invoice id.
+ *
+ * @deprecated New screens should call `/api/v1/ar/invoices/from-orders`
+ *             (canonical AR route) directly. This shim exists only to
+ *             keep the legacy action callable until those screens are
+ *             migrated.
  */
 export async function createInvoiceAction(
   tenantOrgId: string,
-  input: CreateInvoiceInput
+  input: CreateInvoiceInput,
 ) {
   const parsed = createInvoiceInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -49,15 +68,37 @@ export async function createInvoiceAction(
   }
 
   try {
-    const invoice = await createInvoice(parsed.data as CreateInvoiceInput);
+    // Today's date as the invoice_date / due_date floor. The legacy
+    // adapter accepted `due_date` from the caller and defaulted to the
+    // invoice_date when absent — preserved here.
+    const today = new Date().toISOString().slice(0, 10);
+    const dueDate = parsed.data.due_date
+      ? parsed.data.due_date.slice(0, 10)
+      : today;
 
-    // Revalidate order pages
+    const detail = await createArInvoiceFromOrders(
+      {
+        order_ids: [parsed.data.order_id],
+        invoice_date: today,
+        due_date: dueDate,
+        allocation_policy: 'REMAINING_ONLY',
+        rec_notes: parsed.data.rec_notes,
+        // Stable key — replays of the same action against the same order
+        // collapse onto the same AR invoice instead of producing a copy.
+        idempotency_key: `legacy_action_${parsed.data.order_id}`,
+        // Mirror the legacy adapter: OPEN at creation, AR ledger debit
+        // and AR_INVOICE_ISSUED outbox event emitted in the same tx.
+        issueImmediately: true,
+      },
+      { tenantId: tenantOrgId, userId: input.metadata?.created_by ?? undefined },
+    );
+
     revalidatePath('/dashboard/orders');
     revalidatePath(`/dashboard/orders/${input.order_id}`);
 
     return {
       success: true,
-      data: invoice,
+      data: detail,
     };
   } catch (error) {
     console.error('Error creating invoice:', error);

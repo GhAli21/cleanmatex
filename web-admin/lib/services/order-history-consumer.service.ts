@@ -8,14 +8,15 @@ import { Prisma } from '@prisma/client';
 /**
  * BVM Wiring Phase 5 — Order History consumer
  *
- * Subscribes to the three BVM outbox events that should land as audit
+ * Subscribes to the BVM outbox events that should land as audit
  * trail rows on `org_order_history`:
  *
- * | Outbox event              | Aggregate    | History action_type        |
- * |---------------------------|--------------|----------------------------|
- * | ORDER_COMPLETED           | order        | ORDER_COMPLETED            |
- * | VOUCHER_POSTED_AND_WIRED  | fin_voucher  | VOUCHER_POSTED_AND_WIRED   |
- * | AR_INVOICE_ISSUED         | ar_invoice   | AR_INVOICE_ISSUED          |
+ * | Outbox event              | Aggregate     | History action_type        |
+ * |---------------------------|---------------|----------------------------|
+ * | ORDER_COMPLETED           | order         | ORDER_COMPLETED            |
+ * | VOUCHER_POSTED_AND_WIRED  | fin_voucher   | VOUCHER_POSTED_AND_WIRED   |
+ * | AR_INVOICE_ISSUED         | ar_invoice    | AR_INVOICE_ISSUED          |
+ * | PAYMENT_VERIFIED          | order_payment | PAYMENT_VERIFIED           |
  *
  * Design invariants (PRD §22 + Phase 5 resume doc):
  *
@@ -76,6 +77,7 @@ const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
   OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
   OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
   OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
+  OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
 ]);
 
 // ─── Public API ────────────────────────────────────────────────────────────
@@ -250,6 +252,38 @@ async function mapEventToHistoryRow(
         to_value: invoice.invoice_no ?? extractToValue(payload, 'invoice_no'),
         payload: serialisePayload(event, payload),
         done_by: extractActor(payload, 'issued_by'),
+        done_at: event.created_at,
+        outbox_event_id: event.id,
+      };
+    }
+
+    case OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED: {
+      // Payment-verify events emit aggregate_id = payment row id. Resolve
+      // back to the order via `org_order_payments_dtl.order_id`. The
+      // payment row is the source of truth — payload duplicates the
+      // order id for diagnostics but the consumer trusts the DB lookup.
+      // Returning null guards against hard-deleted payment rows so the
+      // worker can mark the event processed without blocking the queue.
+      const paymentId = event.aggregate_id;
+      const payment = await prisma.org_order_payments_dtl.findFirst({
+        where: { id: paymentId, tenant_org_id: tenantOrgId },
+        select: { id: true, order_id: true, payment_method_code: true },
+      });
+      if (!payment?.order_id) return null;
+
+      return {
+        tenant_org_id: tenantOrgId,
+        order_id: payment.order_id,
+        action_type: OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+        // Status transition snapshot: the verify endpoint can only flip
+        // PENDING → COMPLETED, so these literals are stable across rows.
+        from_value: extractToValue(payload, 'previousStatus') ?? 'PENDING',
+        to_value: extractToValue(payload, 'newStatus') ?? 'COMPLETED',
+        payload: serialisePayload(event, {
+          ...payload,
+          payment_method_code: payment.payment_method_code,
+        }),
+        done_by: extractActor(payload, 'verified_by'),
         done_at: event.created_at,
         outbox_event_id: event.id,
       };

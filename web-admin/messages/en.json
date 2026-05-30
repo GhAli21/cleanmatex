@@ -2273,7 +2273,21 @@
           "voucher": "Voucher",
           "reference": "Reference",
           "date": "Date",
-          "creditType": "Credit type"
+          "creditType": "Credit type",
+          "verify": "Verify"
+        },
+        "verify": {
+          "action": "Verify",
+          "verifying": "Verifying…",
+          "verified": "Verified",
+          "unverified": "Unverified",
+          "verifiedBy": "Verified by {actor}",
+          "confirmTitle": "Verify Payment",
+          "confirmBody": "Confirm that this {method} payment for {amount} has cleared at the gateway/bank. This cannot be undone.",
+          "confirmCta": "Verify payment",
+          "cancel": "Cancel",
+          "successToast": "Payment verified",
+          "errorToast": "Could not verify payment: {error}"
         },
         "warning": {
           "title": "Financial consistency",
@@ -5183,6 +5197,8 @@
         "checkNumber": "Check Number",
         "checkBankName": "Bank Name",
         "checkDueDate": "Due Date",
+        "checkDateInvalid": "Enter a valid date",
+        "checkDateInPast": "Check date cannot be in the past",
         "bankReference": "Bank Reference",
         "gatewayCode": "Gateway Code",
         "gatewayTransactionId": "Transaction ID",

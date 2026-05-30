@@ -66,6 +66,36 @@ export const STORED_VALUE_LOCK_ORDER = [
   CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT,
 ] as const satisfies readonly CreditApplicationType[];
 
+/**
+ * Short code per stored-value credit application type, used as the
+ * discriminator in the Phase 2 sub-idempotency key format
+ * `${orderId}_sv_${code}_${legIndex}`.
+ *
+ * Why short codes:
+ * Submit-order can write multiple stored-value redemption rows against the
+ * same order. Each *_txn_dtl ledger table enforces a unique
+ * `(tenant_org_id, idempotency_key)` index — without per-leg discriminators
+ * the orchestrator would collide on retries. Short two-letter codes keep
+ * the unique-index entries lean and match the Round-2 Fix A pattern
+ * (orderId-prefixed sub-keys).
+ *
+ * BVM Wiring Phase 6 Sub-item 3: hoisted from `order-submit-orchestrator`
+ * into this canonical constants file so other services that need to
+ * derive the same sub-key shape (reconciliation backfills, retry replays)
+ * can import the map instead of re-declaring it.
+ */
+export type StoredValueSubIdempotencyCode = 'gc' | 'w' | 'a' | 'cn' | 'lp';
+
+export const STORED_VALUE_SUB_IDEMPOTENCY_CODE: Readonly<
+  Record<CreditApplicationType, StoredValueSubIdempotencyCode>
+> = Object.freeze({
+  [CREDIT_APPLICATION_TYPES.GIFT_CARD]:        'gc',
+  [CREDIT_APPLICATION_TYPES.WALLET]:           'w',
+  [CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE]: 'a',
+  [CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT]:  'cn',
+  [CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT]:   'lp',
+});
+
 /** Rank lookup for sorting stored-value legs by STORED_VALUE_LOCK_ORDER. */
 export const STORED_VALUE_LOCK_RANK: Readonly<Record<CreditApplicationType, number>> =
   Object.freeze(
@@ -231,6 +261,17 @@ export const OUTBOX_EVENT_TYPES = {
   // BVM Wiring — Phase 1A. Emitted by postAndWireBizVoucher() after voucher
   // header POST + all line-wiring side effects commit atomically.
   VOUCHER_POSTED_AND_WIRED: 'VOUCHER_POSTED_AND_WIRED',
+  /**
+   * BVM Wiring — Phase 6 Sub-item 1. Emitted by verifyPaymentTx() after
+   * a PENDING REAL_PAYMENT leg is flipped to COMPLETED. The Phase 5
+   * order-history consumer translates this into a PAYMENT_VERIFIED row
+   * on org_order_history. Aggregate type = 'order_payment'.
+   *
+   * DB-mirror invariant: the string value must match the
+   * `chk_history_action_type` CHECK enum value introduced by migration
+   * 0332 (PAYMENT_VERIFIED) exactly — case and spelling.
+   */
+  PAYMENT_VERIFIED: 'PAYMENT_VERIFIED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

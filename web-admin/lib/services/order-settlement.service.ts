@@ -308,6 +308,204 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
   });
 }
 
+// ─── Verify Payment (BVM Wiring Phase 6 Sub-item 1) ─────────────────────────
+
+/**
+ * Input for the verify-payment endpoint.
+ *
+ * @property orderId    UUID of the order the payment belongs to.
+ * @property paymentId  UUID of the `org_order_payments_dtl` row to verify.
+ * @property tenantId   Tenant id resolved from the auth/permission middleware.
+ * @property verifiedBy User id of the actor performing the verification.
+ */
+export interface VerifyPaymentParams {
+  orderId: string;
+  paymentId: string;
+  tenantId: string;
+  verifiedBy: string;
+}
+
+/**
+ * Result of {@link verifyPaymentTx}. The header snapshot fields (status,
+ * outstanding) are read from the freshly recalculated order row so the
+ * caller can refresh the financial summary in a single round-trip.
+ */
+export interface VerifyPaymentResult {
+  paymentId: string;
+  previousStatus: string;            // 'PENDING' | 'COMPLETED' (idempotent path)
+  newStatus: 'COMPLETED';
+  verifiedAt: string;                // ISO timestamp
+  orderPaymentStatus: string;        // header snapshot.paymentStatus after recalc
+  outstanding: number;
+  /** True when this call performed the PENDING → COMPLETED flip; false on idempotent replays. */
+  flipped: boolean;
+}
+
+/**
+ * BVM Wiring — Phase 6 Sub-item 1.
+ *
+ * Verify a single PENDING `REAL_PAYMENT` leg and flip it to COMPLETED.
+ * This is the back-office assurance step after a gateway/bank confirms
+ * funds for a leg that was created in PENDING state (typical for online
+ * gateway captures and bank-cleared checks).
+ *
+ * Invariants (PRD §22.2):
+ *
+ *  1. **Composite tenant filter.** Every WHERE clause carries
+ *     `(tenant_org_id, order_id, id)` so a verifier with one tenant's
+ *     session can never touch another tenant's payment row.
+ *  2. **Row lock.** The payment row is selected `FOR UPDATE` inside the
+ *     transaction so two concurrent verifies cannot double-emit the
+ *     outbox event or race the snapshot recalc.
+ *  3. **Only REAL_PAYMENT.** Credit-application legs (gift card / wallet /
+ *     advance / loyalty / credit note) are not "verified" — those flow
+ *     through the stored-value ledgers and never enter PENDING here.
+ *  4. **Idempotent.** Re-running on a row already in COMPLETED status is
+ *     a silent no-op: same result shape, `flipped: false`, no outbox
+ *     emission, no second header recalc.
+ *  5. **Rejected for terminal states.** CANCELLED / FAILED / REFUNDED
+ *     etc. throw — verification is only meaningful for PENDING.
+ *  6. **Header recalc + outbox.** After the flip, the order header
+ *     snapshot is recalculated from fact rows and a
+ *     `PAYMENT_VERIFIED` outbox event is emitted within the same tx.
+ *     The Phase 5 history consumer translates the event into an
+ *     `org_order_history` row asynchronously.
+ *
+ * Tenant context: this service is called from a route handler that has
+ * already resolved tenant via `requirePermission('orders:verify_payment')`.
+ * `tenantId` is passed explicitly and bound into every Prisma query.
+ *
+ * @throws Error('Payment not found') when no matching row exists for
+ *         the composite key.
+ * @throws Error('Payment cannot be verified — not a REAL_PAYMENT leg')
+ *         when the leg is a credit application.
+ * @throws Error('Payment cannot be verified — status is X')
+ *         when the row is in a non-PENDING / non-COMPLETED state.
+ */
+export async function verifyPaymentTx(
+  params: VerifyPaymentParams,
+): Promise<VerifyPaymentResult> {
+  const { orderId, paymentId, tenantId, verifiedBy } = params;
+
+  return prisma.$transaction(async (tx) => {
+    // ── 1. Lock the payment row with composite tenant filter ────────────
+    // Raw SQL with FOR UPDATE — Prisma's findFirst does not support row
+    // locking inside an interactive transaction. The composite filter is
+    // explicit at the SQL level for defense-in-depth even though RLS
+    // would already block cross-tenant rows.
+    const rows = await tx.$queryRaw<
+      Array<{
+        id: string;
+        order_id: string;
+        payment_status: string;
+        payment_nature_snapshot: string;
+        paid_at: Date | null;
+      }>
+    >`
+      SELECT id, order_id, payment_status, payment_nature_snapshot, paid_at
+      FROM public.org_order_payments_dtl
+      WHERE id = ${paymentId}::uuid
+        AND order_id = ${orderId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Payment not found');
+    }
+
+    if (row.payment_nature_snapshot !== PAYMENT_NATURE.REAL_PAYMENT) {
+      throw new Error('Payment cannot be verified — not a REAL_PAYMENT leg');
+    }
+
+    // ── 2. Idempotent no-op when already COMPLETED ──────────────────────
+    // Re-issuing the verify call must not double-emit the outbox event
+    // or rewrite paid_at. We still refresh the snapshot from the order
+    // header so the caller sees current outstanding/status.
+    if (row.payment_status === 'COMPLETED') {
+      const order = await tx.org_orders_mst.findFirstOrThrow({
+        where: { id: orderId, tenant_org_id: tenantId },
+        select: { payment_status: true, outstanding_amount: true },
+      });
+      return {
+        paymentId,
+        previousStatus: 'COMPLETED',
+        newStatus: 'COMPLETED',
+        verifiedAt: (row.paid_at ?? new Date()).toISOString(),
+        orderPaymentStatus: order.payment_status ?? 'UNKNOWN',
+        outstanding: Number(order.outstanding_amount ?? 0),
+        flipped: false,
+      };
+    }
+
+    if (row.payment_status !== 'PENDING') {
+      throw new Error(`Payment cannot be verified — status is ${row.payment_status}`);
+    }
+
+    // ── 3. Flip PENDING → COMPLETED ─────────────────────────────────────
+    const verifiedAt = new Date();
+    const updated = await tx.org_order_payments_dtl.updateMany({
+      where: {
+        id: paymentId,
+        order_id: orderId,
+        tenant_org_id: tenantId,
+        payment_status: 'PENDING',
+      },
+      data: {
+        payment_status: 'COMPLETED',
+        paid_at: verifiedAt,
+        updated_at: verifiedAt,
+        updated_by: verifiedBy,
+      },
+    });
+    if (updated.count !== 1) {
+      // Concurrent verifier already flipped the row between the SELECT
+      // FOR UPDATE and the UPDATE — treat as a benign idempotent race.
+      throw new Error('Payment verification race detected — please retry');
+    }
+
+    // ── 4. Recalculate the order header snapshot from fact rows ─────────
+    const snapshot = await recalculateOrderFinancialSnapshotTx(
+      tx,
+      tenantId,
+      orderId,
+    );
+
+    // ── 5. Emit outbox PAYMENT_VERIFIED event ───────────────────────────
+    // Aggregate is the payment leg (not the order) so the Phase 5
+    // history consumer can resolve back to the order via the payment
+    // row and persist provenance (which payment was verified).
+    await emitEventTx(
+      tx,
+      tenantId,
+      OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+      'order_payment',
+      paymentId,
+      {
+        orderId,
+        paymentId,
+        verifiedBy,
+        actor_id: verifiedBy,
+        verified_by: verifiedBy,
+        previousStatus: 'PENDING',
+        newStatus: 'COMPLETED',
+        verifiedAt: verifiedAt.toISOString(),
+      },
+    );
+
+    return {
+      paymentId,
+      previousStatus: 'PENDING',
+      newStatus: 'COMPLETED',
+      verifiedAt: verifiedAt.toISOString(),
+      orderPaymentStatus: snapshot.paymentStatus,
+      outstanding: snapshot.outstandingAmount,
+      flipped: true,
+    };
+  });
+}
+
 /**
  * Later collection request on an existing `PAY_ON_COLLECTION` order.
  */
