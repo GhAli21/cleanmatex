@@ -330,7 +330,7 @@ The 4 scenarios above need to be exercised against the live web-admin against a 
 
 ## Deferred to Phase 2.1
 
-**Step 5 — `input.giftCardId` as a voucher line.** The gift card amount is currently applied as a pre-discount on the order total (it shrinks `serverTotals.finalTotal` before the planner runs). Adding a voucher line for it would make `voucher.total_amount ≠ sum(line_amounts)` and break `validateVoucherForPosting`. A correct fix needs either (a) folding the gift-card amount into `plan.immediateSettlementAmount` (calculation-service refactor) or (b) relaxing the voucher posting invariant. Phase 2's atomicity acceptance criteria 1–4 are all satisfied without this change.
+**Step 5 — superseded on 2026-05-30.** Gift card is no longer treated as a pre-discount on the order total. `serverTotals.finalTotal` now means full sale total before settlement credits, and gift-card redemption is wired as a stored-value credit-application leg. The original voucher-total mismatch concern described here no longer applies; see `Fix_29_05_2026/Fix_Order_amount_values_2905.md` for the corrected semantics and migration notes.
 
 **Voucher status triple-column collapse.** Tracked in Phase 1B / Round 2 docs; depends on confirming no readers use the legacy `status` column. Not blocked by Phase 2.
 

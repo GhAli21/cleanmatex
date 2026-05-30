@@ -1770,6 +1770,42 @@
         "currency": "العملة",
         "submit": "تشغيل",
         "running": "جارٍ التشغيل..."
+      },
+      "paginationTotal": "{count} إجمالي",
+      "checks": {
+        "PAYMENT_TOTAL_MATCH": "مطابقة إجمالي الدفع",
+        "CREDIT_APP_BALANCE": "رصيد تطبيق الائتمان",
+        "OUTSTANDING_TOTAL_MATCH": "مطابقة الرصيد المستحق",
+        "STORED_VALUE_LEDGER": "دفتر القيمة المخزّنة",
+        "GATEWAY_PENDING_INTEGRITY": "سلامة بوابة الدفع المعلّقة",
+        "LEGACY_STATUS_LEAKAGE": "تسرّب الحالة القديمة",
+        "TAX_CALCULATION": "حساب الضريبة",
+        "DISCOUNT_VALIDATION": "التحقق من الخصم",
+        "REFUND_CONSISTENCY": "اتساق الاسترداد",
+        "OUTBOX_PROCESSED": "معالجة صندوق الإصدار",
+        "VOUCHER_TOTAL_EQUALS_LINES": "إجمالي السند = البنود",
+        "NO_DUPLICATE_OPERATIONAL_EFFECT": "عدم تكرار الأثر التشغيلي",
+        "GATEWAY_STATE_VALID": "حالة بوابة الدفع صحيحة",
+        "ORDER_PAYMENT_LINK_EXISTS": "وجود ارتباط دفع الطلب",
+        "ORDER_PAYMENT_AMOUNT_MATCHES_LINE": "مطابقة مبلغ دفع الطلب للبند",
+        "ORDER_CREDIT_APPLICATION_LINK_EXISTS": "وجود ارتباط تطبيق ائتمان الطلب",
+        "ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE": "مطابقة مبلغ تطبيق ائتمان الطلب للبند",
+        "ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS": "تطبيق الائتمان غير مدرج في المدفوعات",
+        "ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS": "تطبيق الائتمان غير مدرج في الخصومات",
+        "ORDER_CHARGES_MATCH_SNAPSHOT": "مطابقة رسوم الطلب للصورة المخزّنة",
+        "ORDER_PIECES_MATCH_CHARGES": "مطابقة قطع الطلب للرسوم",
+        "ORDER_PREFERENCES_MATCH_CHARGES": "مطابقة تفضيلات الطلب للرسوم",
+        "PIECE_EXTRA_PRICE_INCLUDED_ONCE": "إدراج سعر القطعة الإضافي مرة واحدة",
+        "PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE": "إدراج سعر التفضيل الإضافي مرة واحدة",
+        "WALLET_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر المحفظة",
+        "ADVANCE_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر العربون",
+        "GIFT_CARD_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر بطاقة الهدية",
+        "CREDIT_NOTE_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر إشعار الائتمان",
+        "LOYALTY_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر الولاء",
+        "CASH_MOVEMENT_LINK_EXISTS": "وجود ارتباط حركة النقد",
+        "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "مبلغ حركة النقد = المبلغ المُحتجز",
+        "INVOICE_PAYMENT_LINK_EXISTS": "وجود ارتباط دفع الفاتورة",
+        "REFUND_LINK_EXISTS": "وجود ارتباط الاسترداد"
       }
     }
   },
@@ -1990,7 +2026,10 @@
         "qaDecision": "قرار مراقبة الجودة",
         "processingStep": "خطوة المعالجة",
         "issueCreated": "تم إنشاء المشكلة",
-        "issueResolved": "تم حل المشكلة"
+        "issueResolved": "تم حل المشكلة",
+        "orderCompleted": "اكتمل الطلب",
+        "voucherPostedAndWired": "تم ترحيل السند",
+        "arInvoiceIssued": "تم إصدار فاتورة الذمم"
       }
     },
     "notes": "ملاحظات",
@@ -2242,6 +2281,7 @@
           "balanceMismatch": "عدم تطابق الرصيد: الإجمالي {total}، المدفوع {paid}، الاعتمادات {credits}، الرصيد المتوقع {expected} لكن المخزن {stored}.",
           "pendingPaymentsNote": "{count} دفعة معلقة غير مشمولة في المدفوع.",
           "giftCardNotInCredits": "مبلغ بطاقة الهدية لا يطابق إجمالي الاعتمادات المطبقة.",
+          "arReceivableMismatch": "عدم تطابق الذمم المدينة: الرصيد المتبقي في الفاتورة {invoiceOutstanding} بينما الرصيد المتبقي في الطلب {orderOutstanding}.",
           "payOnCollectionWithArInvoice": "طلب الدفع عند الاستلام لا يجب أن يكون له فاتورة ذمم.",
           "paidOrderWithArInvoice": "الطلب المسدد بالكامل لا يجب أن يكون له فاتورة ذمم.",
           "creditInvoiceMissingAr": "طلب فاتورة آجلة برصيد مستحق بدون فاتورة ذمم."

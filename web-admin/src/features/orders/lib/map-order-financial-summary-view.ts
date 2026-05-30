@@ -64,8 +64,10 @@ export function mapOrderFinancialSummaryView(
     paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION && outstandingAmount > 0
       ? outstandingAmount
       : 0;
-  const invoiceAmount =
-    paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
+  const invoiceOutstandingAmount = n(input.arInvoice?.outstandingAmount ?? input.arInvoice?.amount);
+  const invoiceAmount = input.arInvoice
+    ? invoiceOutstandingAmount
+    : paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
       ? outstandingAmount
       : 0;
 
@@ -80,6 +82,7 @@ export function mapOrderFinancialSummaryView(
     expectedOutstandingAmount,
     paymentTypeCode,
     arInvoice: input.arInvoice ?? null,
+    arInvoiceOutstandingAmount: input.arInvoice ? invoiceOutstandingAmount : null,
     giftCardOnOrder: n(input.order?.gift_card_applied_amount),
   });
 
@@ -167,6 +170,7 @@ function buildWarnings(ctx: {
   expectedOutstandingAmount: number;
   paymentTypeCode: string | null;
   arInvoice: { id: string } | null;
+  arInvoiceOutstandingAmount: number | null;
   giftCardOnOrder: number;
 }): FinancialWarning[] {
   const warnings: FinancialWarning[] = [];
@@ -205,6 +209,22 @@ function buildWarnings(ctx: {
       code: 'GIFT_CARD_NOT_IN_CREDITS',
       severity: 'warning',
       messageKey: 'giftCardNotInCredits',
+    });
+  }
+
+  if (
+    ctx.arInvoice &&
+    ctx.arInvoiceOutstandingAmount != null &&
+    Math.abs(ctx.arInvoiceOutstandingAmount - ctx.outstandingAmount) > tolerance
+  ) {
+    warnings.push({
+      code: 'AR_RECEIVABLE_MISMATCH',
+      severity: 'warning',
+      messageKey: 'arReceivableMismatch',
+      messageParams: {
+        invoiceOutstanding: ctx.arInvoiceOutstandingAmount,
+        orderOutstanding: ctx.outstandingAmount,
+      },
     });
   }
 

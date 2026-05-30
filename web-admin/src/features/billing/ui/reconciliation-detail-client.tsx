@@ -1,6 +1,24 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+/**
+ * Reconciliation Detail — Client Component (BVM Phase 4 §24.3 UI Cmx migration).
+ *
+ * Shows one run's metadata plus its persisted issue list.
+ *
+ * Migration notes (vs pre-Phase-4 implementation):
+ *   - Custom span badges → `Badge` from `@ui/primitives`.
+ *   - Custom empty state → `CmxSummaryMessage` from `@ui/feedback`.
+ *   - CSV export link → `CmxButton asChild` for consistent affordance.
+ *   - Date / period formatters switch to `ar-OM` / `en-OM` via `useLocale()`.
+ *   - All directional spacing carries `rtl:` flip where required.
+ */
+
+import { useLocale, useMessages, useTranslations } from 'next-intl';
+
+import { Badge, CmxButton } from '@ui/primitives';
+import { CmxSummaryMessage } from '@ui/feedback';
+
+const EM_DASH = '—';
 
 interface ReconIssue {
   id: string;
@@ -37,54 +55,63 @@ interface ReconciliationDetailClientProps {
   run: ReconRunDetail;
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat('en-US', {
+function fmtDate(locale: string, iso: string | null | undefined): string {
+  if (!iso) return EM_DASH;
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
 }
 
-function fmtPeriod(from: string | null, to: string | null): string {
-  if (!from && !to) return '—';
+function fmtPeriod(locale: string, from: string | null, to: string | null): string {
+  if (!from && !to) return EM_DASH;
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
-    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(iso));
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      year: 'numeric', month: 'short', day: 'numeric',
+    }).format(new Date(iso));
   };
-  return `${fmtShort(from)} – ${fmtShort(to)}`;
+  return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
 
-function statusBadgeClass(status: string): string {
-  const map: Record<string, string> = {
-    PENDING: 'bg-gray-100 text-gray-800',
-    RUNNING: 'bg-blue-100 text-blue-800',
-    PASSED:  'bg-green-100 text-green-800',
-    FAILED:  'bg-red-100 text-red-800',
-    PARTIAL: 'bg-yellow-100 text-yellow-800',
-  };
-  return map[status] ?? 'bg-gray-100 text-gray-800';
+function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+  switch (status) {
+    case 'PASSED':  return 'success';
+    case 'FAILED':  return 'destructive';
+    case 'PARTIAL': return 'warning';
+    case 'RUNNING': return 'info';
+    default:        return 'secondary';
+  }
 }
 
-function severityBadgeClass(severity: string): string {
-  const map: Record<string, string> = {
-    BLOCKER: 'bg-red-100 text-red-800',
-    WARNING: 'bg-yellow-100 text-yellow-800',
-    INFO:    'bg-blue-100 text-blue-800',
-  };
-  return map[severity] ?? 'bg-gray-100 text-gray-800';
+function severityBadgeVariant(severity: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+  switch (severity) {
+    case 'BLOCKER': return 'destructive';
+    case 'WARNING': return 'warning';
+    case 'INFO':    return 'info';
+    default:        return 'secondary';
+  }
 }
 
-function issueBadgeClass(status: string): string {
-  const map: Record<string, string> = {
-    OPEN:         'bg-red-100 text-red-800',
-    ACKNOWLEDGED: 'bg-yellow-100 text-yellow-800',
-    RESOLVED:     'bg-green-100 text-green-800',
-  };
-  return map[status] ?? 'bg-gray-100 text-gray-800';
+function issueBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+  switch (status) {
+    case 'OPEN':         return 'destructive';
+    case 'ACKNOWLEDGED': return 'warning';
+    case 'RESOLVED':     return 'success';
+    default:             return 'secondary';
+  }
 }
 
 export default function ReconciliationDetailClient({ run }: ReconciliationDetailClientProps) {
   const t = useTranslations('billing.reconciliation');
+  const locale = useLocale();
+  // `useMessages` exposes the raw bag so we can fall back to the raw check
+  // code when no `billing.reconciliation.checks.<NAME>` label is registered
+  // — next-intl's `t()` would otherwise throw on a missing key.
+  const messages = useMessages() as { billing?: { reconciliation?: { checks?: Record<string, string> } } };
+  const checkLabels = messages.billing?.reconciliation?.checks ?? {};
+
+  const labelForCheck = (code: string) => checkLabels[code] ?? code;
 
   const blockers  = run.issues.filter((i) => i.severity === 'BLOCKER').length;
   const warnings  = run.issues.filter((i) => i.severity === 'WARNING').length;
@@ -92,19 +119,17 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
 
   return (
     <div className="space-y-6">
-      {/* Run summary header */}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold">{run.run_no}</h1>
-        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(run.status)}`}>
+        <Badge variant={statusBadgeVariant(run.status)}>
           {t(`statusLabels.${run.status}` as Parameters<typeof t>[0])}
-        </span>
+        </Badge>
       </div>
 
-      {/* Meta info */}
       <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-white p-6 text-sm md:grid-cols-4">
         <div>
           <p className="text-gray-500">{t('period')}</p>
-          <p className="font-medium">{fmtPeriod(run.period_from, run.period_to)}</p>
+          <p className="font-medium">{fmtPeriod(locale, run.period_from, run.period_to)}</p>
         </div>
         <div>
           <p className="text-gray-500">{t('currency')}</p>
@@ -112,15 +137,14 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
         </div>
         <div>
           <p className="text-gray-500">{t('ranAt')}</p>
-          <p className="font-medium">{fmtDate(run.completed_at ?? run.started_at)}</p>
+          <p className="font-medium">{fmtDate(locale, run.completed_at ?? run.started_at)}</p>
         </div>
         <div>
           <p className="text-gray-500">{t('ranBy')}</p>
-          <p className="font-medium">{run.triggered_by ?? '—'}</p>
+          <p className="font-medium">{run.triggered_by ?? EM_DASH}</p>
         </div>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
           <p className="text-3xl font-bold text-red-700">{blockers}</p>
@@ -136,63 +160,68 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
         </div>
       </div>
 
-      {/* Issues table */}
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">{t('issues.title')}</h2>
           {run.issues.length > 0 && (
-            <a
-              href={`/api/v1/finance/reconciliation/runs/${run.id}?format=csv`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {t('issues.exportCsv')}
-            </a>
+            <CmxButton asChild variant="outline" size="sm">
+              <a
+                href={`/api/v1/finance/reconciliation/runs/${run.id}?format=csv`}
+                download
+              >
+                {t('issues.exportCsv')}
+              </a>
+            </CmxButton>
           )}
         </div>
         {run.issues.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-500">{t('issues.noIssues')}</p>
+          <div className="px-6 py-8">
+            <CmxSummaryMessage type="success" title={t('issues.noIssues')} items={[]} />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.severity')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.checkName')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.affectedEntity')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.expected')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.actual')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.delta')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.message')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.status')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.severity')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.checkName')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.affectedEntity')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.expected')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.actual')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.delta')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.message')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {run.issues.map((issue) => (
                   <tr key={issue.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${severityBadgeClass(issue.severity)}`}>
+                      <Badge variant={severityBadgeVariant(issue.severity)}>
                         {t(`issues.severityLabels.${issue.severity}` as Parameters<typeof t>[0])}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-700">
-                      {issue.check_name}
+                      {/* The check_name string round-trips to the DB and to translation keys
+                          under `billing.reconciliation.checks.<NAME>` so the operator sees a
+                          human label when one is registered, falling back to the raw code. */}
+                      {labelForCheck(issue.check_name)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                       {issue.affected_entity_type
-                        ? `${issue.affected_entity_type}: ${issue.affected_entity_id ?? '—'}`
-                        : '—'}
+                        ? `${issue.affected_entity_type}: ${issue.affected_entity_id ?? EM_DASH}`
+                        : EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs">
-                      {issue.expected_value != null ? issue.expected_value.toFixed(4) : '—'}
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs">
+                      {issue.expected_value != null ? issue.expected_value.toFixed(4) : EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs">
-                      {issue.actual_value != null ? issue.actual_value.toFixed(4) : '—'}
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs">
+                      {issue.actual_value != null ? issue.actual_value.toFixed(4) : EM_DASH}
                     </td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold ${
+                    <td className={`whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs font-semibold ${
                       issue.delta < 0 ? 'text-red-700' : issue.delta > 0 ? 'text-orange-700' : 'text-gray-500'
                     }`}>
-                      {issue.delta != null ? issue.delta.toFixed(4) : '—'}
+                      {issue.delta != null ? issue.delta.toFixed(4) : EM_DASH}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       <span className="block max-w-xs truncate" title={issue.message}>
@@ -200,9 +229,9 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${issueBadgeClass(issue.status)}`}>
+                      <Badge variant={issueBadgeVariant(issue.status)}>
                         {t(`issues.statusLabels.${issue.status}` as Parameters<typeof t>[0])}
-                      </span>
+                      </Badge>
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,83 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-30 — BVM Wiring Phase 5: History / Audit (PRD §22 — outbox-driven order timeline)
+
+**Implementation log:** `docs/features/Order_Fin/bvm_wiring_phase5_implementation.md`
+
+### Shipped
+
+- **Migration 0330** extends `chk_history_action_type` to allow 3 BVM action codes (`ORDER_COMPLETED`, `VOUCHER_POSTED_AND_WIRED`, `AR_INVOICE_ISSUED`). Adds nullable `outbox_event_id UUID` column on `org_order_history` with FK → `org_domain_events_outbox(id) ON DELETE SET NULL`, partial unique index `uq_history_outbox_event (tenant_org_id, outbox_event_id) WHERE outbox_event_id IS NOT NULL` (consumer idempotency key), and fast-path lookup index. No CASCADE, no data loss; legacy rows unaffected (NULL `outbox_event_id`).
+- **New consumer service** `web-admin/lib/services/order-history-consumer.service.ts` subscribes to the 3 BVM outbox events. Resolves `order_id` from `aggregate_id` (ORDER_COMPLETED) or via `org_fin_vouchers_mst.order_id` / `org_invoice_mst.order_id` for voucher / AR-invoice events. Manual financial vouchers + multi-order invoices → SKIPPED_NOT_ORDER_LINKED (intentional). Idempotent upsert on the partial unique index with `update: {}` no-clobber clause. Runs in the outbox worker; never enlarges the submit-order tx.
+- **OrderTimeline UI** (`src/features/orders/ui/order-timeline.tsx`) extended with icons (`ShieldCheck` / `FileText` / `Receipt`), Order Fin palette colors (green-700 / violet-600 / sky-500), and i18n keys for the 3 new action types. Existing fetch / render / RTL paths untouched.
+- **i18n** — 3 new bilingual labels in `orders.timeline.actions.*` (EN: Order Completed / Voucher Posted / AR Invoice Issued; AR: اكتمل الطلب / تم ترحيل السند / تم إصدار فاتورة الذمم). `check:i18n` green.
+- **Prisma schema** updated: `outbox_event_id` field + relation + `@@unique` + lookup `@@index` on `org_order_history`; back-relation `org_order_history[]` on `org_domain_events_outbox`.
+
+### Tests
+
+- **+9 consumer tests** in `__tests__/services/order-history-consumer.service.test.ts` (direct `ORDER_COMPLETED`, voucher-resolved + invoice-resolved paths, manual-voucher skip, multi-order-invoice skip, unsupported-event skip, idempotency, multi-tenant isolation, batch outcome 1:1).
+- Full sweep: **172/172 pass** (163 prior baseline + 9 new).
+
+### Verification
+
+- `npx tsc --noEmit` filtered = 0 errors.
+- Full jest sweep = 172/172 pass.
+- `npm run check:i18n` = green.
+- Migration 0330 applied; `npx prisma generate` clean.
+
+### Files
+
+- **New:** `supabase/migrations/0330_phase5_order_history_bvm_action_types.sql`, `web-admin/lib/services/order-history-consumer.service.ts`, `web-admin/__tests__/services/order-history-consumer.service.test.ts`, `docs/features/Order_Fin/bvm_wiring_phase5_implementation.md`.
+- **Modified:** `web-admin/prisma/schema.prisma`, `web-admin/src/features/orders/ui/order-timeline.tsx`, `web-admin/messages/en.json`, `web-admin/messages/ar.json`, `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`, `docs/features/Order_Fin/CHANGELOG.md`.
+
+### Follow-ups (Phase 6 candidates)
+
+1. Promote the consumer to a default outbox-worker subscriber (wire into `claimBatch` loop).
+2. Per-order AR_INVOICE_LINKED sub-events for multi-order invoices so each linked order timeline includes the AR raise.
+3. Reconciliation check for missing outbox-driven history rows (every POSTED voucher with `order_id` should have a VOUCHER_POSTED_AND_WIRED row on the order timeline).
+
+---
+
+## 2026-05-30 — BVM Wiring Phase 4: reconciliation expansion (PRD §22.1 + §24.3)
+
+**Implementation log:** `docs/features/Order_Fin/bvm_wiring_phase4_implementation.md`
+
+### Shipped
+
+- **8 → 30 reconciliation checks.** Five new check modules under `web-admin/lib/services/reconciliation/` (`ar-checks`, `stored-value-checks`, `order-checks`, `order-snapshot-checks`, `voucher-checks`) implement every PRD §22.1 check using the mig 0303 / 0318 / 0329 FK backlinks. Legacy 8 checks factored 1:1 (zero behaviour change).
+- **Orchestrator rewrite.** `reconciliation.service.ts` now fans out checks via `Promise.all`, persists issues with bulk `createMany` (closes BVM R7 per-row insert loop), and computes `total_checked` dynamically from `EXECUTED_CHECK_NAMES` (no more magic-8). Public API surface unchanged.
+- **Voucher-scoped reconciliation (PRD §24.3).** New `voucher-reconciliation.service.ts` + `GET /api/v1/finance/vouchers/[voucherId]/reconciliation` route. Read-only operator action; runs the 3 voucher integrity checks without writing a run row.
+- **BVM R1 fix.** `app/api/v1/finance/reconciliation/issues/[issueId]/route.ts` permission code corrected from `reconciliation:acknowledge` (unseeded; always 403) to seeded `reconciliation:acknowledge_issues`.
+- **UI Cmx migration.** `reconciliation-list-client.tsx`, `reconciliation-detail-client.tsx`, and `[runId]/page.tsx` back-link migrated to `CmxButton`, `Badge`, `CmxDialog`, `CmxInput`, `CmxSummaryMessage`. Full RTL pass: `rtl:` flips, `ar-OM` `Intl.DateTimeFormat`, mojibake purged, hardcoded English "Cancel" → `tCommon('cancel')`.
+- **i18n parity.** `billing.reconciliation.paginationTotal` + 33-entry `billing.reconciliation.checks.<NAME>` sub-namespace added to en.json + ar.json. `useMessages()` lookup with raw-code fallback.
+- **Route pair JSDoc cross-refs (R8).** `orders/[id]/financial-reconcile` (POST, run) and `orders/[id]/financial-reconciliation` (GET, view) now declare each other via `@see`.
+- **Stored-value `txn_type` filter (T1 closure).** All 5 `*_LEDGER_LINK_EXISTS` checks apply per-table debit-only enums (`STORED_VALUE_TXN_TYPES.REDEMPTION` / `GIFT_CARD_TXN_TYPE.REDEEM` / `LOYALTY_TXN_TYPES.REDEEM`). Eliminates over-flagging of top-ups / issuances.
+
+### Tests
+
+- **+29 new check-module + voucher-service tests** in `__tests__/services/reconciliation/check-modules.test.ts` (includes multi-tenant isolation test).
+- **+14 rewritten orchestrator + integration tests** (`reconciliation.service.test.ts` 8, `reconciliation-run.test.ts` 6) against the bulk-insert contract.
+- Full sweep: **163/163 pass** (120 baseline + 14 orchestrator + 29 check-modules).
+
+### Verification
+
+- `npx tsc --noEmit` filtered = 0 errors.
+- Full jest sweep = 163/163 pass.
+- `npm run check:i18n` = green.
+- No migration shipped (Step 1 SKIP — every dependency already in mig 0293 / 0294 / 0295 / 0303 / 0306 / 0318 / 0329).
+
+### Files
+
+- **New:** `web-admin/lib/services/reconciliation/{types,ar-checks,stored-value-checks,order-checks,order-snapshot-checks,voucher-checks}.ts`, `web-admin/lib/services/voucher-reconciliation.service.ts`, `web-admin/app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts`, `web-admin/__tests__/services/reconciliation/check-modules.test.ts`, `docs/features/Order_Fin/bvm_wiring_phase4_implementation.md`.
+- **Modified:** `web-admin/lib/services/reconciliation.service.ts`, `web-admin/lib/constants/order-financial.ts`, `web-admin/app/api/v1/finance/reconciliation/issues/[issueId]/route.ts`, `web-admin/app/api/v1/orders/[id]/financial-reconcile/route.ts`, `web-admin/app/api/v1/orders/[id]/financial-reconciliation/route.ts`, `web-admin/app/dashboard/internal_fin/reconciliation/[runId]/page.tsx`, `web-admin/src/features/billing/ui/reconciliation-list-client.tsx`, `web-admin/src/features/billing/ui/reconciliation-detail-client.tsx`, `web-admin/messages/en.json`, `web-admin/messages/ar.json`, `web-admin/__tests__/services/reconciliation.service.test.ts`, `web-admin/__tests__/integration/reconciliation-run.test.ts`, `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`, `docs/features/Order_Fin/CHANGELOG.md`.
+
+### Follow-ups (Phase 6 candidates)
+
+1. Add direct `fin_voucher_id` backlink on `org_order_refunds_dtl` so `checkRefundLink` switches from indirect lookup to direct FK scan.
+2. Add standard audit fields on `org_fin_recon_issues_dtl` (`is_active`, `rec_status`, `rec_notes`, `rec_order`, `created_by/info`, `updated_*`).
+3. Voucher-reconciliation UI surface (button in voucher detail vs. dedicated page).
+
+---
+
 ## 2026-05-29 — BVM Wiring Phase 3 Round 3: gift-card-as-discount semantic fix
 
 **Surfaced by:** Round-2 manual QA — AR invoice produced 0.94 instead of expected 1.040 because the pricing engine already deducts gift-card from `finalTotal` and the planner then subtracted it again as a credit-application.

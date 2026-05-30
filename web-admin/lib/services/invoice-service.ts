@@ -682,8 +682,7 @@ export function calculatePaymentSummary(
   const totalDiscount = manualDiscount + promoDiscount;
   const amountAfterDiscount = subtotal - totalDiscount;
   const tax = calculateTaxAmount(amountAfterDiscount, taxRate);
-  const totalBeforeGiftCard = amountAfterDiscount + tax;
-  const total = Math.max(0, totalBeforeGiftCard - giftCardApplied);
+  const total = Math.max(0, amountAfterDiscount + tax);
 
   return {
     subtotal,

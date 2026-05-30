@@ -604,24 +604,17 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }),
   };
 
-  // Phase 3 Round 3 — gift-card is a pricing discount, not a settlement credit.
-  // See `order-calculation.service.ts:322-323`: `serverTotals.finalTotal` is
-  // already net of `giftCardApplied`. Treating it ALSO as a credit-application
-  // (Phase 3 Step 4 voucher synthesis) double-counts it. Wallet / advance /
-  // credit-note / loyalty are NOT pre-deducted from finalTotal — those DO
-  // legitimately settle the post-discount price.
-  //
-  // `settlementCreditApplied` covers wallet+advance+cn+loyalty only.
-  // `correctedOutstanding` is the actual receivable after cash + non-gift
-  // credit applications. Used by:
+  // Gift-card redemption is stored-value settlement, not a pricing discount.
+  // `serverTotals.finalTotal` is the full sale total after commercial
+  // discounts and tax only, while `plan.creditAppliedAmount` covers every
+  // settlement credit leg (gift-card, wallet, advance, customer credit,
+  // loyalty). `correctedOutstanding` is the post-settlement receivable. Used by:
   //  (a) the `shouldCreateArInvoice` zero-outstanding gate
   //  (b) the AR writer's `expected_total_amount` input
   //  (c) `breakdown.outstanding` snapshot persisted by settleOrder
-  const giftCardApplied = serverTotals.giftCardApplied ?? 0;
-  const settlementCreditApplied = Math.max(0, plan.creditAppliedAmount - giftCardApplied);
   const correctedOutstanding = Math.max(
     0,
-    serverTotals.finalTotal - plan.realPaymentAmount - settlementCreditApplied
+    serverTotals.finalTotal - plan.realPaymentAmount - plan.creditAppliedAmount
   );
 
   // ADR_ar_invoice_is_receivable_only.md — `org_invoice_mst` rows represent
@@ -652,11 +645,9 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // OPEN-with-ledger-debit semantics atomically inside this same tx.
         // The `${orderId}_ar` idempotency key collapses replays onto the same
         // invoice row via `withIdempotency` (24h TTL).
-        // Phase 3 Round 3: `expected_total_amount = correctedOutstanding`
-        // sizes the invoice to the actual receivable (post-discount price
-        // minus cash minus non-gift-card credit-applications). Gift-card was
-        // already deducted from `serverTotals.finalTotal` by the pricing
-        // engine — it must NOT be subtracted again here.
+        // `expected_total_amount = correctedOutstanding` sizes the invoice to
+        // the post-settlement receivable (full sale total minus real payments
+        // minus stored-value / credit-application legs).
         const invoiceDetail = await createArInvoiceFromOrders(
           {
             order_ids:                [orderId],
@@ -898,9 +889,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     // creditsTotal is informational: total balance debited via voucher
     // CREDIT_APPLICATION lines (gift-card + wallet + advance + cn + loyalty).
     creditsTotal:     plan.creditAppliedAmount,
-    // netReceivable: post-discount price minus settlement-time credits
-    // (excludes gift-card since it was already a price discount).
-    netReceivable:    serverTotals.finalTotal - settlementCreditApplied,
+    // netReceivable: full sale total minus settlement-time credits.
+    netReceivable:    Math.max(0, serverTotals.finalTotal - plan.creditAppliedAmount),
     paymentLegsTotal: amountToCharge,
     changeReturned:   0,
     outstanding:      correctedOutstanding,

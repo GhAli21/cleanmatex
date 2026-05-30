@@ -68,7 +68,9 @@ export interface OrderCalculationResult {
   vatTaxPercent: number;
   vatValue: number;
   taxBreakdown: TaxLineItem[];
+  /** Stored-value settlement amount reserved for the gift card leg, not a pricing discount. */
   giftCardApplied: number;
+  /** Full sale total after commercial discounts, tax, and rounding, before settlement credits. */
   finalTotal: number;
   currencyCode: string;
   decimalPlaces: number;
@@ -82,7 +84,8 @@ function round(value: number, decimals: number): number {
 
 /**
  * Calculate order totals server-side.
- * Fetches prices from catalog, applies discounts, promo, gift card, VAT.
+ * Fetches prices from catalog, applies pricing discounts and tax, while keeping
+ * stored-value settlement amounts separate from sale-total math.
  */
 export async function calculateOrderTotals(
   params: OrderCalculationParams
@@ -319,10 +322,7 @@ export async function calculateOrderTotals(
     }
   }
 
-  const finalTotal = round(
-    Math.max(0, amountBeforeGiftCard - giftCardApplied),
-    decimalPlaces
-  );
+  const finalTotal = amountBeforeGiftCard;
 
   const discountLines: DiscountLineInput[] = [];
 

@@ -25,9 +25,12 @@
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import {
+  LOYALTY_TXN_TYPES,
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
+  STORED_VALUE_TXN_TYPES,
 } from '@/lib/constants/order-financial';
+import { GIFT_CARD_TXN_TYPE } from '@/lib/constants/gift-card';
 
 import {
   RECONCILIATION_TOLERANCE,
@@ -140,13 +143,12 @@ export async function checkWalletLedgerLink(
           where: {
             tenant_org_id: tenantOrgId,
             created_at: { gte: window.periodFrom, lte: window.periodTo },
-            // Debit = redemption against an order; should always go via voucher.
-            // TODO Phase 4 Step 2c: add per-table debit filter before wiring.
-            // wallet/advance/credit_note/loyalty use `txn_type` (e.g. 'REDEMPTION');
-            // gift_card uses `transaction_type`. Until the filter is added, this
-            // check will over-flag top-up/issuance rows that legitimately have
-            // no voucher backlink. The module is not wired into the orchestrator
-            // yet — only the constants are live.
+            // Debit = redemption against an order; must always go via voucher.
+            // Top-ups (TOP_UP, ISSUE, BONUS) legitimately have no voucher
+            // backlink because they originate from admin actions outside the
+            // Business Voucher flow, so the filter scopes the check to
+            // REDEMPTION rows only.
+            txn_type: STORED_VALUE_TXN_TYPES.REDEMPTION,
             fin_voucher_id: null,
           },
           select: { id: true, amount: true },
@@ -173,12 +175,8 @@ export async function checkAdvanceLedgerLink(
           where: {
             tenant_org_id: tenantOrgId,
             created_at: { gte: window.periodFrom, lte: window.periodTo },
-            // TODO Phase 4 Step 2c: add per-table debit filter before wiring.
-            // wallet/advance/credit_note/loyalty use `txn_type` (e.g. 'REDEMPTION');
-            // gift_card uses `transaction_type`. Until the filter is added, this
-            // check will over-flag top-up/issuance rows that legitimately have
-            // no voucher backlink. The module is not wired into the orchestrator
-            // yet — only the constants are live.
+            // Debits only — see wallet check above for rationale.
+            txn_type: STORED_VALUE_TXN_TYPES.REDEMPTION,
             fin_voucher_id: null,
           },
           select: { id: true, amount: true },
@@ -205,12 +203,9 @@ export async function checkGiftCardLedgerLink(
           where: {
             tenant_org_id: tenantOrgId,
             created_at: { gte: window.periodFrom, lte: window.periodTo },
-            // TODO Phase 4 Step 2c: add per-table debit filter before wiring.
-            // wallet/advance/credit_note/loyalty use `txn_type` (e.g. 'REDEMPTION');
-            // gift_card uses `transaction_type`. Until the filter is added, this
-            // check will over-flag top-up/issuance rows that legitimately have
-            // no voucher backlink. The module is not wired into the orchestrator
-            // yet — only the constants are live.
+            // Gift card uses `transaction_type` (not `txn_type`) per the
+            // legacy gift-card schema. REDEEM = debit against an order.
+            transaction_type: GIFT_CARD_TXN_TYPE.REDEEM,
             fin_voucher_id: null,
           },
           select: { id: true, amount: true },
@@ -237,12 +232,8 @@ export async function checkCreditNoteLedgerLink(
           where: {
             tenant_org_id: tenantOrgId,
             created_at: { gte: window.periodFrom, lte: window.periodTo },
-            // TODO Phase 4 Step 2c: add per-table debit filter before wiring.
-            // wallet/advance/credit_note/loyalty use `txn_type` (e.g. 'REDEMPTION');
-            // gift_card uses `transaction_type`. Until the filter is added, this
-            // check will over-flag top-up/issuance rows that legitimately have
-            // no voucher backlink. The module is not wired into the orchestrator
-            // yet — only the constants are live.
+            // Debits only — see wallet check above for rationale.
+            txn_type: STORED_VALUE_TXN_TYPES.REDEMPTION,
             fin_voucher_id: null,
           },
           select: { id: true, amount: true },
@@ -275,12 +266,9 @@ export async function checkLoyaltyLedgerLink(
           where: {
             tenant_org_id: tenantOrgId,
             created_at: { gte: window.periodFrom, lte: window.periodTo },
-            // TODO Phase 4 Step 2c: add per-table debit filter before wiring.
-            // wallet/advance/credit_note/loyalty use `txn_type` (e.g. 'REDEMPTION');
-            // gift_card uses `transaction_type`. Until the filter is added, this
-            // check will over-flag top-up/issuance rows that legitimately have
-            // no voucher backlink. The module is not wired into the orchestrator
-            // yet — only the constants are live.
+            // Loyalty REDEEM = points spent against an order (debit).
+            // EARN / BONUS rows legitimately have no voucher backlink.
+            txn_type: LOYALTY_TXN_TYPES.REDEEM,
             fin_voucher_id: null,
           },
           select: { id: true, points: true },

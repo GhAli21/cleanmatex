@@ -1,16 +1,39 @@
 'use client';
 
 /**
- * Reconciliation List Ã¢â‚¬â€ Client Component
+ * Reconciliation List — Client Component (BVM Phase 4 §24.3 UI Cmx migration).
  *
  * Shows all reconciliation runs with a "Run Reconciliation" action.
+ *
+ * Migration notes (vs pre-Phase-4 implementation):
+ *   - Raw `<button>` → `CmxButton` (variants: `primary`, `outline`).
+ *   - Custom badge spans → `Badge` from `@ui/primitives/badge`.
+ *   - Modal `<div>` overlay → `CmxDialog` from `@ui/overlays`.
+ *   - Raw `<input type="date|text">` → `CmxInput` from `@ui/primitives`.
+ *   - Custom empty state → `CmxSummaryMessage` from `@ui/feedback`.
+ *   - Hardcoded English "Cancel" → `tCommon('cancel')`.
+ *   - Mojibake `Ã¢â‚¬â€` placeholders → proper `—` em-dash via `EM_DASH` const.
+ *   - Date formatter switches to `ar-OM` / `en-OM` using `useLocale()`.
+ *   - All directional spacing carries `rtl:` flip where required.
  */
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
 import { runReconciliationAction } from '@/app/actions/billing/reconciliation-actions';
+import { CmxButton, CmxInput, Badge } from '@ui/primitives';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+  CmxDialogFooter,
+} from '@ui/overlays';
+import { CmxSummaryMessage } from '@ui/feedback';
+
+const EM_DASH = '—';
 
 interface ReconRun {
   id: string;
@@ -40,37 +63,40 @@ interface ReconciliationListClientProps {
   pagination: PaginationInfo;
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return 'Ã¢â‚¬â€';
-  return new Intl.DateTimeFormat('en-US', {
+function fmtDate(locale: string, iso: string | null | undefined): string {
+  if (!iso) return EM_DASH;
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
 }
 
-function fmtPeriod(from: string | null, to: string | null): string {
-  if (!from && !to) return 'Ã¢â‚¬â€';
+function fmtPeriod(locale: string, from: string | null, to: string | null): string {
+  if (!from && !to) return EM_DASH;
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
-    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(iso));
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      year: 'numeric', month: 'short', day: 'numeric',
+    }).format(new Date(iso));
   };
-  return `${fmtShort(from)} Ã¢â‚¬â€œ ${fmtShort(to)}`;
+  return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
 
-function statusBadgeClass(status: string): string {
-  const map: Record<string, string> = {
-    PENDING: 'bg-gray-100 text-gray-800',
-    RUNNING: 'bg-blue-100 text-blue-800',
-    PASSED:  'bg-green-100 text-green-800',
-    FAILED:  'bg-red-100 text-red-800',
-    PARTIAL: 'bg-yellow-100 text-yellow-800',
-  };
-  return map[status] ?? 'bg-gray-100 text-gray-800';
+/** Map a recon run status to a `Badge` variant. */
+function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+  switch (status) {
+    case 'PASSED':  return 'success';
+    case 'FAILED':  return 'destructive';
+    case 'PARTIAL': return 'warning';
+    case 'RUNNING': return 'info';
+    default:        return 'secondary';
+  }
 }
 
 export default function ReconciliationListClient({ runs, pagination }: ReconciliationListClientProps) {
   const t = useTranslations('billing.reconciliation');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -110,38 +136,34 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
+      <div className="flex justify-end rtl:justify-start">
+        <CmxButton
+          variant="primary"
           onClick={() => setShowRunDialog(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           disabled={isPending}
         >
           {t('runReconciliation')}
-        </button>
+        </CmxButton>
       </div>
 
       {runs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <p className="mt-4 text-sm text-gray-500">{t('noRuns')}</p>
-        </div>
+        <CmxSummaryMessage type="info" title={t('noRuns')} items={[]} />
       ) : (
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('runNo')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('status')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('period')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('currency')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranAt')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranBy')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('blockers')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('warnings')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"></th>
+                  {/* RTL: header alignment flips alongside the row cells below. */}
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('runNo')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('period')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('currency')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranAt')}</th>
+                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('ranBy')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('blockers')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('warnings')}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -149,37 +171,36 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
                   <tr key={run.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{run.run_no}</td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(run.status)}`}>
+                      <Badge variant={statusBadgeVariant(run.status)}>
                         {t(`statusLabels.${run.status}` as Parameters<typeof t>[0])}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {fmtPeriod(run.period_from, run.period_to)}
+                      {fmtPeriod(locale, run.period_from, run.period_to)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.currency_code}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(run.completed_at ?? run.started_at)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.triggered_by ?? 'Ã¢â‚¬â€'}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(locale, run.completed_at ?? run.started_at)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.triggered_by ?? EM_DASH}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
                       {(run.failed_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-red-700">{run.failed_checks}</span>
                       ) : (
                         <span className="text-gray-400">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
                       {(run.warning_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-yellow-700">{run.warning_checks}</span>
                       ) : (
                         <span className="text-gray-400">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link
-                        href={`/dashboard/internal_fin/reconciliation/${run.id}`}
-                        className="rounded border border-gray-300 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-                      >
-                        {t('viewDetails')}
-                      </Link>
+                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
+                      <CmxButton asChild variant="outline" size="xs">
+                        <Link href={`/dashboard/internal_fin/reconciliation/${run.id}`}>
+                          {t('viewDetails')}
+                        </Link>
+                      </CmxButton>
                     </td>
                   </tr>
                 ))}
@@ -187,94 +208,103 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-            <div>{pagination.total} total</div>
+            <div>{t('paginationTotal', { count: pagination.total })}</div>
             <div className="flex items-center gap-2">
               {pagination.page > 1 && (
-                <button
+                <CmxButton
+                  variant="outline"
+                  size="sm"
                   onClick={() => handlePage(pagination.page - 1)}
-                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
                 >
                   {tCommon('previous')}
-                </button>
+                </CmxButton>
               )}
               <span className="px-2 text-gray-600">
                 {pagination.page} / {totalPages}
               </span>
               {pagination.page < totalPages && (
-                <button
+                <CmxButton
+                  variant="outline"
+                  size="sm"
                   onClick={() => handlePage(pagination.page + 1)}
-                  className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
                 >
                   {tCommon('next')}
-                </button>
+                </CmxButton>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Run Reconciliation Dialog Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      {showRunDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3 className="mb-4 text-lg font-semibold">{t('runForm.title')}</h3>
+      {/* Run reconciliation dialog */}
+      <CmxDialog open={showRunDialog} onOpenChange={(open) => { setShowRunDialog(open); if (!open) setErrorMsg(null); }}>
+        <CmxDialogContent className="w-full max-w-md">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('runForm.title')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
             {errorMsg && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {errorMsg}
-              </div>
+              <CmxSummaryMessage type="error" title={errorMsg} items={[]} />
             )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t('runForm.periodFrom')}</label>
-                <input
-                  type="date"
-                  value={periodFrom}
-                  onChange={(e) => setPeriodFrom(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t('runForm.periodTo')}</label>
-                <input
-                  type="date"
-                  value={periodTo}
-                  onChange={(e) => setPeriodTo(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t('runForm.currency')}</label>
-                <input
-                  type="text"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  placeholder="OMR"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm uppercase focus:border-blue-500 focus:outline-none"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700" htmlFor="recon-period-from">
+                {t('runForm.periodFrom')}
+              </label>
+              <CmxInput
+                id="recon-period-from"
+                type="date"
+                value={periodFrom}
+                onChange={(e) => setPeriodFrom(e.target.value)}
+                className="mt-1"
+              />
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => { setShowRunDialog(false); setErrorMsg(null); }}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                disabled={isPending}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRunRecon}
-                disabled={isPending || !periodFrom || !periodTo || !currency}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isPending ? t('runForm.running') : t('runForm.submit')}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700" htmlFor="recon-period-to">
+                {t('runForm.periodTo')}
+              </label>
+              <CmxInput
+                id="recon-period-to"
+                type="date"
+                value={periodTo}
+                onChange={(e) => setPeriodTo(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700" htmlFor="recon-currency">
+                {t('runForm.currency')}
+              </label>
+              <CmxInput
+                id="recon-currency"
+                type="text"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                maxLength={3}
+                placeholder="OMR"
+                className="mt-1 uppercase"
+              />
             </div>
           </div>
-        </div>
-      )}
+          <CmxDialogFooter>
+            <CmxButton
+              variant="outline"
+              onClick={() => { setShowRunDialog(false); setErrorMsg(null); }}
+              disabled={isPending}
+            >
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton
+              variant="primary"
+              onClick={handleRunRecon}
+              loading={isPending}
+              disabled={isPending || !periodFrom || !periodTo || !currency}
+            >
+              {isPending ? t('runForm.running') : t('runForm.submit')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   );
 }

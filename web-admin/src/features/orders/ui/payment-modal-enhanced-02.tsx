@@ -506,7 +506,7 @@ export function PaymentModalEnhanced02({
     const afterTax = afterDiscounts + taxAmount;
     const vatValue = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal = Math.max(0, afterTax + vatValue - giftCardApplied);
+    const finalTotal = Math.max(0, afterTax + vatValue);
     return {
       subtotal,
       manualDiscount,

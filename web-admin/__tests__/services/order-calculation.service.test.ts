@@ -6,7 +6,7 @@
  * - calculateOrderTotals — applies manual percent discount
  * - calculateOrderTotals — applies amount discount
  * - calculateOrderTotals — applies promo discount
- * - calculateOrderTotals — gift card reduces final total
+ * - calculateOrderTotals — gift card stays separate from final total
  * - calculateOrderTotals — adds VAT on top of after-discount amount
  * - calculateOrderTotals — rounds to tenant decimal places
  */
@@ -22,6 +22,7 @@ const mockValidatePromoCode    = jest.fn();
 const mockGetBestDiscount      = jest.fn();
 const mockValidateGiftCard     = jest.fn();
 const mockValidateGiftCardById = jest.fn();
+const mockCalculateTax         = jest.fn();
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
@@ -43,6 +44,10 @@ jest.mock('@/lib/services/tenant-settings.service', () => ({
   createTenantSettingsService: jest.fn(() => ({
     getCurrencyConfig: (...a: unknown[]) => mockGetCurrencyConfig(...a),
   })),
+}));
+
+jest.mock('@/lib/services/tax-engine.service', () => ({
+  calculateTax: (...a: unknown[]) => mockCalculateTax(...a),
 }));
 
 jest.mock('@/lib/services/discount-service', () => ({
@@ -75,6 +80,7 @@ const defaultParams = {
 function setupDefaults() {
   mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'OMR', decimalPlaces: 3 });
   mockGetVatRate.mockResolvedValue(0);
+  mockCalculateTax.mockResolvedValue([]);
   mockGetBestDiscount.mockResolvedValue(null);
   mockValidatePromoCode.mockResolvedValue({ isValid: false });
   mockValidateGiftCard.mockResolvedValue({ isValid: false });
@@ -131,7 +137,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     expect(result.promoDiscount).toBeCloseTo(4);
   });
 
-  it('applies gift card redemption to final total', async () => {
+  it('keeps gift card redemption separate from final total', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 10, basePrice: 10 });
     mockValidateGiftCard.mockResolvedValue({ isValid: true, availableBalance: 5 });
 
@@ -139,7 +145,26 @@ describe('order-calculation.service — calculateOrderTotals', () => {
       ...defaultParams, giftCardNumber: 'GC-001', giftCardAmount: 5,
     });
     expect(result.giftCardApplied).toBeCloseTo(5);
-    expect(result.finalTotal).toBeLessThanOrEqual(result.afterDiscounts);
+    expect(result.finalTotal).toBeCloseTo(result.afterDiscounts);
+  });
+
+  it('does not let gift card reduce the tax base or tax amount', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+    mockGetVatRate.mockResolvedValue(0.05);
+    mockValidateGiftCard.mockResolvedValue({ isValid: true, availableBalance: 10 });
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      giftCardNumber: 'GC-002',
+      giftCardAmount: 10,
+    });
+
+    expect(result.afterDiscounts).toBeCloseTo(100);
+    expect(result.vatValue).toBeCloseTo(5);
+    expect(result.taxAmount).toBeCloseTo(5);
+    expect(result.finalTotal).toBeCloseTo(105);
+    expect(result.giftCardApplied).toBeCloseTo(10);
   });
 
   it('adds VAT on top of after-discounts', async () => {

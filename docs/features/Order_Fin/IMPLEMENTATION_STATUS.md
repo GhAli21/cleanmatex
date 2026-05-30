@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-05-28
+Last updated: 2026-05-30 (Phase 5 closed)
 Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md`.
 
 ## Phase Completion
@@ -21,7 +21,11 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 | BVM-1A | BVM Wiring Phase 1A — order payment, credit application, cash drawer wiring | ✅ Done (2026-05-22) |
 | BVM-1B | BVM Wiring Phase 1B — submit-order canonical path + orchestrator | ⚠ Implemented 2026-05-23 with bugs; **STABILIZED 2026-05-28** |
 | BVM-1B-STAB | Phase 1B Stabilization — pre-Phase-2 bug-fix + hardening | ✅ Done (2026-05-28) |
-| BVM-2 | Stored-value consolidation into voucher transaction | ⏳ Next — see `BVM_PHASE_2_ENTRY_PLAN.md` |
+| BVM-2 | Stored-value consolidation into voucher transaction | ✅ Done (2026-05-28) |
+| BVM-3 | AR Invoice canonical writer + Gift-card-as-voucher-line (+ R2/R3 sizing fixes) | ✅ Done (2026-05-29) |
+| BVM-4 | Reconciliation expansion (PRD §22.1 + §24.3, R1–R8 closed, UI Cmx) | ✅ Done (2026-05-30) — see `bvm_wiring_phase4_implementation.md` |
+| BVM-5 | History / Audit (PRD §22) | ✅ Done (2026-05-30) — see `bvm_wiring_phase5_implementation.md` |
+| BVM-6 | UI / schema debt cleanup | ⏳ After BVM-5 — backlog in `BVM_PHASE_2_ENTRY_PLAN.md` |
 
 ---
 
@@ -250,9 +254,9 @@ Status: Steps 0–3c done; Step 3d (orchestrator consolidation) next.
 - `web-admin/eslint.config.mjs`
 - `web-admin/app/api/v1/orders/_legacy_create-with-payment/route.ts` (deleted)
 
-### Step 5 — DEFERRED to Phase 2.1
+### Step 5 — Superseded by 2026-05-30 gift-card semantics fix
 
-The RESUME doc proposed treating `input.giftCardId` as a voucher CREDIT_APPLICATION line. After analysis, this requires a non-trivial choice: the gift card amount today is applied as a **pre-discount** on the order total (it shrinks `serverTotals.finalTotal` before the planner runs), so simply adding a voucher line would make voucher header total ≠ sum(line amounts) and break `validateVoucherForPosting`. A correct fix needs either (a) moving the gift-card amount into `plan.immediateSettlementAmount` (larger calculation-service refactor) or (b) relaxing the voucher posting invariant. Phase 2's atomicity acceptance criteria 1–4 are all satisfied without this change, so it has been moved to Phase 2.1. Tracked in `BVM_PHASE_2_ENTRY_PLAN.md`.
+This historical note is no longer current. Gift-card redemption is now treated as a voucher `ORDER_CREDIT_APPLICATION` / stored-value settlement leg, while `serverTotals.finalTotal` represents the **full sale total before settlement credits**. That removes the old voucher-header mismatch concern because the voucher total now legitimately includes gift-card settlement alongside other credit applications. See `Fix_29_05_2026/Fix_Order_amount_values_2905.md` for the current implementation and backfill strategy.
 
 ### Step 6 — Phase 2 contract tests
 
@@ -517,39 +521,24 @@ The next fresh submit-order request will produce the correct sized invoice (or n
 - Expected: 2.040 − 1.000 (cash) = **1.040** (Remaining Balance shown in UI)
 - Round 2 produced: 2.040 − 1.000 (cash) − 0.100 (gift, double-counted) = **0.94** ❌
 
-**Round 3 fix — distinguish gift-card from other credit-applications:**
+**Round 3 note — superseded on 2026-05-30:**
 
-Gift-card is a pricing discount that the engine has already applied to `finalTotal`. Wallet / advance / credit-note / loyalty are NOT pre-deducted — they reduce outstanding at settlement time.
+The old text below assumed gift-card was a pricing discount already netted from `finalTotal`. That model has been retired. The canonical rule is now:
 
-New orchestrator math:
 ```ts
-const giftCardApplied = serverTotals.giftCardApplied ?? 0;
-const settlementCreditApplied = Math.max(0, plan.creditAppliedAmount - giftCardApplied);
 const correctedOutstanding = Math.max(
   0,
-  serverTotals.finalTotal - plan.realPaymentAmount - settlementCreditApplied
+  serverTotals.finalTotal - plan.realPaymentAmount - plan.creditAppliedAmount
 );
 ```
 
-Used by:
-- `shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE' && correctedOutstanding > TOLERANCE`
-- AR writer call: `expected_total_amount: correctedOutstanding`
-- `breakdown.outstanding: correctedOutstanding` (persists into `org_orders_mst.outstanding_amount` via settleOrder)
-- `breakdown.netReceivable: finalTotal - settlementCreditApplied` (informational; excludes gift-card)
-- `breakdown.creditsTotal: plan.creditAppliedAmount` (informational; total balance debited — gift-card stays included here because the voucher line DID debit a balance)
+Gift-card, wallet, advance, customer credit, and loyalty all reduce outstanding through credit-application math. `serverTotals.finalTotal` remains the full sale total after commercial discounts and tax only.
 
-**Voucher line preserved.** Gift-card still appears as `LINE_ROLE.ORDER_CREDIT_APPLICATION` on the voucher (M3 expectation unchanged) — the line tracks the gift-card BALANCE DEBIT, separate from the pricing math.
+For the current validated implementation, see:
 
-### Verification (Round 3)
-- `npx tsc --noEmit` filtered = 0 errors.
-- Jest sweep **120/120 pass** — updated AR Round-2 test now pins the post-discount receivable semantic (expects `expected_total_amount = 1.04`, not 0.94).
-- `npm run build` succeeds.
+- `docs/features/Order_Fin/Fix_29_05_2026/Fix_Order_amount_values_2905.md`
 
-### Files modified (Round 3)
-- `web-admin/lib/services/order-submit-orchestrator.service.ts` (new `correctedOutstanding` computation hoisted above the `shouldCreateArInvoice` gate; `breakdown` block updated to use it; per-block JSDoc explains the gift-card-as-discount rule)
-- `web-admin/__tests__/services/ar-invoice.service.test.ts` (Round-2 test renamed → Round-3, asserts `expected_total_amount = 1.04` for the gift+cash CREDIT_INVOICE pattern)
-- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md` (this section)
-- `docs/features/Order_Fin/CHANGELOG.md`
+That fix note supersedes the older Round 3 arithmetic examples and records the new validation results, migration draft, and updated regression coverage.
 
 ### Round 3 production-data side effects
 
@@ -567,7 +556,7 @@ The previously-failed Round-2 test order `01a1c005-cb1f-4693-9b5c-3bd888efe28f` 
 
 ---
 
-## BVM Wiring Phase 4 — Reconciliation — In progress (2026-05-29)
+## BVM Wiring Phase 4 — Reconciliation — ✅ Done (2026-05-30)
 
 **Plan:** `docs/features/Order_Fin/bvm_wiring_phase4_to_6_RESUME.md` § Phase 4. Scope locked = **B** (PRD §22.1 + §24.3 expansion). Predecessor commit: Phase 3 Round 3 close.
 
@@ -652,3 +641,355 @@ Mid-Phase-4 checkpoint before `/clear`. Tree state is verified clean (tsc=0 erro
 
 - `docs/features/Order_Fin/bvm_wiring_phase4_RESUME.md` — single-source-of-truth resume doc with the one-line prompt for the new session, full Unit A→E plan, bug status, dirty-file split, sanity test, and the open TODO (T1).
 
+
+### Step 2d — `ar-checks.ts` module — **DONE (2026-05-30)**
+
+New module `lib/services/reconciliation/ar-checks.ts` adds two PRD §22.1 BVM AR link checks:
+
+- **`checkInvoicePaymentLink`** (INVOICE_PAYMENT_LINK_EXISTS) — for every `org_invoice_payments_dtl` row in the window with `allocation_outcome = 'APPLIED'`, `reversed_at IS NULL`, `is_active = true`, and `voucher_id IS NULL`, write a BLOCKER. Uses the post-Phase-2 invariant that the AR payment-allocation orchestrator must set `voucher_id` on the allocation row inside the issuing voucher transaction. NULL backlink = pre-BVM bypass or wiring regression with broken GL trail.
+- **`checkRefundLink`** (REFUND_LINK_EXISTS) — for every `org_order_refunds_dtl` row in the window with `refund_status = 'PROCESSED'` and `is_active = true`, verify a posted `REFUND_VOUCHER` (`voucher_type = 'REFUND_VOUCHER'`, `voucher_status = 'POSTED'`) exists for the same `order_id`. When missing, write a BLOCKER. Uses the indirect reverse-pointer lookup because `org_order_refunds_dtl` does not (yet) carry a `fin_voucher_id` backlink — that schema cleanup is pencilled for Phase 6. Single batched `findMany({ where: order_id: { in: orderIds } })` avoids N+1.
+
+**Implementation notes:**
+- Multi-tenant safety: every query goes through `withTenantContext(tenantOrgId, …)` so RLS enforces tenant isolation as defense in depth, even though every `where` already filters by `tenant_org_id`.
+- Constants from DB-mirrored sources: `RECONCILIATION_CHECK_NAMES.INVOICE_PAYMENT_LINK_EXISTS` / `.REFUND_LINK_EXISTS` (mig 0294 + Phase 4 §22.1 extension) and `VOUCHER_TYPE.REFUND` / `VOUCHER_STATUS.POSTED` (mig 0307 / BVM constants). No string literals for round-trip values.
+- Reuses `toNumber` and `CheckResult` from `./types`, keeping the orchestrator contract identical to the stored-value module.
+- Window timestamp columns chosen per table semantics: `applied_at` for allocations, `processed_at` for refunds. Pre-Phase-2 rows naturally fall out of scope.
+
+**Why not wired into orchestrator yet:** Module remains dormant until Step 2h rewrites `reconciliation.service.ts` to union all new check modules and compute `total_checked` dynamically. Wiring before the orchestrator refactor would either bypass the bulk-insert helper (regression vs. R7) or hard-code the magic-8 issue persistence loop (regression vs. PRD §22.2).
+
+### Verification (after Step 2d)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass**, unchanged (new module unused by orchestrator yet).
+- New dirty file: `web-admin/lib/services/reconciliation/ar-checks.ts`.
+
+
+### Step 2e — `order-checks.ts` module — **DONE (2026-05-30)**
+
+New module `lib/services/reconciliation/order-checks.ts` consolidates every order-scoped reconciliation check, both legacy (factored 1:1 from the pre-Phase-4 inline `buildOrderIssues`/`checkOutboxStuck`) and new (Phase 4 PRD §22.1 link/separation invariants).
+
+**Legacy checks factored (behaviour preserved 1:1):**
+
+- `runOrderBalanceChecks(tenantOrgId, orders)` — per-order pass that emits up to 6 issues:
+  - `PAYMENT_TOTAL_MATCH` — Σ completed payments vs header `total_paid_amount`.
+  - `CREDIT_APP_BALANCE` — Σ active credit applications vs `total_credit_applied_amount`.
+  - `OUTSTANDING_TOTAL_MATCH` — recomputed outstanding vs `outstanding_amount`.
+  - `REFUND_CONSISTENCY` — Σ processed refunds vs settled value (BLOCKER when refunds exceed).
+  - `GATEWAY_PENDING_INTEGRITY` — pending gateway legs after outstanding clears (severity ramp WARNING ↔ INFO preserved).
+  - `LEGACY_STATUS_LEAKAGE` — lowercase pre-Batch-0 `payment_status` values still on header.
+- `checkOutboxStuck(tenantOrgId)` — tenant-level, surfaces `OUTBOX_PROCESSED` WARNING when ≥ 1 PENDING/FAILED outbox event has been stuck > 1 hour.
+
+**New PRD §22.1 BVM checks (each window-scoped):**
+
+- `checkOrderPaymentLink` (ORDER_PAYMENT_LINK_EXISTS) — COMPLETED `org_order_payments_dtl` rows in window with NULL `fin_voucher_id` OR `fin_voucher_trx_line_id` (mig 0303 backlinks). BLOCKER.
+- `checkOrderPaymentAmountMatchesLine` (ORDER_PAYMENT_AMOUNT_MATCHES_LINE) — batched `findMany({ id: { in: lineIds }})` then in-memory compare. Flags missing-line dangling FK separately. BLOCKER.
+- `checkOrderCreditApplicationLink` (ORDER_CREDIT_APPLICATION_LINK_EXISTS) — same shape as ORDER_PAYMENT_LINK_EXISTS, against mig 0318 credit-app backlinks. BLOCKER.
+- `checkOrderCreditApplicationAmountMatchesLine` (ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE) — same batched-lookup pattern. BLOCKER.
+- `checkOrderCreditApplicationNotInPayments` (ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS) — Batch-0 separation: detects a voucher trx line referenced by both a credit-application row AND an `org_order_payments_dtl` row (would double-count stored-value into REAL_PAYMENT totals). Single `IN` query for collisions. BLOCKER.
+- `checkOrderCreditApplicationNotInDiscounts` (ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS) — separation: scans `org_order_discounts_dtl` for active rows whose `source_type` matches a `CREDIT_APPLICATION_TYPES` value (WALLET/GIFT_CARD/CUSTOMER_CREDIT/CUSTOMER_ADVANCE/LOYALTY_CREDIT) on orders that have an active credit application in window. BLOCKER.
+
+**Implementation notes:**
+
+- Constants from DB-mirrored sources: `RECONCILIATION_CHECK_NAMES`, `RECONCILIATION_SEVERITIES`, `CREDIT_APPLICATION_TYPES` (mig 0294 + mig 0283 + Phase 4 §22.1 extension). No string literals for round-trip values.
+- Shared helpers from `./types`: `toNumber`, `RECONCILIATION_TOLERANCE` (replaces the inline literal `0.01` from the pre-Phase-4 service).
+- Multi-tenant safety: every query routed through `withTenantContext(tenantOrgId, …)` so RLS enforces tenant isolation. `checkOutboxStuck` now wraps the outbox count for defense-in-depth (pre-Phase-4 service did not — caught during factoring).
+- `ReconciliationOrderRow` interface exported for orchestrator reuse, so Step 2h can keep `getScopedOrders` selecting the same projection without redeclaring the shape.
+- N+1 avoidance: every cross-table lookup uses a single `findMany({ id: { in: […] }})` batched query.
+- `LEGACY_PAYMENT_STATUS_LOWERCASE` declared as a typed `as const` tuple so it doubles as a closed enum.
+
+**Why not wired into orchestrator yet:** Same rationale as Step 2c/2d — module dormant until Step 2h rewrites `reconciliation.service.ts` to wire all check modules, swap the per-row insert loop for `persistReconciliationIssues`, and compute `total_checked` dynamically.
+
+### Verification (after Step 2e)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass**, unchanged (new module unused by orchestrator yet).
+- New dirty file: `web-admin/lib/services/reconciliation/order-checks.ts`.
+
+
+### Step 2f — `order-snapshot-checks.ts` module — **DONE (2026-05-30)**
+
+New module `lib/services/reconciliation/order-snapshot-checks.ts` exports a single `runOrderSnapshotChecks(tenantOrgId, orders)` entry that emits up to 5 PRD §22.1 issues per order:
+
+- `ORDER_CHARGES_MATCH_SNAPSHOT` — Σ active `org_order_charges_dtl.amount` vs header `total_charges_amount`. BLOCKER on tolerance breach.
+- `ORDER_PIECES_MATCH_CHARGES` — when piece `service_pref_charge` sum exceeds PREFERENCE charges total, the piece extras have not been rolled into the snapshot. BLOCKER.
+- `ORDER_PREFERENCES_MATCH_CHARGES` — same shape for `org_order_preferences_dtl.extra_price` vs PREFERENCE charges total. BLOCKER.
+- `PIECE_EXTRA_PRICE_INCLUDED_ONCE` — inverse direction: PREFERENCE charges exceeding (piece + preference + item) extras signals a double-count. BLOCKER.
+- `PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE` — same source preference charged twice (detected by repeated `charge_source_id`). BLOCKER.
+
+**Implementation notes:**
+
+- One bundled `Promise.all` per order fetches charges aggregate, PREFERENCE charge rows, items, pieces, preferences in parallel. Subsequent checks reuse the in-memory roll-ups instead of re-querying.
+- Constants from DB-mirrored sources: `CHARGE_TYPES.PREFERENCE` (mig 0282), `RECONCILIATION_CHECK_NAMES`, `RECONCILIATION_SEVERITIES`.
+- Multi-tenant safety: every query routed through `withTenantContext`.
+- `total_charges_amount` is fetched inline (one extra `findUnique` per order) because the shared `ReconciliationOrderRow` projection does not include it — keeps the module self-contained without forcing the orchestrator to widen the row shape for balance-only callers.
+- Uses `RECONCILIATION_TOLERANCE` from `./types` for all comparisons.
+
+### Verification (after Step 2f)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass**.
+- New dirty file: `web-admin/lib/services/reconciliation/order-snapshot-checks.ts`.
+
+
+### Step 2g — `voucher-checks.ts` module — **DONE (2026-05-30)**
+
+New module `lib/services/reconciliation/voucher-checks.ts` exports:
+
+- `runVoucherIntegrityChecks(tenantOrgId, vouchers)` — three voucher-level checks:
+  - `VOUCHER_TOTAL_EQUALS_LINES` — Σ trx line amounts vs header `total_amount`. BLOCKER.
+  - `NO_DUPLICATE_OPERATIONAL_EFFECT` — two non-reversal lines with the same `(line_role, target_type, target_id)` triple = same effect counted twice. Reversal lines exempt. BLOCKER.
+  - `GATEWAY_STATE_VALID` — XOR mismatch between `gateway_code` and `gateway_transaction_id` on a trx line. BLOCKER.
+- `checkCashMovementLink(tenantOrgId, window)` — CASH_MOVEMENT_LINK_EXISTS: active `org_cash_drawer_movements_dtl` in window with NULL voucher backlinks. BLOCKER.
+- `checkCashMovementAmountEqualsRetained(tenantOrgId, window)` — CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT: cash movement amount must equal trx line `amount - change_returned_amount`. BLOCKER.
+- `getPostedVouchersInWindow(tenantOrgId, window)` — shared header projection helper, reused by orchestrator and voucher-scoped service (Step 2i).
+
+**Implementation notes:**
+
+- `runVoucherIntegrityChecks` batches one `findMany` for all trx lines across the voucher set, then groups in-memory — no 3× N+1.
+- Reversal lines (`reversed_line_id IS NOT NULL`) exempted from duplicate-effect detection because they intentionally mirror the original line.
+- `VoucherHeader` type exported so the voucher-scoped service consumes the same projection.
+- Constants from DB-mirrored sources: `RECONCILIATION_CHECK_NAMES`, `RECONCILIATION_SEVERITIES`, `VOUCHER_STATUS.POSTED`.
+- Multi-tenant safety: every query routed through `withTenantContext`.
+
+### Verification (after Step 2g)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass**.
+- New dirty file: `web-admin/lib/services/reconciliation/voucher-checks.ts`.
+
+
+### Step 2h — Orchestrator rewrite (`reconciliation.service.ts`) — **DONE (2026-05-30)**
+
+`lib/services/reconciliation.service.ts` rewritten end-to-end:
+
+- All inline check logic removed. The orchestrator now imports and fans out the Phase 4 modules (`reconciliation/ar-checks`, `reconciliation/stored-value-checks`, `reconciliation/order-checks`, `reconciliation/order-snapshot-checks`, `reconciliation/voucher-checks`).
+- `Promise.all([...])` parallelism kept tight: every check module runs concurrently, results flattened into a single `CheckResult[]`.
+- Issue persistence now uses `persistReconciliationIssues` (bulk createMany) — fixes BVM R7 (per-row insert loop) and is atomic w.r.t. the tenant context wrapper.
+- `total_checked` computed dynamically from the new `EXECUTED_CHECK_NAMES` array (currently 30 checks) and re-exported as `RECONCILIATION_TOTAL_CHECKS`. Magic-number `8` removed (fixes the pre-Phase-4 lie that obscured passed-vs-failed counts in the UI).
+- Public API surface unchanged: `getOrderFinancialReconciliation`, `runReconciliation`, `acknowledgeIssue`, `listReconRuns`, `getReconRunWithIssues`, `ReconciliationParams`. Cross-references in JSDoc point to the route that consumes each function and to BVM R1 (mig 0294 permission fix).
+- `getScopedOrders` now lives inside the orchestrator and uses `ReconciliationOrderRow` projection (single source of truth, exported from `reconciliation/order-checks`).
+- `getOrderFinancialReconciliation` continues to expose `summarizeIssues(issues, 6)` because the live single-order surface only runs the 6 per-order balance checks.
+
+**Stored-value Phase 4 Step 2c TODO (T1) — closed in this step:**
+- All 5 ledger LINK_EXISTS checks now apply per-table debit-only filters using DB-mirrored constants:
+  - wallet / advance / credit_note → `STORED_VALUE_TXN_TYPES.REDEMPTION` (column `txn_type`).
+  - gift_card → `GIFT_CARD_TXN_TYPE.REDEEM` (column `transaction_type`).
+  - loyalty → `LOYALTY_TXN_TYPES.REDEEM` (column `txn_type`).
+- This eliminates over-flagging of legitimate top-ups / issuances that have no voucher backlink by design.
+
+### Step 2j — Update existing recon tests — **DONE (2026-05-30)**
+
+Both pre-Phase-4 test files rewritten against the new orchestrator contract:
+
+- `__tests__/services/reconciliation.service.test.ts` — 8 tests, all green. Mocks every Prisma model the new orchestrator touches (20+ models). Asserts:
+  - PASSED / FAILED / PARTIAL status transitions on the new bulk-insert shape.
+  - `createMany` called with `data: expect.arrayContaining([…])` instead of per-row `create`.
+  - Sequential `run_no` generation preserved.
+  - `total_checked = RECONCILIATION_TOTAL_CHECKS` (asserts > 8 to lock the dynamic count behaviour).
+- `__tests__/integration/reconciliation-run.test.ts` — 6 tests, all green. Asserts:
+  - Issue row publishes through a **single** `createMany` call (R7 invariant).
+  - Seeded mismatches (`PAYMENT_TOTAL_MATCH`, `STORED_VALUE_LEDGER`) appear in the persisted array.
+  - Clean run skips `createMany` entirely (short-circuit on empty list).
+  - `acknowledgeIssue` ACK path unchanged.
+
+### Verification (after Steps 2h + 2j)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass** (untouched).
+- Reconciliation orchestrator tests = **14/14 pass** (new contract: bulk `createMany`, dynamic `total_checked`).
+- Modified files: `web-admin/lib/services/reconciliation.service.ts`, `web-admin/lib/services/reconciliation/stored-value-checks.ts` (T1 closed), `web-admin/__tests__/services/reconciliation.service.test.ts`, `web-admin/__tests__/integration/reconciliation-run.test.ts`.
+
+
+### Step 2i — Voucher-scoped reconciliation service — **DONE (2026-05-30)**
+
+New file `lib/services/voucher-reconciliation.service.ts`:
+
+- `reconcileVoucher(tenantOrgId, voucherId)` — fetches one voucher header and runs `runVoucherIntegrityChecks` against it. Returns `{ voucherId, voucherNo, voucherStatus, issues, summary }`.
+- No DB writes — on-demand operator action; the tenant-level run remains the persistent audit trail.
+- `summarizeIssues(issues, 3)` because the voucher surface runs only `VOUCHER_TOTAL_EQUALS_LINES`, `NO_DUPLICATE_OPERATIONAL_EFFECT`, `GATEWAY_STATE_VALID`.
+- Throws (`findFirstOrThrow`) when the voucher does not exist for the tenant — the API route maps to 404.
+- Multi-tenant safety: header fetch wrapped in `withTenantContext`; check module already enforces.
+
+### Step 3a — `GET /api/v1/finance/vouchers/[voucherId]/reconciliation` — **DONE (2026-05-30)**
+
+New route file `app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts`:
+
+- GET-only; permission `reconciliation:view` (mig 0294).
+- Zod-validated `voucherId` UUID.
+- No CSRF (read-only operator action).
+- Returns `{ success, data: { voucherId, voucherNo, voucherStatus, issues, summary } }`.
+- Maps Prisma `findFirstOrThrow` rejection to 404; everything else to 500.
+- Uses the same slug shape as sibling `[voucherId]/post`, `[voucherId]/cancel`, etc. — no Next.js dynamic-slug conflict.
+
+### Step 3b — JSDoc cleanup on duplicate `orders/[id]/financial-reconcile*` pair — **DONE (2026-05-30)**
+
+Both routes updated with `@see` cross-references and clearer pair semantics:
+
+- `app/api/v1/orders/[id]/financial-reconcile/route.ts` (POST) — operator action, `reconciliation:run`, CSRF required, returns 201 with `checkedAt`. JSDoc now points at the GET sibling.
+- `app/api/v1/orders/[id]/financial-reconciliation/route.ts` (GET) — read-only view, `reconciliation:view`, no CSRF, returns 200. JSDoc now points at the POST sibling.
+
+Both routes share the same underlying `getOrderFinancialReconciliation` service call but encode different operator intents via the HTTP verb. No behaviour change.
+
+### Verification (after Steps 2i + 3a + 3b)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Baseline jest sweep = **120/120 pass**; recon orchestrator tests = **14/14 pass**.
+- New files: `web-admin/lib/services/voucher-reconciliation.service.ts`, `web-admin/app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts`.
+- Modified files: `web-admin/app/api/v1/orders/[id]/financial-reconcile/route.ts`, `web-admin/app/api/v1/orders/[id]/financial-reconciliation/route.ts`.
+
+
+### Steps 4a/4b/4c — UI Cmx migration — **DONE (2026-05-30)**
+
+`src/features/billing/ui/reconciliation-list-client.tsx`, `src/features/billing/ui/reconciliation-detail-client.tsx`, and `app/dashboard/internal_fin/reconciliation/[runId]/page.tsx` migrated end-to-end:
+
+- Raw `<button>` → `CmxButton` (variants `primary` / `outline` / `ghost` + `asChild` for `Link` children).
+- Custom badge spans → `Badge` from `@ui/primitives` (variants chosen via `statusBadgeVariant`, `severityBadgeVariant`, `issueBadgeVariant`).
+- Modal `<div>` overlay → `CmxDialog` + `CmxDialogContent` + `CmxDialogHeader` + `CmxDialogTitle` + `CmxDialogFooter`.
+- Raw `<input type="date|text">` → `CmxInput`.
+- Custom empty states → `CmxSummaryMessage` (type `info` / `success` / `error`; `items=[]` because we only render the title).
+- Hardcoded English "Cancel" → `tCommon('cancel')`.
+- Mojibake characters (`Ã¢â‚¬â€`, `â†`, `â`) → proper `—` em-dash constant or `ArrowLeft` Lucide icon.
+- `useLocale()` drives `Intl.DateTimeFormat` (`ar-OM` / `en-OM`).
+- RTL: directional alignment (`text-left`, `text-right`, `justify-end`) carries `rtl:` flip; back-link icon uses `rtl:rotate-180`.
+- Check labels rendered via `useMessages()` lookup (`billing.reconciliation.checks.<NAME>`) with graceful fallback to the raw code when no label is registered.
+
+### Step 5 — Navigation audit — **DONE (2026-05-30)**
+
+Verified zero changes required:
+
+- `web-admin/config/navigation.ts:452-457` — `billing_reconciliation` already at `/dashboard/internal_fin/reconciliation`, `roles=['super_admin','tenant_admin','admin','branch_manager']`, `permissions=['reconciliation:view']`.
+- `sys_components_cd` (mig 0306) — in sync with the frontend nav entry per Phase 3 close.
+- No new migration created. Phase 4 §22.1 expansion does not change navigation surfaces.
+
+### Steps 6a + 6b — i18n gap-fill and parity check — **DONE (2026-05-30)**
+
+`messages/en.json` and `messages/ar.json` extended in `billing.reconciliation`:
+
+- New key `paginationTotal` (`"{count} total"` / `"{count} إجمالي"`) backing the list-page pagination footer.
+- New sub-namespace `checks.<CHECK_NAME>` (33 entries) with bilingual human labels for every `RECONCILIATION_CHECK_NAMES` value. Used by the detail-client via `useMessages()` with graceful fallback to the raw code when a label is missing.
+- `npm run check:i18n` → **i18n parity check passed: en.json and ar.json have matching keys.**
+
+### Step 7 — Test coverage for new check modules — **DONE (2026-05-30)**
+
+New test file `__tests__/services/reconciliation/check-modules.test.ts` (29 tests) covers all five new check modules + the voucher-scoped service + multi-tenant isolation:
+
+- `ar-checks` — 4 tests (INVOICE_PAYMENT_LINK_EXISTS, REFUND_LINK_EXISTS happy and violation).
+- `stored-value-checks` — 7 tests (STORED_VALUE_LEDGER, all 5 `*_LEDGER_LINK_EXISTS`, asserting per-table `txn_type` / `transaction_type` filter).
+- `order-checks` — 9 tests (legacy balance + all 6 new link/separation checks).
+- `order-snapshot-checks` — 2 tests (ORDER_CHARGES_MATCH_SNAPSHOT, PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE).
+- `voucher-checks` — 5 tests (3 voucher integrity + 2 cash-movement).
+- `voucher-reconciliation.service` — 1 happy path.
+- Multi-tenant isolation — 1 test that mocks the Prisma layer to honour `where.tenant_org_id` and asserts tenant A's check cannot see tenant B's drift, confirming `withTenantContext` forwards the right tenant id (defense-in-depth on top of RLS).
+
+### Verification (after Steps 4 + 5 + 6 + 7)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Full jest sweep (baseline + recon orchestrator + check modules) = **163/163 pass**.
+- `npm run check:i18n` = **green**.
+- New file: `web-admin/__tests__/services/reconciliation/check-modules.test.ts`.
+- Modified files: `web-admin/src/features/billing/ui/reconciliation-list-client.tsx`, `web-admin/src/features/billing/ui/reconciliation-detail-client.tsx`, `web-admin/app/dashboard/internal_fin/reconciliation/[runId]/page.tsx`, `web-admin/messages/en.json`, `web-admin/messages/ar.json`.
+- Updated baseline sweep command (Step 7e):
+
+```powershell
+npx jest __tests__/utils/money.test.ts __tests__/utils/idempotency.test.ts `
+         __tests__/services/order-settlement-planner.service.test.ts `
+         __tests__/services/discount-service.test.ts `
+         __tests__/services/stored-value.service.test.ts `
+         __tests__/services/loyalty.service.test.ts `
+         __tests__/services/ar-invoice.service.test.ts `
+         __tests__/services/gift-card-service.test.ts `
+         __tests__/services/reconciliation.service.test.ts `
+         __tests__/integration/reconciliation-run.test.ts `
+         __tests__/services/reconciliation/check-modules.test.ts
+# expect: 163/163 pass
+```
+
+
+
+### Phase 4 close — Steps 8a–8e (2026-05-30)
+
+- **Step 8a** — Implementation doc shipped: `docs/features/Order_Fin/bvm_wiring_phase4_implementation.md` (mirrors the Phase 3 template; scope summary, R1–R8 + T1 status, check-module matrix, verification table, follow-ups for Phase 5/6).
+- **Step 8b** — CHANGELOG entry prepended (2026-05-30 BVM Wiring Phase 4 block), with bilingual i18n note + bulk-insert R7 closure + voucher-scoped route + T1 closure.
+- **Step 8c** — Phase Completion ladder updated: BVM-2/BVM-3/BVM-4 = ✅ Done; BVM-5 = ⏳ Next; BVM-6 = ⏳ After BVM-5. `Last updated` → 2026-05-30. In-line Phase 4 header flipped from “In progress” to ✅ Done.
+- **Step 8d** — Phase 4 exit checklist verified: tsc filtered = 0 errors; jest sweep = 163/163; `check:i18n` green; `navigation.ts` ⇆ `sys_components_cd` (mig 0306) in sync (no Phase 4 nav change); permission codes consistent with mig 0294; no migration shipped (Step 1 SKIP).
+- **Step 8e** — Memory updated (`project_bvm_wiring_phases.md`): Phase 4 = ✅ Done with the new artefact list.
+
+## BVM Wiring Phase 5 — History / Audit (PRD §22) — ✅ Done (2026-05-30)
+
+**Plan:** `bvm_wiring_phase4_close_to_program_end_RESUME.md` § Phase 5. Predecessor: Phase 4 close (this session).
+
+### Step 0 — Discovery findings
+
+Substantial pre-existing infrastructure shipped earlier in the program:
+
+| Layer | Artifact | State |
+|---|---|---|
+| Table | `org_order_history` (mig 0022) — canonical audit trail with `action_type`, `from_value`, `to_value`, `payload (jsonb)`, `done_by`, `done_at`, RLS, FKs, helper functions | ✅ live |
+| Action types | 10 codes incl. `ORDER_CREATED`/`STATUS_CHANGE`/`ORDER_CANCELLED`/`CUSTOMER_RETURN` (mig 0022 + 0133) | ⚠ missing BVM-3 codes (ORDER_COMPLETED, VOUCHER_POSTED_AND_WIRED, AR_INVOICE_ISSUED) |
+| API | `GET /api/v1/orders/[id]/history` → `OrderService.getOrderHistory` | ✅ live |
+| UI | `OrderTimeline` (`src/features/orders/ui/order-timeline.tsx`) consumed by `order-detail-client.tsx` + `order-details-full-client.tsx` | ⚠ action label/icon/color maps cover only 8 legacy types — BVM-3 types need rows |
+| i18n | `orders.timeline.actions.*` for 8 legacy types | ⚠ 3 BVM action labels missing |
+| Outbox | `org_domain_events_outbox` (mig 0292) + `lib/services/outbox.service.ts` (`emitEventTx`, `claimBatch`, `markProcessed`/`markFailed`, exponential back-off retry) | ✅ live |
+| Constants | `OUTBOX_EVENT_TYPES.ORDER_COMPLETED`/`VOUCHER_POSTED_AND_WIRED`/`AR_INVOICE_ISSUED` already defined in `lib/constants/order-financial.ts` | ✅ live |
+| Consumer | — | ❌ no outbox → history consumer exists; this is the BVM Phase 5 gap |
+
+**Scope decision:** No new table needed. Phase 5 adds (1) CHECK constraint extension for 3 BVM action types, (2) `outbox_event_id` column on `org_order_history` for consumer idempotency, (3) new `order-history-consumer.service.ts`, (4) `OrderTimeline` label/icon/color updates, (5) i18n keys, (6) tests.
+
+### Step 1 — Migration 0330 (action types + idempotency column) — **CREATED, AWAITING USER APPLY**
+
+File: `supabase/migrations/0330_phase5_order_history_bvm_action_types.sql`
+
+- Drops + recreates `chk_history_action_type` to allow 3 BVM action codes (additive — no existing row violates the new CHECK).
+- Adds nullable `outbox_event_id UUID` column with FK to `org_domain_events_outbox(id) ON DELETE SET NULL`.
+- Adds partial unique index `uq_history_outbox_event ON (tenant_org_id, outbox_event_id) WHERE outbox_event_id IS NOT NULL` — consumer idempotency key.
+- Adds lookup index `idx_history_outbox_event` for the consumer's fast-path skip.
+- Wrapped in `BEGIN`/`COMMIT`; in-line DO block validates the constraint, column, FK, and unique idx exist.
+- No DROP CASCADE. No data loss. Legacy rows unaffected (NULL `outbox_event_id`).
+
+**⛔ STOP — please apply this migration and run `cd web-admin && npx prisma db pull && npx prisma generate` before I continue to Step 2 (consumer service depends on the new column being in the Prisma client).**
+
+
+### Step 2 — Consumer service `order-history-consumer.service.ts` — **DONE (2026-05-30)**
+
+New file `web-admin/lib/services/order-history-consumer.service.ts`:
+
+- `consumeOrderHistoryEvent(event)` reacts to the 3 BVM outbox event types (`ORDER_COMPLETED`, `VOUCHER_POSTED_AND_WIRED`, `AR_INVOICE_ISSUED`); other event types short-circuit as `SKIPPED_UNSUPPORTED_EVENT`.
+- `consumeOrderHistoryBatch(events)` returns outcomes 1:1 with the input array for the outbox worker loop.
+- Order id resolution: `ORDER_COMPLETED` uses `aggregate_id` directly; `VOUCHER_POSTED_AND_WIRED` resolves via `org_fin_vouchers_mst.order_id` (manual vouchers → `SKIPPED_NOT_ORDER_LINKED`); `AR_INVOICE_ISSUED` resolves via `org_invoice_mst.order_id` (multi-order invoices → `SKIPPED_NOT_ORDER_LINKED`).
+- Idempotency: every write is a `prisma.org_order_history.upsert({ where: { tenant_org_id_outbox_event_id: { ... } }, update: {}, create: { ... } })` keyed on the partial unique index from mig 0330. `update: {}` is the no-clobber guarantee — retries cannot overwrite a hand-edited row.
+- Multi-tenant: `withTenantContext(event.tenant_org_id, ...)` wraps every Prisma call so RLS is enforced even when the worker runs outside any user session. Each `where` clause additionally filters by `tenant_org_id` explicitly.
+- Payload enrichment: serialised payload merges the outbox row identifying metadata (`source: 'outbox'`, `event_type`, `aggregate_type`, `aggregate_id`) so the timeline expandable block renders a complete diagnostic view without extra DB calls.
+- Action types match `OUTBOX_EVENT_TYPES` constants exactly (DB-mirror).
+
+### Step 3 — OrderTimeline UI updates — **DONE (2026-05-30)**
+
+`src/features/orders/ui/order-timeline.tsx` extended:
+
+- `ACTION_ICONS` now maps `ORDER_COMPLETED` → `ShieldCheck`, `VOUCHER_POSTED_AND_WIRED` → `FileText`, `AR_INVOICE_ISSUED` → `Receipt` (Lucide icons; selected so financial milestones read visually as money-side events).
+- `getActionLabel` now resolves the 3 new keys (`actions.orderCompleted`, `actions.voucherPostedAndWired`, `actions.arInvoiceIssued`).
+- `getActionColor` now returns the Order Fin palette for the BVM events (green-700 / violet-600 / sky-500) so operators can scan the timeline for money-side milestones at a glance.
+
+Existing fetch-and-render logic untouched — the consumer-written rows are simply more entries in the `org_order_history` stream. RTL/bilingual paths require no change because the row schema is unchanged.
+
+### Step 4 — i18n + tests — **DONE (2026-05-30)**
+
+- `messages/en.json` and `messages/ar.json` extended in `orders.timeline.actions` with 3 new bilingual labels (Order Completed / Voucher Posted / AR Invoice Issued / ‏اكتمل الطلب / تم ترحيل السند / تم إصدار فاتورة الذمم). `npm run check:i18n` → **green**.
+- New test file `__tests__/services/order-history-consumer.service.test.ts` (9 tests): direct `ORDER_COMPLETED`, voucher-resolved `VOUCHER_POSTED_AND_WIRED`, invoice-resolved `AR_INVOICE_ISSUED`, manual-voucher skip, multi-order-invoice skip, unsupported-event skip, idempotency, multi-tenant isolation, batch outcome 1:1.
+
+### Verification (after Steps 2 + 3 + 4)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Full jest sweep = **172/172 pass** (163 baseline + 9 new consumer tests).
+- `npm run check:i18n` = **green**.
+- New files: `web-admin/lib/services/order-history-consumer.service.ts`, `web-admin/__tests__/services/order-history-consumer.service.test.ts`.
+- Modified files: `web-admin/prisma/schema.prisma` (added `outbox_event_id` field + relation on `org_order_history`; back-relation on `org_domain_events_outbox`), `web-admin/src/features/orders/ui/order-timeline.tsx`, `web-admin/messages/en.json`, `web-admin/messages/ar.json`.
+- Migration: `0330_phase5_order_history_bvm_action_types.sql` (applied by user).
+- Updated baseline sweep command (adds `__tests__/services/order-history-consumer.service.test.ts` to the 11-file list).
+
+
+### Phase 5 close (2026-05-30)
+
+- **Implementation log shipped:** `docs/features/Order_Fin/bvm_wiring_phase5_implementation.md` (Phase 3/4 template mirror; scope, requirements, schema/migration, consumer flow diagram, idempotency invariant, skip taxonomy, tests, risks, rollback, follow-ups).
+- **CHANGELOG entry prepended** (2026-05-30 BVM Wiring Phase 5).
+- **Phase ladder updated:** BVM-5 = ✅ Done; BVM-6 = ⏳ Next.
+- **Phase 5 exit checklist verified:** tsc filtered = 0 errors; jest sweep = **172/172**; `check:i18n` green; migration 0330 applied + Prisma client regenerated; consumer test file present.

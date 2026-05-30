@@ -5,9 +5,19 @@ import { getOrderFinancialReconciliation } from '@/lib/services/reconciliation.s
 /**
  * GET /api/v1/orders/[id]/financial-reconciliation
  *
- * Why:
- * Exposes the current order-scoped reconciliation view for finance UI and
- * support workflows without forcing a persisted batch run.
+ * Read-only view of the current order-scoped reconciliation result. Powers
+ * the finance UI panels and support read-paths.
+ *
+ * Permission: `reconciliation:view` (read-only).
+ * No CSRF (GET).
+ *
+ * Pair semantics — paired with the POST route below:
+ * @see app/api/v1/orders/[id]/financial-reconcile/route.ts — on-demand
+ *      action that re-runs the same checks. Different verb (POST), different
+ *      permission (`reconciliation:run`), CSRF required, returns 201 with a
+ *      `checkedAt` timestamp. Same underlying
+ *      `getOrderFinancialReconciliation` service call, but the verb encodes
+ *      the operator's intent (refresh vs poll).
  *
  * @param request incoming authenticated request
  * @param root0 route params wrapper containing the target order identifier

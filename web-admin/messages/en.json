@@ -1770,6 +1770,42 @@
         "currency": "Currency",
         "submit": "Run",
         "running": "Running..."
+      },
+      "paginationTotal": "{count} total",
+      "checks": {
+        "PAYMENT_TOTAL_MATCH": "Payment total match",
+        "CREDIT_APP_BALANCE": "Credit application balance",
+        "OUTSTANDING_TOTAL_MATCH": "Outstanding total match",
+        "STORED_VALUE_LEDGER": "Stored-value ledger",
+        "GATEWAY_PENDING_INTEGRITY": "Gateway pending integrity",
+        "LEGACY_STATUS_LEAKAGE": "Legacy status leakage",
+        "TAX_CALCULATION": "Tax calculation",
+        "DISCOUNT_VALIDATION": "Discount validation",
+        "REFUND_CONSISTENCY": "Refund consistency",
+        "OUTBOX_PROCESSED": "Outbox processed",
+        "VOUCHER_TOTAL_EQUALS_LINES": "Voucher total = lines",
+        "NO_DUPLICATE_OPERATIONAL_EFFECT": "No duplicate operational effect",
+        "GATEWAY_STATE_VALID": "Gateway state valid",
+        "ORDER_PAYMENT_LINK_EXISTS": "Order payment link exists",
+        "ORDER_PAYMENT_AMOUNT_MATCHES_LINE": "Order payment amount matches line",
+        "ORDER_CREDIT_APPLICATION_LINK_EXISTS": "Order credit application link exists",
+        "ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE": "Order credit application amount matches line",
+        "ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS": "Credit application not in payments",
+        "ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS": "Credit application not in discounts",
+        "ORDER_CHARGES_MATCH_SNAPSHOT": "Order charges match snapshot",
+        "ORDER_PIECES_MATCH_CHARGES": "Order pieces match charges",
+        "ORDER_PREFERENCES_MATCH_CHARGES": "Order preferences match charges",
+        "PIECE_EXTRA_PRICE_INCLUDED_ONCE": "Piece extra price included once",
+        "PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE": "Preference extra price included once",
+        "WALLET_LEDGER_LINK_EXISTS": "Wallet ledger link exists",
+        "ADVANCE_LEDGER_LINK_EXISTS": "Advance ledger link exists",
+        "GIFT_CARD_LEDGER_LINK_EXISTS": "Gift card ledger link exists",
+        "CREDIT_NOTE_LEDGER_LINK_EXISTS": "Credit note ledger link exists",
+        "LOYALTY_LEDGER_LINK_EXISTS": "Loyalty ledger link exists",
+        "CASH_MOVEMENT_LINK_EXISTS": "Cash movement link exists",
+        "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "Cash movement = retained amount",
+        "INVOICE_PAYMENT_LINK_EXISTS": "Invoice payment link exists",
+        "REFUND_LINK_EXISTS": "Refund link exists"
       }
     }
   },
@@ -1990,7 +2026,10 @@
         "qaDecision": "QA Decision",
         "processingStep": "Processing Step",
         "issueCreated": "Issue Created",
-        "issueResolved": "Issue Resolved"
+        "issueResolved": "Issue Resolved",
+        "orderCompleted": "Order Completed",
+        "voucherPostedAndWired": "Voucher Posted",
+        "arInvoiceIssued": "AR Invoice Issued"
       }
     },
     "notes": "Notes",
@@ -2241,6 +2280,7 @@
           "balanceMismatch": "Balance mismatch: total {total}, paid {paid}, credits {credits}, expected balance {expected} but stored balance is {stored}.",
           "pendingPaymentsNote": "{count} pending payment(s) are not included in paid amount.",
           "giftCardNotInCredits": "Gift card amount on order does not match applied credits total.",
+          "arReceivableMismatch": "AR receivable mismatch: invoice outstanding is {invoiceOutstanding} while order outstanding is {orderOutstanding}.",
           "payOnCollectionWithArInvoice": "Pay on collection order must not have an AR invoice.",
           "paidOrderWithArInvoice": "Fully paid order should not have an AR invoice.",
           "creditInvoiceMissingAr": "Credit invoice order has outstanding balance but no AR invoice."

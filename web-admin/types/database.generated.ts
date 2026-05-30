@@ -13415,6 +13415,7 @@ export type Database = {
           from_value: string | null
           id: string
           order_id: string
+          outbox_event_id: string | null
           payload: Json | null
           rec_notes: string | null
           rec_order: number | null
@@ -13435,6 +13436,7 @@ export type Database = {
           from_value?: string | null
           id?: string
           order_id: string
+          outbox_event_id?: string | null
           payload?: Json | null
           rec_notes?: string | null
           rec_order?: number | null
@@ -13455,6 +13457,7 @@ export type Database = {
           from_value?: string | null
           id?: string
           order_id?: string
+          outbox_event_id?: string | null
           payload?: Json | null
           rec_notes?: string | null
           rec_order?: number | null
@@ -13471,6 +13474,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "org_orders_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_history_outbox_event"
+            columns: ["outbox_event_id"]
+            isOneToOne: false
+            referencedRelation: "org_domain_events_outbox"
             referencedColumns: ["id"]
           },
           {

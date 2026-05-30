@@ -1980,15 +1980,19 @@ model org_order_history {
   rec_status      Int?            @default(1) @db.SmallInt
   rec_order       Int?
   rec_notes       String?
+  outbox_event_id String?                   @db.Uuid
   org_orders_mst  org_orders_mst  @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_history_order")
   org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_history_tenant")
   users           users?          @relation(fields: [done_by], references: [id], onUpdate: NoAction, map: "fk_history_user")
+  org_domain_events_outbox org_domain_events_outbox? @relation(fields: [outbox_event_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_history_outbox_event")
 
+  @@unique([tenant_org_id, outbox_event_id], map: "uq_history_outbox_event")
   @@index([tenant_org_id, action_type, done_at(sort: Desc)], map: "idx_history_action_type")
   @@index([order_id, action_type, done_at(sort: Desc)], map: "idx_history_order_action")
   @@index([order_id, done_at(sort: Desc)], map: "idx_history_order_timeline")
   @@index([tenant_org_id, done_at(sort: Desc)], map: "idx_history_tenant")
   @@index([tenant_org_id, action_type, done_at(sort: Desc)], map: "idx_history_tenant_action")
+  @@index([outbox_event_id], map: "idx_history_outbox_event")
   @@schema("public")
 }
 
@@ -7385,6 +7389,7 @@ model org_domain_events_outbox {
   created_at     DateTime  @default(now()) @db.Timestamptz(6)
 
   org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_order_history org_order_history[]
 
   @@index([tenant_org_id, aggregate_id, event_type], map: "idx_outbox_aggregate")
   @@schema("public")

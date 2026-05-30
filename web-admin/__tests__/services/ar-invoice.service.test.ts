@@ -430,21 +430,18 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     ).rejects.toThrow('ERP-Lite COA missing');
   });
 
-  it('Phase 3 Round 3: expected_total_amount sizes invoice to the post-discount receivable (cash + non-gift credits only)', async () => {
+  it('Phase 3 Round 3: expected_total_amount sizes invoice to the post-settlement receivable', async () => {
     // Submit-order scenario:
     //  - subtotal 2.000 + VAT 0.100 + tax 0.040 = 2.140 (gross)
-    //  - gift-card pricing discount 0.100 → finalTotal 2.040 (post-discount)
+    //  - gift-card credit application 0.150 (stored-value settlement, not discount)
     //  - cash 1.000
-    //  - outstanding = finalTotal - cash = 1.040
+    //  - outstanding = 2.140 - 1.000 - 0.150 = 0.990
     //
-    // Round 3 fix: gift-card is a pricing discount (already in finalTotal),
-    // NOT a settlement credit-app. The orchestrator computes
-    // `correctedOutstanding = finalTotal - realPayment - settlementCreditApplied`
-    // (where settlementCreditApplied excludes gift-card) and passes it
-    // through as `expected_total_amount`. This test pins that the writer
-    // honors whatever the orchestrator computed.
+    // The orchestrator passes the post-settlement receivable through as
+    // `expected_total_amount`. This test pins that the writer honors that
+    // canonical amount instead of re-deriving it from older gift-card semantics.
     mockOrderFindMany.mockResolvedValue([
-      defaultOrder({ total: 2.04, outstanding_amount: 2.04 }),
+      defaultOrder({ total: 2.14, outstanding_amount: 2.14 }),
     ]);
     setupInvoiceCreate(AR_INVOICE_STATUSES.OPEN);
 
@@ -457,7 +454,7 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
         order_ids: ['11111111-1111-1111-1111-111111111111'],
         idempotency_key: 'order-1_ar',
         issueImmediately: true,
-        expected_total_amount: 1.04, // corrected: NOT 0.94 (gift-card not subtracted twice)
+        expected_total_amount: 0.99,
         due_date: futureDueDate,
       },
       { tenantId: 'tenant-123', userId: 'user-123' }
@@ -469,9 +466,9 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
       total: number;
       outstanding_amount: number;
     };
-    expect(createPayload.subtotal).toBe(1.04);
-    expect(createPayload.total).toBe(1.04);
-    expect(createPayload.outstanding_amount).toBe(1.04);
+    expect(createPayload.subtotal).toBe(0.99);
+    expect(createPayload.total).toBe(0.99);
+    expect(createPayload.outstanding_amount).toBe(0.99);
 
     // Per-order link mirrors the same amount (single-order path).
     const orderLinkPayload = mockOrdersDtlCreateMany.mock.calls[0][0].data as Array<{
@@ -479,23 +476,23 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
       outstanding_amount: number;
       order_total_amount: number;
     }>;
-    expect(orderLinkPayload[0].invoiced_amount).toBe(1.04);
-    expect(orderLinkPayload[0].outstanding_amount).toBe(1.04);
+    expect(orderLinkPayload[0].invoiced_amount).toBe(0.99);
+    expect(orderLinkPayload[0].outstanding_amount).toBe(0.99);
     // order_total_amount stays at the full sale for audit visibility.
-    expect(orderLinkPayload[0].order_total_amount).toBe(2.04);
+    expect(orderLinkPayload[0].order_total_amount).toBe(2.14);
 
     // Line summary uses the same amount.
     const linePayload = mockLinesDtlCreateMany.mock.calls[0][0].data as Array<{
       unit_price: number;
       total_amount: number;
     }>;
-    expect(linePayload[0].unit_price).toBe(1.04);
-    expect(linePayload[0].total_amount).toBe(1.04);
+    expect(linePayload[0].unit_price).toBe(0.99);
+    expect(linePayload[0].total_amount).toBe(0.99);
 
     // AR ledger debit fires only for the receivable (no over-debit).
     expect(mockLedgerCreate).toHaveBeenCalledTimes(1);
     const ledgerPayload = mockLedgerCreate.mock.calls[0][0].data as { amount: number };
-    expect(ledgerPayload.amount).toBe(1.04);
+    expect(ledgerPayload.amount).toBe(0.99);
   });
 
   it('Phase 3 Round 2: when expected_total_amount is omitted, legacy full-sale sizing is preserved', async () => {
@@ -503,7 +500,7 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     // expected_total_amount, so the writer must fall back to summing
     // order.outstanding_amount across orders. This pins that contract.
     mockOrderFindMany.mockResolvedValue([
-      defaultOrder({ total: 2.04, outstanding_amount: 2.04 }),
+      defaultOrder({ total: 2.14, outstanding_amount: 2.14 }),
     ]);
     setupInvoiceCreate(AR_INVOICE_STATUSES.DRAFT);
 
@@ -520,8 +517,8 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
       subtotal: number;
       total: number;
     };
-    expect(createPayload.subtotal).toBe(2.04);
-    expect(createPayload.total).toBe(2.04);
+    expect(createPayload.subtotal).toBe(2.14);
+    expect(createPayload.total).toBe(2.14);
   });
 
   it('Phase 3: caller-supplied tx skips outer prisma.$transaction wrapper (atomic with order tx)', async () => {

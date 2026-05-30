@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, User, AlertCircle, Copy, PlusCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, User, AlertCircle, Copy, PlusCircle, CheckCircle, FileText, Receipt, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
@@ -33,6 +33,10 @@ const ACTION_ICONS: Record<string, any> = {
   ITEM_STEP: CheckCircle2,
   ISSUE_CREATED: AlertCircle,
   ISSUE_SOLVED: CheckCircle2,
+  // BVM Phase 5 — outbox-driven order timeline events
+  ORDER_COMPLETED: ShieldCheck,
+  VOUCHER_POSTED_AND_WIRED: FileText,
+  AR_INVOICE_ISSUED: Receipt,
 };
 
 export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
@@ -55,6 +59,10 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
       ITEM_STEP: t('actions.processingStep'),
       ISSUE_CREATED: t('actions.issueCreated'),
       ISSUE_SOLVED: t('actions.issueResolved'),
+      // BVM Phase 5 — outbox-driven labels
+      ORDER_COMPLETED: t('actions.orderCompleted'),
+      VOUCHER_POSTED_AND_WIRED: t('actions.voucherPostedAndWired'),
+      AR_INVOICE_ISSUED: t('actions.arInvoiceIssued'),
     };
     return labels[actionType] || actionType;
   };
@@ -123,6 +131,11 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
       ITEM_STEP: '#14b8a6',
       ISSUE_CREATED: '#ef4444',
       ISSUE_SOLVED: '#22c55e',
+      // BVM Phase 5 — financial events get the Order Fin palette so
+      // operators can scan the timeline for money-side milestones at a glance.
+      ORDER_COMPLETED: '#16a34a',           // green-700: settled & closed
+      VOUCHER_POSTED_AND_WIRED: '#7c3aed',  // violet-600: voucher posted
+      AR_INVOICE_ISSUED: '#0ea5e9',         // sky-500: AR receivable raised
     };
     return colors[actionType] || '#6b7280';
   };

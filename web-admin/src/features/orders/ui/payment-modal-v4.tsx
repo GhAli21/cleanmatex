@@ -895,7 +895,7 @@ export function PaymentModalV4({
         .toFixed(decimalPlaces)
     );
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal     = Math.max(0, afterDiscounts + profilesTaxAmount - giftCardApplied);
+    const finalTotal     = Math.max(0, afterDiscounts + profilesTaxAmount);
     return {
       subtotal,
       manualDiscount,
