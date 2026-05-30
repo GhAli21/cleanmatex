@@ -6699,7 +6699,31 @@
         "general": "General",
         "channels": "Channels and purposes",
         "behavior": "Behavior",
+        "bvmRouting": "BVM Routing",
         "limitsAndFees": "Limits and fees"
+      },
+      "settlementTypeCode": "Settlement type override",
+      "creditApplicationType": "Credit application type",
+      "defaultCreationStatus": "Default creation status",
+      "allowStatusOverride": "Allow status override",
+      "isUserIdRequired": "User ID required",
+      "inheritFromPlatform": "Inherit (platform default)",
+      "settlementTypeCodes": {
+        "PAY_IN_ADVANCE": "Pay in advance",
+        "PAY_ON_COLLECTION": "Pay on collection",
+        "PAY_ON_DELIVERY": "Pay on delivery",
+        "CREDIT_INVOICE": "Credit invoice"
+      },
+      "creditApplicationTypes": {
+        "GIFT_CARD": "Gift card",
+        "WALLET": "Wallet",
+        "CUSTOMER_ADVANCE": "Customer advance",
+        "CUSTOMER_CREDIT": "Customer credit",
+        "LOYALTY_CREDIT": "Loyalty credit"
+      },
+      "creationStatuses": {
+        "PENDING": "Pending",
+        "COMPLETED": "Completed"
       },
       "description": "Description",
       "description2": "Description (Arabic)",

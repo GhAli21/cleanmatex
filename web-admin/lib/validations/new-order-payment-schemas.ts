@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/order-types';
+import { validateCheckDueDate } from '@/lib/utils/check-date';
 
 export const OUTSTANDING_POLICIES = {
   NONE: 'NONE',
@@ -69,36 +70,64 @@ const paymentMethodCodeSchema = z.preprocess(
  * A single settlement leg in the order payment flow.
  * Real-payment and customer-credit legs can be mixed, but deferred methods must remain isolated.
  */
-export const paymentLegSchema = z.object({
-  /** Payment method code for this leg (must match paymentMethodCodeSchema) */
-  method: paymentMethodCodeSchema,
-  /** Positive amount for this leg */
-  amount: z.number().positive(),
-  /** Check number — required when method is CHECK */
-  checkNumber: z.string().optional(),
-  /** Issuing bank for check payments */
-  checkBank: z.string().optional(),
-  /** Check date (ISO date string) */
-  checkDate: z.string().optional(),
-  /** Cash tendered by customer (only for CASH legs — used to compute change returned) */
-  cashTendered: z.number().min(0).optional(),
-  /** Card brand code — for CARD legs (references org_card_brand_cf.card_brand_code) */
-  card_brand_code: z.string().optional(),
-  /** Last 4 digits of card — for CARD legs (PCI: never store full PAN) */
-  card_last4: z.string().max(4).optional(),
-  /** Authorization code from terminal/gateway — for CARD legs */
-  auth_code: z.string().optional(),
-  /** Bank transfer reference number — for BANK_TRANSFER legs */
-  bank_reference: z.string().optional(),
-  /** Payment gateway code — for gateway legs (HYPERPAY / PAYTABS / STRIPE) */
-  gateway_code: z.string().optional(),
-  /** Gateway transaction identifier */
-  gateway_transaction_id: z.string().optional(),
-  /** Gateway reference string */
-  gateway_reference: z.string().optional(),
-  /** Credit-note / source reference for stored-value legs that require a specific document. */
-  creditReferenceId: z.string().uuid().optional(),
-});
+export const paymentLegSchema = z
+  .object({
+    /** Payment method code for this leg (must match paymentMethodCodeSchema) */
+    method: paymentMethodCodeSchema,
+    /** Positive amount for this leg */
+    amount: z.number().positive(),
+    /** Check number — required when method is CHECK */
+    checkNumber: z.string().optional(),
+    /** Issuing bank for check payments */
+    checkBank: z.string().optional(),
+    /** Check date (ISO date string) */
+    checkDate: z.string().optional(),
+    /** Cash tendered by customer (only for CASH legs — used to compute change returned) */
+    cashTendered: z.number().min(0).optional(),
+    /** Card brand code — for CARD legs (references org_card_brand_cf.card_brand_code) */
+    card_brand_code: z.string().optional(),
+    /** Last 4 digits of card — for CARD legs (PCI: never store full PAN) */
+    card_last4: z.string().max(4).optional(),
+    /** Authorization code from terminal/gateway — for CARD legs */
+    auth_code: z.string().optional(),
+    /** Bank transfer reference number — for BANK_TRANSFER legs */
+    bank_reference: z.string().optional(),
+    /** Payment gateway code — for gateway legs (HYPERPAY / PAYTABS / STRIPE) */
+    gateway_code: z.string().optional(),
+    /** Gateway transaction identifier */
+    gateway_transaction_id: z.string().optional(),
+    /** Gateway reference string */
+    gateway_reference: z.string().optional(),
+    /** Credit-note / source reference for stored-value legs that require a specific document. */
+    creditReferenceId: z.string().uuid().optional(),
+    /**
+     * BVM Phase 6 Sub-item 6 (Phase-1B B7 closer): explicit per-leg payment
+     * status. The field is optional — when omitted, the planner / settle
+     * path runs the existing gateway-driven PENDING fallback, which mirrors
+     * the pre-Phase-6 behaviour exactly. Passing `'PENDING'` explicitly
+     * forces the leg to PENDING regardless of gateway routing.
+     *
+     * The default is left implicit (omission ≡ COMPLETED fallback) so the
+     * Zod `.infer` shape stays optional and the dozens of existing
+     * paymentLegs literals at call sites continue to compile.
+     */
+    paymentStatus: z.enum(['COMPLETED', 'PENDING']).optional(),
+  })
+  .superRefine((leg, ctx) => {
+    // BVM Phase 6 Sub-item 6: server-side enforcement of the CHECK due-date
+    // rule that lives in the modal helper. The same `validateCheckDueDate`
+    // function powers the client error, so client + server stay in lockstep.
+    if (leg.method !== PAYMENT_METHODS.CHECK || !leg.checkDate) return;
+    const reason = validateCheckDueDate(leg.checkDate);
+    if (reason) {
+      ctx.addIssue({
+        // i18n key suffix — message matches keys under `orders.new.splitPayment.*`
+        code: z.ZodIssueCode.custom,
+        message: reason,
+        path: ['checkDate'],
+      });
+    }
+  });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;
 

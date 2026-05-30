@@ -6699,7 +6699,31 @@
         "general": "عام",
         "channels": "القنوات والأغراض",
         "behavior": "السلوك",
+        "bvmRouting": "توجيه BVM",
         "limitsAndFees": "الحدود والرسوم"
+      },
+      "settlementTypeCode": "تجاوز نوع التسوية",
+      "creditApplicationType": "نوع تطبيق الاعتماد",
+      "defaultCreationStatus": "الحالة الافتراضية عند الإنشاء",
+      "allowStatusOverride": "السماح بتجاوز الحالة",
+      "isUserIdRequired": "معرف المستخدم مطلوب",
+      "inheritFromPlatform": "وراثة (الافتراضي المنصة)",
+      "settlementTypeCodes": {
+        "PAY_IN_ADVANCE": "الدفع مقدماً",
+        "PAY_ON_COLLECTION": "الدفع عند الاستلام",
+        "PAY_ON_DELIVERY": "الدفع عند التوصيل",
+        "CREDIT_INVOICE": "فاتورة آجلة"
+      },
+      "creditApplicationTypes": {
+        "GIFT_CARD": "بطاقة هدية",
+        "WALLET": "محفظة",
+        "CUSTOMER_ADVANCE": "دفعة مقدمة للعميل",
+        "CUSTOMER_CREDIT": "رصيد العميل",
+        "LOYALTY_CREDIT": "رصيد الولاء"
+      },
+      "creationStatuses": {
+        "PENDING": "معلّق",
+        "COMPLETED": "مكتمل"
       },
       "description": "الوصف",
       "description2": "الوصف بالعربية",

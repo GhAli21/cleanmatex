@@ -197,7 +197,12 @@
       "Bash(mkdir -p \"app/api/v1/orders/[id]/payments/[paymentId]/verify\")",
       "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\({orders_payments: en.orders?.payments, orders_detail_financial_col: en.orders?.detail?.financial?.col, orders_detail_financial_some: Object.keys\\(en.orders?.detail?.financial || {}\\).slice\\(0,30\\)}, null, 2\\)\\);\")",
       "Bash(node -e \"const en=require\\('./messages/en.json'\\); const f=en.orders.detail.financial; console.log\\('col keys:', Object.keys\\(f.col\\)\\); console.log\\('financial sample:', JSON.stringify\\(Object.fromEntries\\(Object.entries\\(f\\).slice\\(0,5\\)\\)\\)\\);\")",
-      "Bash(grep -vE 'node_modules|createInvoiceForOrder|createInvoiceAction|createInvoiceIn|createInvoiceInput|createInvoiceFromOrders|createArInvoice|ar-invoice|/\\\\*|//|\\\\bdeprecated\\\\b|coverage')"
+      "Bash(grep -vE 'node_modules|createInvoiceForOrder|createInvoiceAction|createInvoiceIn|createInvoiceInput|createInvoiceFromOrders|createArInvoice|ar-invoice|/\\\\*|//|\\\\bdeprecated\\\\b|coverage')",
+      "Bash(node -e \"const m=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\(m.paymentConfig?.methods ?? {}, null, 2\\)\\)\")",
+      "Bash(node -e \"const m=require\\('./messages/ar.json'\\); console.log\\(JSON.stringify\\(m.paymentConfig?.methods ?? {}, null, 2\\)\\)\")",
+      "Bash(node -e \"const m=require\\('./messages/en.json'\\); console.log\\('yes:', m.common?.yes, 'no:', m.common?.no\\)\")",
+      "Read(//f/f/jhapp/cleanmatex/docs/features/Order_Fin/**)",
+      "mcp__supabase_local__execute_sql"
     ],
     "deny": [
       "Read(node_modules)",
@@ -262,6 +267,12 @@
       "F:\\jhapp\\cleanmatex\\web-admin\\app\\api\\v1\\orders\\[id]\\payments\\[paymentId]"
     ]
   },
+  "enabledMcpjsonServers": [
+    "supabase_remote_with_token",
+    "supabase_remote",
+    "supabase_local",
+    "supabase_remote_db"
+  ],
   "statusLine": {
     "type": "command",
     "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); style=$(echo \"$input\" | jq -r '.output_style.name'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); if [ -n \"$remaining\" ]; then echo \"$model | Context: $remaining% | Style: $style\"; else echo \"$model | Style: $style\"; fi"

@@ -14,8 +14,26 @@ import { cmxMessage } from '@ui/feedback';
 import { updatePaymentMethodConfigSchema, type UpdatePaymentMethodConfigFormValues } from '../model/payment-method-config-schema';
 import { updatePaymentMethodConfig } from '@/app/actions/payment-config/payment-methods-actions';
 import { PAYMENT_NATURE, FEE_TYPES } from '@/lib/constants/payment';
+import {
+  SETTLEMENT_TYPE_CODES,
+  CREDIT_APPLICATION_TYPES,
+  type SettlementTypeCode,
+  type CreditApplicationType,
+} from '@/lib/constants/order-financial';
 import type { OrgPaymentMethodConfig } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import {
+  triStateToBoolean,
+  booleanToTriState,
+  nullableStringToFormValue,
+  formStringToNullable,
+  type TriStateString,
+} from './d9-routing-helpers';
+
+const INHERIT_VALUE = '';
+const SETTLEMENT_TYPE_OPTIONS = Object.values(SETTLEMENT_TYPE_CODES) as readonly SettlementTypeCode[];
+const CREDIT_APPLICATION_OPTIONS = Object.values(CREDIT_APPLICATION_TYPES) as readonly CreditApplicationType[];
+const CREATION_STATUS_OPTIONS = ['PENDING', 'COMPLETED'] as const;
 
 interface PaymentMethodConfigDialogProps {
   method: OrgPaymentMethodConfig;
@@ -26,6 +44,7 @@ interface PaymentMethodConfigDialogProps {
 
 export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: PaymentMethodConfigDialogProps) {
   const t = useTranslations('paymentConfig');
+  const tCommon = useTranslations('common');
   const [isPending, startTransition] = useTransition();
   const { currencyCode: tenantCurrencyCode } = useTenantCurrency();
 
@@ -59,6 +78,13 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
       fee_amount:                    method.fee_amount,
       fee_rate:                      method.fee_rate,
       display_order:                 method.display_order,
+      // BVM Phase 6 Sub-item 5: D9 tenant overrides — null in DB means "inherit".
+      // Schema accepts null, so the form value mirrors the DB shape directly.
+      settlement_type_code:          method.settlement_type_code as SettlementTypeCode | null,
+      credit_application_type:       method.credit_application_type as CreditApplicationType | null,
+      default_creation_status:       method.default_creation_status as 'PENDING' | 'COMPLETED' | null,
+      allow_status_override:         method.allow_status_override,
+      is_user_id_required:           method.is_user_id_required,
     },
   });
 
@@ -82,6 +108,14 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
   };
 
   const feeType = form.watch('fee_type');
+  const paymentNature = form.watch('payment_nature');
+  // Tri-state form values (read once per render). Dropdowns serialize through
+  // strings; helpers round-trip back to boolean | null on selection.
+  const allowStatusOverrideForm = booleanToTriState(form.watch('allow_status_override'));
+  const isUserIdRequiredForm = booleanToTriState(form.watch('is_user_id_required'));
+  const settlementTypeForm = nullableStringToFormValue(form.watch('settlement_type_code'));
+  const creditApplicationTypeForm = nullableStringToFormValue(form.watch('credit_application_type'));
+  const defaultCreationStatusForm = nullableStringToFormValue(form.watch('default_creation_status'));
 
   const boolField = (field: keyof UpdatePaymentMethodConfigFormValues) => ({
     checked: !!form.watch(field),
@@ -188,6 +222,119 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                     <CmxSwitch {...boolField(field)} />
                   </div>
                 ))}
+              </div>
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* BVM Routing — Phase 6 Sub-item 5: D9 tenant overrides.
+              Null/empty selection means "inherit from platform default
+              (sys_payment_method_cd)". CmxSwitch is binary-only and cannot
+              represent the inherit state, so booleans are surfaced as
+              tri-state dropdowns. */}
+          <CmxCard>
+            <CmxCardHeader><CmxCardTitle className="text-base">{t('methods.sections.bvmRouting')}</CmxCardTitle></CmxCardHeader>
+            <CmxCardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{t('methods.settlementTypeCode')}</label>
+                  <CmxSelectDropdown
+                    value={settlementTypeForm}
+                    onValueChange={(v) =>
+                      form.setValue(
+                        'settlement_type_code',
+                        formStringToNullable(v) as SettlementTypeCode | null
+                      )
+                    }
+                  >
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value={INHERIT_VALUE}>{t('methods.inheritFromPlatform')}</CmxSelectDropdownItem>
+                      {SETTLEMENT_TYPE_OPTIONS.map((code) => (
+                        <CmxSelectDropdownItem key={code} value={code}>
+                          {t(`methods.settlementTypeCodes.${code}` as never)}
+                        </CmxSelectDropdownItem>
+                      ))}
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                {paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION && (
+                  <div>
+                    <label className="text-sm font-medium">{t('methods.creditApplicationType')}</label>
+                    <CmxSelectDropdown
+                      value={creditApplicationTypeForm}
+                      onValueChange={(v) =>
+                        form.setValue(
+                          'credit_application_type',
+                          formStringToNullable(v) as CreditApplicationType | null
+                        )
+                      }
+                    >
+                      <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                      <CmxSelectDropdownContent>
+                        <CmxSelectDropdownItem value={INHERIT_VALUE}>{t('methods.inheritFromPlatform')}</CmxSelectDropdownItem>
+                        {CREDIT_APPLICATION_OPTIONS.map((code) => (
+                          <CmxSelectDropdownItem key={code} value={code}>
+                            {t(`methods.creditApplicationTypes.${code}` as never)}
+                          </CmxSelectDropdownItem>
+                        ))}
+                      </CmxSelectDropdownContent>
+                    </CmxSelectDropdown>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium">{t('methods.defaultCreationStatus')}</label>
+                  <CmxSelectDropdown
+                    value={defaultCreationStatusForm}
+                    onValueChange={(v) =>
+                      form.setValue(
+                        'default_creation_status',
+                        formStringToNullable(v) as 'PENDING' | 'COMPLETED' | null
+                      )
+                    }
+                  >
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value={INHERIT_VALUE}>{t('methods.inheritFromPlatform')}</CmxSelectDropdownItem>
+                      {CREATION_STATUS_OPTIONS.map((s) => (
+                        <CmxSelectDropdownItem key={s} value={s}>
+                          {t(`methods.creationStatuses.${s}` as never)}
+                        </CmxSelectDropdownItem>
+                      ))}
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('methods.allowStatusOverride')}</label>
+                  <CmxSelectDropdown
+                    value={allowStatusOverrideForm}
+                    onValueChange={(v) =>
+                      form.setValue('allow_status_override', triStateToBoolean(v as TriStateString))
+                    }
+                  >
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value={INHERIT_VALUE}>{t('methods.inheritFromPlatform')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="true">{tCommon('yes')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="false">{tCommon('no')}</CmxSelectDropdownItem>
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('methods.isUserIdRequired')}</label>
+                  <CmxSelectDropdown
+                    value={isUserIdRequiredForm}
+                    onValueChange={(v) =>
+                      form.setValue('is_user_id_required', triStateToBoolean(v as TriStateString))
+                    }
+                  >
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value={INHERIT_VALUE}>{t('methods.inheritFromPlatform')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="true">{tCommon('yes')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="false">{tCommon('no')}</CmxSelectDropdownItem>
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
               </div>
             </CmxCardContent>
           </CmxCard>

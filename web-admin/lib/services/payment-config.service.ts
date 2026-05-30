@@ -21,6 +21,12 @@ interface PaymentMethodSourceRow {
   payment_nature: string;
   settlement_type_code: string | null;
   credit_application_type: string | null;
+  // BVM Phase 1B D9 raw tenant-override columns (NULL = inherit). Effective
+  // values are derived into eff_* below; the raw values are projected to the
+  // settings UI so it can distinguish explicit override from inheritance.
+  default_creation_status: string | null;
+  allow_status_override: boolean | null;
+  is_user_id_required: boolean | null;
   is_enabled: boolean;
   allowed_in_pos: boolean;
   allowed_in_customer_app: boolean;
@@ -190,6 +196,13 @@ function mapTenantMethodRow(row: PaymentMethodSourceRow): OrgPaymentMethodConfig
     // both columns nullable; sys row carries the default for that method code).
     requires_cash_drawer: row.eff_requires_cash_drawer ?? row.requires_cash_drawer,
     requires_terminal: row.requires_terminal,
+    // BVM Phase 6 Sub-item 5: raw tenant-override D9 fields exposed to settings
+    // UI so the dialog can distinguish "inherit" (null) from explicit overrides.
+    settlement_type_code: row.settlement_type_code ?? null,
+    credit_application_type: row.credit_application_type ?? null,
+    default_creation_status: row.default_creation_status ?? null,
+    allow_status_override: row.allow_status_override ?? null,
+    is_user_id_required: row.is_user_id_required ?? null,
     min_amount: toNumber(row.min_amount),
     max_amount: toNumber(row.max_amount),
     currency_code: row.currency_code ?? null,
@@ -361,6 +374,9 @@ async function loadTenantPaymentMethodRows({
       payment_nature: row.payment_nature,
       settlement_type_code: row.settlement_type_code ?? null,
       credit_application_type: row.credit_application_type ?? null,
+      default_creation_status: row.default_creation_status ?? null,
+      allow_status_override: row.allow_status_override ?? null,
+      is_user_id_required: row.is_user_id_required ?? null,
       is_enabled: row.is_enabled,
       allowed_in_pos: row.allowed_in_pos,
       allowed_in_customer_app: row.allowed_in_customer_app,

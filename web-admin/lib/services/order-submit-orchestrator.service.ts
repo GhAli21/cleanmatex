@@ -435,6 +435,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       reference:        leg.bank_reference ?? leg.gateway_reference,
       terminalId:       undefined,
       creditReferenceId: undefined,
+      // BVM Phase 6 Sub-item 6: forward the explicit per-leg payment status.
+      paymentStatus:    leg.paymentStatus,
     };
   });
 

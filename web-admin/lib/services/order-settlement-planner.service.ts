@@ -87,8 +87,13 @@ export function buildSettlementPlan(
         option.defaultCreationStatus ||
         resolveDefaultStatus(option.paymentMethodCode, option.gatewayCode);
       const allowStatusOverride = option.allowStatusOverride ?? false;
-      // paymentStatus override: reserved for Phase 2 (no paymentStatus field on PaymentLeg yet)
-      const resolvedPaymentStatus = defaultCreationStatus;
+      // BVM Phase 6 Sub-item 6 (B7 closer): explicit per-leg paymentStatus.
+      // An explicit `'PENDING'` from the request overrides every fallback;
+      // omitting the field (Zod defaults to `'COMPLETED'`) keeps the prior
+      // gateway/D9 fallback chain intact.
+      const explicitStatus = orig?.paymentStatus;
+      const resolvedPaymentStatus =
+        explicitStatus === 'PENDING' ? 'PENDING' : defaultCreationStatus;
 
       // changeReturnedAmount is deliberately excluded from RealPaymentLeg.
       // addVoucherLine() derives it as (tenderedAmount − amount) when both are present,

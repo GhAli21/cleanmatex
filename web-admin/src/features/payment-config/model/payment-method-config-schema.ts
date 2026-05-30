@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { PAYMENT_NATURE, FEE_TYPES } from '@/lib/constants/payment';
+import {
+  SETTLEMENT_TYPE_CODES,
+  CREDIT_APPLICATION_TYPES,
+} from '@/lib/constants/order-financial';
 
 const paymentMethodConfigBaseSchema = z.object({
   payment_method_code: z.string().min(1),
@@ -37,6 +41,29 @@ const paymentMethodConfigBaseSchema = z.object({
   fee_amount: z.number().nonnegative().optional(),
   fee_rate: z.number().nonnegative().optional(),
   display_order: z.number().int().nonnegative().optional(),
+  // BVM Phase 6 Sub-item 5: D9 tenant-override fields (NULL = inherit platform default)
+  settlement_type_code: z
+    .enum([
+      SETTLEMENT_TYPE_CODES.PAY_IN_ADVANCE,
+      SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION,
+      SETTLEMENT_TYPE_CODES.PAY_ON_DELIVERY,
+      SETTLEMENT_TYPE_CODES.CREDIT_INVOICE,
+    ])
+    .nullable()
+    .optional(),
+  credit_application_type: z
+    .enum([
+      CREDIT_APPLICATION_TYPES.GIFT_CARD,
+      CREDIT_APPLICATION_TYPES.WALLET,
+      CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE,
+      CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT,
+      CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT,
+    ])
+    .nullable()
+    .optional(),
+  default_creation_status: z.enum(['PENDING', 'COMPLETED']).nullable().optional(),
+  allow_status_override: z.boolean().nullable().optional(),
+  is_user_id_required: z.boolean().nullable().optional(),
 });
 
 /** Create form schema keeps cross-field validation outside the reusable base object. */

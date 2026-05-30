@@ -340,11 +340,8 @@ alter table public.org_orders_mst
   add column if not exists financial_last_calculated_by uuid null,
   add column if not exists financial_snapshot_status varchar(30) not null default 'CURRENT',
   add column if not exists financial_mismatch_warning_count integer not null default 0;
-  add column if not exists financial_calculation_snapshot jsonb null; 
   
 ```
-comment on column public.org_orders_mst.financial_calculation_snapshot is
-'Versioned JSONB explanation of the latest order financial calculation. Used for audit, debugging, support, AI explanation, and reconciliation trace. Canonical financial reporting must use numeric snapshot columns, not this JSON.';
 
 # Columns you should deprecate later
 
@@ -383,3 +380,159 @@ Implementation order:
 ```
 
 This gives you clear Order Fin semantics without breaking existing code in one risky migration.
+
+
+-- Column Comments
+ 
+-- =========================================================
+-- 1. SALE VALUE / ORDER VALUE COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.subtotal_amount is
+'Canonical Order Fin field. Base sale subtotal before additional charges, commercial discounts, tax, and rounding. In the current implementation this may equal items_base_amount. Does not include payments, gift cards, wallet, customer advance, credit note, customer credit, refunds, or pending payments. Replaces ambiguous legacy subtotal.';
+
+comment on column public.org_orders_mst.items_base_amount is
+'Canonical Order Fin field. Sum of active order item/service final line amounts in order currency. In the current pricing mode, this may already include piece extra prices, preference extra prices, and item-level add-ons. This is part of order value, not settlement.';
+
+comment on column public.org_orders_mst.total_amount is
+'Canonical Order Fin field. Full final sale/service amount after commercial discounts, tax, and rounding, before payments and stored-value credits. Must not subtract cash, card, gateway, gift card, wallet, customer advance, credit note, customer credit, loyalty value, refunds, or pending payments. Replaces ambiguous legacy total.';
+
+
+-- =========================================================
+-- 2. EXTRA PRICE BREAKDOWN COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.piece_extra_price_amount is
+'Canonical Order Fin breakdown field. Sum of active piece-level extra prices for the order. If piece extras are already included in items_base_amount, this field is informational/audit only and must not be added again to total_charges_amount.';
+
+comment on column public.org_orders_mst.preference_extra_price_amount is
+'Canonical Order Fin breakdown field. Sum of active preference-level extra prices for the order. If preference extras are already included in items_base_amount, this field is informational/audit only and must not be added again to total_charges_amount.';
+
+
+-- =========================================================
+-- 3. CHARGE BREAKDOWN COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.service_charge_amount is
+'Canonical Order Fin field. Total service charge amount applied to the order in order currency. This is part of order value and contributes to total_charges_amount. Replaces ambiguous legacy service_charge.';
+
+comment on column public.org_orders_mst.delivery_charge_amount is
+'Canonical Order Fin field. Total delivery charge amount applied to the order in order currency. This is part of order value and contributes to total_charges_amount.';
+
+comment on column public.org_orders_mst.express_charge_amount is
+'Canonical Order Fin field. Total express or urgent-service charge amount applied to the order in order currency. Use express naming, not rush. This is part of order value and contributes to total_charges_amount.';
+
+comment on column public.org_orders_mst.other_charges_amount is
+'Canonical Order Fin field. Total other/manual/system charges applied to the order in order currency, excluding service, delivery, express, piece extra, and preference extra amounts when those have dedicated breakdown fields.';
+
+comment on column public.org_orders_mst.total_charges_amount is
+'Canonical Order Fin field. Total charge amount included in sale calculation. Current mode: service_charge_amount + delivery_charge_amount + express_charge_amount + other_charges_amount because piece/preference extras may already be included in items_base_amount. Separate-charge mode may also include piece_extra_price_amount and preference_extra_price_amount.';
+
+
+-- =========================================================
+-- 4. DISCOUNT / TAX / ROUNDING COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.total_discount_amount is
+'Canonical Order Fin field. Total commercial discount amount applied to the order in order currency. Includes line, manual, promo code, coupon, campaign, and rule discounts. Excludes gift card, wallet, customer advance, credit note, customer credit, loyalty stored value, and all settlement credits.';
+
+comment on column public.org_orders_mst.taxable_amount is
+'Canonical Order Fin field. Taxable base amount calculated by the tax engine after commercial discount allocation and tax policy rules. Stored-value credits such as gift card, wallet, advance, credit note, and customer credit must not reduce taxable_amount.';
+
+comment on column public.org_orders_mst.total_tax_amount is
+'Canonical Order Fin field. Total tax amount from active order tax detail rows, such as VAT and municipal fees. Do not add legacy tax or vat_amount values to this field. Stored-value credits must not reduce total_tax_amount.';
+
+comment on column public.org_orders_mst.rounding_adjustment_amount is
+'Canonical Order Fin field. Rounding difference applied according to tenant/currency rounding policy. Can be positive, zero, or negative. Used in total_amount calculation.';
+
+
+-- =========================================================
+-- 5. SETTLEMENT COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.total_paid_amount is
+'Canonical Order Fin field. Sum of completed/captured/settled ORDER-targeted real payments only. Includes confirmed cash, card, bank, check, mobile payment, and gateway payments. Excludes gift card, wallet, customer advance, credit note, customer credit, loyalty value, pending payments, authorized payments, and failed payments.';
+
+comment on column public.org_orders_mst.total_credit_applied_amount is
+'Canonical Order Fin field. Sum of APPLIED stored-value/customer-credit applications. Includes gift card, wallet, customer advance, credit note, customer credit, loyalty value, and manual credit. These are settlement credits, not commercial discounts and not real payments.';
+
+comment on column public.org_orders_mst.refunded_amount is
+'Canonical Order Fin field. Total completed refund, restoration, or customer-credit issuance amount related to the order. For real cash/bank collection reporting, use a source-specific refund field if available.';
+
+comment on column public.org_orders_mst.net_collected_amount is
+'Canonical Order Fin field. Net real payment collection after refunds. Recommended formula: total_paid_amount minus real payment refunds. If only refunded_amount exists, temporary formula may be max(total_paid_amount - refunded_amount, 0), but source-specific refund split is more accurate.';
+
+comment on column public.org_orders_mst.outstanding_amount is
+'Canonical Order Fin field. Remaining unsettled amount after completed real payments and applied credits. Recommended formula: max(total_amount - total_paid_amount - total_credit_applied_amount, 0), plus reopened-due adjustments if refund or credit reversal policies require them.';
+
+comment on column public.org_orders_mst.overpaid_amount is
+'Canonical Order Fin field. Excess completed payments and applied credits above total_amount. Recommended formula: max(total_paid_amount + total_credit_applied_amount - total_amount, 0), adjusted for reopened-due policies if applicable.';
+
+comment on column public.org_orders_mst.change_returned_amount is
+'Canonical Order Fin field. Cash change returned to the customer. Change returned is not a payment. total_paid_amount should include only the cash amount retained/allocated to the order, not total cash tendered.';
+
+
+-- =========================================================
+-- 6. AR RECEIVABLE / PAY-ON-COLLECTION COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.ar_receivable_amount is
+'Canonical Order Fin field. Amount belonging to Accounts Receivable only for CREDIT_INVOICE, B2B, or INVOICE payment types. Must be zero for PAY_ON_COLLECTION and fully paid cash/card/mobile/gateway orders. Replaces ambiguous net_receivable_amount.';
+
+comment on column public.org_orders_mst.ar_invoice_id is
+'Optional link to the AR receivable invoice created for this order when payment_type_code is CREDIT_INVOICE, B2B, or INVOICE and ar_receivable_amount is greater than zero. Must be null for PAY_ON_COLLECTION and fully paid non-AR orders.';
+
+comment on column public.org_orders_mst.ar_invoice_no is
+'Denormalized display copy of the linked AR invoice number. Used for fast UI display only. Authoritative AR invoice data remains in the AR invoice table.';
+
+comment on column public.org_orders_mst.ar_invoice_status is
+'Denormalized display copy of the linked AR invoice status, such as OPEN, OVERDUE, PAID, PARTIALLY_PAID, or CANCELLED. Authoritative status remains in the AR invoice table.';
+
+comment on column public.org_orders_mst.pay_on_collection_amount is
+'Canonical Order Fin field. Operational retail amount to be collected at pickup or delivery when payment_type_code is PAY_ON_COLLECTION. This is not AR, not an invoice, and does not create AR ledger debit.';
+
+
+-- =========================================================
+-- 7. TAX DOCUMENT LINK COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.tax_document_id is
+'Optional link to the fiscal/tax/e-invoicing document generated for this order. This is separate from AR invoice and does not create AR ledger debit.';
+
+comment on column public.org_orders_mst.tax_document_no is
+'Denormalized display copy of the linked tax/fiscal document number. Used for fast UI display only. Authoritative tax document data remains in the tax document table.';
+
+comment on column public.org_orders_mst.tax_document_status is
+'Denormalized display copy of the linked tax/fiscal document status, such as DRAFT, ISSUED, REPORTED, CLEARED, FAILED, CANCELLED, CREDITED, or DEBITED. Authoritative status remains in the tax document table.';
+
+comment on column public.org_orders_mst.tax_document_type is
+'Denormalized display copy of the linked tax/fiscal document type, such as SIMPLIFIED_TAX_INVOICE, STANDARD_TAX_INVOICE, CREDIT_NOTE, DEBIT_NOTE, or PROFORMA. Tax document total should equal order total_amount, not AR receivable amount.';
+
+
+-- =========================================================
+-- 8. FINANCIAL RECALCULATION / AUDIT COLUMNS
+-- =========================================================
+
+comment on column public.org_orders_mst.financial_engine_version is
+'Version number of the Order Finance calculation engine used to produce the latest financial snapshot. Increment when calculation rules change materially.';
+
+comment on column public.org_orders_mst.financial_last_calculated_at is
+'Timestamp when the canonical Order Finance snapshot was last recalculated. Updated only by the financial recalculation service or approved repair job.';
+
+comment on column public.org_orders_mst.financial_last_calculated_by is
+'User or system actor UUID that last recalculated the canonical Order Finance snapshot. Null may indicate automated system calculation where actor is not available.';
+
+comment on column public.org_orders_mst.financial_snapshot_status is
+'Status of the current financial snapshot. Recommended values: CURRENT, STALE, MISMATCH, RECALCULATION_REQUIRED, LOCKED. MISMATCH means reconciliation warnings exist.';
+
+comment on column public.org_orders_mst.financial_mismatch_warning_count is
+'Number of active financial reconciliation warnings detected during the latest calculation, such as order total mismatch, AR receivable mismatch, tax mismatch, gift card double-counting, or pending payment counted as paid.';
+
+
+-- =========================================================
+-- 9. COLUMN FROM FIX_NAMES FILE — OPTIONAL WARNING
+-- =========================================================
+-- The Fix_Names file mentions total_completed_payment_amount,
+-- but the safer decision is NOT to add this as a DB column if
+-- total_paid_amount already exists. Use total_paid_amount in DB
+-- and totalCompletedPaymentAmount in TypeScript/API DTOs.

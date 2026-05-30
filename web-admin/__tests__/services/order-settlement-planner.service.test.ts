@@ -417,4 +417,65 @@ describe('buildSettlementPlan', () => {
 
     expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('PROCESSING');
   });
+
+  // ── BVM Phase 6 Sub-item 6 — explicit per-leg paymentStatus (B7 closer) ──
+  it('Phase 6 B7: explicit PENDING on the original leg overrides the COMPLETED fallback', () => {
+    // Cash leg WITHOUT a gateway code and WITH defaultCreationStatus=COMPLETED.
+    // The pre-Phase-6 planner would resolve to COMPLETED for both the fallback
+    // and the planner path. With the explicit field set to PENDING, the planner
+    // must bypass both and persist PENDING.
+    const cash = makeRealOption({ defaultCreationStatus: 'COMPLETED' });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(cash, 100)],
+      [makeOriginalLeg('CASH', 100, { paymentStatus: 'PENDING' })],
+      'PAY_IN_ADVANCE',
+      'session-1',
+    );
+
+    expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('PENDING');
+  });
+
+  it('Phase 6 B7: omitted paymentStatus on the original leg keeps the default COMPLETED', () => {
+    // When the caller omits `paymentStatus`, Zod defaults it to 'COMPLETED'.
+    // The planner must NOT treat 'COMPLETED' as an explicit override that
+    // suppresses the gateway fallback — it stays the resolved-default path.
+    const cash = makeRealOption({ defaultCreationStatus: 'COMPLETED' });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(cash, 100)],
+      [makeOriginalLeg('CASH', 100, { paymentStatus: 'COMPLETED' })],
+      'PAY_IN_ADVANCE',
+      'session-1',
+    );
+
+    expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('COMPLETED');
+  });
+
+  it('Phase 6 B7: explicit COMPLETED does NOT suppress the gateway-driven PROCESSING fallback for a gateway leg', () => {
+    // Defense: a caller that sends paymentStatus=COMPLETED on a HYPERPAY leg
+    // must NOT downgrade an inherently asynchronous gateway leg. Only an
+    // explicit 'PENDING' bypasses the gateway fallback; 'COMPLETED' (the Zod
+    // default) hands control back to the D9 / gateway resolution chain.
+    const gateway = makeRealOption({
+      paymentMethodCode: 'HYPERPAY',
+      gatewayCode: 'HYPERPAY',
+      defaultCreationStatus: '',
+      requiresCashDrawer: false,
+    });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(gateway, 100)],
+      [makeOriginalLeg('HYPERPAY', 100, { paymentStatus: 'COMPLETED' })],
+      'PAY_IN_ADVANCE',
+    );
+
+    expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('PROCESSING');
+  });
 });

@@ -190,6 +190,14 @@ export async function updatePaymentMethodConfig(
           ...(input.requires_approval !== undefined && { requires_approval: input.requires_approval }),
           ...(input.requires_cash_drawer !== undefined && { requires_cash_drawer: input.requires_cash_drawer }),
           ...(input.requires_terminal !== undefined && { requires_terminal: input.requires_terminal }),
+          // BVM Phase 6 Sub-item 5: D9 tenant-override fields. NULL is a valid
+          // "inherit from sys_payment_method_cd" value, so we forward null
+          // explicitly (vs. `undefined` which means "leave column unchanged").
+          ...(input.settlement_type_code !== undefined && { settlement_type_code: input.settlement_type_code }),
+          ...(input.credit_application_type !== undefined && { credit_application_type: input.credit_application_type }),
+          ...(input.default_creation_status !== undefined && { default_creation_status: input.default_creation_status }),
+          ...(input.allow_status_override !== undefined && { allow_status_override: input.allow_status_override }),
+          ...(input.is_user_id_required !== undefined && { is_user_id_required: input.is_user_id_required }),
           ...(input.min_amount !== undefined && { min_amount: input.min_amount }),
           ...(input.max_amount !== undefined && { max_amount: input.max_amount }),
           currency_code: tenantCurrencyCode,

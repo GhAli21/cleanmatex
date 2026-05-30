@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-05-30 (Phase 5 closed)
+Last updated: 2026-05-30 (Phase 6 closed; BVM Wiring program complete except deferred Sub-item 7)
 Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md`.
 
 ## Phase Completion
@@ -25,7 +25,7 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 | BVM-3 | AR Invoice canonical writer + Gift-card-as-voucher-line (+ R2/R3 sizing fixes) | ✅ Done (2026-05-29) |
 | BVM-4 | Reconciliation expansion (PRD §22.1 + §24.3, R1–R8 closed, UI Cmx) | ✅ Done (2026-05-30) — see `bvm_wiring_phase4_implementation.md` |
 | BVM-5 | History / Audit (PRD §22) | ✅ Done (2026-05-30) — see `bvm_wiring_phase5_implementation.md` |
-| BVM-6 | UI / schema debt cleanup | ⏳ After BVM-5 — backlog in `BVM_PHASE_2_ENTRY_PLAN.md` |
+| BVM-6 | Settlement hardening (verify-payment, modal hardening, D9 toggles, per-leg status, voucher-status audit) | ✅ Done (2026-05-30) — see `bvm_wiring_phase6_implementation.md`. Sub-item 7 deferred with audit. |
 
 ---
 
@@ -1115,3 +1115,131 @@ npx jest __tests__/utils/money.test.ts __tests__/utils/idempotency.test.ts `
 
 - Wire `buildGatewayReturnState` / `parseGatewayReturnState` into the actual HYPERPAY redirect handler — the helpers are unit-tested and ready, but the redirect-flow integration belongs in a payment-gateway hardening pass.
 - Consider promoting `validateCheckDueDate` into the Zod schema `paymentLegSchema` for server-side enforcement (Sub-item 6 will introduce `paymentStatus` on the same schema and is the natural carrier for tightening this rule).
+### Sub-item 5 — Payment Method settings UI (D9 tenant overrides) (2026-05-30) — **DONE**
+
+**Driver.** `org_payment_methods_cf` carries five D9 routing columns (`settlement_type_code`, `credit_application_type`, `default_creation_status`, `allow_status_override`, `is_user_id_required`) that were added in Phase 1B Stabilization (migration 0325) but still required operators to SQL-edit. The settings dialog at `src/features/payment-config/ui/payment-method-config-dialog.tsx` already exposed name / channels / behaviour / limits but had no surface for the D9 fields. Each column treats `NULL` as "inherit from sys_payment_method_cd default" — the binary `CmxSwitch` cannot express that tri-state, so this sub-item introduces a tri-state dropdown pattern with pure round-trip helpers.
+
+**No migration.** Columns already exist (mig 0325).
+
+**Code shipped.**
+
+- `lib/constants/order-financial.ts` — no change (`SETTLEMENT_TYPE_CODES` + `CREDIT_APPLICATION_TYPES` already present; reused as the DB-mirror source for the Zod enums).
+- `src/features/payment-config/model/payment-method-config-schema.ts` — added five nullable / optional fields to `paymentMethodConfigBaseSchema`. Enum values come straight from `SETTLEMENT_TYPE_CODES` / `CREDIT_APPLICATION_TYPES` constants, so DB-mirror invariants hold automatically. `default_creation_status` accepts `'PENDING' | 'COMPLETED' | null`.
+- `src/features/payment-config/ui/d9-routing-helpers.ts` — **new**. Four pure helpers (`triStateToBoolean`, `booleanToTriState`, `nullableStringToFormValue`, `formStringToNullable`) that round-trip between the HTML-form string layer (`'true' | 'false' | ''`) and the persistence layer (`boolean | null`, `string | null`). Documented why the binary `CmxSwitch` cannot represent the inherit state and why pure-helper isolation matters for testing.
+- `src/features/payment-config/ui/payment-method-config-dialog.tsx` — added a new "BVM Routing" Cmx card between "Behavior" and "Limits & Fees". Five controls:
+  - `settlement_type_code` — `CmxSelectDropdown` (Inherit + 4 settlement types).
+  - `credit_application_type` — `CmxSelectDropdown` (Inherit + 5 credit application types). Conditionally rendered only when `payment_nature === 'CREDIT_APPLICATION'`.
+  - `default_creation_status` — `CmxSelectDropdown` (Inherit + PENDING + COMPLETED).
+  - `allow_status_override` — tri-state `CmxSelectDropdown` (Inherit + Yes + No) using `common.yes` / `common.no`.
+  - `is_user_id_required` — same tri-state shape.
+- `app/actions/payment-config/payment-methods-actions.ts` → `updatePaymentMethodConfig` — forwards the five new fields with the same `...(input.X !== undefined && { X: input.X })` spread used for the rest. `null` is forwarded explicitly (clearing the override → inherit), `undefined` leaves the column untouched.
+- `lib/types/payment.ts` — extended `OrgPaymentMethodConfig` and `CreatePaymentMethodConfigInput` with the raw nullable D9 fields. `UpdatePaymentMethodConfigInput` is `Partial<…>` so the partial shape covers them automatically.
+- `lib/services/payment-config.service.ts` — `PaymentMethodSourceRow` now declares the three raw nullable D9 columns (`default_creation_status`, `allow_status_override`, `is_user_id_required`); `mapTenantMethodRow` projects them onto the DTO so the dialog can distinguish "inherit" (`null`) from explicit overrides. `eff_*` resolution path untouched — checkout / planner consumers still receive the resolved effective values.
+- `messages/en.json` + `messages/ar.json` — added under `paymentConfig.methods.*`:
+  - `sections.bvmRouting`
+  - `settlementTypeCode`, `creditApplicationType`, `defaultCreationStatus`, `allowStatusOverride`, `isUserIdRequired`
+  - `inheritFromPlatform`
+  - `settlementTypeCodes.{PAY_IN_ADVANCE,PAY_ON_COLLECTION,PAY_ON_DELIVERY,CREDIT_INVOICE}`
+  - `creditApplicationTypes.{GIFT_CARD,WALLET,CUSTOMER_ADVANCE,CUSTOMER_CREDIT,LOYALTY_CREDIT}`
+  - `creationStatuses.{PENDING,COMPLETED}`
+
+**Tests.**
+
+- `__tests__/features/payment-config/d9-routing-helpers.test.ts` — **new**. 14 assertions: every form-string → persistence direction, every reverse direction, both round-trip invariants. Pure unit test, no React harness. The UI dialog itself is exercised via manual smoke (RTL flip + inherit-default behaviour) — wiring a heavy `@testing-library/react` harness for a tri-state dropdown would shift more code than the helpers themselves.
+
+**Verification.**
+
+- `npx tsc --noEmit` → **0 errors** (full, unfiltered).
+- Sweep: `196/196 + 14 = 210/210` pass (the new D9 helper test file added to the standard sweep set).
+- `npm run check:i18n` → **green** (33 new keys total: 8 scalar + 4 + 5 + 2 = 19 leaf keys, all duplicated EN/AR; parity preserved).
+
+**Multi-tenancy / RBAC notes.**
+
+- The dialog only edits an `org_payment_methods_cf` row already loaded via `withTenantContext(tenantId, …)` in `payment-config.service.ts`. The action `updatePaymentMethodConfig` re-derives the tenant from `getAuthContext()` and re-enters `withTenantContext` before the Prisma update — no cross-tenant write path is introduced.
+- No new permission code. Editing payment-method configs is already gated by the existing permission on `app/dashboard/settings/payments/page.tsx`.
+
+### Sub-item 6 — `paymentStatus` on `paymentLegSchema` + planner honoring + server-side check-date refine (2026-05-30) — **DONE**
+
+**Driver.** This sub-item closes Phase 1B B7 ("planner assumes COMPLETED unless the leg is on a DEFERRED method") and the Sub-item 4 follow-up ("promote `validateCheckDueDate` into the Zod schema for server-side enforcement"). Until now, callers could not mark a real-payment leg as PENDING explicitly; the planner derived the status from gateway routing alone, which meant an operator that took a backdated check (an out-of-band CHECK that the bank had not yet cleared) had no way to tag the resulting voucher line as PENDING. The check-date rule lived only in the client modal — a malicious or buggy client could submit a past-dated CHECK that would still settle.
+
+**No migration.** Pure validation + planner + service layer change.
+
+**Code shipped.**
+
+- `lib/utils/check-date.ts` — **new**. Pure module exporting `todayYyyyMmDd` and `validateCheckDueDate`, identical to the helpers shipped in Sub-item 4 but extracted to a server-safe location so the Zod schema can import without crossing the `src/features/orders/ui/` boundary.
+- `src/features/orders/ui/payment-modal-v4.utils.ts` — replaced the inline Sub-item 4 definitions with a re-export from `@/lib/utils/check-date`. The existing utils test file keeps importing from this path; no behaviour change there.
+- `lib/validations/new-order-payment-schemas.ts`:
+  - Added `paymentStatus: z.enum(['COMPLETED', 'PENDING']).optional()` to `paymentLegSchema`. **No** `.default('COMPLETED')` — the planner already treats undefined as the COMPLETED-fallback path, and the absence of a default keeps the `z.infer` shape optional so every existing `paymentLegs` literal at call sites still compiles.
+  - Wrapped the leg schema in `.superRefine(...)` that calls `validateCheckDueDate(leg.checkDate)` on `method === 'CHECK'` legs and emits an issue whose `.message` matches the existing i18n key suffix (`'checkDateInPast'` / `'checkDateInvalid'`). Client + server use the same key for the rejection so the modal's existing copy works untouched.
+- `lib/types/order-financial.ts` → `ResolvedSettlementLeg` — added an optional `paymentStatus?: 'COMPLETED' | 'PENDING'` field. Documented as the explicit propagation channel from the request leg through to the persistence layer.
+- `lib/services/order-submit-orchestrator.service.ts` — the `settlementLegs.map(...)` builder now forwards `leg.paymentStatus`. The gift-card-by-id synthesized leg path is unaffected (it never sets paymentStatus, and CREDIT_APPLICATION legs ignore the field).
+- `lib/services/order-settlement-planner.service.ts` → `buildSettlementPlan` — replaced the Phase-2 placeholder comment with the real resolution: `explicitStatus === 'PENDING' ? 'PENDING' : defaultCreationStatus`. Explicit `'COMPLETED'` (and `undefined`) hand control back to the D9 / gateway fallback chain, so the inherently-async gateway path still resolves to `PROCESSING`.
+- `lib/services/order-settlement.service.ts` → `settleOrder` (non-wiringMode write of `org_order_payments_dtl`) — the `paymentStatus` computation now reads the explicit field first, then falls back to the legacy `option.gatewayCode ? 'PENDING' : 'COMPLETED'` rule.
+
+**Tests.**
+
+- `__tests__/services/order-settlement-planner.service.test.ts` — three new tests under "BVM Phase 6 Sub-item 6 — explicit per-leg paymentStatus (B7 closer)":
+  - Explicit `'PENDING'` overrides the COMPLETED fallback for a non-gateway leg.
+  - Omitted / `'COMPLETED'` preserves the COMPLETED resolution for a non-gateway leg.
+  - Explicit `'COMPLETED'` does NOT suppress the gateway-driven `'PROCESSING'` resolution for a HYPERPAY leg (defense against caller-side downgrade).
+- `__tests__/validations/payment-leg-schema.test.ts` — **new**. 8 tests across two suites: `paymentStatus` default-omission + accepted enum + rejection of unknown; CHECK due-date refine acceptance / past rejection / non-parseable rejection / no-checkDate / non-CHECK ignore.
+
+**Verification.**
+
+- `npx tsc --noEmit` → **0 errors** (full, unfiltered).
+- Sweep = **221/221** pass: 196 baseline + 14 D9 helpers (Sub-item 5) + 3 planner B7 + 8 schema.
+- `npm run check:i18n` → **green** (no new keys; the refine reuses the Sub-item 4 keys).
+
+**Multi-tenancy / RBAC notes.**
+
+- No new permission code, no new route, no DB column. The schema refine fires inside the Zod parser graph used by every request route that consumes `paymentLegSchema`, so the new check-date guard applies uniformly to `/api/v1/orders/submit-order` and `/api/v1/orders/create-with-payment` without per-route plumbing.
+- Tenant context is not relevant here — the refine compares the leg-supplied date against today and never touches the database.
+
+**Architecture invariants confirmed.**
+
+- The DB-mirror rule is satisfied: `paymentStatus` values (`COMPLETED`, `PENDING`) match the existing `payment_status` column enum on `org_order_payments_dtl` and the existing planner / settle string emissions.
+- `withTenantContext` boundaries on the planner and settler are unchanged — no new Prisma calls were introduced by this sub-item.
+
+### Sub-item 7 — Voucher status triple-column collapse (2026-05-30) — **DEFERRED**
+
+**Audit (mandatory pre-flight, via Supabase MCP).**
+
+- View references to `org_fin_vouchers_mst.status` / `.posted_status` → **0 rows** (pg_depend ∩ pg_rewrite).
+- Function bodies referencing `org_fin_vouchers_mst` and either `.status` or `.posted_status` → **0 rows** (pg_proc.prosrc scan).
+- Schema introspection (`information_schema.columns`):
+  - `status` — `character varying NOT NULL DEFAULT 'draft'` (lowercase legacy).
+  - `voucher_status` — `text NOT NULL DEFAULT 'DRAFT'` (uppercase canonical).
+  - `posted_status` — **does not exist**. A prior migration in the Phase 4/5 window already dropped it; the column is no longer part of this triple-column problem.
+
+**TypeScript reader scan (`rg "\.status\b" lib/services/voucher-*.ts`).**
+
+`voucher-service.ts` reads `voucher.status` (compared against `VOUCHER_STATUS.VOIDED` and `.ISSUED`) in five hot paths:
+- `voucher-service.ts:160` — `markVoucherIssued` guard.
+- `voucher-service.ts:163` — short-circuit when already ISSUED.
+- `voucher-service.ts:189-190` — re-fetch guard inside `postVoucher`.
+- `voucher-service.ts:245` — same guard inside the revoke / cancel flow.
+- `voucher-service.ts:416`, `:586` — DTO projection (`row.status`).
+- `voucher-service.ts:516-517` — list filter `where.status = { in: params.status }`.
+
+`voucher-biz.service.ts`, `voucher-posting.service.ts`, `voucher-reversal.service.ts`, `voucher-reconciliation.service.ts`, `voucher-wiring.service.ts`, `voucher-line.service.ts`, `refund-voucher-service.ts` — additional references found by the scan (omitted for brevity; each consumes `voucher.status`).
+
+**Decision gate.**
+
+The RESUME doc rule is unambiguous: *"Audit shows ANY external reader of `status` / `posted_status` → defer Sub-item 7."* The DB-side checks are clean, but the TypeScript service layer is a heavy consumer of the legacy `status` column. Dropping `status` requires a simultaneous coordinated refactor of every voucher service to read `voucher_status` AND a data-coherency pass to ensure both columns currently agree on every row (the `'draft'` vs `'DRAFT'` case difference is itself a smell — they may diverge on edge-case rows). Doing both inside Phase 6 exceeds the safe sub-item envelope.
+
+**Outcome.** Phase 6 closes without Sub-item 7. The work is recorded as the headline follow-up in `docs/features/Order_Fin/bvm_wiring_program_summary.md`.
+
+**Follow-up plan (out of Phase 6 scope).**
+
+1. New short program / phase 7 candidate: "Voucher status column collapse".
+2. Step 1 — DB coherency: a one-shot reconciliation SQL that asserts `LOWER(status) = LOWER(voucher_status)` for every row. Any divergence is a real bug surfaced before the drop.
+3. Step 2 — Service refactor: migrate every TS read of `voucher.status` to `voucher.voucher_status` behind a single helper to keep the change reviewable. Update the filter shape on list APIs in lockstep.
+4. Step 3 — Migration `0333` (or whatever the next seq is at that time): `ALTER TABLE org_fin_vouchers_mst DROP COLUMN status RESTRICT; ALTER TABLE … ALTER COLUMN voucher_status SET NOT NULL;` (already NOT NULL today, so just the drop).
+5. Step 4 — Drop the legacy enum / case in `VOUCHER_STATUS` constants if any.
+
+**Verification at the point of deferral.**
+
+- `npx tsc --noEmit` → **0 errors**.
+- Sweep = **221/221** pass (unchanged — no code touched in Sub-item 7).
+- `npm run check:i18n` → **green**.
+- `git status` for `supabase/migrations/` → no new migration on disk (correct; no DDL was written or applied).

@@ -1,5 +1,51 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-30 — BVM Wiring Phase 6: Settlement Hardening (PRD §22.3 + §D9 — verify-payment, modal hardening, D9 UI, per-leg status)
+
+**Implementation log:** `docs/features/Order_Fin/bvm_wiring_phase6_implementation.md`
+**Program summary:** `docs/features/Order_Fin/bvm_wiring_program_summary.md`
+
+### Shipped
+
+- **Sub-item 1 — Verify-Payment surface.** Migration `0332_phase6_verify_payment_permission_and_action.sql` seeds the `order_payments:verify` permission (granted to `super_admin` / `tenant_admin` / `admin` / `operator`) and extends `chk_history_action_type` with `PAYMENT_VERIFIED`. New API route `POST /api/v1/orders/[id]/payments/[paymentId]/verify` flips a PENDING `REAL_PAYMENT` leg to COMPLETED via `verifyPaymentTx`, emits `PAYMENT_VERIFIED` (aggregate=order_payment), and the Phase 5 history consumer translates that into a `PAYMENT_VERIFIED` row on `org_order_history` with no new consumer plumbing. Verify button added to `OrderPaymentsCreditsTables` with `CmxDialog` confirm + RBAC gate.
+- **Sub-item 2 — Legacy `createInvoice` retired.** Deleted `createInvoice` and its helpers in `lib/services/invoice-service.ts`. `createInvoiceAction` becomes a thin shim around `createArInvoiceFromOrders`. ERP-lite BLOCKING-policy semantics now live in the shared `lib/services/erp-lite-auto-post.util.ts` used by both the canonical writer and the shim. Stale `invoice-service.test.ts` deleted; equivalent coverage already in `ar-invoice.service.test.ts`.
+- **Sub-item 3 — `STORED_VALUE_SUB_IDEMPOTENCY_CODE` constants hoist.** Sub-key short codes (`gc | w | a | cn | lp`) moved out of `order-submit-orchestrator.service.ts` into `lib/constants/order-financial.ts` as a frozen `Readonly<Record<CreditApplicationType, …>>`. Orchestrator imports the map; emitted key strings are byte-identical to the previous implementation.
+- **Sub-item 4 — Payment Modal v4 hardening.** New helpers in `payment-modal-v4.utils.ts`: `todayYyyyMmDd`, `validateCheckDueDate` (CHECK rule; client-side guard), `buildGatewayReturnState` / `parseGatewayReturnState` (HYPERPAY/PayTabs/Stripe redirect envelope). 6 new unit tests; 2 new i18n keys (`orders.new.splitPayment.checkDateInvalid` / `checkDateInPast`).
+- **Sub-item 5 — Payment Method settings UI (D9 toggles).** New BVM Routing card inside the payment-method-config dialog surfaces 5 tenant-override columns (`settlement_type_code`, `credit_application_type`, `default_creation_status`, `allow_status_override`, `is_user_id_required`) using tri-state `CmxSelectDropdown` controls. Pure round-trip helpers in `src/features/payment-config/ui/d9-routing-helpers.ts` (14 unit tests). Zod schema, action input, type definitions, and service-layer DTO projection all extended. 19 new i18n leaf keys (EN+AR parity).
+- **Sub-item 6 — `paymentStatus` on `paymentLegSchema` + B7 closer + server-side CHECK refine.** Added optional `paymentStatus: z.enum(['COMPLETED','PENDING']).optional()` to `paymentLegSchema`. Planner (`buildSettlementPlan`) and settler (`settleOrder` non-wiringMode path) honor explicit `'PENDING'`; explicit `'COMPLETED'` (and omission) keep the legacy gateway/D9 fallback. Hoisted `validateCheckDueDate` + `todayYyyyMmDd` into `lib/utils/check-date.ts` (server-safe location) and added a Zod `.superRefine` so CHECK due-date enforcement runs on the server too. `ResolvedSettlementLeg` gains an optional `paymentStatus?`; the orchestrator forwards `leg.paymentStatus` onto every resolved leg.
+- **Sub-item 7 — Voucher status triple-column collapse.** **DEFERRED.** Pre-flight Supabase MCP audit found 0 view / 0 function readers but multiple TypeScript voucher services still read the legacy `voucher.status` column (`voucher-service.ts:160`, `:189`, `:245`, etc.). The drop requires a coordinated TS refactor that exceeds the safe Phase 6 envelope. Audit evidence and 4-step follow-up plan documented in `IMPLEMENTATION_STATUS.md` → Sub-item 7 so the next program can resume without re-deriving.
+
+### Tests
+
+- **+11 tests** in `__tests__/services/order-settlement-planner.service.test.ts` (3 Sub-item 6 B7 tests) and `__tests__/validations/payment-leg-schema.test.ts` (NEW, 8 tests).
+- **+14 tests** in `__tests__/features/payment-config/d9-routing-helpers.test.ts` (NEW, Sub-item 5).
+- **+6 tests** in `__tests__/features/orders/payment-modal-v4.utils.test.ts` (Sub-item 4).
+- **+6 tests** in `__tests__/services/verify-payment.service.test.ts` (NEW, Sub-item 1) and **+2 tests** in `__tests__/services/order-history-consumer.service.test.ts` (Sub-item 1 — PAYMENT_VERIFIED routing).
+- Full sweep at Phase 6 close: **221/221 pass** (172 Phase 5 baseline + 6 verify + 2 history-PV + 16 modal v4 utils + 14 D9 + 11 B7+schema).
+
+### Verification
+
+- `npx tsc --noEmit` = 0 errors (full, unfiltered).
+- Full jest sweep = 221/221 pass.
+- `npm run check:i18n` = green.
+- Migration 0332 applied during Sub-item 1; no further migrations on disk (Sub-item 7 deferred).
+- `npx prisma generate` clean.
+
+### Files
+
+- **New:** `supabase/migrations/0332_phase6_verify_payment_permission_and_action.sql`, `web-admin/lib/utils/check-date.ts`, `web-admin/lib/services/erp-lite-auto-post.util.ts`, `web-admin/lib/services/order-settlement.service.ts` `verifyPaymentTx` export, `web-admin/app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts`, `web-admin/src/features/payment-config/ui/d9-routing-helpers.ts`, `web-admin/__tests__/services/verify-payment.service.test.ts`, `web-admin/__tests__/features/payment-config/d9-routing-helpers.test.ts`, `web-admin/__tests__/validations/payment-leg-schema.test.ts`, `docs/features/Order_Fin/bvm_wiring_phase6_implementation.md`, `docs/features/Order_Fin/bvm_wiring_program_summary.md`.
+- **Modified:** `web-admin/lib/constants/order-financial.ts`, `web-admin/lib/validations/new-order-payment-schemas.ts`, `web-admin/lib/services/order-settlement-planner.service.ts`, `web-admin/lib/services/order-settlement.service.ts`, `web-admin/lib/services/order-history-consumer.service.ts`, `web-admin/lib/services/invoice-service.ts`, `web-admin/lib/services/ar-invoice.service.ts`, `web-admin/lib/services/order-submit-orchestrator.service.ts`, `web-admin/lib/services/payment-config.service.ts`, `web-admin/lib/types/order-financial.ts`, `web-admin/lib/types/payment.ts`, `web-admin/app/actions/payments/invoice-actions.ts`, `web-admin/app/actions/payment-config/payment-methods-actions.ts`, `web-admin/src/features/orders/ui/payment-modal-v4.tsx`, `web-admin/src/features/orders/ui/payment-modal-v4.utils.ts`, `web-admin/src/features/orders/ui/order-financial/order-payments-credits-tables.tsx`, `web-admin/src/features/payment-config/model/payment-method-config-schema.ts`, `web-admin/src/features/payment-config/ui/payment-method-config-dialog.tsx`, `web-admin/__tests__/services/order-settlement-planner.service.test.ts`, `web-admin/__tests__/services/order-history-consumer.service.test.ts`, `web-admin/__tests__/features/orders/payment-modal-v4.utils.test.ts`, `web-admin/messages/en.json`, `web-admin/messages/ar.json`, `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`, `docs/features/Order_Fin/CHANGELOG.md`.
+- **Deleted:** `web-admin/__tests__/services/invoice-service.test.ts` (Sub-item 2; its assertions are now covered by `ar-invoice.service.test.ts`).
+
+### Follow-ups (next-program candidates)
+
+1. **Sub-item 7** — Voucher status triple-column collapse (DB coherency check → TS service refactor → DROP COLUMN migration). Full 4-step plan in `IMPLEMENTATION_STATUS.md` → Sub-item 7.
+2. **HYPERPAY redirect envelope wiring** — Sub-item 4 helpers are unit-tested; the `payment-modal-v4.tsx` redirect handler still needs to consume them.
+3. **D9 cross-field warning hints** — settings dialog should warn on contradictory D9 combinations (e.g. CASH method with `settlement_type_code='CREDIT_INVOICE'`).
+4. **Per-order `AR_INVOICE_LINKED` sub-events** — carried forward from Phase 5; would close the multi-order AR-invoice silent-skip path.
+
+---
+
 ## 2026-05-30 — BVM Wiring Phase 5: History / Audit (PRD §22 — outbox-driven order timeline)
 
 **Implementation log:** `docs/features/Order_Fin/bvm_wiring_phase5_implementation.md`

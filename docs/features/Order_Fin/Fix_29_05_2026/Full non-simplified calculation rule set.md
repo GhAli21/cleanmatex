@@ -20,7 +20,7 @@ AR Invoice
 
 # 1. Core principle
 
-The system must calculate in this order:
+The system should calculate in this order:
 
 ```text
 1. Build order value
@@ -182,7 +182,8 @@ org_order_credit_apps_dtl
 org_order_refunds_dtl
 org_fin_vouchers_mst
 org_fin_voucher_trx_lines_dtl
-org_invoice_mst if exists
+org_invoice_mst
+all org_invoice_* detailed tables of org_invoice_mst
 org_tax_documents_mst if exists
 ```
 

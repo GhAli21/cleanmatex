@@ -169,7 +169,15 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
       if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
         // Use subMoney to avoid float drift on 3-decimal currencies (OMR/BHD/KWD).
         const change = cashTendered && cashTendered > amount ? subMoney(cashTendered, amount).toNumber() : 0;
-        const paymentStatus = option.gatewayCode ? 'PENDING' : 'COMPLETED';
+        // BVM Phase 6 Sub-item 6 (B7 closer): honor explicit per-leg status
+        // first; fall back to the gateway-driven PENDING rule for callers
+        // that omit the field (Zod defaults to `'COMPLETED'`).
+        const paymentStatus =
+          leg.paymentStatus === 'PENDING'
+            ? 'PENDING'
+            : option.gatewayCode
+              ? 'PENDING'
+              : 'COMPLETED';
         changeReturned += change;
 
         // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write

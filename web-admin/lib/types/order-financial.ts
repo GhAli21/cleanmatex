@@ -165,6 +165,14 @@ export type ResolvedSettlementLeg = {
   terminalId?:       string;
   cashTendered?:     number;
   creditReferenceId?: string;
+  /**
+   * BVM Phase 6 Sub-item 6 (B7 closer): explicit per-leg payment status
+   * propagated from the request's `paymentLegSchema.paymentStatus`. When
+   * omitted, `settleOrder` and `buildSettlementPlan` fall back to the
+   * existing gateway/D9-driven logic (gateway → PENDING, otherwise the
+   * D9 `defaultCreationStatus`).
+   */
+  paymentStatus?:    'COMPLETED' | 'PENDING';
 };
 
 // ── Reconciliation issue ──────────────────────────────────────────────────────

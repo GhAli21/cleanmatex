@@ -1042,6 +1042,12 @@ export interface OrgPaymentMethodConfig {
   requires_approval: boolean;
   requires_cash_drawer: boolean;
   requires_terminal: boolean;
+  /** BVM Phase 1B D9 (mig 0325): NULL = inherit from sys_payment_method_cd */
+  settlement_type_code: string | null;
+  credit_application_type: string | null;
+  default_creation_status: string | null;
+  allow_status_override: boolean | null;
+  is_user_id_required: boolean | null;
   min_amount: number | null;
   max_amount: number | null;
   currency_code: string | null;
@@ -1261,6 +1267,12 @@ export interface CreatePaymentMethodConfigInput {
   requires_approval?: boolean;
   requires_cash_drawer?: boolean;
   requires_terminal?: boolean;
+  /** BVM Phase 1B D9 (mig 0325): NULL = inherit from sys_payment_method_cd */
+  settlement_type_code?: string | null;
+  credit_application_type?: string | null;
+  default_creation_status?: 'PENDING' | 'COMPLETED' | null;
+  allow_status_override?: boolean | null;
+  is_user_id_required?: boolean | null;
   min_amount?: number;
   max_amount?: number;
   currency_code?: string;
