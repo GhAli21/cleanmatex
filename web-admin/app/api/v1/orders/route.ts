@@ -223,11 +223,11 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at,
         total_items,
-        subtotal,
-        tax,
-        total,
+        subtotal:subtotal_amount,
+        tax:total_tax_amount,
+        total:total_amount,
         payment_status,
-        paid_amount,
+        paid_amount:total_paid_amount,
         priority,
         has_issue,
         is_rejected,
@@ -371,7 +371,7 @@ export async function GET(request: NextRequest) {
       received_at: 'received_at',
       ready_by: 'ready_by_at_new',
       created_at: 'created_at',
-      total: 'total',
+      total: 'total_amount',
     };
     const sortColumn = validSortColumns[sortBy] || 'received_at';
     query = query.order(sortColumn, { ascending: sortOrder });
@@ -467,4 +467,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -25,7 +25,19 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { roundMoneyAmount } from '@/lib/money/format-money';
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { recalculateOrderFinancialSnapshot } from '@/lib/services/order-financial-write.service';
 import { taxService } from '@/lib/services/tax.service';
+
+function withCanonicalOrderTotalAliases<T extends Record<string, unknown>>(order: T) {
+  return {
+    ...order,
+    subtotal: Number(order.subtotal_amount ?? 0),
+    discount: Number(order.total_discount_amount ?? 0),
+    tax: Number(order.total_tax_amount ?? 0),
+    total: Number(order.total_amount ?? 0),
+    paid_amount: Number(order.total_paid_amount ?? 0),
+  };
+}
 
 // ==================================================================
 // CREATE OPERATIONS
@@ -80,17 +92,20 @@ export async function createOrder(
       order_source_code: 'web_admin',
       physical_intake_status: 'received',
       total_items: 0,
-      subtotal: 0,
-      discount: 0,
-      tax: 0,
-      total: 0,
+      subtotal_amount: 0,
+      items_base_amount: 0,
+      total_discount_amount: 0,
+      total_tax_amount: 0,
+      total_amount: 0,
+      total_paid_amount: 0,
+      outstanding_amount: 0,
       payment_status: 'pending',
       created_by: input.createdBy ?? undefined,
       rec_status: 1,
     },
   });
 
-  return order as unknown as Order;
+  return withCanonicalOrderTotalAliases(order as unknown as Record<string, unknown>) as unknown as Order;
 }
 
 /**
@@ -346,17 +361,20 @@ export async function addOrderItems(
     },
     data: {
       total_items: { increment: input.items.reduce((sum, item) => sum + item.quantity, 0) },
-      subtotal: orderTotals.subtotalAfterDiscount,
-      tax: orderTotals.tax,
-      total: orderTotals.total,
+      subtotal_amount: orderTotals.subtotalAfterDiscount,
+      items_base_amount: orderTotals.subtotalAfterDiscount,
+      total_tax_amount: orderTotals.tax,
+      total_amount: orderTotals.total,
       updated_at: new Date(),
       ...(currentUserId && { updated_by: currentUserId }),
     },
   });
 
+  await recalculateOrderFinancialSnapshot(tenantOrgId, orderId);
+
   return {
     items: createdItems as unknown as OrderItem[],
-    order: updatedOrder as unknown as Order,
+    order: withCanonicalOrderTotalAliases(updatedOrder as unknown as Record<string, unknown>) as unknown as Order,
   };
 }
 
@@ -715,7 +733,7 @@ export async function listOrders(
       is_retail: (order as { is_retail?: boolean }).is_retail ?? false,
       total_items: order.total_items ?? 0,
       total_pieces: pieceCountMap.get(order.id) ?? null,
-      total: Number(order.total),
+      total: Number(order.total_amount ?? 0),
       received_at: order.received_at ?? null,
       ready_by: order.ready_by,
       branch_name: order.org_branches_mst?.branch_name ?? undefined,
@@ -838,11 +856,10 @@ export async function deleteOrderItem(
 /**
  * Recalculate order totals after item add/delete.
  *
- * Order master financial fields (org_orders_mst): subtotal, total, discount, tax, vat_rate,
- * vat_amount, discount_rate, discount_type, promo_code_id, promo_discount_amount, gift_card_id,
- * gift_card_applied_amount, service_charge, tax_rate (additional tax). This recalc only updates
- * item-derived fields (subtotal, total, tax, vat_amount, vat_rate); discount, promotion, gift,
- * additional tax and service_charge are left unchanged (set at order create/edit).
+ * Order master financial fields (org_orders_mst) now persist through the
+ * canonical snapshot columns. This helper only updates item-derived numeric
+ * inputs before the shared financial snapshot recalculator recomputes the
+ * authoritative header values.
  *
  * Item total_price in DB is line total (subtotal + tax per item), so sum(total_price) = order
  * total from items. We derive subtotal and tax from that using order vat_rate (no double tax).
@@ -877,15 +894,16 @@ async function recalculateOrderTotals(
     await prisma.org_orders_mst.update({
       where: { id: orderId, tenant_org_id: tenantOrgId },
       data: {
-        subtotal: 0,
-        tax: 0,
-        total: 0,
-        vat_amount: 0,
+        subtotal_amount: 0,
+        items_base_amount: 0,
+        total_tax_amount: 0,
+        total_amount: 0,
         total_items: 0,
         updated_at: new Date(),
         ...(userId && { updated_by: userId }),
       },
     });
+    await recalculateOrderFinancialSnapshot(tenantOrgId, orderId);
     return;
   }
 
@@ -901,20 +919,23 @@ async function recalculateOrderTotals(
   const subtotal = roundMoney(total / (1 + vatRate));
   const tax = roundMoney(total - subtotal);
 
-  // Only update item-derived totals; do not overwrite discount, promo, gift, service_charge, tax_rate
+  // Only update item-derived canonical totals here; the shared financial
+  // snapshot recalculator will recompute the rest of the header consistently.
   await prisma.org_orders_mst.update({
     where: { id: orderId, tenant_org_id: tenantOrgId },
     data: {
-      subtotal,
-      tax,
-      total,
-      vat_amount: tax,
+      subtotal_amount: subtotal,
+      items_base_amount: subtotal,
+      total_tax_amount: tax,
+      total_amount: total,
       vat_rate: vatRate,
       total_items: totalItems,
       updated_at: new Date(),
       ...(userId && { updated_by: userId }),
     },
   });
+
+  await recalculateOrderFinancialSnapshot(tenantOrgId, orderId);
 }
 
 // ==================================================================

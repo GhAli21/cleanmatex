@@ -1,35 +1,12 @@
 /**
- * Unit Tests for OrderService (PRD-010)
- * Tests for order creation, splitting, issue management, and estimates
+ * Unit tests for the current static OrderService surface.
+ * Focused on the lightweight Supabase-backed methods that remain active in this file.
  */
 
 import { OrderService } from '@/lib/services/order-service';
 
-// Mock Supabase
 const mockSupabaseClient = {
-  from: jest.fn((table: string) => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-        maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      })),
-    })),
-    insert: jest.fn(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-      })),
-    })),
-    update: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-        })),
-      })),
-    })),
-    delete: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-  })),
+  from: jest.fn(),
   rpc: jest.fn(),
 };
 
@@ -37,244 +14,335 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
 
-describe('OrderService', () => {
-  let orderService: OrderService;
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    from: jest.fn(() => ({
+      select: jest.fn(),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    })),
+    rpc: jest.fn(),
+  })),
+}));
 
+describe('OrderService', () => {
   beforeEach(() => {
-    orderService = new OrderService();
     jest.clearAllMocks();
   });
 
-  describe('generateOrderNumber', () => {
-    test('should generate unique order number', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      const mockSelect = jest.fn(() => ({
-        limit: jest.fn(() =>
-          Promise.resolve({ data: [], error: null })
-        ),
-      }));
-      mockFrom.mockReturnValue({ select: mockSelect });
-
-      const orderNo = await orderService.generateOrderNumber('test-tenant-id');
-
-      expect(orderNo).toMatch(/^ORD-\d{4,}-\d{6}$/);
-    });
-
-    test('should handle duplicate order numbers', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      let attemptCount = 0;
-      const mockSelect = jest.fn(() => ({
-        limit: jest.fn(() => {
-          attemptCount++;
-          if (attemptCount === 1) {
-            return Promise.resolve({ data: [{ order_no: 'ORD-001-123456' }], error: null });
-          }
-          return Promise.resolve({ data: [], error: null });
-        }),
-      }));
-      mockFrom.mockReturnValue({ select: mockSelect });
-
-      const orderNo = await orderService.generateOrderNumber('test-tenant-id');
-
-      expect(orderNo).toBeDefined();
-      expect(attemptCount).toBeGreaterThan(1);
-    });
-  });
-
   describe('estimateReadyBy', () => {
-    test('should calculate ready by based on items', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            in: jest.fn(() =>
-              Promise.resolve({
-                data: [
-                  { id: 'p1', default_service_time_hours: 24 },
-                  { id: 'p2', default_service_time_hours: 48 },
-                ],
-                error: null,
-              })
-            ),
-          })),
-        })),
-      });
+    test('returns a ready-by timestamp using service-category turnaround', async () => {
+      const categorySingle = jest
+        .fn()
+        .mockResolvedValueOnce({
+          data: { turnaround_hh: 24, turnaround_hh_express: 12 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { turnaround_hh: 48, turnaround_hh_express: 24 },
+          error: null,
+        });
 
-      const readyBy = await orderService.estimateReadyBy(
-        'test-tenant-id',
-        [
-          { productId: 'p1', quantity: 2 },
-          { productId: 'p2', quantity: 1 },
-        ],
-        false
-      );
-
-      expect(readyBy).toBeInstanceOf(Date);
-    });
-
-    test('should handle express service with 50% time reduction', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            in: jest.fn(() =>
-              Promise.resolve({
-                data: [
-                  { id: 'p1', default_service_time_hours: 24 },
-                ],
-                error: null,
-              })
-            ),
-          })),
-        })),
-      });
-
-      const normalReadyBy = await orderService.estimateReadyBy(
-        'test-tenant-id',
-        [{ productId: 'p1', quantity: 1 }],
-        false
-      );
-
-      const expressReadyBy = await orderService.estimateReadyBy(
-        'test-tenant-id',
-        [{ productId: 'p1', quantity: 1 }],
-        true
-      );
-
-      const timeDiff = normalReadyBy.getTime() - expressReadyBy.getTime();
-      expect(timeDiff).toBeGreaterThan(0);
-    });
-  });
-
-  describe('splitOrder', () => {
-    test('should create child orders and link items', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      let insertCalls = 0;
-
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'org_orders_mst') {
-          insertCalls++;
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'sys_service_category_cd') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() =>
-                  Promise.resolve({
-                    data: { id: `child-${insertCalls}`, order_no: `ORD-00${insertCalls}` },
-                    error: null,
-                  })
-                ),
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: categorySingle,
               })),
             })),
           };
         }
-        return { select: jest.fn(), update: jest.fn() };
+
+        if (table === 'sys_service_preference_cd') {
+          return {
+            select: jest.fn(() => ({
+              in: jest.fn().mockResolvedValue({
+                data: [{ code: 'PERFUME', extra_turnaround_minutes: 30 }],
+                error: null,
+              }),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
-      const result = await orderService.splitOrder(
-        'test-tenant-id',
+      const result = await OrderService.estimateReadyBy({
+        items: [
+          { serviceCategoryCode: 'WASH', quantity: 2, servicePrefs: [{ preference_code: 'PERFUME' }] },
+          { serviceCategoryCode: 'DRY', quantity: 1 },
+        ],
+        express: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.readyByAt).toBeDefined();
+      expect(Number.isNaN(Date.parse(result.readyByAt!))).toBe(false);
+    });
+
+    test('uses faster express turnaround when express is enabled', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'sys_service_category_cd') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn().mockResolvedValue({
+                  data: { turnaround_hh: 24, turnaround_hh_express: 12 },
+                  error: null,
+                }),
+              })),
+            })),
+          };
+        }
+
+        if (table === 'sys_service_preference_cd') {
+          return {
+            select: jest.fn(() => ({
+              in: jest.fn().mockResolvedValue({ data: [], error: null }),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      });
+
+      const normal = await OrderService.estimateReadyBy({
+        items: [{ serviceCategoryCode: 'WASH', quantity: 1 }],
+        express: false,
+      });
+      const express = await OrderService.estimateReadyBy({
+        items: [{ serviceCategoryCode: 'WASH', quantity: 1 }],
+        express: true,
+      });
+
+      expect(normal.success).toBe(true);
+      expect(express.success).toBe(true);
+      expect(Date.parse(express.readyByAt!)).toBeLessThan(Date.parse(normal.readyByAt!));
+    });
+  });
+
+  describe('splitOrder', () => {
+    test('creates a split suborder and logs the action', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'org_orders_mst') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({
+                    data: {
+                      id: 'parent-order-id',
+                      branch_id: 'branch-1',
+                      customer_id: 'customer-1',
+                      order_type_id: 'STANDARD',
+                      order_no: 'ORD-1001',
+                      current_status: 'processing',
+                      current_stage: 'intake',
+                      priority: 'normal',
+                      priority_multiplier: 1,
+                      workflow_template_id: 'wf-1',
+                      total_items: 5,
+                    },
+                    error: null,
+                  }),
+                })),
+              })),
+            })),
+            insert: jest.fn(() => ({
+              select: jest.fn(() => ({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'child-1', order_no: 'ORD-2001' },
+                  error: null,
+                }),
+              })),
+            })),
+            update: jest.fn(() => ({
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          };
+        }
+
+        if (table === 'org_order_items_dtl') {
+          return {
+            select: jest.fn(() => ({
+              in: jest.fn(() => ({
+                eq: jest.fn(() => ({
+                  eq: jest.fn().mockResolvedValue({
+                    data: [
+                      { id: 'item-1', total_price: 20 },
+                      { id: 'item-2', total_price: 30 },
+                    ],
+                    error: null,
+                  }),
+                })),
+              })),
+            })),
+            update: jest.fn(() => ({
+              in: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      });
+
+      mockSupabaseClient.rpc.mockResolvedValue({
+        data: 'ORD-2001',
+        error: null,
+      });
+
+      const result = await OrderService.splitOrder(
         'parent-order-id',
-        'test-user-id',
-        [
-          { itemId: 'item-1', quantity: 5 },
-          { itemId: 'item-2', quantity: 3 },
-        ]
+        'tenant-1',
+        ['item-1', 'item-2'],
+        'Separate delicate items',
+        'user-1',
+        'Tester'
       );
 
-      expect(result.childOrderIds).toHaveLength(2);
-      expect(insertCalls).toBe(2);
+      expect(result.success).toBe(true);
+      expect(result.suborder).toEqual({ id: 'child-1', orderNo: 'ORD-2001' });
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('generate_order_number', {
+        p_tenant_org_id: 'tenant-1',
+      });
     });
   });
 
   describe('createIssue', () => {
-    test('should create issue and link to order item', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        insert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() =>
-              Promise.resolve({
-                data: { id: 'issue-1', issue_code: 'stain' },
-                error: null,
-              })
-            ),
-          })),
-        })),
+    test('creates an issue and marks the order as having an issue', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'org_order_item_issues') {
+          return {
+            insert: jest.fn(() => ({
+              select: jest.fn(() => ({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'issue-1', issue_code: 'stain' },
+                  error: null,
+                }),
+              })),
+            })),
+          };
+        }
+
+        if (table === 'org_order_items_dtl' || table === 'org_orders_mst') {
+          return {
+            update: jest.fn(() => ({
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
-      const issue = await orderService.createIssue(
-        'test-tenant-id',
-        'test-order-id',
+      mockSupabaseClient.rpc.mockResolvedValue({ data: null, error: null });
+
+      const result = await OrderService.createIssue(
+        'order-1',
         'item-1',
+        'tenant-1',
         'stain',
         'Large stain on collar',
+        'user-1',
+        undefined,
         'high'
       );
 
-      expect(issue?.issue_code).toBe('stain');
+      expect(result.success).toBe(true);
+      expect(result.issue).toEqual({ id: 'issue-1', issue_code: 'stain' });
     });
   });
 
   describe('resolveIssue', () => {
-    test('should update issue with resolution details', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() =>
-                Promise.resolve({
-                  data: { id: 'issue-1', solved_at: new Date().toISOString() },
-                  error: null,
-                })
-              ),
+    test('resolves an issue and clears the order issue flag when all are solved', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'org_order_item_issues') {
+          return {
+            update: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                eq: jest.fn(() => ({
+                  select: jest.fn(() => ({
+                    single: jest.fn().mockResolvedValue({
+                      data: {
+                        id: 'issue-1',
+                        issue_code: 'stain',
+                        order_id: 'order-1',
+                        solved_at: new Date().toISOString(),
+                      },
+                      error: null,
+                    }),
+                  })),
+                })),
+              })),
             })),
-          })),
-        })),
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                eq: jest.fn().mockResolvedValue({
+                  data: [{ solved_at: new Date().toISOString() }],
+                  error: null,
+                }),
+              })),
+            })),
+          };
+        }
+
+        if (table === 'org_orders_mst') {
+          return {
+            update: jest.fn(() => ({
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
-      const issue = await orderService.resolveIssue(
-        'test-tenant-id',
+      mockSupabaseClient.rpc.mockResolvedValue({ data: null, error: null });
+
+      const result = await OrderService.resolveIssue(
         'issue-1',
-        'test-user-id',
-        'Stain removed successfully'
+        'tenant-1',
+        'Stain removed successfully',
+        'user-1'
       );
 
-      expect(issue?.solved_at).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(result.issue.id).toBe('issue-1');
+      expect(result.issue.solved_at).toBeDefined();
     });
   });
 
   describe('getOrderHistory', () => {
-    test('should fetch complete order history', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            order: jest.fn(() =>
-              Promise.resolve({
-                data: [
-                  {
-                    action_type: 'ORDER_CREATED',
-                    done_at: new Date().toISOString(),
-                  },
-                  {
-                    action_type: 'STATUS_CHANGE',
-                    from_value: 'intake',
-                    to_value: 'processing',
-                    done_at: new Date().toISOString(),
-                  },
-                ],
-                error: null,
-              })
-            ),
-          })),
-        })),
+    test('returns the order history rows in response order', async () => {
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'org_order_history') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                eq: jest.fn(() => ({
+                  order: jest.fn().mockResolvedValue({
+                    data: [
+                      { action_type: 'STATUS_CHANGE', done_at: new Date().toISOString() },
+                      { action_type: 'ORDER_CREATED', done_at: new Date().toISOString() },
+                    ],
+                    error: null,
+                  }),
+                })),
+              })),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
-      const history = await orderService.getOrderHistory('test-tenant-id', 'order-id');
+      const history = await OrderService.getOrderHistory('order-1', 'tenant-1');
 
       expect(history).toHaveLength(2);
-      expect(history[0].action_type).toBe('ORDER_CREATED');
+      expect(history[0].action_type).toBe('STATUS_CHANGE');
+      expect(history[1].action_type).toBe('ORDER_CREATED');
     });
   });
 });
-

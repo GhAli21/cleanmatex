@@ -9,6 +9,7 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import type { OrderItem } from '@/types/order';
 
 function toNumber(value: unknown): number | null {
@@ -106,6 +107,10 @@ export async function GET(
     const customerType =
       (order.customer as { type?: string } | undefined)?.type ?? (customer as { type?: string } | undefined)?.type ?? null;
 
+    const financialSnapshot = readCanonicalOrderFinancialSnapshot(
+      order as unknown as Record<string, unknown>,
+    );
+
     const serializedOrder = {
       ...order,
       customer_name: customerName,
@@ -118,11 +123,11 @@ export async function GET(
       notes: order.internal_notes ?? order.customer_notes ?? '',
       is_express: order.priority === 'express',
       ready_by_at: order.ready_by ?? order.ready_by_at_new ?? null,
-      subtotal: toNumber(order.subtotal) ?? 0,
-      discount: toNumber(order.discount) ?? 0,
-      tax: toNumber(order.tax) ?? 0,
-      total: toNumber(order.total) ?? 0,
-      paid_amount: toNumber(order.paid_amount) ?? null,
+      subtotal: financialSnapshot.subtotalAmount,
+      discount: financialSnapshot.totalDiscountAmount,
+      tax: financialSnapshot.totalTaxAmount,
+      total: financialSnapshot.totalAmount,
+      paid_amount: financialSnapshot.totalPaidAmount,
       bag_count: toNumber(order.bag_count) ?? null,
       priority_multiplier: toNumber(order.priority_multiplier) ?? null,
       items: (order.items ?? []).map((item: OrderItem) => {

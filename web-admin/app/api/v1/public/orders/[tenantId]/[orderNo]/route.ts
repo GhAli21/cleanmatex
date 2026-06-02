@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 import { OrderService } from '@/lib/services/order-service';
@@ -79,10 +80,10 @@ export async function GET(
           received_at,
           ready_by,
           ready_by_at_new,
-          subtotal,
-          total,
+          subtotal_amount,
+          total_amount,
           payment_status,
-          paid_amount,
+          total_paid_amount,
           priority,
           customer_notes,
           branch_id,
@@ -162,6 +163,8 @@ export async function GET(
         });
 
         // Shape data for public consumer – hide internal-only fields
+        const financialSnapshot = readCanonicalOrderFinancialSnapshot(order as Record<string, unknown>);
+
         const responsePayload = {
             order: {
                 id: order.id,
@@ -171,9 +174,9 @@ export async function GET(
                 receivedAt: order.received_at,
                 readyBy: order.ready_by_at_new || order.ready_by || null,
                 totals: {
-                    subtotal: order.subtotal ? Number(order.subtotal) : null,
-                    total: order.total ? Number(order.total) : null,
-                    paidAmount: order.paid_amount ? Number(order.paid_amount) : null,
+                    subtotal: financialSnapshot.subtotalAmount,
+                    total: financialSnapshot.totalAmount,
+                    paidAmount: financialSnapshot.totalPaidAmount,
                     paymentStatus: order.payment_status,
                 },
                 bagCount: order.bag_count ? Number(order.bag_count) : null,

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
         ready_by_at_new,
         total_items,
         bag_count,
-        total,
+        total_amount,
         payment_status,
         order_source_code,
         physical_intake_status,
@@ -140,33 +141,37 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           currencyCode: moneyConfig.currencyCode,
-          orders: (orders ?? []).map((order: any) => ({
-            id: order.id,
-            orderNo: order.order_no,
-            status: order.current_status || order.status,
-            receivedAt: order.received_at,
-            readyBy: order.ready_by_at_new || order.ready_by || null,
-            totalItems: order.total_items ? Number(order.total_items) : null,
-            bagCount: order.bag_count ? Number(order.bag_count) : null,
-            total: order.total ? Number(order.total) : null,
-            paymentStatus: order.payment_status ?? null,
-            currencyCode: moneyConfig.currencyCode,
-            orderSourceCode: order.order_source_code ?? null,
-            physicalIntakeStatus: order.physical_intake_status ?? null,
-            physicalIntakeAt: order.physical_intake_at ?? null,
-            physicalIntakeInfo: order.physical_intake_info ?? null,
-            receivedInfo: order.received_info ?? null,
-            createdAt: order.created_at ?? null,
-            orderSource: order.sys_order_sources_cd
-              ? {
-                  code: order.sys_order_sources_cd.order_source_code,
-                  name: order.sys_order_sources_cd.name,
-                  name2: order.sys_order_sources_cd.name2,
-                  requiresRemoteIntakeConfirm:
-                    order.sys_order_sources_cd.requires_remote_intake_confirm,
-                }
-              : null,
-          })),
+          orders: (orders ?? []).map((order: any) => {
+            const financialSnapshot = readCanonicalOrderFinancialSnapshot(order);
+
+            return {
+              id: order.id,
+              orderNo: order.order_no,
+              status: order.current_status || order.status,
+              receivedAt: order.received_at,
+              readyBy: order.ready_by_at_new || order.ready_by || null,
+              totalItems: order.total_items ? Number(order.total_items) : null,
+              bagCount: order.bag_count ? Number(order.bag_count) : null,
+              total: financialSnapshot.totalAmount,
+              paymentStatus: order.payment_status ?? null,
+              currencyCode: moneyConfig.currencyCode,
+              orderSourceCode: order.order_source_code ?? null,
+              physicalIntakeStatus: order.physical_intake_status ?? null,
+              physicalIntakeAt: order.physical_intake_at ?? null,
+              physicalIntakeInfo: order.physical_intake_info ?? null,
+              receivedInfo: order.received_info ?? null,
+              createdAt: order.created_at ?? null,
+              orderSource: order.sys_order_sources_cd
+                ? {
+                    code: order.sys_order_sources_cd.order_source_code,
+                    name: order.sys_order_sources_cd.name,
+                    name2: order.sys_order_sources_cd.name2,
+                    requiresRemoteIntakeConfirm:
+                      order.sys_order_sources_cd.requires_remote_intake_confirm,
+                  }
+                : null,
+            };
+          }),
         },
       },
       { status: 200 },

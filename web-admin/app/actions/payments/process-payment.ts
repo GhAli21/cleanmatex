@@ -51,7 +51,7 @@ interface ProcessPaymentActionInput {
   vatAmount?: number;
   taxRate?: number;
   taxAmount?: number;
-  finalTotal?: number;
+  saleTotal?: number;
   currencyCode?: string;
   currencyExRate?: number;
   branchId?: string;
@@ -86,67 +86,68 @@ export async function processPayment(
       errorCode: 'VALIDATION_ERROR',
     };
   }
+  const normalizedInput = parsed.data;
 
   try {
     const validation = await validatePaymentData({
-      order_id: input.orderId,
-      invoice_id: input.invoiceId,
-      customer_id: input.customerId,
-      payment_kind: input.paymentKind,
-      payment_method_code: input.paymentMethod,
-      amount: input.amount,
-      check_number: input.checkNumber,
+      order_id: normalizedInput.orderId,
+      invoice_id: normalizedInput.invoiceId,
+      customer_id: normalizedInput.customerId,
+      payment_kind: normalizedInput.paymentKind,
+      payment_method_code: normalizedInput.paymentMethod as PaymentMethodCode,
+      amount: normalizedInput.amount,
+      check_number: normalizedInput.checkNumber,
       processed_by: userId,
-      notes: input.notes,
+      notes: normalizedInput.notes,
     });
 
     if (!validation.isValid) {
       return {
         success: false,
-        invoice_id: input.invoiceId || '',
+        invoice_id: normalizedInput.invoiceId || '',
         payment_status: 'failed',
         amount_paid: 0,
-        remaining_balance: input.amount,
+        remaining_balance: normalizedInput.amount,
         error: validation.errors.map((e) => e.message).join(', '),
         errorCode: validation.errors[0]?.code,
       };
     }
 
     const result = await processPaymentService({
-      order_id: input.orderId,
-      invoice_id: input.invoiceId,
-      customer_id: input.customerId,
-      payment_kind: input.paymentKind,
-      payment_method_code: input.paymentMethod,
-      amount: input.amount,
-      distribute_across_invoices: input.distributeAcrossInvoices,
-      check_number: input.checkNumber,
-      check_bank: input.checkBank,
-      check_date: input.checkDate,
-      manual_discount: input.manualDiscount,
-      promo_code: input.promoCode,
-      promo_code_id: input.promoCodeId,
-      gift_card_number: input.giftCardNumber,
-      gift_card_amount: input.giftCardAmount,
-      gift_card_id: input.giftCardId,
+      order_id: normalizedInput.orderId,
+      invoice_id: normalizedInput.invoiceId,
+      customer_id: normalizedInput.customerId,
+      payment_kind: normalizedInput.paymentKind,
+      payment_method_code: normalizedInput.paymentMethod as PaymentMethodCode,
+      amount: normalizedInput.amount,
+      distribute_across_invoices: normalizedInput.distributeAcrossInvoices,
+      check_number: normalizedInput.checkNumber,
+      check_bank: normalizedInput.checkBank,
+      check_date: normalizedInput.checkDate,
+      manual_discount: normalizedInput.manualDiscount,
+      promo_code: normalizedInput.promoCode,
+      promo_code_id: normalizedInput.promoCodeId,
+      gift_card_number: normalizedInput.giftCardNumber,
+      gift_card_amount: normalizedInput.giftCardAmount,
+      gift_card_id: normalizedInput.giftCardId,
       processed_by: userId,
-      notes: input.notes,
-      trans_desc: input.trans_desc ?? input.notes ,
-      subtotal: input.subtotal,
-      discount_rate: input.discountRate,
-      discount_amount: input.discountAmount,
-      manual_discount_amount: input.manualDiscountAmount,
-      promo_discount_amount: input.promoDiscountAmount,
-      gift_card_applied_amount: input.giftCardAppliedAmount,
-      vat_rate: input.vatRate,
-      vat_amount: input.vatAmount,
-      tax_rate: input.taxRate,
-      tax_amount: input.taxAmount,
-      final_total: input.finalTotal,
-      currency_code: input.currencyCode,
-      currency_ex_rate: input.currencyExRate,
-      branch_id: input.branchId,
-      payment_type_code: input.paymentTypeCode,
+      notes: normalizedInput.notes,
+      trans_desc: input.trans_desc ?? normalizedInput.notes,
+      subtotal: normalizedInput.subtotal,
+      discount_rate: normalizedInput.discountRate,
+      discount_amount: normalizedInput.discountAmount,
+      manual_discount_amount: normalizedInput.manualDiscountAmount,
+      promo_discount_amount: normalizedInput.promoDiscountAmount,
+      gift_card_applied_amount: normalizedInput.giftCardAppliedAmount,
+      vat_rate: normalizedInput.vatRate,
+      vat_amount: normalizedInput.vatAmount,
+      tax_rate: normalizedInput.taxRate,
+      tax_amount: normalizedInput.taxAmount,
+      sale_total: normalizedInput.saleTotal,
+      currency_code: normalizedInput.currencyCode,
+      currency_ex_rate: normalizedInput.currencyExRate,
+      branch_id: normalizedInput.branchId,
+      payment_type_code: normalizedInput.paymentTypeCode,
     });
 
     if (!result.success) {
@@ -154,7 +155,7 @@ export async function processPayment(
     }
 
     // Apply promo code if provided
-    if (input.promoCode && result.invoice_id) {
+    if (normalizedInput.promoCode && result.invoice_id) {
       // Promo code application is handled in the payment processing
       // This is just for additional validation if needed
     }
@@ -167,10 +168,10 @@ export async function processPayment(
 
     // Revalidate order and invoice pages
     revalidatePath('/dashboard/orders');
-    if (input.orderId) {
-      revalidatePath(`/dashboard/orders/${input.orderId}`);
+    if (normalizedInput.orderId) {
+      revalidatePath(`/dashboard/orders/${normalizedInput.orderId}`);
     }
-    const invoiceIdToRevalidate = input.invoiceId || result.invoice_id;
+    const invoiceIdToRevalidate = normalizedInput.invoiceId || result.invoice_id;
     if (invoiceIdToRevalidate) {
       revalidatePath('/dashboard/internal_fin/invoices');
       revalidatePath(`/dashboard/internal_fin/invoices/${invoiceIdToRevalidate}`);
@@ -180,14 +181,14 @@ export async function processPayment(
   } catch (error) {
     logger.error('Error processing payment', error instanceof Error ? error : new Error(String(error)), {});
     return {
-      success: false,
-      invoice_id: input.invoiceId || '',
-      payment_status: 'failed',
-      amount_paid: 0,
-      remaining_balance: input.amount,
-      error: error instanceof Error ? error.message : 'Failed to process payment',
-      errorCode: 'PROCESSING_ERROR',
-    };
+        success: false,
+        invoice_id: normalizedInput.invoiceId || '',
+        payment_status: 'failed',
+        amount_paid: 0,
+        remaining_balance: normalizedInput.amount,
+        error: error instanceof Error ? error.message : 'Failed to process payment',
+        errorCode: 'PROCESSING_ERROR',
+      };
   }
 }
 

@@ -89,7 +89,7 @@ export async function getOrdersReport(params: {
       select: {
         id: true,
         status: true,
-        total: true,
+        total_amount: true,
         order_type_id: true,
         customer_id: true,
         created_at: true,
@@ -98,7 +98,7 @@ export async function getOrdersReport(params: {
 
     // 2. In-memory aggregation for KPIs
     const totalOrders = allOrders.length;
-    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total ?? 0), 0);
+    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total_amount ?? 0), 0);
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const uniqueCustomers = new Set(allOrders.map((o) => o.customer_id));
     const activeCustomers = uniqueCustomers.size;
@@ -116,7 +116,7 @@ export async function getOrdersReport(params: {
         const key = format(order.created_at, 'yyyy-MM-dd');
         const existing = dayMap.get(key);
         if (existing) {
-          existing.revenue += Number(order.total ?? 0);
+          existing.revenue += Number(order.total_amount ?? 0);
           existing.orders += 1;
         }
       }
@@ -133,7 +133,7 @@ export async function getOrdersReport(params: {
       const s = order.status ?? 'unknown';
       const existing = statusMap.get(s) ?? { count: 0, revenue: 0 };
       existing.count += 1;
-      existing.revenue += Number(order.total ?? 0);
+      existing.revenue += Number(order.total_amount ?? 0);
       statusMap.set(s, existing);
     }
     const ordersByStatus: StatusBreakdown[] = Array.from(statusMap.entries()).map(([status, data]) => ({
@@ -148,7 +148,7 @@ export async function getOrdersReport(params: {
       const t = order.order_type_id ?? 'unknown';
       const existing = typeMap.get(t) ?? { count: 0, revenue: 0 };
       existing.count += 1;
-      existing.revenue += Number(order.total ?? 0);
+      existing.revenue += Number(order.total_amount ?? 0);
       typeMap.set(t, existing);
     }
     const ordersByType: TypeBreakdown[] = Array.from(typeMap.entries()).map(([orderTypeId, data]) => ({
@@ -164,7 +164,10 @@ export async function getOrdersReport(params: {
     const sortOrder = filters.sortOrder ?? 'desc';
 
     const allowedSortFields = ['created_at', 'total', 'order_no', 'status'];
-    const orderByField = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
+    const orderByField =
+      sortBy === 'total'
+        ? 'total_amount'
+        : (allowedSortFields.includes(sortBy) ? sortBy : 'created_at');
 
     const [paginatedOrders, totalCount] = await Promise.all([
       prisma.org_orders_mst.findMany({
@@ -188,7 +191,7 @@ export async function getOrdersReport(params: {
       customerName2: o.org_customers_mst?.name2 ?? undefined,
       status: o.status ?? '',
       totalItems: o.total_items ?? 0,
-      total: Number(o.total ?? 0),
+      total: Number(o.total_amount ?? 0),
       paymentStatus: o.payment_status ?? 'pending',
       createdAt: o.created_at?.toISOString() ?? '',
       orderTypeId: o.order_type_id ?? undefined,
@@ -591,21 +594,21 @@ export async function getRevenueBreakdown(params: {
     const allOrders = await prisma.org_orders_mst.findMany({
       where,
       select: {
-        total: true,
+        total_amount: true,
         service_category_code: true,
         branch_id: true,
         order_type_id: true,
       },
     });
 
-    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total ?? 0), 0);
+    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total_amount ?? 0), 0);
 
     // By service category
     const catMap = new Map<string, { revenue: number; orderCount: number }>();
     for (const o of allOrders) {
       const code = o.service_category_code ?? 'uncategorized';
       const existing = catMap.get(code) ?? { revenue: 0, orderCount: 0 };
-      existing.revenue += Number(o.total ?? 0);
+      existing.revenue += Number(o.total_amount ?? 0);
       existing.orderCount += 1;
       catMap.set(code, existing);
     }
@@ -622,7 +625,7 @@ export async function getRevenueBreakdown(params: {
     for (const o of allOrders) {
       const code = o.branch_id ?? 'no-branch';
       const existing = branchMap.get(code) ?? { revenue: 0, orderCount: 0 };
-      existing.revenue += Number(o.total ?? 0);
+      existing.revenue += Number(o.total_amount ?? 0);
       existing.orderCount += 1;
       branchMap.set(code, existing);
     }
@@ -639,7 +642,7 @@ export async function getRevenueBreakdown(params: {
     for (const o of allOrders) {
       const code = o.order_type_id ?? 'unknown';
       const existing = typeMap.get(code) ?? { revenue: 0, orderCount: 0 };
-      existing.revenue += Number(o.total ?? 0);
+      existing.revenue += Number(o.total_amount ?? 0);
       existing.orderCount += 1;
       typeMap.set(code, existing);
     }
@@ -686,7 +689,7 @@ export async function getCustomerReport(params: {
       },
       select: {
         customer_id: true,
-        total: true,
+        total_amount: true,
         created_at: true,
       },
     });
@@ -728,7 +731,7 @@ export async function getCustomerReport(params: {
         firstOrderDate: firstOrderMap.get(o.customer_id) ?? null,
       };
       existing.totalOrders += 1;
-      existing.totalRevenue += Number(o.total ?? 0);
+      existing.totalRevenue += Number(o.total_amount ?? 0);
       if (!existing.lastOrderDate || (o.created_at && o.created_at > existing.lastOrderDate)) {
         existing.lastOrderDate = o.created_at;
       }

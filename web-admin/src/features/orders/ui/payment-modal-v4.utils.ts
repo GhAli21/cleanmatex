@@ -88,34 +88,34 @@ export function syncDiscountPercentFromAmount(subtotal: number, amount: number):
 
 export function deriveOutstandingPolicy(
   amountToCharge: number,
-  finalTotal: number,
+  saleTotal: number,
   preferred: OutstandingPolicy = 'PAY_ON_COLLECTION'
 ): OutstandingPolicy {
-  if (amountToCharge >= finalTotal - 0.001) return 'NONE';
+  if (amountToCharge >= saleTotal - 0.001) return 'NONE';
   return preferred;
 }
 
 export function getLegOrderCap(
   paymentLegs: Array<{ amount?: number }>,
   idx: number,
-  finalTotal: number
+  saleTotal: number
 ): number {
   const otherLegsTotal = paymentLegs.reduce(
     (sum, leg, legIdx) => sum + (legIdx === idx ? 0 : (leg.amount || 0)),
     0
   );
 
-  return Math.max(0, finalTotal - otherLegsTotal);
+  return Math.max(0, saleTotal - otherLegsTotal);
 }
 
 export function getSuggestedStoredValueAmount(
   availableBalance: number,
   currentSettled: number,
-  finalTotal: number,
+  saleTotal: number,
   decimalPlaces: number
 ): number {
   return Number.parseFloat(
-    Math.max(0, Math.min(availableBalance, finalTotal - currentSettled)).toFixed(decimalPlaces)
+    Math.max(0, Math.min(availableBalance, saleTotal - currentSettled)).toFixed(decimalPlaces)
   );
 }
 
@@ -123,11 +123,11 @@ export function getWalletLegMaxAmount(
   walletBalance: number,
   paymentLegs: Array<{ amount?: number }>,
   idx: number,
-  finalTotal: number,
+  saleTotal: number,
   decimalPlaces: number
 ): number {
   return Number.parseFloat(
-    Math.max(0, Math.min(walletBalance, getLegOrderCap(paymentLegs, idx, finalTotal))).toFixed(decimalPlaces)
+    Math.max(0, Math.min(walletBalance, getLegOrderCap(paymentLegs, idx, saleTotal))).toFixed(decimalPlaces)
   );
 }
 

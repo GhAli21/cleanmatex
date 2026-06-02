@@ -897,13 +897,8 @@ model org_orders_mst {
   status                          String?                           @default("intake")
   priority                        String?                           @default("normal")
   total_items                     Int?                              @default(0)
-  subtotal                        Decimal?                          @default(0) @db.Decimal(10, 3)
-  discount                        Decimal?                          @default(0) @db.Decimal(10, 3)
-  tax                             Decimal?                          @default(0) @db.Decimal(10, 3)
-  total                           Decimal?                          @default(0) @db.Decimal(10, 3)
   payment_status                  String?                           @default("pending") @db.VarChar(20)
   payment_method_code             String?                           @db.VarChar(50)
-  paid_amount                     Decimal?                          @default(0) @db.Decimal(10, 3)
   paid_at                         DateTime?                         @db.Timestamp(6)
   paid_by                         String?                           @db.VarChar(255)
   payment_notes                   String?
@@ -945,17 +940,11 @@ model org_orders_mst {
   currency_code                   String?                           @db.VarChar(3)
   currency_ex_rate                Decimal                           @default(1.000000) @db.Decimal(10, 6)
   vat_rate                        Decimal?                          @default(0) @db.Decimal(5, 2)
-  vat_amount                      Decimal?                          @default(0) @db.Decimal(19, 4)
   discount_rate                   Decimal?                          @default(0) @db.Decimal(5, 2)
   discount_type                   String?                           @db.VarChar(20)
   promo_code_id                   String?                           @db.Uuid
   gift_card_id                    String?                           @db.Uuid
-  promo_discount_amount           Decimal?                          @default(0) @db.Decimal(19, 4)
-  /// Renamed from gift_card_discount_amount in migration 0257 — gift card is stored value, not a discount
-  gift_card_applied_amount        Decimal?                          @default(0) @db.Decimal(19, 4)
   payment_type_code               String?                           @db.VarChar(30)
-  service_charge                  Decimal?                          @default(0) @db.Decimal(19, 4)
-  service_charge_type             String?                           @db.VarChar(50)
   payment_terms                   String?                           @db.VarChar(50)
   payment_due_date                DateTime?                         @db.Date
   is_retail                       Boolean                           @default(false)
@@ -996,12 +985,49 @@ model org_orders_mst {
   total_tax_amount                Decimal?                          @db.Decimal(19, 4)
   total_credit_applied_amount     Decimal?                          @db.Decimal(19, 4)
   total_paid_amount               Decimal?                          @db.Decimal(19, 4)
-  net_receivable_amount           Decimal?                          @db.Decimal(19, 4)
   pay_on_collection_amount        Decimal?                          @db.Decimal(19, 4)
   rounding_adjustment_amount      Decimal?                          @default(0) @db.Decimal(19, 4)
   change_returned_amount          Decimal?                          @default(0) @db.Decimal(19, 4)
   outstanding_amount              Decimal?                          @db.Decimal(19, 4)
   financial_engine_version        Int?                              @default(1) @db.SmallInt
+  // Canonical Order Fin snapshot columns (migration 0333)
+  subtotal_amount                 Decimal                           @default(0) @db.Decimal(19, 4)
+  items_base_amount               Decimal                           @default(0) @db.Decimal(19, 4)
+  total_amount                    Decimal                           @default(0) @db.Decimal(19, 4)
+  piece_extra_price_amount        Decimal                           @default(0) @db.Decimal(19, 4)
+  preference_extra_price_amount   Decimal                           @default(0) @db.Decimal(19, 4)
+  service_charge_amount           Decimal                           @default(0) @db.Decimal(19, 4)
+  delivery_charge_amount          Decimal                           @default(0) @db.Decimal(19, 4)
+  express_charge_amount           Decimal                           @default(0) @db.Decimal(19, 4)
+  other_charges_amount            Decimal                           @default(0) @db.Decimal(19, 4)
+  taxable_amount                  Decimal                           @default(0) @db.Decimal(19, 4)
+  refunded_amount                 Decimal                           @default(0) @db.Decimal(19, 4)
+  real_payment_refunded_amount    Decimal                           @default(0) @db.Decimal(19, 4)
+  stored_value_restored_amount    Decimal                           @default(0) @db.Decimal(19, 4)
+  customer_credit_issued_amount   Decimal                           @default(0) @db.Decimal(19, 4)
+  net_collected_amount            Decimal                           @default(0) @db.Decimal(19, 4)
+  overpaid_amount                 Decimal                           @default(0) @db.Decimal(19, 4)
+  pending_payment_amount          Decimal                           @default(0) @db.Decimal(19, 4)
+  authorized_payment_amount       Decimal                           @default(0) @db.Decimal(19, 4)
+  failed_payment_amount           Decimal                           @default(0) @db.Decimal(19, 4)
+  refund_reopens_due_amount       Decimal                           @default(0) @db.Decimal(19, 4)
+  credit_reversal_reopens_due_amount Decimal                        @default(0) @db.Decimal(19, 4)
+  credit_reversed_amount          Decimal                           @default(0) @db.Decimal(19, 4)
+  ar_receivable_amount            Decimal                           @default(0) @db.Decimal(19, 4)
+  ar_invoice_id                   String?                           @db.Uuid
+  ar_invoice_no                   String?
+  ar_invoice_status               String?
+  tax_document_id                 String?                           @db.Uuid
+  tax_document_no                 String?
+  tax_document_status             String?
+  tax_document_type               String?
+  financial_last_calculated_at    DateTime?                         @db.Timestamptz(6)
+  financial_last_calculated_by    String?
+  financial_snapshot_status       String                            @default("RECALCULATION_REQUIRED")
+  financial_mismatch_warning_count Int                              @default(0)
+  financial_calculation_snapshot  Json                              @default("{}")
+  financial_calculation_hash      String?
+  financial_calculation_trace_id  String?                           @db.Uuid
   idempotency_key                 String?
   org_asm_tasks_mst               org_asm_tasks_mst?
   org_dlv_stops_dtl               org_dlv_stops_dtl[]

@@ -11,6 +11,7 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderDiscountBreakdown } from '@features/orders/ui/order-discount-breakdown';
@@ -396,13 +397,10 @@ export function OrderDetailsFullClient({
         'tax',
         'total',
         'vat_rate',
-        'vat_amount',
         'discount_rate',
         'discount_type',
         'promo_discount_amount',
-        'gift_card_applied_amount',
         'service_charge',
-        'service_charge_type',
         'currency_code',
         'currency_ex_rate',
       ],
@@ -501,9 +499,7 @@ export function OrderDetailsFullClient({
       'tax',
       'total',
       'paid_amount',
-      'vat_amount',
       'promo_discount_amount',
-      'gift_card_applied_amount',
       'service_charge',
     ];
     if (amountKeys.includes(key) && (typeof value === 'number' || (typeof value === 'string' && /^-?\d*\.?\d+$/.test(value)))) {
@@ -567,17 +563,23 @@ export function OrderDetailsFullClient({
     const promoDiscount = hasDiscountLineBreakdown
       ? discountLineTotalFor(['PROMO_CODE'])
       : Number(o.promo_discount_amount ?? 0);
+    const canonicalGiftCardApplied = financialData?.creditApplications
+      ?.filter((row) => row.credit_type === CREDIT_APPLICATION_TYPES.GIFT_CARD)
+      .reduce((sum, row) => sum + Number(row.applied_amount ?? 0), 0);
     /**
      * Gift card is a SETTLEMENT (not a commercial discount).
-     * Read from gift_card_applied_amount (canonical field name) or discount lines.
+     * Prefer canonical credit-application rows and fall back to historical
+     * discount-line rendering only for transition-era snapshots.
      */
-    const giftCardApplied = hasDiscountLineBreakdown
-      ? discountLineTotalFor(['GIFT_CARD'])
-      : Number(o.gift_card_applied_amount ?? 0);
+    const giftCardApplied = canonicalGiftCardApplied
+      ?? (hasDiscountLineBreakdown ? discountLineTotalFor(['GIFT_CARD']) : 0);
     const preTaxDiscounts = manualDiscount + ruleDiscount + promoDiscount;
     const totalDiscounts = preTaxDiscounts;
     const serviceCharge = Number(o.service_charge ?? 0);
-    const vatAmount = Number(o.vat_amount ?? 0);
+    const vatAmount = financialData?.taxes
+      ?.filter((row) => row.tax_type === TAX_TYPES.VAT)
+      .reduce((sum, row) => sum + Number(row.tax_amount ?? 0), 0)
+      ?? 0;
     const tax = Number(o.tax ?? 0);
     const total = Number(o.total ?? 0);
     const paidAmount = Number(o.paid_amount ?? 0);
@@ -586,7 +588,6 @@ export function OrderDetailsFullClient({
     const vatRate = o.vat_rate != null ? Number(o.vat_rate) : null;
     const discountRateVal = o.discount_rate != null ? Number(o.discount_rate) : null;
     const discountTypeVal = o.discount_type != null ? String(o.discount_type) : null;
-    const serviceChargeTypeVal = o.service_charge_type != null ? String(o.service_charge_type) : null;
     const currencyCode = typeof o.currency_code === 'string' ? o.currency_code : '';
     const exchangeRate = o.currency_ex_rate != null ? Number(o.currency_ex_rate) : null;
 
@@ -704,9 +705,7 @@ export function OrderDetailsFullClient({
                   <WRow
                     label={t.masterField_service_charge ?? 'Service Charge'}
                     value={fmtOrderMoney(serviceCharge)}
-                    meta={serviceChargeTypeVal && serviceChargeTypeVal !== '—' ? serviceChargeTypeVal : undefined}
                   />
-                  <WRow label={t.masterField_service_charge_type ?? t.serviceChargeType ?? 'Service Charge Type'} value={serviceChargeTypeVal ?? '—'} />
                   <WRow label={vatLabel} value={fmtOrderMoney(vatAmount)} />
                   <WRow label={t.masterField_tax ?? 'Tax'} value={fmtOrderMoney(tax)} />
                 </div>

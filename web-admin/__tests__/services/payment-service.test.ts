@@ -59,6 +59,17 @@ jest.mock('@/lib/services/erp-lite-auto-post.service', () => ({
   },
 }));
 
+jest.mock('@/lib/services/ar-invoice.service', () => ({
+  allocateArPaymentTx: jest.fn().mockResolvedValue({
+    allocation: { id: 'alloc-1' },
+    invoice: { id: 'invoice-1', outstanding_amount: 0, paid_amount: 10, status: 'PAID' },
+  }),
+  ensureCanonicalArInvoiceArtifactsTx: jest.fn().mockResolvedValue(undefined),
+  reverseArPaymentAllocationTx: jest.fn().mockResolvedValue({
+    invoice: { id: 'invoice-1', outstanding_amount: 10, paid_amount: 0, status: 'OPEN' },
+  }),
+}));
+
 const mockPaymentMethodFindUnique = jest.fn();
 const mockInvoiceFindUnique = jest.fn();
 const mockOrderFindUnique = jest.fn();
@@ -68,6 +79,7 @@ const mockPaymentCreate = jest.fn();
 const mockPaymentFindFirst = jest.fn();
 const mockPaymentFindMany = jest.fn();
 const mockPaymentRefundCreate = jest.fn();
+const mockInvoicePaymentFindMany = jest.fn();
 const mockTransaction = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -143,6 +155,9 @@ describe('payment-service ERP-Lite auto-post integration', () => {
           findFirst: mockPaymentFindFirst,
           findMany: mockPaymentFindMany,
         },
+        org_invoice_payments_dtl: {
+          findMany: mockInvoicePaymentFindMany,
+        },
       })
     );
 
@@ -193,6 +208,7 @@ describe('payment-service ERP-Lite auto-post integration', () => {
     });
 
     mockPaymentFindMany.mockResolvedValue([]);
+    mockInvoicePaymentFindMany.mockResolvedValue([]);
   });
 
   afterEach(() => {

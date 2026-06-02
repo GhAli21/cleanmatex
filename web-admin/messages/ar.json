@@ -93,6 +93,7 @@
       "manualDiscount": "الخصم اليدوي",
       "promoDiscount": "خصم الترويج",
       "vatValue": "ضريبة القيمة المضافة",
+      "saleTotal": "إجمالي البيع",
       "finalTotal": "المجموع النهائي"
     }
   },
@@ -2315,14 +2316,13 @@
             "totalAmount": "المبلغ الإجمالي",
             "totalPaidAmount": "إجمالي المدفوع",
             "totalCreditAppliedAmount": "إجمالي الاعتمادات",
-            "totalRefundedAmount": "إجمالي المسترد",
+            "refundedAmount": "مبلغ المسترد",
             "outstandingAmount": "المستحق",
             "payOnCollectionAmount": "الدفع عند الاستلام",
-            "giftCardAppliedAmount": "بطاقة الهدية",
             "changeReturnedAmount": "الباقي المرتجع",
             "serviceChargeAmount": "رسوم الخدمة",
             "roundingAmount": "التقريب",
-            "netReceivableAmount": "صافي الذمم",
+            "arReceivableAmount": "الذمم المدينة",
             "paymentTypeCode": "نوع الدفع",
             "paymentStatus": "حالة الدفع",
             "financialEngineVersion": "إصدار المحرك المالي"

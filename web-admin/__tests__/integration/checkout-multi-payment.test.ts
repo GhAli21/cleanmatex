@@ -3,7 +3,7 @@
  * Integration test: checkout with multi-leg payment (CASH + CARD split)
  *
  * Exercises the `create-with-payment` route's multi-leg path:
- *   - Two legs (CASH 60 + CARD 40) sum to finalTotal 100
+ *   - Two legs (CASH 60 + CARD 40) sum to saleTotal 100
  *   - Each leg calls recordPaymentTransaction independently inside the TX
  *   - Server-side sum parity check passes
  *   - Deferred method isolation: PAY_ON_COLLECTION alone works; mixing with CASH fails
@@ -53,12 +53,12 @@ import {
 
 describe('checkout multi-leg payment — validation layer', () => {
   describe('sum parity check (server-side logic simulation)', () => {
-    function checkSumParity(legs: { amount: number }[], finalTotal: number): boolean {
+    function checkSumParity(legs: { amount: number }[], saleTotal: number): boolean {
       const sum = legs.reduce((s, l) => s + l.amount, 0);
-      return Math.abs(sum - finalTotal) <= 0.001;
+      return Math.abs(sum - saleTotal) <= 0.001;
     }
 
-    it('passes when two-leg sum equals finalTotal', () => {
+    it('passes when two-leg sum equals saleTotal', () => {
       const legs = [{ amount: 60 }, { amount: 40 }];
       expect(checkSumParity(legs, 100)).toBe(true);
     });
@@ -136,7 +136,7 @@ describe('checkout multi-leg payment — validation layer', () => {
           manualDiscount: 0,
           promoDiscount: 0,
           vatValue: 0,
-          finalTotal: 100,
+          saleTotal: 100,
         },
         paymentLegs: [{ method: 'CASH', amount: 40 }],
       });
@@ -153,7 +153,7 @@ describe('checkout multi-leg payment — validation layer', () => {
           manualDiscount: 0,
           promoDiscount: 0,
           vatValue: 0,
-          finalTotal: 100,
+          saleTotal: 100,
         },
         paymentLegs: [{ method: 'CARD', amount: 25 }],
       });

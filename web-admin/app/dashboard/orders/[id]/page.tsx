@@ -10,6 +10,8 @@ import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-prefer
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
 import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
@@ -109,8 +111,6 @@ async function OrderDetailContent({
     pay_on_collection_amount?: number | string | null;
     service_charge?: number | string | null;
     rounding_adjustment_amount?: number | string | null;
-    net_receivable_amount?: number | string | null;
-    gift_card_applied_amount?: number | string | null;
     financial_engine_version?: number | null;
   };
   const allPayments = paymentsResult.success && paymentsResult.data ? paymentsResult.data : [];
@@ -122,32 +122,47 @@ async function OrderDetailContent({
   const editHistory =
     editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
   const vouchers = vouchersResult ?? [];
+  const headerFinancialSnapshot = readCanonicalOrderFinancialSnapshot(
+    order as unknown as Record<string, unknown>,
+  );
+  const canonicalGiftCardApplied = financialData?.creditApplications
+    ?.filter((row) => row.credit_type === CREDIT_APPLICATION_TYPES.GIFT_CARD)
+    .reduce((sum, row) => sum + Number(row.applied_amount ?? 0), 0);
 
   const serializedOrder = {
     ...order,
-    subtotal: order.subtotal ? Number(order.subtotal) : 0,
-    discount: order.discount ? Number(order.discount) : 0,
-    tax: order.tax ? Number(order.tax) : 0,
-    total: order.total ? Number(order.total) : 0,
-    paid_amount: order.paid_amount ? Number(order.paid_amount) : null,
-    total_paid_amount: order.total_paid_amount != null ? Number(order.total_paid_amount) : null,
+    subtotal: financialData?.snapshot.subtotalAmount ?? headerFinancialSnapshot.subtotalAmount,
+    discount: financialData?.snapshot.totalDiscountAmount ?? headerFinancialSnapshot.totalDiscountAmount,
+    tax: financialData?.snapshot.totalTaxAmount ?? headerFinancialSnapshot.totalTaxAmount,
+    total: financialData?.snapshot.totalAmount ?? headerFinancialSnapshot.totalAmount,
+    paid_amount:
+      financialData?.snapshot.totalPaidAmount ?? headerFinancialSnapshot.totalPaidAmount,
+    total_paid_amount:
+      financialData?.snapshot.totalPaidAmount
+      ?? (order.total_paid_amount != null ? Number(order.total_paid_amount) : null),
     total_credit_applied_amount:
-      order.total_credit_applied_amount != null
+      financialData?.snapshot.totalCreditAppliedAmount
+      ?? (order.total_credit_applied_amount != null
         ? Number(order.total_credit_applied_amount)
-        : null,
+        : null),
     outstanding_amount:
-      order.outstanding_amount != null ? Number(order.outstanding_amount) : null,
+      financialData?.snapshot.outstandingAmount
+      ?? (order.outstanding_amount != null ? Number(order.outstanding_amount) : null),
     pay_on_collection_amount:
-      order.pay_on_collection_amount != null ? Number(order.pay_on_collection_amount) : null,
-    service_charge: order.service_charge != null ? Number(order.service_charge) : null,
+      financialData?.snapshot.payOnCollectionAmount
+      ?? headerFinancialSnapshot.payOnCollectionAmount,
+    service_charge:
+      financialData?.snapshot.serviceChargeAmount
+      ?? headerFinancialSnapshot.serviceChargeAmount,
     rounding_adjustment_amount:
       order.rounding_adjustment_amount != null
         ? Number(order.rounding_adjustment_amount)
         : null,
-    net_receivable_amount:
-      order.net_receivable_amount != null ? Number(order.net_receivable_amount) : null,
-    gift_card_applied_amount:
-      order.gift_card_applied_amount != null ? Number(order.gift_card_applied_amount) : null,
+    ar_receivable_amount:
+      financialData?.snapshot.arReceivableAmount
+      ?? headerFinancialSnapshot.arReceivableAmount,
+    gift_card_credit_applied_amount:
+      canonicalGiftCardApplied != null ? canonicalGiftCardApplied : null,
     bag_count: order.bag_count ? Number(order.bag_count) : null,
     priority_multiplier:
       order.priority_multiplier !== undefined && order.priority_multiplier !== null

@@ -56,7 +56,7 @@ export function OrderReceivableCollectionPanel({ viewModel }: OrderReceivableCol
         </FieldRow>
         <FieldRow label={t('arReceivableAmount')} isRTL={isRTL}>
           <OrderFinancialMoneyValue
-            amount={isCreditInvoice ? amounts.invoiceAmount : 0}
+            amount={isCreditInvoice ? amounts.arReceivableAmount : 0}
             currencyCode={currencyCode}
             variant="balanceDue"
           />

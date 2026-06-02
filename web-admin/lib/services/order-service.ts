@@ -21,6 +21,10 @@ import { isOrderEditable } from '@/lib/utils/order-editability';
 import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
 import { createEditAudit } from '@/lib/services/order-audit.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+import {
+  recalculateOrderFinancialSnapshot,
+  recalculateOrderFinancialSnapshotTx,
+} from '@/lib/services/order-financial-write.service';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
@@ -29,6 +33,7 @@ import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLi
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -588,7 +593,6 @@ export class OrderService {
       const tax = totals?.tax ?? 0;
       const total = totals?.total ?? subtotal - discount + tax;
       const vatRate = totals?.vatRate;
-      const vatAmount = totals?.vatAmount;
 
       // Currency: prefer passed values, else fetch from tenant settings when we have payment-related data
       const hasPaymentData = !!(
@@ -637,13 +641,15 @@ export class OrderService {
           items.length > 0
             ? items.reduce((sum, item) => sum + item.quantity, 0)
             : quickDropQuantity || 0,
-        subtotal,
-        discount,
-        tax,
-        total,
+        subtotal_amount: subtotal,
+        items_base_amount: subtotal,
+        total_discount_amount: discount,
+        total_tax_amount: tax,
+        total_amount: total,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
-        paid_amount: 0,
+        total_paid_amount: 0,
+        outstanding_amount: total,
         service_category_code: primaryServiceCategory,
         is_order_quick_drop: isQuickDrop || false,
         quick_drop_quantity: quickDropQuantity,
@@ -665,13 +671,10 @@ export class OrderService {
         insertPayload.currency_ex_rate = currencyExRate ?? 1;
       }
       if (vatRate != null) insertPayload.vat_rate = vatRate;
-      if (vatAmount != null) insertPayload.vat_amount = vatAmount;
       if (discountRate != null) insertPayload.discount_rate = discountRate;
       if (discountType != null) insertPayload.discount_type = discountType;
       if (promoCodeId != null) insertPayload.promo_code_id = promoCodeId;
       if (giftCardId != null) insertPayload.gift_card_id = giftCardId;
-      if (promoDiscountAmount != null) insertPayload.promo_discount_amount = promoDiscountAmount;
-      if (giftCardDiscountAmount != null) insertPayload.gift_card_applied_amount = giftCardDiscountAmount;
       if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
       if (params.paymentNotes != null) insertPayload.payment_notes = params.paymentNotes;
       if (isDefaultCustomer != null) insertPayload.is_default_customer = isDefaultCustomer;
@@ -1097,6 +1100,8 @@ export class OrderService {
           .eq('tenant_org_id', tenantId);
       }
 
+      await recalculateOrderFinancialSnapshot(tenantId, order.id);
+
       return {
         success: true,
         order: {
@@ -1204,7 +1209,6 @@ export class OrderService {
     const tax = totals?.tax ?? 0;
     const total = totals?.total ?? subtotal - discount + tax;
     const vatRate = totals?.vatRate;
-    const vatAmount = totals?.vatAmount;
     const taxRate = totals?.taxRate;
     const currencyCode = passedCurrencyCode;
     const currencyExRate = passedCurrencyExRate ?? 1;
@@ -1249,13 +1253,15 @@ export class OrderService {
           items.length > 0
             ? items.reduce((sum, item) => sum + item.quantity, 0)
             : quickDropQuantity ?? 0,
-        subtotal,
-        discount,
-        tax,
-        total,
+        subtotal_amount: subtotal,
+        items_base_amount: subtotal,
+        total_discount_amount: discount,
+        total_tax_amount: tax,
+        total_amount: total,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
-        paid_amount: 0,
+        total_paid_amount: 0,
+        outstanding_amount: total,
         service_category_code: primaryServiceCategory,
         is_order_quick_drop: isQuickDrop ?? false,
         quick_drop_quantity: quickDropQuantity,
@@ -1273,7 +1279,6 @@ export class OrderService {
         received_at: receivedAt,
         ...(currencyCode && { currency_code: currencyCode, currency_ex_rate: currencyExRate }),
         ...(vatRate != null && { vat_rate: vatRate }),
-        ...(vatAmount != null && { vat_amount: vatAmount }),
         ...(taxRate != null && { tax_rate: taxRate }),
         ...(discountRate != null && { discount_rate: discountRate }),
         ...readyByFields,
@@ -1290,8 +1295,6 @@ export class OrderService {
         ...(customerEmail != null && customerEmail !== '' && { customer_email: customerEmail }),
         ...(customerName != null && customerName !== '' && { customer_name: customerName }),
         ...(customerDetails != null && Object.keys(customerDetails).length > 0 && { customer_details: customerDetails }),
-        ...(promoDiscountAmount != null && { promo_discount_amount: promoDiscountAmount }),
-        ...(giftCardDiscountAmount != null && { gift_card_applied_amount: giftCardDiscountAmount }),
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
       } as any,
     });
@@ -2263,6 +2266,10 @@ export class OrderService {
         }
       }
 
+      const snapshotBeforeFinancial = readCanonicalOrderFinancialSnapshot(
+        existingOrder as Record<string, unknown>,
+      );
+
       // 5. Create snapshot_before
       const snapshotBefore = {
         order: {
@@ -2275,10 +2282,10 @@ export class OrderService {
           paymentNotes: existingOrder.payment_notes,
           readyByAt: existingOrder.ready_by_at,
           express: existingOrder.priority_multiplier === 0.5,
-          subtotal: existingOrder.subtotal,
-          discount: existingOrder.discount,
-          tax: existingOrder.tax,
-          total: existingOrder.total,
+          subtotal: snapshotBeforeFinancial.subtotalAmount,
+          discount: snapshotBeforeFinancial.totalDiscountAmount,
+          tax: snapshotBeforeFinancial.totalTaxAmount,
+          total: snapshotBeforeFinancial.totalAmount,
           customerName: existingOrder.customer_name,
           customerMobile: existingOrder.customer_mobile_number,
           customerEmail: existingOrder.customer_email,
@@ -2322,37 +2329,53 @@ export class OrderService {
         }
 
         // 8. Recalculate totals if items changed or recalculate flag set
-        let subtotal = existingOrder.subtotal;
-        let discount = existingOrder.discount;
-        let tax = existingOrder.tax;
-        let total = existingOrder.total;
+        let subtotal = snapshotBeforeFinancial.subtotalAmount;
+        let discount = snapshotBeforeFinancial.totalDiscountAmount;
+        let tax = snapshotBeforeFinancial.totalTaxAmount;
+        let total = snapshotBeforeFinancial.totalAmount;
         let vatRate = (existingOrder as any).vat_rate;
-        let vatAmount = (existingOrder as any).vat_amount;
 
-        if ((items && items.length > 0) || recalculate) {
-          if (items && items.length > 0) {
-            // Calculate from new items
-            const calculationResult = await calculateOrderTotals({
-              tenantId,
-              branchId: branchId ?? existingOrder.branch_id,
-              items: items.map((item) => ({
+        const shouldRecalculateTotals = Boolean((items && items.length > 0) || recalculate || express !== undefined);
+
+        if (shouldRecalculateTotals) {
+          const calculationItems = items && items.length > 0
+            ? items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
                 servicePrefCharge: item.servicePrefCharge ?? 0,
                 packingPrefCharge: item.packingPrefCharge ?? 0,
-              })),
-              customerId: customerId ?? existingOrder.customer_id,
-              isExpress: express ?? existingOrder.priority_multiplier === 0.5,
-              userId,
-            });
+              }))
+            : (await tx.org_order_items_dtl.findMany({
+                where: {
+                  order_id: orderId,
+                  tenant_org_id: tenantId,
+                },
+                select: {
+                  product_id: true,
+                  quantity: true,
+                  service_pref_charge: true,
+                },
+              })).map((item) => ({
+                productId: item.product_id,
+                quantity: item.quantity,
+                servicePrefCharge: Number(item.service_pref_charge ?? 0),
+                packingPrefCharge: 0,
+              }));
 
-            subtotal = calculationResult.subtotal;
-            discount = calculationResult.manualDiscount + calculationResult.promoDiscount;
-            tax = calculationResult.taxAmount;
-            total = calculationResult.finalTotal;
-            vatRate = calculationResult.taxRate;
-            vatAmount = calculationResult.vatValue;
-          }
+          const calculationResult = await calculateOrderTotals({
+            tenantId,
+            branchId: branchId ?? existingOrder.branch_id,
+            items: calculationItems,
+            customerId: customerId ?? existingOrder.customer_id,
+            isExpress: express ?? existingOrder.priority_multiplier === 0.5,
+            userId,
+          });
+
+          subtotal = calculationResult.subtotal;
+          discount = calculationResult.manualDiscount + calculationResult.promoDiscount;
+          tax = calculationResult.taxAmount;
+          total = calculationResult.saleTotal;
+          vatRate = calculationResult.taxRate;
         }
 
         // 9. Create new items/pieces
@@ -2467,12 +2490,13 @@ export class OrderService {
 
         // Update totals if changed
         if (items && items.length >= 0) {
-          updateData.subtotal = subtotal;
-          updateData.discount = discount;
-          updateData.tax = tax;
-          updateData.total = total;
+          updateData.subtotal_amount = subtotal;
+          updateData.items_base_amount = subtotal;
+          updateData.total_discount_amount = discount;
+          updateData.total_tax_amount = tax;
+          updateData.total_amount = total;
           updateData.vat_rate = vatRate;
-          updateData.vat_amount = vatAmount;
+          updateData.outstanding_amount = total;
           updateData.total_items = items.length;
         }
 
@@ -2483,6 +2507,10 @@ export class OrderService {
           },
           data: updateData,
         });
+
+        if (shouldRecalculateTotals) {
+          await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
+        }
 
         return updatedOrder;
       });
@@ -2513,6 +2541,9 @@ export class OrderService {
       const inputItemNameMap = new Map<string, string>(
         (items ?? []).map((i) => [i.productId, i.productName ?? i.productId.slice(0, 8)])
       );
+      const snapshotAfterFinancial = readCanonicalOrderFinancialSnapshot(
+        updatedOrderWithItems as unknown as Record<string, unknown>,
+      );
 
       const snapshotAfter = {
         order: {
@@ -2525,10 +2556,10 @@ export class OrderService {
           paymentNotes: updatedOrderWithItems.payment_notes,
           readyByAt: readyByAtVal,
           express: Number(updatedOrderWithItems.priority_multiplier) === 0.5,
-          subtotal: updatedOrderWithItems.subtotal,
-          discount: updatedOrderWithItems.discount,
-          tax: updatedOrderWithItems.tax,
-          total: updatedOrderWithItems.total,
+          subtotal: snapshotAfterFinancial.subtotalAmount,
+          discount: snapshotAfterFinancial.totalDiscountAmount,
+          tax: snapshotAfterFinancial.totalTaxAmount,
+          total: snapshotAfterFinancial.totalAmount,
           customerName: updatedOrderWithItems.customer_name,
           customerMobile: updatedOrderWithItems.customer_mobile_number,
           customerEmail: updatedOrderWithItems.customer_email,

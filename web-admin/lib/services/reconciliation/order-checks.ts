@@ -64,7 +64,7 @@ interface PeriodWindow {
 export interface ReconciliationOrderRow {
   id: string;
   order_no: string;
-  total: Decimal | null;
+  total_amount: Decimal | null;
   total_paid_amount: Decimal | null;
   total_credit_applied_amount: Decimal | null;
   outstanding_amount: Decimal | null;
@@ -178,7 +178,7 @@ export async function runOrderBalanceChecks(
 
     const processedRefunds = toNumber(refundAgg._sum.refund_amount);
     const grossApplied = completedPaymentTotal + actualCredit;
-    const expectedOutstanding = Math.max(0, toNumber(order.total) - grossApplied + processedRefunds);
+    const expectedOutstanding = Math.max(0, toNumber(order.total_amount) - grossApplied + processedRefunds);
     const actualOutstanding = toNumber(order.outstanding_amount);
     const outstandingDelta = expectedOutstanding - actualOutstanding;
 

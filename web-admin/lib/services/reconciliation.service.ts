@@ -130,7 +130,7 @@ async function getScopedOrders(
       select: {
         id: true,
         order_no: true,
-        total: true,
+        total_amount: true,
         total_paid_amount: true,
         total_credit_applied_amount: true,
         outstanding_amount: true,
@@ -160,7 +160,7 @@ export async function getOrderFinancialReconciliation(
       select: {
         id: true,
         order_no: true,
-        total: true,
+        total_amount: true,
         total_paid_amount: true,
         total_credit_applied_amount: true,
         outstanding_amount: true,

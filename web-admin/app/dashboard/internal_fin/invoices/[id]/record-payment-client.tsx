@@ -36,7 +36,7 @@ interface RecordPaymentClientProps {
   vatRate?: number;
   vatAmount?: number;
   taxAmount?: number;
-  finalTotal?: number;
+  saleTotal?: number;
   remainingBalance: number;
   /** When true, apply payment across all order invoices with balance (FIFO) instead of a single invoice */
   distributeAcrossInvoices?: boolean;
@@ -87,7 +87,7 @@ export function RecordPaymentClient({
   vatRate,
   vatAmount,
   taxAmount,
-  finalTotal,
+  saleTotal,
   remainingBalance,
   distributeAcrossInvoices,
   processPaymentAction,
@@ -140,7 +140,7 @@ export function RecordPaymentClient({
         vatRate,
         vatAmount,
         taxAmount,
-        finalTotal,
+        saleTotal,
       });
 
       if (!result.success) {

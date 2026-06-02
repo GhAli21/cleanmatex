@@ -9,14 +9,8 @@ interface OrderFinancialMoneyValueProps {
   amount: number;
   currencyCode?: string;
   className?: string;
-  /**
-   * Credits/discounts shown as reductions.
-   * - `credit`: per-line credit row (displays with leading `-`).
-   * - `creditTotal`: aggregate credit total (displays positive, credit color);
-   *   the negative sign on each line communicates direction, the total is a
-   *   sum and should not be re-negated.
-   */
-  variant?: 'default' | 'credit' | 'creditTotal' | 'balanceDue' | 'paid';
+  /** Credits/discounts shown as reductions */
+  variant?: 'default' | 'credit' | 'balanceDue' | 'paid';
 }
 
 export function OrderFinancialMoneyValue({
@@ -34,7 +28,7 @@ export function OrderFinancialMoneyValue({
   });
 
   const tone =
-    variant === 'credit' || variant === 'creditTotal'
+    variant === 'credit'
       ? 'text-emerald-600 dark:text-emerald-400'
       : variant === 'balanceDue'
         ? amount > 0

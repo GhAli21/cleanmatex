@@ -25,7 +25,7 @@ const basePayload = {
     manualDiscount: 0,
     promoDiscount: 0,
     vatValue: 1,
-    finalTotal: 11,
+    saleTotal: 11,
   },
 };
 

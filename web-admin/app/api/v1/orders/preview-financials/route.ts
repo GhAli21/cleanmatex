@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
 
     let creditLimit: Awaited<ReturnType<typeof checkCreditLimit>> | undefined;
     let creditLimitMode: 'warn' | 'block' = 'block';
-    if (parsed.data.customerId && data.finalTotal > 0) {
+    if (parsed.data.customerId && data.saleTotal > 0) {
       try {
-        creditLimit = await checkCreditLimit(parsed.data.customerId, data.finalTotal);
+        creditLimit = await checkCreditLimit(parsed.data.customerId, data.saleTotal);
         if (creditLimit && creditLimit.creditLimit > 0) {
           const supabase = await createClient();
           const settingsService = createTenantSettingsService(supabase);

@@ -337,7 +337,7 @@ export function PaymentModalV3({
     additionalTaxAmount: number;
     vatValue: number;
     giftCardApplied: number;
-    finalTotal: number;
+    saleTotal: number;
     vatTaxPercent: number;
     taxBreakdown: TaxBreakdownLine[];
     creditLimit?: {
@@ -455,7 +455,7 @@ export function PaymentModalV3({
           additionalTaxAmount: d.additionalTaxAmount ?? 0,
           vatValue: d.vatValue,
           giftCardApplied: d.giftCardApplied,
-          finalTotal: d.finalTotal,
+          saleTotal: d.saleTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
@@ -598,7 +598,7 @@ export function PaymentModalV3({
         ...serverTotals,
         taxRate: 0,
         taxAmount: serverTotals.additionalTaxAmount ?? 0,
-        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.finalTotal,
+        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,
       };
     }
     const subtotal = total;
@@ -621,7 +621,7 @@ export function PaymentModalV3({
         .toFixed(decimalPlaces)
     );
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal     = Math.max(0, afterDiscounts + profilesTaxAmount);
+    const saleTotal      = Math.max(0, afterDiscounts + profilesTaxAmount);
     return {
       subtotal,
       manualDiscount,
@@ -633,20 +633,22 @@ export function PaymentModalV3({
       vatTaxPercent: fallbackTaxBreakdown.find((line) => line.taxType === 'VAT' || line.taxType === 'GST')?.rate ?? (taxRate * 100),
       vatValue,
       giftCardApplied,
-      finalTotal,
-      totalSavings: subtotal + taxAmount + vatValue - finalTotal,
+      saleTotal,
+      totalSavings: subtotal + taxAmount + vatValue - saleTotal,
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
 
+  const saleTotal = totals.saleTotal;
+
   const effectiveAmountToCharge = useMemo(() => {
-    if (!payPartial || !isImmediatePayment) return totals.finalTotal;
-    const clamped = Math.max(0, Math.min(totals.finalTotal, partialAmount));
+    if (!payPartial || !isImmediatePayment) return saleTotal;
+    const clamped = Math.max(0, Math.min(saleTotal, partialAmount));
     return parseFloat(clamped.toFixed(decimalPlaces));
-  }, [payPartial, isImmediatePayment, totals.finalTotal, partialAmount, decimalPlaces]);
+  }, [payPartial, isImmediatePayment, saleTotal, partialAmount, decimalPlaces]);
 
   const remainingAfterThisPayment = useMemo(
-    () => parseFloat(Math.max(0, totals.finalTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
-    [totals.finalTotal, effectiveAmountToCharge, decimalPlaces]
+    () => parseFloat(Math.max(0, saleTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
+    [saleTotal, effectiveAmountToCharge, decimalPlaces]
   );
 
   const legSum = useMemo(
@@ -655,13 +657,13 @@ export function PaymentModalV3({
   );
 
   const legRemaining = useMemo(
-    () => parseFloat(Math.max(0, totals.finalTotal - legSum).toFixed(decimalPlaces)),
-    [totals.finalTotal, legSum, decimalPlaces]
+    () => parseFloat(Math.max(0, saleTotal - legSum).toFixed(decimalPlaces)),
+    [saleTotal, legSum, decimalPlaces]
   );
 
   const legsValid = useMemo(
-    () => Math.abs(legSum - totals.finalTotal) <= 0.001,
-    [legSum, totals.finalTotal]
+    () => Math.abs(legSum - saleTotal) <= 0.001,
+    [legSum, saleTotal]
   );
 
   const IMMEDIATE_METHOD_CODES = [
@@ -698,18 +700,18 @@ export function PaymentModalV3({
       setPaymentLegs((prev) => {
         if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
           // First leg placeholder — fill it with the full outstanding amount
-          return [{ ...prev[0], method: code, amount: totals.finalTotal }];
+          return [{ ...prev[0], method: code, amount: saleTotal }];
         }
         const currentSum = prev.reduce((s, l) => s + (l.amount || 0), 0);
         const remaining = parseFloat(
-          Math.max(0, totals.finalTotal - currentSum).toFixed(decimalPlaces)
+          Math.max(0, saleTotal - currentSum).toFixed(decimalPlaces)
         );
         return [...prev, { method: code, amount: remaining }];
       });
       // Scroll to the payment legs section
       setTimeout(() => legsCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
     },
-    [setValue, totals.finalTotal, decimalPlaces, IMMEDIATE_METHOD_CODES]
+    [setValue, saleTotal, decimalPlaces, IMMEDIATE_METHOD_CODES]
   );
 
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
@@ -828,7 +830,7 @@ export function PaymentModalV3({
           searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
-        const defaultAmount = Math.min(result.availableBalance, totals.finalTotal);
+        const defaultAmount = Math.min(result.availableBalance, saleTotal);
         setValue('giftCardAmount', defaultAmount);
         setValue('giftCardId', result.giftCard.id ?? '');
       }
@@ -842,7 +844,7 @@ export function PaymentModalV3({
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
     const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount   = Math.min(giftCardDetails.balance, totals.finalTotal);
+    const maxAmount   = Math.min(giftCardDetails.balance, saleTotal);
     if (amountToUse <= 0) { cmxMessage.error(t('giftCard.errors.amountRequired')); return; }
     if (amountToUse > maxAmount) {
       cmxMessage.error(t('giftCard.errors.maxAmountExceeded'));
@@ -917,7 +919,7 @@ export function PaymentModalV3({
         vatTaxPercent: totals.vatTaxPercent,
         vatValue: totals.vatValue,
         giftCardApplied: totals.giftCardApplied,
-        finalTotal: totals.finalTotal,
+        saleTotal,
       },
       ...(currencyConfig && {
         currencyCode: currencyConfig.currencyCode,
@@ -1027,7 +1029,7 @@ export function PaymentModalV3({
                 ) : (
                   <>
                     <p className="text-4xl font-bold text-gray-900 tabular-nums">
-                      {currencyCode} {formatAmount(totals.finalTotal)}
+                      {currencyCode} {formatAmount(saleTotal)}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">{t('grandTotal')}</p>
                     {totals.totalSavings > 0 && (
@@ -1355,7 +1357,7 @@ export function PaymentModalV3({
                       checked={payPartial}
                       onCheckedChange={(checked) => {
                         setPayPartial(checked);
-                        if (checked) setPartialAmount(totals.finalTotal);
+                        if (checked) setPartialAmount(saleTotal);
                       }}
                     />
                   </div>
@@ -1369,22 +1371,22 @@ export function PaymentModalV3({
                         <input
                           type="number"
                           min={0}
-                          max={totals.finalTotal}
+                          max={saleTotal}
                           step={Math.pow(10, -decimalPlaces)}
                           value={partialAmount > 0 ? partialAmount : ''}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value);
-                            if (!Number.isNaN(val)) setPartialAmount(Math.max(0, Math.min(totals.finalTotal, val)));
+                            if (!Number.isNaN(val)) setPartialAmount(Math.max(0, Math.min(saleTotal, val)));
                             else setPartialAmount(0);
                           }}
-                          placeholder={formatAmount(totals.finalTotal)}
+                          placeholder={formatAmount(saleTotal)}
                           dir="ltr"
                           className="flex-1 min-w-0 px-3 py-2 text-sm border-0 focus:ring-0 outline-none"
                         />
                       </div>
-                      {effectiveAmountToCharge < totals.finalTotal && effectiveAmountToCharge > 0 && (
+                      {effectiveAmountToCharge < saleTotal && effectiveAmountToCharge > 0 && (
                         <p className={`text-sm font-medium text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('partialPayment.remainingDue')}: {currencyCode} {formatAmount(totals.finalTotal - effectiveAmountToCharge)}
+                          {t('partialPayment.remainingDue')}: {currencyCode} {formatAmount(saleTotal - effectiveAmountToCharge)}
                         </p>
                       )}
                     </div>
@@ -1604,7 +1606,7 @@ export function PaymentModalV3({
 
                   {!legsValid && paymentLegs.length > 1 && (
                     <p className={`text-xs font-medium text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(totals.finalTotal - legSum))})
+                      {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(saleTotal - legSum))})
                     </p>
                   )}
 
@@ -1833,7 +1835,7 @@ export function PaymentModalV3({
                                       {...field}
                                       type="number"
                                       min={0}
-                                      max={Math.min(giftCardDetails.balance, totals.finalTotal)}
+                                      max={Math.min(giftCardDetails.balance, saleTotal)}
                                       step={Math.pow(10, -decimalPlaces)}
                                       dir="ltr"
                                       disabled={!!appliedGiftCard}
@@ -1856,7 +1858,7 @@ export function PaymentModalV3({
                             {Number(giftCardAmount) > 0 && (
                               <div className={`space-y-0.5 text-xs text-gray-600 ${isRTL ? 'text-right' : ''}`}>
                                 <p>{t('giftCard.balanceAfterApply', { balance: `${currencyCode} ${formatAmount(Math.max(0, giftCardDetails.balance - Number(giftCardAmount)))}` })}</p>
-                                <p>{t('giftCard.remainingDue', { amount: `${currencyCode} ${formatAmount(Math.max(0, totals.finalTotal - Number(giftCardAmount)))}` })}</p>
+                                <p>{t('giftCard.remainingDue', { amount: `${currencyCode} ${formatAmount(Math.max(0, saleTotal - Number(giftCardAmount)))}` })}</p>
                               </div>
                             )}
                             <p className="text-xs text-gray-500">{t('giftCard.amountHint')}</p>
@@ -2016,7 +2018,7 @@ export function PaymentModalV3({
               )}
               <SummaryRow
                 label={t('summary.totalAmount')}
-                value={`${currencyCode} ${formatAmount(totals.finalTotal)}`}
+                value={`${currencyCode} ${formatAmount(saleTotal)}`}
                 loading={totalsLoading}
                 bold
               />

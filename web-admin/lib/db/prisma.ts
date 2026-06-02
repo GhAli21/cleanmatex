@@ -46,13 +46,21 @@ const prismaClient =
         : ['error'],
   });
 
+function readPrismaClientProperty<T = unknown>(propertyName: string): T | undefined {
+  try {
+    return (prismaClient as unknown as Record<string, T>)[propertyName];
+  } catch {
+    return undefined;
+  }
+}
+
 // Apply multi-tenant middleware (only if not already applied)
 // Check if middleware is already applied by checking for a custom property
 // Wrap in try-catch to handle webpack bundling edge cases
-if (!(prismaClient as any).__tenantMiddlewareApplied) {
+if (!readPrismaClientProperty<boolean>('__tenantMiddlewareApplied')) {
   try {
     // Check if $use method exists before applying middleware
-    if (typeof (prismaClient as any).$use === 'function') {
+    if (typeof readPrismaClientProperty('$use') === 'function') {
   applyTenantMiddleware(prismaClient);
   (prismaClient as any).__tenantMiddlewareApplied = true;
     }
@@ -65,10 +73,10 @@ if (!(prismaClient as any).__tenantMiddlewareApplied) {
 }
 
 // Apply performance monitoring middleware (only if not already applied)
-if (!(prismaClient as any).__performanceMiddlewareApplied) {
+if (!readPrismaClientProperty<boolean>('__performanceMiddlewareApplied')) {
   try {
     // Check if $use method exists before applying middleware
-    if (typeof (prismaClient as any).$use === 'function') {
+    if (typeof readPrismaClientProperty('$use') === 'function') {
   applyPerformanceMiddleware(prismaClient);
   (prismaClient as any).__performanceMiddlewareApplied = true;
     }

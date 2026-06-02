@@ -728,6 +728,8 @@ export interface ProcessPaymentInput {
   vat_amount?: number;
   tax_rate?: number;
   tax_amount?: number;
+  sale_total?: number;
+  /** @deprecated Use sale_total */
   final_total?: number;
   currency_code?: string;
   currency_ex_rate?: number;
@@ -965,7 +967,7 @@ export interface AmountMismatchDiff {
 }
 
 export type AmountMismatchDifferences = Partial<
-  Record<'subtotal' | 'manualDiscount' | 'promoDiscount' | 'vatValue' | 'finalTotal', AmountMismatchDiff>
+  Record<'subtotal' | 'manualDiscount' | 'promoDiscount' | 'vatValue' | 'saleTotal', AmountMismatchDiff>
 >;
 
 // ============================================================================

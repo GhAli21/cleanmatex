@@ -60,6 +60,8 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { buildDiscountLinesFromOrderInput, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/payment';
+import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 
 // ============================================================================
 // Payment Method Management
@@ -169,6 +171,24 @@ export async function validatePaymentMethod(
 // Payment Processing
 // ============================================================================
 
+function getCanonicalOrderPaymentSnapshot(order: Record<string, unknown>) {
+  const financialSnapshot = readCanonicalOrderFinancialSnapshot(order);
+  return {
+    totalAmount: financialSnapshot.totalAmount,
+    paidAmount: financialSnapshot.totalPaidAmount,
+    outstandingAmount: financialSnapshot.outstandingAmount,
+  };
+}
+
+function getInputSaleTotal(input: Pick<ProcessPaymentInput, 'sale_total' | 'final_total' | 'amount'>): number {
+  return input.sale_total ?? input.final_total ?? input.amount;
+}
+
+function deriveLegacyOrderPaymentStatus(totalAmount: number, paidAmount: number): string {
+  if (paidAmount <= 0) return 'pending';
+  return paidAmount >= totalAmount ? 'paid' : 'partial';
+}
+
 /**
  * Process payment for an order
  * Main payment processing function that handles all payment logic
@@ -211,7 +231,7 @@ export async function processPayment(
         const transaction = await recordPaymentTransaction({
           order_id: input.order_id,
           customer_id: input.customer_id,
-          paid_amount: input.final_total ?? input.amount,
+          paid_amount: getInputSaleTotal(input),
           payment_method_code: input.payment_method_code,
           payment_type_code: input.payment_type_code,
           paid_by: input.processed_by,
@@ -243,21 +263,28 @@ export async function processPayment(
           trans_desc: input.trans_desc,
           payment_channel: input.payment_channel ?? 'web_admin',
         });
-        const amountPaid = input.final_total ?? input.amount;
+        const amountPaid = getInputSaleTotal(input);
         if (input.order_id) {
           const order = await prisma.org_orders_mst.findUnique({
             where: { id: input.order_id },
+            select: {
+              total_amount: true,
+              total_paid_amount: true,
+              outstanding_amount: true,
+            },
           });
           if (order) {
-            const currentPaid = Number(order.paid_amount ?? 0);
+            const orderSnapshot = getCanonicalOrderPaymentSnapshot(order as Record<string, unknown>);
+            const currentPaid = orderSnapshot.paidAmount;
             const newPaid = currentPaid + amountPaid;
-            const total = Number(order.total ?? 0);
             await updateOrderPaymentStatus(
               input.order_id,
-              newPaid >= total ? 'paid' : 'partial',
+              deriveLegacyOrderPaymentStatus(orderSnapshot.totalAmount, newPaid),
               newPaid,
               input.processed_by,
+              tenantId,
               undefined,
+              Math.max(0, orderSnapshot.totalAmount - newPaid),
               input.notes
             );
           }
@@ -278,7 +305,8 @@ export async function processPayment(
       }
 
       let invoiceId = input.invoice_id;
-      // Always use the user-entered amount for the payment; final_total is for invoice/order total (breakdown only), not the payment amount
+      // Always use the user-entered amount for the payment; sale_total is the
+      // invoice/order commercial total (breakdown only), not the payment amount.
       const amountToPay = input.amount;
 
       // FIFO: distribute one payment across all order invoices with balance (oldest first)
@@ -418,15 +446,29 @@ export async function processPayment(
             if (totalApplied > 0 && input.order_id) {
               const orderRow = await dbTx.org_orders_mst.findUnique({
                 where: { id: input.order_id },
-                select: { total: true, paid_amount: true },
+                select: {
+                  total_amount: true,
+                  total_paid_amount: true,
+                  outstanding_amount: true,
+                },
               });
               if (orderRow) {
-                const orderTotal = Number(orderRow.total ?? 0);
-                const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
+                const orderSnapshot = getCanonicalOrderPaymentSnapshot(orderRow as Record<string, unknown>);
+                const orderTotal = orderSnapshot.totalAmount;
+                const currentOrderPaid = orderSnapshot.paidAmount;
                 const newOrderPaid = currentOrderPaid + totalApplied;
                 orderRemaining = Math.max(0, orderTotal - newOrderPaid);
-                const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-                await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx, input.notes);
+                const orderStatus = deriveLegacyOrderPaymentStatus(orderTotal, newOrderPaid);
+                await updateOrderPaymentStatus(
+                  input.order_id,
+                  orderStatus,
+                  newOrderPaid,
+                  input.processed_by,
+                  tenantId,
+                  dbTx,
+                  orderRemaining,
+                  input.notes,
+                );
               }
 
               const discLines = buildDiscountLinesFromOrderInput({
@@ -484,14 +526,15 @@ export async function processPayment(
       }
 
       const breakdown =
-        input.subtotal != null && input.final_total != null
+        input.subtotal != null && (input.sale_total != null || input.final_total != null)
           ? {
               subtotal: input.subtotal,
               discount: input.discount_amount ?? 0,
               tax: (input.tax_amount ?? 0) + (input.vat_amount ?? 0),
-              total: input.final_total,
+              total: getInputSaleTotal(input),
               vat_rate: input.vat_rate,
               vat_amount: input.vat_amount,
+              gift_card_applied_amount: input.gift_card_applied_amount,
             }
           : undefined;
 
@@ -594,14 +637,28 @@ export async function processPayment(
         if (input.order_id) {
           const orderRow = await dbTx.org_orders_mst.findUnique({
             where: { id: input.order_id },
-            select: { total: true, paid_amount: true },
+            select: {
+              total_amount: true,
+              total_paid_amount: true,
+              outstanding_amount: true,
+            },
           });
           if (orderRow) {
-            const orderTotal = Number(orderRow.total ?? 0);
-            const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
+            const orderSnapshot = getCanonicalOrderPaymentSnapshot(orderRow as Record<string, unknown>);
+            const orderTotal = orderSnapshot.totalAmount;
+            const currentOrderPaid = orderSnapshot.paidAmount;
             const newOrderPaid = currentOrderPaid + amountToPay;
-            const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-            await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx, input.notes);
+            const orderStatus = deriveLegacyOrderPaymentStatus(orderTotal, newOrderPaid);
+            await updateOrderPaymentStatus(
+              input.order_id,
+              orderStatus,
+              newOrderPaid,
+              input.processed_by,
+              tenantId,
+              dbTx,
+              Math.max(0, orderTotal - newOrderPaid),
+              input.notes,
+            );
           }
         }
 
@@ -971,7 +1028,7 @@ export async function recordPaymentTransaction(
             input.gift_card_applied_amount != null
               ? { number: (input.metadata as { gift_card_number?: string })?.gift_card_number ?? '', amount: input.gift_card_applied_amount }
               : undefined,
-          final_total: input.paid_amount,
+          sale_total: input.paid_amount,
         }
       : undefined;
 
@@ -1364,15 +1421,22 @@ export async function applyPaymentToInvoice(
       if (payment.order_id) {
         const order = await tx.org_orders_mst.findUnique({
           where: { id: payment.order_id },
+          select: {
+            total_amount: true,
+            total_paid_amount: true,
+            outstanding_amount: true,
+          },
         });
         if (order) {
-          const orderPaid = Number(order.paid_amount ?? 0) + amount;
-          const orderTotal = Number(order.total ?? 0);
+          const orderSnapshot = getCanonicalOrderPaymentSnapshot(order as Record<string, unknown>);
+          const orderPaid = orderSnapshot.paidAmount + amount;
+          const orderTotal = orderSnapshot.totalAmount;
           await tx.org_orders_mst.update({
             where: { id: payment.order_id },
             data: {
-              paid_amount: orderPaid,
-              payment_status: orderPaid >= orderTotal ? 'paid' : 'partial',
+              total_paid_amount: orderPaid,
+              outstanding_amount: Math.max(0, orderTotal - orderPaid),
+              payment_status: deriveLegacyOrderPaymentStatus(orderTotal, orderPaid),
               paid_at: orderPaid >= orderTotal ? new Date() : undefined,
               updated_at: new Date(),
               updated_by: updatedBy ?? undefined,
@@ -1555,7 +1619,8 @@ export async function validatePaymentData(
 
 /**
  * Update order payment status.
- * Only updates payment-related fields: payment_status, paid_amount, paid_at, payment_notes, updated_at, updated_by.
+ * Only updates payment-related fields: payment_status, total_paid_amount,
+ * paid_at, payment_notes, updated_at, updated_by.
  * Must NOT update order total, subtotal, vat, or other financial totals (those are set at order creation/edit).
  */
 async function updateOrderPaymentStatus(
@@ -1563,7 +1628,9 @@ async function updateOrderPaymentStatus(
   status: string,
   paidAmount: number,
   userId?: string,
+  _tenantId?: string,
   tx?: PrismaTx,
+  outstandingAmount?: number,
   paymentNotes?: string
 ): Promise<void> {
   const db = tx ?? prisma;
@@ -1571,7 +1638,8 @@ async function updateOrderPaymentStatus(
     where: { id: orderId },
     data: {
       payment_status: status,
-      paid_amount: paidAmount,
+      total_paid_amount: paidAmount,
+      ...(outstandingAmount != null && { outstanding_amount: outstandingAmount }),
       paid_at: status === 'paid' ? new Date() : undefined,
       updated_at: new Date(),
       ...(userId && { updated_by: userId }),
@@ -1605,15 +1673,13 @@ export async function getPaymentStatus(orderId: string): Promise<{
       throw new Error('Order not found');
     }
 
-    const total = Number(order.total ?? 0);
-    const paid = Number(order.paid_amount ?? 0);
-    const remaining = total - paid;
+    const financialSnapshot = getCanonicalOrderPaymentSnapshot(order as Record<string, unknown>);
 
     return {
       status: order.payment_status || 'pending',
-      total,
-      paid,
-      remaining,
+      total: financialSnapshot.totalAmount,
+      paid: financialSnapshot.paidAmount,
+      remaining: financialSnapshot.outstandingAmount,
     };
   });
 }
@@ -1818,20 +1884,23 @@ export async function refundPayment(
         if (transaction.order_id) {
           const order = await tx.org_orders_mst.findUnique({
             where: { id: transaction.order_id },
+            select: {
+              id: true,
+              total_amount: true,
+              total_paid_amount: true,
+              outstanding_amount: true,
+            },
           });
           if (order) {
-            const newOrderPaid = Math.max(0, Number(order.paid_amount ?? 0) - input.amount);
-            const orderTotal = Number(order.total ?? 0);
-            const newPaymentStatus =
-              newOrderPaid <= 0
-                ? 'pending'
-                : newOrderPaid >= orderTotal
-                  ? 'paid'
-                  : 'partial';
+            const orderSnapshot = getCanonicalOrderPaymentSnapshot(order as Record<string, unknown>);
+            const newOrderPaid = Math.max(0, orderSnapshot.paidAmount - input.amount);
+            const orderTotal = orderSnapshot.totalAmount;
+            const newPaymentStatus = deriveLegacyOrderPaymentStatus(orderTotal, newOrderPaid);
             await tx.org_orders_mst.update({
               where: { id: order.id },
               data: {
-                paid_amount: newOrderPaid,
+                total_paid_amount: newOrderPaid,
+                outstanding_amount: Math.max(0, orderTotal - newOrderPaid),
                 payment_status: newPaymentStatus,
                 updated_at: new Date(),
                 updated_by: input.processed_by ?? undefined,
@@ -2533,24 +2602,24 @@ export async function cancelPayment(
         if (payment.order_id) {
           const order = await tx.org_orders_mst.findUnique({
             where: { id: payment.order_id },
+            select: {
+              total_amount: true,
+              total_paid_amount: true,
+              outstanding_amount: true,
+            },
           });
 
           if (order) {
-            const newOrderPaid = Math.max(0, Number(order.paid_amount ?? 0) - paidAmount);
-            const orderTotal = Number(order.total ?? 0);
-            let newPaymentStatus: string;
-            if (newOrderPaid <= 0) {
-              newPaymentStatus = 'pending';
-            } else if (newOrderPaid >= orderTotal) {
-              newPaymentStatus = 'paid';
-            } else {
-              newPaymentStatus = 'partial';
-            }
+            const orderSnapshot = getCanonicalOrderPaymentSnapshot(order as Record<string, unknown>);
+            const newOrderPaid = Math.max(0, orderSnapshot.paidAmount - paidAmount);
+            const orderTotal = orderSnapshot.totalAmount;
+            const newPaymentStatus = deriveLegacyOrderPaymentStatus(orderTotal, newOrderPaid);
 
             await tx.org_orders_mst.update({
               where: { id: payment.order_id },
               data: {
-                paid_amount: newOrderPaid,
+                total_paid_amount: newOrderPaid,
+                outstanding_amount: Math.max(0, orderTotal - newOrderPaid),
                 payment_status: newPaymentStatus,
                 updated_at: new Date(),
                 updated_by: cancelledBy,
@@ -2582,6 +2651,7 @@ interface InvoiceBreakdown {
   total: number;
   vat_rate?: number;
   vat_amount?: number;
+  gift_card_applied_amount?: number;
 }
 
 /**
@@ -2609,6 +2679,36 @@ async function createInvoiceForOrder(
     const discount = breakdown?.discount ?? 0;
     const tax = breakdown?.tax ?? 0;
     const total = breakdown?.total ?? amount;
+    const headerSnapshot = readCanonicalOrderFinancialSnapshot(
+      order as Record<string, unknown>,
+    );
+    const [giftCardCreditAgg, vatTaxAgg] = await Promise.all([
+      db.org_order_credit_apps_dtl.aggregate({
+        where: {
+          tenant_org_id: order.tenant_org_id,
+          order_id: orderId,
+          is_active: true,
+          rec_status: 1,
+          credit_type: CREDIT_APPLICATION_TYPES.GIFT_CARD,
+        },
+        _sum: { applied_amount: true },
+      }),
+      db.org_order_taxes_dtl.aggregate({
+        where: {
+          tenant_org_id: order.tenant_org_id,
+          order_id: orderId,
+          rec_status: 1,
+          tax_type: TAX_TYPES.VAT,
+        },
+        _sum: { tax_amount: true },
+      }),
+    ]);
+    const canonicalGiftCardAppliedAmount =
+      breakdown?.gift_card_applied_amount
+      ?? Number(giftCardCreditAgg._sum.applied_amount ?? 0);
+    const canonicalVatAmount =
+      breakdown?.vat_amount
+      ?? Number(vatTaxAgg._sum.tax_amount ?? 0);
 
     const supabase = await createClient();
     const tenantSettings = createTenantSettingsService(supabase);
@@ -2651,13 +2751,12 @@ async function createInvoiceForOrder(
         b2b_contract_id: order.b2b_contract_id ?? undefined,
         cost_center_code: order.cost_center_code ?? undefined,
         po_number: order.po_number ?? undefined,
-        service_charge: order.service_charge ?? undefined,
-        service_charge_type: order.service_charge_type ?? undefined,
+        service_charge: headerSnapshot.serviceChargeAmount || undefined,
         gift_card_id: order.gift_card_id ?? undefined,
-        gift_card_applied_amount: order.gift_card_applied_amount ?? undefined,
+        gift_card_applied_amount: canonicalGiftCardAppliedAmount || undefined,
         tax_rate: order.tax_rate ?? undefined,
         vat_rate: breakdown?.vat_rate ?? order.vat_rate ?? undefined,
-        vat_amount: breakdown?.vat_amount ?? order.vat_amount ?? undefined,
+        vat_amount: canonicalVatAmount || undefined,
         paid_amount: 0,
         created_at: now,
       },

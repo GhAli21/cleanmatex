@@ -456,7 +456,7 @@ export function PaymentModalV4({
     additionalTaxAmount: number;
     vatValue: number;
     giftCardApplied: number;
-    finalTotal: number;
+    saleTotal: number;
     vatTaxPercent: number;
     taxBreakdown: TaxBreakdownLine[];
     creditLimit?: {
@@ -693,7 +693,7 @@ export function PaymentModalV4({
           additionalTaxAmount: d.additionalTaxAmount ?? 0,
           vatValue: d.vatValue,
           giftCardApplied: d.giftCardApplied,
-          finalTotal: d.finalTotal,
+          saleTotal: d.saleTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
@@ -874,7 +874,7 @@ export function PaymentModalV4({
         ...serverTotals,
         taxRate: 0,
         taxAmount: serverTotals.additionalTaxAmount ?? 0,
-        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.finalTotal,
+        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,
       };
     }
     const subtotal = total;
@@ -897,7 +897,7 @@ export function PaymentModalV4({
         .toFixed(decimalPlaces)
     );
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal     = Math.max(0, afterDiscounts + profilesTaxAmount);
+    const saleTotal      = Math.max(0, afterDiscounts + profilesTaxAmount);
     return {
       subtotal,
       manualDiscount,
@@ -909,10 +909,12 @@ export function PaymentModalV4({
       vatTaxPercent: fallbackTaxBreakdown.find((line) => line.taxType === 'VAT' || line.taxType === 'GST')?.rate ?? (taxRate * 100),
       vatValue,
       giftCardApplied,
-      finalTotal,
-      totalSavings: subtotal + taxAmount + vatValue - finalTotal,
+      saleTotal,
+      totalSavings: subtotal + taxAmount + vatValue - saleTotal,
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
+
+  const saleTotal = totals.saleTotal;
 
   const IMMEDIATE_METHOD_CODES = [
     PAYMENT_METHODS.CASH,
@@ -1039,7 +1041,7 @@ export function PaymentModalV4({
       key === 'amount' && typeof value === 'number' && currentLeg?.method === 'WALLET'
         ? (Math.min(
             value,
-            getWalletLegMaxAmount(liveWalletBalance, paymentLegs, idx, totals.finalTotal, decimalPlaces)
+            getWalletLegMaxAmount(liveWalletBalance, paymentLegs, idx, saleTotal, decimalPlaces)
           ) as PaymentLeg[K])
         : value;
 
@@ -1051,12 +1053,12 @@ export function PaymentModalV4({
       updated[idx] = { ...updated[idx], [key]: normalizedValue };
       return updated;
     });
-  }, [decimalPlaces, liveWalletBalance, paymentLegs, totals.finalTotal]);
+  }, [decimalPlaces, liveWalletBalance, paymentLegs, saleTotal]);
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
       const nextAmount = Number.parseFloat(
-        Math.max(0, Math.min(totals.finalTotal, defaultAmount)).toFixed(decimalPlaces)
+        Math.max(0, Math.min(saleTotal, defaultAmount)).toFixed(decimalPlaces)
       );
       setIsDirtySinceOpen(true);
       setPaymentLegs((prev) => {
@@ -1094,7 +1096,7 @@ export function PaymentModalV4({
       });
       focusAmountEditor();
     },
-    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, totals.finalTotal]
+    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, saleTotal]
   );
 
   const handleMethodSelect = useCallback(
@@ -1114,10 +1116,10 @@ export function PaymentModalV4({
                 (leg.gateway_code ?? '') === (option.gateway_code ?? '')
             )?.amount ?? 0
           : 0
-        : Math.max(0, totals.finalTotal - currentSettled);
+        : Math.max(0, saleTotal - currentSettled);
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [getMethodOption, paymentLegs, setValue, totals.finalTotal, upsertSettlementLeg]
+    [getMethodOption, paymentLegs, setValue, saleTotal, upsertSettlementLeg]
   );
 
   const handleCustomerCreditSelect = useCallback(
@@ -1134,12 +1136,12 @@ export function PaymentModalV4({
       const suggestedAmount = getSuggestedStoredValueAmount(
         availableBalance,
         currentSettled,
-        totals.finalTotal,
+        saleTotal,
         decimalPlaces
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [decimalPlaces, liveWalletBalance, paymentLegs, t, totals.finalTotal, upsertSettlementLeg]
+    [decimalPlaces, liveWalletBalance, paymentLegs, t, saleTotal, upsertSettlementLeg]
   );
 
   const sanitizeAmountDiscountDraft = useCallback(
@@ -1206,8 +1208,8 @@ export function PaymentModalV4({
   const walletLegExceedsLiveBalance = !!walletLegEntry &&
     walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
 
-  const remainingBalance = Math.max(0, totals.finalTotal - settledNowAmount);
-  const changeAmount = Math.max(0, settledNowAmount - totals.finalTotal);
+  const remainingBalance = Math.max(0, saleTotal - settledNowAmount);
+  const changeAmount = Math.max(0, settledNowAmount - saleTotal);
   const primaryMethodOption = getMethodOption(paymentMethod);
   const cashDrawerRequired = useMemo(() => {
     const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
@@ -1433,7 +1435,7 @@ export function PaymentModalV4({
           searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
-        const defaultAmount = Math.min(result.availableBalance, totals.finalTotal);
+        const defaultAmount = Math.min(result.availableBalance, saleTotal);
         setValue('giftCardAmount', defaultAmount);
         setValue('giftCardId', result.giftCard.id ?? '');
       }
@@ -1447,7 +1449,7 @@ export function PaymentModalV4({
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
     const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount   = Math.min(giftCardDetails.balance, totals.finalTotal);
+    const maxAmount   = Math.min(giftCardDetails.balance, saleTotal);
     if (amountToUse <= 0) { cmxMessage.error(t('giftCard.errors.amountRequired')); return; }
     if (amountToUse > maxAmount) {
       cmxMessage.error(t('giftCard.errors.maxAmountExceeded'));
@@ -1543,7 +1545,7 @@ export function PaymentModalV4({
         vatTaxPercent: totals.vatTaxPercent,
         vatValue: totals.vatValue,
         giftCardApplied: totals.giftCardApplied,
-        finalTotal: totals.finalTotal,
+        saleTotal,
       },
       ...(currencyConfig && {
         currencyCode: currencyConfig.currencyCode,
@@ -1681,7 +1683,7 @@ export function PaymentModalV4({
   const activeLeg = paymentLegs[activeLegIndex] ?? null;
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
     settledNowAmount,
-    totals.finalTotal,
+    saleTotal,
     (outstandingPolicy as OutstandingPolicy | undefined) ?? defaultOutstandingPolicy
   );
   const showDeferredExplanation =
@@ -1946,9 +1948,9 @@ export function PaymentModalV4({
     return t('actions.submitChargeOnly', {
       submit: t('actions.submit'),
       currency: currencyCode,
-      amount: formatAmount(settledNowAmount > 0 ? settledNowAmount : totals.finalTotal),
+      amount: formatAmount(settledNowAmount > 0 ? settledNowAmount : saleTotal),
     });
-  }, [t, currencyCode, decimalPlaces, remainingBalance, settledNowAmount, totals.finalTotal]);
+  }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, settledNowAmount]);
 
   const handleOutstandingPolicyChange = useCallback((policy: OutstandingPolicy) => {
     setIsDirtySinceOpen(true);
@@ -1995,10 +1997,10 @@ export function PaymentModalV4({
       decimalPlaces
     );
     const nextAmount = parseDecimalDraft(nextDraft);
-    const cappedAmount = Math.max(0, Math.min(totals.finalTotal, nextAmount));
-    setActiveAmountDraft(nextAmount > totals.finalTotal ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft);
+    const cappedAmount = Math.max(0, Math.min(saleTotal, nextAmount));
+    setActiveAmountDraft(nextAmount > saleTotal ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft);
     updateLeg(activeLegIndex, 'amount', cappedAmount);
-  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces, totals.finalTotal, updateLeg]);
+  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces, saleTotal, updateLeg]);
 
   const closeWithGuard = useCallback(() => {
     if (!isDirtySinceOpen) {
@@ -2443,7 +2445,7 @@ export function PaymentModalV4({
                         </div>
                         <div className="md:ps-6">
                           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
-                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(totals.finalTotal)}</p>
+                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
                         </div>
                       </div>
                       <div className="mt-5 flex items-center justify-center gap-2">
@@ -3108,7 +3110,7 @@ export function PaymentModalV4({
                       <SummaryRow label={`VAT (${totals.vatTaxPercent.toFixed(0)}%)`} value={`${currencyCode} ${formatAmount(totals.vatValue)}`} loading={totalsLoading} />
                       {(totals.taxAmount ?? 0) > 0 && <SummaryRow label={t('summary.taxAmount')} value={`${currencyCode} ${formatAmount(totals.taxAmount ?? 0)}`} loading={totalsLoading} />}
                       {totals.giftCardApplied > 0 && <SummaryRow label={t('summary.giftCardApplied')} value={`−${currencyCode} ${formatAmount(totals.giftCardApplied)}`} loading={totalsLoading} negative />}
-                      <SummaryRow label={t('summary.totalAmount')} value={`${currencyCode} ${formatAmount(totals.finalTotal)}`} loading={totalsLoading} bold />
+                      <SummaryRow label={t('summary.totalAmount')} value={`${currencyCode} ${formatAmount(saleTotal)}`} loading={totalsLoading} bold />
                       <div className="mt-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
                         <SummaryRow label={t('summary.paidAmount') || 'Pay now'} value={`${currencyCode} ${formatAmount(payNowAmount)}`} />
                       </div>

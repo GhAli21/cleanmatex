@@ -100,7 +100,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
   it('returns zeroed result for empty items', async () => {
     const result = await calculateOrderTotals({ tenantId: TENANT, items: [] });
     expect(result.subtotal).toBe(0);
-    expect(result.finalTotal).toBe(0);
+    expect(result.saleTotal).toBe(0);
     expect(result.discountLines).toEqual([]);
   });
 
@@ -145,7 +145,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
       ...defaultParams, giftCardNumber: 'GC-001', giftCardAmount: 5,
     });
     expect(result.giftCardApplied).toBeCloseTo(5);
-    expect(result.finalTotal).toBeCloseTo(result.afterDiscounts);
+    expect(result.saleTotal).toBeCloseTo(result.afterDiscounts);
   });
 
   it('does not let gift card reduce the tax base or tax amount', async () => {
@@ -163,7 +163,7 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     expect(result.afterDiscounts).toBeCloseTo(100);
     expect(result.vatValue).toBeCloseTo(5);
     expect(result.taxAmount).toBeCloseTo(5);
-    expect(result.finalTotal).toBeCloseTo(105);
+    expect(result.saleTotal).toBeCloseTo(105);
     expect(result.giftCardApplied).toBeCloseTo(10);
   });
 

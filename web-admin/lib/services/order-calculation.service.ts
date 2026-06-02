@@ -70,8 +70,8 @@ export interface OrderCalculationResult {
   taxBreakdown: TaxLineItem[];
   /** Stored-value settlement amount reserved for the gift card leg, not a pricing discount. */
   giftCardApplied: number;
-  /** Full sale total after commercial discounts, tax, and rounding, before settlement credits. */
-  finalTotal: number;
+  /** Canonical sale total after commercial discounts, tax, and rounding, before settlement credits. */
+  saleTotal: number;
   currencyCode: string;
   decimalPlaces: number;
   /** Structured discount lines for the audit trail — one entry per discount source. */
@@ -136,7 +136,7 @@ export async function calculateOrderTotals(
       vatValue: 0,
       taxBreakdown: [],
       giftCardApplied: 0,
-      finalTotal: 0,
+      saleTotal: 0,
       currencyCode,
       decimalPlaces,
       discountLines: [],
@@ -322,7 +322,7 @@ export async function calculateOrderTotals(
     }
   }
 
-  const finalTotal = amountBeforeGiftCard;
+  const saleTotal = amountBeforeGiftCard;
 
   const discountLines: DiscountLineInput[] = [];
 
@@ -371,7 +371,7 @@ export async function calculateOrderTotals(
     vatValue,
     taxBreakdown,
     giftCardApplied,
-    finalTotal,
+    saleTotal,
     currencyCode,
     decimalPlaces,
     discountLines,
@@ -392,7 +392,7 @@ export function toFinancialBreakdownSnapshot(
   chargesTotal:            number,
   creditApplicationsTotal: number
 ): FinancialBreakdownSnapshot {
-  const grandTotal    = result.finalTotal;
+  const grandTotal    = result.saleTotal;
   const creditsTotal  = creditApplicationsTotal;
   const netReceivable = Math.max(0, grandTotal - creditsTotal);
 

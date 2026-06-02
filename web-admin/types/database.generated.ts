@@ -14922,6 +14922,11 @@ export type Database = {
       }
       org_orders_mst: {
         Row: {
+          ar_invoice_id: string | null
+          ar_invoice_no: string | null
+          ar_invoice_status: string | null
+          ar_receivable_amount: number
+          authorized_payment_amount: number
           b2b_contract_id: string | null
           bag_count: number | null
           barcode: string | null
@@ -14937,10 +14942,13 @@ export type Database = {
           created_info: string | null
           credit_limit_override_at: string | null
           credit_limit_override_by: string | null
+          credit_reversal_reopens_due_amount: number
+          credit_reversed_amount: number
           currency_code: string | null
           currency_ex_rate: number
           current_stage: string | null
           current_status: string | null
+          customer_credit_issued_amount: number
           customer_details: Json | null
           customer_email: string | null
           customer_id: string
@@ -14948,11 +14956,19 @@ export type Database = {
           customer_name: string | null
           customer_notes: string | null
           delivered_at: string | null
-          discount: number | null
+          delivery_charge_amount: number
           discount_rate: number | null
           discount_type: string | null
+          express_charge_amount: number
+          failed_payment_amount: number
+          financial_calculation_hash: string | null
+          financial_calculation_snapshot: Json
+          financial_calculation_trace_id: string | null
           financial_engine_version: number | null
-          gift_card_applied_amount: number | null
+          financial_last_calculated_at: string | null
+          financial_last_calculated_by: string | null
+          financial_mismatch_warning_count: number
+          financial_snapshot_status: string
           gift_card_id: string | null
           has_issue: boolean | null
           has_split: boolean | null
@@ -14964,15 +14980,17 @@ export type Database = {
           is_rejected: boolean | null
           is_retail: boolean
           issue_id: string | null
+          items_base_amount: number
           last_transition_at: string | null
           last_transition_by: string | null
-          net_receivable_amount: number | null
+          net_collected_amount: number
           order_no: string
           order_source_code: string
           order_subtype: string | null
           order_type_id: string | null
+          other_charges_amount: number
           outstanding_amount: number | null
-          paid_amount: number | null
+          overpaid_amount: number
           paid_at: string | null
           paid_by: string | null
           parent_order_id: string | null
@@ -14983,19 +15001,21 @@ export type Database = {
           payment_status: string | null
           payment_terms: string | null
           payment_type_code: string | null
+          pending_payment_amount: number
           photo_urls: Json | null
           physical_intake_at: string | null
           physical_intake_by: string | null
           physical_intake_info: string | null
           physical_intake_status: string
+          piece_extra_price_amount: number
           po_number: string | null
+          preference_extra_price_amount: number
           preparation_status: string | null
           prepared_at: string | null
           prepared_by: string | null
           priority: string | null
           priority_multiplier: number | null
           promo_code_id: string | null
-          promo_discount_amount: number | null
           qr_code: string | null
           quick_drop_quantity: number | null
           rack_location: string | null
@@ -15003,11 +15023,14 @@ export type Database = {
           ready_by: string | null
           ready_by_at_new: string | null
           ready_by_override: string | null
+          real_payment_refunded_amount: number
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
           received_at: string | null
           received_info: string | null
+          refund_reopens_due_amount: number
+          refunded_amount: number
           rejected_from_stage: string | null
           return_reason: string | null
           return_reason_code: string | null
@@ -15015,14 +15038,18 @@ export type Database = {
           returned_by: string | null
           rounding_adjustment_amount: number | null
           service_category_code: string | null
-          service_charge: number | null
-          service_charge_type: string | null
+          service_charge_amount: number
           status: string | null
-          subtotal: number | null
-          tax: number | null
+          stored_value_restored_amount: number
+          subtotal_amount: number
+          tax_document_id: string | null
+          tax_document_no: string | null
+          tax_document_status: string | null
+          tax_document_type: string | null
           tax_rate: number | null
+          taxable_amount: number
           tenant_org_id: string
-          total: number | null
+          total_amount: number
           total_charges_amount: number | null
           total_credit_applied_amount: number | null
           total_discount_amount: number | null
@@ -15032,11 +15059,15 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
-          vat_amount: number | null
           vat_rate: number | null
           workflow_template_id: string | null
         }
         Insert: {
+          ar_invoice_id?: string | null
+          ar_invoice_no?: string | null
+          ar_invoice_status?: string | null
+          ar_receivable_amount?: number
+          authorized_payment_amount?: number
           b2b_contract_id?: string | null
           bag_count?: number | null
           barcode?: string | null
@@ -15052,10 +15083,13 @@ export type Database = {
           created_info?: string | null
           credit_limit_override_at?: string | null
           credit_limit_override_by?: string | null
+          credit_reversal_reopens_due_amount?: number
+          credit_reversed_amount?: number
           currency_code?: string | null
           currency_ex_rate?: number
           current_stage?: string | null
           current_status?: string | null
+          customer_credit_issued_amount?: number
           customer_details?: Json | null
           customer_email?: string | null
           customer_id: string
@@ -15063,11 +15097,19 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           delivered_at?: string | null
-          discount?: number | null
+          delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          express_charge_amount?: number
+          failed_payment_amount?: number
+          financial_calculation_hash?: string | null
+          financial_calculation_snapshot?: Json
+          financial_calculation_trace_id?: string | null
           financial_engine_version?: number | null
-          gift_card_applied_amount?: number | null
+          financial_last_calculated_at?: string | null
+          financial_last_calculated_by?: string | null
+          financial_mismatch_warning_count?: number
+          financial_snapshot_status?: string
           gift_card_id?: string | null
           has_issue?: boolean | null
           has_split?: boolean | null
@@ -15079,15 +15121,17 @@ export type Database = {
           is_rejected?: boolean | null
           is_retail?: boolean
           issue_id?: string | null
+          items_base_amount?: number
           last_transition_at?: string | null
           last_transition_by?: string | null
-          net_receivable_amount?: number | null
+          net_collected_amount?: number
           order_no: string
           order_source_code?: string
           order_subtype?: string | null
           order_type_id?: string | null
+          other_charges_amount?: number
           outstanding_amount?: number | null
-          paid_amount?: number | null
+          overpaid_amount?: number
           paid_at?: string | null
           paid_by?: string | null
           parent_order_id?: string | null
@@ -15098,19 +15142,21 @@ export type Database = {
           payment_status?: string | null
           payment_terms?: string | null
           payment_type_code?: string | null
+          pending_payment_amount?: number
           photo_urls?: Json | null
           physical_intake_at?: string | null
           physical_intake_by?: string | null
           physical_intake_info?: string | null
           physical_intake_status?: string
+          piece_extra_price_amount?: number
           po_number?: string | null
+          preference_extra_price_amount?: number
           preparation_status?: string | null
           prepared_at?: string | null
           prepared_by?: string | null
           priority?: string | null
           priority_multiplier?: number | null
           promo_code_id?: string | null
-          promo_discount_amount?: number | null
           qr_code?: string | null
           quick_drop_quantity?: number | null
           rack_location?: string | null
@@ -15118,11 +15164,14 @@ export type Database = {
           ready_by?: string | null
           ready_by_at_new?: string | null
           ready_by_override?: string | null
+          real_payment_refunded_amount?: number
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
           received_at?: string | null
           received_info?: string | null
+          refund_reopens_due_amount?: number
+          refunded_amount?: number
           rejected_from_stage?: string | null
           return_reason?: string | null
           return_reason_code?: string | null
@@ -15130,14 +15179,18 @@ export type Database = {
           returned_by?: string | null
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
-          service_charge?: number | null
-          service_charge_type?: string | null
+          service_charge_amount?: number
           status?: string | null
-          subtotal?: number | null
-          tax?: number | null
+          stored_value_restored_amount?: number
+          subtotal_amount?: number
+          tax_document_id?: string | null
+          tax_document_no?: string | null
+          tax_document_status?: string | null
+          tax_document_type?: string | null
           tax_rate?: number | null
+          taxable_amount?: number
           tenant_org_id: string
-          total?: number | null
+          total_amount?: number
           total_charges_amount?: number | null
           total_credit_applied_amount?: number | null
           total_discount_amount?: number | null
@@ -15147,11 +15200,15 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          vat_amount?: number | null
           vat_rate?: number | null
           workflow_template_id?: string | null
         }
         Update: {
+          ar_invoice_id?: string | null
+          ar_invoice_no?: string | null
+          ar_invoice_status?: string | null
+          ar_receivable_amount?: number
+          authorized_payment_amount?: number
           b2b_contract_id?: string | null
           bag_count?: number | null
           barcode?: string | null
@@ -15167,10 +15224,13 @@ export type Database = {
           created_info?: string | null
           credit_limit_override_at?: string | null
           credit_limit_override_by?: string | null
+          credit_reversal_reopens_due_amount?: number
+          credit_reversed_amount?: number
           currency_code?: string | null
           currency_ex_rate?: number
           current_stage?: string | null
           current_status?: string | null
+          customer_credit_issued_amount?: number
           customer_details?: Json | null
           customer_email?: string | null
           customer_id?: string
@@ -15178,11 +15238,19 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           delivered_at?: string | null
-          discount?: number | null
+          delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          express_charge_amount?: number
+          failed_payment_amount?: number
+          financial_calculation_hash?: string | null
+          financial_calculation_snapshot?: Json
+          financial_calculation_trace_id?: string | null
           financial_engine_version?: number | null
-          gift_card_applied_amount?: number | null
+          financial_last_calculated_at?: string | null
+          financial_last_calculated_by?: string | null
+          financial_mismatch_warning_count?: number
+          financial_snapshot_status?: string
           gift_card_id?: string | null
           has_issue?: boolean | null
           has_split?: boolean | null
@@ -15194,15 +15262,17 @@ export type Database = {
           is_rejected?: boolean | null
           is_retail?: boolean
           issue_id?: string | null
+          items_base_amount?: number
           last_transition_at?: string | null
           last_transition_by?: string | null
-          net_receivable_amount?: number | null
+          net_collected_amount?: number
           order_no?: string
           order_source_code?: string
           order_subtype?: string | null
           order_type_id?: string | null
+          other_charges_amount?: number
           outstanding_amount?: number | null
-          paid_amount?: number | null
+          overpaid_amount?: number
           paid_at?: string | null
           paid_by?: string | null
           parent_order_id?: string | null
@@ -15213,19 +15283,21 @@ export type Database = {
           payment_status?: string | null
           payment_terms?: string | null
           payment_type_code?: string | null
+          pending_payment_amount?: number
           photo_urls?: Json | null
           physical_intake_at?: string | null
           physical_intake_by?: string | null
           physical_intake_info?: string | null
           physical_intake_status?: string
+          piece_extra_price_amount?: number
           po_number?: string | null
+          preference_extra_price_amount?: number
           preparation_status?: string | null
           prepared_at?: string | null
           prepared_by?: string | null
           priority?: string | null
           priority_multiplier?: number | null
           promo_code_id?: string | null
-          promo_discount_amount?: number | null
           qr_code?: string | null
           quick_drop_quantity?: number | null
           rack_location?: string | null
@@ -15233,11 +15305,14 @@ export type Database = {
           ready_by?: string | null
           ready_by_at_new?: string | null
           ready_by_override?: string | null
+          real_payment_refunded_amount?: number
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
           received_at?: string | null
           received_info?: string | null
+          refund_reopens_due_amount?: number
+          refunded_amount?: number
           rejected_from_stage?: string | null
           return_reason?: string | null
           return_reason_code?: string | null
@@ -15245,14 +15320,18 @@ export type Database = {
           returned_by?: string | null
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
-          service_charge?: number | null
-          service_charge_type?: string | null
+          service_charge_amount?: number
           status?: string | null
-          subtotal?: number | null
-          tax?: number | null
+          stored_value_restored_amount?: number
+          subtotal_amount?: number
+          tax_document_id?: string | null
+          tax_document_no?: string | null
+          tax_document_status?: string | null
+          tax_document_type?: string | null
           tax_rate?: number | null
+          taxable_amount?: number
           tenant_org_id?: string
-          total?: number | null
+          total_amount?: number
           total_charges_amount?: number | null
           total_credit_applied_amount?: number | null
           total_discount_amount?: number | null
@@ -15262,7 +15341,6 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
-          vat_amount?: number | null
           vat_rate?: number | null
           workflow_template_id?: string | null
         }

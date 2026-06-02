@@ -11,6 +11,8 @@ import type {
   RefundMethod,
   PaymentNature,
   SettlementTypeCode,
+  OrderFinancialSnapshotStatus,
+  OrderFinancialWarningCode,
   ReconciliationSeverity,
   ReconciliationCheckName,
 } from '@/lib/constants/order-financial';
@@ -24,6 +26,8 @@ export type {
   RefundMethod,
   PaymentNature,
   SettlementTypeCode,
+  OrderFinancialSnapshotStatus,
+  OrderFinancialWarningCode,
   ReconciliationSeverity,
   ReconciliationCheckName,
 };
@@ -84,6 +88,49 @@ export type FinancialBreakdownSnapshot = {
   outstanding:             number;
   currencyCode:            string;
   decimalPlaces:           number;
+};
+
+/** Canonical warning entry persisted inside the financial snapshot JSON trace. */
+export type OrderFinancialCalculationWarning = {
+  code: OrderFinancialWarningCode;
+  detail?: string;
+};
+
+/** Canonical JSON payload persisted on `org_orders_mst.financial_calculation_snapshot`. */
+export type OrderFinancialCalculationSnapshot = {
+  version: number;
+  warningCodes: OrderFinancialWarningCode[];
+  usedLegacyTotalFallback: boolean;
+  usedHeaderTotalFallback?: boolean;
+  hasPaymentTargetUnclassified: boolean;
+  hasRefundSourceUnclassified: boolean;
+  sourceTotals: Record<string, number | string | null>;
+  derivedTotals: Record<string, number | string | null>;
+  lineage: Record<string, string | null>;
+  notes: string[];
+};
+
+/** Canonical order-header snapshot fields preferred by new Order Fin readers. */
+export type CanonicalOrderFinancialSnapshot = {
+  subtotalAmount: number;
+  itemsBaseAmount: number;
+  totalAmount: number;
+  totalChargesAmount: number;
+  totalDiscountAmount: number;
+  taxableAmount: number;
+  totalTaxAmount: number;
+  totalPaidAmount: number;
+  totalCreditAppliedAmount: number;
+  refundedAmount: number;
+  realPaymentRefundedAmount: number;
+  netCollectedAmount: number;
+  outstandingAmount: number;
+  overpaidAmount: number;
+  payOnCollectionAmount: number;
+  arReceivableAmount: number;
+  financialSnapshotStatus: OrderFinancialSnapshotStatus;
+  financialMismatchWarningCount: number;
+  financialCalculationSnapshot?: OrderFinancialCalculationSnapshot | null;
 };
 
 /**

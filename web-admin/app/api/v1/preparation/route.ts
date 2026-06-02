@@ -29,7 +29,7 @@ export async function GET() {
 
     const { data: orders, error } = await supabase
       .from('org_orders_mst')
-      .select('id, order_no, customer_id, branch_id, preparation_status, status, total_items, subtotal, tax, total, received_at')
+      .select('id, order_no, customer_id, branch_id, preparation_status, status, total_items, subtotal:subtotal_amount, tax:total_tax_amount, total:total_amount, received_at')
       .eq('tenant_org_id', tenantId)
       .eq('status', 'intake')
       .in('preparation_status', ['pending', 'in_progress'])
@@ -48,5 +48,4 @@ export async function GET() {
     );
   }
 }
-
 

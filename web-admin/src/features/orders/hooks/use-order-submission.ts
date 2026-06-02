@@ -295,7 +295,7 @@ export function useOrderSubmission() {
                         manualDiscount: payload.totals.manualDiscount ?? 0,
                         promoDiscount: NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (payload.totals.promoDiscount ?? 0),
                         vatValue: payload.totals.vatValue,
-                        finalTotal: payload.totals.finalTotal,
+                        saleTotal: payload.totals.saleTotal,
                     },
                     amountToCharge: payload.amountToCharge,
                     ...(payload.outstandingPolicy && {

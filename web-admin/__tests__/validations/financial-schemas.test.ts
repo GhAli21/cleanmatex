@@ -9,7 +9,7 @@
  * - createWithPaymentRequestSchema — paymentLegs accepted when present
  * - createWithPaymentRequestSchema — single legacy paymentMethod still valid
  * - newOrderPaymentPayloadSchema — paymentLegs optional
- * - newOrderPaymentPayloadSchema — amountToCharge > finalTotal rejected
+ * - newOrderPaymentPayloadSchema — amountToCharge > saleTotal rejected
  */
 
 import {
@@ -28,10 +28,10 @@ describe('paymentLegSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts a CHECK leg with optional check fields', () => {
+  it('accepts a CHECK leg with optional check fields when checkDate is not in the past', () => {
     const result = paymentLegSchema.safeParse({
       method: 'CHECK', amount: 25,
-      checkNumber: '1234', checkBank: 'NBD', checkDate: '2026-06-01',
+      checkNumber: '1234', checkBank: 'NBD', checkDate: '2099-12-31',
     });
     expect(result.success).toBe(true);
   });
@@ -76,7 +76,7 @@ describe('paymentLegSchema', () => {
 const minimalOrder = {
   customerId:    'cust-1',
   paymentMethod: 'CASH',
-  clientTotals:  { subtotal: 100, vatValue: 0, finalTotal: 100 },
+  clientTotals:  { subtotal: 100, vatValue: 0, saleTotal: 100 },
   items: [{
     productId:    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     quantity:     1,
@@ -136,7 +136,7 @@ describe('createWithPaymentRequestSchema — paymentLegs', () => {
 const minimalPayload = {
   amountToCharge: 100,
   totals: {
-    subtotal: 100, vatValue: 0, finalTotal: 100,
+    subtotal: 100, vatValue: 0, saleTotal: 100,
   },
 };
 
@@ -144,6 +144,17 @@ describe('newOrderPaymentPayloadSchema', () => {
   it('accepts minimal payload without paymentLegs', () => {
     const result = newOrderPaymentPayloadSchema.safeParse(minimalPayload);
     expect(result.success).toBe(true);
+  });
+
+  it('accepts canonical saleTotal as the primary totals field', () => {
+    const result = newOrderPaymentPayloadSchema.safeParse({
+      amountToCharge: 100,
+      totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.totals.saleTotal).toBe(100);
+    }
   });
 
   it('accepts payload with paymentLegs', () => {
@@ -154,26 +165,26 @@ describe('newOrderPaymentPayloadSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects when amountToCharge > finalTotal + 0.001', () => {
+  it('rejects when amountToCharge > saleTotal + 0.001', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 200,
-      totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
     });
     expect(result.success).toBe(false);
   });
 
-  it('accepts amountToCharge <= finalTotal', () => {
+  it('accepts amountToCharge <= saleTotal', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 100,
-      totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
     });
     expect(result.success).toBe(true);
   });
 
-  it('accepts partial payment (amountToCharge < finalTotal)', () => {
+  it('accepts partial payment (amountToCharge < saleTotal)', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 50,
-      totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
       outstandingPolicy: 'PAY_ON_COLLECTION',
     });
     expect(result.success).toBe(true);
@@ -182,9 +193,23 @@ describe('newOrderPaymentPayloadSchema', () => {
   it('accepts explicit credit-invoice remainder policy', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 25,
-      totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
       outstandingPolicy: 'CREDIT_INVOICE',
     });
     expect(result.success).toBe(true);
   });
+});
+
+describe('createWithPaymentRequestSchema — canonical saleTotal alias', () => {
+  it('accepts clientTotals.saleTotal as the primary totals field', () => {
+    const result = createWithPaymentRequestSchema.safeParse({
+      ...minimalOrder,
+      clientTotals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.clientTotals.saleTotal).toBe(100);
+    }
+  });
+
 });

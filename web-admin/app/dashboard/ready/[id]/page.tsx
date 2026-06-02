@@ -389,7 +389,7 @@ export default function ReadyDetailPage() {
                             paymentKind="invoice"
                             remainingBalance={paymentRemainingBalance}
                             subtotal={order.total}
-                            finalTotal={order.paymentSummary.total}
+                            saleTotal={order.paymentSummary.total}
                             distributeAcrossInvoices={isDistribute}
                             processPaymentAction={async (tid, uid, input) => {
                               const r = await processPayment(tid, uid, { ...input, paymentKind: 'invoice' });

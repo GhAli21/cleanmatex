@@ -55,7 +55,7 @@ function resolveDefaultStatus(paymentMethodCode: string, gatewayCode?: string | 
  * @example
  * const plan = buildSettlementPlan(
  *   orderId,
- *   serverTotals.finalTotal,
+ *   serverTotals.saleTotal,
  *   serverTotals.currencyCode,
  *   settlementLegs,
  *   paymentLegs,

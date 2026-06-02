@@ -79,8 +79,8 @@ function toNum(d: Decimal | null | undefined): number {
 }
 
 function buildDifferences(
-  client: { subtotal: number; manualDiscount?: number; promoDiscount?: number; vatValue: number; finalTotal: number },
-  server: { subtotal: number; manualDiscount: number; promoDiscount: number; vatValue: number; finalTotal: number }
+  client: { subtotal: number; manualDiscount?: number; promoDiscount?: number; vatValue: number; saleTotal: number },
+  server: { subtotal: number; manualDiscount: number; promoDiscount: number; vatValue: number; saleTotal: number }
 ): AmountMismatchDifferences {
   const diff: AmountMismatchDifferences = {};
   if (!withinTolerance(client.subtotal, server.subtotal))
@@ -91,8 +91,8 @@ function buildDifferences(
     diff.promoDiscount = { client: client.promoDiscount ?? 0, server: server.promoDiscount };
   if (!withinTolerance(client.vatValue, server.vatValue))
     diff.vatValue = { client: client.vatValue, server: server.vatValue };
-  if (!withinTolerance(client.finalTotal, server.finalTotal))
-    diff.finalTotal = { client: client.finalTotal, server: server.finalTotal };
+  if (!withinTolerance(client.saleTotal, server.saleTotal))
+    diff.saleTotal = { client: client.saleTotal, server: server.saleTotal };
   return diff;
 }
 
@@ -287,6 +287,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     additionalTaxRate:   input.additionalTaxRate,
     additionalTaxAmount: input.additionalTaxAmount,
   });
+  const clientSaleTotal = clientTotals.saleTotal;
+  const serverSaleTotal = serverTotals.saleTotal;
 
   const differences = buildDifferences(
     {
@@ -294,14 +296,14 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       manualDiscount: clientTotals.manualDiscount,
       promoDiscount:  clientTotals.promoDiscount,
       vatValue:       clientTotals.vatValue,
-      finalTotal:     clientTotals.finalTotal,
+      saleTotal:      clientSaleTotal,
     },
     {
       subtotal:       serverTotals.subtotal,
       manualDiscount: serverTotals.manualDiscount,
       promoDiscount:  serverTotals.promoDiscount,
       vatValue:       serverTotals.vatValue,
-      finalTotal:     serverTotals.finalTotal,
+      saleTotal:      serverSaleTotal,
     }
   );
 
@@ -319,7 +321,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     : [
         {
           method:      input.paymentMethod as PaymentLeg['method'],
-          amount:      input.amountToCharge ?? clientTotals.finalTotal,
+          amount:      input.amountToCharge ?? clientSaleTotal,
           checkNumber: input.checkNumber,
           checkBank:   input.checkBank,
           checkDate:   input.checkDate,
@@ -334,7 +336,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   const amountToCharge = sumMoney(
     paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method)).map((leg) => leg.amount)
   ).toNumber();
-  const unpaidBalance = Math.max(0, serverTotals.finalTotal - amountToCharge);
+  const unpaidBalance = Math.max(0, serverSaleTotal - amountToCharge);
 
   if (input.outstandingPolicy === 'NONE' && unpaidBalance > TOLERANCE) {
     throw new Error('OUTSTANDING_POLICY_REQUIRED');
@@ -350,7 +352,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   );
 
   if (effectiveOutstandingPolicy === 'CREDIT_INVOICE') {
-    const creditCheck = await checkCreditLimit(input.customerId, serverTotals.finalTotal);
+    const creditCheck = await checkCreditLimit(input.customerId, serverSaleTotal);
     if (creditCheck.isCreditHold) {
       const err = new Error('B2B_CREDIT_HOLD'); throw err;
     }
@@ -365,7 +367,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }
   }
 
-  if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE)
+  if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverSaleTotal + TOLERANCE)
     throw new Error('AMOUNT_OUT_OF_RANGE');
   if (hasImmediatePayment && amountToCharge <= 0)
     throw new Error('AMOUNT_OUT_OF_RANGE');
@@ -515,7 +517,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // voucher lines use result.orderId directly after tx1.
   const plan = buildSettlementPlan(
     '',
-    serverTotals.finalTotal,
+    serverSaleTotal,
     serverTotals.currencyCode,
     settlementLegs,
     paymentLegs,
@@ -556,7 +558,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       subtotal:  serverTotals.subtotal,
       discount:  serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
       tax:       serverTotals.additionalTaxAmount ?? 0,
-      total:     serverTotals.finalTotal,
+      total:     serverSaleTotal,
       vatRate:   serverTotals.vatTaxPercent,
       vatAmount: serverTotals.vatValue,
       taxRate:   serverTotals.taxBreakdown.filter((line) => line.taxType === TAX_TYPES.CUSTOM).length === 1
@@ -597,7 +599,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   };
 
   // Gift-card redemption is stored-value settlement, not a pricing discount.
-  // `serverTotals.finalTotal` is the full sale total after commercial
+  // `serverSaleTotal` is the full sale total after commercial
   // discounts and tax only, while `plan.creditAppliedAmount` covers every
   // settlement credit leg (gift-card, wallet, advance, customer credit,
   // loyalty). `correctedOutstanding` is the post-settlement receivable. Used by:
@@ -606,7 +608,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   //  (c) `breakdown.outstanding` snapshot persisted by settleOrder
   const correctedOutstanding = Math.max(
     0,
-    serverTotals.finalTotal - plan.realPaymentAmount - plan.creditAppliedAmount
+    serverSaleTotal - plan.realPaymentAmount - plan.creditAppliedAmount
   );
 
   // ADR_ar_invoice_is_receivable_only.md — `org_invoice_mst` rows represent
@@ -877,12 +879,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     netBeforeTax:     serverTotals.afterDiscounts,
     taxBreakdown:     taxLines,
     taxTotal,
-    grandTotal:       serverTotals.finalTotal,
+    grandTotal:       serverSaleTotal,
     // creditsTotal is informational: total balance debited via voucher
     // CREDIT_APPLICATION lines (gift-card + wallet + advance + cn + loyalty).
     creditsTotal:     plan.creditAppliedAmount,
     // netReceivable: full sale total minus settlement-time credits.
-    netReceivable:    Math.max(0, serverTotals.finalTotal - plan.creditAppliedAmount),
+    netReceivable:    Math.max(0, serverSaleTotal - plan.creditAppliedAmount),
     paymentLegsTotal: amountToCharge,
     changeReturned:   0,
     outstanding:      correctedOutstanding,
@@ -939,7 +941,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       where:  { id: result.orderId, tenant_org_id: tenantId },
       select: {
         id: true, order_no: true, current_status: true,
-        total: true, total_paid_amount: true,
+        total_amount: true, total_paid_amount: true,
         total_credit_applied_amount: true, outstanding_amount: true,
         payment_status: true, payment_type_code: true,
       },
@@ -961,7 +963,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       id:                       finalOrder.id,
       orderNo:                  finalOrder.order_no,
       currentStatus:            finalOrder.current_status,
-      totalAmount:              String(finalOrder.total ?? 0),
+      totalAmount:              String(finalOrder.total_amount ?? 0),
       totalPaidAmount:          String(finalOrder.total_paid_amount ?? 0),
       totalCreditAppliedAmount: String(finalOrder.total_credit_applied_amount ?? 0),
       outstandingAmount:        String(finalOrder.outstanding_amount ?? 0),

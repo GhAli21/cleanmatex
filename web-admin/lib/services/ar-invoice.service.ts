@@ -23,6 +23,7 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { assertBlockingInvoiceAutoPostSucceeded } from '@/lib/services/erp-lite-auto-post.util';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import type {
   ArAgingCustomerRow,
   ArCustomerBalance,
@@ -79,6 +80,20 @@ function toNumber(value: unknown): number {
 
 function calculateOutstandingAmount(totalAmount: number, paidAmount: number): number {
   return Math.max(0, totalAmount - paidAmount);
+}
+
+function getCanonicalOrderInvoiceSnapshot(order: Record<string, unknown>) {
+  const financialSnapshot = readCanonicalOrderFinancialSnapshot(order);
+  const receivableAmount =
+    financialSnapshot.arReceivableAmount > 0
+      ? financialSnapshot.arReceivableAmount
+      : financialSnapshot.outstandingAmount;
+
+  return {
+    totalAmount: financialSnapshot.totalAmount,
+    paidAmount: financialSnapshot.totalPaidAmount,
+    receivableAmount,
+  };
 }
 
 function parseJsonRecord(value: unknown): Record<string, unknown> | undefined {
@@ -397,9 +412,10 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
           select: {
             id: true,
             order_no: true,
-            total: true,
-            paid_amount: true,
+            total_amount: true,
+            total_paid_amount: true,
             outstanding_amount: true,
+            ar_receivable_amount: true,
             // Selected for defense-in-depth: cash-paid orders must not produce
             // an INVOICE_ISSUED AR ledger debit even if a caller creates an
             // org_invoice_mst row for them (ADR_ar_invoice_is_receivable_only.md).
@@ -410,21 +426,18 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
   ]);
 
   if (input.orderId && order && orderLinkCount === 0) {
-    const orderOutstanding = toNumber(
-      order.outstanding_amount ??
-        calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-    );
+    const orderSnapshot = getCanonicalOrderInvoiceSnapshot(order as Record<string, unknown>);
 
     await tx.org_invoice_orders_dtl.create({
       data: {
         tenant_org_id: input.tenantId,
         invoice_id: input.invoiceId,
         order_id: input.orderId,
-        order_total_amount: toNumber(order.total),
+        order_total_amount: orderSnapshot.totalAmount,
         invoiced_amount: input.totalAmount,
-        paid_before_amount: toNumber(order.paid_amount),
+        paid_before_amount: orderSnapshot.paidAmount,
         credit_before_amount: 0,
-        outstanding_amount: orderOutstanding,
+        outstanding_amount: orderSnapshot.receivableAmount,
         allocation_policy: 'REMAINING_ONLY',
         created_by: input.userId ?? null,
         updated_by: input.userId ?? null,
@@ -1369,26 +1382,31 @@ export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActo
               },
               select: {
                 id: true,
-                total: true,
-                paid_amount: true,
+                total_amount: true,
+                total_paid_amount: true,
                 outstanding_amount: true,
+                ar_receivable_amount: true,
               },
             });
 
             await tx.org_invoice_orders_dtl.createMany({
-              data: orders.map((order) => ({
-                tenant_org_id: tenantId,
-                invoice_id: created.id,
-                order_id: order.id,
-                order_total_amount: toNumber(order.total),
-                invoiced_amount: toNumber(order.outstanding_amount ?? calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))),
-                paid_before_amount: toNumber(order.paid_amount),
-                credit_before_amount: 0,
-                outstanding_amount: toNumber(order.outstanding_amount ?? calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))),
-                allocation_policy: 'CUSTOM_AMOUNT',
-                created_by: userId,
-                updated_by: userId,
-              })),
+              data: orders.map((order) => {
+                const orderSnapshot = getCanonicalOrderInvoiceSnapshot(order as Record<string, unknown>);
+
+                return {
+                  tenant_org_id: tenantId,
+                  invoice_id: created.id,
+                  order_id: order.id,
+                  order_total_amount: orderSnapshot.totalAmount,
+                  invoiced_amount: orderSnapshot.receivableAmount,
+                  paid_before_amount: orderSnapshot.paidAmount,
+                  credit_before_amount: 0,
+                  outstanding_amount: orderSnapshot.receivableAmount,
+                  allocation_policy: 'CUSTOM_AMOUNT',
+                  created_by: userId,
+                  updated_by: userId,
+                };
+              }),
             });
           }
 
@@ -1438,9 +1456,10 @@ async function createArInvoiceFromOrdersInTx(
           order_no: true,
           customer_id: true,
           branch_id: true,
-          total: true,
-          paid_amount: true,
+          total_amount: true,
+          total_paid_amount: true,
           outstanding_amount: true,
+          ar_receivable_amount: true,
           currency_code: true,
           currency_ex_rate: true,
           payment_type_code: true,
@@ -1497,11 +1516,8 @@ async function createArInvoiceFromOrdersInTx(
       // `plan.outstandingAmount` (= finalTotal − realPayment − creditApplied).
       // API-route callers omit it and keep the legacy full-sale semantics.
       const legacySubtotal = orders.reduce((sum, order) => {
-        const outstanding = toNumber(
-          order.outstanding_amount ??
-          calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-        );
-        return sum + outstanding;
+        const orderSnapshot = getCanonicalOrderInvoiceSnapshot(order as Record<string, unknown>);
+        return sum + orderSnapshot.receivableAmount;
       }, 0);
       const subtotal =
         input.expected_total_amount != null ? input.expected_total_amount : legacySubtotal;
@@ -1598,18 +1614,16 @@ async function createArInvoiceFromOrdersInTx(
 
       await tx.org_invoice_orders_dtl.createMany({
         data: orders.map((order) => {
-          const orderOutstanding = toNumber(
-            order.outstanding_amount ??
-            calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-          );
+          const orderSnapshot = getCanonicalOrderInvoiceSnapshot(order as Record<string, unknown>);
+          const orderOutstanding = orderSnapshot.receivableAmount;
           const invoiced = useExpectedSingleOrder ? subtotal : orderOutstanding;
           return {
             tenant_org_id: tenantId,
             invoice_id: created.id,
             order_id: order.id,
-            order_total_amount: toNumber(order.total),
+            order_total_amount: orderSnapshot.totalAmount,
             invoiced_amount: invoiced,
-            paid_before_amount: toNumber(order.paid_amount),
+            paid_before_amount: orderSnapshot.paidAmount,
             credit_before_amount: 0,
             outstanding_amount: invoiced,
             allocation_policy: input.allocation_policy,
@@ -1621,10 +1635,8 @@ async function createArInvoiceFromOrdersInTx(
 
       await tx.org_invoice_lines_dtl.createMany({
         data: orders.map((order, index) => {
-          const orderOutstanding = toNumber(
-            order.outstanding_amount ??
-            calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
-          );
+          const orderSnapshot = getCanonicalOrderInvoiceSnapshot(order as Record<string, unknown>);
+          const orderOutstanding = orderSnapshot.receivableAmount;
           const lineAmount = useExpectedSingleOrder ? subtotal : orderOutstanding;
           return {
             tenant_org_id: tenantId,

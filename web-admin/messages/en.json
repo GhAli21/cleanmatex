@@ -93,6 +93,7 @@
       "manualDiscount": "Manual discount",
       "promoDiscount": "Promo discount",
       "vatValue": "VAT",
+      "saleTotal": "Sale total",
       "finalTotal": "Final total"
     }
   },
@@ -2314,14 +2315,13 @@
             "totalAmount": "Total amount",
             "totalPaidAmount": "Total paid",
             "totalCreditAppliedAmount": "Total credits applied",
-            "totalRefundedAmount": "Total refunded",
+            "refundedAmount": "Refunded amount",
             "outstandingAmount": "Outstanding",
             "payOnCollectionAmount": "Pay on collection",
-            "giftCardAppliedAmount": "Gift card applied",
             "changeReturnedAmount": "Change returned",
             "serviceChargeAmount": "Service charge",
             "roundingAmount": "Rounding",
-            "netReceivableAmount": "Net receivable",
+            "arReceivableAmount": "AR receivable",
             "paymentTypeCode": "Payment type",
             "paymentStatus": "Payment status",
             "financialEngineVersion": "Financial engine version"

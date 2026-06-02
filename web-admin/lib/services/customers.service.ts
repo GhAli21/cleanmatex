@@ -456,7 +456,7 @@ export async function findCustomerById(
     if (!orgRow) return null;
     const { data: orderStats } = await supabase
       .from('org_orders_mst')
-      .select('id, total, delivered_at')
+      .select('id, total:total_amount, delivered_at')
       .eq('customer_id', customerId)
       .eq('tenant_org_id', tenantId);
     const totalOrders = orderStats?.length || 0;
@@ -504,7 +504,7 @@ export async function findCustomerById(
 
   const { data: orderStats } = await supabase
     .from('org_orders_mst')
-    .select('id, total, delivered_at')
+    .select('id, total:total_amount, delivered_at')
     .eq('customer_id', sysCustomerId)
     .eq('tenant_org_id', tenantId);
   const totalOrders = orderStats?.length || 0;

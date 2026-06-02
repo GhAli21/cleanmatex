@@ -187,7 +187,7 @@ export class DashboardService {
 
       let ordersQuery = this.supabase
         .from('org_orders_mst')
-        .select('id, status, total, created_at')
+        .select('id, status, total:total_amount, created_at')
         .eq('tenant_org_id', tenantId)
         .not('status', 'in', '("CANCELLED","CLOSED")')
       if (branchId) ordersQuery = ordersQuery.eq('branch_id', branchId)
@@ -633,7 +633,7 @@ export class DashboardService {
       from.setDate(from.getDate() - 7)
       let query = this.supabase
         .from('org_orders_mst')
-        .select('created_at, total')
+        .select('created_at, total:total_amount')
         .eq('tenant_org_id', tenantId)
         .not('status', 'in', '("CANCELLED")')
         .gte('created_at', from.toISOString())

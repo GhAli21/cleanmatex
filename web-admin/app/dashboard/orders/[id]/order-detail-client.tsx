@@ -180,14 +180,7 @@ export function OrderDetailClient({
     return mapOrderFinancialSummaryView({
       ...financialData,
       order: {
-        service_charge: Number(order.service_charge ?? 0),
         rounding_adjustment_amount: Number(order.rounding_adjustment_amount ?? 0),
-        net_receivable_amount: Number(order.net_receivable_amount ?? 0),
-        financial_engine_version:
-          order.financial_engine_version != null
-            ? Number(order.financial_engine_version)
-            : null,
-        gift_card_applied_amount: Number(order.gift_card_applied_amount ?? 0),
         status: String(order.status ?? ''),
         received_at: order.received_at ? String(order.received_at) : undefined,
         customer_name: customerName,

@@ -71,7 +71,7 @@ export interface OrderFinancialSummaryViewModel {
     expectedOutstandingAmount: number;
     overpaidAmount: number;
     payOnCollectionAmount: number;
-    invoiceAmount: number;
+    arReceivableAmount: number;
   };
 
   payment: {
@@ -98,7 +98,7 @@ export interface OrderFinancialSummaryViewModel {
   rawSnapshot: OrderFinancialSnapshot & {
     serviceChargeAmount: number;
     roundingAmount: number;
-    netReceivableAmount: number;
+    arReceivableAmount: number;
     financialEngineVersion: number | null;
   };
 }
@@ -114,12 +114,7 @@ export interface MapOrderFinancialSummaryInput {
   adjustments: OrderAdjustmentRow[];
   auditTimeline: OrderFinancialTimelineRow[];
   order?: {
-    service_charge?: number | null;
     rounding_adjustment_amount?: number | null;
-    net_receivable_amount?: number | null;
-    financial_engine_version?: number | null;
-    gift_card_applied_amount?: number | null;
-    vat_amount?: number | null;
     status?: string | null;
     received_at?: string | null;
     customer_name?: string | null;

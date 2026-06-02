@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 
 async function getAuthContext() {
   const supabase = await createClient();
@@ -83,15 +84,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       (order.current_status ?? undefined) as any
     );
 
-    // Payment summary from order (total, paid_amount, payment_status)
-    const total = Number(order.total ?? 0);
-    const paid = Number(order.paid_amount ?? 0);
-    const remaining = Math.max(0, total - paid);
+    // Payment summary prefers canonical Order Fin snapshot columns while 0335
+    // keeps the older header mirrors alive for compatibility.
+    const financialSnapshot = readCanonicalOrderFinancialSnapshot(order as Record<string, unknown>);
     const paymentSummary = {
       status: (order.payment_status as string) || 'pending',
-      total,
-      paid,
-      remaining,
+      total: financialSnapshot.totalAmount,
+      paid: financialSnapshot.totalPaidAmount,
+      remaining: financialSnapshot.outstandingAmount,
     };
 
     // All order invoices for payment recording (id, invoice_no, total, paid_amount, remaining)
@@ -144,4 +144,3 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: message }, { status });
   }
 }
-

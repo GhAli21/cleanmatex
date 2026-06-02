@@ -136,19 +136,21 @@ export type PaymentLeg = z.infer<typeof paymentLegSchema>;
 // ---------------------------------------------------------------------------
 
 export const newOrderPaymentTotalsSchema = z.object({
-  subtotal: z.number().min(0),
-  manualDiscount: z.number().min(0).optional(),
-  promoDiscount: z.number().min(0).optional(),
-  afterDiscounts: z.number().min(0).optional(),
-  /** Tax rate (%); distinct from VAT */
-  taxRate: z.number().min(0).optional(),
-  /** Tax amount; distinct from VAT amount */
-  taxAmount: z.number().min(0).optional(),
-  vatTaxPercent: z.number().min(0).optional(),
-  vatValue: z.number().min(0),
-  giftCardApplied: z.number().min(0).optional(),
-  finalTotal: z.number().min(0),
-});
+    subtotal: z.number().min(0),
+    manualDiscount: z.number().min(0).optional(),
+    promoDiscount: z.number().min(0).optional(),
+    afterDiscounts: z.number().min(0).optional(),
+    /** Tax rate (%); distinct from VAT */
+    taxRate: z.number().min(0).optional(),
+    /** Tax amount; distinct from VAT amount */
+    taxAmount: z.number().min(0).optional(),
+    vatTaxPercent: z.number().min(0).optional(),
+    vatValue: z.number().min(0),
+    /** Temporary compatibility alias for stored-value settlement during the canonical rollout. */
+    giftCardApplied: z.number().min(0).optional(),
+    /** Canonical sale total after commercial discounts and tax, before settlement credits. */
+    saleTotal: z.number().min(0),
+  });
 
 export const newOrderPaymentPayloadSchema = z
   .object({
@@ -163,11 +165,11 @@ export const newOrderPaymentPayloadSchema = z
     cashDrawerSessionId: z.string().uuid().optional(),
     /** Selected tax profile IDs shown in the payment modal tax panel. */
     taxProfileIds: z.array(z.string().uuid()).optional(),
-    /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal finalTotal. */
+    /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal saleTotal. */
     paymentLegs: z.array(paymentLegSchema).optional(),
   })
   .refine(
-    (data) => data.amountToCharge <= data.totals.finalTotal + 0.001,
+    (data) => data.amountToCharge <= data.totals.saleTotal + 0.001,
     { message: 'Amount to charge cannot exceed total', path: ['amountToCharge'] }
   );
 
@@ -215,12 +217,13 @@ export type PreviewPaymentRequest = z.infer<typeof previewPaymentRequestSchema>;
 // ---------------------------------------------------------------------------
 
 export const clientTotalsSchema = z.object({
-  subtotal: z.number().min(0),
-  manualDiscount: z.number().min(0).optional(),
-  promoDiscount: z.number().min(0).optional(),
-  vatValue: z.number().min(0),
-  finalTotal: z.number().min(0),
-});
+    subtotal: z.number().min(0),
+    manualDiscount: z.number().min(0).optional(),
+    promoDiscount: z.number().min(0).optional(),
+    vatValue: z.number().min(0),
+    /** Canonical sale total after commercial discounts and tax, before settlement credits. */
+    saleTotal: z.number().min(0),
+  });
 
 export const createWithPaymentRequestSchema = z.object({
   customerId: z.string(),
@@ -319,7 +322,7 @@ export const createWithPaymentRequestSchema = z.object({
   /** Cash drawer session ID — required when a CASH payment method has requiresCashDrawer=true. */
   cashDrawerSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
   clientTotals: clientTotalsSchema,
-  /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
+  /** Amount to charge now (for partial payment). Defaults to clientTotals.saleTotal. Must be <= saleTotal. */
   amountToCharge: z.number().min(0).optional(),
   /**
    * Explicit outstanding balance disposition for any unpaid remainder after
@@ -431,7 +434,7 @@ export const processPaymentActionInputSchema = z
     vatAmount: z.number().min(0).optional(),
     taxRate: z.number().min(0).max(100).optional(),
     taxAmount: z.number().min(0).optional(),
-    finalTotal: z.number().min(0).optional(),
+    saleTotal: z.number().min(0).optional(),
     currencyCode: z.string().length(3).optional(),
     currencyExRate: z.number().min(0).optional(),
     branchId: z.string().uuid().optional(),

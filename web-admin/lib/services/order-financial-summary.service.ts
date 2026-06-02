@@ -63,11 +63,6 @@ export interface OrderFinancialSnapshot {
   financialEngineVersion: number | null;
   changeReturnedAmount: number;
   roundingAmount: number;
-  // Temporary compatibility aliases during the canonical rollout.
-  totalRefundedAmount: number;
-  giftCardAppliedAmount: number;
-  netReceivableAmount: number;
-  vatAmount: number;
 }
 
 export interface OrderChargeRow {
@@ -113,7 +108,6 @@ export interface OrderCreditApplicationRow {
   applied_by: string | null;
   applied_at: string;
   fin_voucher_id: string | null;
-  fin_voucher_trx_line_id: string | null;
 }
 
 export interface OrderRefundRow {
@@ -244,8 +238,6 @@ export async function getOrderFinancialSummary(
           currency_code: true,
           payment_type_code: true,
           payment_status: true,
-          subtotal: true,
-          total: true,
           subtotal_amount: true,
           items_base_amount: true,
           total_amount: true,
@@ -280,13 +272,9 @@ export async function getOrderFinancialSummary(
           tax_document_status: true,
           tax_document_type: true,
           pay_on_collection_amount: true,
-          gift_card_applied_amount: true,
           change_returned_amount: true,
-          service_charge: true,
           rounding_adjustment_amount: true,
-          net_receivable_amount: true,
           financial_engine_version: true,
-          vat_amount: true,
           financial_snapshot_status: true,
           financial_mismatch_warning_count: true,
           financial_calculation_snapshot: true,
@@ -359,7 +347,7 @@ export async function getOrderFinancialSummary(
   const realPaymentRefundedAmount = toNumber(order.real_payment_refunded_amount) || sumRealPaymentRefunds(refunds);
   const totalPaidAmount = toNumber(order.total_paid_amount);
   const totalCreditAppliedAmount = toNumber(order.total_credit_applied_amount);
-  const totalAmount = toNumber(order.total_amount) || toNumber(order.total);
+  const totalAmount = toNumber(order.total_amount);
   const outstandingAmount = toNumber(order.outstanding_amount);
   const payOnCollectionAmount = toNumber(order.pay_on_collection_amount);
 
@@ -375,12 +363,11 @@ export async function getOrderFinancialSummary(
     currencyCode: order.currency_code ?? null,
     paymentTypeCode: order.payment_type_code ?? null,
     paymentStatus: normalizedPaymentStatus,
-    // Temporary deprecated header fallback chain until 0335 removes legacy columns.
-    subtotalAmount: toNumber(order.subtotal_amount) || toNumber(order.subtotal),
-    itemsBaseAmount: toNumber(order.items_base_amount) || toNumber(order.subtotal_amount) || toNumber(order.subtotal),
+    subtotalAmount: toNumber(order.subtotal_amount),
+    itemsBaseAmount: toNumber(order.items_base_amount) || toNumber(order.subtotal_amount),
     pieceExtraPriceAmount: toNumber(order.piece_extra_price_amount),
     preferenceExtraPriceAmount: toNumber(order.preference_extra_price_amount),
-    serviceChargeAmount: toNumber(order.service_charge_amount) || toNumber(order.service_charge),
+    serviceChargeAmount: toNumber(order.service_charge_amount),
     deliveryChargeAmount: toNumber(order.delivery_charge_amount),
     expressChargeAmount: toNumber(order.express_charge_amount),
     otherChargesAmount: toNumber(order.other_charges_amount),
@@ -402,8 +389,7 @@ export async function getOrderFinancialSummary(
     outstandingAmount,
     overpaidAmount: toNumber(order.overpaid_amount) || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
     payOnCollectionAmount,
-    // Temporary deprecated fallback to the legacy receivable mirror until 0335.
-    arReceivableAmount: toNumber(order.ar_receivable_amount) || toNumber(order.net_receivable_amount),
+    arReceivableAmount: toNumber(order.ar_receivable_amount),
     arInvoiceId: order.ar_invoice_id ?? null,
     arInvoiceNo: order.ar_invoice_no ?? null,
     arInvoiceStatus: order.ar_invoice_status ?? null,
@@ -419,10 +405,6 @@ export async function getOrderFinancialSummary(
     financialEngineVersion: order.financial_engine_version ?? null,
     changeReturnedAmount: toNumber(order.change_returned_amount),
     roundingAmount: toNumber(order.rounding_adjustment_amount),
-    totalRefundedAmount: refundedAmount,
-    giftCardAppliedAmount: toNumber(order.gift_card_applied_amount),
-    netReceivableAmount: toNumber(order.net_receivable_amount),
-    vatAmount: toNumber(order.vat_amount),
   };
 
   const voucherReferences = [
@@ -445,13 +427,13 @@ export async function getOrderFinancialSummary(
           : null;
       })
       .filter((row): row is { voucherId: string; voucherLineId: string | null; source: 'REFUND' } => row !== null),
-    // BVM wiring (migrations 0318/0329) stores credit-app voucher backlinks in
-    // dedicated FK columns, not metadata. Reading metadata returned `{}` and
-    // hid the link on Order Details, even though the data was present.
     ...creditApplications
       .map((row) => {
-        const voucherId = row.fin_voucher_id ?? '';
-        const voucherLineId = row.fin_voucher_trx_line_id ?? null;
+        const metadata = row.metadata as Record<string, unknown>;
+        const voucherId = typeof metadata.fin_voucher_id === 'string' ? metadata.fin_voucher_id : '';
+        const voucherLineId = typeof metadata.fin_voucher_trx_line_id === 'string'
+          ? metadata.fin_voucher_trx_line_id
+          : null;
         return voucherId || voucherLineId
           ? { voucherId, voucherLineId, source: 'CREDIT_APPLICATION' as const }
           : null;
@@ -540,7 +522,6 @@ export async function getOrderFinancialSummary(
       applied_by: row.applied_by ?? null,
       applied_at: toIso(row.applied_at),
       fin_voucher_id: row.fin_voucher_id ?? null,
-      fin_voucher_trx_line_id: row.fin_voucher_trx_line_id ?? null,
     })),
     refunds: refunds.map((row) => ({
       id: row.id,

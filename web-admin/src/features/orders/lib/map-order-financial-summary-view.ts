@@ -1,4 +1,10 @@
-import { CHARGE_TYPES, SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import {
+  CHARGE_TYPES,
+  CREDIT_APPLICATION_TYPES,
+  ORDER_FINANCIAL_WARNING_CODES,
+  ORDER_PAYMENT_LIFECYCLE_STATUSES,
+  SETTLEMENT_TYPE_CODES,
+} from '@/lib/constants/order-financial';
 import type {
   MapOrderFinancialSummaryInput,
   FinancialWarning,
@@ -16,6 +22,10 @@ function sumChargesByType(charges: MapOrderFinancialSummaryInput['charges'], typ
     .reduce((sum, c) => sum + n(c.amount), 0);
 }
 
+function normalizeUpper(value: string | null | undefined): string {
+  return value?.trim().toUpperCase() ?? '';
+}
+
 /**
  * Maps Order Fin read model into the Order Details financial summary view model
  * with derived amounts, receivable rules, and consistency warnings.
@@ -25,11 +35,11 @@ export function mapOrderFinancialSummaryView(
 ): OrderFinancialSummaryViewModel {
   const { snapshot, charges, payments, creditApplications, refunds } = input;
 
-  const itemsBaseAmount = n(snapshot.subtotalAmount);
-  const pieceExtraPriceAmount = n(input.pieceExtraTotal);
-  const preferenceExtraPriceAmount = n(input.preferenceExtraTotal);
+  const itemsBaseAmount = n(snapshot.itemsBaseAmount ?? snapshot.subtotalAmount);
+  const pieceExtraPriceAmount = n(snapshot.pieceExtraPriceAmount ?? input.pieceExtraTotal);
+  const preferenceExtraPriceAmount = n(snapshot.preferenceExtraPriceAmount ?? input.preferenceExtraTotal);
   const serviceChargeAmount =
-    n(input.order?.service_charge) || sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']);
+    n(snapshot.serviceChargeAmount) || sumChargesByType(charges, ['SERVICE_CHARGE', 'SERVICE']);
   const deliveryChargeAmount = sumChargesByType(charges, ['DELIVERY', 'DELIVERY_CHARGE']);
   const expressChargeAmount =
     sumChargesByType(charges, [CHARGE_TYPES.EXPRESS, 'EXPRESS_CHARGE']) || 0;
@@ -48,13 +58,15 @@ export function mapOrderFinancialSummaryView(
   const discountAmount = n(snapshot.totalDiscountAmount);
   const netBeforeTaxAmount = Math.max(0, grossAmount - discountAmount);
   const taxAmount = n(snapshot.totalTaxAmount);
-  const taxableAmount = sumTaxableAmount(input.taxes, netBeforeTaxAmount);
+  const taxableAmount = n(snapshot.taxableAmount) || sumTaxableAmount(input.taxes, netBeforeTaxAmount);
   const roundingAmount = n(input.order?.rounding_adjustment_amount);
   const totalAmount = n(snapshot.totalAmount);
   const totalPaidAmount = n(snapshot.totalPaidAmount);
   const totalCreditAppliedAmount = n(snapshot.totalCreditAppliedAmount);
-  const refundedAmount = n(snapshot.totalRefundedAmount);
-  const netCollectedAmount = Math.max(0, totalPaidAmount + totalCreditAppliedAmount - refundedAmount);
+  const refundedAmount = n(snapshot.refundedAmount);
+  const realPaymentRefundedAmount = n(snapshot.realPaymentRefundedAmount);
+  const netCollectedAmount =
+    n(snapshot.netCollectedAmount) || Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
   const expectedOutstandingAmount = Math.max(0, totalAmount - totalPaidAmount - totalCreditAppliedAmount);
   const outstandingAmount = n(snapshot.outstandingAmount);
   const overpaidAmount = Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount);
@@ -65,11 +77,18 @@ export function mapOrderFinancialSummaryView(
       ? outstandingAmount
       : 0;
   const invoiceOutstandingAmount = n(input.arInvoice?.outstandingAmount ?? input.arInvoice?.amount);
-  const invoiceAmount = input.arInvoice
+  const arReceivableAmount = input.arInvoice
     ? invoiceOutstandingAmount
-    : paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
-      ? outstandingAmount
-      : 0;
+    : n(snapshot.arReceivableAmount)
+      || (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
+        ? outstandingAmount
+        : 0);
+
+  const giftCardCreditAmount = creditApplications.reduce((sum, creditApplication) => {
+    return normalizeUpper(creditApplication.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD
+      ? sum + n(creditApplication.applied_amount)
+      : sum;
+  }, 0);
 
   const warnings = buildWarnings({
     snapshot,
@@ -83,7 +102,7 @@ export function mapOrderFinancialSummaryView(
     paymentTypeCode,
     arInvoice: input.arInvoice ?? null,
     arInvoiceOutstandingAmount: input.arInvoice ? invoiceOutstandingAmount : null,
-    giftCardOnOrder: n(input.order?.gift_card_applied_amount),
+    giftCardOnOrder: giftCardCreditAmount,
   });
 
   const reconciliationStatus: OrderFinancialSummaryViewModel['reconciliationStatus'] =
@@ -126,7 +145,7 @@ export function mapOrderFinancialSummaryView(
       expectedOutstandingAmount,
       overpaidAmount,
       payOnCollectionAmount,
-      invoiceAmount,
+      arReceivableAmount,
     },
     payment: {
       paymentTypeCode,
@@ -148,15 +167,15 @@ export function mapOrderFinancialSummaryView(
       ...snapshot,
       serviceChargeAmount,
       roundingAmount,
-      netReceivableAmount: n(input.order?.net_receivable_amount),
-      financialEngineVersion: input.order?.financial_engine_version ?? null,
+      arReceivableAmount: n(snapshot.arReceivableAmount),
+      financialEngineVersion: snapshot.financialEngineVersion ?? null,
     },
   };
 }
 
 function sumTaxableAmount(taxes: MapOrderFinancialSummaryInput['taxes'], fallback: number): number {
   if (!taxes.length) return fallback;
-  return taxes.reduce((sum, row) => sum + n(row.tax_amount), 0);
+  return taxes.reduce((sum, row) => sum + n(row.taxable_amount), 0);
 }
 
 function buildWarnings(ctx: {
@@ -178,7 +197,7 @@ function buildWarnings(ctx: {
 
   if (Math.abs(ctx.outstandingAmount - ctx.expectedOutstandingAmount) > tolerance) {
     warnings.push({
-      code: 'BALANCE_MISMATCH',
+      code: ORDER_FINANCIAL_WARNING_CODES.OUTSTANDING_MISMATCH,
       severity: 'warning',
       messageKey: 'balanceMismatch',
       messageParams: {
@@ -191,22 +210,38 @@ function buildWarnings(ctx: {
     });
   }
 
-  const pendingPayments = ctx.payments.filter(
-    (p) => p.payment_status && p.payment_status !== 'COMPLETED' && p.payment_status !== 'CANCELLED'
+  const pendingPayments = ctx.payments.filter((payment) =>
+    ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING.includes(
+      normalizeUpper(payment.payment_status) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING)[number]
+    )
   );
   if (pendingPayments.length > 0 && ctx.totalPaidAmount > 0) {
     warnings.push({
-      code: 'PENDING_PAYMENT_COUNTED',
+      code: ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID,
       severity: 'info',
       messageKey: 'pendingPaymentsNote',
       messageParams: { count: pendingPayments.length },
     });
   }
 
+  const authorizedPayments = ctx.payments.filter((payment) =>
+    ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED.includes(
+      normalizeUpper(payment.payment_status) as (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED)[number]
+    )
+  );
+  if (authorizedPayments.length > 0 && ctx.totalPaidAmount > 0) {
+    warnings.push({
+      code: ORDER_FINANCIAL_WARNING_CODES.AUTHORIZED_PAYMENT_COUNTED_AS_PAID,
+      severity: 'info',
+      messageKey: 'pendingPaymentsNote',
+      messageParams: { count: authorizedPayments.length },
+    });
+  }
+
   const creditSum = ctx.creditApplications.reduce((s, c) => s + n(c.applied_amount), 0);
   if (ctx.giftCardOnOrder > 0 && Math.abs(creditSum - ctx.totalCreditAppliedAmount) > tolerance) {
     warnings.push({
-      code: 'GIFT_CARD_NOT_IN_CREDITS',
+      code: ORDER_FINANCIAL_WARNING_CODES.GIFT_CARD_DOUBLE_COUNTED,
       severity: 'warning',
       messageKey: 'giftCardNotInCredits',
     });
@@ -218,7 +253,7 @@ function buildWarnings(ctx: {
     Math.abs(ctx.arInvoiceOutstandingAmount - ctx.outstandingAmount) > tolerance
   ) {
     warnings.push({
-      code: 'AR_RECEIVABLE_MISMATCH',
+      code: ORDER_FINANCIAL_WARNING_CODES.AR_RECEIVABLE_MISMATCH,
       severity: 'warning',
       messageKey: 'arReceivableMismatch',
       messageParams: {
@@ -255,7 +290,7 @@ function buildWarnings(ctx: {
     !ctx.arInvoice
   ) {
     warnings.push({
-      code: 'CREDIT_INVOICE_MISSING_AR',
+      code: ORDER_FINANCIAL_WARNING_CODES.LEGACY_FIELD_USED_IN_SUMMARY,
       severity: 'warning',
       messageKey: 'creditInvoiceMissingAr',
     });

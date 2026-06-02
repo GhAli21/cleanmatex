@@ -97,17 +97,19 @@ export function mapReadyOrderFromStateResponse(
     }),
   );
 
-  const totalVal = Number(raw.total ?? raw.total_amount ?? 0);
+  const totalVal = Number(raw.total_amount ?? 0);
+  const paidAmount = Number(raw.total_paid_amount ?? 0);
+  const outstandingAmount = Number(raw.outstanding_amount ?? Math.max(0, totalVal - paidAmount));
 
   const fallbackSummary: PaymentSummary = {
     status: normalizeOrderPaymentStatus(raw.payment_status, {
       paymentTypeCode: raw.payment_type_code,
       payOnCollectionAmount: Number(raw.pay_on_collection_amount ?? 0),
-      outstandingAmount: Math.max(0, totalVal - Number(raw.paid_amount ?? 0)),
+      outstandingAmount,
     }),
     total: totalVal,
-    paid: Number(raw.paid_amount ?? 0),
-    remaining: Math.max(0, totalVal - Number(raw.paid_amount ?? 0)),
+    paid: paidAmount,
+    remaining: outstandingAmount,
   };
 
   const invoices: ReadyOrderInvoice[] = (response.invoices ?? []).map((inv: any) => ({

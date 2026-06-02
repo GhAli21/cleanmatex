@@ -195,14 +195,17 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
    * Default CREDIT_INVOICE order shape used by happy-path tests.
    */
   function defaultOrder(overrides: Record<string, unknown> = {}) {
+    const totalAmount = Number(overrides.total_amount ?? overrides.total ?? 50);
+    const totalPaidAmount = Number(overrides.total_paid_amount ?? overrides.paid_amount ?? 0);
+
     return {
       id: 'order-1',
       order_no: 'ORD-1001',
       customer_id: 'customer-1',
       branch_id: 'branch-1',
-      total: 50,
-      paid_amount: 0,
-      outstanding_amount: 50,
+      total_amount: totalAmount,
+      total_paid_amount: totalPaidAmount,
+      outstanding_amount: Number(overrides.outstanding_amount ?? Math.max(0, totalAmount - totalPaidAmount)),
       currency_code: 'OMR',
       currency_ex_rate: 1,
       payment_type_code: SETTLEMENT_TYPE_CODES.CREDIT_INVOICE,

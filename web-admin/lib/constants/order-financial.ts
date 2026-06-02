@@ -315,6 +315,95 @@ export type SettlementTypeCode =
   (typeof SETTLEMENT_TYPE_CODES)[keyof typeof SETTLEMENT_TYPE_CODES];
 
 /**
+ * Payment type codes allowed to populate `org_orders_mst.ar_receivable_amount`.
+ *
+ * Why:
+ * The final plan forbids silently inferring invoice-like aliases. We freeze the
+ * discovered set here after repo review so every service uses the same rule.
+ */
+export const AR_RECEIVABLE_PAYMENT_TYPE_CODES = [
+  SETTLEMENT_TYPE_CODES.CREDIT_INVOICE,
+] as const satisfies readonly SettlementTypeCode[];
+/** Derived union for receivable-producing payment type codes. */
+export type ArReceivablePaymentTypeCode = (typeof AR_RECEIVABLE_PAYMENT_TYPE_CODES)[number];
+
+/**
+ * Canonical real-payment lifecycle buckets used by the financial snapshot.
+ *
+ * Why:
+ * Header settlement math must classify mixed historical values consistently in
+ * SQL backfills, write services, and reconciliation checks.
+ */
+export const ORDER_PAYMENT_LIFECYCLE_STATUSES = {
+  COMPLETED: ['COMPLETED', 'CAPTURED', 'SETTLED'],
+  PENDING: ['PENDING', 'PROCESSING', 'CAPTURE_PENDING'],
+  AUTHORIZED: ['AUTHORIZED'],
+  FAILED: ['FAILED', 'CANCELLED', 'EXPIRED', 'VOIDED', 'REFUSED', 'REVERSED'],
+} as const;
+/** Derived union for supported uppercase payment lifecycle statuses. */
+export type OrderPaymentLifecycleStatus =
+  (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES)[keyof typeof ORDER_PAYMENT_LIFECYCLE_STATUSES][number];
+
+/**
+ * Canonical snapshot statuses persisted on `org_orders_mst.financial_snapshot_status`.
+ *
+ * Why:
+ * Summary views and repair jobs need one explicit signal that separates
+ * healthy snapshots from mismatches and from rows that still depend on
+ * legacy fallbacks or ambiguous historical lineage.
+ */
+export const ORDER_FINANCIAL_SNAPSHOT_STATUS = {
+  CURRENT: 'CURRENT',
+  MISMATCH: 'MISMATCH',
+  RECALCULATION_REQUIRED: 'RECALCULATION_REQUIRED',
+  STALE: 'STALE',
+  LOCKED: 'LOCKED',
+} as const;
+/** Derived union for financial snapshot status values. */
+export type OrderFinancialSnapshotStatus =
+  (typeof ORDER_FINANCIAL_SNAPSHOT_STATUS)[keyof typeof ORDER_FINANCIAL_SNAPSHOT_STATUS];
+
+/**
+ * Canonical financial warning codes written into the snapshot JSON and UI.
+ *
+ * Why:
+ * These strings are part of the persisted calculation trace, so they must stay
+ * centralized to prevent silent drift across SQL backfills, services, and views.
+ */
+export const ORDER_FINANCIAL_WARNING_CODES = {
+  ORDER_TOTAL_COMPONENT_MISMATCH: 'ORDER_TOTAL_COMPONENT_MISMATCH',
+  DISCOUNT_TOTAL_MISMATCH: 'DISCOUNT_TOTAL_MISMATCH',
+  TAX_TOTAL_MISMATCH: 'TAX_TOTAL_MISMATCH',
+  OUTSTANDING_MISMATCH: 'OUTSTANDING_MISMATCH',
+  PENDING_PAYMENT_COUNTED_AS_PAID: 'PENDING_PAYMENT_COUNTED_AS_PAID',
+  AUTHORIZED_PAYMENT_COUNTED_AS_PAID: 'AUTHORIZED_PAYMENT_COUNTED_AS_PAID',
+  GIFT_CARD_DOUBLE_COUNTED: 'GIFT_CARD_DOUBLE_COUNTED',
+  CREDIT_APPLICATION_COUNTED_AS_DISCOUNT: 'CREDIT_APPLICATION_COUNTED_AS_DISCOUNT',
+  AR_RECEIVABLE_MISMATCH: 'AR_RECEIVABLE_MISMATCH',
+  TAX_DOCUMENT_TOTAL_MISMATCH: 'TAX_DOCUMENT_TOTAL_MISMATCH',
+  LEGACY_FIELD_USED_IN_SUMMARY: 'LEGACY_FIELD_USED_IN_SUMMARY',
+  REFUND_SOURCE_UNCLASSIFIED: 'REFUND_SOURCE_UNCLASSIFIED',
+  PAYMENT_TARGET_UNCLASSIFIED: 'PAYMENT_TARGET_UNCLASSIFIED',
+} as const;
+/** Derived union for canonical financial warning codes. */
+export type OrderFinancialWarningCode =
+  (typeof ORDER_FINANCIAL_WARNING_CODES)[keyof typeof ORDER_FINANCIAL_WARNING_CODES];
+
+/**
+ * Normalize and test whether a payment type should produce AR receivable.
+ *
+ * Why:
+ * Services should not duplicate inline string checks when the approved set is
+ * intentionally narrow and locked by the final rollout plan.
+ */
+export function isArReceivablePaymentTypeCode(
+  paymentTypeCode: string | null | undefined,
+): paymentTypeCode is ArReceivablePaymentTypeCode {
+  if (!paymentTypeCode) return false;
+  return (AR_RECEIVABLE_PAYMENT_TYPE_CODES as readonly string[]).includes(paymentTypeCode);
+}
+
+/**
  * Canonical Batch 0 order payment snapshot values persisted on `org_orders_mst.payment_status`.
  *
  * Why:

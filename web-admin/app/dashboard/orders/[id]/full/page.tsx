@@ -13,10 +13,12 @@ import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-prefer
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
 } from '@/lib/orders/order-preferences-dtl';
+import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -120,7 +122,14 @@ async function OrderDetailsFullContent({
     );
   }
 
-  const order = orderResult.data;
+  const order = orderResult.data as typeof orderResult.data & {
+    paid_amount?: number | string | null;
+    service_charge?: number | string | null;
+    outstanding_amount?: number | string | null;
+    pay_on_collection_amount?: number | string | null;
+    total_credit_applied_amount?: number | string | null;
+    promo_discount_amount?: number | string | null;
+  };
   const allPayments = paymentsResult.success && paymentsResult.data ? paymentsResult.data : [];
   const unappliedPayments = allPayments.filter((p) => !p.invoice_id);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
@@ -130,14 +139,57 @@ async function OrderDetailsFullContent({
   const editHistory = editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
   const orderPreferences = preferencesResult.success && preferencesResult.data ? preferencesResult.data : [];
   const financialData = financialResult.success ? financialResult.data : undefined;
+  const financialSnapshot = financialData?.snapshot;
+  const canonicalVatAmount = financialData?.taxes
+    ?.filter((row) => row.tax_type === TAX_TYPES.VAT)
+    .reduce((sum, row) => sum + Number(row.tax_amount ?? 0), 0);
+  const canonicalOtherTaxAmount = financialData?.taxes
+    ?.filter((row) => row.tax_type !== TAX_TYPES.VAT)
+    .reduce((sum, row) => sum + Number(row.tax_amount ?? 0), 0);
+  const canonicalPromoDiscount = discountLines
+    .filter((line) => !line.is_voided && line.source_type === 'PROMO_CODE')
+    .reduce((sum, line) => sum + Number(line.discount_amount ?? 0), 0);
+  const canonicalGiftCardApplied = financialData?.creditApplications
+    ?.filter((row) => row.credit_type === CREDIT_APPLICATION_TYPES.GIFT_CARD)
+    .reduce((sum, row) => sum + Number(row.applied_amount ?? 0), 0);
+  const headerFinancialSnapshot = readCanonicalOrderFinancialSnapshot(
+    order as unknown as Record<string, unknown>,
+  );
 
   const serializedOrder = {
     ...order,
-    subtotal: order.subtotal ? Number(order.subtotal) : 0,
-    discount: order.discount ? Number(order.discount) : 0,
-    tax: order.tax ? Number(order.tax) : 0,
-    total: order.total ? Number(order.total) : 0,
-    paid_amount: order.paid_amount ? Number(order.paid_amount) : null,
+    subtotal: financialSnapshot?.subtotalAmount ?? headerFinancialSnapshot.subtotalAmount,
+    discount: financialSnapshot?.totalDiscountAmount ?? headerFinancialSnapshot.totalDiscountAmount,
+    tax:
+      canonicalOtherTaxAmount
+      ?? headerFinancialSnapshot.totalTaxAmount,
+    total: financialSnapshot?.totalAmount ?? headerFinancialSnapshot.totalAmount,
+    paid_amount:
+      financialSnapshot?.totalPaidAmount ?? headerFinancialSnapshot.totalPaidAmount,
+    service_charge:
+      financialSnapshot?.serviceChargeAmount
+      ?? headerFinancialSnapshot.serviceChargeAmount,
+    outstanding_amount:
+      financialSnapshot?.outstandingAmount
+      ?? (order.outstanding_amount != null ? Number(order.outstanding_amount) : null),
+    pay_on_collection_amount:
+      financialSnapshot?.payOnCollectionAmount
+      ?? headerFinancialSnapshot.payOnCollectionAmount,
+    total_credit_applied_amount:
+      financialSnapshot?.totalCreditAppliedAmount
+      ?? (order.total_credit_applied_amount != null ? Number(order.total_credit_applied_amount) : null),
+    ar_receivable_amount:
+      financialSnapshot?.arReceivableAmount
+      ?? headerFinancialSnapshot.arReceivableAmount,
+    promo_discount_amount:
+      canonicalPromoDiscount > 0
+        ? canonicalPromoDiscount
+        : null,
+    gift_card_credit_applied_amount:
+      canonicalGiftCardApplied != null ? canonicalGiftCardApplied : null,
+    vat_tax_amount:
+      canonicalVatAmount
+      ?? null,
     bag_count: order.bag_count ? Number(order.bag_count) : null,
     priority_multiplier:
       order.priority_multiplier !== undefined && order.priority_multiplier !== null
@@ -398,8 +450,8 @@ async function OrderDetailsFullContent({
           [
             'id', 'order_no', 'tenant_org_id', 'branch_id', 'customer_id', 'order_type_id', 'service_category_code',
             'status', 'priority', 'total_items', 'rec_status', 'subtotal', 'discount', 'tax', 'total',
-            'vat_rate', 'vat_amount', 'discount_rate', 'discount_type', 'promo_discount_amount',
-            'gift_card_applied_amount', 'gift_card_id', 'service_charge', 'service_charge_type',
+            'vat_rate', 'discount_rate', 'discount_type', 'promo_discount_amount',
+            'gift_card_id', 'service_charge',
             'currency_code', 'currency_ex_rate',
             'payment_status', 'payment_method_code', 'paid_amount', 'paid_at', 'paid_by', 'payment_notes',
             'received_at', 'ready_by', 'ready_at', 'delivered_at', 'created_at', 'updated_at',

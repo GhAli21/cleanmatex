@@ -268,7 +268,7 @@ export function PaymentModalEnhanced02({
     afterDiscounts: number;
     vatValue: number;
     giftCardApplied: number;
-    finalTotal: number;
+    saleTotal: number;
     vatTaxPercent: number;
     creditLimit?: {
       currentBalance: number;
@@ -348,7 +348,7 @@ export function PaymentModalEnhanced02({
           afterDiscounts: d.afterDiscounts,
           vatValue: d.vatValue,
           giftCardApplied: d.giftCardApplied,
-          finalTotal: d.finalTotal,
+          saleTotal: d.saleTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
@@ -485,14 +485,14 @@ export function PaymentModalEnhanced02({
       const clientGiftCard = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
       const serverGiftCard = serverTotals.giftCardApplied || 0;
       const pendingGiftCard = Math.max(0, clientGiftCard - serverGiftCard);
-      const finalTotalWithExtra = Math.max(0, serverTotals.finalTotal + additionalTaxAmount - pendingGiftCard);
+      const saleTotalWithExtra = Math.max(0, serverTotals.saleTotal + additionalTaxAmount - pendingGiftCard);
       return {
         ...serverTotals,
         taxRate: orderTaxRate,
         taxAmount: additionalTaxAmount,
         giftCardApplied: serverGiftCard + pendingGiftCard,
-        finalTotal: finalTotalWithExtra,
-        totalSavings: serverTotals.subtotal + serverTotals.vatValue - finalTotalWithExtra,
+        saleTotal: saleTotalWithExtra,
+        totalSavings: serverTotals.subtotal + serverTotals.vatValue - saleTotalWithExtra,
       };
     }
     const subtotal = total; 
@@ -506,7 +506,7 @@ export function PaymentModalEnhanced02({
     const afterTax = afterDiscounts + taxAmount;
     const vatValue = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const finalTotal = Math.max(0, afterTax + vatValue);
+    const saleTotal = Math.max(0, afterTax + vatValue);
     return {
       subtotal,
       manualDiscount,
@@ -518,20 +518,22 @@ export function PaymentModalEnhanced02({
       vatTaxPercent: taxRate * 100,
       vatValue,
       giftCardApplied,
-      finalTotal,
-      totalSavings: subtotal + taxAmount + vatValue - finalTotal,
+      saleTotal,
+      totalSavings: subtotal + taxAmount + vatValue - saleTotal,
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount, afterDiscountsForTax, decimalPlaces]);
 
+  const saleTotal = totals.saleTotal;
+
   const effectiveAmountToCharge = useMemo(() => {
-    if (!payPartial || !isImmediatePayment) return totals.finalTotal;
-    const clamped = Math.max(0, Math.min(totals.finalTotal, partialAmount));
+    if (!payPartial || !isImmediatePayment) return saleTotal;
+    const clamped = Math.max(0, Math.min(saleTotal, partialAmount));
     return parseFloat(clamped.toFixed(decimalPlaces));
-  }, [payPartial, isImmediatePayment, totals.finalTotal, partialAmount, decimalPlaces]);
+  }, [payPartial, isImmediatePayment, saleTotal, partialAmount, decimalPlaces]);
 
   const remainingAfterThisPayment = useMemo(
-    () => parseFloat(Math.max(0, totals.finalTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
-    [totals.finalTotal, effectiveAmountToCharge, decimalPlaces]
+    () => parseFloat(Math.max(0, saleTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
+    [saleTotal, effectiveAmountToCharge, decimalPlaces]
   );
 
   /** Sum of all split-payment leg amounts */
@@ -542,14 +544,14 @@ export function PaymentModalEnhanced02({
 
   /** Remaining amount not yet allocated across legs */
   const legRemaining = useMemo(
-    () => parseFloat(Math.max(0, totals.finalTotal - legSum).toFixed(decimalPlaces)),
-    [totals.finalTotal, legSum, decimalPlaces]
+    () => parseFloat(Math.max(0, saleTotal - legSum).toFixed(decimalPlaces)),
+    [saleTotal, legSum, decimalPlaces]
   );
 
   /** Whether the multi-leg section has a valid sum matching the total */
   const legsValid = useMemo(
-    () => Math.abs(legSum - totals.finalTotal) <= 0.001,
-    [legSum, totals.finalTotal]
+    () => Math.abs(legSum - saleTotal) <= 0.001,
+    [legSum, saleTotal]
   );
 
   /** Immediate-only payment method codes allowed as split-payment legs */
@@ -689,7 +691,7 @@ export function PaymentModalEnhanced02({
           searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
-        const defaultAmount = Math.min(result.availableBalance, totals.finalTotal);
+        const defaultAmount = Math.min(result.availableBalance, saleTotal);
         setValue('giftCardAmount', defaultAmount);
         setValue('giftCardId', result.giftCard.id ?? '');
       }
@@ -706,7 +708,7 @@ export function PaymentModalEnhanced02({
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
     const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount = Math.min(giftCardDetails.balance, totals.finalTotal);
+    const maxAmount = Math.min(giftCardDetails.balance, saleTotal);
     if (amountToUse <= 0) {
       cmxMessage.error(t('giftCard.errors.amountRequired'));
       return;
@@ -783,7 +785,7 @@ export function PaymentModalEnhanced02({
         vatTaxPercent: totals.vatTaxPercent,
         vatValue: totals.vatValue,
         giftCardApplied: totals.giftCardApplied,
-        finalTotal: totals.finalTotal,
+        saleTotal,
       },
       ...(currencyConfig && {
         currencyCode: currencyConfig.currencyCode,
@@ -861,7 +863,7 @@ export function PaymentModalEnhanced02({
               <p className="text-xs text-gray-600 mb-0.5">{t('subtotal')}</p>
               <div className={`flex items-center justify-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {totalsLoading && <Loader2 className="w-6 h-6 animate-spin text-gray-400" />}
-                <p className="text-4xl font-bold text-gray-900">{currencyCode} {formatAmount(totals.finalTotal)}</p>
+                <p className="text-4xl font-bold text-gray-900">{currencyCode} {formatAmount(saleTotal)}</p>
               </div>
               {totals.totalSavings > 0 && (
                 <div className={`mt-1.5 flex items-center ${isRTL ? 'flex-row-reverse justify-center' : 'justify-center'} gap-2`}>
@@ -917,7 +919,7 @@ export function PaymentModalEnhanced02({
               </div>
               <div className="col-span-2 flex justify-between items-center text-lg font-bold bg-gray-100 p-2 rounded mt-1">
                 <span className="text-gray-900">{t('summary.totalAmount')}</span>
-                <span className="text-gray-900">{currencyCode} {formatAmount(totals.finalTotal)}</span>
+                <span className="text-gray-900">{currencyCode} {formatAmount(saleTotal)}</span>
               </div>
             </div>
 
@@ -1081,7 +1083,7 @@ export function PaymentModalEnhanced02({
                     type="button"
                     onClick={() => {
                       setPayPartial(true);
-                      setPartialAmount(totals.finalTotal);
+                      setPartialAmount(saleTotal);
                     }}
                     className={`flex-1 min-h-[36px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${payPartial ? 'border-amber-600 bg-amber-100 text-amber-900' : 'border-amber-200 bg-white text-gray-700 hover:border-amber-300'}`}
                   >
@@ -1098,25 +1100,25 @@ export function PaymentModalEnhanced02({
                       <input
                         type="number"
                         min={0}
-                        max={totals.finalTotal}
+                        max={saleTotal}
                         step={Math.pow(10, -decimalPlaces)}
                         value={partialAmount > 0 ? partialAmount : ''}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value);
                           if (!Number.isNaN(val)) {
-                            setPartialAmount(Math.max(0, Math.min(totals.finalTotal, val)));
+                            setPartialAmount(Math.max(0, Math.min(saleTotal, val)));
                           } else {
                             setPartialAmount(0);
                           }
                         }}
-                        placeholder={formatAmount(totals.finalTotal)}
+                        placeholder={formatAmount(saleTotal)}
                         dir="ltr"
                         className="flex-1 min-w-0 px-3 py-2 text-sm border-0 focus:ring-0"
                       />
                     </div>
-                    {effectiveAmountToCharge < totals.finalTotal && effectiveAmountToCharge > 0 && (
+                    {effectiveAmountToCharge < saleTotal && effectiveAmountToCharge > 0 && (
                       <p className={`text-sm font-medium text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t('partialPayment.remainingDue')}: {currencyCode} {formatAmount(totals.finalTotal - effectiveAmountToCharge)}
+                        {t('partialPayment.remainingDue')}: {currencyCode} {formatAmount(saleTotal - effectiveAmountToCharge)}
                       </p>
                     )}
                   </div>
@@ -1212,7 +1214,7 @@ export function PaymentModalEnhanced02({
                 {/* Remaining indicator when multiple legs */}
                 {paymentLegs.length > 1 && !legsValid && (
                   <p className={`text-xs font-medium text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(totals.finalTotal - legSum))})
+                    {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(saleTotal - legSum))})
                   </p>
                 )}
 
@@ -1631,7 +1633,7 @@ export function PaymentModalEnhanced02({
                                     {...field}
                                     type="number"
                                     min={0}
-                                    max={Math.min(giftCardDetails.balance, totals.finalTotal)}
+                                    max={Math.min(giftCardDetails.balance, saleTotal)}
                                     step={Math.pow(10, -decimalPlaces)}
                                     dir="ltr"
                                     disabled={!!appliedGiftCard}
@@ -1660,7 +1662,7 @@ export function PaymentModalEnhanced02({
                               </p>
                               <p>
                                 {t('giftCard.remainingDue', {
-                                  amount: `${currencyCode} ${formatAmount(Math.max(0, totals.finalTotal - Number(giftCardAmount)))}`
+                                  amount: `${currencyCode} ${formatAmount(Math.max(0, saleTotal - Number(giftCardAmount)))}`
                                 })}
                               </p>
                             </div>
@@ -1735,7 +1737,7 @@ export function PaymentModalEnhanced02({
               )}
               <div className={`flex justify-between gap-2 border-t border-gray-100 pt-1.5 mt-1 font-bold ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span>{t('summary.totalAmount')}</span>
-                <span className="tabular-nums">{currencyCode} {formatAmount(totals.finalTotal)}</span>
+                <span className="tabular-nums">{currencyCode} {formatAmount(saleTotal)}</span>
               </div>
               {totals.totalSavings > 0 && (
                 <div className={`flex justify-between gap-2 text-green-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -1773,7 +1775,7 @@ export function PaymentModalEnhanced02({
                   <span className="text-gray-600">{t('summary.deferredPayOnCollection')}</span>
                   <span className="font-medium tabular-nums">
                     {paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION
-                      ? `${currencyCode} ${formatAmount(totals.finalTotal)}`
+                      ? `${currencyCode} ${formatAmount(saleTotal)}`
                       : `${currencyCode} ${formatAmount(0)}`}
                   </span>
                 </div>
@@ -1781,7 +1783,7 @@ export function PaymentModalEnhanced02({
                   <span className="text-gray-600">{t('summary.deferredInvoice')}</span>
                   <span className="font-medium tabular-nums">
                     {paymentMethod === PAYMENT_METHODS.INVOICE
-                      ? `${currencyCode} ${formatAmount(totals.finalTotal)}`
+                      ? `${currencyCode} ${formatAmount(saleTotal)}`
                       : `${currencyCode} ${formatAmount(0)}`}
                   </span>
                 </div>

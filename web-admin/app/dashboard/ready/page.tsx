@@ -14,6 +14,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { Search, ChevronDown } from 'lucide-react';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 
 interface ReadyOrder {
@@ -62,12 +63,12 @@ export default function ReadyPage() {
 
   const orders: ReadyOrder[] = useMemo(() => {
     return (rawOrders ?? []).map((order: any) => {
-      const total = Number(order.total ?? 0);
-      const paid = Number(order.paid_amount ?? 0);
-      const remaining = Number(order.outstanding_amount ?? Math.max(0, total - paid));
+      const financialSnapshot = readCanonicalOrderFinancialSnapshot(order);
+      const total = financialSnapshot.totalAmount;
+      const remaining = financialSnapshot.outstandingAmount;
       const paymentStatus = normalizeOrderPaymentStatus(order.payment_status, {
         paymentTypeCode: order.payment_type_code,
-        payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
+        payOnCollectionAmount: financialSnapshot.payOnCollectionAmount,
         outstandingAmount: remaining,
       });
       return {
