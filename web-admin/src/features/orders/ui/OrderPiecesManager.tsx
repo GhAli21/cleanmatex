@@ -25,6 +25,7 @@ export interface OrderPiecesManagerProps {
   branchId?: string | null;
   onUpdate?: () => void;
   readOnly?: boolean;
+
   showSplitCheckbox?: boolean;
   selectedForSplit?: Set<string>;
   onSplitToggle?: (pieceId: string, selected: boolean) => void;
@@ -34,6 +35,8 @@ export interface OrderPiecesManagerProps {
   enableBulkOperations?: boolean;
   /** Visual density for piece cards */
   pieceDensity?: 'comfortable' | 'compact';
+  /** Polymorphic mode for the piece cards */
+  mode?: 'intake' | 'processing' | 'sorting' | 'assembly' | 'qc';
 }
 
 export function OrderPiecesManager({
@@ -51,6 +54,7 @@ export function OrderPiecesManager({
   enableBarcodeScanner = false,
   enableBulkOperations = false,
   pieceDensity = 'comfortable',
+  mode = 'intake',
 }: OrderPiecesManagerProps) {
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
@@ -353,6 +357,7 @@ export function OrderPiecesManager({
         branchId={branchId}
         onPreferencesSaved={handlePreferencesSaved}
         density={pieceDensity}
+        mode={mode}
       />
     </div>
   );
@@ -360,4 +365,3 @@ export function OrderPiecesManager({
 
 // Export batch update function for external use
 export { OrderPiecesManager as default };
-

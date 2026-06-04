@@ -8,7 +8,11 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { PieceCard } from './PieceCard';
+import { IntakePieceCard } from './pieces/IntakePieceCard';
+import { ProcessingPieceCard } from './pieces/ProcessingPieceCard';
+import { SortingPieceCard } from './pieces/SortingPieceCard';
+import { AssemblyPieceCard } from './pieces/AssemblyPieceCard';
+import { QCPieceCard } from './pieces/QCPieceCard';
 import { CmxButton } from '@ui/primitives';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
@@ -33,6 +37,7 @@ export interface PieceListProps {
   branchId?: string | null;
   onPreferencesSaved?: () => void | Promise<void>;
   density?: 'comfortable' | 'compact';
+  mode?: 'intake' | 'processing' | 'sorting' | 'assembly' | 'qc';
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -56,6 +61,7 @@ export function PieceList({
   branchId,
   onPreferencesSaved,
   density = 'comfortable',
+  mode = 'intake',
 }: PieceListProps) {
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
@@ -89,26 +95,60 @@ export function PieceList({
     <div className="space-y-4">
       {/* Pieces List */}
       <div className="space-y-3">
-        {paginatedPieces.map((piece) => (
-          <PieceCard
-            key={piece.id}
-            piece={piece}
-            onUpdate={onPieceUpdate}
-            readOnly={readOnly}
-            showSplitCheckbox={showSplitCheckbox}
-            isSelectedForSplit={selectedForSplit.has(piece.id)}
-            onSplitToggle={onSplitToggle}
-            rejectColor={rejectColor}
-            bulkSelectMode={bulkSelectMode}
-            isBulkSelected={selectedBulkIds.has(piece.id)}
-            onBulkSelectToggle={onBulkSelectToggle}
-            orderId={orderId}
-            orderItemId={orderItemId}
-            branchId={branchId}
-            onPreferencesSaved={onPreferencesSaved}
-            density={density}
-          />
-        ))}
+        {paginatedPieces.map((piece) => {
+          if (mode === 'processing') {
+            return (
+              <ProcessingPieceCard
+                key={piece.id}
+                piece={piece}
+                onUpdate={onPieceUpdate}
+                isBulkSelected={selectedBulkIds.has(piece.id)}
+                onBulkSelectToggle={onBulkSelectToggle}
+                readOnly={readOnly}
+              />
+            );
+          }
+          if (mode === 'sorting') {
+            return (
+              <SortingPieceCard
+                key={piece.id}
+                piece={piece}
+                readOnly={readOnly}
+              />
+            );
+          }
+          if (mode === 'assembly') {
+            return (
+              <AssemblyPieceCard
+                key={piece.id}
+                piece={piece}
+                readOnly={readOnly}
+              />
+            );
+          }
+          if (mode === 'qc') {
+            return (
+              <QCPieceCard
+                key={piece.id}
+                piece={piece}
+                readOnly={readOnly}
+              />
+            );
+          }
+          // Default: intake
+          return (
+            <IntakePieceCard
+              key={piece.id}
+              piece={piece}
+              onUpdate={onPieceUpdate}
+              readOnly={readOnly}
+              showSplitCheckbox={showSplitCheckbox}
+              isSelectedForSplit={selectedForSplit.has(piece.id)}
+              onSplitToggle={onSplitToggle}
+              rejectColor={rejectColor}
+            />
+          );
+        })}
       </div>
 
       {/* Pagination */}
