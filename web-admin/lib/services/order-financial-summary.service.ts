@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import { buildEffectiveOrderFinancialSnapshot } from '@/lib/utils/order-financial-effective-snapshot';
 import { ORDER_FINANCIAL_SNAPSHOT_STATUS } from '@/lib/constants/order-financial';
 
 /**
@@ -343,13 +344,77 @@ export async function getOrderFinancialSummary(
     }
   }
 
-  const refundedAmount = toNumber(order.refunded_amount) || sumProcessedRefunds(refunds);
-  const realPaymentRefundedAmount = toNumber(order.real_payment_refunded_amount) || sumRealPaymentRefunds(refunds);
-  const totalPaidAmount = toNumber(order.total_paid_amount);
-  const totalCreditAppliedAmount = toNumber(order.total_credit_applied_amount);
-  const totalAmount = toNumber(order.total_amount);
-  const outstandingAmount = toNumber(order.outstanding_amount);
-  const payOnCollectionAmount = toNumber(order.pay_on_collection_amount);
+  const effectiveSnapshot = buildEffectiveOrderFinancialSnapshot({
+    paymentTypeCode: order.payment_type_code ?? null,
+    roundingAmount: toNumber(order.rounding_adjustment_amount),
+    snapshot: {
+      subtotalAmount: toNumber(order.subtotal_amount),
+      itemsBaseAmount: toNumber(order.items_base_amount),
+      pieceExtraPriceAmount: toNumber(order.piece_extra_price_amount),
+      preferenceExtraPriceAmount: toNumber(order.preference_extra_price_amount),
+      serviceChargeAmount: toNumber(order.service_charge_amount),
+      deliveryChargeAmount: toNumber(order.delivery_charge_amount),
+      expressChargeAmount: toNumber(order.express_charge_amount),
+      otherChargesAmount: toNumber(order.other_charges_amount),
+      totalChargesAmount: toNumber(order.total_charges_amount),
+      totalDiscountAmount: toNumber(order.total_discount_amount),
+      taxableAmount: toNumber(order.taxable_amount),
+      totalTaxAmount: toNumber(order.total_tax_amount),
+      totalAmount: toNumber(order.total_amount),
+      totalPaidAmount: toNumber(order.total_paid_amount),
+      pendingPaymentAmount: toNumber(order.pending_payment_amount),
+      authorizedPaymentAmount: toNumber(order.authorized_payment_amount),
+      failedPaymentAmount: toNumber(order.failed_payment_amount),
+      totalCreditAppliedAmount: toNumber(order.total_credit_applied_amount),
+      refundedAmount: toNumber(order.refunded_amount),
+      realPaymentRefundedAmount: toNumber(order.real_payment_refunded_amount),
+      storedValueRestoredAmount: toNumber(order.stored_value_restored_amount),
+      customerCreditIssuedAmount: toNumber(order.customer_credit_issued_amount),
+      netCollectedAmount: toNumber(order.net_collected_amount),
+      outstandingAmount: toNumber(order.outstanding_amount),
+      overpaidAmount: toNumber(order.overpaid_amount),
+      payOnCollectionAmount: toNumber(order.pay_on_collection_amount),
+      arReceivableAmount: toNumber(order.ar_receivable_amount),
+    },
+    charges: charges.map((row) => ({
+      charge_type: row.charge_type,
+      amount: toNumber(row.amount),
+    })),
+    discounts: discountLines.map((row) => ({
+      discount_amount: row.discount_amount,
+    })),
+    taxes: taxes.map((row) => ({
+      tax_amount: toNumber(row.tax_amount),
+      taxable_amount: toNumber(row.taxable_amount),
+    })),
+    payments: payments.map((row) => ({
+      amount: toNumber(row.amount),
+      payment_status: row.payment_status ?? null,
+      payment_nature_snapshot: row.payment_nature_snapshot ?? null,
+      payment_method_code: row.payment_method_code ?? null,
+      gateway_code: row.gateway_code ?? null,
+      gateway_reference: row.gateway_reference ?? null,
+      branch_payment_method_id: row.branch_payment_method_id ?? null,
+    })),
+    creditApplications: creditApplications.map((row) => ({
+      applied_amount: toNumber(row.applied_amount),
+    })),
+    refunds: refunds.map((row) => ({
+      refund_amount: toNumber(row.refund_amount),
+      refund_status: row.refund_status ?? null,
+      refund_method_code: row.refund_method_code ?? null,
+      original_payment_id: row.original_payment_id ?? null,
+    })),
+  });
+
+  const totalAmount = effectiveSnapshot.totalAmount;
+  const totalPaidAmount = effectiveSnapshot.totalPaidAmount;
+  const totalCreditAppliedAmount = effectiveSnapshot.totalCreditAppliedAmount;
+  const refundedAmount = effectiveSnapshot.refundedAmount || sumProcessedRefunds(refunds);
+  const realPaymentRefundedAmount =
+    effectiveSnapshot.realPaymentRefundedAmount || sumRealPaymentRefunds(refunds);
+  const outstandingAmount = effectiveSnapshot.outstandingAmount;
+  const payOnCollectionAmount = effectiveSnapshot.payOnCollectionAmount;
 
   const normalizedPaymentStatus = normalizeOrderPaymentStatus(order.payment_status, {
     paymentTypeCode: order.payment_type_code ?? null,
@@ -357,39 +422,46 @@ export async function getOrderFinancialSummary(
     outstandingAmount,
   });
 
+  const financialSnapshotStatus =
+    effectiveSnapshot.usedReadFallback
+      && (order.financial_snapshot_status == null
+        || order.financial_snapshot_status === ORDER_FINANCIAL_SNAPSHOT_STATUS.CURRENT)
+      ? ORDER_FINANCIAL_SNAPSHOT_STATUS.RECALCULATION_REQUIRED
+      : order.financial_snapshot_status ?? ORDER_FINANCIAL_SNAPSHOT_STATUS.RECALCULATION_REQUIRED;
+
   const snapshot: OrderFinancialSnapshot = {
     orderId: order.id,
     orderNo: order.order_no ?? null,
     currencyCode: order.currency_code ?? null,
     paymentTypeCode: order.payment_type_code ?? null,
     paymentStatus: normalizedPaymentStatus,
-    subtotalAmount: toNumber(order.subtotal_amount),
-    itemsBaseAmount: toNumber(order.items_base_amount) || toNumber(order.subtotal_amount),
-    pieceExtraPriceAmount: toNumber(order.piece_extra_price_amount),
-    preferenceExtraPriceAmount: toNumber(order.preference_extra_price_amount),
-    serviceChargeAmount: toNumber(order.service_charge_amount),
-    deliveryChargeAmount: toNumber(order.delivery_charge_amount),
-    expressChargeAmount: toNumber(order.express_charge_amount),
-    otherChargesAmount: toNumber(order.other_charges_amount),
-    totalChargesAmount: toNumber(order.total_charges_amount),
-    totalDiscountAmount: toNumber(order.total_discount_amount),
-    taxableAmount: toNumber(order.taxable_amount),
-    totalTaxAmount: toNumber(order.total_tax_amount),
+    subtotalAmount: effectiveSnapshot.subtotalAmount,
+    itemsBaseAmount: effectiveSnapshot.itemsBaseAmount,
+    pieceExtraPriceAmount: effectiveSnapshot.pieceExtraPriceAmount,
+    preferenceExtraPriceAmount: effectiveSnapshot.preferenceExtraPriceAmount,
+    serviceChargeAmount: effectiveSnapshot.serviceChargeAmount,
+    deliveryChargeAmount: effectiveSnapshot.deliveryChargeAmount,
+    expressChargeAmount: effectiveSnapshot.expressChargeAmount,
+    otherChargesAmount: effectiveSnapshot.otherChargesAmount,
+    totalChargesAmount: effectiveSnapshot.totalChargesAmount,
+    totalDiscountAmount: effectiveSnapshot.totalDiscountAmount,
+    taxableAmount: effectiveSnapshot.taxableAmount,
+    totalTaxAmount: effectiveSnapshot.totalTaxAmount,
     totalAmount,
     totalPaidAmount,
-    pendingPaymentAmount: toNumber(order.pending_payment_amount),
-    authorizedPaymentAmount: toNumber(order.authorized_payment_amount),
-    failedPaymentAmount: toNumber(order.failed_payment_amount),
+    pendingPaymentAmount: effectiveSnapshot.pendingPaymentAmount,
+    authorizedPaymentAmount: effectiveSnapshot.authorizedPaymentAmount,
+    failedPaymentAmount: effectiveSnapshot.failedPaymentAmount,
     totalCreditAppliedAmount,
     refundedAmount,
     realPaymentRefundedAmount,
-    storedValueRestoredAmount: toNumber(order.stored_value_restored_amount),
-    customerCreditIssuedAmount: toNumber(order.customer_credit_issued_amount),
-    netCollectedAmount: toNumber(order.net_collected_amount) || Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
+    storedValueRestoredAmount: effectiveSnapshot.storedValueRestoredAmount,
+    customerCreditIssuedAmount: effectiveSnapshot.customerCreditIssuedAmount,
+    netCollectedAmount: effectiveSnapshot.netCollectedAmount || Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
     outstandingAmount,
-    overpaidAmount: toNumber(order.overpaid_amount) || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
+    overpaidAmount: effectiveSnapshot.overpaidAmount || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
     payOnCollectionAmount,
-    arReceivableAmount: toNumber(order.ar_receivable_amount),
+    arReceivableAmount: effectiveSnapshot.arReceivableAmount,
     arInvoiceId: order.ar_invoice_id ?? null,
     arInvoiceNo: order.ar_invoice_no ?? null,
     arInvoiceStatus: order.ar_invoice_status ?? null,
@@ -397,7 +469,7 @@ export async function getOrderFinancialSummary(
     taxDocumentNo: order.tax_document_no ?? null,
     taxDocumentStatus: order.tax_document_status ?? null,
     taxDocumentType: order.tax_document_type ?? null,
-    financialSnapshotStatus: order.financial_snapshot_status ?? ORDER_FINANCIAL_SNAPSHOT_STATUS.RECALCULATION_REQUIRED,
+    financialSnapshotStatus,
     financialMismatchWarningCount: order.financial_mismatch_warning_count ?? 0,
     financialCalculationSnapshot: toRecord(order.financial_calculation_snapshot),
     financialCalculationHash: order.financial_calculation_hash ?? null,

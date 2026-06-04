@@ -164,8 +164,8 @@ export function OrderDetailsFullClient({
 
   // Component-level financial derived values (shared between sidebar and financial section)
   const _o = order as Record<string, unknown>;
-  const orderTotal = Number(_o.total ?? 0);
-  const orderPaidAmount = Number(_o.paid_amount ?? 0);
+  const orderTotal = Number(financialData?.snapshot.totalAmount ?? _o.total ?? 0);
+  const orderPaidAmount = Number(financialData?.snapshot.totalPaidAmount ?? _o.paid_amount ?? 0);
   const orderBalanceDue = orderTotal - orderPaidAmount;
   const orderBalanceDueAbs = Math.abs(orderBalanceDue);
   const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {

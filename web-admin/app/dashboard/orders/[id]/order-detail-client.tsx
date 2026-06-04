@@ -204,6 +204,7 @@ export function OrderDetailClient({
   const [depositError, setDepositError] = useState<string | null>(null);
   const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
   const [depositPending, startDepositTransition] = useTransition();
+  const displayOrderTotal = financialViewModel?.amounts.totalAmount ?? Number(order.total ?? 0);
 
   const tenantId = currentTenant?.tenant_id;
   const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {
@@ -676,7 +677,7 @@ export function OrderDetailClient({
             <div className={isRTL ? 'text-left' : 'text-right'}>
               <div className="text-xs text-muted-foreground">{tFin('card.orderTotal')}</div>
               <div className="text-3xl font-bold tabular-nums">
-                {fmtOrderMoney(Number(order.total ?? 0))}
+                {fmtOrderMoney(displayOrderTotal)}
               </div>
             </div>
           </div>

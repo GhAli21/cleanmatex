@@ -100,6 +100,10 @@
   - Removed the dropped legacy `org_orders_mst` financial fields from `web-admin/prisma/schema.prisma` and regenerated Prisma Client so the ORM model now matches the post-`0335` database contract.
   - Hardened `web-admin/lib/db/prisma.ts` so middleware setup safely defers in browser-like test environments without crashing on import-time property access.
   - Replaced the stale `__tests__/services/order-service.test.ts` suite with a current-surface version that covers the static `OrderService` methods still present today (`estimateReadyBy`, `splitOrder`, `createIssue`, `resolveIssue`, `getOrderHistory`).
+  - Added `web-admin/lib/utils/order-financial-effective-snapshot.ts` so read-only order-detail consumers can rebuild effective totals from canonical detail rows when older orders still carry zeroed snapshot totals.
+  - Updated `order-financial-summary.service.ts` to use the effective snapshot helper before building the Order Details read model, which fixes zero-value summary cards on historical orders that still have valid tax/discount/payment rows.
+  - Updated the main and full order detail hero totals to prefer the canonical financial summary values instead of rendering a separate stale `order.total` source.
+  - Added focused utility coverage proving the read-time fallback rebuilds `subtotalAmount`, `totalAmount`, `totalPaidAmount`, and `outstandingAmount` from detail rows when the stored snapshot stayed at zero.
   - Re-ran the post-`0335` gates successfully: targeted Jest suites, `npm run typecheck`, `npm run build`, and `npm run lint`.
 - Next:
   - No further implementation steps remain in this rollout batch.

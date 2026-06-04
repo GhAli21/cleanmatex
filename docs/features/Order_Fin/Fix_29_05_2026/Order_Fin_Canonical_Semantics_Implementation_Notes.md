@@ -57,9 +57,17 @@
 - `web-admin/lib/services/order-financial-summary.service.ts`
   - Summary snapshot math no longer falls back to legacy header totals/charges such as `subtotal`, `total`, `service_charge`, or `net_receivable_amount`.
   - The raw snapshot contract now exposes canonical `refundedAmount` and `arReceivableAmount` directly instead of temporary alias fields like `totalRefundedAmount` and `netReceivableAmount`.
+  - Read-time summary hydration now rebuilds effective totals from discount, tax, payment, credit, and refund detail rows when older orders still carry zeroed canonical snapshot amounts.
+- `web-admin/lib/utils/order-financial-effective-snapshot.ts`
+  - Centralizes the read-only fallback that reconstructs effective order totals from canonical detail rows without mutating the database during page render.
+  - Marks read-time detail fallback usage so summary consumers can surface `RECALCULATION_REQUIRED` instead of pretending a zeroed snapshot is healthy.
 - `web-admin/src/features/orders/lib/map-order-financial-summary-view.ts`
   - The mapper now derives summary amounts from canonical snapshot fields and no longer depends on legacy header fallback reads for service charge or receivable calculations.
   - Gift-card warning input is now derived from canonical `creditApplications` rows rather than `gift_card_applied_amount`.
+- `web-admin/app/dashboard/orders/[id]/order-detail-client.tsx`
+  - The hero total now renders from the canonical financial summary view instead of a separate serialized `order.total` value, preventing the page header from contradicting the financial cards below it.
+- `web-admin/app/dashboard/orders/[id]/full/order-details-full-client.tsx`
+  - The full-detail financial header now also prefers canonical financial summary totals and paid amounts so both order-detail surfaces stay visually aligned.
 - `web-admin/lib/services/order-service.ts`
   - Refreshes the canonical financial snapshot after order edits that recalculate totals, preventing stale `subtotal_amount` / `total_amount` / status fields after edit flows.
   - The legacy Supabase `createOrder` flow now also refreshes the canonical snapshot before returning, so later canonical readers no longer need order-header VAT/gift-card mirrors just to survive first-load timing.
@@ -122,6 +130,7 @@
   - `npm test -- --runTestsByPath __tests__/validations/financial-schemas.test.ts __tests__/validations/payment-leg-schema.test.ts`
   - `npm test -- --runTestsByPath __tests__/services/ar-invoice.service.test.ts __tests__/services/payment-service.test.ts __tests__/services/order-calculation.service.test.ts __tests__/features/orders/map-order-financial-summary-view.test.ts __tests__/integration/checkout-multi-payment.test.ts`
   - `npm test -- --runTestsByPath __tests__/services/order-service.test.ts`
+  - `npm test -- --runTestsByPath __tests__/utils/order-financial-effective-snapshot.test.ts __tests__/features/orders/map-order-financial-summary-view.test.ts`
   - `npx prisma generate`
   - `npm run typecheck`
   - `npm run build`
