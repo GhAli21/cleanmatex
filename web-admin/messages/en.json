@@ -3363,7 +3363,41 @@
     "billingCycle": "Billing Cycle",
     "nextBilling": "Next Billing Date",
     "upgradePlan": "Upgrade Plan",
-    "manageSubscription": "Manage Subscription"
+    "manageSubscription": "Manage Subscription",
+    "loading": "Loading...",
+    "loadError": "Failed to load settings",
+    "tenantSettings": {
+      "title": "Tenant Settings",
+      "description": "Configure organization-wide settings and pricing modes",
+      "pricingSection": "Finance & Pricing",
+      "pricingDescription": "Control how tax and extra prices are applied across all orders for this tenant"
+    },
+    "branchSettings": {
+      "title": "Branch Settings",
+      "description": "Configure settings per branch. Each branch can override the tenant-level defaults.",
+      "selectBranch": "Select a branch…",
+      "pricingSection": "Finance & Pricing Overrides",
+      "pricingDescription": "Override pricing modes for this branch. Select \"Inherit from tenant\" to use the tenant default.",
+      "inheritFromTenant": "Inherit from tenant",
+      "inheritedValue": "Currently inheriting from tenant default"
+    },
+    "pricingMode": {
+      "taxPricingMode": "Tax Pricing Mode",
+      "taxPricingModeDesc": "How tax is applied to order items",
+      "extraPricePricingMode": "Extra Price Mode",
+      "extraPricePricingModeDesc": "How extra prices are presented on orders",
+      "taxExclusive": "Tax Exclusive",
+      "taxExclusiveDesc": "Tax is added on top of the item price",
+      "taxInclusive": "Tax Inclusive",
+      "taxInclusiveDesc": "Tax is embedded within the item price",
+      "includedInItemPrice": "Included in Item Price",
+      "includedInItemPriceDesc": "Extra price is part of the item total",
+      "separateCharge": "Separate Charge",
+      "separateChargeDesc": "Extra price is shown as a separate line item",
+      "saveSuccess": "Pricing mode updated successfully",
+      "saveFailed": "Failed to update pricing mode",
+      "inheritNote": "Leave unset to inherit from tenant"
+    }
   },
   "users": {
     "title": "User Management",
@@ -5103,6 +5137,12 @@
         "hidePin": "Hide PIN",
         "pinPrompt": "This card is PIN-protected. Enter the PIN to continue.",
         "pinPendingError": "Enter the gift card PIN to continue, or remove the card.",
+        "workspaceTitle": "Gift Card Workspace",
+        "workspaceHint": "Finish the PIN and amount steps here so the cashier can work without scrolling the summary rail.",
+        "workspacePinHint": "PIN is required. Continue in the center workspace.",
+        "workspaceAmountHint": "Review or edit the amount in the center workspace.",
+        "continueInWorkspace": "Continue in workspace",
+        "cardCode": "Card Code",
         "apply": "Apply",
         "applied": "Gift card applied",
         "remove": "Remove",

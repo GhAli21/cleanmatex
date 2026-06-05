@@ -356,7 +356,8 @@ export interface FeatureFlags {
     rate_limiting_enabled: number;
     tenant_max_branches: number;
     tenant_max_orders_per_month: number;
-  
+    tax_inclusive_pricing: boolean;
+
 }
 
 // ========================
@@ -577,6 +578,8 @@ export interface TenantUpdateRequest {
   brand_color_primary?: string;
   brand_color_secondary?: string;
   business_hours?: BusinessHours;
+  tax_pricing_mode?: string;
+  extra_price_pricing_mode?: string;
 }
 
 export interface SubscriptionUpgradeRequest {

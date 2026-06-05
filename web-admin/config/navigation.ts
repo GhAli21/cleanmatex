@@ -774,6 +774,22 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
       },
       {
+        key: 'settings_tenant',
+        label: 'Tenant Settings',
+        label2: 'إعدادات المستأجر',
+        path: '/dashboard/settings/tenant',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:tenant_manage'],
+      },
+      {
+        key: 'settings_branches',
+        label: 'Branch Settings',
+        label2: 'إعدادات الفروع',
+        path: '/dashboard/settings/branches',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:branch_manage'],
+      },
+      {
         key: 'settings_preferences',
         label: 'User Preferences',
         path: '/dashboard/settings/preferences',

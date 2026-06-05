@@ -26,17 +26,30 @@ interface BranchOption {
   is_main: boolean | null;
 }
 
-export function BranchSettings() {
+interface BranchSettingsProps {
+  /** When provided the internal branch selector is hidden and this ID is used. */
+  externalBranchId?: string;
+}
+
+export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
   const t = useTranslations('settings');
   const [branches, setBranches] = React.useState<BranchOption[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = React.useState<string>('');
+  const [selectedBranchId, setSelectedBranchId] = React.useState<string>(externalBranchId ?? '');
   const [rows, setRows] = React.useState<SettingsTableRow[]>([]);
   const [loading, setLoading] = React.useState(false);
-  const [initialLoading, setInitialLoading] = React.useState(true);
+  const [initialLoading, setInitialLoading] = React.useState(!externalBranchId);
 
   React.useEffect(() => {
-    void loadBranches();
-  }, []);
+    if (!externalBranchId) {
+      void loadBranches();
+    }
+  }, [externalBranchId]);
+
+  React.useEffect(() => {
+    if (externalBranchId) {
+      setSelectedBranchId(externalBranchId);
+    }
+  }, [externalBranchId]);
 
   React.useEffect(() => {
     if (selectedBranchId) {
@@ -132,40 +145,42 @@ export function BranchSettings() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Branch Settings</h2>
-          <p className="text-sm text-gray-500">
-            Select a branch to view and override settings at the branch level.
-          </p>
+      {!externalBranchId && (
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Branch Settings</h2>
+            <p className="text-sm text-gray-500">
+              Select a branch to view and override settings at the branch level.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSelect
+              value={selectedBranchId}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setSelectedBranchId(e.target.value)
+              }
+              className="min-w-[220px]"
+              options={[
+                { value: '', label: 'Select branch…' },
+                ...branches.map((b) => ({
+                  value: b.id,
+                  label: `${b.name2 || b.name}${b.is_main ? ' (Main)' : ''}`,
+                })),
+              ]}
+            />
+            {selectedBranchId && (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void loadSettingsForBranch(selectedBranchId)}
+              >
+                Reload
+              </CmxButton>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <CmxSelect
-            value={selectedBranchId}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSelectedBranchId(e.target.value)
-            }
-            className="min-w-[220px]"
-            options={[
-              { value: '', label: 'Select branch…' },
-              ...branches.map((b) => ({
-                value: b.id,
-                label: `${b.name2 || b.name}${b.is_main ? ' (Main)' : ''}`,
-              })),
-            ]}
-          />
-          {selectedBranchId && (
-            <CmxButton
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void loadSettingsForBranch(selectedBranchId)}
-            >
-              Reload
-            </CmxButton>
-          )}
-        </div>
-      </div>
+      )}
 
       {initialLoading ? (
         <div className="flex items-center justify-center py-12 text-gray-500 text-sm">

@@ -2,14 +2,14 @@
 
 **Flag:** `tax_inclusive_pricing`  
 **Soak period:** 2 weeks minimum before production compliance claim  
-**Prerequisite:** Settings UI for TAX_PRICING_MODE not yet built — enable via DB row directly (see flag doc)
+**Prerequisite:** Settings UI live at `/dashboard/settings/tenant` and `/dashboard/settings/branches` (2026-06-05)
 
 ---
 
 ## Enable
 
 - [ ] Enable `tax_inclusive_pricing` in GrowthBook for test tenant(s) in staging
-- [ ] Set `TAX_PRICING_MODE = TAX_INCLUSIVE` directly on the branch DB row (until UI is built)
+- [ ] Open `/dashboard/settings/branches` → select test branch → set Tax Pricing Mode to TAX_INCLUSIVE → save
 - [ ] Create and submit a test order on the TAX_INCLUSIVE branch
 
 ---

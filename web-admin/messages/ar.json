@@ -3363,7 +3363,41 @@
     "billingCycle": "دورة الفوترة",
     "nextBilling": "تاريخ الفوترة التالي",
     "upgradePlan": "ترقية الخطة",
-    "manageSubscription": "إدارة الاشتراك"
+    "manageSubscription": "إدارة الاشتراك",
+    "loading": "جار التحميل...",
+    "loadError": "فشل تحميل الإعدادات",
+    "tenantSettings": {
+      "title": "إعدادات المستأجر",
+      "description": "تكوين الإعدادات على مستوى المنظومة وأوضاع التسعير",
+      "pricingSection": "المالية والتسعير",
+      "pricingDescription": "التحكم في كيفية تطبيق الضريبة والأسعار الإضافية على جميع الطلبات"
+    },
+    "branchSettings": {
+      "title": "إعدادات الفروع",
+      "description": "تكوين الإعدادات لكل فرع. يمكن لكل فرع تجاوز الإعدادات الافتراضية للمستأجر.",
+      "selectBranch": "اختر فرعاً...",
+      "pricingSection": "تجاوزات المالية والتسعير",
+      "pricingDescription": "تجاوز أوضاع التسعير لهذا الفرع. اختر \"ورث من المستأجر\" لاستخدام الإعداد الافتراضي.",
+      "inheritFromTenant": "ورث من المستأجر",
+      "inheritedValue": "يرث حالياً من الإعداد الافتراضي للمستأجر"
+    },
+    "pricingMode": {
+      "taxPricingMode": "وضع تسعير الضريبة",
+      "taxPricingModeDesc": "كيفية تطبيق الضريبة على بنود الطلب",
+      "extraPricePricingMode": "وضع السعر الإضافي",
+      "extraPricePricingModeDesc": "كيفية عرض الأسعار الإضافية في الطلبات",
+      "taxExclusive": "ضريبة حصرية",
+      "taxExclusiveDesc": "تُضاف الضريبة فوق سعر البند",
+      "taxInclusive": "ضريبة شاملة",
+      "taxInclusiveDesc": "الضريبة مدمجة في سعر البند",
+      "includedInItemPrice": "مدرج في سعر البند",
+      "includedInItemPriceDesc": "السعر الإضافي جزء من إجمالي البند",
+      "separateCharge": "رسوم منفصلة",
+      "separateChargeDesc": "يظهر السعر الإضافي كبند منفصل",
+      "saveSuccess": "تم تحديث وضع التسعير بنجاح",
+      "saveFailed": "فشل تحديث وضع التسعير",
+      "inheritNote": "اتركه فارغاً للإرث من المستأجر"
+    }
   },
   "users": {
     "title": "إدارة المستخدمين",
@@ -5103,6 +5137,12 @@
         "hidePin": "إخفاء الرقم السري",
         "pinPrompt": "هذه البطاقة محمية برقم سري. أدخل الرقم السري للمتابعة.",
         "pinPendingError": "أدخل الرقم السري للبطاقة للمتابعة، أو احذف البطاقة.",
+        "workspaceTitle": "مساحة عمل بطاقة الهدية",
+        "workspaceHint": "أكمل خطوات الرقم السري والمبلغ هنا حتى يعمل أمين الصندوق دون التمرير داخل لوحة الملخص.",
+        "workspacePinHint": "الرقم السري مطلوب. تابع في مساحة العمل الوسطى.",
+        "workspaceAmountHint": "راجع أو عدّل المبلغ في مساحة العمل الوسطى.",
+        "continueInWorkspace": "المتابعة في مساحة العمل",
+        "cardCode": "رمز البطاقة",
         "apply": "تطبيق",
         "applied": "تم تطبيق البطاقة",
         "remove": "إزالة",

@@ -328,6 +328,30 @@ function CollapsibleRailCard({
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
+/**
+ * Coordinates the V4 cashier payment experience without changing the order
+ * payment payload contract used by the submit flow.
+ *
+ * @param root0 Payment modal props.
+ * @param root0.open Controls modal visibility.
+ * @param root0.onClose Closes the modal after cancel or successful submit.
+ * @param root0.onSubmit Persists the validated payment payload.
+ * @param root0.total Trusted order total from the order workspace.
+ * @param root0.items Order items used for cashier-facing payment context.
+ * @param root0.isExpress Marks whether the order is an express order.
+ * @param root0.tenantOrgId Tenant scope required by payment preview lookups.
+ * @param root0.customerId Customer identifier for credit, wallet, and gift-card context.
+ * @param root0.customerType Customer account type for B2B and AR rules.
+ * @param root0.customerDisplayName Cashier-facing customer name.
+ * @param root0.customerPhone Cashier-facing customer phone or reference.
+ * @param root0.serviceCategories Service categories attached to the order.
+ * @param root0.branchId Branch scope used by payment methods and drawer sessions.
+ * @param root0.userId Current cashier user identifier for drawer and audit context.
+ * @param root0.isRetailOnlyOrder Marks retail-only orders for payment method rules.
+ * @param root0.loading Disables submit while the parent order flow is busy.
+ * @param root0.initialPaymentNotes Existing payment notes restored when reopening.
+ * @returns Payment modal JSX for the active order.
+ */
 export function PaymentModalV4({
   open,
   onClose,
@@ -462,6 +486,7 @@ export function PaymentModalV4({
   // Tax state
   const [taxRate, setTaxRate] = useState<number>(0.06);
 
+  /** Server tax profile row kept local to the modal because it only feeds the payment preview. */
   type TaxProfileEntry = {
     id: string;
     name: string;
@@ -491,6 +516,7 @@ export function PaymentModalV4({
   const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
 
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
+  /** Normalized tax line used to render cashier-facing totals consistently across preview sources. */
   type TaxBreakdownLine = {
     taxType: 'VAT' | 'GST' | 'CUSTOM';
     label: string;
@@ -1780,6 +1806,10 @@ export function PaymentModalV4({
   const showDeferredExplanation =
     settlementLegEntries.length === 0 &&
     (paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE);
+  const showGiftCardWorkspace =
+    !NEW_ORDER_PROMO_GIFT_DISABLED &&
+    !appliedGiftCard &&
+    (pinRequired || !!giftCardDetails);
   const hasCheckLegWithoutNumber = paymentLegs.some(
     (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
   );
@@ -2764,7 +2794,170 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
 
-                  {showDeferredExplanation ? (
+                  {showGiftCardWorkspace ? (
+                    <CmxCard ref={giftCardDetailsRef} className="overflow-hidden border-purple-200 bg-gradient-to-br from-white via-purple-50/40 to-cyan-50/50 shadow-sm">
+                      <CmxCardHeader className={`flex-row items-center justify-between gap-3 border-b border-purple-100 pb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className={isRTL ? 'text-right' : 'text-left'}>
+                          <CmxCardTitle className="text-base font-bold text-slate-900">
+                            {t('giftCard.workspaceTitle')}
+                          </CmxCardTitle>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {t('giftCard.workspaceHint')}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
+                          {t('giftCard.title')}
+                        </Badge>
+                      </CmxCardHeader>
+                      <CmxCardContent className="space-y-5 pt-5">
+                        <div className={`grid gap-4 ${giftCardDetails ? 'lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]' : 'lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]'}`}>
+                          <div className="space-y-3 rounded-2xl border border-purple-100 bg-white/80 p-4">
+                            <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <div className={isRTL ? 'text-right' : 'text-left'}>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
+                                  {t('giftCard.cardCode')}
+                                </p>
+                                <p className="mt-2 break-all text-lg font-bold text-slate-900" dir="ltr">
+                                  {giftCardDetails?.number || giftCardNumber}
+                                </p>
+                              </div>
+                              <CmxButton type="button" variant="outline" size="sm" onClick={handleClearGiftCard}>
+                                {tCommon('cancel')}
+                              </CmxButton>
+                            </div>
+                            {giftCardDetails ? (
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                  <p className="text-xs text-slate-500">{t('giftCard.balance')}</p>
+                                  <p className="mt-1 text-xl font-bold tabular-nums text-purple-700">
+                                    {currencyCode} {formatAmount(giftCardDetails.balance)}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                  <p className="text-xs text-slate-500">{t('rightRail.remainingBalance')}</p>
+                                  <p className="mt-1 text-xl font-bold tabular-nums text-amber-600">
+                                    {currencyCode} {formatAmount(remainingBalance)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                {t('giftCard.pinPendingError')}
+                              </div>
+                            )}
+                            {giftCardResult && !giftCardResult.isValid ? (
+                              <p className={`text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                {resolveGiftCardError(giftCardResult)}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="space-y-3 rounded-2xl border border-purple-100 bg-white p-4 shadow-sm">
+                            {pinRequired ? (
+                              <div className="space-y-3">
+                                <div className={`flex items-end gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                  <CmxInput
+                                    ref={pinInputRef}
+                                    label={t('giftCard.pinLabel')}
+                                    value={giftCardPin}
+                                    type={pinVisible ? 'text' : 'password'}
+                                    dir="ltr"
+                                    error={pinFieldError ?? undefined}
+                                    className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
+                                    onChange={(event) => {
+                                      setGiftCardPin(event.target.value);
+                                      setPinFieldError(null);
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        void handleFetchGiftCardDetails();
+                                      }
+                                    }}
+                                  />
+                                  <CmxButton
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 shrink-0"
+                                    onClick={() => setPinVisible((value) => !value)}
+                                    aria-label={pinVisible ? (t('giftCard.hidePin') || 'Hide PIN') : (t('giftCard.showPin') || 'Show PIN')}
+                                  >
+                                    {pinVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </CmxButton>
+                                </div>
+                                <CmxButton
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={handleFetchGiftCardDetails}
+                                  disabled={!giftCardNumber?.trim() || giftCardValidating || !giftCardPin.trim()}
+                                  className="w-full"
+                                >
+                                  {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
+                                </CmxButton>
+                              </div>
+                            ) : null}
+
+                            {giftCardDetails ? (
+                              <div className="space-y-3">
+                                <Controller
+                                  name="giftCardAmount"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <CmxInput
+                                      {...field}
+                                      ref={(node) => {
+                                        field.ref(node);
+                                        giftCardAmountInputRef.current = node;
+                                      }}
+                                      type="number"
+                                      label={t('giftCard.applyAmount')}
+                                      value={field.value ?? ''}
+                                      dir="ltr"
+                                      min="0"
+                                      step="0.001"
+                                      inputMode="decimal"
+                                      placeholder={t('giftCard.amountPlaceholder')}
+                                      onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
+                                      onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          event.stopPropagation();
+                                          handleApplyGiftCard();
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                />
+                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                  <CmxButton
+                                    type="button"
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={handleApplyGiftCard}
+                                    disabled={!giftCardAmount || giftCardAmount <= 0}
+                                    className="flex-1"
+                                  >
+                                    {t('giftCard.applyAmount')}
+                                  </CmxButton>
+                                  <CmxButton
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleClearGiftCard}
+                                    className="flex-1"
+                                  >
+                                    {tCommon('cancel')}
+                                  </CmxButton>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </CmxCardContent>
+                    </CmxCard>
+                  ) : showDeferredExplanation ? (
                     <CmxCard>
                       <CmxCardContent className="pt-5">
                         <p className="text-lg font-semibold text-slate-900">{t('workspace.noImmediateTitle') || 'No pay-now amount selected'}</p>
@@ -3405,100 +3598,36 @@ export function PaymentModalV4({
                                     {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
                                   </CmxButton>
                                 </div>
-                                {pinRequired ? (
-                                  <div className={`flex items-end gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                    <CmxInput
-                                      ref={pinInputRef}
-                                      label={t('giftCard.pinLabel')}
-                                      value={giftCardPin}
-                                      type={pinVisible ? 'text' : 'password'}
-                                      dir="ltr"
-                                      error={pinFieldError ?? undefined}
-                                      className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
-                                      onChange={(event) => {
-                                        setGiftCardPin(event.target.value);
-                                        setPinFieldError(null);
-                                      }}
-                                      onKeyDown={(event) => {
-                                        if (event.key === 'Enter') {
-                                          event.preventDefault();
-                                          event.stopPropagation();
-                                          void handleFetchGiftCardDetails();
-                                        }
-                                      }}
-                                    />
-                                    <CmxButton
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-9 shrink-0"
-                                      onClick={() => setPinVisible((value) => !value)}
-                                      aria-label={pinVisible ? (t('giftCard.hidePin') || 'Hide PIN') : (t('giftCard.showPin') || 'Show PIN')}
-                                    >
-                                      {pinVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </CmxButton>
-                                  </div>
-                                ) : null}
                                 {giftCardResult && !giftCardResult.isValid ? (
                                   <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                                     {resolveGiftCardError(giftCardResult)}
                                   </p>
                                 ) : null}
-                                {giftCardDetails ? (
-                                  <div ref={giftCardDetailsRef} className="space-y-2 rounded-xl border border-purple-200 bg-purple-50 p-3">
-                                    <p className={`text-xs text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                      {t('giftCard.balance')}: {currencyCode} {formatAmount(giftCardDetails.balance)}
+                                {showGiftCardWorkspace ? (
+                                  <div className="space-y-2 rounded-xl border border-purple-200 bg-purple-50 p-3">
+                                    <p className={`text-xs text-purple-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                      {pinRequired ? t('giftCard.workspacePinHint') : t('giftCard.workspaceAmountHint')}
                                     </p>
-                                    <Controller
-                                      name="giftCardAmount"
-                                      control={control}
-                                      render={({ field }) => (
-                                        <CmxInput
-                                          {...field}
-                                          ref={(node) => {
-                                            field.ref(node);
-                                            giftCardAmountInputRef.current = node;
-                                          }}
-                                          type="number"
-                                          label={t('giftCard.applyAmount')}
-                                          value={field.value ?? ''}
-                                          dir="ltr"
-                                          min="0"
-                                          step="0.001"
-                                          inputMode="decimal"
-                                          placeholder={t('giftCard.amountPlaceholder')}
-                                          onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
-                                          onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                              event.preventDefault();
-                                              event.stopPropagation();
-                                              handleApplyGiftCard();
-                                            }
-                                          }}
-                                        />
-                                      )}
-                                    />
-                                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                      <CmxButton
-                                        type="button"
-                                        size="sm"
-                                        variant="secondary"
-                                        onClick={handleApplyGiftCard}
-                                        disabled={!giftCardAmount || giftCardAmount <= 0}
-                                        className="flex-1"
-                                      >
-                                        {t('giftCard.applyAmount')}
-                                      </CmxButton>
-                                      <CmxButton
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleClearGiftCard}
-                                        className="flex-1"
-                                      >
-                                        {tCommon('cancel')}
-                                      </CmxButton>
-                                    </div>
+                                    <CmxButton
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      onClick={() => {
+                                        giftCardDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        window.setTimeout(() => {
+                                          if (pinRequired) {
+                                            pinInputRef.current?.focus();
+                                            pinInputRef.current?.select();
+                                            return;
+                                          }
+                                          giftCardAmountInputRef.current?.focus();
+                                          giftCardAmountInputRef.current?.select();
+                                        }, 80);
+                                      }}
+                                    >
+                                      {t('giftCard.continueInWorkspace')}
+                                    </CmxButton>
                                   </div>
                                 ) : null}
                               </div>
