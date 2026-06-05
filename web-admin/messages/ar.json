@@ -5285,6 +5285,13 @@
       "security": {
         "cardPayment": "الدفع بالبطاقة آمن. البيانات مشفرة ومتوافقة مع PCI."
       },
+      "submitConfirm": {
+        "title": "تأكيد إرسال الدفع",
+        "description": "راجع نتيجة الدفع قبل إرسال هذا الطلب.",
+        "paymentMethod": "طريقة الدفع",
+        "remainingNotice": "سيبقى {amount} غير مدفوع بعد هذا الدفع.",
+        "confirm": "تأكيد وإرسال"
+      },
       "remainder": {
         "title": "سياسة الرصيد المتبقي",
         "fullPayment": "سداد كامل",

@@ -317,7 +317,7 @@ function resolveCanonicalTotalAmount(input: {
   };
 }
 
-function buildWarningCodes(input: {
+export function buildWarningCodes(input: {
   usedHeaderTotalFallback: boolean;
   orderTotalAmount: number;
   recomputedTotalAmount: number;
@@ -379,6 +379,9 @@ function buildWarningCodes(input: {
   }
   if (input.hasAmbiguousHistoricalPaymentRow) {
     warnings.add(ORDER_FINANCIAL_WARNING_CODES.PAYMENT_TARGET_UNCLASSIFIED);
+  }
+  if (input.usedHeaderTotalFallback) {
+    warnings.add(ORDER_FINANCIAL_WARNING_CODES.LEGACY_FIELD_USED_IN_SUMMARY);
   }
 
   return [...warnings];

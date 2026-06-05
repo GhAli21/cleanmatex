@@ -478,6 +478,11 @@ export function PaymentModalV4({
   const [activeAmountDraft, setActiveAmountDraft] = useState('');
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<{
+    paymentData: PaymentFormData;
+    payload: NewOrderPaymentPayload;
+  } | null>(null);
   const [selectedCashDrawerSessionId, setSelectedCashDrawerSessionId] = useState('');
   const [cashDrawerDialogOpen, setCashDrawerDialogOpen] = useState(false);
   const [cashDrawerToOpenId, setCashDrawerToOpenId] = useState('');
@@ -522,6 +527,8 @@ export function PaymentModalV4({
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeLegDraftSyncKeyRef = useRef<string | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
+  const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
+  const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const amountDiscountInputRef = useRef<HTMLInputElement | null>(null);
   const percentDiscountInputRef = useRef<HTMLInputElement | null>(null);
@@ -835,6 +842,8 @@ export function PaymentModalV4({
       setAmountDiscountDraft('');
       setIsDirtySinceOpen(false);
       setConfirmCloseOpen(false);
+      setSubmitConfirmOpen(false);
+      setPendingSubmission(null);
       setPaymentLegs([]);
       setTaxProfileEntries([]);
     }
@@ -1254,6 +1263,8 @@ export function PaymentModalV4({
     () => payNowAmount + customerCreditAmount,
     [customerCreditAmount, payNowAmount]
   );
+  const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
+  const totalSettledNowAmount = settledNowAmount + giftCardSettlementAmount;
   const walletLegEntry = useMemo(
     () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
     [settlementLegEntries]
@@ -1261,8 +1272,8 @@ export function PaymentModalV4({
   const walletLegExceedsLiveBalance = !!walletLegEntry &&
     walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
 
-  const remainingBalance = Math.max(0, saleTotal - settledNowAmount);
-  const changeAmount = Math.max(0, settledNowAmount - saleTotal);
+  const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
+  const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
   const primaryMethodOption = getMethodOption(paymentMethod);
   const cashDrawerRequired = useMemo(() => {
     const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
@@ -1456,7 +1467,14 @@ export function PaymentModalV4({
   const handleFetchGiftCardDetails = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!giftCardNumber?.trim()) return;
-    if (pinRequired && !giftCardPin.trim()) return;
+    if (pinRequired && !giftCardPin.trim()) {
+      setPinFieldError(t('giftCard.pinPendingError'));
+      window.setTimeout(() => {
+        pinInputRef.current?.focus();
+        pinInputRef.current?.select();
+      }, 60);
+      return;
+    }
 
     setGiftCardValidating(true);
     setGiftCardResult(null);
@@ -1469,6 +1487,11 @@ export function PaymentModalV4({
 
       if (!result.isValid && result.errorCode === 'INVALID_PIN' && !giftCardPin.trim()) {
         setPinRequired(true);
+        setPinFieldError(t('giftCard.pinPendingError'));
+        window.setTimeout(() => {
+          pinInputRef.current?.focus();
+          pinInputRef.current?.select();
+        }, 60);
         return;
       }
       if (!result.isValid && result.errorCode === 'INVALID_PIN' && giftCardPin.trim()) {
@@ -1488,9 +1511,19 @@ export function PaymentModalV4({
           searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
-        const defaultAmount = Math.min(result.availableBalance, saleTotal);
+        const defaultAmount = getSuggestedStoredValueAmount(
+          result.availableBalance,
+          settledNowAmount,
+          saleTotal,
+          decimalPlaces
+        );
         setValue('giftCardAmount', defaultAmount);
         setValue('giftCardId', result.giftCard.id ?? '');
+        window.setTimeout(() => {
+          giftCardDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          giftCardAmountInputRef.current?.focus();
+          giftCardAmountInputRef.current?.select();
+        }, 80);
       }
     } catch {
       setGiftCardResult({ isValid: false, error: t('giftCard.errors.validationFailed') });
@@ -1502,7 +1535,12 @@ export function PaymentModalV4({
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
     const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount   = Math.min(giftCardDetails.balance, saleTotal);
+    const maxAmount = getSuggestedStoredValueAmount(
+      giftCardDetails.balance,
+      settledNowAmount,
+      saleTotal,
+      decimalPlaces
+    );
     if (amountToUse <= 0) { cmxMessage.error(t('giftCard.errors.amountRequired')); return; }
     if (amountToUse > maxAmount) {
       cmxMessage.error(t('giftCard.errors.maxAmountExceeded'));
@@ -1628,13 +1666,17 @@ export function PaymentModalV4({
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
-    onSubmit(submissionData, {
+    setPendingSubmission({
+      paymentData: submissionData,
+      payload: {
       ...parsed.data,
       creditLimitOverride: creditLimitOverride || undefined,
       ...(cashDrawerRequired && selectedCashDrawerSessionId && {
         cashDrawerSessionId: selectedCashDrawerSessionId,
       }),
+      },
     });
+    setSubmitConfirmOpen(true);
   };
 
   // Payment icon helper
@@ -1731,7 +1773,7 @@ export function PaymentModalV4({
   const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
   const activeLeg = paymentLegs[activeLegIndex] ?? null;
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
-    settledNowAmount,
+    totalSettledNowAmount,
     saleTotal,
     (outstandingPolicy as OutstandingPolicy | undefined) ?? defaultOutstandingPolicy
   );
@@ -1753,7 +1795,7 @@ export function PaymentModalV4({
   const invalidImmediateAmount =
     paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
     paymentMethod !== PAYMENT_METHODS.INVOICE &&
-    settledNowAmount <= 0;
+    totalSettledNowAmount <= 0;
   const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
 
   const cycleActiveLeg = useCallback(() => {
@@ -1852,7 +1894,7 @@ export function PaymentModalV4({
     remainingBalance,
     serverTotals?.creditLimit?.mode,
     serverTotals?.creditLimit?.wouldExceed,
-    settledNowAmount,
+    totalSettledNowAmount,
     t,
     walletLegExceedsLiveBalance,
   ]);
@@ -2263,6 +2305,14 @@ export function PaymentModalV4({
     setConfirmCloseOpen(true);
   }, [isDirtySinceOpen, onClose]);
 
+  const handleConfirmPaymentSubmit = useCallback(() => {
+    if (!pendingSubmission) return;
+    const { paymentData, payload } = pendingSubmission;
+    setSubmitConfirmOpen(false);
+    setPendingSubmission(null);
+    onSubmit(paymentData, payload);
+  }, [onSubmit, pendingSubmission]);
+
   if (!open) return null;
 
   // ---------------------------------------------------------------------------
@@ -2290,7 +2340,10 @@ export function PaymentModalV4({
               </CmxButton>
             </CmxDialogHeader>
 
-            <form onSubmit={handleSubmit(onSubmitForm, onInvalidForm)} className="flex min-h-0 flex-1 flex-col">
+            <form
+              onSubmit={(event) => event.preventDefault()}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
               <div className="grid min-h-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
                 <div className="space-y-4">
@@ -3020,10 +3073,10 @@ export function PaymentModalV4({
                           label={t('rightRail.orderTotal')}
                           value={`${currencyCode} ${formatAmount(saleTotal)}`}
                         />
-                        <SummaryRow
-                          label={t('rightRail.totalSettledNow')}
-                          value={`${currencyCode} ${formatAmount(settledNowAmount)}`}
-                        />
+                          <SummaryRow
+                            label={t('rightRail.totalSettledNow')}
+                            value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                          />
                         <SummaryRow
                           label={t('rightRail.remainingBalance')}
                           value={`${currencyCode} ${formatAmount(remainingBalance)}`}
@@ -3120,7 +3173,7 @@ export function PaymentModalV4({
                       <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
                         <SummaryRow
                           label={t('rightRail.totalSettledNow')}
-                          value={`${currencyCode} ${formatAmount(settledNowAmount)}`}
+                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
                           bold
                         />
                       </div>
@@ -3332,6 +3385,13 @@ export function PaymentModalV4({
                                         onChange={(event) => field.onChange(event.target.value.toUpperCase())}
                                         placeholder={t('giftCard.placeholder')}
                                         disabled={giftCardValidating}
+                                        onKeyDown={(event) => {
+                                          if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            void handleFetchGiftCardDetails();
+                                          }
+                                        }}
                                       />
                                     )}
                                   />
@@ -3362,6 +3422,7 @@ export function PaymentModalV4({
                                       onKeyDown={(event) => {
                                         if (event.key === 'Enter') {
                                           event.preventDefault();
+                                          event.stopPropagation();
                                           void handleFetchGiftCardDetails();
                                         }
                                       }}
@@ -3384,7 +3445,7 @@ export function PaymentModalV4({
                                   </p>
                                 ) : null}
                                 {giftCardDetails ? (
-                                  <div className="space-y-2 rounded-xl border border-purple-200 bg-purple-50 p-3">
+                                  <div ref={giftCardDetailsRef} className="space-y-2 rounded-xl border border-purple-200 bg-purple-50 p-3">
                                     <p className={`text-xs text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                                       {t('giftCard.balance')}: {currencyCode} {formatAmount(giftCardDetails.balance)}
                                     </p>
@@ -3394,24 +3455,50 @@ export function PaymentModalV4({
                                       render={({ field }) => (
                                         <CmxInput
                                           {...field}
+                                          ref={(node) => {
+                                            field.ref(node);
+                                            giftCardAmountInputRef.current = node;
+                                          }}
                                           type="number"
                                           label={t('giftCard.applyAmount')}
                                           value={field.value ?? ''}
                                           dir="ltr"
+                                          min="0"
+                                          step="0.001"
+                                          inputMode="decimal"
                                           placeholder={t('giftCard.amountPlaceholder')}
                                           onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
+                                          onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              handleApplyGiftCard();
+                                            }
+                                          }}
                                         />
                                       )}
                                     />
-                                    <CmxButton
-                                      type="button"
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={handleApplyGiftCard}
-                                      disabled={!giftCardAmount || giftCardAmount <= 0}
-                                    >
-                                      {t('giftCard.applyAmount')}
-                                    </CmxButton>
+                                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                      <CmxButton
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={handleApplyGiftCard}
+                                        disabled={!giftCardAmount || giftCardAmount <= 0}
+                                        className="flex-1"
+                                      >
+                                        {t('giftCard.applyAmount')}
+                                      </CmxButton>
+                                      <CmxButton
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleClearGiftCard}
+                                        className="flex-1"
+                                      >
+                                        {tCommon('cancel')}
+                                      </CmxButton>
+                                    </div>
                                   </div>
                                 ) : null}
                               </div>
@@ -3737,10 +3824,10 @@ export function PaymentModalV4({
                     {tCommon('cancel')}
                   </CmxButton>
                   <CmxButton
-                    type={submitHasBlockingIssues ? 'button' : 'submit'}
+                    type="button"
                     loading={loading}
                     disabled={submitBusy}
-                    onClick={submitHasBlockingIssues ? handleBlockedSubmitAttempt : undefined}
+                    onClick={submitHasBlockingIssues ? handleBlockedSubmitAttempt : handleSubmit(onSubmitForm, onInvalidForm)}
                     className="flex-1 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 font-bold shadow-sm"
                     size="lg"
                   >
@@ -3869,6 +3956,62 @@ export function PaymentModalV4({
           <CmxDialogFooter>
             <CmxButton type="button" onClick={() => setPaymentNotesDialogOpen(false)}>
               {tCommon('close')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog
+        open={submitConfirmOpen}
+        onOpenChange={(nextOpen) => {
+          setSubmitConfirmOpen(nextOpen);
+          if (!nextOpen) setPendingSubmission(null);
+        }}
+      >
+        <CmxDialogContent className="max-w-lg">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('submitConfirm.title')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
+            <p className={`text-sm text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('submitConfirm.description')}
+            </p>
+            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+              <div className="space-y-2">
+                <SummaryRow label={t('rightRail.orderTotal')} value={`${currencyCode} ${formatAmount(saleTotal)}`} />
+                <SummaryRow label={t('rightRail.totalSettledNow')} value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`} />
+                {appliedGiftCard ? (
+                  <SummaryRow label={t('giftCard.title')} value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`} />
+                ) : null}
+                <SummaryRow
+                  label={t('rightRail.remainingBalance')}
+                  value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+                  negative={remainingBalance > moneyEpsilon}
+                />
+                <SummaryRow label={t('submitConfirm.paymentMethod')} value={summaryMethodLabel} />
+              </div>
+            </div>
+            {remainingBalance > moneyEpsilon ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {t('submitConfirm.remainingNotice', {
+                  amount: `${currencyCode} ${formatAmount(remainingBalance)}`,
+                })}
+              </div>
+            ) : null}
+          </div>
+          <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CmxButton
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSubmitConfirmOpen(false);
+                setPendingSubmission(null);
+              }}
+            >
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton type="button" onClick={handleConfirmPaymentSubmit} disabled={!pendingSubmission}>
+              {t('submitConfirm.confirm')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>

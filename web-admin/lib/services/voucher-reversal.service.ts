@@ -90,7 +90,6 @@ export async function reverseBizVoucher(
           reversal_reason:  reason,
           posted_at:        now,
           posted_by:        userId,
-          status:           'issued',
           description:      `Reversal of ${original.voucher_no}: ${reason}`,
           created_by:       userId,
         },
@@ -144,7 +143,6 @@ export async function reverseBizVoucher(
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status:  VOUCHER_STATUS.REVERSED,
-          status:          'voided',
           reversed_at:     now,
           reversed_by:     userId,
           reversal_reason: reason,

@@ -78,7 +78,7 @@ describe('postBizVoucher', () => {
     expect(result.fromCache).toBe(false);
   });
 
-  it('does NOT update posting_status (GL axis must remain untouched)', async () => {
+  it('sets posting_status to POSTED when posting a voucher', async () => {
     mockTx.org_idempotency_keys.findFirst.mockResolvedValue(null);
     mockTx.$queryRaw.mockResolvedValue([makeDraftVoucher()]);
     mockTx.org_fin_voucher_trx_lines_dtl.findMany.mockResolvedValue(makeDraftLines());
@@ -90,7 +90,7 @@ describe('postBizVoucher', () => {
     await postBizVoucher(TENANT, VOUCHER_ID, USER_ID);
 
     const updateCall = mockTx.org_fin_vouchers_mst.updateMany.mock.calls[0][0];
-    expect(updateCall.data).not.toHaveProperty('posting_status');
+    expect(updateCall.data.posting_status).toBe('POSTED');
   });
 
   it('writes a domain event outbox row with event_type VOUCHER_POSTED', async () => {

@@ -326,7 +326,8 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'preparation_workflow', flag_name: 'Preparation Workflow', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'qa_workflow', flag_name: 'Quality Assurance', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'sorting_workflow', flag_name: 'Sorting Workflow', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
-  { flag_key: 'workflow_automation', flag_name: 'Workflow Automation', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 }
+  { flag_key: 'workflow_automation', flag_name: 'Workflow Automation', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
+  { flag_key: 'tax_inclusive_pricing', flag_name: 'Tax Inclusive Pricing', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'experimental', ui_display_order: 0 },
 ];
 
 // ========================
@@ -638,7 +639,8 @@ export const FEATURE_FLAG_KEYS = {
     RATE_LIMITING_ENABLED: 'rate_limiting_enabled',
     TENANT_MAX_BRANCHES: 'tenant_max_branches',
     TENANT_MAX_ORDERS_PER_MONTH: 'tenant_max_orders_per_month',
-  
+    TAX_INCLUSIVE_PRICING: 'tax_inclusive_pricing',
+
 } as const satisfies Record<string, FlagKey>;
 //as const satisfies Record<string, FeatureFlagKey>;
 

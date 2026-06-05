@@ -158,7 +158,6 @@ async function postAndWireBizVoucherInTx(
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status:     VOUCHER_STATUS.POSTED,
-          status:             'issued',      // legacy column: issued = posted/finalized
           posting_status:     'POSTED',      // wiring lifecycle column
           total_amount:       recalcTotal,
           paid_amount:        recalcTotal,

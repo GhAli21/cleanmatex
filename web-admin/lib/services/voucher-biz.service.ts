@@ -151,7 +151,6 @@ async function createBizVoucherInTx(
       source_ref_id:    input.source_ref_id ?? null,
       idempotency_key:  input.idempotency_key ?? null,
       total_amount:     input.total_amount ?? 0,
-      status:           'draft',
       created_by:       userId,
     },
     select: { id: true, voucher_no: true },
@@ -390,7 +389,6 @@ export async function cancelBizVoucher(
       where: { id: voucherId, tenant_org_id: tenantOrgId },
       data: {
         voucher_status:  VOUCHER_STATUS.CANCELLED,
-        status:          'voided',
         posting_status:  'NOT_POSTED',
         reversal_reason: reason,
         voided_at:       now,

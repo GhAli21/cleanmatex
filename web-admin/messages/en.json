@@ -5285,6 +5285,13 @@
       "security": {
         "cardPayment": "Secure card payment. Data is encrypted and PCI compliant."
       },
+      "submitConfirm": {
+        "title": "Confirm payment submission",
+        "description": "Review the payment result before submitting this order.",
+        "paymentMethod": "Payment Method",
+        "remainingNotice": "{amount} will remain unpaid after this payment.",
+        "confirm": "Confirm & Submit"
+      },
       "remainder": {
         "title": "Remaining balance policy",
         "fullPayment": "Full Payment",

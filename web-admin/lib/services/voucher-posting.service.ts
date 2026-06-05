@@ -99,7 +99,6 @@ export async function postBizVoucher(
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status: VOUCHER_STATUS.POSTED,
-          status:         'issued',
           posting_status: 'POSTED',
           total_amount:   recalcTotal,
           paid_amount:    recalcTotal,
