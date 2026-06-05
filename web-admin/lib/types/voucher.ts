@@ -10,7 +10,6 @@
 import type {
   VoucherCategory,
   VoucherSubtype,
-  VoucherStatusLegacy,
   VoucherType,
   VoucherStatus,
   GlPostingStatus,
@@ -27,7 +26,6 @@ import type { Prisma } from '@prisma/client';
 export type {
   VoucherCategory,
   VoucherSubtype,
-  VoucherStatusLegacy,
   VoucherType,
   VoucherStatus,
   GlPostingStatus,
@@ -86,7 +84,6 @@ export interface VoucherData {
   refunded_amount?: number | null;
   currency_code: string | null;
   currency_ex_rate?: number | null;
-  status: string;
   issued_at: Date | null;
   voided_at: Date | null;
   void_reason: string | null;

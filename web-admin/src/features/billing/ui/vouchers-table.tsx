@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { VoucherData } from '@/lib/types/voucher';
+import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { VoucherStatusBadge } from '@features/finance/vouchers/ui/voucher-status-badge';
 import { Printer } from 'lucide-react';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -71,15 +73,6 @@ export default function VouchersTable({
       hour: '2-digit',
       minute: '2-digit',
     }).format(d);
-  };
-
-  const statusBadge = (status: string) => {
-    const cls: Record<string, string> = {
-      draft: 'bg-gray-100 text-gray-800',
-      issued: 'bg-green-100 text-green-800',
-      voided: 'bg-red-100 text-red-800',
-    };
-    return cls[status] ?? 'bg-gray-100 text-gray-800';
   };
 
   const SortIcon = ({ field }: { field: string }) => {
@@ -184,14 +177,10 @@ export default function VouchersTable({
                       })}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(voucher.status)}`}
-                      >
-                        {voucher.status}
-                      </span>
+                      <VoucherStatusBadge status={voucher.voucher_status ?? 'DRAFT'} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      {voucher.status === 'issued' && (voucher as any).payment_id && (
+                      {voucher.voucher_status === VOUCHER_STATUS.POSTED && (voucher as any).payment_id && (
                         <Link
                           href={`/dashboard/internal_fin/payments/${(voucher as any).payment_id}/print/receipt-voucher`}
                           target="_blank"

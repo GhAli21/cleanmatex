@@ -16,7 +16,7 @@ import {
   VOUCHER_CATEGORY,
   VOUCHER_TYPE_LEGACY as VOUCHER_TYPE,
   VOUCHER_SUBTYPE,
-  VOUCHER_STATUS_LEGACY as VOUCHER_STATUS,
+  VOUCHER_STATUS,
 } from '../constants/voucher';
 import type {
   CreateVoucherInput,
@@ -122,7 +122,6 @@ export async function createVoucher(
       customer_id: input.customer_id ?? null,
       total_amount: input.total_amount,
       currency_code: input.currency_code ?? null,
-      status: VOUCHER_STATUS.DRAFT,
       reason_code: input.reason_code ?? null,
       content_html: input.content_html ?? null,
       content_text: input.content_text ?? null,
@@ -153,24 +152,24 @@ async function issueVoucherInternal(
         tenant_org_id: params.tenantOrgId,
       },
     },
-    select: { status: true },
+    select: { voucher_status: true },
   });
 
   if (!voucher) throw new Error('Voucher not found');
-  if (voucher.status === VOUCHER_STATUS.VOIDED) {
-    throw new Error('Cannot issue a voided voucher');
+  if (voucher.voucher_status === VOUCHER_STATUS.CANCELLED) {
+    throw new Error('Cannot issue a cancelled voucher');
   }
-  if (voucher.status === VOUCHER_STATUS.ISSUED) return;
+  if (voucher.voucher_status === VOUCHER_STATUS.POSTED) return;
 
   const issuedAt = params.issuedAt ?? new Date();
   const issued = await db.org_fin_vouchers_mst.updateMany({
     where: {
       id: params.voucherId,
       tenant_org_id: params.tenantOrgId,
-      status: { notIn: [VOUCHER_STATUS.ISSUED, VOUCHER_STATUS.VOIDED] },
+      voucher_status: { notIn: [VOUCHER_STATUS.POSTED, VOUCHER_STATUS.CANCELLED] },
     },
     data: {
-      status: VOUCHER_STATUS.ISSUED,
+      voucher_status: VOUCHER_STATUS.POSTED,
       issued_at: issuedAt,
       updated_at: issuedAt,
       updated_by: params.changedBy ?? null,
@@ -184,11 +183,11 @@ async function issueVoucherInternal(
           tenant_org_id: params.tenantOrgId,
         },
       },
-      select: { status: true },
+      select: { voucher_status: true },
     });
-    if (latest?.status === VOUCHER_STATUS.ISSUED) return;
-    if (latest?.status === VOUCHER_STATUS.VOIDED) {
-      throw new Error('Cannot issue a voided voucher');
+    if (latest?.voucher_status === VOUCHER_STATUS.POSTED) return;
+    if (latest?.voucher_status === VOUCHER_STATUS.CANCELLED) {
+      throw new Error('Cannot issue a cancelled voucher');
     }
     throw new Error('Voucher issue transition failed');
   }
@@ -240,10 +239,11 @@ export async function voidVoucher(
   await withTenantContext(tenantId, async () => {
     const voucher = await prisma.org_fin_vouchers_mst.findFirst({
       where: { id: voucherId, tenant_org_id: tenantId },
+      select: { id: true, tenant_org_id: true, voucher_status: true },
     });
     if (!voucher) throw new Error('Voucher not found');
-    if (voucher.status === VOUCHER_STATUS.VOIDED) {
-      throw new Error('Voucher is already voided');
+    if (voucher.voucher_status === VOUCHER_STATUS.CANCELLED) {
+      throw new Error('Voucher is already cancelled');
     }
 
     await prisma.$transaction([
@@ -255,7 +255,7 @@ export async function voidVoucher(
           },
         },
         data: {
-          status: VOUCHER_STATUS.VOIDED,
+          voucher_status: VOUCHER_STATUS.CANCELLED,
           voided_at: new Date(),
           void_reason: voidReason,
           updated_at: new Date(),
@@ -366,7 +366,6 @@ function mapRowToVoucherData(row: {
   refunded_amount?: unknown;
   currency_code: string | null;
   currency_ex_rate?: unknown;
-  status: string;
   issued_at: Date | null;
   voided_at: Date | null;
   void_reason: string | null;
@@ -413,7 +412,6 @@ function mapRowToVoucherData(row: {
     refunded_amount: row.refunded_amount != null ? Number(row.refunded_amount) : null,
     currency_code: row.currency_code,
     currency_ex_rate: row.currency_ex_rate != null ? Number(row.currency_ex_rate) : null,
-    status: row.status,
     issued_at: row.issued_at,
     voided_at: row.voided_at,
     void_reason: row.void_reason,
@@ -489,7 +487,7 @@ export async function createReceiptVoucherForPayment(
  */
 export async function listVouchers(params: {
   tenantOrgId?: string;
-  status?: string[];
+  voucher_status?: string[];
   voucherCategory?: string[];
   voucherType?: string[];
   dateFrom?: string;
@@ -513,8 +511,8 @@ export async function listVouchers(params: {
       tenant_org_id: tenantId,
     };
 
-    if (params.status && params.status.length > 0) {
-      where.status = { in: params.status };
+    if (params.voucher_status && params.voucher_status.length > 0) {
+      where.voucher_status = { in: params.voucher_status };
     }
 
     if (params.voucherCategory && params.voucherCategory.length > 0) {
@@ -558,7 +556,7 @@ export async function listVouchers(params: {
           },
         },
         orderBy: {
-          [params.sortBy && ['voucher_no', 'created_at', 'issued_at', 'total_amount', 'status'].includes(params.sortBy)
+          [params.sortBy && ['voucher_no', 'created_at', 'issued_at', 'total_amount', 'voucher_status'].includes(params.sortBy)
             ? params.sortBy
             : 'created_at']: params.sortOrder || 'desc',
         },
@@ -583,7 +581,6 @@ export async function listVouchers(params: {
           customer_id: row.customer_id,
           total_amount: row.total_amount,
           currency_code: row.currency_code,
-          status: row.status,
           issued_at: row.issued_at,
           voided_at: row.voided_at,
           void_reason: row.void_reason,

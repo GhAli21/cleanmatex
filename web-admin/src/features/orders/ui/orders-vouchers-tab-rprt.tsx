@@ -153,7 +153,7 @@ export function OrdersVouchersTabRprt({
                   <div className="space-y-2">
                     <CopyValue value={voucher.voucher_type} className="font-medium" />
                     <div className="flex flex-wrap items-center gap-2">
-                      <VoucherStatusBadge status={voucher.voucher_status ?? voucher.status ?? 'DRAFT'} />
+                      <VoucherStatusBadge status={voucher.voucher_status ?? 'DRAFT'} />
                       {voucher.direction && <VoucherDirectionBadge direction={voucher.direction} />}
                     </div>
                     <div className="text-xs text-muted-foreground">

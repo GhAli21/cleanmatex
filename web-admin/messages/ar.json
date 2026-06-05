@@ -5241,6 +5241,7 @@
         "changeReturned": "الباقي المعاد",
         "currencyRounding": "العملة / التقريب",
         "b2bArDetails": "تفاصيل B2B / الذمم",
+        "paymentNotes": "ملاحظات الدفع",
         "warnings": "تنبيهات",
         "warningMessages": {
           "creditLimitOverride": "تم تفعيل تجاوز حد الائتمان لهذه التسوية من نوع B2B."

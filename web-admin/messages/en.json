@@ -5241,6 +5241,7 @@
         "changeReturned": "Change Returned",
         "currencyRounding": "Currency / Rounding",
         "b2bArDetails": "B2B / AR Details",
+        "paymentNotes": "Payment Notes",
         "warnings": "Warnings",
         "warningMessages": {
           "creditLimitOverride": "Credit-limit override is enabled for this B2B settlement."

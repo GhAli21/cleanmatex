@@ -45,15 +45,6 @@ export const VOUCHER_SUBTYPE = {
 
 export type VoucherSubtype = (typeof VOUCHER_SUBTYPE)[keyof typeof VOUCHER_SUBTYPE];
 
-/** Legacy status for the old `status` column (draft/issued/voided). */
-export const VOUCHER_STATUS_LEGACY = {
-  DRAFT:  'draft',
-  ISSUED: 'issued',
-  VOIDED: 'voided',
-} as const;
-
-export type VoucherStatusLegacy = (typeof VOUCHER_STATUS_LEGACY)[keyof typeof VOUCHER_STATUS_LEGACY];
-
 // ── BVM constants — values mirror DB CHECK constraints exactly ────────────────
 
 /** Final voucher_type column values (migration 0307). Mirrors chk_fin_voucher_type. */

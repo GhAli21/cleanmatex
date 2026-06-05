@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { VoucherData } from '@/lib/types/voucher';
+import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { VoucherStatusBadge } from '@features/finance/vouchers/ui/voucher-status-badge';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type {
@@ -249,7 +251,7 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
             )}
             <div className="flex justify-between print-row">
               <span>{tCommon('status')}</span>
-              <span className="capitalize">{voucher.status}</span>
+              <VoucherStatusBadge status={voucher.voucher_status ?? 'DRAFT'} />
             </div>
           </div>
         </section>
@@ -283,7 +285,7 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
       {/* Footer */}
       <footer className="print-footer">
         <p>{tBilling('receiptVoucher.thankYou')}</p>
-        {voucher.status === 'voided' && voucher.void_reason && (
+        {voucher.voucher_status === VOUCHER_STATUS.CANCELLED && voucher.void_reason && (
           <p className="text-red-600 text-sm mt-2">
             {tBilling('receiptVoucher.voided')} — {voucher.void_reason}
           </p>

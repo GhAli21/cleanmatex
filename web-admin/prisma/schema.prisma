@@ -1260,7 +1260,6 @@ model org_fin_vouchers_mst {
   customer_id                String?                     @db.Uuid
   total_amount               Decimal                     @db.Decimal(19, 4)
   currency_code              String?                     @db.VarChar(3)
-  status                     String                      @default("draft") @db.VarChar(20)
   issued_at                  DateTime?                   @db.Timestamptz(6)
   voided_at                  DateTime?                   @db.Timestamptz(6)
   void_reason                String?
@@ -1328,7 +1327,7 @@ model org_fin_vouchers_mst {
   @@unique([tenant_org_id, voucher_no], map: "uq_fin_voucher_tenant_no")
   @@unique([tenant_org_id, idempotency_key], map: "uq_fin_vouchers_idempotency")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_fin_vouchers_tenant_created")
-  @@index([tenant_org_id, status], map: "idx_fin_vouchers_tenant_status")
+  @@index([tenant_org_id, voucher_status], map: "idx_fin_vouchers_tenant_status")
   @@index([tenant_org_id, voucher_no], map: "idx_fin_vouchers_voucher_no")
   @@index([tenant_org_id, voucher_type, voucher_status], map: "idx_fin_vouchers_type")
   @@index([tenant_org_id, direction], map: "idx_fin_vouchers_direction")

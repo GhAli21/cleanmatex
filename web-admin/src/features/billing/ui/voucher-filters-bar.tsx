@@ -49,7 +49,7 @@ export default function VoucherFiltersBar() {
 
   const hasFilters = searchParams.toString() !== '';
 
-  const currentStatus = searchParams.get('status') || '';
+  const currentStatus = searchParams.get('voucher_status') || '';
   const currentCategory = searchParams.get('voucherCategory') || '';
   const currentType = searchParams.get('voucherType') || '';
   const currentStartDate = searchParams.get('startDate') || '';
@@ -94,7 +94,7 @@ export default function VoucherFiltersBar() {
         {/* Status Filter */}
         <select
           value={currentStatus}
-          onChange={(e) => updateParams({ status: e.target.value || null })}
+          onChange={(e) => updateParams({ voucher_status: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">{t('allStatuses')}</option>

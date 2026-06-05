@@ -15,7 +15,7 @@ import { listVouchers } from '@/lib/services/voucher-service';
 export async function listVouchersAction(params: {
   page?: number;
   limit?: number;
-  status?: string;
+  voucher_status?: string;
   voucherCategory?: string;
   voucherType?: string;
   fromDate?: string;
@@ -38,7 +38,7 @@ export async function listVouchersAction(params: {
 
     const result = await listVouchers({
       tenantOrgId: auth.tenantId,
-      status: params.status ? params.status.split(',') : undefined,
+      voucher_status: params.voucher_status ? params.voucher_status.split(',') : undefined,
       voucherCategory: params.voucherCategory ? params.voucherCategory.split(',') : undefined,
       voucherType: params.voucherType ? params.voucherType.split(',') : undefined,
       dateFrom: params.fromDate,

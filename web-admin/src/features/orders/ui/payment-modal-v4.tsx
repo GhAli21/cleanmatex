@@ -3662,38 +3662,42 @@ export function PaymentModalV4({
                     </CollapsibleRailCard>
                   ) : null}
 
-                  <div className="space-y-1">
-                    <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <label htmlFor="v4-payment-notes" className="block text-sm font-medium text-slate-900">
-                        {t('paymentNotes') || 'Payment notes'}
-                      </label>
+                  <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
+                    <CmxCardHeader className={`flex-row items-center justify-between border-b border-slate-100 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.paymentNotes')}</CmxCardTitle>
                       <CmxButton
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => setPaymentNotesDialogOpen(true)}
+                        aria-label={t('paymentNotesDialogTitle') || 'Edit payment notes'}
                       >
                         <Maximize2 className="h-4 w-4" />
                       </CmxButton>
-                    </div>
-                    <Controller
-                      name="paymentNotes"
-                      control={control}
-                      render={({ field }) => (
-                        <CmxTextarea
-                          {...field}
-                          id="v4-payment-notes"
-                          value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
-                          onDoubleClick={() => setPaymentNotesDialogOpen(true)}
-                          dir={isRTL ? 'rtl' : 'ltr'}
-                          rows={2}
-                          className="min-h-16 resize-none"
-                          placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
-                        />
-                      )}
-                    />
-                  </div>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-2 px-4 py-3">
+                      <label htmlFor="v4-payment-notes" className="sr-only">
+                        {t('rightRail.paymentNotes')}
+                      </label>
+                      <Controller
+                        name="paymentNotes"
+                        control={control}
+                        render={({ field }) => (
+                          <CmxTextarea
+                            {...field}
+                            id="v4-payment-notes"
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            onDoubleClick={() => setPaymentNotesDialogOpen(true)}
+                            dir={isRTL ? 'rtl' : 'ltr'}
+                            rows={2}
+                            className="min-h-16 resize-none"
+                            placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
+                          />
+                        )}
+                      />
+                    </CmxCardContent>
+                  </CmxCard>
 
                   {warningMessages.length > 0 ? (
                     <CollapsibleRailCard

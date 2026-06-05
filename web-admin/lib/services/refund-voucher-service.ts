@@ -14,7 +14,7 @@ import {
   VOUCHER_CATEGORY,
   VOUCHER_SUBTYPE,
   VOUCHER_TYPE_LEGACY as VOUCHER_TYPE,
-  VOUCHER_STATUS_LEGACY as VOUCHER_STATUS,
+  VOUCHER_STATUS,
 } from '../constants/voucher';
 import type { CreateRefundVoucherForPaymentInput } from '../types/voucher';
 
@@ -93,7 +93,7 @@ export async function createRefundVoucherForPayment(
       customer_id: input.customer_id ?? null,
       total_amount: input.total_amount,
       currency_code: input.currency_code ?? null,
-      status: VOUCHER_STATUS.ISSUED,
+      voucher_status: VOUCHER_STATUS.POSTED,
       issued_at: input.issued_at ?? new Date(),
       reason_code: input.reason_code ?? null,
       created_by: input.created_by ?? null,
