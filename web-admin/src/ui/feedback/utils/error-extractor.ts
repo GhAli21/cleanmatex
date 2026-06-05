@@ -33,7 +33,7 @@ export function extractErrorMessage(
     extractFrom?: string[];
   }
 ): string {
-  const fallback = options?.fallback ?? 'An unexpected error occurred';
+  const fallback = options?.fallback ?? 'An error occurred';
   const paths = options?.extractFrom ?? DEFAULT_EXTRACTION_PATHS;
 
   if (!error) {
@@ -59,7 +59,7 @@ export function extractErrorMessage(
 
   // Handle number errors (status codes)
   if (typeof error === 'number') {
-    return `Error ${error}`;
+    return String(error);
   }
 
   // Handle Response objects (from fetch)

@@ -35,6 +35,31 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
 }));
 
+// tenant-settings.service exports a module-level instance that calls the
+// browser createClient() at import time — mock before imports resolve.
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+  })),
+}));
+
+// recalculateOrderFinancialSnapshotTx queries many Prisma models not under test here.
+// Mock the entire module so settlement tests stay focused on settleOrder logic.
+jest.mock('@/lib/services/order-financial-write.service', () => ({
+  recalculateOrderFinancialSnapshotTx: jest.fn().mockResolvedValue({
+    paymentStatus: 'PAID',
+    outstandingAmount: 0,
+  }),
+}));
+
+// pricing-mode-resolver is also called deep in recalculate — mocked transitively above.
+jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
+  resolveTaxPricingMode: jest.fn().mockResolvedValue('TAX_EXCLUSIVE'),
+}));
+
 jest.mock('@/lib/services/outbox.service', () => ({
   emitEventTx: (...a: unknown[]) => mockOutboxCreate(...a),
 }));
@@ -144,6 +169,10 @@ const makeTx = () => ({
     update:            (...a: unknown[]) => mockOrderUpdate(...a),
     findFirstOrThrow:  jest.fn().mockResolvedValue({ customer_id: 'cust-1' }),
     findFirst:         jest.fn().mockResolvedValue({ customer_id: 'cust-1' }),
+  },
+  // pricing-mode-resolver.service reads tax_pricing_mode from org_tenants_mst inside the tx
+  org_tenants_mst: {
+    findFirst: jest.fn().mockResolvedValue({ tax_pricing_mode: 'TAX_EXCLUSIVE' }),
   },
   org_domain_events_outbox: { create: (...a: unknown[]) => mockOutboxCreate(...a) },
   org_loyalty_txn_dtl:      { create: jest.fn() },

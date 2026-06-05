@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * Settings → General API tests.
  *

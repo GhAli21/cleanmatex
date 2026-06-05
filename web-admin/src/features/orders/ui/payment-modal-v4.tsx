@@ -42,8 +42,10 @@ import {
   applyKeypadInput,
   deriveOutstandingPolicy,
   formatDecimalDraft,
+  getPreferredCashDrawerStorageKey,
   getSuggestedStoredValueAmount,
   getWalletLegMaxAmount,
+  resolvePreferredCashDrawerSessionId,
   walletLegExceedsBalance,
   parseDecimalDraft,
   sanitizeDecimalDraft,
@@ -564,6 +566,7 @@ export function PaymentModalV4({
   const creditLimitOverrideRef = useRef<HTMLInputElement | null>(null);
   const couponCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
+  const cashDrawerSelectorCardRef = useRef<HTMLDivElement | null>(null);
   const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
@@ -1080,6 +1083,42 @@ export function PaymentModalV4({
       ),
     [cashDrawers]
   );
+  const preferredCashDrawerStorageKey = useMemo(
+    () => getPreferredCashDrawerStorageKey({ tenantOrgId, branchId, userId }),
+    [branchId, tenantOrgId, userId]
+  );
+
+  const readPreferredCashDrawerId = useCallback(() => {
+    if (!preferredCashDrawerStorageKey || typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      return window.localStorage.getItem(preferredCashDrawerStorageKey);
+    } catch {
+      return null;
+    }
+  }, [preferredCashDrawerStorageKey]);
+
+  const persistPreferredCashDrawerId = useCallback(
+    (cashDrawerId: string | null | undefined) => {
+      if (!preferredCashDrawerStorageKey || typeof window === 'undefined') {
+        return;
+      }
+
+      try {
+        const normalizedCashDrawerId = cashDrawerId?.trim();
+        if (normalizedCashDrawerId) {
+          window.localStorage.setItem(preferredCashDrawerStorageKey, normalizedCashDrawerId);
+          return;
+        }
+        window.localStorage.removeItem(preferredCashDrawerStorageKey);
+      } catch {
+        // Browser storage can be disabled; drawer validation still protects submission.
+      }
+    },
+    [preferredCashDrawerStorageKey]
+  );
 
   const canOpenNewCashDrawerSession = useMemo(
     () => cashDrawers.some((drawer) => !drawer.currentSession),
@@ -1382,14 +1421,29 @@ export function PaymentModalV4({
       return;
     }
 
+    const preferredSessionId = resolvePreferredCashDrawerSessionId(
+      cashDrawerSessionChoices,
+      readPreferredCashDrawerId()
+    );
+
+    if (preferredSessionId) {
+      setSelectedCashDrawerSessionId(preferredSessionId);
+      return;
+    }
+
     if (cashDrawerSessionChoices.length === 1) {
       setSelectedCashDrawerSessionId(cashDrawerSessionChoices[0].session.id);
     }
-  }, [cashDrawerRequired, cashDrawerSessionChoices, selectedCashDrawerSessionId]);
+  }, [cashDrawerRequired, cashDrawerSessionChoices, readPreferredCashDrawerId, selectedCashDrawerSessionId]);
 
   const handleOpenCashDrawerDialog = useCallback(() => {
+    const savedPreferredDrawerId = readPreferredCashDrawerId();
+    const savedPreferredDrawer = cashDrawers.find(
+      (drawer) => drawer.id === savedPreferredDrawerId
+    );
     const preferredDrawerId =
       selectedCashDrawerChoice?.drawer.id ??
+      savedPreferredDrawer?.id ??
       cashDrawers.find((drawer) => !drawer.currentSession)?.id ??
       cashDrawers[0]?.id ??
       '';
@@ -1398,7 +1452,7 @@ export function PaymentModalV4({
     setOpeningBalanceValue(0);
     setCashDrawerRequestError(null);
     setCashDrawerDialogOpen(true);
-  }, [cashDrawers, selectedCashDrawerChoice]);
+  }, [cashDrawers, readPreferredCashDrawerId, selectedCashDrawerChoice]);
 
   const handleCreateCashDrawerSession = useCallback(async () => {
     if (!cashDrawerToOpenId) {
@@ -1438,6 +1492,7 @@ export function PaymentModalV4({
 
       const createdSession = json.data as CashDrawerSessionOption;
       setSelectedCashDrawerSessionId(createdSession.id);
+      persistPreferredCashDrawerId(cashDrawerToOpenId);
       setCashDrawerDialogOpen(false);
       setCashDrawerToOpenId('');
       setOpeningBalanceValue(0);
@@ -1450,7 +1505,7 @@ export function PaymentModalV4({
     } finally {
       setOpeningDrawerSession(false);
     }
-  }, [cashDrawerToOpenId, csrfToken, openingBalanceValue, refetchCashDrawers, t]);
+  }, [cashDrawerToOpenId, csrfToken, openingBalanceValue, persistPreferredCashDrawerId, refetchCashDrawers, t]);
 
   // Promo handlers
   const handleValidatePromoCode = async () => {
@@ -2447,7 +2502,12 @@ export function PaymentModalV4({
                   </div>
 
                   {cashDrawerRequired && (
-                    <div ref={cashDrawerCardRef}>
+                    <div
+                      ref={(node) => {
+                        cashDrawerCardRef.current = node;
+                        cashDrawerSelectorCardRef.current = node;
+                      }}
+                    >
                       <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                         <CmxCardHeader className="border-b border-slate-100 pb-2">
                           <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -2480,6 +2540,10 @@ export function PaymentModalV4({
                                     value={selectedCashDrawerSessionId}
                                     onValueChange={(value) => {
                                       setSelectedCashDrawerSessionId(value);
+                                      const selectedChoice = cashDrawerSessionChoices.find(
+                                        ({ session }) => session.id === value
+                                      );
+                                      persistPreferredCashDrawerId(selectedChoice?.drawer.id);
                                       setCashDrawerRequestError(null);
                                     }}
                                     emptyLabel={t('cashDrawer.selectPlaceholder')}
@@ -3059,161 +3123,296 @@ export function PaymentModalV4({
                         </CmxCardContent>
                       </CmxCard>
 
-                      {activeLeg && (
-                        <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
-                          <CmxCardHeader className="border-b border-slate-100 pb-2">
-                            <CmxCardTitle className={`text-sm text-slate-700 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              {getPaymentIcon(activeLeg.method)}
-                              {t('splitPayment.currentLeg') || 'Current leg details'}
-                            </CmxCardTitle>
-                          </CmxCardHeader>
-                          <CmxCardContent className="space-y-4 pt-4">
-                            {creditMethodCodes.includes(activeLeg.method) && (
-                              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
-                                {t('customerCredits.applied')}
-                              </div>
-                            )}
-                            {activeLeg.method === PAYMENT_METHODS.CARD && (
-                              <div className="grid gap-3 md:grid-cols-3">
-                                <div>
-                                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('splitPayment.cardBrand')}</label>
-                                  <CmxSelectDropdown
-                                    value={activeLeg.card_brand_code ?? ''}
-                                    onValueChange={(value) => updateLeg(activeLegIndex, 'card_brand_code', value || undefined)}
-                                  >
-                                    <CmxSelectDropdownTrigger>
-                                      <CmxSelectDropdownValue
-                                        displayValue={
-                                          activeLeg.card_brand_code
-                                            ? cardBrands.find((brand) => brand.card_brand_code === activeLeg.card_brand_code)?.name ?? activeLeg.card_brand_code
-                                            : ''
-                                        }
-                                        placeholder={t('splitPayment.cardBrandPlaceholder')}
-                                      />
-                                    </CmxSelectDropdownTrigger>
-                                    <CmxSelectDropdownContent>
-                                      <CmxSelectDropdownItem value="">{t('splitPayment.cardBrandPlaceholder')}</CmxSelectDropdownItem>
-                                      {cardBrands.map((brand) => (
-                                        <CmxSelectDropdownItem key={brand.card_brand_code} value={brand.card_brand_code}>
-                                          {isRTL ? (brand.name2 || brand.name) : brand.name}
-                                        </CmxSelectDropdownItem>
-                                      ))}
-                                    </CmxSelectDropdownContent>
-                                  </CmxSelectDropdown>
+                      <CmxCard className="min-h-[360px] overflow-hidden border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/50 shadow-sm">
+                        <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                          <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                            <div>
+                              <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <Maximize2 className="h-4 w-4 text-cyan-700" />
+                                {t('workspace.activeTitle')}
+                              </CmxCardTitle>
+                              <p className="mt-1 text-sm text-slate-600">{t('workspace.activeDescription')}</p>
+                            </div>
+                            {activeLeg ? (
+                              <Badge variant="secondary" className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700">
+                                {getOptionDisplayName(activeLegOption, activeLeg.method)}
+                              </Badge>
+                            ) : null}
+                          </div>
+                        </CmxCardHeader>
+                        <CmxCardContent className="space-y-4 pt-4">
+                          {requiredActionCopy ? (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                              <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                                <div className="min-w-0">
+                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                    <CircleAlert className="h-4 w-4 shrink-0" />
+                                    {requiredActionCopy.title}
+                                  </p>
+                                  <p className="mt-1 text-sm text-amber-800">{requiredActionCopy.message}</p>
                                 </div>
-                                <CmxInput
-                                  label={t('splitPayment.cardLast4')}
-                                  value={activeLeg.card_last4 ?? ''}
-                                  dir="ltr"
-                                  maxLength={4}
-                                  inputMode="numeric"
-                                  placeholder="0000"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
-                                />
-                                <CmxInput
-                                  label={t('splitPayment.authCode')}
-                                  value={activeLeg.auth_code ?? ''}
-                                  dir="ltr"
-                                  placeholder="—"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'auth_code', event.target.value || undefined)}
-                                />
+                                <CmxButton
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleBlockedSubmitAttempt}
+                                  className="shrink-0 rounded-xl border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
+                                >
+                                  {t('workspace.fixAction')}
+                                </CmxButton>
                               </div>
-                            )}
+                            </div>
+                          ) : null}
 
-                            {activeLeg.method === PAYMENT_METHODS.CHECK && (
+                          {activeLeg ? (
+                            <>
                               <div className="grid gap-3 md:grid-cols-3">
-                                <CmxInput
-                                  ref={checkNumberInputRef}
-                                  label={`${t('splitPayment.checkNumber')} *`}
-                                  value={activeLeg.checkNumber ?? ''}
-                                  dir="ltr"
-                                  error={errors.checkNumber?.message}
-                                  placeholder={t('checkNumber.placeholder')}
-                                  onChange={(event) => {
-                                    const nextValue = event.target.value || undefined;
-                                    updateLeg(activeLegIndex, 'checkNumber', nextValue);
-                                    setValue('checkNumber', nextValue ?? '', { shouldValidate: true, shouldDirty: true });
-                                  }}
-                                />
-                                <CmxInput
-                                  label={t('splitPayment.checkBankName')}
-                                  value={activeLeg.checkBank ?? ''}
-                                  dir="ltr"
-                                  placeholder="—"
-                                  onChange={(event) => {
-                                    const nextValue = event.target.value || undefined;
-                                    updateLeg(activeLegIndex, 'checkBank', nextValue);
-                                    setValue('checkBank', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                  }}
-                                />
-                                <CmxInput
-                                  type="date"
-                                  label={t('splitPayment.checkDueDate')}
-                                  value={activeLeg.checkDate ?? ''}
-                                  // BVM Phase 6 Sub-item 4: floor the picker
-                                  // at today's local date so the operator
-                                  // cannot accidentally tender a back-dated
-                                  // check. validateCheckDueDate also catches
-                                  // pasted/typed values that bypass the picker.
-                                  min={todayYyyyMmDd()}
-                                  error={
-                                    validateCheckDueDate(activeLeg.checkDate)
-                                      ? t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)
-                                      : undefined
-                                  }
-                                  onChange={(event) => {
-                                    const nextValue = event.target.value || undefined;
-                                    updateLeg(activeLegIndex, 'checkDate', nextValue);
-                                    setValue('checkDate', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                  }}
-                                />
+                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.selectedLeg')}</p>
+                                  <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                    <span className={`flex h-9 w-9 items-center justify-center rounded-xl border ${getMethodToneClasses(activeLeg.method).iconWrap}`}>
+                                      {getPaymentIcon(activeLeg.method)}
+                                    </span>
+                                    <p className="text-sm font-semibold text-slate-900">{getOptionDisplayName(activeLegOption, activeLeg.method)}</p>
+                                  </div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.amountBeingEdited')}</p>
+                                  <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">
+                                    {currencyCode} {formatAmount(activeLeg.amount || 0)}
+                                  </p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.afterThisPayment')}</p>
+                                  <p className={`mt-2 text-2xl font-bold tabular-nums ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                    {currencyCode} {formatAmount(remainingBalance)}
+                                  </p>
+                                </div>
                               </div>
-                            )}
 
-                            {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
-                              <CmxInput
-                                label={t('splitPayment.bankReference')}
-                                value={activeLeg.bank_reference ?? ''}
-                                dir="ltr"
-                                placeholder="—"
-                                onChange={(event) => updateLeg(activeLegIndex, 'bank_reference', event.target.value || undefined)}
-                              />
-                            )}
+                              {cashDrawerRequired ? (
+                                <div className="rounded-2xl border border-cyan-200 bg-white px-4 py-3">
+                                  <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                                    <div>
+                                      <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                        <Banknote className="h-4 w-4 text-cyan-700" />
+                                        {t('workspace.cashImpactTitle')}
+                                      </p>
+                                      <p className="mt-1 text-xs text-slate-500">
+                                        {selectedCashDrawerChoice ? t('cashDrawer.boundHint') : cashDrawerBlockingMessage}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                        selectedCashDrawerChoice ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'
+                                      }`}
+                                    >
+                                      {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
+                                    </Badge>
+                                  </div>
+                                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                    <SummaryRow
+                                      label={t('rightRail.cashRetained')}
+                                      value={`${currencyCode} ${formatAmount(cashLegAmount)}`}
+                                    />
+                                    <SummaryRow
+                                      label={t('rightRail.changeReturned')}
+                                      value={`${currencyCode} ${formatAmount(changeAmount)}`}
+                                      negative={changeAmount > moneyEpsilon}
+                                    />
+                                    <CmxButton
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => cashDrawerSelectorCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                                      className="rounded-xl"
+                                    >
+                                      {t('workspace.manageDrawer')}
+                                    </CmxButton>
+                                  </div>
+                                </div>
+                              ) : null}
 
-                            {GATEWAY_METHOD_CODES.includes(activeLeg.method) && (
-                              <div className="grid gap-3 md:grid-cols-3">
-                                <CmxInput
-                                  label={t('splitPayment.gatewayCode')}
-                                  value={activeLeg.gateway_code ?? ''}
-                                  dir="ltr"
-                                  placeholder="—"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'gateway_code', event.target.value || undefined)}
-                                />
-                                <CmxInput
-                                  label={t('splitPayment.gatewayTransactionId')}
-                                  value={activeLeg.gateway_transaction_id ?? ''}
-                                  dir="ltr"
-                                  placeholder="—"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
-                                />
-                                <CmxInput
-                                  label={t('splitPayment.gatewayReference')}
-                                  value={activeLeg.gateway_reference ?? ''}
-                                  dir="ltr"
-                                  placeholder="—"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'gateway_reference', event.target.value || undefined)}
-                                />
+                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className={`mb-3 text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  {t('workspace.detailsTitle')}
+                                </p>
+
+                                <div className="space-y-4">
+                                  {creditMethodCodes.includes(activeLeg.method) && (
+                                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
+                                      {t('customerCredits.applied')}
+                                    </div>
+                                  )}
+                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
+                                    <div className="grid gap-3 md:grid-cols-3">
+                                      <div>
+                                        <label className="mb-1 block text-xs font-medium text-slate-600">{t('splitPayment.cardBrand')}</label>
+                                        <CmxSelectDropdown
+                                          value={activeLeg.card_brand_code ?? ''}
+                                          onValueChange={(value) => updateLeg(activeLegIndex, 'card_brand_code', value || undefined)}
+                                        >
+                                          <CmxSelectDropdownTrigger>
+                                            <CmxSelectDropdownValue
+                                              displayValue={
+                                                activeLeg.card_brand_code
+                                                  ? cardBrands.find((brand) => brand.card_brand_code === activeLeg.card_brand_code)?.name ?? activeLeg.card_brand_code
+                                                  : ''
+                                              }
+                                              placeholder={t('splitPayment.cardBrandPlaceholder')}
+                                            />
+                                          </CmxSelectDropdownTrigger>
+                                          <CmxSelectDropdownContent>
+                                            <CmxSelectDropdownItem value="">{t('splitPayment.cardBrandPlaceholder')}</CmxSelectDropdownItem>
+                                            {cardBrands.map((brand) => (
+                                              <CmxSelectDropdownItem key={brand.card_brand_code} value={brand.card_brand_code}>
+                                                {isRTL ? (brand.name2 || brand.name) : brand.name}
+                                              </CmxSelectDropdownItem>
+                                            ))}
+                                          </CmxSelectDropdownContent>
+                                        </CmxSelectDropdown>
+                                      </div>
+                                      <CmxInput
+                                        label={t('splitPayment.cardLast4')}
+                                        value={activeLeg.card_last4 ?? ''}
+                                        dir="ltr"
+                                        maxLength={4}
+                                        inputMode="numeric"
+                                        placeholder="0000"
+                                        onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
+                                      />
+                                      <CmxInput
+                                        label={t('splitPayment.authCode')}
+                                        value={activeLeg.auth_code ?? ''}
+                                        dir="ltr"
+                                        placeholder="—"
+                                        onChange={(event) => updateLeg(activeLegIndex, 'auth_code', event.target.value || undefined)}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {activeLeg.method === PAYMENT_METHODS.CHECK && (
+                                    <div className="grid gap-3 md:grid-cols-3">
+                                      <CmxInput
+                                        ref={checkNumberInputRef}
+                                        label={`${t('splitPayment.checkNumber')} *`}
+                                        value={activeLeg.checkNumber ?? ''}
+                                        dir="ltr"
+                                        error={errors.checkNumber?.message}
+                                        placeholder={t('checkNumber.placeholder')}
+                                        onChange={(event) => {
+                                          const nextValue = event.target.value || undefined;
+                                          updateLeg(activeLegIndex, 'checkNumber', nextValue);
+                                          setValue('checkNumber', nextValue ?? '', { shouldValidate: true, shouldDirty: true });
+                                        }}
+                                      />
+                                      <CmxInput
+                                        label={t('splitPayment.checkBankName')}
+                                        value={activeLeg.checkBank ?? ''}
+                                        dir="ltr"
+                                        placeholder="—"
+                                        onChange={(event) => {
+                                          const nextValue = event.target.value || undefined;
+                                          updateLeg(activeLegIndex, 'checkBank', nextValue);
+                                          setValue('checkBank', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
+                                        }}
+                                      />
+                                      <CmxInput
+                                        type="date"
+                                        label={t('splitPayment.checkDueDate')}
+                                        value={activeLeg.checkDate ?? ''}
+                                        // BVM Phase 6 Sub-item 4: floor the picker
+                                        // at today's local date so the operator
+                                        // cannot accidentally tender a back-dated
+                                        // check. validateCheckDueDate also catches
+                                        // pasted/typed values that bypass the picker.
+                                        min={todayYyyyMmDd()}
+                                        error={
+                                          validateCheckDueDate(activeLeg.checkDate)
+                                            ? t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)
+                                            : undefined
+                                        }
+                                        onChange={(event) => {
+                                          const nextValue = event.target.value || undefined;
+                                          updateLeg(activeLegIndex, 'checkDate', nextValue);
+                                          setValue('checkDate', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
+                                    <CmxInput
+                                      label={t('splitPayment.bankReference')}
+                                      value={activeLeg.bank_reference ?? ''}
+                                      dir="ltr"
+                                      placeholder="—"
+                                      onChange={(event) => updateLeg(activeLegIndex, 'bank_reference', event.target.value || undefined)}
+                                    />
+                                  )}
+
+                                  {GATEWAY_METHOD_CODES.includes(activeLeg.method) && (
+                                    <div className="grid gap-3 md:grid-cols-3">
+                                      <CmxInput
+                                        label={t('splitPayment.gatewayCode')}
+                                        value={activeLeg.gateway_code ?? ''}
+                                        dir="ltr"
+                                        placeholder="—"
+                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_code', event.target.value || undefined)}
+                                      />
+                                      <CmxInput
+                                        label={t('splitPayment.gatewayTransactionId')}
+                                        value={activeLeg.gateway_transaction_id ?? ''}
+                                        dir="ltr"
+                                        placeholder="—"
+                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
+                                      />
+                                      <CmxInput
+                                        label={t('splitPayment.gatewayReference')}
+                                        value={activeLeg.gateway_reference ?? ''}
+                                        dir="ltr"
+                                        placeholder="—"
+                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_reference', event.target.value || undefined)}
+                                      />
+                                    </div>
+                                  )}
+                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
+                                    <div className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                      <ShieldCheck className="h-4 w-4 text-cyan-700" />
+                                      {t('security.cardPayment')}
+                                    </div>
+                                  )}
+                                  {!creditMethodCodes.includes(activeLeg.method) &&
+                                  activeLeg.method !== PAYMENT_METHODS.CARD &&
+                                  activeLeg.method !== PAYMENT_METHODS.CHECK &&
+                                  activeLeg.method !== PAYMENT_METHODS.BANK_TRANSFER &&
+                                  !GATEWAY_METHOD_CODES.includes(activeLeg.method) ? (
+                                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                                      {t('workspace.noDetailsDescription')}
+                                    </div>
+                                  ) : null}
+                                </div>
                               </div>
-                            )}
-                            {activeLeg.method === PAYMENT_METHODS.CARD && (
-                              <div className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                <ShieldCheck className="h-4 w-4 text-cyan-700" />
-                                {t('security.cardPayment')}
+                            </>
+                          ) : (
+                            <div className="grid min-h-[240px] place-items-center rounded-3xl border border-dashed border-cyan-200 bg-white/70 p-6 text-center">
+                              <div className="max-w-md">
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
+                                  <CreditCard className="h-6 w-6" />
+                                </div>
+                                <p className="mt-4 text-lg font-semibold text-slate-900">{t('workspace.helperTitle')}</p>
+                                <p className="mt-2 text-sm text-slate-600">{t('workspace.helperDescription')}</p>
+                                <div className="mt-4 grid gap-2 text-xs text-slate-500 sm:grid-cols-3">
+                                  <span className="rounded-full bg-slate-100 px-3 py-2">{t('workspace.helperMethod')}</span>
+                                  <span className="rounded-full bg-slate-100 px-3 py-2">{t('workspace.helperAmount')}</span>
+                                  <span className="rounded-full bg-slate-100 px-3 py-2">{t('workspace.helperCredits')}</span>
+                                </div>
                               </div>
-                            )}
-                          </CmxCardContent>
-                        </CmxCard>
-                      )}
+                            </div>
+                          )}
+                        </CmxCardContent>
+                      </CmxCard>
                     </>
                   )}
                 </div>
@@ -3687,7 +3886,7 @@ export function PaymentModalV4({
                   </CollapsibleRailCard>
 
                   {cashDrawerRequired ? (
-                    <div ref={cashDrawerCardRef}>
+                    <div>
                       <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                         <CmxCardHeader className="border-b border-slate-100 pb-3">
                           <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.cashDrawerImpact')}</CmxCardTitle>

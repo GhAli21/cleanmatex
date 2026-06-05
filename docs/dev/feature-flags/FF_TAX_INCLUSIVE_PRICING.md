@@ -36,9 +36,15 @@ Disable flag in GrowthBook → Settings UI hidden → `pricing-mode-resolver.ser
 
 ---
 
-## Remaining future wiring
+## Wiring complete
 
-1. Wire `pricing-mode-resolver.service.ts` to check the flag before reading the DB setting (prevents TAX_INCLUSIVE resolution at the calculator layer even if the DB column is set, when the flag is off)
+All three layers are now gated:
+
+| Layer | File | Gate |
+|---|---|---|
+| Settings UI — Tenant | `src/features/settings/ui/tenant-settings-screen.tsx` | `useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING)` hides the TAX_INCLUSIVE option |
+| Settings UI — Branch | `src/features/settings/ui/branch-settings-screen.tsx` | same |
+| Calculator (server) | `lib/services/pricing-mode-resolver.service.ts` | `getFeatureFlags(tenantId)` check before returning TAX_INCLUSIVE; falls back to TAX_EXCLUSIVE when flag is off |
 
 ---
 

@@ -121,7 +121,7 @@ describe('Order Item Helpers', () => {
     });
 
     it('should include servicePrefCharge when present', () => {
-      const itemWithPref = { ...mockItem, servicePrefCharge: 5.5 };
+      const itemWithPref = { ...mockItem, totalPrice: null, servicePrefCharge: 5.5 };
       expect(calculateItemTotal(itemWithPref)).toBe(15.5);
     });
 
@@ -145,9 +145,9 @@ describe('Order Item Helpers', () => {
     });
 
     it('should include servicePrefCharge across items', () => {
-      const item1 = { ...mockItem, servicePrefCharge: 3 };
-      const item2 = { ...mockItem2, servicePrefCharge: 7 };
-      // 10 + 3 + 40 + 7 = 60
+      const item1 = { ...mockItem, totalPrice: null, servicePrefCharge: 3 };
+      const item2 = { ...mockItem2, totalPrice: null, servicePrefCharge: 7 };
+      // 1*10 + 3 + 2*20 + 7 = 60
       expect(calculateOrderTotal([item1, item2])).toBe(60.0);
     });
   });

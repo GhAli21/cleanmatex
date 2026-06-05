@@ -24,7 +24,7 @@ export function sanitizeInput(input: string): string {
     }
 
     return input
-        .replace(/[<>]/g, '') // Remove < and > to prevent HTML injection
+        .replace(/<[^>]*>/g, '') // Remove complete HTML tags to prevent injection
         .replace(/javascript:/gi, '') // Remove javascript: protocol
         .replace(/on\w+=/gi, '') // Remove event handlers (onclick, onerror, etc.)
         .trim();

@@ -5267,7 +5267,7 @@
         "fullPaymentRequiredHelp": "The order must be fully settled before submission.",
         "payOnCollectionHelp": "Collect the remaining balance from the customer later at pickup or delivery.",
         "invoiceOutstandingHelp": "Leave the balance as an outstanding invoice amount for B2B settlement.",
-        "adjustments": "Adjustments",
+        "adjustments": "Discounts & Credits",
         "discounts": "Discounts",
         "discountsHelp": "Manual discounts reduce the order value before payment is finalized.",
         "creditsAndStoredValue": "Credits & Stored Value",
@@ -5320,7 +5320,22 @@
         "forMethod": "for",
         "keypadHint": "Use the keypad for fast touch entry, or type directly into the amount field.",
         "addSplitHint": "Select an immediate method to start collecting payment.",
-        "enter": "Enter"
+        "enter": "Enter",
+        "activeTitle": "Payment Workspace",
+        "activeDescription": "Use this area for the active payment step, details, and fixes without scrolling the right rail.",
+        "fixAction": "Fix now",
+        "selectedLeg": "Selected Leg",
+        "amountBeingEdited": "Amount Being Edited",
+        "afterThisPayment": "After This Payment",
+        "cashImpactTitle": "Cash Drawer Impact",
+        "manageDrawer": "Manage Drawer",
+        "detailsTitle": "Payment Details",
+        "noDetailsDescription": "No extra details are required for this payment method. Keep editing the amount above or choose another method.",
+        "helperTitle": "Ready for the next payment step",
+        "helperDescription": "Select a payment method, edit an amount, or apply a credit. The active task will appear here.",
+        "helperMethod": "Choose method",
+        "helperAmount": "Edit amount",
+        "helperCredits": "Apply credits"
       },
       "security": {
         "cardPayment": "Secure card payment. Data is encrypted and PCI compliant."

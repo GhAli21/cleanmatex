@@ -214,7 +214,8 @@
       "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(ls -la /mnt/f/jhapp/cleanmatex/web-admin/ 2>/dev/null || ls -la \"f:/jhapp/cleanmatex/web-admin/\" 2>/dev/null || pwd)",
       "Read(//mnt/f/jhapp/cleanmatex/**)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(node -e \"require\\('jest-resolve'\\).default\")"
     ],
     "deny": [
       "Read(node_modules)",

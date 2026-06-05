@@ -1,11 +1,16 @@
 /**
  * Unit Tests for Prisma Error Scenarios
- * 
+ *
  * Tests error handling, edge cases, and security scenarios
  */
 
 import { applyTenantMiddleware } from '@/lib/prisma-middleware';
-import { withTenantContext } from '@/lib/db/tenant-context';
+import { getTenantId } from '@/lib/db/tenant-context';
+
+jest.mock('@/lib/db/tenant-context', () => ({
+  withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
+  getTenantId: jest.fn(),
+}));
 
 const mockPrismaClient = {
   $use: jest.fn(),
@@ -14,9 +19,11 @@ const mockPrismaClient = {
 describe('Prisma Middleware Error Scenarios', () => {
   let middlewareFn: (params: any, next: any) => Promise<any>;
   const mockNext = jest.fn();
+  const mockedGetTenantId = getTenantId as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNext.mockResolvedValue({ data: 'test' });
     applyTenantMiddleware(mockPrismaClient);
     middlewareFn = mockPrismaClient.$use.mock.calls[0][0];
   });
@@ -55,9 +62,7 @@ describe('Prisma Middleware Error Scenarios', () => {
         args: {},
       };
 
-      await expect(middlewareFn(params, mockNext)).rejects.toThrow(
-        expect.stringContaining('Tenant ID is required')
-      );
+      await expect(middlewareFn(params, mockNext)).rejects.toThrow('Tenant ID is required');
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
@@ -66,7 +71,7 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should handle null model name', async () => {
@@ -98,7 +103,7 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should handle unknown action', async () => {
@@ -119,7 +124,7 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should handle missing args', async () => {
@@ -156,7 +161,7 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should propagate errors from next function', async () => {
@@ -177,7 +182,7 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should prevent cross-tenant access via where clause manipulation', async () => {
@@ -241,21 +246,30 @@ describe('Prisma Middleware Error Scenarios', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
-    test('should handle empty string tenant ID', async () => {
-      withTenantContext('', async () => {
-        const params = {
-          model: 'org_orders_mst',
-          action: 'findMany',
-          args: {},
-        };
+    test('should warn but not inject when tenant ID is empty string', async () => {
+      // Empty string is falsy — middleware treats it as missing tenant context.
+      // Middleware only warns (not throws) when NODE_ENV === 'development'.
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      mockedGetTenantId.mockReturnValue('');
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        await middlewareFn(params, mockNext);
+      const params = {
+        model: 'org_orders_mst',
+        action: 'findMany',
+        args: {},
+      };
 
-        expect(params.args.where.tenant_org_id).toBe('');
-      });
+      await middlewareFn(params, mockNext);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
     });
 
     test('should handle complex nested where conditions', async () => {
@@ -302,4 +316,3 @@ describe('Prisma Middleware Error Scenarios', () => {
     });
   });
 });
-

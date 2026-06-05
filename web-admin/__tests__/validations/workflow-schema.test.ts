@@ -3,23 +3,23 @@ import { OrderStatusEnum, WorkflowSettingsSchema } from '@/lib/validations/workf
 
 describe('workflow-schema', () => {
   it('validates OrderStatus enum', () => {
-    expect(OrderStatusEnum.parse('READY')).toBe('READY');
+    expect(OrderStatusEnum.parse('ready')).toBe('ready');
     expect(() => OrderStatusEnum.parse('UNKNOWN')).toThrow();
   });
 
   it('validates WorkflowSettings schema', () => {
     const valid = {
-      id: '00000000-0000-0000-0000-000000000001',
-      tenant_org_id: '00000000-0000-0000-0000-000000000002',
+      id: 'a0000000-0000-4000-8000-000000000001',
+      tenant_org_id: 'a0000000-0000-4000-8000-000000000002',
       service_category_code: null,
-      workflow_steps: ['INTAKE', 'PREPARATION', 'READY'],
+      workflow_steps: ['intake', 'preparation', 'ready'],
       status_transitions: {
-        INTAKE: ['PREPARATION'],
-        PREPARATION: ['READY'],
-        READY: [],
+        intake: ['preparation'],
+        preparation: ['ready'],
+        ready: [],
       },
       quality_gate_rules: {
-        READY: {
+        ready: {
           requireAllItemsAssembled: true,
           requireQAPassed: true,
         },
@@ -32,5 +32,3 @@ describe('workflow-schema', () => {
     expect(parsed.is_active).toBe(true);
   });
 });
-
-

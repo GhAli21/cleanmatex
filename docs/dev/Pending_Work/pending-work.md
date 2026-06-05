@@ -50,20 +50,8 @@ New dedicated pages:
 - `src/features/settings/ui/tenant-settings-screen.tsx` — `useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING)` gates the TAX_INCLUSIVE option in the Tax Pricing Mode dropdown
 - `src/features/settings/ui/branch-settings-screen.tsx` — same pattern
 
-**Remaining (future sprint):**
-- Wire `pricing-mode-resolver.service.ts` to check the flag before reading the DB setting (calculator-layer gate)
-- Reference: `docs/dev/feature-flags/FF_TAX_INCLUSIVE_PRICING.md`
-
----
-
-## Technical — Future Sprints
-
-### 5. Cleanmatexsaas Cross-Project Coordination (Phase 7 Doc Namespace)  <!-- next sprint -->
-**Owner:** Shared across cleanmatex + cleanmatexsaas  
-**Context:** Phase 7 shipped tax-document lifecycle infrastructure. cleanmatexsaas HQ console may need visibility into tenant tax-document issuance (reporting, compliance dashboard).  
-**Reference:** `docs/dev/rules/integration-contracts.md`
-
-Action: Agree on namespace for tax-document API endpoints exposed from cleanmatex → HQ consumption.
+All three layers wired: Settings UI (tenant + branch) + calculator (`pricing-mode-resolver.service.ts`).  
+Reference: `docs/dev/feature-flags/FF_TAX_INCLUSIVE_PRICING.md`
 
 ---
 

@@ -139,6 +139,80 @@ export function walletLegExceedsBalance(
   return appliedAmount - availableBalance > epsilon;
 }
 
+/**
+ * Scope for a cashier-local cash drawer preference.
+ *
+ * The branch and user are part of the key so a cashier moving branches or
+ * sharing a browser profile never inherits another checkout context.
+ */
+export type PreferredCashDrawerStorageScope = {
+  tenantOrgId?: string | null;
+  branchId?: string | null;
+  userId?: string | null;
+};
+
+/**
+ * Minimal drawer/session shape needed to resolve a stable drawer preference
+ * to the current open session.
+ */
+export type PreferredCashDrawerSessionChoice = {
+  drawer: {
+    id: string;
+  };
+  session: {
+    id: string;
+  };
+};
+
+/**
+ * Builds the browser-local key for the preferred cash drawer id.
+ *
+ * @param root0 Preference scope.
+ * @param root0.tenantOrgId Tenant boundary for the saved drawer preference.
+ * @param root0.branchId Branch boundary for the saved drawer preference.
+ * @param root0.userId Cashier boundary for the saved drawer preference.
+ * @returns Scoped storage key, or null when the preference cannot be safely scoped.
+ */
+export function getPreferredCashDrawerStorageKey({
+  tenantOrgId,
+  branchId,
+  userId,
+}: PreferredCashDrawerStorageScope): string | null {
+  const tenant = tenantOrgId?.trim();
+  const branch = branchId?.trim();
+  const user = userId?.trim();
+
+  if (!tenant || !branch || !user) {
+    return null;
+  }
+
+  return `cmx:payment:v4:preferred-cash-drawer:${encodeURIComponent(tenant)}:${encodeURIComponent(branch)}:${encodeURIComponent(user)}`;
+}
+
+/**
+ * Resolves a saved drawer id to the current open session id.
+ *
+ * We intentionally persist drawer id instead of session id because sessions
+ * close and reopen; this keeps reuse convenient without bypassing live drawer
+ * validation.
+ *
+ * @param choices Open drawer/session choices from the latest API response.
+ * @param preferredCashDrawerId Saved stable cash drawer id.
+ * @returns Current open session id for that drawer, or null when unavailable.
+ */
+export function resolvePreferredCashDrawerSessionId(
+  choices: PreferredCashDrawerSessionChoice[],
+  preferredCashDrawerId: string | null | undefined
+): string | null {
+  const preferred = preferredCashDrawerId?.trim();
+
+  if (!preferred) {
+    return null;
+  }
+
+  return choices.find(({ drawer }) => drawer.id === preferred)?.session.id ?? null;
+}
+
 // ─── BVM Phase 6 Sub-item 4 helpers ─────────────────────────────────────────
 
 // Phase 6 Sub-item 6 hoisted these into `lib/utils/check-date` so the same

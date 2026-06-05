@@ -22,10 +22,7 @@ jest.mock('@/lib/supabase/server', () => ({
 }));
 
 describe('WorkflowService', () => {
-  let workflowService: WorkflowService;
-
   beforeEach(() => {
-    workflowService = new WorkflowService();
     jest.clearAllMocks();
   });
 
@@ -37,14 +34,15 @@ describe('WorkflowService', () => {
         error: null,
       });
 
-      await workflowService.changeStatus(
-        'test-tenant-id',
-        'test-order-id',
-        'intake',
-        'processing',
-        'test-user-id',
-        { notes: 'Starting processing' }
-      );
+      await WorkflowService.changeStatus({
+        tenantId: 'test-tenant-id',
+        orderId: 'test-order-id',
+        fromStatus: 'intake' as any,
+        toStatus: 'processing' as any,
+        userId: 'test-user-id',
+        userName: 'Test User',
+        notes: 'Starting processing',
+      });
 
       expect(mockRpc).toHaveBeenCalledWith('cmx_order_transition', expect.any(Object));
     });
@@ -56,13 +54,14 @@ describe('WorkflowService', () => {
         error: null,
       });
 
-      const result = await workflowService.changeStatus(
-        'test-tenant-id',
-        'test-order-id',
-        'intake',
-        'delivered',
-        'test-user-id'
-      );
+      const result = await WorkflowService.changeStatus({
+        tenantId: 'test-tenant-id',
+        orderId: 'test-order-id',
+        fromStatus: 'intake' as any,
+        toStatus: 'delivered' as any,
+        userId: 'test-user-id',
+        userName: 'Test User',
+      });
 
       expect(result.success).toBe(false);
     });
@@ -72,16 +71,20 @@ describe('WorkflowService', () => {
     test('should fetch allowed transitions from RPC', async () => {
       const mockRpc = mockSupabaseClient.rpc as jest.Mock;
       mockRpc.mockResolvedValue({
-        data: [
-          { to_status: 'processing', requires_notes: false },
-          { to_status: 'cancelled', requires_notes: true },
-        ],
+        data: {
+          transitions: [
+            { to_status: 'processing', requires_notes: false },
+            { to_status: 'cancelled', requires_notes: true },
+          ],
+        },
         error: null,
       });
 
-      const result = await workflowService.getAllowedTransitions('test-order-id');
+      const result = await WorkflowService.getAllowedTransitions('test-order-id', 'test-tenant-id');
 
-      expect(mockRpc).toHaveBeenCalledWith('cmx_get_allowed_transitions', { p_order_id: 'test-order-id' });
+      expect(mockRpc).toHaveBeenCalledWith('cmx_get_allowed_transitions', expect.objectContaining({
+        p_order: 'test-order-id',
+      }));
       expect(result).toHaveLength(2);
     });
 
@@ -92,7 +95,7 @@ describe('WorkflowService', () => {
         error: { message: 'Database error' },
       });
 
-      const result = await workflowService.getAllowedTransitions('test-order-id');
+      const result = await WorkflowService.getAllowedTransitions('test-order-id', 'test-tenant-id');
 
       expect(result).toEqual([]);
     });
@@ -117,7 +120,7 @@ describe('WorkflowService', () => {
       }));
       mockFrom.mockReturnValue({ select: mockSelect });
 
-      const result = await workflowService.getWorkflowTemplate('template-1');
+      const result = await WorkflowService.getWorkflowTemplate('template-1');
 
       expect(mockFrom).toHaveBeenCalledWith('sys_workflow_template_cd');
       expect(result?.template_code).toBe('WF_STANDARD');
@@ -137,37 +140,25 @@ describe('WorkflowService', () => {
       }));
       mockFrom.mockReturnValue({ select: mockSelect });
 
-      const result = await workflowService.getWorkflowTemplate('nonexistent');
+      const result = await WorkflowService.getWorkflowTemplate('nonexistent');
 
       expect(result).toBeNull();
     });
   });
 
   describe('getOrderState', () => {
-    test('should return order state with flags and transitions', async () => {
-      const mockRpc = mockSupabaseClient.rpc as jest.Mock;
-      mockRpc.mockResolvedValueOnce({
-        data: {
-          has_split: false,
-          has_issue: false,
-          is_rejected: false,
-          can_split: true,
-          can_create_issue: true,
-        },
-        error: null,
-      });
-      mockRpc.mockResolvedValueOnce({
-        data: [{ to_status: 'processing' }, { to_status: 'cancelled' }],
-        error: null,
+    test('should return null when order not found', async () => {
+      const mockFrom = mockSupabaseClient.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn(() => ({
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+        })),
       });
 
-      const state = await workflowService.getOrderState(
-        'test-tenant-id',
-        'test-order-id'
-      );
+      const state = await WorkflowService.getOrderState('test-order-id', 'test-tenant-id');
 
-      expect(state.hasSplit).toBe(false);
-      expect(state.allowedTransitions).toHaveLength(2);
+      expect(state).toBeNull();
     });
   });
 
@@ -175,38 +166,37 @@ describe('WorkflowService', () => {
     test('should validate transition when orderId provided', async () => {
       const mockRpc = mockSupabaseClient.rpc as jest.Mock;
       mockRpc.mockResolvedValue({
-        data: true,
+        data: { allowed: true },
         error: null,
       });
 
-      const result = await workflowService.isTransitionAllowed(
-        'test-tenant-id',
-        'intake',
-        'processing',
-        'test-order-id'
-      );
+      const result = await WorkflowService.isTransitionAllowed({
+        tenantId: 'test-tenant-id',
+        fromStatus: 'intake' as any,
+        toStatus: 'processing' as any,
+        orderId: 'test-order-id',
+      });
 
       expect(mockRpc).toHaveBeenCalledWith(
         'cmx_validate_transition',
         expect.objectContaining({
-          p_from_status: 'intake',
-          p_to_status: 'processing',
+          p_from: 'intake',
+          p_to: 'processing',
         })
       );
-      expect(result).toBe(true);
+      expect(result.isAllowed).toBe(true);
     });
 
     test('should use legacy logic when no orderId', async () => {
-      const result = await workflowService.isTransitionAllowed(
-        'test-tenant-id',
-        'intake',
-        'processing'
-      );
+      const result = await WorkflowService.isTransitionAllowed({
+        tenantId: 'test-tenant-id',
+        fromStatus: 'intake' as any,
+        toStatus: 'processing' as any,
+      });
 
       // Should fall back to legacy validation
       expect(mockSupabaseClient.rpc).not.toHaveBeenCalled();
-      expect(typeof result).toBe('boolean');
+      expect(typeof result.isAllowed).toBe('boolean');
     });
   });
 });
-

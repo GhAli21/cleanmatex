@@ -4,14 +4,12 @@
  * Unit tests for permission checking functionality
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
   getUserPermissionsServer,
   hasPermissionServer,
-  hasAnyPermissionServer,
-  hasAllPermissionsServer,
   invalidatePermissionCache,
-} from '@/lib/services/permission-service';
+} from '@/lib/services/permission-service-server';
 
 // Mock Redis cache
 jest.mock('@/lib/cache/redis', () => ({
@@ -23,11 +21,16 @@ jest.mock('@/lib/cache/redis', () => ({
   },
 }));
 
-// Mock Supabase client
+// Mock Supabase server client
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => ({
     rpc: jest.fn(),
   })),
+}));
+
+// Suppress logger noise in tests
+jest.mock('@/lib/utils/logger', () => ({
+  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
 
 describe('Permission Service', () => {
@@ -99,39 +102,6 @@ describe('Permission Service', () => {
       const result = await hasPermissionServer('orders:delete');
 
       expect(result).toBe(false);
-    });
-  });
-
-  describe('hasAnyPermissionServer', () => {
-    it('should return true if user has any permission', async () => {
-      const { createClient } = require('@/lib/supabase/server');
-      const mockRpc = jest.fn().mockResolvedValue({
-        data: true,
-        error: null,
-      });
-      createClient.mockReturnValue({ rpc: mockRpc });
-
-      const result = await hasAnyPermissionServer(['orders:create', 'orders:update']);
-
-      expect(result).toBe(true);
-      expect(mockRpc).toHaveBeenCalledWith('has_any_permission', {
-        p_permissions: ['orders:create', 'orders:update'],
-      });
-    });
-  });
-
-  describe('hasAllPermissionsServer', () => {
-    it('should return true if user has all permissions', async () => {
-      const { createClient } = require('@/lib/supabase/server');
-      const mockRpc = jest.fn().mockResolvedValue({
-        data: true,
-        error: null,
-      });
-      createClient.mockReturnValue({ rpc: mockRpc });
-
-      const result = await hasAllPermissionsServer(['orders:read', 'orders:create']);
-
-      expect(result).toBe(true);
     });
   });
 

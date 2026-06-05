@@ -5,264 +5,265 @@
 
 import { ItemProcessingService } from '@/lib/services/item-processing-service';
 
-// Mock Supabase
-const mockSupabaseClient = {
-  from: jest.fn((table: string) => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      })),
-    })),
-    insert: jest.fn(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-      })),
-    })),
-    update: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-        })),
-      })),
-    })),
-  })),
-};
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+
+const mockFrom = jest.fn();
+const mockRpc = jest.fn().mockResolvedValue({ data: null, error: null });
 
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => mockSupabaseClient),
+  createClient: jest.fn().mockResolvedValue({
+    from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
+  }),
 }));
 
+jest.mock('@/lib/services/processing-steps-service', () => ({
+  ProcessingStepsService: {
+    isValidStepForCategory: jest.fn().mockResolvedValue(true),
+    getValidStepCodes: jest.fn().mockResolvedValue(['sorting', 'washing', 'drying', 'finishing']),
+  },
+}));
+
+jest.mock('@/lib/services/workflow-service', () => ({
+  WorkflowService: {
+    transitionOrder: jest.fn().mockResolvedValue({ success: true }),
+    changeStatus: jest.fn().mockResolvedValue({ success: true }),
+    getAllowedTransitions: jest.fn().mockResolvedValue([]),
+    isTransitionAllowed: jest.fn().mockResolvedValue({ isAllowed: true }),
+    getOrderState: jest.fn().mockResolvedValue(null),
+    getWorkflowTemplate: jest.fn().mockResolvedValue(null),
+  },
+}));
+
+jest.mock('@/lib/services/order-service', () => ({
+  OrderService: {
+    getOrderById: jest.fn().mockResolvedValue(null),
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Helper: build a self-referencing chainable mock
+// ---------------------------------------------------------------------------
+
+function makeChain(terminalMethods: Record<string, jest.Mock>) {
+  const chain: Record<string, jest.Mock> = {};
+  const chainable = ['select', 'eq', 'in', 'order', 'insert', 'update', 'delete', 'upsert'];
+  chainable.forEach((m) => {
+    chain[m] = jest.fn().mockReturnValue(chain);
+  });
+  Object.assign(chain, terminalMethods);
+  return chain;
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe('ItemProcessingService', () => {
-  let itemProcessingService: ItemProcessingService;
-
   beforeEach(() => {
-    itemProcessingService = new ItemProcessingService();
     jest.clearAllMocks();
+    mockRpc.mockResolvedValue({ data: null, error: null });
   });
 
-  describe('recordItemProcessingStep', () => {
-    test('should record processing step and update item', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      let stepInserted = false;
-      let itemUpdated = false;
+  // --------------------------------------------------------------------------
+  describe('recordProcessingStep', () => {
+    it('should return failure when order item is not found', async () => {
+      mockFrom.mockReturnValue(
+        makeChain({ single: jest.fn().mockResolvedValue({ data: null, error: { message: 'not found' } }) })
+      );
+
+      const result = await ItemProcessingService.recordProcessingStep({
+        orderId: 'order-1',
+        orderItemId: 'nonexistent',
+        tenantId: 'tenant-1',
+        stepCode: 'sorting',
+        stepSeq: 1,
+        userId: 'user-1',
+        userName: 'Test User',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Order item not found');
+    });
+
+    it('should return failure when item has no service category', async () => {
+      mockFrom.mockReturnValue(
+        makeChain({
+          single: jest.fn().mockResolvedValue({
+            data: { service_category_code: null, branch_id: 'branch-1' },
+            error: null,
+          }),
+        })
+      );
+
+      const result = await ItemProcessingService.recordProcessingStep({
+        orderId: 'order-1',
+        orderItemId: 'item-1',
+        tenantId: 'tenant-1',
+        stepCode: 'sorting',
+        stepSeq: 1,
+        userId: 'user-1',
+        userName: 'Test User',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Service category not found');
+    });
+
+    it('should record step successfully (happy path)', async () => {
+      let callCount = 0;
 
       mockFrom.mockImplementation((table: string) => {
-        if (table === 'org_order_item_processing_steps') {
-          stepInserted = true;
-          return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() =>
-                  Promise.resolve({
-                    data: {
-                      id: 'step-1',
-                      step_code: 'sorting',
-                      step_seq: 1,
-                    },
-                    error: null,
-                  })
-                ),
-              })),
-            })),
-          };
-        }
         if (table === 'org_order_items_dtl') {
-          itemUpdated = true;
-          return {
-            update: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                select: jest.fn(() => ({
-                  single: jest.fn(() =>
-                    Promise.resolve({
-                      data: { id: 'item-1', item_last_step: 'sorting' },
-                      error: null,
-                    })
-                  ),
-                })),
-              })),
-            })),
-          };
+          return makeChain({
+            single: jest.fn().mockResolvedValue({
+              data: { service_category_code: 'LAUNDRY', branch_id: 'branch-1' },
+              error: null,
+            }),
+          });
         }
-        return { select: jest.fn() };
-      });
-
-      await itemProcessingService.recordItemProcessingStep(
-        'test-tenant-id',
-        'test-order-id',
-        'item-1',
-        'sorting',
-        1,
-        'test-user-id'
-      );
-
-      expect(stepInserted).toBe(true);
-      expect(itemUpdated).toBe(true);
-    });
-
-    test('should handle all 5 processing steps', async () => {
-      const steps = [
-        { code: 'sorting', seq: 1 },
-        { code: 'pretreatment', seq: 2 },
-        { code: 'washing', seq: 3 },
-        { code: 'drying', seq: 4 },
-        { code: 'finishing', seq: 5 },
-      ];
-
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockImplementation((table: string) => {
         if (table === 'org_order_item_processing_steps') {
+          callCount++;
+          if (callCount === 1) {
+            // check for existing step
+            return makeChain({
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            });
+          }
+          // insert step
+          return makeChain({
+            single: jest.fn().mockResolvedValue({
+              data: { id: 'step-1', done_at: new Date().toISOString() },
+              error: null,
+            }),
+          });
+        }
+        return makeChain({ single: jest.fn().mockResolvedValue({ data: null, error: null }) });
+      });
+
+      const result = await ItemProcessingService.recordProcessingStep({
+        orderId: 'order-1',
+        orderItemId: 'item-1',
+        tenantId: 'tenant-1',
+        stepCode: 'sorting',
+        stepSeq: 1,
+        userId: 'user-1',
+        userName: 'Test User',
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  describe('markItemComplete', () => {
+    it('should return failure when item update fails', async () => {
+      mockFrom.mockReturnValue(
+        makeChain({ mockResolvedValue: undefined } as any)
+      );
+
+      // org_order_items_dtl update → error
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'org_order_items_dtl') {
+          const chain: any = {};
+          chain.update = jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
+            }),
+          });
+          return chain;
+        }
+        return makeChain({ single: jest.fn().mockResolvedValue({ data: null, error: null }) });
+      });
+
+      const result = await ItemProcessingService.markItemComplete({
+        orderId: 'order-1',
+        orderItemId: 'item-1',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        userName: 'Test User',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to mark item as complete');
+    });
+
+    it('should mark item complete and return allItemsReady', async () => {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'org_order_items_dtl') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-              })),
-            })),
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockResolvedValue({ error: null }),
+              }),
+            }),
           };
         }
-        return {
-          update: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: {}, error: null })),
-              })),
-            })),
-          })),
-        };
+        if (table === 'org_orders_mst') {
+          const chain: Record<string, jest.Mock> = {};
+          chain.select = jest.fn().mockReturnValue(chain);
+          chain.eq = jest.fn().mockReturnValue(chain);
+          chain.single = jest.fn().mockResolvedValue({
+            data: {
+              id: 'order-1',
+              current_status: 'processing',
+              items: [{ item_status: 'ready' }],
+            },
+            error: null,
+          });
+          return chain;
+        }
+        return makeChain({ single: jest.fn().mockResolvedValue({ data: null, error: null }) });
       });
 
-      for (const step of steps) {
-        await itemProcessingService.recordItemProcessingStep(
-          'test-tenant-id',
-          'test-order-id',
-          'item-1',
-          step.code,
-          step.seq,
-          'test-user-id'
-        );
-      }
+      const result = await ItemProcessingService.markItemComplete({
+        orderId: 'order-1',
+        orderItemId: 'item-1',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        userName: 'Test User',
+      });
 
-      expect(mockFrom).toHaveBeenCalledTimes(10); // 5 inserts + 5 updates
+      expect(result.success).toBe(true);
+      expect(typeof result.allItemsReady).toBe('boolean');
     });
   });
 
-  describe('markItemComplete', () => {
-    test('should mark item as completed and update status', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() =>
-                Promise.resolve({
-                  data: {
-                    id: 'item-1',
-                    item_status: 'ready',
-                    item_last_step: 'finishing',
-                  },
-                  error: null,
-                })
-              ),
-            })),
-          })),
-        })),
+  // --------------------------------------------------------------------------
+  describe('getItemSteps', () => {
+    it('should return processing steps for item', async () => {
+      const chain: Record<string, jest.Mock> = {};
+      chain.select = jest.fn().mockReturnValue(chain);
+      chain.eq = jest.fn().mockReturnValue(chain);
+      chain.order = jest.fn().mockResolvedValue({
+        data: [
+          { id: 'step-1', step_code: 'sorting', step_seq: 1 },
+          { id: 'step-2', step_code: 'washing', step_seq: 2 },
+        ],
+        error: null,
       });
+      mockFrom.mockReturnValue(chain);
 
-      const item = await itemProcessingService.markItemComplete(
-        'test-tenant-id',
-        'test-order-id',
-        'item-1',
-        'test-user-id'
-      );
+      const result = await ItemProcessingService.getItemSteps('item-1', 'tenant-1');
 
-      expect(item?.item_status).toBe('ready');
-      expect(item?.item_last_step).toBe('finishing');
+      expect(result.success).toBe(true);
+      expect(result.steps).toHaveLength(2);
+      expect(result.steps![0].step_code).toBe('sorting');
     });
 
-    test('should handle missing item', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() =>
-                Promise.resolve({ data: null, error: { code: 'PGRST116' } })
-              ),
-            })),
-          })),
-        })),
-      });
+    it('should return empty steps when no history', async () => {
+      const chain: Record<string, jest.Mock> = {};
+      chain.select = jest.fn().mockReturnValue(chain);
+      chain.eq = jest.fn().mockReturnValue(chain);
+      chain.order = jest.fn().mockResolvedValue({ data: [], error: null });
+      mockFrom.mockReturnValue(chain);
 
-      const item = await itemProcessingService.markItemComplete(
-        'test-tenant-id',
-        'test-order-id',
-        'nonexistent-item',
-        'test-user-id'
-      );
+      const result = await ItemProcessingService.getItemSteps('item-1', 'tenant-1');
 
-      expect(item).toBeNull();
-    });
-  });
-
-  describe('getItemProcessingHistory', () => {
-    test('should fetch all processing steps for item', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            order: jest.fn(() =>
-              Promise.resolve({
-                data: [
-                  {
-                    id: 'step-1',
-                    step_code: 'sorting',
-                    step_seq: 1,
-                    completed_at: new Date().toISOString(),
-                  },
-                  {
-                    id: 'step-2',
-                    step_code: 'pretreatment',
-                    step_seq: 2,
-                    completed_at: new Date().toISOString(),
-                  },
-                ],
-                error: null,
-              })
-            ),
-          })),
-        })),
-      });
-
-      const history = await itemProcessingService.getItemProcessingHistory(
-        'test-tenant-id',
-        'test-order-id',
-        'item-1'
-      );
-
-      expect(history).toHaveLength(2);
-      expect(history[0].step_code).toBe('sorting');
-      expect(history[1].step_code).toBe('pretreatment');
-    });
-
-    test('should return empty array for no history', async () => {
-      const mockFrom = mockSupabaseClient.from as jest.Mock;
-      mockFrom.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            order: jest.fn(() =>
-              Promise.resolve({ data: [], error: null })
-            ),
-          })),
-        })),
-      });
-
-      const history = await itemProcessingService.getItemProcessingHistory(
-        'test-tenant-id',
-        'test-order-id',
-        'item-1'
-      );
-
-      expect(history).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(result.steps).toEqual([]);
     });
   });
 });
-

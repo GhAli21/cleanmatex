@@ -1,8 +1,30 @@
+/** @jest-environment node */
 /**
  * Orders API Route Tests
- * 
+ *
  * Integration tests for order API routes with permission checks
  */
+
+// tenant-settings.service exports a module-level TenantSettingsService instance
+// that calls the browser createClient() at import time — must be hoisted before any route imports.
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+  })),
+}));
+
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn().mockResolvedValue({
+    auth: { getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+  }),
+}));
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { NextRequest } from 'next/server';

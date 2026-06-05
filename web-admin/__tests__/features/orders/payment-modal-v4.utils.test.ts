@@ -2,9 +2,11 @@ import {
   applyKeypadInput,
   buildGatewayReturnState,
   deriveOutstandingPolicy,
+  getPreferredCashDrawerStorageKey,
   getSuggestedStoredValueAmount,
   getWalletLegMaxAmount,
   parseGatewayReturnState,
+  resolvePreferredCashDrawerSessionId,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
@@ -73,6 +75,46 @@ describe('payment-modal-v4 utils', () => {
   it('detects when a live wallet refresh makes the applied leg invalid', () => {
     expect(walletLegExceedsBalance(40, 20)).toBe(true);
     expect(walletLegExceedsBalance(40, 40)).toBe(false);
+  });
+
+  it('scopes preferred cash drawer storage by tenant, branch, and user', () => {
+    expect(
+      getPreferredCashDrawerStorageKey({
+        tenantOrgId: 'tenant 1',
+        branchId: 'branch/A',
+        userId: 'user@example.com',
+      })
+    ).toBe('cmx:payment:v4:preferred-cash-drawer:tenant%201:branch%2FA:user%40example.com');
+  });
+
+  it('does not build a preferred cash drawer key without complete scope', () => {
+    expect(getPreferredCashDrawerStorageKey({ tenantOrgId: 'tenant-1', branchId: 'branch-1' })).toBeNull();
+    expect(getPreferredCashDrawerStorageKey({ tenantOrgId: 'tenant-1', userId: 'user-1' })).toBeNull();
+    expect(getPreferredCashDrawerStorageKey({ branchId: 'branch-1', userId: 'user-1' })).toBeNull();
+  });
+
+  it('resolves a saved cash drawer id to the current open session id', () => {
+    expect(
+      resolvePreferredCashDrawerSessionId(
+        [
+          { drawer: { id: 'drawer-a' }, session: { id: 'session-a-open' } },
+          { drawer: { id: 'drawer-b' }, session: { id: 'session-b-open' } },
+        ],
+        'drawer-b'
+      )
+    ).toBe('session-b-open');
+  });
+
+  it('ignores stale preferred cash drawer ids not present in the open-session list', () => {
+    expect(
+      resolvePreferredCashDrawerSessionId(
+        [{ drawer: { id: 'drawer-a' }, session: { id: 'session-a-open' } }],
+        'drawer-closed-or-other-branch'
+      )
+    ).toBeNull();
+    expect(resolvePreferredCashDrawerSessionId([], 'drawer-a')).toBeNull();
+    expect(resolvePreferredCashDrawerSessionId([{ drawer: { id: 'drawer-a' }, session: { id: 'session-a-open' } }], ''))
+      .toBeNull();
   });
 
   // ─── BVM Phase 6 Sub-item 4 ──────────────────────────────────────────────

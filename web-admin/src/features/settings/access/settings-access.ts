@@ -182,6 +182,40 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
+    routePattern: '/dashboard/settings/branches',
+    label: 'Branches List',
+    page: {},
+    apiDependencies: [
+      {
+        label: 'List branches',
+        method: 'GET',
+        path: '/api/v1/branches',
+        notes: ['Auth-only local route; lists all branches for the tenant.'],
+      },
+    ],
+    notes: SETTINGS_NOTES,
+  },
+  {
+    routePattern: '/dashboard/settings/tenant',
+    label: 'Tenant Settings',
+    page: {},
+    apiDependencies: [
+      {
+        label: 'Tenant profile',
+        method: 'GET',
+        path: '/api/v1/tenants/me',
+        notes: ['Auth-only tenant route used by tenant settings screen.'],
+      },
+      {
+        label: 'Effective settings',
+        method: 'GET',
+        path: '/api/settings/tenants/me/effective',
+        notes: ['Auth-only settings route.'],
+      },
+    ],
+    notes: SETTINGS_NOTES,
+  },
+  {
     routePattern: '/dashboard/settings/branches/[id]',
     label: 'Branch Settings',
     page: {},

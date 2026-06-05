@@ -5,7 +5,7 @@
  * - calculateTax — returns [] when no profile found
  * - calculateTax — customer exemption returns []
  * - calculateTax — PERCENTAGE rate computes correctly
- * - calculateTax — rounding to 4 decimal places
+ * - calculateTax — rounding to 3 decimal places (service default)
  * - calculateTax — skips exemption check when no customerId
  * - calculateTaxInTx — delegates to calculateTax
  */
@@ -14,12 +14,12 @@
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockTaxProfileFindFirst = jest.fn();
+const mockTaxProfileFindMany = jest.fn();
 const mockTaxExemptionFindFirst = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
-    org_tax_profiles_cf:   { findFirst: (...a: unknown[]) => mockTaxProfileFindFirst(...a) },
+    org_tax_profiles_cf:   { findMany: (...a: unknown[]) => mockTaxProfileFindMany(...a) },
     org_tax_exemptions_cf: { findFirst: (...a: unknown[]) => mockTaxExemptionFindFirst(...a) },
   },
 }));
@@ -67,7 +67,7 @@ describe('tax-engine.service — calculateTax', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns [] when no active profile found', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(null);
+    mockTaxProfileFindMany.mockResolvedValue([]);
 
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 100 });
     expect(result).toEqual([]);
@@ -75,7 +75,6 @@ describe('tax-engine.service — calculateTax', () => {
   });
 
   it('returns [] when customer is tax-exempt', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(10));
     mockTaxExemptionFindFirst.mockResolvedValue({ id: 'ex-1' });
 
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 100, customerId: 'cust-1' });
@@ -83,8 +82,8 @@ describe('tax-engine.service — calculateTax', () => {
   });
 
   it('computes correct tax amount for 5% rate on 200', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(5));
     mockTaxExemptionFindFirst.mockResolvedValue(null);
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(5)]);
 
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 200, customerId: 'cust-1' });
     expect(result).toHaveLength(1);
@@ -93,24 +92,24 @@ describe('tax-engine.service — calculateTax', () => {
     expect(result[0].rate).toBe(5);
   });
 
-  it('rounds taxAmount to 4 decimal places', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(7));
+  it('rounds taxAmount to 3 decimal places (service default)', async () => {
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(7)]);
 
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 33.33 });
     const raw = 33.33 * 0.07;
-    expect(result[0].taxAmount).toBe(Number(raw.toFixed(4)));
+    expect(result[0].taxAmount).toBe(Number(raw.toFixed(3)));
   });
 
   it('skips exemption check when no customerId', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(5));
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(5)]);
 
     await calculateTax({ tenantId: TENANT, baseAmount: 100 });
     expect(mockTaxExemptionFindFirst).not.toHaveBeenCalled();
   });
 
   it('returns non-exempt result when customer has no exemption record', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(10));
     mockTaxExemptionFindFirst.mockResolvedValue(null);
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(10)]);
 
     const result = await calculateTax({ tenantId: TENANT, baseAmount: 100, customerId: 'cust-2' });
     expect(result).toHaveLength(1);
@@ -122,7 +121,7 @@ describe('tax-engine.service — calculateTaxInTx', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('delegates to calculateTax and returns same result', async () => {
-    mockTaxProfileFindFirst.mockResolvedValue(makeProfile(5));
+    mockTaxProfileFindMany.mockResolvedValue([makeProfile(5)]);
 
     const txMock = {} as Parameters<typeof calculateTaxInTx>[0];
     const result = await calculateTaxInTx(txMock, { tenantId: TENANT, baseAmount: 100 });

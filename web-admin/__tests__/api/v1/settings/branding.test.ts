@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * Settings → Branding API tests.
  *

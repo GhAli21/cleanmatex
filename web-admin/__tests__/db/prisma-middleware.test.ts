@@ -6,7 +6,12 @@
 
 import { PrismaClient } from '@prisma/client';
 import { applyTenantMiddleware } from '@/lib/prisma-middleware';
-import { withTenantContext, getTenantId } from '@/lib/db/tenant-context';
+import { getTenantId } from '@/lib/db/tenant-context';
+
+jest.mock('@/lib/db/tenant-context', () => ({
+  withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
+  getTenantId: jest.fn(),
+}));
 
 // Mock Prisma Client
 const mockPrismaClient = {
@@ -29,11 +34,13 @@ const mockPrismaClient = {
 describe('Prisma Multi-Tenant Middleware', () => {
   let middlewareFn: (params: any, next: any) => Promise<any>;
   const mockNext = jest.fn();
+  const mockedGetTenantId = getTenantId as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockNext.mockResolvedValue({ data: 'test' });
-    
+    mockedGetTenantId.mockReturnValue('tenant-123');
+
     // Apply middleware and capture the middleware function
     applyTenantMiddleware(mockPrismaClient as any);
     middlewareFn = (mockPrismaClient as any).$use.mock.calls[0][0];
@@ -43,10 +50,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      // Set tenant context
-      withTenantContext(tenantId, () => {
-        // Context is set
-      });
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should add tenant_org_id to findMany where clause', async () => {
@@ -142,7 +146,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should add tenant_org_id to create data', async () => {
@@ -191,7 +195,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should add tenant_org_id to update where clause', async () => {
@@ -235,7 +239,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should add tenant_org_id to upsert where, create, and update', async () => {
@@ -271,7 +275,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should add tenant_org_id to delete where clause', async () => {
@@ -332,6 +336,10 @@ describe('Prisma Multi-Tenant Middleware', () => {
   describe('Error Scenarios', () => {
     const originalEnv = process.env.NODE_ENV;
 
+    beforeEach(() => {
+      mockedGetTenantId.mockReturnValue(null); // No tenant context for these tests
+    });
+
     afterEach(() => {
       process.env.NODE_ENV = originalEnv;
     });
@@ -367,9 +375,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
       };
 
       // No tenant context set
-      await expect(middlewareFn(params, mockNext)).rejects.toThrow(
-        expect.stringContaining('Tenant ID is required')
-      );
+      await expect(middlewareFn(params, mockNext)).rejects.toThrow('Tenant ID is required');
       expect(mockNext).not.toHaveBeenCalled();
     });
   });
@@ -378,7 +384,7 @@ describe('Prisma Multi-Tenant Middleware', () => {
     const tenantId = 'tenant-123';
 
     beforeEach(() => {
-      withTenantContext(tenantId, () => {});
+      mockedGetTenantId.mockReturnValue(tenantId);
     });
 
     test('should handle empty where clause', async () => {

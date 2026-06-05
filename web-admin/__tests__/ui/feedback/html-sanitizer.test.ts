@@ -6,68 +6,68 @@ import { sanitizeHtml, containsHtml } from '@/src/ui/feedback/utils/html-sanitiz
 
 describe('HTML Sanitizer', () => {
   describe('sanitizeHtml', () => {
-    it('should allow safe HTML tags', () => {
+    it('should allow safe HTML tags', async () => {
       const html = '<p>Safe paragraph</p>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).toContain('Safe paragraph');
       expect(result).toContain('<p>');
     });
 
-    it('should remove script tags', () => {
+    it('should remove script tags', async () => {
       const html = '<p>Safe</p><script>alert("XSS")</script>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).not.toContain('<script>');
       expect(result).not.toContain('alert');
     });
 
-    it('should remove event handlers', () => {
+    it('should remove event handlers', async () => {
       const html = '<div onclick="alert(\'XSS\')">Click me</div>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).not.toContain('onclick');
     });
 
-    it('should remove iframe tags', () => {
+    it('should remove iframe tags', async () => {
       const html = '<p>Safe</p><iframe src="evil.com"></iframe>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).not.toContain('<iframe>');
     });
 
-    it('should allow anchor tags with href', () => {
+    it('should allow anchor tags with href', async () => {
       const html = '<a href="https://example.com">Link</a>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).toContain('<a');
       expect(result).toContain('href');
     });
 
-    it('should preserve allowed attributes', () => {
+    it('should preserve allowed attributes', async () => {
       const html = '<a href="https://example.com" target="_blank" rel="noopener">Link</a>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).toContain('href');
       expect(result).toContain('target');
       expect(result).toContain('rel');
     });
 
-    it('should remove disallowed attributes', () => {
+    it('should remove disallowed attributes', async () => {
       const html = '<div data-custom="value" onclick="alert()">Content</div>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).not.toContain('data-custom');
       expect(result).not.toContain('onclick');
     });
 
-    it('should handle empty string', () => {
-      const result = sanitizeHtml('');
+    it('should handle empty string', async () => {
+      const result = await sanitizeHtml('');
       expect(result).toBe('');
     });
 
-    it('should handle plain text', () => {
+    it('should handle plain text', async () => {
       const text = 'Plain text without HTML';
-      const result = sanitizeHtml(text);
+      const result = await sanitizeHtml(text);
       expect(result).toBe(text);
     });
 
-    it('should preserve nested structure', () => {
+    it('should preserve nested structure', async () => {
       const html = '<div><p>Paragraph</p><ul><li>Item</li></ul></div>';
-      const result = sanitizeHtml(html);
+      const result = await sanitizeHtml(html);
       expect(result).toContain('<div>');
       expect(result).toContain('<p>');
       expect(result).toContain('<ul>');
@@ -101,4 +101,3 @@ describe('HTML Sanitizer', () => {
     });
   });
 });
-
