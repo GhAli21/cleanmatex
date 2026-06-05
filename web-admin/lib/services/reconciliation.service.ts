@@ -26,10 +26,14 @@ import {
   checkWalletLedgerLink,
 } from './reconciliation/stored-value-checks';
 import {
+  checkBaseCurrencyRatePresent,
+  checkBaseVsOrderAmountConsistency,
+  checkCreditAppLifecycleConsistency,
   checkOrderCreditApplicationAmountMatchesLine,
   checkOrderCreditApplicationLink,
   checkOrderCreditApplicationNotInDiscounts,
   checkOrderCreditApplicationNotInPayments,
+  checkPaymentTargetVsOrderTotals,
   checkOrderPaymentAmountMatchesLine,
   checkOrderPaymentLink,
   checkOutboxStuck,
@@ -75,10 +79,15 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   // ── Order ↔ voucher link checks (PRD §22.1) ───────────────────────────
   RECONCILIATION_CHECK_NAMES.ORDER_PAYMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.ORDER_PAYMENT_AMOUNT_MATCHES_LINE,
+  RECONCILIATION_CHECK_NAMES.PAYMENT_TARGET_VS_ORDER_TOTALS,
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE,
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS,
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS,
+  RECONCILIATION_CHECK_NAMES.CREDIT_APP_LIFECYCLE_CONSISTENCY,
+  // ── ADR-039 base-currency reporting snapshot checks ──────────────────
+  RECONCILIATION_CHECK_NAMES.BASE_CURRENCY_RATE_PRESENT,
+  RECONCILIATION_CHECK_NAMES.BASE_VS_ORDER_AMOUNT_CONSISTENCY,
   // ── Order snapshot / charge integrity (PRD §22.1) ─────────────────────
   RECONCILIATION_CHECK_NAMES.ORDER_CHARGES_MATCH_SNAPSHOT,
   RECONCILIATION_CHECK_NAMES.ORDER_PIECES_MATCH_CHARGES,
@@ -243,10 +252,14 @@ export async function runReconciliation(
       // Order ↔ voucher link
       checkOrderPaymentLink(tenantId, window),
       checkOrderPaymentAmountMatchesLine(tenantId, window),
+      checkPaymentTargetVsOrderTotals(tenantId, window),
       checkOrderCreditApplicationLink(tenantId, window),
       checkOrderCreditApplicationAmountMatchesLine(tenantId, window),
       checkOrderCreditApplicationNotInPayments(tenantId, window),
       checkOrderCreditApplicationNotInDiscounts(tenantId, window),
+      checkCreditAppLifecycleConsistency(tenantId, window),
+      checkBaseCurrencyRatePresent(tenantId, window),
+      checkBaseVsOrderAmountConsistency(tenantId, window),
       // Order snapshot
       runOrderSnapshotChecks(tenantId, orders),
       // Voucher integrity

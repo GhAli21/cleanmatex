@@ -1716,7 +1716,17 @@
         "CANCELLED": "Order Cancelled",
         "OVERCHARGE": "Overcharge",
         "OTHER": "Other"
-      }
+      },
+      "sourceTypeLabels": {
+        "REAL_PAYMENT_REFUND": "Real payment refund",
+        "GIFT_CARD_RESTORE": "Gift card balance restore",
+        "WALLET_RESTORE": "Wallet balance restore",
+        "CUSTOMER_ADVANCE_RESTORE": "Customer advance restore",
+        "CUSTOMER_CREDIT_ISSUE": "Customer credit issued",
+        "CREDIT_NOTE_ISSUE": "Credit note issued",
+        "MANUAL_EXCEPTION": "Manual exception (unclassified)"
+      },
+      "reopensDueAmount": "Amount that reopens order balance"
     },
     "reconciliation": {
       "title": "Reconciliation",
@@ -2253,6 +2263,71 @@
         "creditInvoiceMissingAr": "Credit invoice order has no AR invoice yet.",
         "fiscalTotal": "Fiscal sale amount",
         "taxDocumentOrderTotal": "Tax document total (sale amount)",
+        "taxBase": {
+          "title": "Tax base decomposition",
+          "taxable": "Taxable",
+          "nonTaxable": "Non-taxable",
+          "exempt": "Exempt",
+          "zeroRated": "Zero-rated",
+          "outOfScope": "Out of scope"
+        },
+        "baseCurrency": {
+          "label": "Base currency",
+          "rateAt": "Exchange rate at order time",
+          "total": "Base-currency total",
+          "tax": "Base-currency tax",
+          "paid": "Base-currency paid",
+          "creditApplied": "Base-currency credit applied",
+          "outstanding": "Base-currency outstanding",
+          "arReceivable": "Base-currency AR receivable"
+        },
+        "paymentTarget": {
+          "order": "Order",
+          "arInvoice": "AR invoice",
+          "customerAdvance": "Customer advance",
+          "giftCardTopup": "Gift card top-up",
+          "walletTopup": "Wallet top-up",
+          "supplierPayment": "Supplier payment",
+          "expense": "Expense"
+        },
+        "creditApp": {
+          "status": {
+            "pending": "Pending",
+            "reserved": "Reserved",
+            "processing": "Processing",
+            "applied": "Applied",
+            "failed": "Failed",
+            "cancelled": "Cancelled",
+            "reversed": "Reversed",
+            "expired": "Expired"
+          },
+          "pendingLabel": "Pending credit applications",
+          "failedLabel": "Failed credit applications"
+        },
+        "refundsTable": "Refunds",
+        "refunds": {
+          "sourceTypeLabels": {
+            "REAL_PAYMENT_REFUND": "Real payment refund",
+            "GIFT_CARD_RESTORE": "Gift card restore",
+            "WALLET_RESTORE": "Wallet restore",
+            "CUSTOMER_ADVANCE_RESTORE": "Customer advance restore",
+            "CUSTOMER_CREDIT_ISSUE": "Customer credit issued",
+            "CREDIT_NOTE_ISSUE": "Credit note issued",
+            "MANUAL_EXCEPTION": "Manual exception"
+          },
+          "reopensDueAmount": "Reopens balance"
+        },
+        "pricingMode": {
+          "label": "Tax pricing mode",
+          "taxExclusive": "Tax-exclusive (tax added on top)",
+          "taxInclusive": "Tax-inclusive (tax embedded in price)",
+          "atCalculation": "Mode at last calculation"
+        },
+        "extraPriceMode": {
+          "label": "Extra price mode",
+          "includedInItemPrice": "Included in item price",
+          "separateCharge": "Separate charge"
+        },
         "tabs": {
           "financialSummary": "Financial Summary",
           "master": "Order Master Data",
@@ -2275,7 +2350,10 @@
           "reference": "Reference",
           "date": "Date",
           "creditType": "Credit type",
-          "verify": "Verify"
+          "verify": "Verify",
+          "applicationStatus": "Application status",
+          "sourceType": "Source type",
+          "reopensDue": "Reopens balance"
         },
         "verify": {
           "action": "Verify",
@@ -2324,7 +2402,9 @@
             "arReceivableAmount": "AR receivable",
             "paymentTypeCode": "Payment type",
             "paymentStatus": "Payment status",
-            "financialEngineVersion": "Financial engine version"
+            "financialEngineVersion": "Financial engine version",
+            "taxPricingModeAtCalculation": "Tax pricing mode at calculation",
+            "currencyExRate": "Currency exchange rate"
           }
         }
       }
@@ -3551,6 +3631,39 @@
     "exemptionUpdated": "Exemption updated",
     "exemptionDeactivated": "Exemption deactivated",
     "actions": "Actions"
+  },
+  "taxDocuments": {
+    "status": {
+      "DRAFT": "Draft",
+      "ISSUED": "Issued",
+      "CANCELLED": "Cancelled",
+      "SUPERSEDED": "Superseded"
+    },
+    "type": {
+      "INVOICE": "Invoice",
+      "SIMPLIFIED_INVOICE": "Simplified Invoice",
+      "CREDIT_NOTE": "Credit Note",
+      "DEBIT_NOTE": "Debit Note"
+    },
+    "triggerEvent": {
+      "ON_ORDER_SUBMIT": "On order submit",
+      "ON_PAYMENT_CONFIRMATION": "On payment confirmation",
+      "ON_SERVICE_COMPLETION": "On service completion",
+      "ON_DELIVERY": "On delivery",
+      "ON_AR_INVOICE_ISSUE": "On AR invoice issue",
+      "LEGACY_BACKFILL": "Legacy backfill"
+    },
+    "documentNo": "Document no.",
+    "issuedAt": "Issued at",
+    "issuedBy": "Issued by",
+    "supersedes": "Supersedes",
+    "fiscalYear": "Fiscal year",
+    "sequenceNo": "Sequence no.",
+    "totalAmount": "Total amount",
+    "taxAmount": "Tax amount",
+    "notAvailable": "No tax document issued",
+    "configureTitle": "Tax Document Triggers",
+    "configureHint": "Configure which events automatically issue tax documents for your tenant."
   },
   "notifications": {
     "title": "Notifications",
@@ -5096,6 +5209,65 @@
         "deferredPayOnCollection": "Pay on collection (order total)",
         "deferredInvoice": "Invoice (order total)",
         "notPaidBalance": "Not paid after this payment"
+      },
+      "rightRail": {
+        "balanceResult": "Balance Result",
+        "orderTotal": "Order Total",
+        "totalSettledNow": "Total Settled Now",
+        "remainingBalance": "Remaining Balance",
+        "overpaidAmount": "Overpaid Amount",
+        "status": "Status",
+        "settlementNow": "Settlement Now",
+        "realPaymentsReceived": "Real Payments Received",
+        "creditsApplied": "Credits / Stored Value Applied",
+        "noneApplied": "None applied",
+        "balancePolicy": "Balance Policy",
+        "balancePolicyHelp": "When the collected amount is less than the order total, choose how the remaining balance should be settled.",
+        "fullPaymentRequired": "Full Payment Required",
+        "fullPaymentRequiredHelp": "The order must be fully settled before submission.",
+        "payOnCollectionHelp": "Collect the remaining balance from the customer later at pickup or delivery.",
+        "invoiceOutstandingHelp": "Leave the balance as an outstanding invoice amount for B2B settlement.",
+        "adjustments": "Adjustments",
+        "discounts": "Discounts",
+        "discountsHelp": "Manual discounts reduce the order value before payment is finalized.",
+        "creditsAndStoredValue": "Credits & Stored Value",
+        "creditsAndStoredValueHelp": "Apply promo codes and gift cards here. Wallet and customer-credit legs stay in the payment workspace.",
+        "liveEffect": "Live Effect",
+        "orderTotalAfterDiscounts": "Order Total After Discounts",
+        "orderValue": "Order Value",
+        "taxBreakdown": "Tax Breakdown",
+        "cashDrawerImpact": "Cash Drawer Impact",
+        "cashRetained": "Cash Retained",
+        "changeReturned": "Change Returned",
+        "currencyRounding": "Currency / Rounding",
+        "b2bArDetails": "B2B / AR Details",
+        "warnings": "Warnings",
+        "warningMessages": {
+          "creditLimitOverride": "Credit-limit override is enabled for this B2B settlement."
+        },
+        "statuses": {
+          "blocked": "Blocked",
+          "overpaid": "Overpaid",
+          "fullySettled": "Fully Settled",
+          "payOnCollection": "Pay on Collection",
+          "invoiceOutstanding": "Invoice Outstanding",
+          "paymentRequired": "Payment Required"
+        },
+        "requiredAction": {
+          "overpaymentTitle": "Resolve Overpayment",
+          "overpaymentMessage": "Reduce the collected amount or return {amount} as change before submitting.",
+          "cashDrawerTitle": "Cash Drawer Required",
+          "cashDrawerFallback": "Bind this cash payment to an open cash drawer session before submitting.",
+          "creditLimitTitle": "Credit Limit Attention",
+          "creditLimitWarn": "This order exceeds the customer's available credit. Confirm the override to continue.",
+          "creditLimitBlock": "This order exceeds the customer's available credit and cannot be submitted.",
+          "giftCardPinTitle": "Gift Card PIN Required",
+          "checkTitle": "Check Details Required",
+          "storedValueTitle": "Stored Value Needs Review",
+          "paymentAmountTitle": "Enter a Pay-Now Amount",
+          "remainingPolicyTitle": "Choose a Balance Policy",
+          "genericTitle": "Review Required"
+        }
       },
       "workspace": {
         "remaining": "Remaining",

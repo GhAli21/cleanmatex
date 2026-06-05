@@ -22,6 +22,10 @@ function buildInput(
       totalChargesAmount: 0,
       totalDiscountAmount: 0,
       taxableAmount: 2,
+      nonTaxableAmount: 0,
+      exemptAmount: 0,
+      zeroRatedAmount: 0,
+      outOfScopeAmount: 0,
       totalTaxAmount: 0.14,
       totalAmount: 2.14,
       totalPaidAmount: 1,
@@ -29,6 +33,8 @@ function buildInput(
       authorizedPaymentAmount: 0,
       failedPaymentAmount: 0,
       totalCreditAppliedAmount: 0.15,
+      pendingCreditApplicationAmount: 0,
+      failedCreditApplicationAmount: 0,
       refundedAmount: 0,
       realPaymentRefundedAmount: 0,
       storedValueRestoredAmount: 0,
@@ -38,6 +44,14 @@ function buildInput(
       overpaidAmount: 0,
       payOnCollectionAmount: 0,
       arReceivableAmount: 0.84,
+      currencyExRate: 9.75,
+      baseCurCurrencyCode: 'SAR',
+      baseCurTotalAmount: 20.865,
+      baseCurTaxAmount: 1.365,
+      baseCurPaidAmount: 9.75,
+      baseCurCreditAppliedAmount: 1.4625,
+      baseCurOutstandingAmount: 8.19,
+      baseCurArReceivableAmount: 8.19,
       arInvoiceId: null,
       arInvoiceNo: null,
       arInvoiceStatus: null,
@@ -67,6 +81,21 @@ function buildInput(
 }
 
 describe('mapOrderFinancialSummaryView', () => {
+  it('maps base-currency reporting snapshot values', () => {
+    const view = mapOrderFinancialSummaryView(buildInput());
+
+    expect(view.baseCurrency).toEqual({
+      currencyCode: 'SAR',
+      exchangeRate: 9.75,
+      totalAmount: 20.865,
+      taxAmount: 1.365,
+      paidAmount: 9.75,
+      creditAppliedAmount: 1.4625,
+      outstandingAmount: 8.19,
+      arReceivableAmount: 8.19,
+    });
+  });
+
   it('prefers AR invoice outstanding amount when an invoice exists', () => {
     const view = mapOrderFinancialSummaryView(
       buildInput({
@@ -216,6 +245,7 @@ describe('mapOrderFinancialSummaryView', () => {
           {
             id: 'credit-1',
             credit_type: 'GIFT_CARD',
+            application_status: 'APPLIED',
             credit_source_id: 'gc-1',
             applied_amount: 0.1,
             currency_code: 'OMR',
@@ -235,5 +265,54 @@ describe('mapOrderFinancialSummaryView', () => {
         }),
       ]),
     );
+  });
+
+  describe('tax-base decomposition (v1.1 §8.11)', () => {
+    it('passes through all five tax-base buckets from the canonical snapshot', () => {
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            taxableAmount: 100,
+            nonTaxableAmount: 5,
+            exemptAmount: 10,
+            zeroRatedAmount: 15,
+            outOfScopeAmount: 20,
+          },
+        }),
+      );
+
+      expect(view.amounts.taxableAmount).toBeCloseTo(100);
+      expect(view.amounts.nonTaxableAmount).toBeCloseTo(5);
+      expect(view.amounts.exemptAmount).toBeCloseTo(10);
+      expect(view.amounts.zeroRatedAmount).toBeCloseTo(15);
+      expect(view.amounts.outOfScopeAmount).toBeCloseTo(20);
+    });
+
+    it('defaults the four non-taxable bucket fields to zero when the snapshot omits them (engine pre-Phase 5)', () => {
+      const view = mapOrderFinancialSummaryView(buildInput());
+
+      expect(view.amounts.nonTaxableAmount).toBe(0);
+      expect(view.amounts.exemptAmount).toBe(0);
+      expect(view.amounts.zeroRatedAmount).toBe(0);
+      expect(view.amounts.outOfScopeAmount).toBe(0);
+    });
+  });
+
+  describe('credit application lifecycle (v1.1 §10.x)', () => {
+    it('passes pending and failed credit buckets through from the snapshot', () => {
+      const view = mapOrderFinancialSummaryView(
+        buildInput({
+          snapshot: {
+            ...buildInput().snapshot,
+            pendingCreditApplicationAmount: 7,
+            failedCreditApplicationAmount: 3,
+          },
+        }),
+      );
+
+      expect(view.amounts.pendingCreditApplicationAmount).toBeCloseTo(7);
+      expect(view.amounts.failedCreditApplicationAmount).toBeCloseTo(3);
+    });
   });
 });

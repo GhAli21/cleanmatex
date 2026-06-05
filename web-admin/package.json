@@ -29,6 +29,7 @@
     "prisma:studio": "prisma studio",
     "prisma:generate:safe": "./scripts/generate-prisma.sh",
     "check:i18n": "node scripts/check-i18n-parity.js",
+    "check:legacy": "node scripts/check-legacy-columns.js",
     "docs:extract-permissions": "tsx ../scripts/docs/extract-permissions.ts",
     "docs:extract-settings": "tsx ../scripts/docs/extract-settings-usage.ts",
     "docs:extract-feature-flags": "tsx ../scripts/docs/extract-feature-flags.ts",

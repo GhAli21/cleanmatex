@@ -209,6 +209,7 @@ export async function applyStoredValueDebitTx(
       tenant_org_id:           tenantId,
       order_id:                orderId,
       credit_type:             creditType,
+      application_status:      'APPLIED',
       credit_source_id:        creditReferenceId ?? null,
       applied_amount:          amount,
       currency_code:           currencyCode,

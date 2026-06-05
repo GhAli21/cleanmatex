@@ -24,6 +24,7 @@ import type {
 } from '@features/orders/model/order-financial-summary-view';
 import type { OrderPaymentRow } from '@/lib/services/order-financial-summary.service';
 import { OrderFinancialMoneyValue } from './order-financial-money-value';
+import { CREDIT_APPLICATION_STATUSES } from '@/lib/constants/order-financial';
 
 interface OrderPaymentsCreditsTablesProps {
   viewModel: OrderFinancialSummaryViewModel;
@@ -56,7 +57,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   // hidden when the viewer lacks the right — keeps column alignment
   // stable across roles and removes the action surface for operators.
   const canVerifyPayment = useHasPermission('orders', 'verify_payment');
-  const { payments, creditApplications, currencyCode, orderId } = viewModel;
+  const { payments, creditApplications, refunds, currencyCode, orderId } = viewModel;
   const th = `px-3 py-2 text-xs font-semibold uppercase text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`;
   const td = `px-3 py-2 text-sm ${isRTL ? 'text-right' : 'text-left'}`;
 
@@ -109,11 +110,12 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
           <CmxCardTitle>{t('creditApplicationsTable')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
-          <table className="w-full min-w-[640px] border-collapse">
+          <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className={th}>{t('col.creditType')}</th>
                 <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
+                <th className={th}>{t('col.applicationStatus')}</th>
                 <th className={th}>{t('col.reference')}</th>
                 <th className={th}>{t('col.voucher')}</th>
                 <th className={th}>{t('col.date')}</th>
@@ -122,42 +124,115 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
             <tbody>
               {creditApplications.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className={`${td} py-8 text-muted-foreground`}>
+                  <td colSpan={6} className={`${td} py-8 text-muted-foreground`}>
                     {t('none')}
                   </td>
                 </tr>
               ) : (
-                creditApplications.map((c) => (
-                  <tr key={c.id} className="border-b border-border/60">
-                    <td className={td}>{c.credit_type.replace(/_/g, ' ')}</td>
-                    <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
-                      <OrderFinancialMoneyValue
-                        amount={c.applied_amount}
-                        currencyCode={currencyCode}
-                        variant="credit"
-                      />
-                    </td>
-                    <td className={td}>{c.reference_no ?? '—'}</td>
-                    <td className={td}>
-                      {c.fin_voucher_id ? (
-                        <Link
-                          href={`/dashboard/internal_fin/vouchers/${c.fin_voucher_id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {t('openVoucher')}
-                        </Link>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className={td}>{new Date(c.applied_at).toLocaleString()}</td>
-                  </tr>
-                ))
+                creditApplications.map((c) => {
+                  const appStatus = c.application_status ?? CREDIT_APPLICATION_STATUSES.APPLIED;
+                  const statusVariant: 'success' | 'warning' | 'destructive' | 'secondary' | 'info' =
+                    appStatus === CREDIT_APPLICATION_STATUSES.APPLIED ? 'success'
+                    : appStatus === CREDIT_APPLICATION_STATUSES.PENDING
+                      || appStatus === CREDIT_APPLICATION_STATUSES.RESERVED
+                      || appStatus === CREDIT_APPLICATION_STATUSES.PROCESSING ? 'warning'
+                    : appStatus === CREDIT_APPLICATION_STATUSES.FAILED
+                      || appStatus === CREDIT_APPLICATION_STATUSES.CANCELLED
+                      || appStatus === CREDIT_APPLICATION_STATUSES.EXPIRED ? 'destructive'
+                    : appStatus === CREDIT_APPLICATION_STATUSES.REVERSED ? 'info'
+                    : 'secondary';
+                  return (
+                    <tr key={c.id} className="border-b border-border/60">
+                      <td className={td}>{c.credit_type.replace(/_/g, ' ')}</td>
+                      <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                        <OrderFinancialMoneyValue
+                          amount={c.applied_amount}
+                          currencyCode={currencyCode}
+                          variant="credit"
+                        />
+                      </td>
+                      <td className={td}>
+                        <Badge variant={statusVariant}>
+                          {t(`creditApp.status.${appStatus.toLowerCase()}`)}
+                        </Badge>
+                      </td>
+                      <td className={td}>{c.reference_no ?? '—'}</td>
+                      <td className={td}>
+                        {c.fin_voucher_id ? (
+                          <Link
+                            href={`/dashboard/internal_fin/vouchers/${c.fin_voucher_id}`}
+                            className="text-primary hover:underline"
+                          >
+                            {t('openVoucher')}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className={td}>{new Date(c.applied_at).toLocaleString()}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </CmxCardContent>
       </CmxCard>
+
+      {refunds.length > 0 && (
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('refundsTable')}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
+            <table className="w-full min-w-[720px] border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className={th}>{t('col.reference')}</th>
+                  <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
+                  <th className={th}>{t('col.sourceType')}</th>
+                  <th className={th}>{t('col.method')}</th>
+                  <th className={th}>{t('col.reopensDue')}</th>
+                  <th className={th}>{t('col.status')}</th>
+                  <th className={th}>{t('col.date')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {refunds.map((r) => (
+                  <tr key={r.id} className="border-b border-border/60">
+                    <td className={td}>{r.refund_no ?? '—'}</td>
+                    <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                      <OrderFinancialMoneyValue
+                        amount={r.refund_amount}
+                        currencyCode={r.currency_code ?? currencyCode}
+                        variant="credit"
+                      />
+                    </td>
+                    <td className={td}>
+                      {r.refund_source_type
+                        ? t(`refunds.sourceTypeLabels.${r.refund_source_type}`)
+                        : '—'}
+                    </td>
+                    <td className={td}>{r.refund_method_code?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                      {r.reopens_due_amount > 0 ? (
+                        <OrderFinancialMoneyValue
+                          amount={r.reopens_due_amount}
+                          currencyCode={r.currency_code ?? currencyCode}
+                        />
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className={td}>{r.refund_status ?? '—'}</td>
+                    <td className={td}>{new Date(r.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CmxCardContent>
+        </CmxCard>
+      )}
     </div>
   );
 }

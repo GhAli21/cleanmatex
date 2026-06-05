@@ -35,12 +35,34 @@ export interface OrderTaxDocumentView {
   documentType?: string;
   status?: string;
   authorityStatus?: string;
+  /** Phase 7+ lifecycle fields from org_tax_documents_mst. */
+  triggerEvent?: string;
+  fiscalYear?: number;
+  sequenceNumber?: number;
+  totalAmount?: number;
+  taxAmount?: number;
+  issuedAt?: string;
+  issuedBy?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  /** ID of the document this one supersedes (credit-note / debit-note chain). */
+  supersedesId?: string;
 }
 
 export interface OrderFinancialSummaryViewModel {
   orderId: string;
   orderNo: string;
   currencyCode: string;
+  baseCurrency: {
+    currencyCode: string | null;
+    exchangeRate: number;
+    totalAmount: number;
+    taxAmount: number;
+    paidAmount: number;
+    creditAppliedAmount: number;
+    outstandingAmount: number;
+    arReceivableAmount: number;
+  };
   customerName?: string;
   branchName?: string;
   orderStatus?: string;
@@ -60,11 +82,22 @@ export interface OrderFinancialSummaryViewModel {
     discountAmount: number;
     netBeforeTaxAmount: number;
     taxableAmount: number;
+    /**
+     * Tax-base decomposition (v1.1 §8.11). The tax engine currently emits only
+     * `taxableAmount`; the four bucket fields below default to 0 until Phase 5
+     * wires bucket classification. Phase 8 will render them in the breakdown.
+     */
+    nonTaxableAmount: number;
+    exemptAmount: number;
+    zeroRatedAmount: number;
+    outOfScopeAmount: number;
     taxAmount: number;
     roundingAmount: number;
     totalAmount: number;
     totalPaidAmount: number;
     totalCreditAppliedAmount: number;
+    pendingCreditApplicationAmount: number;
+    failedCreditApplicationAmount: number;
     refundedAmount: number;
     netCollectedAmount: number;
     outstandingAmount: number;
@@ -100,6 +133,8 @@ export interface OrderFinancialSummaryViewModel {
     roundingAmount: number;
     arReceivableAmount: number;
     financialEngineVersion: number | null;
+    /** Tax pricing mode recorded in the calculation snapshot JSON (Phase 5+). */
+    taxPricingModeAtCalculation: string | null;
   };
 }
 

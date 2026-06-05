@@ -1,6 +1,6 @@
 # Support Tax-Inclusive and Tax-Exclusive Pricing
 
-**Status:** Accepted  
+**Status:** Implemented (Phase 5, 2026-06-05)  
 **Area:** Tax / Pricing  
 **Date:** 2026-05-30  
 **Decision Type:** Architecture Decision Record

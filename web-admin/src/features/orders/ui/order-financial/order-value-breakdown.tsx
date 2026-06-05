@@ -5,6 +5,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import type { OrderFinancialSummaryViewModel } from '@features/orders/model/order-financial-summary-view';
 import { OrderFinancialMoneyValue } from './order-financial-money-value';
+import { OrderTaxBaseBuckets } from './order-tax-base-buckets';
 
 interface OrderValueBreakdownProps {
   viewModel: OrderFinancialSummaryViewModel;
@@ -45,7 +46,7 @@ function Row({
 export function OrderValueBreakdown({ viewModel }: OrderValueBreakdownProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();
-  const { amounts, currencyCode } = viewModel;
+  const { amounts, currencyCode, rawSnapshot } = viewModel;
   const includedLabel = t('includedInBase');
 
   return (
@@ -83,6 +84,11 @@ export function OrderValueBreakdown({ viewModel }: OrderValueBreakdownProps) {
         />
         <Row label={t('netBeforeTax')} amount={amounts.netBeforeTaxAmount} currencyCode={currencyCode} isRTL={isRTL} />
         <Row label={t('tax')} amount={amounts.taxAmount} currencyCode={currencyCode} isRTL={isRTL} />
+        <OrderTaxBaseBuckets
+          amounts={amounts}
+          currencyCode={currencyCode}
+          pricingMode={rawSnapshot.taxPricingModeAtCalculation}
+        />
         <Row label={t('rounding')} amount={amounts.roundingAmount} currencyCode={currencyCode} isRTL={isRTL} />
         <Row
           label={t('total')}

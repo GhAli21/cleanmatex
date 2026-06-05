@@ -58,6 +58,27 @@ You are an elite implementation and testing specialist for the CleanMateX multi-
 - Test tenant isolation in unit tests
 - Never expose cross-tenant data
 
+### Routes & Navigation Menu (CRITICAL — dual-write)
+When the implementation adds, renames, moves, or removes a **route that is (or should be) visible in the system menu / sidebar**, you MUST load the `/navigation` skill BEFORE writing the route code and follow its dual-write workflow. Three artifacts must stay in sync:
+
+1. `app/<segment>/page.tsx` — the Next.js route (this agent writes it per `/frontend` standards)
+2. `web-admin/config/navigation.ts` — the React sidebar config (driven by `/navigation` skill)
+3. `supabase/migrations/{next_seq}_nav_*.sql` — `sys_components_cd` entry (driven by `/navigation` skill)
+
+**Triggers** that require `/navigation`:
+- New page that appears in the sidebar
+- Renaming a route segment that maps to a menu label/URL
+- Moving a route under a different parent section
+- Converting a flat link to an expandable section (or vice versa)
+- Changing roles/permissions for a menu entry
+- Removing a route currently in the menu
+
+**Not required** for hidden routes (e.g. `[id]` detail pages, modals, debug-only) that are not registered in `sys_components_cd`.
+
+**Migration handling:** Per CRITICAL RULE #3, generate the `sys_components_cd` migration SQL file but DO NOT apply it. Stop and ask the user to review before they apply it. Also see CRITICAL RULE #11 for permission migrations if the new menu entry introduces new permissions.
+
+Skipping this causes silent sidebar/DB drift: link appears but RBAC denies, or RBAC allows but sidebar is empty.
+
 ### Testing Requirements
 - Unit tests for all business logic functions
 - Integration tests for API endpoints
@@ -105,6 +126,7 @@ Provide your response in this structure:
 - [ ] Tests achieve >80% coverage
 - [ ] All tests pass
 - [ ] Bilingual support included (if applicable)
+- [ ] If route is menu-visible: `navigation.ts` updated AND `sys_components_cd` migration generated (N/A if route is hidden)
 
 ### 5. Status
 - **Implementation Status**: DONE (only if all tests pass) / IN_PROGRESS / BLOCKED

@@ -271,6 +271,7 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
             order_id:         orderId,
             currency_code:    currencyCode,
             credit_type:      creditType,
+            application_status: 'APPLIED',
             credit_source_id: creditReferenceId ?? null,
             applied_amount:   amount,
             reference_no:     leg.reference ?? null,

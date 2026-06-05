@@ -189,7 +189,36 @@ export function OrderDetailClient({
       preferenceExtraTotal,
       pieceExtraTotal: 0,
       arInvoice: arInvoiceView,
-      taxDocument: null,
+      taxDocument: (() => {
+        const doc = financialData.taxDocuments?.[0];
+        if (doc) {
+          return {
+            id: doc.id,
+            documentNo: doc.document_no ?? undefined,
+            documentType: doc.document_type,
+            status: doc.status,
+            triggerEvent: doc.trigger_event,
+            fiscalYear: doc.fiscal_year,
+            sequenceNumber: doc.sequence_number,
+            totalAmount: doc.total_amount,
+            taxAmount: doc.tax_amount,
+            issuedAt: doc.issued_at ?? undefined,
+            issuedBy: doc.issued_by ?? undefined,
+            cancelledAt: doc.cancelled_at ?? undefined,
+            cancellationReason: doc.cancellation_reason ?? undefined,
+            supersedesId: doc.supersedes_id ?? undefined,
+          };
+        }
+        // fallback to legacy snapshot header fields
+        const snap = financialData.snapshot;
+        if (!snap.taxDocumentId && !snap.taxDocumentNo) return null;
+        return {
+          id: snap.taxDocumentId ?? undefined,
+          documentNo: snap.taxDocumentNo ?? undefined,
+          documentType: snap.taxDocumentType ?? undefined,
+          status: snap.taxDocumentStatus ?? undefined,
+        };
+      })(),
     });
   }, [financialData, order, preferenceExtraTotal, arInvoiceView]);
 

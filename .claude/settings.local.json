@@ -202,7 +202,18 @@
       "Bash(node -e \"const m=require\\('./messages/ar.json'\\); console.log\\(JSON.stringify\\(m.paymentConfig?.methods ?? {}, null, 2\\)\\)\")",
       "Bash(node -e \"const m=require\\('./messages/en.json'\\); console.log\\('yes:', m.common?.yes, 'no:', m.common?.no\\)\")",
       "Read(//f/f/jhapp/cleanmatex/docs/features/Order_Fin/**)",
-      "mcp__supabase_local__execute_sql"
+      "mcp__supabase_local__execute_sql",
+      "Bash(sed 's/_.*//g')",
+      "Bash(sed 's/\\\\.sql$//')",
+      "Bash(npm test *)",
+      "Bash(awk -F: '$1 > 1499')",
+      "Bash(node -e \"const j = require\\('./web-admin/messages/en.json'\\); console.log\\(Object.keys\\(j\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const j = require\\('./web-admin/messages/en.json'\\); const keys = Object.keys\\(j\\); const idx = keys.indexOf\\('taxSetup'\\); console.log\\('taxSetup idx:', idx, '/ next:', keys[idx+1]\\)\")",
+      "Bash(node -e \"const j = require\\('./web-admin/messages/ar.json'\\); const keys = Object.keys\\(j\\); const idx = keys.indexOf\\('taxSetup'\\); console.log\\('taxSetup idx:', idx, '/ next:', keys[idx+1]\\)\")",
+      "Bash(node scripts/check-legacy-columns.js)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(ls -la /mnt/f/jhapp/cleanmatex/web-admin/ 2>/dev/null || ls -la \"f:/jhapp/cleanmatex/web-admin/\" 2>/dev/null || pwd)",
+      "Read(//mnt/f/jhapp/cleanmatex/**)"
     ],
     "deny": [
       "Read(node_modules)",

@@ -62,6 +62,12 @@ For each code review, systematically evaluate these critical dimensions:
 - **Supabase Patterns**: Proper use of Supabase client vs service role
 - **Prisma Usage**: Middleware for tenant filtering, proper error handling
 - **Code Organization**: Feature-first folder structure
+- **Navigation Dual-Write (CRITICAL)**: If the change adds, renames, moves, or removes a menu-visible route, ALL THREE artifacts must be updated together:
+  1. `app/<segment>/page.tsx` (the route)
+  2. `web-admin/config/navigation.ts` (sidebar config)
+  3. `supabase/migrations/{seq}_nav_*.sql` (`sys_components_cd` entry)
+  Flag as **Critical Issue** if any artifact is missing — this causes silent sidebar/DB drift (link in code but RBAC blocks it, or RBAC allows it but sidebar is empty). The `/navigation` skill governs this workflow. Exception: hidden routes (`[id]`, modals, debug-only) that intentionally do not appear in `sys_components_cd`.
+- **Permissions Migration (CRITICAL)**: If new permission codes are introduced in TypeScript, verify a matching DB migration seeds them into the permissions table. TS-only permissions are incomplete.
 
 ### 5. Testing & Quality Assurance
 - **Test Coverage**: Business logic should have unit tests
@@ -101,6 +107,8 @@ Structure your review as follows:
 - [ ] Logging implemented
 - [ ] i18n support added
 - [ ] Tests written/updated
+- [ ] Navigation dual-write complete for menu-visible routes (navigation.ts + sys_components_cd migration) — or N/A if route is hidden
+- [ ] New permission codes have a DB migration (not TS-only)
 
 ## Review Principles
 
@@ -132,5 +140,7 @@ Flag for immediate attention if you find:
 - Performance issues that could impact production
 - Breaking changes without migration strategy
 - Fundamental architectural violations
+- Menu-visible route added/changed without the navigation dual-write (missing `navigation.ts` update OR missing `sys_components_cd` migration)
+- New permission code added in TypeScript without a corresponding DB migration
 
 Remember: Your role is to be a guardian of code quality and security. Be thorough, be helpful, and never compromise on security standards. Every review is an opportunity to prevent production issues and educate the team on best practices.

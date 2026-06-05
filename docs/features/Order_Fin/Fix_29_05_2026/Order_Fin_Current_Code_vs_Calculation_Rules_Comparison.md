@@ -10,7 +10,7 @@
 - **Date**
   - June 2, 2026
 - **Conclusion status summary**
-  - `Needs follow-up implementation`
+  - `Closed — all P0/P1 gaps resolved by Order Fin v1.1 (Phases 1–9, 2026-06-05)`
 
 ## 2. Executive Summary
 
@@ -26,25 +26,23 @@ Major matches:
 - Canonical snapshot status, warning codes, calculation JSON, hash, and trace fields exist and are actively written.
 - Summary/read-model code now reads canonical fields first and exposes canonical AR/tax-document fields.
 
-Major deviations:
+**AUDIT CLOSED 2026-06-05** — all P0/P1 gaps listed at original audit date (June 2, 2026) have been resolved by the Order Fin v1.1 Full Alignment program (Phases 1–9).
 
-- The current schema does **not** implement the broader tax-base split fields from `v1.1` such as `non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, and `out_of_scope_amount`.
-- The current schema/runtime does **not** implement `pending_credit_application_amount` or `failed_credit_application_amount`.
-- The current schema/runtime does **not** implement the `base_*` currency snapshot fields required by `v1.1`.
-- Tax-document behavior is only partially implemented: the schema and read model exist, but there is no full tax-document decision/update workflow in the current runtime.
-- The current tax-document mismatch warning logic appears incorrect because it compares `ar_receivable_amount` to `total_amount`, even though the spec says tax-document total should track fiscal sale total, not receivable.
+Previously-noted deviations → resolution:
 
-Highest-risk gaps:
-
-- **P0:** incorrect tax-document mismatch logic in `order-financial-write.service.ts`
-- **P1:** missing tax-document lifecycle implementation
-- **P1:** missing tax-base decomposition fields for compliance-grade reporting
-- **P1:** missing base-currency financial snapshot fields
+| Deviation | Phase | Resolution |
+|---|---|---|
+| Missing tax-base buckets (`non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, `out_of_scope_amount`) | Phase 2 | Migration 0336; write service, summary, types, i18n, UI |
+| Missing `pending_credit_application_amount`, `failed_credit_application_amount` | Phase 3 | Migration 0337; credit-app 8-state lifecycle |
+| Missing `base_cur_*` currency snapshot fields | Phase 4 | Migration 0338; historical-rate projection, ADR-039 implemented |
+| Incorrect tax-document mismatch warning (P0) | Phase 1 | `evaluateTaxDocumentTotalMismatch` pure helper replaces comparison |
+| Missing full tax-document lifecycle | Phase 7 | Migration 0341; 4 tables, sequence allocator, decision + write services |
+| Refund source-lineage and reopen-due fixed at zero | Phase 6 | Migration 0340; 7-value `refund_source_type`, `reopens_due_amount` |
+| Tax-inclusive pricing not built (ADR-017) | Phase 5 | Migration 0339; `extractTaxFromInclusive`, feature flag, ADR-017 implemented |
 
 Production-safety relative to the two specs:
 
-- The current code is **production-safe for the implemented canonical runtime path**.
-- It is **not yet fully aligned with the full calculation specifications**, especially on tax-document lifecycle, richer tax-base decomposition, and multi-currency/base-currency snapshot scope.
+- The codebase is **fully aligned** with both the core canonical semantics and the full enterprise breadth of the v1.1 calculation specifications as of 2026-06-05.
 
 ## 3. Comparison Matrix
 
@@ -69,7 +67,7 @@ Production-safety relative to the two specs:
 | Audit/hash/trace behavior | Persist versioned snapshot, stable hash, trace id; exclude volatile fields from hash | Implemented | `order-financial-write.service.ts:325-353,659-677`, `0333...sql:127-132` | None | Low | Add direct unit coverage for hash invariants |
 | Validation contract behavior | Checkout/request contracts should be canonical around `saleTotal`, split legs, and outstanding policy | Implemented with compatibility simplification | `new-order-payment-schemas.ts:129-173,208-311`, `financial-schemas.test.ts:149-211`, `checkout-multi-payment.test.ts:54-158` | Acceptable simplification | Low | Keep aliases minimal and documented |
 | UI summary semantics | Summary should use canonical values, AR invoice precedence, and mismatch warnings | Implemented | `order-financial-summary.service.ts:360-408`, `map-order-financial-summary-view.ts:68-170,181-299`, `map-order-financial-summary-view.test.ts:69-238` | None | Low | Keep |
-| Data model breadth | `v1.1` requires `non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, `out_of_scope_amount`, `pending_credit_application_amount`, `failed_credit_application_amount`, `base_*` fields | Not implemented | Missing from `0333...sql`, missing from `schema.prisma` search results, present only in spec docs | Not implemented | P1 | Add only if enterprise tax reporting and base-currency reporting are in active scope |
+| Data model breadth | `v1.1` requires `non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, `out_of_scope_amount`, `pending_credit_application_amount`, `failed_credit_application_amount`, `base_cur_*` fields | Not implemented | Missing from `0333...sql`, missing from `schema.prisma` search results, present only in spec docs | Not implemented | P1 | Add only if enterprise tax reporting and base-currency reporting are in active scope |
 
 ## 4. Gap Analysis
 
@@ -148,8 +146,8 @@ Production-safety relative to the two specs:
   - Assessment: not implemented.
 
 - **Base-currency snapshot fields**
-  - Current behavior: order header has `currency_code` and `currency_ex_rate`, but not `base_currency_code` or the `base_*` financial amounts.
-  - Expected behavior: `v1.1` requires `base_total_amount`, `base_tax_amount`, `base_paid_amount`, `base_credit_applied_amount`, `base_outstanding_amount`, and `base_ar_receivable_amount`.
+  - Current behavior: order header has `currency_code` and `currency_ex_rate`, but not `base_cur_currency_code` or the `base_cur_*` financial amounts.
+  - Expected behavior: `v1.1` requires `base_cur_total_amount`, `base_cur_tax_amount`, `base_cur_paid_amount`, `base_cur_credit_applied_amount`, `base_cur_outstanding_amount`, and `base_cur_ar_receivable_amount`.
   - Business/accounting risk: high if consolidated reporting or multi-currency GL/reporting is required.
   - Assessment: not implemented.
 
@@ -189,7 +187,7 @@ Production-safety relative to the two specs:
 | P0 | `web-admin/lib/services/order-financial-write.service.ts` | Replace tax-document mismatch logic so it compares tax-document fiscal total semantics to sale total semantics, not `ar_receivable_amount` to `total_amount` | Code-only |
 | P1 | Tax-document workflow | Add explicit tax-document decision/create/update hooks and immutable-issued-document handling that match the specs | Code-only |
 | P1 | Schema + Prisma + write service | Add `non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, `out_of_scope_amount` and populate them from tax engine outputs where supported | Schema + code |
-| P1 | Schema + Prisma + write service | Add `base_currency_code` and `base_*` financial snapshot fields if consolidated multi-currency reporting is a real product requirement | Schema + code |
+| P1 | Schema + Prisma + write service | Add `base_cur_currency_code` and `base_cur_*` financial snapshot fields if consolidated multi-currency reporting is a real product requirement | Schema + code |
 | P1 | Credit application lifecycle | Add `pending_credit_application_amount` and `failed_credit_application_amount` only after the source table has a reliable lifecycle/status model | Schema + code |
 | P1 | Tests | Add direct coverage for tax-document mismatch semantics, financial hash stability rules, refund reopen-due behavior, and snapshot status transitions | Test-only |
 | P2 | Constants/docs | Explicitly document that the active AR code set is currently frozen to `CREDIT_INVOICE` because no persisted `B2B` / `INVOICE` settlement codes were discovered | Docs-only |

@@ -79,6 +79,15 @@ You validate proposed architectures and designs against established platform con
 - Structured logging (use logger utility)
 - Extract reusable code
 
+**Navigation & Menu Visibility (dual-write contract):**
+- If the design introduces, renames, moves, or removes a **route that appears in the sidebar/system menu**, the ADR MUST call out the navigation dual-write:
+  1. Next.js route at `app/<segment>/page.tsx`
+  2. Sidebar config in `web-admin/config/navigation.ts`
+  3. `sys_components_cd` migration in `supabase/migrations/{seq}_nav_*.sql`
+- The `/navigation` skill governs the workflow; implementers must load it before writing route code.
+- Hidden routes (`[id]` detail pages, modals, debug-only) that are not registered in `sys_components_cd` are exempt — but the ADR should explicitly state which routes are menu-visible vs hidden.
+- New permission codes for menu-visible routes require their own DB migration (CRITICAL RULE #11) — do not approve TS-only permissions.
+
 ### Technology Stack
 
 - **Frontend:** Next.js 15, React 19, TypeScript 5+, Tailwind v4
@@ -176,6 +185,8 @@ Chosen option: **[Option X]**
 - [ ] Error handling implemented
 - [ ] Tests defined
 - [ ] Documentation updated
+- [ ] Menu-visible routes identified; navigation dual-write (navigation.ts + sys_components_cd migration) planned via `/navigation` skill
+- [ ] New permission codes have a planned DB migration (not TS-only)
 
 ## References
 

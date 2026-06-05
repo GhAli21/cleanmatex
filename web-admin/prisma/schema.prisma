@@ -388,6 +388,8 @@ model org_branches_mst {
   name                        String?
   name2                       String?
   is_main                     Boolean?                      @default(false)
+  tax_pricing_mode            String?
+  extra_price_pricing_mode    String?
   org_asm_exceptions_tr             org_asm_exceptions_tr[]
   org_asm_locations_mst             org_asm_locations_mst[]
   org_tenants_mst                   org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
@@ -1001,6 +1003,10 @@ model org_orders_mst {
   express_charge_amount           Decimal                           @default(0) @db.Decimal(19, 4)
   other_charges_amount            Decimal                           @default(0) @db.Decimal(19, 4)
   taxable_amount                  Decimal                           @default(0) @db.Decimal(19, 4)
+  non_taxable_amount              Decimal                           @default(0) @db.Decimal(19, 4)
+  exempt_amount                   Decimal                           @default(0) @db.Decimal(19, 4)
+  zero_rated_amount               Decimal                           @default(0) @db.Decimal(19, 4)
+  out_of_scope_amount             Decimal                           @default(0) @db.Decimal(19, 4)
   refunded_amount                 Decimal                           @default(0) @db.Decimal(19, 4)
   real_payment_refunded_amount    Decimal                           @default(0) @db.Decimal(19, 4)
   stored_value_restored_amount    Decimal                           @default(0) @db.Decimal(19, 4)
@@ -1010,6 +1016,15 @@ model org_orders_mst {
   pending_payment_amount          Decimal                           @default(0) @db.Decimal(19, 4)
   authorized_payment_amount       Decimal                           @default(0) @db.Decimal(19, 4)
   failed_payment_amount           Decimal                           @default(0) @db.Decimal(19, 4)
+  pending_credit_application_amount Decimal                         @default(0) @db.Decimal(19, 4)
+  failed_credit_application_amount Decimal                          @default(0) @db.Decimal(19, 4)
+  base_cur_currency_code          String?
+  base_cur_total_amount           Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_tax_amount             Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_paid_amount            Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_credit_applied_amount  Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_outstanding_amount     Decimal                           @default(0) @db.Decimal(19, 4)
+  base_cur_ar_receivable_amount   Decimal                           @default(0) @db.Decimal(19, 4)
   refund_reopens_due_amount       Decimal                           @default(0) @db.Decimal(19, 4)
   credit_reversal_reopens_due_amount Decimal                        @default(0) @db.Decimal(19, 4)
   credit_reversed_amount          Decimal                           @default(0) @db.Decimal(19, 4)
@@ -1064,6 +1079,7 @@ model org_orders_mst {
   org_pck_packing_lists_mst       org_pck_packing_lists_mst?
   org_qa_decisions_tr             org_qa_decisions_tr[]
   org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
+  org_tax_documents_mst           org_tax_documents_mst[]
 
   @@unique([tenant_org_id, order_no])
   @@unique([id, tenant_org_id], map: "org_orders_mst_tenant_org_id_order_id_key")
@@ -1522,6 +1538,8 @@ model org_tenants_mst {
   rec_status                       Int?                               @default(1) @db.SmallInt
   rec_order                        Int?
   rec_notes                        String?
+  tax_pricing_mode                 String                             @default("TAX_EXCLUSIVE")
+  extra_price_pricing_mode         String                             @default("INCLUDED_IN_ITEM_PRICE")
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_asm_locations_mst            org_asm_locations_mst[]
@@ -1611,6 +1629,10 @@ model org_tenants_mst {
   org_idempotency_keys             org_idempotency_keys[]
   org_fin_voucher_trx_lines_dtl    org_fin_voucher_trx_lines_dtl[]
   org_fin_exp_cat_cf               org_fin_exp_cat_cf[]
+  org_tax_documents_mst            org_tax_documents_mst[]
+  org_tax_doc_lines_dtl            org_tax_doc_lines_dtl[]
+  org_tax_doc_seq_counters         org_tax_doc_seq_counters[]
+  org_tax_doc_triggers_cfg         org_tax_doc_triggers_cfg[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -6731,6 +6753,7 @@ model org_order_credit_apps_dtl {
   tenant_org_id    String          @db.Uuid
   order_id         String          @db.Uuid
   credit_type      String
+  application_status String        @default("APPLIED")
   credit_source_id String?         @db.Uuid
   applied_amount   Decimal         @db.Decimal(19, 4)
   currency_code    String
@@ -6785,6 +6808,8 @@ model org_order_refunds_dtl {
   refund_no              String?
   reason_code            String?
   idempotency_key        String?
+  refund_source_type     String                        @default("MANUAL_EXCEPTION")
+  reopens_due_amount     Decimal                       @default(0) @db.Decimal(19, 4)
   created_at             DateTime?                     @default(now()) @db.Timestamptz(6)
   created_by             String?
   created_info           String?
@@ -6932,9 +6957,10 @@ model org_order_taxes_dtl {
   rec_status       Int             @default(1) @db.SmallInt
   rec_order        Int?
   rec_notes        String?
-  org_tenants_mst     org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_orders_mst      org_orders_mst       @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_tax_profiles_cf org_tax_profiles_cf? @relation(fields: [tax_profile_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_order_taxes_profile")
+  org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_orders_mst        org_orders_mst        @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_tax_profiles_cf   org_tax_profiles_cf?  @relation(fields: [tax_profile_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_order_taxes_profile")
+  org_tax_doc_lines_dtl org_tax_doc_lines_dtl[]
 
   @@index([tenant_org_id, order_id], map: "idx_order_taxes_order")
   @@index([tenant_org_id, tax_type], map: "idx_order_taxes_type")
@@ -7611,6 +7637,151 @@ model org_fin_exp_cat_cf {
 
 // =============================================================================
 // End Phase 6 — Financial Governance
+// =============================================================================
+
+// =============================================================================
+// Phase 7 — Tax-Document Full Lifecycle (Order Fin v1.1 / 0341)
+// =============================================================================
+
+/// Master tax document (INVOICE / SIMPLIFIED_INVOICE / CREDIT_NOTE / DEBIT_NOTE).
+/// ISSUED rows are immutable at the DB level — the trigger fn_tax_doc_immut_guard
+/// blocks all updates except status → SUPERSEDED.
+/// This model contains row level security and requires additional setup for migrations.
+model org_tax_documents_mst {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String    @db.Uuid
+  order_id            String    @db.Uuid
+
+  document_type       String
+  trigger_event       String
+  status              String    @default("DRAFT")
+
+  fiscal_year         Int
+  sequence_number     Int       @default(0)
+  document_no         String?
+
+  total_amount        Decimal   @default(0) @db.Decimal(19, 4)
+  tax_amount          Decimal   @default(0) @db.Decimal(19, 4)
+  currency_code       String?
+  currency_ex_rate    Decimal   @default(1) @db.Decimal(10, 6)
+  base_currency_code  String?
+
+  supersedes_id       String?   @db.Uuid
+
+  issued_at           DateTime? @db.Timestamptz(6)
+  issued_by           String?
+  cancelled_at        DateTime? @db.Timestamptz(6)
+  cancelled_by        String?
+  cancellation_reason String?
+
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime? @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  rec_status          Int       @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean   @default(true)
+
+  org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_docs_tenant")
+  org_orders_mst        org_orders_mst        @relation(fields: [order_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_docs_order")
+  supersedes            org_tax_documents_mst? @relation("TaxDocSupersedes", fields: [supersedes_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_docs_supersedes")
+  superseded_by         org_tax_documents_mst[] @relation("TaxDocSupersedes")
+  org_tax_doc_lines_dtl org_tax_doc_lines_dtl[]
+
+  @@index([tenant_org_id], map: "idx_tax_docs_tenant")
+  @@index([tenant_org_id, order_id], map: "idx_tax_docs_order")
+  @@index([tenant_org_id, document_type, fiscal_year], map: "idx_tax_docs_type_year")
+  @@schema("public")
+}
+
+/// Per-line tax breakdown snapshot at document issuance.
+/// This model contains row level security and requires additional setup for migrations.
+model org_tax_doc_lines_dtl {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String    @db.Uuid
+  tax_document_id   String    @db.Uuid
+  order_tax_line_id String?   @db.Uuid
+
+  tax_type          String
+  label             String
+  label2            String?
+  rate              Decimal?  @db.Decimal(5, 2)
+  base_amount       Decimal   @default(0) @db.Decimal(19, 4)
+  tax_amount        Decimal   @default(0) @db.Decimal(19, 4)
+
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime? @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  rec_status        Int       @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  is_active         Boolean   @default(true)
+
+  org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_doc_lines_tenant")
+  org_tax_documents_mst org_tax_documents_mst @relation(fields: [tax_document_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_doc_lines_doc")
+  org_order_taxes_dtl   org_order_taxes_dtl?  @relation(fields: [order_tax_line_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_tax_doc_lines_tax")
+
+  @@index([tenant_org_id, tax_document_id], map: "idx_tax_doc_lines_doc")
+  @@index([tenant_org_id], map: "idx_tax_doc_lines_tenant")
+  @@schema("public")
+}
+
+/// Row-locked sequence counter for tax document fiscal numbering.
+/// One row per (tenant_org_id, document_type, fiscal_year).
+/// The allocator acquires a FOR UPDATE lock on this row, increments
+/// last_sequence, and commits — guaranteeing no gaps under concurrency.
+model org_tax_doc_seq_counters {
+  tenant_org_id String   @db.Uuid
+  document_type String
+  fiscal_year   Int
+  last_sequence Int      @default(0)
+
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?
+
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_doc_seq_tenant")
+
+  @@id([tenant_org_id, document_type, fiscal_year], map: "pk_tax_doc_seq")
+  @@schema("public")
+}
+
+/// Per-tenant configuration: which trigger_event issues which document_type.
+/// This model contains row level security and requires additional setup for migrations.
+model org_tax_doc_triggers_cfg {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id String   @db.Uuid
+  trigger_event String
+  document_type String
+  is_enabled    Boolean  @default(true)
+
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime? @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  rec_status    Int       @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  is_active     Boolean   @default(true)
+
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_doc_trg_tenant")
+
+  @@unique([tenant_org_id, trigger_event], map: "uq_tax_doc_trigger")
+  @@index([tenant_org_id], map: "idx_tax_doc_trg_tenant")
+  @@schema("public")
+}
+
+// =============================================================================
+// End Phase 7 — Tax-Document Full Lifecycle
 // =============================================================================
 
 enum aal_level {

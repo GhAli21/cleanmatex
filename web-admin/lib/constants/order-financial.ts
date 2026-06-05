@@ -45,6 +45,29 @@ export type CreditApplicationType =
   (typeof CREDIT_APPLICATION_TYPES)[keyof typeof CREDIT_APPLICATION_TYPES];
 
 /**
+ * Credit-application lifecycle states persisted in
+ * `org_order_credit_apps_dtl.application_status`.
+ *
+ * Why:
+ * Order Fin v1.1 separates credits that are already applied from credits that
+ * are pending, failed, or reversed so the order header can surface those
+ * buckets without overloading `is_active` / `rec_status`.
+ */
+export const CREDIT_APPLICATION_STATUSES = {
+  PENDING: 'PENDING',
+  RESERVED: 'RESERVED',
+  PROCESSING: 'PROCESSING',
+  APPLIED: 'APPLIED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REVERSED: 'REVERSED',
+  EXPIRED: 'EXPIRED',
+} as const;
+/** Derived union for credit-application lifecycle states. */
+export type CreditApplicationStatus =
+  (typeof CREDIT_APPLICATION_STATUSES)[keyof typeof CREDIT_APPLICATION_STATUSES];
+
+/**
  * Canonical lock-acquisition order for stored-value balances inside the
  * submit-order voucher transaction (Phase 2 BVM Wiring).
  *
@@ -107,6 +130,28 @@ export const STORED_VALUE_LOCK_RANK: Readonly<Record<CreditApplicationType, numb
       {} as Record<CreditApplicationType, number>,
     ),
   );
+
+/**
+ * Refund source type codes persisted in `org_order_refunds_dtl.refund_source_type`.
+ *
+ * Why 7 distinct values (no generic STORED_VALUE_RESTORE):
+ * Each stored-value vehicle has separate audit, fiscal, and balance-sheet
+ * implications. GIFT_CARD_RESTORE vs WALLET_RESTORE vs CUSTOMER_ADVANCE_RESTORE
+ * need to be traced to their originating ledger for ZATCA/UAE/Oman compliance.
+ * MANUAL_EXCEPTION is the fallback for rows that cannot be auto-classified;
+ * requires finance lead sign-off + permission `refunds:mark_manual_exception`.
+ */
+export const REFUND_SOURCE_TYPES = {
+  REAL_PAYMENT_REFUND:      'REAL_PAYMENT_REFUND',
+  GIFT_CARD_RESTORE:        'GIFT_CARD_RESTORE',
+  WALLET_RESTORE:           'WALLET_RESTORE',
+  CUSTOMER_ADVANCE_RESTORE: 'CUSTOMER_ADVANCE_RESTORE',
+  CUSTOMER_CREDIT_ISSUE:    'CUSTOMER_CREDIT_ISSUE',
+  CREDIT_NOTE_ISSUE:        'CREDIT_NOTE_ISSUE',
+  MANUAL_EXCEPTION:         'MANUAL_EXCEPTION',
+} as const;
+/** Derived union for refund source type codes. */
+export type RefundSourceType = (typeof REFUND_SOURCE_TYPES)[keyof typeof REFUND_SOURCE_TYPES];
 
 /** Refund reason codes mirrored from `sys_refund_reason_codes_cd.reason_code`. */
 export const REFUND_REASON_CODES = {
@@ -214,6 +259,37 @@ export const RECONCILIATION_CHECK_NAMES = {
   // ─── BVM Phase 4 — AR / refund link checks (PRD §22.1) ────────────────────
   INVOICE_PAYMENT_LINK_EXISTS: 'INVOICE_PAYMENT_LINK_EXISTS',
   REFUND_LINK_EXISTS: 'REFUND_LINK_EXISTS',
+
+  // ─── v1.1 §8.11 — tax-base decomposition reconciliation ───────────────────
+  // Verifies that the four canonical tax-base buckets stored on
+  // org_orders_mst (taxable_amount + non_taxable_amount + exempt_amount +
+  // zero_rated_amount + out_of_scope_amount) reconcile against the order's
+  // commercial base. Today the tax engine emits only taxable_amount, so the
+  // check stays advisory until Phase 5 wires bucket classification.
+  TAX_BASE_BUCKETS_SUM: 'TAX_BASE_BUCKETS_SUM',
+
+  // ─── v1.1 §10.x — credit lifecycle / voucher-target integrity ────────────
+  PAYMENT_TARGET_VS_ORDER_TOTALS: 'PAYMENT_TARGET_VS_ORDER_TOTALS',
+  CREDIT_APP_LIFECYCLE_CONSISTENCY: 'CREDIT_APP_LIFECYCLE_CONSISTENCY',
+
+  // ─── ADR-039 — base-currency reporting snapshots ─────────────────────────
+  BASE_CURRENCY_RATE_PRESENT: 'BASE_CURRENCY_RATE_PRESENT',
+  BASE_VS_ORDER_AMOUNT_CONSISTENCY: 'BASE_VS_ORDER_AMOUNT_CONSISTENCY',
+
+  // ─── ADR-017 — tax-inclusive pricing mode consistency ────────────────────
+  // Verifies that the tax_pricing_mode recorded in the order's
+  // financial_calculation_snapshot matches the branch/tenant config that was
+  // active at calculation time, so drifted snapshots are flagged.
+  PRICING_MODE_CONSISTENCY: 'PRICING_MODE_CONSISTENCY',
+
+  // ─── ADR-030 — refund source lineage (Phase 6) ───────────────────────────
+  REFUND_SOURCE_LINEAGE_CLASSIFICATION: 'REFUND_SOURCE_LINEAGE_CLASSIFICATION',
+  REFUND_REOPENS_DUE_BOUND: 'REFUND_REOPENS_DUE_BOUND',
+
+  // ─── Phase 7 — tax-document lifecycle ────────────────────────────────────
+  RECON_TAX_DOC_SEQUENCE_GAPS: 'RECON_TAX_DOC_SEQUENCE_GAPS',
+  RECON_TAX_DOC_IMMUTABILITY: 'RECON_TAX_DOC_IMMUTABILITY',
+  RECON_TAX_DOC_VS_ORDER_TOTALS: 'RECON_TAX_DOC_VS_ORDER_TOTALS',
 } as const;
 /** Derived union for reconciliation check identifiers. */
 export type ReconciliationCheckName =
@@ -302,6 +378,34 @@ export const PAYMENT_NATURE = {
 } as const;
 /** Derived union for payment-leg routing categories. */
 export type PaymentNature = (typeof PAYMENT_NATURE)[keyof typeof PAYMENT_NATURE];
+
+/**
+ * Tax pricing mode codes persisted in `org_tenants_mst.tax_pricing_mode` and
+ * `org_branches_mst.tax_pricing_mode` (branch value is nullable — NULL means
+ * inherit tenant default).
+ *
+ * TAX_EXCLUSIVE: total = net_before_tax + tax + rounding (current default).
+ * TAX_INCLUSIVE: tax is extracted from the inclusive item price; tax is NOT
+ *   added to total again — total = net_before_tax + rounding.
+ */
+export const TAX_PRICING_MODES = {
+  TAX_EXCLUSIVE: 'TAX_EXCLUSIVE',
+  TAX_INCLUSIVE: 'TAX_INCLUSIVE',
+} as const;
+/** Derived union for tax pricing mode codes. */
+export type TaxPricingMode = (typeof TAX_PRICING_MODES)[keyof typeof TAX_PRICING_MODES];
+
+/**
+ * Extra-price presentation mode codes persisted in
+ * `org_tenants_mst.extra_price_pricing_mode` (and branch override).
+ */
+export const EXTRA_PRICE_PRICING_MODES = {
+  INCLUDED_IN_ITEM_PRICE: 'INCLUDED_IN_ITEM_PRICE',
+  SEPARATE_CHARGE: 'SEPARATE_CHARGE',
+} as const;
+/** Derived union for extra-price presentation mode codes. */
+export type ExtraPricePricingMode =
+  (typeof EXTRA_PRICE_PRICING_MODES)[keyof typeof EXTRA_PRICE_PRICING_MODES];
 
 /** Settlement type codes mirrored from `sys_payment_type_cd.payment_type_code`. */
 export const SETTLEMENT_TYPE_CODES = {
@@ -444,3 +548,46 @@ export const CREDIT_NOTE_STATUSES = {
 /** Derived union for credit note lifecycle states. */
 export type CreditNoteStatus =
   (typeof CREDIT_NOTE_STATUSES)[keyof typeof CREDIT_NOTE_STATUSES];
+
+// ─── Phase 7 — Tax-Document Full Lifecycle ───────────────────────────────────
+
+/** Document type codes persisted in `org_tax_documents_mst.document_type`. */
+export const TAX_DOCUMENT_TYPES = {
+  INVOICE:              'INVOICE',
+  SIMPLIFIED_INVOICE:   'SIMPLIFIED_INVOICE',
+  CREDIT_NOTE:          'CREDIT_NOTE',
+  DEBIT_NOTE:           'DEBIT_NOTE',
+} as const;
+/** Derived union for tax document types. */
+export type TaxDocumentType =
+  (typeof TAX_DOCUMENT_TYPES)[keyof typeof TAX_DOCUMENT_TYPES];
+
+/** Lifecycle status codes persisted in `org_tax_documents_mst.status`. */
+export const TAX_DOCUMENT_STATUSES = {
+  DRAFT:      'DRAFT',
+  ISSUED:     'ISSUED',
+  CANCELLED:  'CANCELLED',
+  SUPERSEDED: 'SUPERSEDED',
+} as const;
+/** Derived union for tax document lifecycle states. */
+export type TaxDocumentStatus =
+  (typeof TAX_DOCUMENT_STATUSES)[keyof typeof TAX_DOCUMENT_STATUSES];
+
+/**
+ * Trigger event codes persisted in `org_tax_documents_mst.trigger_event`
+ * and `org_tax_doc_triggers_cfg.trigger_event`.
+ *
+ * LEGACY_BACKFILL is for rows migrated from the pre-Phase-7 shallow columns
+ * on org_orders_mst — it is NOT a valid value for new trigger configs.
+ */
+export const TAX_DOCUMENT_TRIGGER_EVENTS = {
+  ON_ORDER_SUBMIT:          'ON_ORDER_SUBMIT',
+  ON_PAYMENT_CONFIRMATION:  'ON_PAYMENT_CONFIRMATION',
+  ON_SERVICE_COMPLETION:    'ON_SERVICE_COMPLETION',
+  ON_DELIVERY:              'ON_DELIVERY',
+  ON_AR_INVOICE_ISSUE:      'ON_AR_INVOICE_ISSUE',
+  LEGACY_BACKFILL:          'LEGACY_BACKFILL',
+} as const;
+/** Derived union for tax document trigger events. */
+export type TaxDocumentTriggerEvent =
+  (typeof TAX_DOCUMENT_TRIGGER_EVENTS)[keyof typeof TAX_DOCUMENT_TRIGGER_EVENTS];

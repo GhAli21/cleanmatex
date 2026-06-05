@@ -3245,6 +3245,7 @@ export type Database = {
           created_by: string | null
           created_info: string | null
           email: string | null
+          extra_price_pricing_mode: string | null
           floor: string | null
           id: string
           is_active: boolean
@@ -3259,6 +3260,7 @@ export type Database = {
           rec_status: number | null
           s_date: string | null
           street: string | null
+          tax_pricing_mode: string | null
           tenant_org_id: string
           type: string | null
           updated_at: string | null
@@ -3276,6 +3278,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           email?: string | null
+          extra_price_pricing_mode?: string | null
           floor?: string | null
           id?: string
           is_active?: boolean
@@ -3290,6 +3293,7 @@ export type Database = {
           rec_status?: number | null
           s_date?: string | null
           street?: string | null
+          tax_pricing_mode?: string | null
           tenant_org_id: string
           type?: string | null
           updated_at?: string | null
@@ -3307,6 +3311,7 @@ export type Database = {
           created_by?: string | null
           created_info?: string | null
           email?: string | null
+          extra_price_pricing_mode?: string | null
           floor?: string | null
           id?: string
           is_active?: boolean
@@ -3321,6 +3326,7 @@ export type Database = {
           rec_status?: number | null
           s_date?: string | null
           street?: string | null
+          tax_pricing_mode?: string | null
           tenant_org_id?: string
           type?: string | null
           updated_at?: string | null
@@ -12997,6 +13003,7 @@ export type Database = {
       }
       org_order_credit_apps_dtl: {
         Row: {
+          application_status: string
           applied_amount: number
           applied_at: string
           applied_by: string | null
@@ -13026,6 +13033,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
+          application_status?: string
           applied_amount: number
           applied_at?: string
           applied_by?: string | null
@@ -13055,6 +13063,7 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
+          application_status?: string
           applied_amount?: number
           applied_at?: string
           applied_by?: string | null
@@ -14597,7 +14606,9 @@ export type Database = {
           refund_method_code: string | null
           refund_no: string | null
           refund_reason: string | null
+          refund_source_type: string
           refund_status: string
+          reopens_due_amount: number
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
@@ -14627,7 +14638,9 @@ export type Database = {
           refund_method_code?: string | null
           refund_no?: string | null
           refund_reason?: string | null
+          refund_source_type: string
           refund_status?: string
+          reopens_due_amount?: number
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
@@ -14657,7 +14670,9 @@ export type Database = {
           refund_method_code?: string | null
           refund_no?: string | null
           refund_reason?: string | null
+          refund_source_type?: string
           refund_status?: string
+          reopens_due_amount?: number
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -14930,6 +14945,13 @@ export type Database = {
           b2b_contract_id: string | null
           bag_count: number | null
           barcode: string | null
+          base_cur_ar_receivable_amount: number
+          base_cur_credit_applied_amount: number
+          base_cur_currency_code: string | null
+          base_cur_outstanding_amount: number
+          base_cur_paid_amount: number
+          base_cur_tax_amount: number
+          base_cur_total_amount: number
           branch_id: string | null
           cancellation_reason_code: string | null
           cancelled_at: string | null
@@ -14959,7 +14981,9 @@ export type Database = {
           delivery_charge_amount: number
           discount_rate: number | null
           discount_type: string | null
+          exempt_amount: number
           express_charge_amount: number
+          failed_credit_application_amount: number
           failed_payment_amount: number
           financial_calculation_hash: string | null
           financial_calculation_snapshot: Json
@@ -14984,11 +15008,13 @@ export type Database = {
           last_transition_at: string | null
           last_transition_by: string | null
           net_collected_amount: number
+          non_taxable_amount: number
           order_no: string
           order_source_code: string
           order_subtype: string | null
           order_type_id: string | null
           other_charges_amount: number
+          out_of_scope_amount: number
           outstanding_amount: number | null
           overpaid_amount: number
           paid_at: string | null
@@ -15001,6 +15027,7 @@ export type Database = {
           payment_status: string | null
           payment_terms: string | null
           payment_type_code: string | null
+          pending_credit_application_amount: number
           pending_payment_amount: number
           photo_urls: Json | null
           physical_intake_at: string | null
@@ -15061,6 +15088,7 @@ export type Database = {
           updated_info: string | null
           vat_rate: number | null
           workflow_template_id: string | null
+          zero_rated_amount: number
         }
         Insert: {
           ar_invoice_id?: string | null
@@ -15071,6 +15099,13 @@ export type Database = {
           b2b_contract_id?: string | null
           bag_count?: number | null
           barcode?: string | null
+          base_cur_ar_receivable_amount?: number
+          base_cur_credit_applied_amount?: number
+          base_cur_currency_code?: string | null
+          base_cur_outstanding_amount?: number
+          base_cur_paid_amount?: number
+          base_cur_tax_amount?: number
+          base_cur_total_amount?: number
           branch_id?: string | null
           cancellation_reason_code?: string | null
           cancelled_at?: string | null
@@ -15100,7 +15135,9 @@ export type Database = {
           delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          exempt_amount?: number
           express_charge_amount?: number
+          failed_credit_application_amount?: number
           failed_payment_amount?: number
           financial_calculation_hash?: string | null
           financial_calculation_snapshot?: Json
@@ -15125,11 +15162,13 @@ export type Database = {
           last_transition_at?: string | null
           last_transition_by?: string | null
           net_collected_amount?: number
+          non_taxable_amount?: number
           order_no: string
           order_source_code?: string
           order_subtype?: string | null
           order_type_id?: string | null
           other_charges_amount?: number
+          out_of_scope_amount?: number
           outstanding_amount?: number | null
           overpaid_amount?: number
           paid_at?: string | null
@@ -15142,6 +15181,7 @@ export type Database = {
           payment_status?: string | null
           payment_terms?: string | null
           payment_type_code?: string | null
+          pending_credit_application_amount?: number
           pending_payment_amount?: number
           photo_urls?: Json | null
           physical_intake_at?: string | null
@@ -15202,6 +15242,7 @@ export type Database = {
           updated_info?: string | null
           vat_rate?: number | null
           workflow_template_id?: string | null
+          zero_rated_amount?: number
         }
         Update: {
           ar_invoice_id?: string | null
@@ -15212,6 +15253,13 @@ export type Database = {
           b2b_contract_id?: string | null
           bag_count?: number | null
           barcode?: string | null
+          base_cur_ar_receivable_amount?: number
+          base_cur_credit_applied_amount?: number
+          base_cur_currency_code?: string | null
+          base_cur_outstanding_amount?: number
+          base_cur_paid_amount?: number
+          base_cur_tax_amount?: number
+          base_cur_total_amount?: number
           branch_id?: string | null
           cancellation_reason_code?: string | null
           cancelled_at?: string | null
@@ -15241,7 +15289,9 @@ export type Database = {
           delivery_charge_amount?: number
           discount_rate?: number | null
           discount_type?: string | null
+          exempt_amount?: number
           express_charge_amount?: number
+          failed_credit_application_amount?: number
           failed_payment_amount?: number
           financial_calculation_hash?: string | null
           financial_calculation_snapshot?: Json
@@ -15266,11 +15316,13 @@ export type Database = {
           last_transition_at?: string | null
           last_transition_by?: string | null
           net_collected_amount?: number
+          non_taxable_amount?: number
           order_no?: string
           order_source_code?: string
           order_subtype?: string | null
           order_type_id?: string | null
           other_charges_amount?: number
+          out_of_scope_amount?: number
           outstanding_amount?: number | null
           overpaid_amount?: number
           paid_at?: string | null
@@ -15283,6 +15335,7 @@ export type Database = {
           payment_status?: string | null
           payment_terms?: string | null
           payment_type_code?: string | null
+          pending_credit_application_amount?: number
           pending_payment_amount?: number
           photo_urls?: Json | null
           physical_intake_at?: string | null
@@ -15343,6 +15396,7 @@ export type Database = {
           updated_info?: string | null
           vat_rate?: number | null
           workflow_template_id?: string | null
+          zero_rated_amount?: number
         }
         Relationships: [
           {
@@ -18646,6 +18700,377 @@ export type Database = {
           },
         ]
       }
+      org_tax_doc_lines_dtl: {
+        Row: {
+          base_amount: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          label: string
+          label2: string | null
+          order_tax_line_id: string | null
+          rate: number | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tax_amount: number
+          tax_document_id: string
+          tax_type: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          base_amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          label2?: string | null
+          order_tax_line_id?: string | null
+          rate?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tax_amount?: number
+          tax_document_id: string
+          tax_type: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          label2?: string | null
+          order_tax_line_id?: string | null
+          rate?: number | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tax_amount?: number
+          tax_document_id?: string
+          tax_type?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tax_doc_lines_doc"
+            columns: ["tax_document_id"]
+            isOneToOne: false
+            referencedRelation: "org_tax_documents_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_lines_tax"
+            columns: ["order_tax_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_taxes_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_lines_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_lines_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_lines_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_tax_doc_seq_counters: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_type: string
+          fiscal_year: number
+          last_sequence: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_type: string
+          fiscal_year: number
+          last_sequence?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_type?: string
+          fiscal_year?: number
+          last_sequence?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tax_doc_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_seq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_tax_doc_triggers_cfg: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          document_type: string
+          id: string
+          is_active: boolean
+          is_enabled: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          trigger_event: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          document_type: string
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          trigger_event: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          document_type?: string
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          trigger_event?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tax_doc_trg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_trg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_tax_doc_trg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_tax_documents_mst: {
+        Row: {
+          base_currency_code: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string | null
+          currency_ex_rate: number
+          document_no: string | null
+          document_type: string
+          fiscal_year: number
+          id: string
+          is_active: boolean
+          issued_at: string | null
+          issued_by: string | null
+          order_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sequence_number: number
+          status: string
+          supersedes_id: string | null
+          tax_amount: number
+          tenant_org_id: string
+          total_amount: number
+          trigger_event: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          base_currency_code?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string | null
+          currency_ex_rate?: number
+          document_no?: string | null
+          document_type: string
+          fiscal_year: number
+          id?: string
+          is_active?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
+          order_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sequence_number?: number
+          status?: string
+          supersedes_id?: string | null
+          tax_amount?: number
+          tenant_org_id: string
+          total_amount?: number
+          trigger_event: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          base_currency_code?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string | null
+          currency_ex_rate?: number
+          document_no?: string | null
+          document_type?: string
+          fiscal_year?: number
+          id?: string
+          is_active?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
+          order_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sequence_number?: number
+          status?: string
+          supersedes_id?: string | null
+          tax_amount?: number
+          tenant_org_id?: string
+          total_amount?: number
+          trigger_event?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tax_docs_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_docs_supersedes"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "org_tax_documents_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_docs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tax_docs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_tax_docs_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_tax_exemptions_cf: {
         Row: {
           certificate_no: string | null
@@ -19207,6 +19632,7 @@ export type Database = {
           currency: string | null
           date_format: string | null
           email: string
+          extra_price_pricing_mode: string
           feature_flags: Json | null
           first_day_of_week: number | null
           id: string
@@ -19228,6 +19654,7 @@ export type Database = {
           stng_profile_code: string | null
           stng_profile_locked: boolean | null
           stng_profile_version_applied: number | null
+          tax_pricing_mode: string
           time_format: string | null
           timezone: string | null
           updated_at: string | null
@@ -19251,6 +19678,7 @@ export type Database = {
           currency?: string | null
           date_format?: string | null
           email: string
+          extra_price_pricing_mode?: string
           feature_flags?: Json | null
           first_day_of_week?: number | null
           id?: string
@@ -19272,6 +19700,7 @@ export type Database = {
           stng_profile_code?: string | null
           stng_profile_locked?: boolean | null
           stng_profile_version_applied?: number | null
+          tax_pricing_mode?: string
           time_format?: string | null
           timezone?: string | null
           updated_at?: string | null
@@ -19295,6 +19724,7 @@ export type Database = {
           currency?: string | null
           date_format?: string | null
           email?: string
+          extra_price_pricing_mode?: string
           feature_flags?: Json | null
           first_day_of_week?: number | null
           id?: string
@@ -19316,6 +19746,7 @@ export type Database = {
           stng_profile_code?: string | null
           stng_profile_locked?: boolean | null
           stng_profile_version_applied?: number | null
+          tax_pricing_mode?: string
           time_format?: string | null
           timezone?: string | null
           updated_at?: string | null

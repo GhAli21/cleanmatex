@@ -16,14 +16,20 @@ export function OrderFinancialSummaryCards({ viewModel }: OrderFinancialSummaryC
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();
   const { decimalPlaces } = useTenantCurrency();
-  const { amounts, currencyCode, payment } = viewModel;
+  const { amounts, currencyCode, payment, baseCurrency } = viewModel;
   const moneyLocale = isRTL ? 'ar' : 'en';
-  const fmt = (n: number) =>
+  const fmt = (n: number, code = currencyCode) =>
     formatMoneyAmountWithCode(n, {
-      currencyCode,
+      currencyCode: code,
       decimalPlaces,
       locale: moneyLocale,
     });
+
+  // Show the base-currency secondary row only when currency differs from the order currency.
+  const showBaseCurrency =
+    baseCurrency.currencyCode != null &&
+    baseCurrency.currencyCode !== currencyCode &&
+    baseCurrency.totalAmount > 0;
 
   const paymentStatusColors: Record<string, string> = {
     PAID: 'success',
@@ -53,6 +59,27 @@ export function OrderFinancialSummaryCards({ viewModel }: OrderFinancialSummaryC
           subtitle={amounts.outstandingAmount > 0 ? t('card.balanceDueHint') : t('card.settled')}
         />
       </div>
+
+      {showBaseCurrency && (
+        <div className="rounded-md border border-border bg-muted/30 px-4 py-3">
+          <p className={`mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('baseCurrency.label')} ({baseCurrency.currencyCode})
+            {baseCurrency.exchangeRate !== 1 && (
+              <span className="ms-2 font-normal normal-case">
+                {t('baseCurrency.rateAt')}: {baseCurrency.exchangeRate}
+              </span>
+            )}
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <CmxKpiStatCard title={t('baseCurrency.total')} value={fmt(baseCurrency.totalAmount, baseCurrency.currencyCode!)} />
+            <CmxKpiStatCard title={t('baseCurrency.tax')} value={fmt(baseCurrency.taxAmount, baseCurrency.currencyCode!)} />
+            <CmxKpiStatCard title={t('baseCurrency.paid')} value={fmt(baseCurrency.paidAmount, baseCurrency.currencyCode!)} />
+            <CmxKpiStatCard title={t('baseCurrency.creditApplied')} value={fmt(baseCurrency.creditAppliedAmount, baseCurrency.currencyCode!)} />
+            <CmxKpiStatCard title={t('baseCurrency.outstanding')} value={fmt(baseCurrency.outstandingAmount, baseCurrency.currencyCode!)} />
+            <CmxKpiStatCard title={t('baseCurrency.arReceivable')} value={fmt(baseCurrency.arReceivableAmount, baseCurrency.currencyCode!)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

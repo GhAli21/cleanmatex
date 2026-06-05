@@ -1716,7 +1716,17 @@
         "CANCELLED": "طلب ملغى",
         "OVERCHARGE": "فوترة زائدة",
         "OTHER": "أخرى"
-      }
+      },
+      "sourceTypeLabels": {
+        "REAL_PAYMENT_REFUND": "استرداد دفعة حقيقية",
+        "GIFT_CARD_RESTORE": "استعادة رصيد بطاقة الهدايا",
+        "WALLET_RESTORE": "استعادة رصيد المحفظة",
+        "CUSTOMER_ADVANCE_RESTORE": "استعادة سلفة العميل",
+        "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد للعميل",
+        "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن",
+        "MANUAL_EXCEPTION": "استثناء يدوي (غير مصنّف)"
+      },
+      "reopensDueAmount": "المبلغ الذي يعيد فتح رصيد الطلب"
     },
     "reconciliation": {
       "title": "المطابقة المالية",
@@ -2254,6 +2264,71 @@
         "creditInvoiceMissingAr": "طلب فاتورة آجلة بدون فاتورة ذمم بعد.",
         "fiscalTotal": "مبلغ البيع الضريبي",
         "taxDocumentOrderTotal": "إجمالي المستند الضريبي (مبلغ البيع)",
+        "taxBase": {
+          "title": "تفصيل الوعاء الضريبي",
+          "taxable": "خاضع للضريبة",
+          "nonTaxable": "غير خاضع للضريبة",
+          "exempt": "معفى",
+          "zeroRated": "صفري الضريبة",
+          "outOfScope": "خارج نطاق الضريبة"
+        },
+        "baseCurrency": {
+          "label": "عملة الأساس",
+          "rateAt": "سعر الصرف وقت الطلب",
+          "total": "الإجمالي بعملة الأساس",
+          "tax": "الضريبة بعملة الأساس",
+          "paid": "المدفوع بعملة الأساس",
+          "creditApplied": "الرصيد المطبق بعملة الأساس",
+          "outstanding": "المتبقي بعملة الأساس",
+          "arReceivable": "ذمم مدينة بعملة الأساس"
+        },
+        "paymentTarget": {
+          "order": "الطلب",
+          "arInvoice": "فاتورة الذمم",
+          "customerAdvance": "عربون العميل",
+          "giftCardTopup": "شحن بطاقة هدية",
+          "walletTopup": "شحن المحفظة",
+          "supplierPayment": "دفعة مورد",
+          "expense": "مصروف"
+        },
+        "creditApp": {
+          "status": {
+            "pending": "معلق",
+            "reserved": "محجوز",
+            "processing": "قيد المعالجة",
+            "applied": "مطبق",
+            "failed": "فشل",
+            "cancelled": "ملغي",
+            "reversed": "معكوس",
+            "expired": "منتهي الصلاحية"
+          },
+          "pendingLabel": "اعتمادات ائتمانية معلقة",
+          "failedLabel": "اعتمادات ائتمانية فاشلة"
+        },
+        "refundsTable": "المسترجعات",
+        "refunds": {
+          "sourceTypeLabels": {
+            "REAL_PAYMENT_REFUND": "استرداد دفعة حقيقية",
+            "GIFT_CARD_RESTORE": "استعادة بطاقة هدية",
+            "WALLET_RESTORE": "استعادة المحفظة",
+            "CUSTOMER_ADVANCE_RESTORE": "استعادة دفعة مقدمة",
+            "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد عميل",
+            "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن",
+            "MANUAL_EXCEPTION": "استثناء يدوي"
+          },
+          "reopensDueAmount": "يعيد فتح رصيد الطلب"
+        },
+        "pricingMode": {
+          "label": "وضع تسعير الضريبة",
+          "taxExclusive": "ضريبة خارج السعر (تضاف فوق السعر)",
+          "taxInclusive": "ضريبة مدمجة في السعر",
+          "atCalculation": "الوضع عند آخر حساب"
+        },
+        "extraPriceMode": {
+          "label": "وضع السعر الإضافي",
+          "includedInItemPrice": "مدمج في سعر العنصر",
+          "separateCharge": "رسم منفصل"
+        },
         "tabs": {
           "financialSummary": "الملخص المالي",
           "master": "بيانات الطلب",
@@ -2276,7 +2351,10 @@
           "reference": "المرجع",
           "date": "التاريخ",
           "creditType": "نوع الاعتماد",
-          "verify": "التحقق"
+          "verify": "التحقق",
+          "applicationStatus": "حالة التطبيق",
+          "sourceType": "نوع المصدر",
+          "reopensDue": "يعيد فتح الرصيد"
         },
         "verify": {
           "action": "تحقق",
@@ -2325,7 +2403,9 @@
             "arReceivableAmount": "الذمم المدينة",
             "paymentTypeCode": "نوع الدفع",
             "paymentStatus": "حالة الدفع",
-            "financialEngineVersion": "إصدار المحرك المالي"
+            "financialEngineVersion": "إصدار المحرك المالي",
+            "taxPricingModeAtCalculation": "وضع تسعير الضريبة عند الحساب",
+            "currencyExRate": "سعر صرف العملة"
           }
         }
       }
@@ -3551,6 +3631,39 @@
     "exemptionUpdated": "تم تحديث الإعفاء",
     "exemptionDeactivated": "تم إلغاء تفعيل الإعفاء",
     "actions": "الإجراءات"
+  },
+  "taxDocuments": {
+    "status": {
+      "DRAFT": "مسودة",
+      "ISSUED": "صادر",
+      "CANCELLED": "ملغى",
+      "SUPERSEDED": "مستبدل"
+    },
+    "type": {
+      "INVOICE": "فاتورة",
+      "SIMPLIFIED_INVOICE": "فاتورة مبسطة",
+      "CREDIT_NOTE": "إشعار دائن",
+      "DEBIT_NOTE": "إشعار مدين"
+    },
+    "triggerEvent": {
+      "ON_ORDER_SUBMIT": "عند تقديم الطلب",
+      "ON_PAYMENT_CONFIRMATION": "عند تأكيد الدفع",
+      "ON_SERVICE_COMPLETION": "عند إتمام الخدمة",
+      "ON_DELIVERY": "عند التسليم",
+      "ON_AR_INVOICE_ISSUE": "عند إصدار فاتورة الذمم المدينة",
+      "LEGACY_BACKFILL": "تعبئة تاريخية"
+    },
+    "documentNo": "رقم المستند",
+    "issuedAt": "تاريخ الإصدار",
+    "issuedBy": "صادر بواسطة",
+    "supersedes": "يستبدل",
+    "fiscalYear": "السنة المالية",
+    "sequenceNo": "رقم التسلسل",
+    "totalAmount": "المبلغ الإجمالي",
+    "taxAmount": "مبلغ الضريبة",
+    "notAvailable": "لم يصدر مستند ضريبي",
+    "configureTitle": "محفزات المستند الضريبي",
+    "configureHint": "قم بتكوين الأحداث التي تُصدر تلقائياً مستندات ضريبية لمنشأتك."
   },
   "notifications": {
     "title": "الإشعارات",
@@ -5096,6 +5209,65 @@
         "deferredPayOnCollection": "الدفع عند الاستلام (إجمالي الطلب)",
         "deferredInvoice": "فاتورة (إجمالي الطلب)",
         "notPaidBalance": "غير المدفوع بعد هذا الدفع"
+      },
+      "rightRail": {
+        "balanceResult": "نتيجة الرصيد",
+        "orderTotal": "إجمالي الطلب",
+        "totalSettledNow": "إجمالي المسوّى الآن",
+        "remainingBalance": "الرصيد المتبقي",
+        "overpaidAmount": "المبلغ الزائد",
+        "status": "الحالة",
+        "settlementNow": "التسوية الآن",
+        "realPaymentsReceived": "المدفوعات الفعلية المستلمة",
+        "creditsApplied": "الأرصدة / القيم المخزنة المطبقة",
+        "noneApplied": "لا يوجد تطبيق",
+        "balancePolicy": "سياسة الرصيد",
+        "balancePolicyHelp": "عندما يكون المبلغ المحصل أقل من إجمالي الطلب، اختر طريقة تسوية الرصيد المتبقي.",
+        "fullPaymentRequired": "السداد الكامل مطلوب",
+        "fullPaymentRequiredHelp": "يجب تسوية الطلب بالكامل قبل الإرسال.",
+        "payOnCollectionHelp": "يتم تحصيل الرصيد المتبقي من العميل لاحقاً عند الاستلام أو التوصيل.",
+        "invoiceOutstandingHelp": "اترك الرصيد كمبلغ فاتورة مستحق لتسوية B2B.",
+        "adjustments": "التعديلات",
+        "discounts": "الخصومات",
+        "discountsHelp": "الخصومات اليدوية تقلل قيمة الطلب قبل اعتماد الدفع.",
+        "creditsAndStoredValue": "الأرصدة والقيم المخزنة",
+        "creditsAndStoredValueHelp": "طبّق أكواد الخصم وبطاقات الهدايا هنا. تبقى أرصدة المحفظة والعميل في مساحة الدفع.",
+        "liveEffect": "الأثر المباشر",
+        "orderTotalAfterDiscounts": "إجمالي الطلب بعد الخصومات",
+        "orderValue": "قيمة الطلب",
+        "taxBreakdown": "تفصيل الضرائب",
+        "cashDrawerImpact": "أثر درج النقد",
+        "cashRetained": "النقد المحتفظ به",
+        "changeReturned": "الباقي المعاد",
+        "currencyRounding": "العملة / التقريب",
+        "b2bArDetails": "تفاصيل B2B / الذمم",
+        "warnings": "تنبيهات",
+        "warningMessages": {
+          "creditLimitOverride": "تم تفعيل تجاوز حد الائتمان لهذه التسوية من نوع B2B."
+        },
+        "statuses": {
+          "blocked": "محظور",
+          "overpaid": "مدفوع بزيادة",
+          "fullySettled": "مسوّى بالكامل",
+          "payOnCollection": "الدفع عند الاستلام",
+          "invoiceOutstanding": "فوترة المتبقي",
+          "paymentRequired": "الدفع مطلوب"
+        },
+        "requiredAction": {
+          "overpaymentTitle": "معالجة الدفع الزائد",
+          "overpaymentMessage": "خفّض المبلغ المحصل أو أعد {amount} كباقٍ قبل الإرسال.",
+          "cashDrawerTitle": "درج النقد مطلوب",
+          "cashDrawerFallback": "اربط هذه الدفعة النقدية بجلسة درج نقد مفتوحة قبل الإرسال.",
+          "creditLimitTitle": "تنبيه حد الائتمان",
+          "creditLimitWarn": "هذا الطلب يتجاوز الائتمان المتاح للعميل. أكّد التجاوز للمتابعة.",
+          "creditLimitBlock": "هذا الطلب يتجاوز الائتمان المتاح للعميل ولا يمكن إرساله.",
+          "giftCardPinTitle": "الرقم السري لبطاقة الهدية مطلوب",
+          "checkTitle": "تفاصيل الشيك مطلوبة",
+          "storedValueTitle": "القيمة المخزنة تحتاج مراجعة",
+          "paymentAmountTitle": "أدخل مبلغ التحصيل الآن",
+          "remainingPolicyTitle": "اختر سياسة الرصيد",
+          "genericTitle": "مراجعة مطلوبة"
+        }
       },
       "workspace": {
         "remaining": "المتبقي",

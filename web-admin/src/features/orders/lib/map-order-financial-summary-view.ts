@@ -1,5 +1,6 @@
 import {
   CHARGE_TYPES,
+  CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
   ORDER_FINANCIAL_WARNING_CODES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
@@ -59,10 +60,18 @@ export function mapOrderFinancialSummaryView(
   const netBeforeTaxAmount = Math.max(0, grossAmount - discountAmount);
   const taxAmount = n(snapshot.totalTaxAmount);
   const taxableAmount = n(snapshot.taxableAmount) || sumTaxableAmount(input.taxes, netBeforeTaxAmount);
+  // Tax-base decomposition (v1.1 §8.11). Default 0 today — engine wiring lands
+  // in Phase 5. Surfaced now so the view model contract is stable for Phase 8 UI.
+  const nonTaxableAmount = n(snapshot.nonTaxableAmount);
+  const exemptAmount = n(snapshot.exemptAmount);
+  const zeroRatedAmount = n(snapshot.zeroRatedAmount);
+  const outOfScopeAmount = n(snapshot.outOfScopeAmount);
   const roundingAmount = n(input.order?.rounding_adjustment_amount);
   const totalAmount = n(snapshot.totalAmount);
   const totalPaidAmount = n(snapshot.totalPaidAmount);
   const totalCreditAppliedAmount = n(snapshot.totalCreditAppliedAmount);
+  const pendingCreditApplicationAmount = n(snapshot.pendingCreditApplicationAmount);
+  const failedCreditApplicationAmount = n(snapshot.failedCreditApplicationAmount);
   const refundedAmount = n(snapshot.refundedAmount);
   const realPaymentRefundedAmount = n(snapshot.realPaymentRefundedAmount);
   const netCollectedAmount =
@@ -83,9 +92,21 @@ export function mapOrderFinancialSummaryView(
       || (paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE && outstandingAmount > 0
         ? outstandingAmount
         : 0);
+  const baseCurrency = {
+    currencyCode: snapshot.baseCurCurrencyCode ?? null,
+    exchangeRate: n(snapshot.currencyExRate) || 1,
+    totalAmount: n(snapshot.baseCurTotalAmount),
+    taxAmount: n(snapshot.baseCurTaxAmount),
+    paidAmount: n(snapshot.baseCurPaidAmount),
+    creditAppliedAmount: n(snapshot.baseCurCreditAppliedAmount),
+    outstandingAmount: n(snapshot.baseCurOutstandingAmount),
+    arReceivableAmount: n(snapshot.baseCurArReceivableAmount),
+  };
 
   const giftCardCreditAmount = creditApplications.reduce((sum, creditApplication) => {
     return normalizeUpper(creditApplication.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD
+      && (normalizeUpper(creditApplication.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED)
+        === CREDIT_APPLICATION_STATUSES.APPLIED
       ? sum + n(creditApplication.applied_amount)
       : sum;
   }, 0);
@@ -116,6 +137,7 @@ export function mapOrderFinancialSummaryView(
     orderId: snapshot.orderId,
     orderNo: snapshot.orderNo ?? snapshot.orderId,
     currencyCode: snapshot.currencyCode ?? 'OMR',
+    baseCurrency,
     customerName: input.order?.customer_name ?? undefined,
     branchName: input.order?.branch_name ?? undefined,
     orderStatus: input.order?.status ?? undefined,
@@ -134,11 +156,17 @@ export function mapOrderFinancialSummaryView(
       discountAmount,
       netBeforeTaxAmount,
       taxableAmount,
+      nonTaxableAmount,
+      exemptAmount,
+      zeroRatedAmount,
+      outOfScopeAmount,
       taxAmount,
       roundingAmount,
       totalAmount,
       totalPaidAmount,
       totalCreditAppliedAmount,
+      pendingCreditApplicationAmount,
+      failedCreditApplicationAmount,
       refundedAmount,
       netCollectedAmount,
       outstandingAmount,
@@ -169,6 +197,9 @@ export function mapOrderFinancialSummaryView(
       roundingAmount,
       arReceivableAmount: n(snapshot.arReceivableAmount),
       financialEngineVersion: snapshot.financialEngineVersion ?? null,
+      taxPricingModeAtCalculation:
+        (snapshot.financialCalculationSnapshot as Record<string, unknown> | null)
+          ?.taxPricingModeAtCalculation as string | null ?? null,
     },
   };
 }
@@ -238,7 +269,12 @@ function buildWarnings(ctx: {
     });
   }
 
-  const creditSum = ctx.creditApplications.reduce((s, c) => s + n(c.applied_amount), 0);
+  const creditSum = ctx.creditApplications.reduce((sum, creditApplication) => {
+    const status =
+      normalizeUpper(creditApplication.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
+    if (status !== CREDIT_APPLICATION_STATUSES.APPLIED) return sum;
+    return sum + n(creditApplication.applied_amount);
+  }, 0);
   if (ctx.giftCardOnOrder > 0 && Math.abs(creditSum - ctx.totalCreditAppliedAmount) > tolerance) {
     warnings.push({
       code: ORDER_FINANCIAL_WARNING_CODES.GIFT_CARD_DOUBLE_COUNTED,

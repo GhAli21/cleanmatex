@@ -31,6 +31,7 @@ const mockPiecesFindMany = jest.fn();
 const mockPreferencesFindMany = jest.fn();
 const mockDiscountsFindMany = jest.fn();
 const mockOrderFindUnique = jest.fn();
+const mockOrderFindMany = jest.fn();
 const mockWalletsFindMany = jest.fn();
 const mockWalletTxnFindMany = jest.fn();
 const mockWalletTxnAggregate = jest.fn();
@@ -64,7 +65,10 @@ jest.mock('@/lib/db/prisma', () => ({
     org_order_item_pieces_dtl: { findMany: (...a: unknown[]) => mockPiecesFindMany(...a) },
     org_order_preferences_dtl: { findMany: (...a: unknown[]) => mockPreferencesFindMany(...a) },
     org_order_discounts_dtl: { findMany: (...a: unknown[]) => mockDiscountsFindMany(...a) },
-    org_orders_mst: { findUnique: (...a: unknown[]) => mockOrderFindUnique(...a) },
+    org_orders_mst: {
+      findUnique: (...a: unknown[]) => mockOrderFindUnique(...a),
+      findMany: (...a: unknown[]) => mockOrderFindMany(...a),
+    },
     org_customer_wallets_mst: { findMany: (...a: unknown[]) => mockWalletsFindMany(...a) },
     org_wallet_txn_dtl: {
       findMany: (...a: unknown[]) => mockWalletTxnFindMany(...a),
@@ -104,10 +108,14 @@ import {
   checkWalletLedgerLink,
 } from '@/lib/services/reconciliation/stored-value-checks';
 import {
+  checkBaseCurrencyRatePresent,
+  checkBaseVsOrderAmountConsistency,
+  checkCreditAppLifecycleConsistency,
   checkOrderCreditApplicationAmountMatchesLine,
   checkOrderCreditApplicationLink,
   checkOrderCreditApplicationNotInDiscounts,
   checkOrderCreditApplicationNotInPayments,
+  checkPaymentTargetVsOrderTotals,
   checkOrderPaymentAmountMatchesLine,
   checkOrderPaymentLink,
   checkOutboxStuck,
@@ -284,6 +292,24 @@ describe('order-checks', () => {
     expect(result[0].message).toContain('does not exist');
   });
 
+  it('PAYMENT_TARGET_VS_ORDER_TOTALS — flags ORDER_PAYMENT voucher line without an order payment row', async () => {
+    mockTrxLinesFindMany.mockResolvedValueOnce([
+      { id: 'L1', line_role: 'ORDER_PAYMENT', target_type: 'ORDER', target_id: 'o1' },
+    ]);
+    mockOrderPaymentsFindMany.mockResolvedValueOnce([]);
+    mockOrderPaymentsFindMany.mockResolvedValueOnce([]);
+    mockOrderFindMany.mockResolvedValueOnce([
+      { id: 'o1', order_no: 'ORD-001', total_paid_amount: new Decimal('0') },
+    ]);
+
+    const result = await checkPaymentTargetVsOrderTotals(TENANT, WINDOW);
+    expect(result[0]).toMatchObject({
+      checkName: 'PAYMENT_TARGET_VS_ORDER_TOTALS',
+      affectedEntityType: 'voucher_trx_line',
+      affectedEntityId: 'L1',
+    });
+  });
+
   it('ORDER_CREDIT_APPLICATION_LINK_EXISTS — empty returns []', async () => {
     mockCreditAppsFindMany.mockResolvedValue([]);
     expect(await checkOrderCreditApplicationLink(TENANT, WINDOW)).toEqual([]);
@@ -315,6 +341,92 @@ describe('order-checks', () => {
     ]);
     const result = await checkOrderCreditApplicationNotInDiscounts(TENANT, WINDOW);
     expect(result[0].checkName).toBe('ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS');
+  });
+
+  it('CREDIT_APP_LIFECYCLE_CONSISTENCY — flags failed bucket drift against the order header', async () => {
+    mockTrxLinesFindMany.mockResolvedValueOnce([]);
+    mockCreditAppsFindMany.mockResolvedValueOnce([
+      {
+        id: 'a-window',
+        order_id: 'o1',
+        applied_amount: new Decimal('10'),
+        application_status: 'APPLIED',
+        fin_voucher_trx_line_id: 'L1',
+      },
+    ]);
+    mockTrxLinesFindMany.mockResolvedValueOnce([
+      { id: 'L1', line_role: 'ORDER_CREDIT_APPLICATION', target_type: 'ORDER', target_id: 'o1' },
+    ]);
+    mockCreditAppsFindMany.mockResolvedValueOnce([
+      { id: 'a1', order_id: 'o1', applied_amount: new Decimal('10'), application_status: 'APPLIED', fin_voucher_trx_line_id: 'L1' },
+      { id: 'a2', order_id: 'o1', applied_amount: new Decimal('4'), application_status: 'PENDING', fin_voucher_trx_line_id: 'L2' },
+      { id: 'a3', order_id: 'o1', applied_amount: new Decimal('3'), application_status: 'FAILED', fin_voucher_trx_line_id: 'L3' },
+    ]);
+    mockOrderFindMany.mockResolvedValueOnce([
+      {
+        id: 'o1',
+        order_no: 'ORD-001',
+        total_credit_applied_amount: new Decimal('10'),
+        pending_credit_application_amount: new Decimal('4'),
+        failed_credit_application_amount: new Decimal('1'),
+      },
+    ]);
+    mockTrxLinesFindMany.mockResolvedValueOnce([
+      { id: 'L1', line_role: 'ORDER_CREDIT_APPLICATION', target_type: 'ORDER', target_id: 'o1' },
+      { id: 'L2', line_role: 'ORDER_CREDIT_APPLICATION', target_type: 'ORDER', target_id: 'o1' },
+      { id: 'L3', line_role: 'ORDER_CREDIT_APPLICATION', target_type: 'ORDER', target_id: 'o1' },
+    ]);
+
+    const result = await checkCreditAppLifecycleConsistency(TENANT, WINDOW);
+    expect(result.find((row) => row.checkName === 'CREDIT_APP_LIFECYCLE_CONSISTENCY')).toMatchObject({
+      expectedValue: 1,
+      actualValue: 3,
+      affectedEntityType: 'order',
+      affectedEntityId: 'o1',
+    });
+  });
+
+  it('BASE_CURRENCY_RATE_PRESENT — flags zero exchange rate', async () => {
+    mockOrderFindMany.mockResolvedValueOnce([
+      { id: 'o1', order_no: 'ORD-001', currency_ex_rate: new Decimal('0') },
+    ]);
+
+    const result = await checkBaseCurrencyRatePresent(TENANT, WINDOW);
+    expect(result[0]).toMatchObject({
+      checkName: 'BASE_CURRENCY_RATE_PRESENT',
+      severity: 'BLOCKER',
+      affectedEntityId: 'o1',
+    });
+  });
+
+  it('BASE_VS_ORDER_AMOUNT_CONSISTENCY — flags base amount drift', async () => {
+    mockOrderFindMany.mockResolvedValueOnce([
+      {
+        id: 'o1',
+        order_no: 'ORD-001',
+        currency_ex_rate: new Decimal('3.6725'),
+        total_amount: new Decimal('100'),
+        total_tax_amount: new Decimal('5'),
+        total_paid_amount: new Decimal('25'),
+        total_credit_applied_amount: new Decimal('10'),
+        outstanding_amount: new Decimal('65'),
+        ar_receivable_amount: new Decimal('65'),
+        base_cur_total_amount: new Decimal('360'),
+        base_cur_tax_amount: new Decimal('18.3625'),
+        base_cur_paid_amount: new Decimal('91.8125'),
+        base_cur_credit_applied_amount: new Decimal('36.725'),
+        base_cur_outstanding_amount: new Decimal('238.7125'),
+        base_cur_ar_receivable_amount: new Decimal('238.7125'),
+      },
+    ]);
+
+    const result = await checkBaseVsOrderAmountConsistency(TENANT, WINDOW);
+    expect(result[0]).toMatchObject({
+      checkName: 'BASE_VS_ORDER_AMOUNT_CONSISTENCY',
+      expectedValue: 367.25,
+      actualValue: 360,
+      affectedEntityId: 'o1',
+    });
   });
 });
 

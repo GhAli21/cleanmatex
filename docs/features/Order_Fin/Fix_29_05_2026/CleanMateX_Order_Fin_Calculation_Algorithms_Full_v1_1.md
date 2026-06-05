@@ -223,14 +223,14 @@ tax_document_type varchar(50) null
 ```sql
 currency_code varchar(3) not null,
 currency_ex_rate numeric(22,10) not null default 1,
-base_currency_code varchar(3) null,
+base_cur_currency_code varchar(3) null,
 
-base_total_amount numeric(19,4) not null default 0,
-base_tax_amount numeric(19,4) not null default 0,
-base_paid_amount numeric(19,4) not null default 0,
-base_credit_applied_amount numeric(19,4) not null default 0,
-base_outstanding_amount numeric(19,4) not null default 0,
-base_ar_receivable_amount numeric(19,4) not null default 0
+base_cur_total_amount numeric(19,4) not null default 0,
+base_cur_tax_amount numeric(19,4) not null default 0,
+base_cur_paid_amount numeric(19,4) not null default 0,
+base_cur_credit_applied_amount numeric(19,4) not null default 0,
+base_cur_outstanding_amount numeric(19,4) not null default 0,
+base_cur_ar_receivable_amount numeric(19,4) not null default 0
 ```
 
 ## 2.6 Recalculation/audit columns
@@ -1773,12 +1773,12 @@ update org_orders_mst set
   pay_on_collection_amount = collection.payOnCollectionAmount,
   ar_receivable_amount = collection.arReceivableAmount,
 
-  base_total_amount = currency.baseTotalAmount,
-  base_tax_amount = currency.baseTaxAmount,
-  base_paid_amount = currency.basePaidAmount,
-  base_credit_applied_amount = currency.baseCreditAppliedAmount,
-  base_outstanding_amount = currency.baseOutstandingAmount,
-  base_ar_receivable_amount = currency.baseArReceivableAmount,
+  base_cur_total_amount = currency.baseCurTotalAmount,
+  base_cur_tax_amount = currency.baseCurTaxAmount,
+  base_cur_paid_amount = currency.baseCurPaidAmount,
+  base_cur_credit_applied_amount = currency.baseCurCreditAppliedAmount,
+  base_cur_outstanding_amount = currency.baseCurOutstandingAmount,
+  base_cur_ar_receivable_amount = currency.baseCurArReceivableAmount,
 
   payment_status = resolvedPaymentStatus,
 

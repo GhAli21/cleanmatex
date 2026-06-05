@@ -1,5 +1,56 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-06-05 — Order Financial v1.1 Full Alignment (Phases 1–9)
+
+**Plan:** `docs/features/Order_Fin/Fix_29_05_2026/order-fin-v1_1-full-alignment-implementation-plan.md`  
+**Status tracker:** `docs/features/Order_Fin/Fix_29_05_2026/order-fin-v1_1-implementation-status.md`  
+**Predecessor:** Canonical Semantics v4 rollout (migrations 0333/0334/0335, 2026-06-04)
+
+### Shipped
+
+- **Phase 1 — P0 tax-document mismatch warning fix.** New pure helper `evaluateTaxDocumentTotalMismatch` (`lib/utils/order-financial-tax-document-mismatch.ts`). Warning now compares tax-document total to fiscal sale total, not to `ar_receivable_amount`; eliminates false warnings on partially-paid CREDIT_INVOICE orders. 28 tests green.
+
+- **Phase 2 — Tax-base decomposition columns.** Migration `0336` adds `non_taxable_amount`, `exempt_amount`, `zero_rated_amount`, `out_of_scope_amount` to `org_orders_mst` (NUMERIC 19,4, NOT NULL DEFAULT 0). Write service, summary service, view model, mapper, types, and EN/AR i18n wired. `TAX_BASE_BUCKETS_SUM` reconciliation check reserved.
+
+- **Phase 3 — ORDER-only payment validation + credit-app lifecycle.** Migration `0337`. `org_order_payments_dtl` remains ORDER real-payment fact table only; `application_status` 8-state lifecycle added to `org_order_credit_apps_dtl`; `pending_credit_application_amount` + `failed_credit_application_amount` added to `org_orders_mst`. New recon checks: `PAYMENT_TARGET_VS_ORDER_TOTALS`, `CREDIT_APP_LIFECYCLE_CONSISTENCY`.
+
+- **Phase 4 — Base-currency snapshot.** Migration `0338`. `base_cur_currency_code TEXT NULL` + six `base_cur_*` NUMERIC columns on `org_orders_mst`; backfill from stored `currency_ex_rate`. ADR-039 → Implemented. New recon checks: `BASE_CURRENCY_RATE_PRESENT`, `BASE_VS_ORDER_AMOUNT_CONSISTENCY`.
+
+- **Phase 5 — Tax-inclusive pricing (ADR-017).** Migration `0339`. `pricing-mode-resolver.service.ts` created; `extractTaxFromInclusive` exported; TAX_INCLUSIVE branch in `resolveCanonicalTotalAmount`; `taxPricingModeAtCalculation` audit field in snapshot v5; feature flag `FF_TAX_INCLUSIVE_PRICING`; recon check `PRICING_MODE_CONSISTENCY`. ADR-017 → Implemented.
+
+- **Phase 6 — Refund source-lineage + reopens-due (ADR-030).** Migration `0340`. `refund_source_type` (7-value CHECK) + `reopens_due_amount` on `org_order_refunds_dtl`; `classifyRefunds` updated. New recon checks: `REFUND_SOURCE_LINEAGE_CLASSIFICATION` (WARNING), `REFUND_REOPENS_DUE_BOUND` (BLOCKER). ADR-030 → Implemented.
+
+- **Phase 7 — Tax-document full lifecycle.** Migration `0341`. 4 new tables: `org_tax_documents_mst` (DB-immutability trigger), `org_tax_doc_lines_dtl`, `org_tax_doc_seq_counters` (row-locked sequence allocator), `org_tax_doc_triggers_cfg`. New services: sequence, decision, write. New recon checks: `TAX_DOC_SEQUENCE_GAPS`, `TAX_DOC_IMMUTABILITY`, `TAX_DOC_VS_ORDER_TOTALS`.
+
+- **Phase 8 — UI consolidation.** No migration. All Phase 2–7 fields surfaced in Order Financial panels. New extracted components: `order-tax-base-buckets.tsx`, `tax-document-lifecycle-timeline.tsx`. 11 new Storybook variants. EN + AR i18n parity green.
+
+- **Phase 9 — Legacy reader sanity grep (CI gate).** `scripts/check-legacy-columns.js` + `npm run check:legacy`. Balanced-brace extractor scopes detection to `org_orders_mst` Prisma call blocks only. Exit 0 on clean codebase.
+
+### Migrations applied
+
+| Seq | File | Content |
+|---|---|---|
+| 0336 | `0336_order_fin_tax_base_decomposition.sql` | 4 tax-base bucket columns |
+| 0337 | `0337_payment_target_and_credit_app_lifecycle.sql` | Credit-app lifecycle + header buckets |
+| 0338 | `0338_order_fin_base_currency_snapshot.sql` | 7 base-currency columns |
+| 0339 | `0339_tax_pricing_mode_config.sql` | Tax pricing mode config |
+| 0340 | `0340_refund_source_lineage_and_reopen_due.sql` | Refund source-type + reopens-due |
+| 0341 | `0341_tax_documents_master_and_lines.sql` | 4 tax-document tables + triggers |
+
+### ADR status updates
+
+| ADR | Now |
+|---|---|
+| ADR-017 Tax-Inclusive Pricing | Implemented (Phase 5, 2026-06-05) |
+| ADR-030 Refund Source Lineage | Implemented (Phase 6, 2026-06-05) |
+| ADR-039 Multi-Currency Snapshots | Implemented (Phase 4, 2026-06-05) |
+
+### Verification
+
+- `npm run build` — green; `npm run check:i18n` — green; `npm run check:legacy` — exit 0
+
+---
+
 ## 2026-05-30 — BVM Wiring Phase 6: Settlement Hardening (PRD §22.3 + §D9 — verify-payment, modal hardening, D9 UI, per-leg status)
 
 **Implementation log:** `docs/features/Order_Fin/bvm_wiring_phase6_implementation.md`

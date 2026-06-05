@@ -13,6 +13,11 @@ export const orderCreditApplicationWiringHandler: WiringHandler = {
     if (!line.order_id) {
       throw new Error(`ORDER_CREDIT_APPLICATION line ${line.id} (line_no ${line.line_no}) is missing order_id`);
     }
+    if (line.target_type !== 'ORDER' || line.target_id !== line.order_id) {
+      throw new Error(
+        `ORDER_CREDIT_APPLICATION line ${line.id} (line_no ${line.line_no}) must target ORDER/${line.order_id}`,
+      );
+    }
     if (!line.credit_application_type) {
       throw new Error(`ORDER_CREDIT_APPLICATION line ${line.id} (line_no ${line.line_no}) is missing credit_application_type`);
     }
@@ -40,6 +45,7 @@ export const orderCreditApplicationWiringHandler: WiringHandler = {
         tenant_org_id:           tenantOrgId,
         order_id:                line.order_id!,
         credit_type:             line.credit_application_type!,
+        application_status:      'APPLIED',
         applied_amount:          line.amount,
         currency_code:           line.currency_code ?? 'SAR',
         applied_by:              userId,

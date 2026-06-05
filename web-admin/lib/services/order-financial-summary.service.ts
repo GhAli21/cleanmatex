@@ -20,6 +20,8 @@ export interface OrderFinancialSnapshot {
   orderId: string;
   orderNo: string | null;
   currencyCode: string | null;
+  currencyExRate: number;
+  baseCurCurrencyCode: string | null;
   paymentTypeCode: string | null;
   paymentStatus: string;
   subtotalAmount: number;
@@ -33,6 +35,16 @@ export interface OrderFinancialSnapshot {
   totalChargesAmount: number;
   totalDiscountAmount: number;
   taxableAmount: number;
+  /**
+   * Tax-base decomposition (v1.1 §8.11). The tax engine currently emits only
+   * `taxableAmount`; the four bucket fields below default to 0 until Phase 5
+   * wires bucket classification. Surfaced here so UI breakdowns and reports
+   * have a stable read contract once the engine starts populating them.
+   */
+  nonTaxableAmount: number;
+  exemptAmount: number;
+  zeroRatedAmount: number;
+  outOfScopeAmount: number;
   totalTaxAmount: number;
   totalAmount: number;
   totalPaidAmount: number;
@@ -40,6 +52,8 @@ export interface OrderFinancialSnapshot {
   authorizedPaymentAmount: number;
   failedPaymentAmount: number;
   totalCreditAppliedAmount: number;
+  pendingCreditApplicationAmount: number;
+  failedCreditApplicationAmount: number;
   refundedAmount: number;
   realPaymentRefundedAmount: number;
   storedValueRestoredAmount: number;
@@ -49,6 +63,12 @@ export interface OrderFinancialSnapshot {
   overpaidAmount: number;
   payOnCollectionAmount: number;
   arReceivableAmount: number;
+  baseCurTotalAmount: number;
+  baseCurTaxAmount: number;
+  baseCurPaidAmount: number;
+  baseCurCreditAppliedAmount: number;
+  baseCurOutstandingAmount: number;
+  baseCurArReceivableAmount: number;
   arInvoiceId: string | null;
   arInvoiceNo: string | null;
   arInvoiceStatus: string | null;
@@ -102,6 +122,7 @@ export interface OrderPaymentRow {
 export interface OrderCreditApplicationRow {
   id: string;
   credit_type: string;
+  application_status: string | null;
   credit_source_id: string | null;
   applied_amount: number;
   currency_code: string;
@@ -120,7 +141,31 @@ export interface OrderRefundRow {
   reason_code: string | null;
   currency_code: string | null;
   original_payment_id: string | null;
+  /** Phase 6+ canonical classification of the refund source (ADR-030). */
+  refund_source_type: string | null;
+  /** Amount that will reopen the order balance when this refund is processed (Phase 6+). */
+  reopens_due_amount: number;
   metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+/** A single tax document record from org_tax_documents_mst for display in the UI. */
+export interface TaxDocumentSummaryRow {
+  id: string;
+  document_type: string;
+  trigger_event: string;
+  status: string;
+  fiscal_year: number;
+  sequence_number: number;
+  document_no: string | null;
+  total_amount: number;
+  tax_amount: number;
+  currency_code: string | null;
+  supersedes_id: string | null;
+  issued_at: string | null;
+  issued_by: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
   created_at: string;
 }
 
@@ -156,6 +201,7 @@ export interface OrderFinancialTimelineRow {
 
 export interface OrderFinancialSummary {
   snapshot: OrderFinancialSnapshot;
+  taxDocuments: TaxDocumentSummaryRow[];
   charges: OrderChargeRow[];
   discounts: OrderDiscountRow[];
   taxes: OrderTaxRow[];
@@ -229,6 +275,7 @@ export async function getOrderFinancialSummary(
     creditApplications,
     refunds,
     discountLines,
+    taxDocumentRows,
   ] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_orders_mst.findFirstOrThrow({
@@ -237,6 +284,14 @@ export async function getOrderFinancialSummary(
           id: true,
           order_no: true,
           currency_code: true,
+          currency_ex_rate: true,
+          base_cur_currency_code: true,
+          base_cur_total_amount: true,
+          base_cur_tax_amount: true,
+          base_cur_paid_amount: true,
+          base_cur_credit_applied_amount: true,
+          base_cur_outstanding_amount: true,
+          base_cur_ar_receivable_amount: true,
           payment_type_code: true,
           payment_status: true,
           subtotal_amount: true,
@@ -251,8 +306,14 @@ export async function getOrderFinancialSummary(
           total_charges_amount: true,
           total_discount_amount: true,
           taxable_amount: true,
+          non_taxable_amount: true,
+          exempt_amount: true,
+          zero_rated_amount: true,
+          out_of_scope_amount: true,
           total_tax_amount: true,
           total_credit_applied_amount: true,
+          pending_credit_application_amount: true,
+          failed_credit_application_amount: true,
           total_paid_amount: true,
           pending_payment_amount: true,
           authorized_payment_amount: true,
@@ -304,7 +365,7 @@ export async function getOrderFinancialSummary(
     ),
     withTenantContext(tenantId, () =>
       prisma.org_order_credit_apps_dtl.findMany({
-        where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
+        where: { tenant_org_id: tenantId, order_id: orderId },
         orderBy: { applied_at: 'asc' },
       }),
     ),
@@ -315,6 +376,12 @@ export async function getOrderFinancialSummary(
       }),
     ),
     getDiscountLinesForOrder(tenantId, orderId),
+    withTenantContext(tenantId, () =>
+      prisma.org_tax_documents_mst.findMany({
+        where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
+        orderBy: { created_at: 'desc' },
+      }),
+    ),
   ]);
 
   try {
@@ -359,6 +426,10 @@ export async function getOrderFinancialSummary(
       totalChargesAmount: toNumber(order.total_charges_amount),
       totalDiscountAmount: toNumber(order.total_discount_amount),
       taxableAmount: toNumber(order.taxable_amount),
+      nonTaxableAmount: toNumber(order.non_taxable_amount),
+      exemptAmount: toNumber(order.exempt_amount),
+      zeroRatedAmount: toNumber(order.zero_rated_amount),
+      outOfScopeAmount: toNumber(order.out_of_scope_amount),
       totalTaxAmount: toNumber(order.total_tax_amount),
       totalAmount: toNumber(order.total_amount),
       totalPaidAmount: toNumber(order.total_paid_amount),
@@ -366,6 +437,8 @@ export async function getOrderFinancialSummary(
       authorizedPaymentAmount: toNumber(order.authorized_payment_amount),
       failedPaymentAmount: toNumber(order.failed_payment_amount),
       totalCreditAppliedAmount: toNumber(order.total_credit_applied_amount),
+      pendingCreditApplicationAmount: toNumber(order.pending_credit_application_amount),
+      failedCreditApplicationAmount: toNumber(order.failed_credit_application_amount),
       refundedAmount: toNumber(order.refunded_amount),
       realPaymentRefundedAmount: toNumber(order.real_payment_refunded_amount),
       storedValueRestoredAmount: toNumber(order.stored_value_restored_amount),
@@ -375,6 +448,14 @@ export async function getOrderFinancialSummary(
       overpaidAmount: toNumber(order.overpaid_amount),
       payOnCollectionAmount: toNumber(order.pay_on_collection_amount),
       arReceivableAmount: toNumber(order.ar_receivable_amount),
+      currencyExRate: toNumber(order.currency_ex_rate),
+      baseCurCurrencyCode: order.base_cur_currency_code ?? null,
+      baseCurTotalAmount: toNumber(order.base_cur_total_amount),
+      baseCurTaxAmount: toNumber(order.base_cur_tax_amount),
+      baseCurPaidAmount: toNumber(order.base_cur_paid_amount),
+      baseCurCreditAppliedAmount: toNumber(order.base_cur_credit_applied_amount),
+      baseCurOutstandingAmount: toNumber(order.base_cur_outstanding_amount),
+      baseCurArReceivableAmount: toNumber(order.base_cur_ar_receivable_amount),
     },
     charges: charges.map((row) => ({
       charge_type: row.charge_type,
@@ -398,6 +479,7 @@ export async function getOrderFinancialSummary(
     })),
     creditApplications: creditApplications.map((row) => ({
       applied_amount: toNumber(row.applied_amount),
+      application_status: row.application_status ?? null,
     })),
     refunds: refunds.map((row) => ({
       refund_amount: toNumber(row.refund_amount),
@@ -433,6 +515,8 @@ export async function getOrderFinancialSummary(
     orderId: order.id,
     orderNo: order.order_no ?? null,
     currencyCode: order.currency_code ?? null,
+    currencyExRate: toNumber(order.currency_ex_rate),
+    baseCurCurrencyCode: effectiveSnapshot.baseCurCurrencyCode,
     paymentTypeCode: order.payment_type_code ?? null,
     paymentStatus: normalizedPaymentStatus,
     subtotalAmount: effectiveSnapshot.subtotalAmount,
@@ -446,6 +530,10 @@ export async function getOrderFinancialSummary(
     totalChargesAmount: effectiveSnapshot.totalChargesAmount,
     totalDiscountAmount: effectiveSnapshot.totalDiscountAmount,
     taxableAmount: effectiveSnapshot.taxableAmount,
+    nonTaxableAmount: effectiveSnapshot.nonTaxableAmount,
+    exemptAmount: effectiveSnapshot.exemptAmount,
+    zeroRatedAmount: effectiveSnapshot.zeroRatedAmount,
+    outOfScopeAmount: effectiveSnapshot.outOfScopeAmount,
     totalTaxAmount: effectiveSnapshot.totalTaxAmount,
     totalAmount,
     totalPaidAmount,
@@ -453,6 +541,8 @@ export async function getOrderFinancialSummary(
     authorizedPaymentAmount: effectiveSnapshot.authorizedPaymentAmount,
     failedPaymentAmount: effectiveSnapshot.failedPaymentAmount,
     totalCreditAppliedAmount,
+    pendingCreditApplicationAmount: effectiveSnapshot.pendingCreditApplicationAmount,
+    failedCreditApplicationAmount: effectiveSnapshot.failedCreditApplicationAmount,
     refundedAmount,
     realPaymentRefundedAmount,
     storedValueRestoredAmount: effectiveSnapshot.storedValueRestoredAmount,
@@ -462,6 +552,12 @@ export async function getOrderFinancialSummary(
     overpaidAmount: effectiveSnapshot.overpaidAmount || Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount),
     payOnCollectionAmount,
     arReceivableAmount: effectiveSnapshot.arReceivableAmount,
+    baseCurTotalAmount: effectiveSnapshot.baseCurTotalAmount,
+    baseCurTaxAmount: effectiveSnapshot.baseCurTaxAmount,
+    baseCurPaidAmount: effectiveSnapshot.baseCurPaidAmount,
+    baseCurCreditAppliedAmount: effectiveSnapshot.baseCurCreditAppliedAmount,
+    baseCurOutstandingAmount: effectiveSnapshot.baseCurOutstandingAmount,
+    baseCurArReceivableAmount: effectiveSnapshot.baseCurArReceivableAmount,
     arInvoiceId: order.ar_invoice_id ?? null,
     arInvoiceNo: order.ar_invoice_no ?? null,
     arInvoiceStatus: order.ar_invoice_status ?? null,
@@ -524,7 +620,7 @@ export async function getOrderFinancialSummary(
     ...creditApplications.map((row) => ({
       id: row.id,
       eventType: 'CREDIT_APPLICATION',
-      status: row.credit_type,
+      status: row.application_status ?? row.credit_type,
       amount: toNumber(row.applied_amount),
       happenedAt: toIso(row.applied_at),
     })),
@@ -587,6 +683,7 @@ export async function getOrderFinancialSummary(
     creditApplications: creditApplications.map((row) => ({
       id: row.id,
       credit_type: row.credit_type,
+      application_status: row.application_status ?? null,
       credit_source_id: row.credit_source_id ?? null,
       applied_amount: toNumber(row.applied_amount),
       currency_code: row.currency_code,
@@ -604,6 +701,8 @@ export async function getOrderFinancialSummary(
       reason_code: row.reason_code ?? null,
       currency_code: row.currency_code ?? null,
       original_payment_id: row.original_payment_id ?? null,
+      refund_source_type: (row as Record<string, unknown>).refund_source_type as string | null ?? null,
+      reopens_due_amount: toNumber((row as Record<string, unknown>).reopens_due_amount as number | null),
       metadata: (row.metadata ?? {}) as Record<string, unknown>,
       created_at: toIso(row.created_at),
     })),
@@ -615,5 +714,23 @@ export async function getOrderFinancialSummary(
     })),
     voucherReferences,
     auditTimeline,
+    taxDocuments: taxDocumentRows.map((row) => ({
+      id: row.id,
+      document_type: row.document_type,
+      trigger_event: row.trigger_event,
+      status: row.status,
+      fiscal_year: row.fiscal_year,
+      sequence_number: row.sequence_number,
+      document_no: row.document_no ?? null,
+      total_amount: toNumber(row.total_amount),
+      tax_amount: toNumber(row.tax_amount),
+      currency_code: row.currency_code ?? null,
+      supersedes_id: row.supersedes_id ?? null,
+      issued_at: row.issued_at ? toIso(row.issued_at) : null,
+      issued_by: row.issued_by ?? null,
+      cancelled_at: row.cancelled_at ? toIso(row.cancelled_at) : null,
+      cancellation_reason: row.cancellation_reason ?? null,
+      created_at: toIso(row.created_at),
+    })),
   };
 }

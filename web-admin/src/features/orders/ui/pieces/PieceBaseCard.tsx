@@ -37,10 +37,10 @@ export function PieceBaseCard({
   const codeDisplay = piece.piece_code ? formatPieceCodeDisplay(piece.piece_code) : null;
   const isRejected = piece.is_rejected || false;
 
-  // Render a basic icon based on piece type/name or fallback to a standard garment icon
-  // In a real app, this might map `piece.garmentType` to specific lucide icons
-  const PieceIcon = piece.name?.toLowerCase().includes('suit') || piece.name?.toLowerCase().includes('tailor') 
-    ? Scissors 
+  // Service category is the only stable garment hint on the typed piece model.
+  const serviceCategory = piece.service_category_code?.toLowerCase() ?? '';
+  const PieceIcon = serviceCategory.includes('tailor') || serviceCategory.includes('alter')
+    ? Scissors
     : Shirt;
 
   return (

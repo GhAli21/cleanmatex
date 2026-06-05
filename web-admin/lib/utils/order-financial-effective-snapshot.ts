@@ -1,4 +1,5 @@
 import {
+  CREDIT_APPLICATION_STATUSES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   REFUND_METHODS,
   SETTLEMENT_TYPE_CODES,
@@ -29,6 +30,15 @@ export interface EffectiveOrderFinancialSnapshotInput {
     totalChargesAmount: number;
     totalDiscountAmount: number;
     taxableAmount: number;
+    /**
+     * Tax-base decomposition buckets (v1.1 §8.11). The tax engine emits only
+     * `taxableAmount` today; the other four default to 0 until Phase 5 wires
+     * bucket classification.
+     */
+    nonTaxableAmount: number;
+    exemptAmount: number;
+    zeroRatedAmount: number;
+    outOfScopeAmount: number;
     totalTaxAmount: number;
     totalAmount: number;
     totalPaidAmount: number;
@@ -36,6 +46,8 @@ export interface EffectiveOrderFinancialSnapshotInput {
     authorizedPaymentAmount: number;
     failedPaymentAmount: number;
     totalCreditAppliedAmount: number;
+    pendingCreditApplicationAmount: number;
+    failedCreditApplicationAmount: number;
     refundedAmount: number;
     realPaymentRefundedAmount: number;
     storedValueRestoredAmount: number;
@@ -45,6 +57,14 @@ export interface EffectiveOrderFinancialSnapshotInput {
     overpaidAmount: number;
     payOnCollectionAmount: number;
     arReceivableAmount: number;
+    currencyExRate: number;
+    baseCurCurrencyCode: string | null;
+    baseCurTotalAmount: number;
+    baseCurTaxAmount: number;
+    baseCurPaidAmount: number;
+    baseCurCreditAppliedAmount: number;
+    baseCurOutstandingAmount: number;
+    baseCurArReceivableAmount: number;
   };
   charges: Array<{
     charge_type: string;
@@ -68,6 +88,7 @@ export interface EffectiveOrderFinancialSnapshotInput {
   }>;
   creditApplications: Array<{
     applied_amount: number;
+    application_status?: string | null;
   }>;
   refunds: Array<{
     refund_amount: number;
@@ -234,10 +255,25 @@ export function buildEffectiveOrderFinancialSnapshot(
   const pendingPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
   const authorizedPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED);
   const failedPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.FAILED);
-  const totalCreditAppliedFromRows = input.creditApplications.reduce(
-    (sum, row) => sum + Number(row.applied_amount ?? 0),
-    0,
-  );
+  const sumCreditApplicationAmount = (allowedStatuses: readonly string[]): number => {
+    const allowed = new Set(allowedStatuses);
+    return input.creditApplications.reduce((sum, row) => {
+      const status = normalizeUpper(row.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
+      if (!allowed.has(status)) return sum;
+      return sum + Number(row.applied_amount ?? 0);
+    }, 0);
+  };
+  const totalCreditAppliedFromRows = sumCreditApplicationAmount([CREDIT_APPLICATION_STATUSES.APPLIED]);
+  const pendingCreditApplicationFromRows = sumCreditApplicationAmount([
+    CREDIT_APPLICATION_STATUSES.PENDING,
+    CREDIT_APPLICATION_STATUSES.RESERVED,
+    CREDIT_APPLICATION_STATUSES.PROCESSING,
+  ]);
+  const failedCreditApplicationFromRows = sumCreditApplicationAmount([
+    CREDIT_APPLICATION_STATUSES.FAILED,
+    CREDIT_APPLICATION_STATUSES.CANCELLED,
+    CREDIT_APPLICATION_STATUSES.EXPIRED,
+  ]);
   const refundAmounts = classifyRefunds();
 
   const totalPaidAmount = preferStored(input.snapshot.totalPaidAmount, totalPaidFromRows);
@@ -247,6 +283,14 @@ export function buildEffectiveOrderFinancialSnapshot(
   const totalCreditAppliedAmount = preferStored(
     input.snapshot.totalCreditAppliedAmount,
     totalCreditAppliedFromRows,
+  );
+  const pendingCreditApplicationAmount = preferStored(
+    input.snapshot.pendingCreditApplicationAmount,
+    pendingCreditApplicationFromRows,
+  );
+  const failedCreditApplicationAmount = preferStored(
+    input.snapshot.failedCreditApplicationAmount,
+    failedCreditApplicationFromRows,
   );
   const refundedAmount = preferStored(input.snapshot.refundedAmount, refundAmounts.refundedAmount);
   const realPaymentRefundedAmount = preferStored(
@@ -281,6 +325,9 @@ export function buildEffectiveOrderFinancialSnapshot(
     input.snapshot.arReceivableAmount,
     isArReceivablePaymentTypeCode(input.paymentTypeCode) ? outstandingAmount : 0,
   );
+  const baseCurRate = Number.isFinite(input.snapshot.currencyExRate) && input.snapshot.currencyExRate > 0
+    ? input.snapshot.currencyExRate
+    : 1;
 
   return {
     subtotalAmount,
@@ -294,6 +341,12 @@ export function buildEffectiveOrderFinancialSnapshot(
     totalChargesAmount,
     totalDiscountAmount,
     taxableAmount: round4(taxableAmount || Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount)),
+    // Tax-base buckets pass through the stored snapshot 1:1. Phase 5 will
+    // wire engine-emitted values; until then they stay at 0 by default.
+    nonTaxableAmount: round4(input.snapshot.nonTaxableAmount ?? 0),
+    exemptAmount: round4(input.snapshot.exemptAmount ?? 0),
+    zeroRatedAmount: round4(input.snapshot.zeroRatedAmount ?? 0),
+    outOfScopeAmount: round4(input.snapshot.outOfScopeAmount ?? 0),
     totalTaxAmount,
     totalAmount,
     totalPaidAmount,
@@ -301,6 +354,8 @@ export function buildEffectiveOrderFinancialSnapshot(
     authorizedPaymentAmount,
     failedPaymentAmount,
     totalCreditAppliedAmount,
+    pendingCreditApplicationAmount,
+    failedCreditApplicationAmount,
     refundedAmount,
     realPaymentRefundedAmount,
     storedValueRestoredAmount,
@@ -310,6 +365,17 @@ export function buildEffectiveOrderFinancialSnapshot(
     overpaidAmount,
     payOnCollectionAmount,
     arReceivableAmount,
+    currencyExRate: baseCurRate,
+    baseCurCurrencyCode: input.snapshot.baseCurCurrencyCode ?? null,
+    baseCurTotalAmount: preferStored(input.snapshot.baseCurTotalAmount, totalAmount * baseCurRate),
+    baseCurTaxAmount: preferStored(input.snapshot.baseCurTaxAmount, totalTaxAmount * baseCurRate),
+    baseCurPaidAmount: preferStored(input.snapshot.baseCurPaidAmount, totalPaidAmount * baseCurRate),
+    baseCurCreditAppliedAmount: preferStored(
+      input.snapshot.baseCurCreditAppliedAmount,
+      totalCreditAppliedAmount * baseCurRate,
+    ),
+    baseCurOutstandingAmount: preferStored(input.snapshot.baseCurOutstandingAmount, outstandingAmount * baseCurRate),
+    baseCurArReceivableAmount: preferStored(input.snapshot.baseCurArReceivableAmount, arReceivableAmount * baseCurRate),
     usedReadFallback,
   };
 }

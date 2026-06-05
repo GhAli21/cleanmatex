@@ -61,6 +61,8 @@ const LINE_SELECT = {
   payment_method_code:     true,
   amount:                  true,
   currency_code:           true,
+  target_type:             true,
+  target_id:               true,
   order_id:                true,
   customer_id:             true,
   cash_drawer_session_id:  true,

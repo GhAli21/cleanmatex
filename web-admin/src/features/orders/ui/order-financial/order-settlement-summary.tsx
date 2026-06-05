@@ -98,6 +98,24 @@ export function OrderSettlementSummary({ viewModel }: OrderSettlementSummaryProp
               variant="credit"
             />
           </div>
+          {amounts.pendingCreditApplicationAmount > 0 && (
+            <div className={`flex justify-between text-sm text-amber-600 dark:text-amber-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <span>{t('creditApp.pendingLabel')}</span>
+              <OrderFinancialMoneyValue
+                amount={amounts.pendingCreditApplicationAmount}
+                currencyCode={currencyCode}
+              />
+            </div>
+          )}
+          {amounts.failedCreditApplicationAmount > 0 && (
+            <div className={`flex justify-between text-sm text-destructive ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <span>{t('creditApp.failedLabel')}</span>
+              <OrderFinancialMoneyValue
+                amount={amounts.failedCreditApplicationAmount}
+                currencyCode={currencyCode}
+              />
+            </div>
+          )}
           <div className={`flex justify-between text-sm font-semibold ${isRTL ? 'flex-row-reverse' : ''}`}>
             <span>{t('outstandingBalance')}</span>
             <OrderFinancialMoneyValue

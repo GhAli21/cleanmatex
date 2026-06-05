@@ -38,6 +38,11 @@ export const orderPaymentWiringHandler: WiringHandler = {
     if (!line.order_id) {
       throw new Error(`ORDER_PAYMENT line ${line.id} (line_no ${line.line_no}) is missing order_id`);
     }
+    if (line.target_type !== 'ORDER' || line.target_id !== line.order_id) {
+      throw new Error(
+        `ORDER_PAYMENT line ${line.id} (line_no ${line.line_no}) must target ORDER/${line.order_id}`,
+      );
+    }
     if (!line.payment_method_code) {
       throw new Error(`ORDER_PAYMENT line ${line.id} (line_no ${line.line_no}) is missing payment_method_code`);
     }

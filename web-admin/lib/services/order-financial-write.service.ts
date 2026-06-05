@@ -5,21 +5,28 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
+import { hqApiClient } from '@/lib/api/hq-api-client';
 import { prisma } from '@/lib/db/prisma';
 import {
+  CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
   ORDER_FINANCIAL_SNAPSHOT_STATUS,
   ORDER_FINANCIAL_WARNING_CODES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   ORDER_PAYMENT_STATUS,
   REFUND_METHODS,
+  REFUND_SOURCE_TYPES,
   SETTLEMENT_TYPE_CODES,
+  TAX_PRICING_MODES,
   isArReceivablePaymentTypeCode,
 } from '@/lib/constants/order-financial';
 import type {
   OrderFinancialCalculationSnapshot,
   OrderFinancialWarningCode,
+  TaxPricingMode,
 } from '@/lib/types/order-financial';
+import { resolveTaxPricingMode } from '@/lib/services/pricing-mode-resolver.service';
+import { evaluateTaxDocumentTotalMismatch } from '@/lib/utils/order-financial-tax-document-mismatch';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -37,12 +44,24 @@ type PaymentFactRow = {
   change_returned_amount: Decimal | null;
 };
 
-type RefundFactRow = {
+export type RefundFactRow = {
   refund_amount: Decimal;
   refund_status: string | null;
   refund_method_code: string | null;
   original_payment_id: string | null;
+  refund_source_type: string | null;
+  reopens_due_amount: Decimal | null;
   metadata: Prisma.JsonValue;
+};
+
+type CreditApplicationFactRow = {
+  applied_amount: Decimal;
+  credit_type: string;
+  application_status: string | null;
+};
+
+type RecalculateOrderFinancialSnapshotOptions = {
+  baseCurCurrencyCode?: string | null;
 };
 
 function toNumber(value: Decimal | number | string | null | undefined): number {
@@ -50,8 +69,22 @@ function toNumber(value: Decimal | number | string | null | undefined): number {
   return Number(value);
 }
 
+function round4(value: number): number {
+  return Math.round((value + Number.EPSILON) * 10000) / 10000;
+}
+
+function projectBaseCurrencyAmount(amount: number, currencyExRate: number): number {
+  if (!Number.isFinite(currencyExRate) || currencyExRate <= 0) return 0;
+  return round4(amount * currencyExRate);
+}
+
 function normalizeUpper(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase();
+}
+
+function normalizeCurrencyCode(value: string | null | undefined): string | null {
+  const code = String(value ?? '').trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : null;
 }
 
 function toRecord(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
@@ -103,29 +136,71 @@ function hasAmbiguousHistoricalPaymentRow(rows: PaymentFactRow[]): boolean {
   });
 }
 
-function classifyRefunds(refunds: RefundFactRow[]): {
+function sumCreditApplicationStatusAmount(
+  rows: CreditApplicationFactRow[],
+  allowedStatuses: readonly string[],
+): number {
+  const allowed = new Set(allowedStatuses);
+
+  return rows.reduce((sum, row) => {
+    const status = normalizeUpper(row.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
+    if (!allowed.has(status)) return sum;
+    return sum + toNumber(row.applied_amount);
+  }, 0);
+}
+
+export function classifyRefunds(refunds: RefundFactRow[]): {
   refundedAmount: number;
   realPaymentRefundedAmount: number;
   storedValueRestoredAmount: number;
   customerCreditIssuedAmount: number;
   hasUnclassifiedRefundSource: boolean;
+  refundReopensDueAmount: number;
 } {
   let refundedAmount = 0;
   let realPaymentRefundedAmount = 0;
   let storedValueRestoredAmount = 0;
   let customerCreditIssuedAmount = 0;
   let hasUnclassifiedRefundSource = false;
+  let refundReopensDueAmount = 0;
 
   for (const refund of refunds) {
     if (normalizeUpper(refund.refund_status) !== 'PROCESSED') continue;
 
     const amount = toNumber(refund.refund_amount);
+    refundedAmount += amount;
+    refundReopensDueAmount += toNumber(refund.reopens_due_amount);
+
+    // Use the canonical refund_source_type column when present (Phase 6+).
+    // Fall back to the pre-Phase-6 heuristic for legacy rows that have NULL
+    // (should not occur after backfill, but kept as a safety net).
+    const sourceType = normalizeUpper(refund.refund_source_type);
+
+    if (sourceType) {
+      if (sourceType === REFUND_SOURCE_TYPES.REAL_PAYMENT_REFUND) {
+        realPaymentRefundedAmount += amount;
+      } else if (
+        sourceType === REFUND_SOURCE_TYPES.GIFT_CARD_RESTORE
+        || sourceType === REFUND_SOURCE_TYPES.WALLET_RESTORE
+        || sourceType === REFUND_SOURCE_TYPES.CUSTOMER_ADVANCE_RESTORE
+      ) {
+        storedValueRestoredAmount += amount;
+      } else if (
+        sourceType === REFUND_SOURCE_TYPES.CUSTOMER_CREDIT_ISSUE
+        || sourceType === REFUND_SOURCE_TYPES.CREDIT_NOTE_ISSUE
+      ) {
+        customerCreditIssuedAmount += amount;
+      } else if (sourceType === REFUND_SOURCE_TYPES.MANUAL_EXCEPTION) {
+        hasUnclassifiedRefundSource = true;
+      }
+      continue;
+    }
+
+    // Legacy heuristic fallback (pre-0340 rows — should not occur post-backfill).
     const method = normalizeUpper(refund.refund_method_code);
     const metadata = toRecord(refund.metadata);
     const refundDestinationType = String(metadata.refund_destination_type ?? '').trim().toUpperCase();
     const originalCreditType = String(metadata.original_credit_type ?? '').trim().toUpperCase();
-
-    refundedAmount += amount;
 
     if (
       method === REFUND_METHODS.CASH
@@ -162,7 +237,31 @@ function classifyRefunds(refunds: RefundFactRow[]): {
     storedValueRestoredAmount,
     customerCreditIssuedAmount,
     hasUnclassifiedRefundSource,
+    refundReopensDueAmount,
   };
+}
+
+/**
+ * Extract the embedded tax from an inclusive price using the effective tax rate.
+ *
+ * Why: TAX_INCLUSIVE orders bake tax into item prices. The stored
+ * `taxable_amount` and `tax_amount` in org_order_taxes_dtl represent the
+ * already-extracted values from the calculation engine. This helper derives
+ * the same extraction for validation / bucket purposes when those DB rows
+ * are not yet available (e.g. in unit tests or new-order scaffolding).
+ *
+ * Formula: taxAmount = inclusiveAmount − (inclusiveAmount / (1 + rate))
+ */
+export function extractTaxFromInclusive(
+  inclusiveAmount: number,
+  taxRate: number,
+): { taxableAmount: number; taxAmount: number } {
+  if (taxRate <= 0 || !Number.isFinite(taxRate)) {
+    return { taxableAmount: inclusiveAmount, taxAmount: 0 };
+  }
+  const taxableAmount = round4(inclusiveAmount / (1 + taxRate));
+  const taxAmount = round4(inclusiveAmount - taxableAmount);
+  return { taxableAmount, taxAmount };
 }
 
 function resolveCanonicalTotalAmount(input: {
@@ -172,6 +271,7 @@ function resolveCanonicalTotalAmount(input: {
   totalTaxAmount: number;
   roundingAdjustmentAmount: number;
   headerTotalAmount: number;
+  taxPricingMode: TaxPricingMode;
 }): { totalAmount: number; usedHeaderTotalFallback: boolean } {
   const {
     itemsBaseAmount,
@@ -180,6 +280,7 @@ function resolveCanonicalTotalAmount(input: {
     totalTaxAmount,
     roundingAdjustmentAmount,
     headerTotalAmount,
+    taxPricingMode,
   } = input;
 
   const hasDetailComponents =
@@ -189,6 +290,10 @@ function resolveCanonicalTotalAmount(input: {
     || totalTaxAmount > 0;
 
   if (hasDetailComponents) {
+    // TAX_INCLUSIVE: item prices already contain tax — tax must NOT be added again.
+    // TAX_EXCLUSIVE: tax is a separate addend on top of the net price.
+    const taxAddend = taxPricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE ? 0 : totalTaxAmount;
+
     return {
       totalAmount: Math.max(
         0,
@@ -197,7 +302,7 @@ function resolveCanonicalTotalAmount(input: {
             itemsBaseAmount
             + totalChargesAmount
             - totalDiscountAmount
-            + totalTaxAmount
+            + taxAddend
             + roundingAdjustmentAmount
           ).toFixed(4),
         ),
@@ -327,23 +432,25 @@ function buildFinancialCalculationSnapshot(input: {
   usedHeaderTotalFallback: boolean;
   hasAmbiguousHistoricalPaymentRow: boolean;
   hasUnclassifiedRefundSource: boolean;
+  taxPricingModeAtCalculation: TaxPricingMode;
   sourceTotals: Record<string, number | string | null>;
   derivedTotals: Record<string, number | string | null>;
   lineage: Record<string, string | null>;
 }): OrderFinancialCalculationSnapshot {
   return {
-    version: 4,
+    version: 5,
     warningCodes: input.warningCodes,
     usedLegacyTotalFallback: false,
     usedHeaderTotalFallback: input.usedHeaderTotalFallback,
     hasPaymentTargetUnclassified: input.hasAmbiguousHistoricalPaymentRow,
     hasRefundSourceUnclassified: input.hasUnclassifiedRefundSource,
+    taxPricingModeAtCalculation: input.taxPricingModeAtCalculation,
     sourceTotals: input.sourceTotals,
     derivedTotals: input.derivedTotals,
     lineage: input.lineage,
     notes: [
-      'subtotalAmount and itemsBaseAmount are intentionally equal in the current pricing mode because extras are already embedded in item line totals.',
-      'Header total fallback remains temporary until 0335 removes legacy mirrors and every order-header write path is fully canonicalized.',
+      'subtotalAmount and itemsBaseAmount are intentionally equal when extras are already embedded in item line totals.',
+      'taxPricingModeAtCalculation records the resolved branch/tenant mode at the time of this snapshot write.',
     ],
   };
 }
@@ -371,6 +478,7 @@ export async function recalculateOrderFinancialSnapshotTx(
   tx: PrismaTransactionClient,
   tenantId: string,
   orderId: string,
+  options: RecalculateOrderFinancialSnapshotOptions = {},
 ): Promise<{
   totalPaidAmount: number;
   totalCreditAppliedAmount: number;
@@ -381,21 +489,34 @@ export async function recalculateOrderFinancialSnapshotTx(
   paymentStatus: string;
   payOnCollectionAmount: number;
   arReceivableAmount: number;
+  baseCurCurrencyCode: string | null;
+  baseCurTotalAmount: number;
+  baseCurTaxAmount: number;
+  baseCurPaidAmount: number;
+  baseCurCreditAppliedAmount: number;
+  baseCurOutstandingAmount: number;
+  baseCurArReceivableAmount: number;
   financialSnapshotStatus: string;
 }> {
   const order = await tx.org_orders_mst.findFirstOrThrow({
     where: { tenant_org_id: tenantId, id: orderId },
     select: {
       id: true,
+      branch_id: true,
       total_discount_amount: true,
       total_tax_amount: true,
       outstanding_amount: true,
       payment_type_code: true,
       rounding_adjustment_amount: true,
       total_amount: true,
+      currency_code: true,
+      currency_ex_rate: true,
+      base_cur_currency_code: true,
       tax_document_id: true,
     },
   });
+
+  const taxPricingMode = await resolveTaxPricingMode(tx, tenantId, order.branch_id ?? null);
 
   const [
     itemAgg,
@@ -405,7 +526,6 @@ export async function recalculateOrderFinancialSnapshotTx(
     discountsAgg,
     taxesAgg,
     payments,
-    creditAgg,
     creditRows,
     discountRows,
     refunds,
@@ -451,25 +571,15 @@ export async function recalculateOrderFinancialSnapshotTx(
         change_returned_amount: true,
       },
     }),
-    tx.org_order_credit_apps_dtl.aggregate({
-      where: {
-        tenant_org_id: tenantId,
-        order_id: orderId,
-        is_active: true,
-        rec_status: 1,
-      },
-      _sum: { applied_amount: true },
-    }),
     tx.org_order_credit_apps_dtl.findMany({
       where: {
         tenant_org_id: tenantId,
         order_id: orderId,
-        is_active: true,
-        rec_status: 1,
       },
       select: {
         credit_type: true,
         applied_amount: true,
+        application_status: true,
       },
     }),
     tx.org_order_discounts_dtl.findMany({
@@ -487,6 +597,8 @@ export async function recalculateOrderFinancialSnapshotTx(
         refund_status: true,
         refund_method_code: true,
         original_payment_id: true,
+        refund_source_type: true,
+        reopens_due_amount: true,
         metadata: true,
       },
     }),
@@ -529,9 +641,46 @@ export async function recalculateOrderFinancialSnapshotTx(
   const totalTaxAmount = toNumber(taxesAgg._sum.tax_amount);
   const taxableAmount = toNumber(taxesAgg._sum.taxable_amount)
     || Math.max(0, subtotalAmount + totalChargesAmount - totalDiscountAmount);
-  const totalCreditAppliedAmount = toNumber(creditAgg._sum.applied_amount);
+  // Tax-base decomposition (v1.1 §8.11). The current tax engine emits only
+  // `taxable_amount`; classification into non-taxable / exempt / zero-rated /
+  // out-of-scope buckets lands in Phase 5 alongside TAX_INCLUSIVE pricing. The
+  // path is wired now so the future engine only needs to plug values in here;
+  // the read model, snapshot JSON, and UI breakdown already surface them.
+  const nonTaxableAmount = 0;
+  const exemptAmount = 0;
+  const zeroRatedAmount = 0;
+  const outOfScopeAmount = 0;
+  const totalCreditAppliedAmount = sumCreditApplicationStatusAmount(
+    creditRows,
+    [CREDIT_APPLICATION_STATUSES.APPLIED],
+  );
+  const pendingCreditApplicationAmount = sumCreditApplicationStatusAmount(
+    creditRows,
+    [
+      CREDIT_APPLICATION_STATUSES.PENDING,
+      CREDIT_APPLICATION_STATUSES.RESERVED,
+      CREDIT_APPLICATION_STATUSES.PROCESSING,
+    ],
+  );
+  const failedCreditApplicationAmount = sumCreditApplicationStatusAmount(
+    creditRows,
+    [
+      CREDIT_APPLICATION_STATUSES.FAILED,
+      CREDIT_APPLICATION_STATUSES.CANCELLED,
+      CREDIT_APPLICATION_STATUSES.EXPIRED,
+    ],
+  );
+  const creditReversedAmount = sumCreditApplicationStatusAmount(
+    creditRows,
+    [CREDIT_APPLICATION_STATUSES.REVERSED],
+  );
   const giftCardCreditAppliedAmount = creditRows
-    .filter((row) => normalizeUpper(row.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD)
+    .filter(
+      (row) =>
+        (normalizeUpper(row.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED)
+          === CREDIT_APPLICATION_STATUSES.APPLIED
+        && normalizeUpper(row.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD,
+    )
     .reduce((sum, row) => sum + toNumber(row.applied_amount), 0);
   const totalPaidAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED);
   const pendingPaymentAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
@@ -546,6 +695,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     storedValueRestoredAmount,
     customerCreditIssuedAmount,
     hasUnclassifiedRefundSource,
+    refundReopensDueAmount,
   } = classifyRefunds(refunds);
 
   const roundingAdjustmentAmount = toNumber(order.rounding_adjustment_amount);
@@ -556,11 +706,10 @@ export async function recalculateOrderFinancialSnapshotTx(
     totalTaxAmount,
     roundingAdjustmentAmount,
     headerTotalAmount: toNumber(order.total_amount),
+    taxPricingMode,
   });
 
-  const refundReopensDueAmount = 0;
   const creditReversalReopensDueAmount = 0;
-  const creditReversedAmount = 0;
   const netCollectedAmount = Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
   const outstandingAmount = Math.max(
     0,
@@ -578,6 +727,17 @@ export async function recalculateOrderFinancialSnapshotTx(
   const arReceivableAmount = isArReceivablePaymentTypeCode(order.payment_type_code)
     ? outstandingAmount
     : 0;
+  const currencyExRate = toNumber(order.currency_ex_rate);
+  const baseCurCurrencyCode =
+    normalizeCurrencyCode(options.baseCurCurrencyCode)
+      ?? normalizeCurrencyCode(order.base_cur_currency_code)
+      ?? null;
+  const baseCurTotalAmount = projectBaseCurrencyAmount(totalAmount, currencyExRate);
+  const baseCurTaxAmount = projectBaseCurrencyAmount(totalTaxAmount, currencyExRate);
+  const baseCurPaidAmount = projectBaseCurrencyAmount(totalPaidAmount, currencyExRate);
+  const baseCurCreditAppliedAmount = projectBaseCurrencyAmount(totalCreditAppliedAmount, currencyExRate);
+  const baseCurOutstandingAmount = projectBaseCurrencyAmount(outstandingAmount, currencyExRate);
+  const baseCurArReceivableAmount = projectBaseCurrencyAmount(arReceivableAmount, currencyExRate);
 
   const arInvoice = invoiceLink?.org_invoice_mst ?? null;
   const warningCodes = buildWarningCodes({
@@ -600,7 +760,16 @@ export async function recalculateOrderFinancialSnapshotTx(
     }),
     arInvoiceOutstandingAmount: arInvoice?.outstanding_amount != null ? toNumber(arInvoice.outstanding_amount) : null,
     arReceivableAmount,
-    hasTaxDocumentAmountMismatch: Boolean(order.tax_document_id) && Math.abs(arReceivableAmount - totalAmount) > 0.001,
+    // Tax-document fiscal total must equal `order.total_amount` (spec §16.1).
+    // The stored fiscal total lives on `org_tax_documents_mst` (Phase 7); until
+    // that table ships we cannot read a real comparand, so the helper returns
+    // `false` rather than reusing AR receivable as a proxy (which previously
+    // fired this warning on every partially-paid CREDIT_INVOICE order).
+    hasTaxDocumentAmountMismatch: evaluateTaxDocumentTotalMismatch({
+      taxDocumentId: order.tax_document_id,
+      taxDocumentTotalAmount: null,
+      orderTotalAmount: totalAmount,
+    }),
     hasUnclassifiedRefundSource,
     hasAmbiguousHistoricalPaymentRow: ambiguousHistoricalPaymentRow,
   });
@@ -634,6 +803,10 @@ export async function recalculateOrderFinancialSnapshotTx(
     otherChargesAmount,
     totalDiscountAmount,
     taxableAmount,
+    nonTaxableAmount,
+    exemptAmount,
+    zeroRatedAmount,
+    outOfScopeAmount,
     totalTaxAmount,
     roundingAdjustmentAmount,
     totalAmount,
@@ -642,6 +815,8 @@ export async function recalculateOrderFinancialSnapshotTx(
     authorizedPaymentAmount,
     failedPaymentAmount,
     totalCreditAppliedAmount,
+    pendingCreditApplicationAmount,
+    failedCreditApplicationAmount,
     refundedAmount,
     realPaymentRefundedAmount,
     storedValueRestoredAmount,
@@ -654,6 +829,14 @@ export async function recalculateOrderFinancialSnapshotTx(
     overpaidAmount,
     payOnCollectionAmount,
     arReceivableAmount,
+    baseCurCurrencyCode,
+    currencyExRate,
+    baseCurTotalAmount,
+    baseCurTaxAmount,
+    baseCurPaidAmount,
+    baseCurCreditAppliedAmount,
+    baseCurOutstandingAmount,
+    baseCurArReceivableAmount,
   };
 
   const calculationSnapshot = buildFinancialCalculationSnapshot({
@@ -661,6 +844,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     usedHeaderTotalFallback,
     hasAmbiguousHistoricalPaymentRow: ambiguousHistoricalPaymentRow,
     hasUnclassifiedRefundSource,
+    taxPricingModeAtCalculation: taxPricingMode,
     sourceTotals,
     derivedTotals,
     lineage: {
@@ -691,8 +875,14 @@ export async function recalculateOrderFinancialSnapshotTx(
       other_charges_amount: otherChargesAmount,
       total_discount_amount: totalDiscountAmount,
       taxable_amount: taxableAmount,
+      non_taxable_amount: nonTaxableAmount,
+      exempt_amount: exemptAmount,
+      zero_rated_amount: zeroRatedAmount,
+      out_of_scope_amount: outOfScopeAmount,
       total_tax_amount: totalTaxAmount,
       total_credit_applied_amount: totalCreditAppliedAmount,
+      pending_credit_application_amount: pendingCreditApplicationAmount,
+      failed_credit_application_amount: failedCreditApplicationAmount,
       total_paid_amount: totalPaidAmount,
       refunded_amount: refundedAmount,
       real_payment_refunded_amount: realPaymentRefundedAmount,
@@ -706,6 +896,13 @@ export async function recalculateOrderFinancialSnapshotTx(
       credit_reversal_reopens_due_amount: creditReversalReopensDueAmount,
       credit_reversed_amount: creditReversedAmount,
       ar_receivable_amount: arReceivableAmount,
+      base_cur_currency_code: baseCurCurrencyCode,
+      base_cur_total_amount: baseCurTotalAmount,
+      base_cur_tax_amount: baseCurTaxAmount,
+      base_cur_paid_amount: baseCurPaidAmount,
+      base_cur_credit_applied_amount: baseCurCreditAppliedAmount,
+      base_cur_outstanding_amount: baseCurOutstandingAmount,
+      base_cur_ar_receivable_amount: baseCurArReceivableAmount,
       ar_invoice_id: arInvoice?.id ?? null,
       ar_invoice_no: arInvoice?.invoice_no ?? null,
       ar_invoice_status: arInvoice?.status ?? null,
@@ -714,7 +911,7 @@ export async function recalculateOrderFinancialSnapshotTx(
       payment_status: paymentStatus,
       pay_on_collection_amount: payOnCollectionAmount > 0 ? payOnCollectionAmount : null,
       change_returned_amount: changeReturnedAmount > 0 ? changeReturnedAmount : null,
-      financial_engine_version: 4,
+      financial_engine_version: 5,
       financial_last_calculated_at: new Date(),
       financial_last_calculated_by: 'service:recalculateOrderFinancialSnapshotTx',
       financial_snapshot_status: financialSnapshotStatus,
@@ -736,8 +933,31 @@ export async function recalculateOrderFinancialSnapshotTx(
     paymentStatus,
     payOnCollectionAmount,
     arReceivableAmount,
+    baseCurCurrencyCode,
+    baseCurTotalAmount,
+    baseCurTaxAmount,
+    baseCurPaidAmount,
+    baseCurCreditAppliedAmount,
+    baseCurOutstandingAmount,
+    baseCurArReceivableAmount,
     financialSnapshotStatus,
   };
+}
+
+async function resolveTenantBaseCurrencyCode(tenantId: string): Promise<string | null> {
+  try {
+    const settings = await hqApiClient.getEffectiveSettings(tenantId);
+    const tenantCurrency = settings.find((setting) => setting.stngCode === 'TENANT_CURRENCY');
+    return normalizeCurrencyCode(
+      typeof tenantCurrency?.stngValue === 'string'
+        ? tenantCurrency.stngValue
+        : tenantCurrency?.stngValue != null
+          ? String(tenantCurrency.stngValue)
+          : null,
+    );
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -751,7 +971,9 @@ export async function recalculateOrderFinancialSnapshot(
   tenantId: string,
   orderId: string,
 ) {
+  const baseCurCurrencyCode = await resolveTenantBaseCurrencyCode(tenantId);
+
   return prisma.$transaction((tx) =>
-    recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId),
+    recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId, { baseCurCurrencyCode }),
   );
 }

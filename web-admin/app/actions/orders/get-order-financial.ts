@@ -12,6 +12,7 @@ import {
   type OrderPaymentRow,
   type OrderRefundRow,
   type OrderTaxRow,
+  type TaxDocumentSummaryRow,
 } from '@/lib/services/order-financial-summary.service';
 
 export type {
@@ -24,6 +25,7 @@ export type {
   OrderPaymentRow,
   OrderRefundRow,
   OrderTaxRow,
+  TaxDocumentSummaryRow,
 };
 
 export interface OrderFinancialData {
@@ -37,6 +39,7 @@ export interface OrderFinancialData {
   adjustments: OrderAdjustmentRow[];
   voucherReferences: Array<{ voucherId: string; voucherLineId: string | null; source: 'PAYMENT' | 'REFUND' | 'CREDIT_APPLICATION' }>;
   auditTimeline: OrderFinancialTimelineRow[];
+  taxDocuments: TaxDocumentSummaryRow[];
 }
 
 export async function getOrderFinancialAction(

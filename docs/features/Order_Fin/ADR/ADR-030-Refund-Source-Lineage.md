@@ -1,6 +1,6 @@
 # Refunds Must Preserve Source Lineage
 
-**Status:** Accepted  
+**Status:** Implemented (2026-06-05)  
 **Area:** Refund / Settlement  
 **Date:** 2026-05-30  
 **Decision Type:** Architecture Decision Record

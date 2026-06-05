@@ -35,13 +35,19 @@
  * fall outside any reasonable recon window.
  */
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import {
+  CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
+  ORDER_PAYMENT_LIFECYCLE_STATUSES,
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
+  REFUND_SOURCE_TYPES,
+  TAX_DOCUMENT_STATUSES,
 } from '@/lib/constants/order-financial';
+import { LINE_ROLE, TARGET_TYPE } from '@/lib/constants/voucher';
 import type { Decimal } from '@prisma/client/runtime/library';
 
 import {
@@ -71,6 +77,15 @@ export interface ReconciliationOrderRow {
   payment_status: string | null;
   payment_type_code: string | null;
   pay_on_collection_amount: Decimal | null;
+  currency_ex_rate?: Decimal | null;
+  base_cur_total_amount?: Decimal | null;
+  base_cur_tax_amount?: Decimal | null;
+  base_cur_paid_amount?: Decimal | null;
+  base_cur_credit_applied_amount?: Decimal | null;
+  base_cur_outstanding_amount?: Decimal | null;
+  base_cur_ar_receivable_amount?: Decimal | null;
+  total_tax_amount?: Decimal | null;
+  ar_receivable_amount?: Decimal | null;
 }
 
 /**
@@ -89,6 +104,10 @@ const LEGACY_PAYMENT_STATUS_LOWERCASE = ['pending', 'partial', 'paid', 'overpaid
 const CREDIT_APPLICATION_DISCOUNT_SOURCES: ReadonlySet<string> = new Set(
   Object.values(CREDIT_APPLICATION_TYPES),
 );
+
+function normalizeUpper(value: string | null | undefined): string {
+  return String(value ?? '').trim().toUpperCase();
+}
 
 /**
  * Run the per-order balance checks (PAYMENT_TOTAL_MATCH, CREDIT_APP_BALANCE,
@@ -710,4 +729,978 @@ export async function checkOrderCreditApplicationNotInDiscounts(
       affectedEntityId: row.id,
     };
   });
+}
+
+/**
+ * PAYMENT_TARGET_VS_ORDER_TOTALS — validates the corrected Phase 3 invariant:
+ * `org_order_payments_dtl` is ORDER-only, and voucher-line role/target is the
+ * source of truth for that discrimination.
+ *
+ * Enforced in three ways:
+ *  1. Every ORDER_PAYMENT voucher line targeted at ORDER must create exactly
+ *     one org_order_payments_dtl row.
+ *  2. An org_order_payments_dtl row must never point back to an INVOICE_PAYMENT
+ *     line or to a voucher line targeted anywhere other than ORDER/{order_id}.
+ *  3. For every affected order, the sum of completed payment rows whose linked
+ *     voucher line is ORDER_PAYMENT + target ORDER/{order_id} must equal the
+ *     header `total_paid_amount`.
+ */
+export async function checkPaymentTargetVsOrderTotals(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const [windowLines, windowPayments] = await Promise.all([
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+          is_active: true,
+          reversed_line_id: null,
+          line_role: { in: [LINE_ROLE.ORDER_PAYMENT, LINE_ROLE.INVOICE_PAYMENT] },
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    ),
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_order_payments_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+          is_active: true,
+        },
+        select: {
+          id: true,
+          order_id: true,
+          amount: true,
+          payment_status: true,
+          fin_voucher_trx_line_id: true,
+        },
+      }),
+    ),
+  ]);
+
+  const results: CheckResult[] = [];
+  const paymentByLineId = new Map(
+    windowPayments
+      .filter((row) => row.fin_voucher_trx_line_id != null)
+      .map((row) => [row.fin_voucher_trx_line_id as string, row]),
+  );
+
+  for (const line of windowLines) {
+    if (line.line_role !== LINE_ROLE.ORDER_PAYMENT || line.target_type !== TARGET_TYPE.ORDER) {
+      continue;
+    }
+
+    const payment = paymentByLineId.get(line.id);
+    if (payment) continue;
+
+    results.push({
+      checkName: RECONCILIATION_CHECK_NAMES.PAYMENT_TARGET_VS_ORDER_TOTALS,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      message: `Voucher line ${line.id} is ORDER_PAYMENT targeted to order ${line.target_id} but no org_order_payments_dtl row was created`,
+      affectedEntityType: 'voucher_trx_line',
+      affectedEntityId: line.id,
+    });
+  }
+
+  const paymentLineIds = windowPayments
+    .map((row) => row.fin_voucher_trx_line_id)
+    .filter((id): id is string => id != null);
+  const paymentLines = paymentLineIds.length === 0
+    ? []
+    : await withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: paymentLineIds },
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    );
+  const lineById = new Map(paymentLines.map((line) => [line.id, line]));
+
+  for (const payment of windowPayments) {
+    const lineId = payment.fin_voucher_trx_line_id;
+    if (!lineId) continue;
+
+    const line = lineById.get(lineId);
+    if (
+      line
+      && line.line_role === LINE_ROLE.ORDER_PAYMENT
+      && line.target_type === TARGET_TYPE.ORDER
+      && line.target_id === payment.order_id
+    ) {
+      continue;
+    }
+
+    const lineRole = line?.line_role ?? 'MISSING';
+    const targetType = line?.target_type ?? 'MISSING';
+    const targetId = line?.target_id ?? 'MISSING';
+    results.push({
+      checkName: RECONCILIATION_CHECK_NAMES.PAYMENT_TARGET_VS_ORDER_TOTALS,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      actualValue: toNumber(payment.amount),
+      message: `Order payment ${payment.id} (order ${payment.order_id}) links to voucher line ${lineId} with role ${lineRole} and target ${targetType}/${targetId}; expected ORDER_PAYMENT + ORDER/${payment.order_id}`,
+      affectedEntityType: 'order_payment',
+      affectedEntityId: payment.id,
+    });
+  }
+
+  const touchedOrderIds = Array.from(new Set([
+    ...windowPayments.map((row) => row.order_id),
+    ...windowLines
+      .filter((line) => line.line_role === LINE_ROLE.ORDER_PAYMENT && line.target_type === TARGET_TYPE.ORDER)
+      .map((line) => line.target_id)
+      .filter((id): id is string => id != null),
+  ]));
+
+  if (touchedOrderIds.length === 0) return results;
+
+  const [allOrderPayments, orderHeaders] = await Promise.all([
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_order_payments_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          order_id: { in: touchedOrderIds },
+          is_active: true,
+        },
+        select: {
+          id: true,
+          order_id: true,
+          amount: true,
+          payment_status: true,
+          fin_voucher_trx_line_id: true,
+        },
+      }),
+    ),
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_orders_mst.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: touchedOrderIds },
+        },
+        select: {
+          id: true,
+          order_no: true,
+          total_paid_amount: true,
+        },
+      }),
+    ),
+  ]);
+
+  const allLineIds = allOrderPayments
+    .map((row) => row.fin_voucher_trx_line_id)
+    .filter((id): id is string => id != null);
+  const allLines = allLineIds.length === 0
+    ? []
+    : await withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: allLineIds },
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    );
+  const allLinesById = new Map(allLines.map((line) => [line.id, line]));
+  const headerByOrderId = new Map(orderHeaders.map((row) => [row.id, row]));
+  const qualifiedPaidByOrderId = new Map<string, number>();
+
+  for (const payment of allOrderPayments) {
+    const status = normalizeUpper(payment.payment_status);
+    if (!(ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED as readonly string[]).includes(status)) {
+      continue;
+    }
+
+    const line = payment.fin_voucher_trx_line_id
+      ? allLinesById.get(payment.fin_voucher_trx_line_id)
+      : null;
+    if (
+      payment.fin_voucher_trx_line_id
+      && (!line
+        || line.line_role !== LINE_ROLE.ORDER_PAYMENT
+        || line.target_type !== TARGET_TYPE.ORDER
+        || line.target_id !== payment.order_id)
+    ) {
+      continue;
+    }
+
+    const current = qualifiedPaidByOrderId.get(payment.order_id) ?? 0;
+    qualifiedPaidByOrderId.set(payment.order_id, current + toNumber(payment.amount));
+  }
+
+  for (const orderId of touchedOrderIds) {
+    const header = headerByOrderId.get(orderId);
+    if (!header) continue;
+
+    const actual = qualifiedPaidByOrderId.get(orderId) ?? 0;
+    const expected = toNumber(header.total_paid_amount);
+    const delta = actual - expected;
+    if (Math.abs(delta) < RECONCILIATION_TOLERANCE) continue;
+
+    results.push({
+      checkName: RECONCILIATION_CHECK_NAMES.PAYMENT_TARGET_VS_ORDER_TOTALS,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      expectedValue: expected,
+      actualValue: actual,
+      delta,
+      message: `Order ${header.order_no}: completed ORDER_PAYMENT voucher-linked payments sum (${actual}) does not match total_paid_amount (${expected})`,
+      affectedEntityType: 'order',
+      affectedEntityId: orderId,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * CREDIT_APP_LIFECYCLE_CONSISTENCY — validates the Phase 3 credit lifecycle
+ * buckets against voucher-line wiring and order-header snapshot totals.
+ *
+ * Enforced in three ways:
+ *  1. Every ORDER_CREDIT_APPLICATION voucher line targeted at ORDER must
+ *     create an org_order_credit_apps_dtl row.
+ *  2. An org_order_credit_apps_dtl row must point back to an
+ *     ORDER_CREDIT_APPLICATION voucher line targeted at ORDER/{order_id}.
+ *  3. For every affected order, status-bucket sums must match the header:
+ *       APPLIED                        -> total_credit_applied_amount
+ *       PENDING/RESERVED/PROCESSING    -> pending_credit_application_amount
+ *       FAILED/CANCELLED/EXPIRED       -> failed_credit_application_amount
+ */
+export async function checkCreditAppLifecycleConsistency(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const [windowLines, windowApps] = await Promise.all([
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+          is_active: true,
+          reversed_line_id: null,
+          line_role: LINE_ROLE.ORDER_CREDIT_APPLICATION,
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    ),
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_order_credit_apps_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          applied_at: { gte: window.periodFrom, lte: window.periodTo },
+        },
+        select: {
+          id: true,
+          order_id: true,
+          applied_amount: true,
+          application_status: true,
+          fin_voucher_trx_line_id: true,
+        },
+      }),
+    ),
+  ]);
+
+  const results: CheckResult[] = [];
+  const appByLineId = new Map(
+    windowApps
+      .filter((row) => row.fin_voucher_trx_line_id != null)
+      .map((row) => [row.fin_voucher_trx_line_id as string, row]),
+  );
+
+  for (const line of windowLines) {
+    if (line.target_type !== TARGET_TYPE.ORDER) continue;
+
+    const app = appByLineId.get(line.id);
+    if (app) continue;
+
+    results.push({
+      checkName: RECONCILIATION_CHECK_NAMES.CREDIT_APP_LIFECYCLE_CONSISTENCY,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      message: `Voucher line ${line.id} is ORDER_CREDIT_APPLICATION targeted to order ${line.target_id} but no org_order_credit_apps_dtl row was created`,
+      affectedEntityType: 'voucher_trx_line',
+      affectedEntityId: line.id,
+    });
+  }
+
+  const appLineIds = windowApps
+    .map((row) => row.fin_voucher_trx_line_id)
+    .filter((id): id is string => id != null);
+  const appLines = appLineIds.length === 0
+    ? []
+    : await withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: appLineIds },
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    );
+  const lineById = new Map(appLines.map((line) => [line.id, line]));
+
+  for (const app of windowApps) {
+    const lineId = app.fin_voucher_trx_line_id;
+    if (!lineId) continue;
+
+    const line = lineById.get(lineId);
+    if (
+      line
+      && line.line_role === LINE_ROLE.ORDER_CREDIT_APPLICATION
+      && line.target_type === TARGET_TYPE.ORDER
+      && line.target_id === app.order_id
+    ) {
+      continue;
+    }
+
+    const lineRole = line?.line_role ?? 'MISSING';
+    const targetType = line?.target_type ?? 'MISSING';
+    const targetId = line?.target_id ?? 'MISSING';
+    results.push({
+      checkName: RECONCILIATION_CHECK_NAMES.CREDIT_APP_LIFECYCLE_CONSISTENCY,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      actualValue: toNumber(app.applied_amount),
+      message: `Credit application ${app.id} (order ${app.order_id}) links to voucher line ${lineId} with role ${lineRole} and target ${targetType}/${targetId}; expected ORDER_CREDIT_APPLICATION + ORDER/${app.order_id}`,
+      affectedEntityType: 'order_credit_application',
+      affectedEntityId: app.id,
+    });
+  }
+
+  const touchedOrderIds = Array.from(new Set([
+    ...windowApps.map((row) => row.order_id),
+    ...windowLines
+      .filter((line) => line.target_type === TARGET_TYPE.ORDER)
+      .map((line) => line.target_id)
+      .filter((id): id is string => id != null),
+  ]));
+
+  if (touchedOrderIds.length === 0) return results;
+
+  const [allApps, orderHeaders] = await Promise.all([
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_order_credit_apps_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          order_id: { in: touchedOrderIds },
+        },
+        select: {
+          id: true,
+          order_id: true,
+          applied_amount: true,
+          application_status: true,
+          fin_voucher_trx_line_id: true,
+        },
+      }),
+    ),
+    withTenantContext(tenantOrgId, () =>
+      prisma.org_orders_mst.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: touchedOrderIds },
+        },
+        select: {
+          id: true,
+          order_no: true,
+          total_credit_applied_amount: true,
+          pending_credit_application_amount: true,
+          failed_credit_application_amount: true,
+        },
+      }),
+    ),
+  ]);
+
+  const allAppLineIds = allApps
+    .map((row) => row.fin_voucher_trx_line_id)
+    .filter((id): id is string => id != null);
+  const allLines = allAppLineIds.length === 0
+    ? []
+    : await withTenantContext(tenantOrgId, () =>
+      prisma.org_fin_voucher_trx_lines_dtl.findMany({
+        where: {
+          tenant_org_id: tenantOrgId,
+          id: { in: allAppLineIds },
+        },
+        select: {
+          id: true,
+          line_role: true,
+          target_type: true,
+          target_id: true,
+        },
+      }),
+    );
+  const allLinesById = new Map(allLines.map((line) => [line.id, line]));
+  const headerByOrderId = new Map(orderHeaders.map((row) => [row.id, row]));
+  const totalsByOrderId = new Map<string, { applied: number; pending: number; failed: number }>();
+  const pendingStatuses = new Set<string>([
+    CREDIT_APPLICATION_STATUSES.PENDING,
+    CREDIT_APPLICATION_STATUSES.RESERVED,
+    CREDIT_APPLICATION_STATUSES.PROCESSING,
+  ]);
+  const failedStatuses = new Set<string>([
+    CREDIT_APPLICATION_STATUSES.FAILED,
+    CREDIT_APPLICATION_STATUSES.CANCELLED,
+    CREDIT_APPLICATION_STATUSES.EXPIRED,
+  ]);
+
+  for (const app of allApps) {
+    const line = app.fin_voucher_trx_line_id
+      ? allLinesById.get(app.fin_voucher_trx_line_id)
+      : null;
+    if (
+      app.fin_voucher_trx_line_id
+      && (!line
+        || line.line_role !== LINE_ROLE.ORDER_CREDIT_APPLICATION
+        || line.target_type !== TARGET_TYPE.ORDER
+        || line.target_id !== app.order_id)
+    ) {
+      continue;
+    }
+
+    const status = normalizeUpper(app.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
+    const current = totalsByOrderId.get(app.order_id) ?? { applied: 0, pending: 0, failed: 0 };
+    const amount = toNumber(app.applied_amount);
+
+    if (status === CREDIT_APPLICATION_STATUSES.APPLIED) {
+      current.applied += amount;
+    } else if (pendingStatuses.has(status)) {
+      current.pending += amount;
+    } else if (failedStatuses.has(status)) {
+      current.failed += amount;
+    }
+
+    totalsByOrderId.set(app.order_id, current);
+  }
+
+  for (const orderId of touchedOrderIds) {
+    const header = headerByOrderId.get(orderId);
+    if (!header) continue;
+
+    const totals = totalsByOrderId.get(orderId) ?? { applied: 0, pending: 0, failed: 0 };
+    const comparisons = [
+      {
+        label: 'total_credit_applied_amount',
+        expected: toNumber(header.total_credit_applied_amount),
+        actual: totals.applied,
+      },
+      {
+        label: 'pending_credit_application_amount',
+        expected: toNumber(header.pending_credit_application_amount),
+        actual: totals.pending,
+      },
+      {
+        label: 'failed_credit_application_amount',
+        expected: toNumber(header.failed_credit_application_amount),
+        actual: totals.failed,
+      },
+    ];
+
+    for (const comparison of comparisons) {
+      const delta = comparison.actual - comparison.expected;
+      if (Math.abs(delta) < RECONCILIATION_TOLERANCE) continue;
+
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.CREDIT_APP_LIFECYCLE_CONSISTENCY,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        expectedValue: comparison.expected,
+        actualValue: comparison.actual,
+        delta,
+        message: `Order ${header.order_no}: ${comparison.label} (${comparison.expected}) does not match lifecycle-derived credit sum (${comparison.actual})`,
+        affectedEntityType: 'order',
+        affectedEntityId: orderId,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * ADR-039 requires a stored historical exchange rate for base-currency
+ * snapshots. Missing or zero rates make every base_cur_* projection unusable.
+ */
+export async function checkBaseCurrencyRatePresent(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const orders = await withTenantContext(tenantOrgId, () =>
+    prisma.org_orders_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        created_at: { gte: window.periodFrom, lte: window.periodTo },
+      },
+      select: {
+        id: true,
+        order_no: true,
+        currency_ex_rate: true,
+      },
+    }),
+  );
+
+  return orders
+    .filter((order) => toNumber(order.currency_ex_rate) <= 0)
+    .map((order) => ({
+      checkName: RECONCILIATION_CHECK_NAMES.BASE_CURRENCY_RATE_PRESENT,
+      severity: RECONCILIATION_SEVERITIES.BLOCKER,
+      passed: false,
+      expectedValue: 0,
+      actualValue: toNumber(order.currency_ex_rate),
+      delta: null,
+      message: `Order ${order.order_no}: currency_ex_rate is missing or invalid for base-currency projection`,
+      affectedEntityType: 'order',
+      affectedEntityId: order.id,
+    }));
+}
+
+/**
+ * Compares base_cur_* reporting snapshots to transaction-currency amounts
+ * projected with the stored order-level historical exchange rate.
+ */
+export async function checkBaseVsOrderAmountConsistency(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const orders = await withTenantContext(tenantOrgId, () =>
+    prisma.org_orders_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        created_at: { gte: window.periodFrom, lte: window.periodTo },
+      },
+      select: {
+        id: true,
+        order_no: true,
+        currency_ex_rate: true,
+        total_amount: true,
+        total_tax_amount: true,
+        total_paid_amount: true,
+        total_credit_applied_amount: true,
+        outstanding_amount: true,
+        ar_receivable_amount: true,
+        base_cur_total_amount: true,
+        base_cur_tax_amount: true,
+        base_cur_paid_amount: true,
+        base_cur_credit_applied_amount: true,
+        base_cur_outstanding_amount: true,
+        base_cur_ar_receivable_amount: true,
+      },
+    }),
+  );
+  const results: CheckResult[] = [];
+
+  for (const order of orders) {
+    const rate = toNumber(order.currency_ex_rate);
+    if (rate <= 0) continue;
+
+    const comparisons = [
+      ['base_cur_total_amount', toNumber(order.total_amount) * rate, toNumber(order.base_cur_total_amount)],
+      ['base_cur_tax_amount', toNumber(order.total_tax_amount) * rate, toNumber(order.base_cur_tax_amount)],
+      ['base_cur_paid_amount', toNumber(order.total_paid_amount) * rate, toNumber(order.base_cur_paid_amount)],
+      [
+        'base_cur_credit_applied_amount',
+        toNumber(order.total_credit_applied_amount) * rate,
+        toNumber(order.base_cur_credit_applied_amount),
+      ],
+      [
+        'base_cur_outstanding_amount',
+        toNumber(order.outstanding_amount) * rate,
+        toNumber(order.base_cur_outstanding_amount),
+      ],
+      [
+        'base_cur_ar_receivable_amount',
+        toNumber(order.ar_receivable_amount) * rate,
+        toNumber(order.base_cur_ar_receivable_amount),
+      ],
+    ] as const;
+
+    for (const [label, expectedRaw, actual] of comparisons) {
+      const expected = Math.round((expectedRaw + Number.EPSILON) * 10000) / 10000;
+      const delta = actual - expected;
+      if (Math.abs(delta) < RECONCILIATION_TOLERANCE) continue;
+
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.BASE_VS_ORDER_AMOUNT_CONSISTENCY,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        expectedValue: expected,
+        actualValue: actual,
+        delta,
+        message: `Order ${order.order_no}: ${label} (${actual}) does not match transaction amount projected at currency_ex_rate ${rate} (${expected})`,
+        affectedEntityType: 'order',
+        affectedEntityId: order.id,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * ADR-017 — Pricing mode consistency check.
+ *
+ * Reads the `taxPricingModeAtCalculation` field from the stored
+ * `financial_calculation_snapshot` and compares it to the current effective
+ * branch/tenant config. A mismatch means the snapshot was calculated under
+ * a different mode than what the branch is now configured for and the order
+ * needs a re-snapshot.
+ */
+export async function checkPricingModeConsistency(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const orders = await withTenantContext(
+    tenantId,
+    () =>
+      prisma.org_orders_mst.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+          financial_calculation_snapshot: { not: Prisma.AnyNull },
+        },
+        select: {
+          id: true,
+          order_no: true,
+          branch_id: true,
+          financial_calculation_snapshot: true,
+        },
+      }),
+  );
+
+  const results: CheckResult[] = [];
+
+  for (const order of orders) {
+    const snapshot = order.financial_calculation_snapshot as Record<string, unknown> | null;
+    if (!snapshot || typeof snapshot !== 'object') continue;
+
+    const recordedMode = snapshot['taxPricingModeAtCalculation'] as string | undefined;
+    if (!recordedMode) continue;
+
+    const branch = order.branch_id
+      ? await prisma.org_branches_mst.findFirst({
+          where: { id: order.branch_id, tenant_org_id: tenantId },
+          select: { tax_pricing_mode: true },
+        })
+      : null;
+
+    const currentMode =
+      (branch?.tax_pricing_mode ?? null) ||
+      (await prisma.org_tenants_mst.findFirst({
+        where: { id: tenantId },
+        select: { tax_pricing_mode: true },
+      }).then((t) => t?.tax_pricing_mode ?? 'TAX_EXCLUSIVE'));
+
+    if (recordedMode !== currentMode) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.PRICING_MODE_CONSISTENCY,
+        severity: RECONCILIATION_SEVERITIES.WARNING,
+        passed: false,
+        message: `Order ${order.order_no}: snapshot tax_pricing_mode '${recordedMode}' differs from current branch/tenant config '${currentMode}' — recalculation required`,
+        affectedEntityType: 'order',
+        affectedEntityId: order.id,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * ADR-030 — Refund source lineage classification check.
+ *
+ * Flags any active, processed refund that still carries MANUAL_EXCEPTION
+ * as its refund_source_type. These rows require finance lead review and
+ * explicit reclassification via the `refunds:mark_manual_exception` permission.
+ */
+export async function checkRefundSourceLineageClassification(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const validTypes = new Set<string>(Object.values(REFUND_SOURCE_TYPES));
+
+  const refunds = await withTenantContext(
+    tenantId,
+    () =>
+      prisma.org_order_refunds_dtl.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          is_active: true,
+          refund_status: 'PROCESSED',
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+        },
+        select: {
+          id: true,
+          order_id: true,
+          refund_source_type: true,
+          refund_amount: true,
+        },
+      }),
+  );
+
+  const results: CheckResult[] = [];
+
+  for (const refund of refunds) {
+    const sourceType = (refund.refund_source_type ?? '').toUpperCase();
+
+    if (!validTypes.has(sourceType) || sourceType === REFUND_SOURCE_TYPES.MANUAL_EXCEPTION) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.REFUND_SOURCE_LINEAGE_CLASSIFICATION,
+        severity: RECONCILIATION_SEVERITIES.WARNING,
+        passed: false,
+        message: `Refund ${refund.id} on order ${refund.order_id} has refund_source_type '${refund.refund_source_type ?? 'NULL'}' — manual finance review required`,
+        affectedEntityType: 'refund',
+        affectedEntityId: refund.id,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * ADR-030 — Refund reopen-due bound check.
+ *
+ * Verifies that reopens_due_amount <= refund_amount on every active refund row.
+ * The DB-level CHECK constraint enforces this at write time; this reconciliation
+ * check catches any rows that bypassed the constraint (e.g. direct SQL updates).
+ */
+export async function checkRefundReopensDueBound(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const refunds = await withTenantContext(
+    tenantId,
+    () =>
+      prisma.org_order_refunds_dtl.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          is_active: true,
+          created_at: { gte: window.periodFrom, lte: window.periodTo },
+        },
+        select: {
+          id: true,
+          order_id: true,
+          refund_amount: true,
+          reopens_due_amount: true,
+        },
+      }),
+  );
+
+  const results: CheckResult[] = [];
+
+  for (const refund of refunds) {
+    const refundAmt = toNumber(refund.refund_amount);
+    const reopensAmt = toNumber(refund.reopens_due_amount);
+
+    if (reopensAmt > refundAmt + RECONCILIATION_TOLERANCE) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.REFUND_REOPENS_DUE_BOUND,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        expectedValue: refundAmt,
+        actualValue: reopensAmt,
+        delta: reopensAmt - refundAmt,
+        message: `Refund ${refund.id} on order ${refund.order_id}: reopens_due_amount (${reopensAmt}) exceeds refund_amount (${refundAmt})`,
+        affectedEntityType: 'refund',
+        affectedEntityId: refund.id,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ─── Phase 7 — Tax-document reconciliation checks ────────────────────────────
+
+/**
+ * RECON_TAX_DOC_SEQUENCE_GAPS — warns if there are gaps in the fiscal
+ * sequence for any (tenant, document_type, fiscal_year) combination in the
+ * reconciliation window.
+ *
+ * A gap means a sequence number between 1 and last_sequence has no matching
+ * ISSUED document row (SUPERSEDED documents still hold their sequence number
+ * so they don't count as gaps).
+ */
+export async function checkTaxDocSequenceGaps(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const fiscalYear = window.periodFrom.getFullYear();
+
+  const [counters, issuedDocs] = await Promise.all([
+    prisma.org_tax_doc_seq_counters.findMany({
+      where: { tenant_org_id: tenantId, fiscal_year: fiscalYear },
+      select: { document_type: true, last_sequence: true },
+    }),
+    withTenantContext(
+      tenantId,
+      () =>
+        prisma.org_tax_documents_mst.findMany({
+          where: {
+            tenant_org_id: tenantId,
+            fiscal_year: fiscalYear,
+            status: { in: [TAX_DOCUMENT_STATUSES.ISSUED, TAX_DOCUMENT_STATUSES.SUPERSEDED] },
+            sequence_number: { gt: 0 },
+          },
+          select: { document_type: true, sequence_number: true },
+        }),
+    ),
+  ]);
+
+  const results: CheckResult[] = [];
+
+  for (const counter of counters) {
+    if (counter.last_sequence === 0) continue;
+
+    const usedSequences = new Set(
+      issuedDocs
+        .filter((d) => d.document_type === counter.document_type)
+        .map((d) => d.sequence_number),
+    );
+
+    const gapCount = Array.from({ length: counter.last_sequence }, (_, i) => i + 1)
+      .filter((seq) => !usedSequences.has(seq)).length;
+
+    if (gapCount > 0) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_SEQUENCE_GAPS,
+        severity: RECONCILIATION_SEVERITIES.WARNING,
+        passed: false,
+        expectedValue: counter.last_sequence,
+        actualValue: usedSequences.size,
+        delta: gapCount,
+        message: `Tax document sequence gaps: ${gapCount} gap(s) in ${counter.document_type} fiscal ${fiscalYear} (last_sequence=${counter.last_sequence}, issued=${usedSequences.size})`,
+        affectedEntityType: 'tax_document_sequence',
+        affectedEntityId: `${tenantId}:${counter.document_type}:${fiscalYear}`,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * RECON_TAX_DOC_IMMUTABILITY — detects ISSUED documents that were updated
+ * after issuance (updated_at > issued_at). This should never occur if the
+ * DB trigger is in place; this check is the application-layer safety net.
+ */
+export async function checkTaxDocImmutability(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const docs = await withTenantContext(
+    tenantId,
+    () =>
+      prisma.org_tax_documents_mst.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          status: TAX_DOCUMENT_STATUSES.ISSUED,
+          issued_at: { gte: window.periodFrom, lte: window.periodTo },
+        },
+        select: { id: true, issued_at: true, updated_at: true, document_no: true },
+      }),
+  );
+
+  const results: CheckResult[] = [];
+
+  for (const doc of docs) {
+    if (doc.updated_at && doc.issued_at && doc.updated_at > doc.issued_at) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_IMMUTABILITY,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        message: `ISSUED tax document ${doc.document_no ?? doc.id} was updated after issuance (updated_at=${doc.updated_at.toISOString()}, issued_at=${doc.issued_at.toISOString()})`,
+        affectedEntityType: 'tax_document',
+        affectedEntityId: doc.id,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * RECON_TAX_DOC_VS_ORDER_TOTALS — verifies that the total_amount on each
+ * ISSUED tax document matches the order's total_amount at the time of
+ * reconciliation.
+ *
+ * Note: a mismatch is expected for SUPERSEDED documents (the correction chain
+ * takes care of the delta), so those are excluded.
+ */
+export async function checkTaxDocVsOrderTotals(
+  tenantId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const docs = await withTenantContext(
+    tenantId,
+    () =>
+      prisma.org_tax_documents_mst.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          status: TAX_DOCUMENT_STATUSES.ISSUED,
+          issued_at: { gte: window.periodFrom, lte: window.periodTo },
+        },
+        select: {
+          id: true,
+          document_no: true,
+          order_id: true,
+          total_amount: true,
+          org_orders_mst: {
+            select: { total_amount: true },
+          },
+        },
+      }),
+  );
+
+  const results: CheckResult[] = [];
+
+  for (const doc of docs) {
+    const docTotal = toNumber(doc.total_amount);
+    const orderTotal = toNumber(doc.org_orders_mst?.total_amount ?? 0);
+
+    if (Math.abs(docTotal - orderTotal) > RECONCILIATION_TOLERANCE) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_VS_ORDER_TOTALS,
+        severity: RECONCILIATION_SEVERITIES.WARNING,
+        passed: false,
+        expectedValue: orderTotal,
+        actualValue: docTotal,
+        delta: docTotal - orderTotal,
+        message: `Tax document ${doc.document_no ?? doc.id} total (${docTotal}) differs from order ${doc.order_id} total (${orderTotal})`,
+        affectedEntityType: 'tax_document',
+        affectedEntityId: doc.id,
+      });
+    }
+  }
+
+  return results;
 }

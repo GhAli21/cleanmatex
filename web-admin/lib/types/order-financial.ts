@@ -7,6 +7,7 @@ import type {
   ChargeType,
   TaxType,
   CreditApplicationType,
+  CreditApplicationStatus,
   RefundReasonCode,
   RefundMethod,
   PaymentNature,
@@ -15,6 +16,12 @@ import type {
   OrderFinancialWarningCode,
   ReconciliationSeverity,
   ReconciliationCheckName,
+  TaxPricingMode,
+  ExtraPricePricingMode,
+  RefundSourceType,
+  TaxDocumentType,
+  TaxDocumentStatus,
+  TaxDocumentTriggerEvent,
 } from '@/lib/constants/order-financial';
 
 // Re-export constant-derived types for single-import usage
@@ -22,6 +29,7 @@ export type {
   ChargeType,
   TaxType,
   CreditApplicationType,
+  CreditApplicationStatus,
   RefundReasonCode,
   RefundMethod,
   PaymentNature,
@@ -30,6 +38,12 @@ export type {
   OrderFinancialWarningCode,
   ReconciliationSeverity,
   ReconciliationCheckName,
+  TaxPricingMode,
+  ExtraPricePricingMode,
+  RefundSourceType,
+  TaxDocumentType,
+  TaxDocumentStatus,
+  TaxDocumentTriggerEvent,
 };
 
 // ── Tax breakdown per line ────────────────────────────────────────────────────
@@ -104,10 +118,38 @@ export type OrderFinancialCalculationSnapshot = {
   usedHeaderTotalFallback?: boolean;
   hasPaymentTargetUnclassified: boolean;
   hasRefundSourceUnclassified: boolean;
+  /** Tax pricing mode resolved at calculation time for audit — 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE'. */
+  taxPricingModeAtCalculation: TaxPricingMode;
   sourceTotals: Record<string, number | string | null>;
   derivedTotals: Record<string, number | string | null>;
   lineage: Record<string, string | null>;
   notes: string[];
+};
+
+/**
+ * Tax-base decomposition per Order Fin v1.1 §8.11. The five buckets describe
+ * how the order's commercial base splits across tax treatments for
+ * jurisdiction-grade reporting (ZATCA / UAE / Oman VAT). Today the tax engine
+ * only emits `taxableAmount`; the other four default to 0 until the engine
+ * starts classifying (Phase 5 and later).
+ */
+export type OrderFinancialTaxBaseDecomposition = {
+  taxableAmount: number;
+  nonTaxableAmount: number;
+  exemptAmount: number;
+  zeroRatedAmount: number;
+  outOfScopeAmount: number;
+};
+
+/** Base-currency reporting projection per ADR-039. */
+export type OrderFinancialBaseCurrencySnapshot = {
+  baseCurCurrencyCode: string | null;
+  baseCurTotalAmount: number;
+  baseCurTaxAmount: number;
+  baseCurPaidAmount: number;
+  baseCurCreditAppliedAmount: number;
+  baseCurOutstandingAmount: number;
+  baseCurArReceivableAmount: number;
 };
 
 /** Canonical order-header snapshot fields preferred by new Order Fin readers. */
@@ -118,9 +160,15 @@ export type CanonicalOrderFinancialSnapshot = {
   totalChargesAmount: number;
   totalDiscountAmount: number;
   taxableAmount: number;
+  nonTaxableAmount: number;
+  exemptAmount: number;
+  zeroRatedAmount: number;
+  outOfScopeAmount: number;
   totalTaxAmount: number;
   totalPaidAmount: number;
   totalCreditAppliedAmount: number;
+  pendingCreditApplicationAmount: number;
+  failedCreditApplicationAmount: number;
   refundedAmount: number;
   realPaymentRefundedAmount: number;
   netCollectedAmount: number;
@@ -128,6 +176,13 @@ export type CanonicalOrderFinancialSnapshot = {
   overpaidAmount: number;
   payOnCollectionAmount: number;
   arReceivableAmount: number;
+  baseCurCurrencyCode: string | null;
+  baseCurTotalAmount: number;
+  baseCurTaxAmount: number;
+  baseCurPaidAmount: number;
+  baseCurCreditAppliedAmount: number;
+  baseCurOutstandingAmount: number;
+  baseCurArReceivableAmount: number;
   financialSnapshotStatus: OrderFinancialSnapshotStatus;
   financialMismatchWarningCount: number;
   financialCalculationSnapshot?: OrderFinancialCalculationSnapshot | null;
@@ -234,6 +289,40 @@ export type ReconciliationIssue = {
   delta:               number | null;
   message:             string;
   status:              'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+};
+
+// ── Phase 7 — Tax-Document types ─────────────────────────────────────────────
+
+/** Decision result from tax-document-decision.service.ts. */
+export type TaxDocumentDecision = {
+  shouldIssue:  boolean;
+  documentType: TaxDocumentType | null;
+  reason:       string;
+};
+
+/** Input to tax-document-write.service.ts createAndIssueTaxDocument(). */
+export type TaxDocumentCreateInput = {
+  orderId:       string;
+  tenantId:      string;
+  documentType:  TaxDocumentType;
+  triggerEvent:  TaxDocumentTriggerEvent;
+  totalAmount:   number;
+  taxAmount:     number;
+  currencyCode:  string;
+  currencyExRate?: number;
+  baseCurrencyCode?: string | null;
+  taxLines?:     TaxDocumentLineInput[];
+};
+
+/** Single tax line contributed to a tax document. */
+export type TaxDocumentLineInput = {
+  taxType:        string;
+  label:          string;
+  label2?:        string | null;
+  rate?:          number | null;
+  baseAmount:     number;
+  taxAmount:      number;
+  orderTaxLineId?: string | null;
 };
 
 // ── Discount line input ───────────────────────────────────────────────────────

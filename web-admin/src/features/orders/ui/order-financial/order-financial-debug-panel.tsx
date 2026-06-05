@@ -28,6 +28,8 @@ const RAW_FIELDS: Array<{ key: keyof OrderFinancialSummaryViewModel['rawSnapshot
   { key: 'paymentTypeCode', labelKey: 'paymentTypeCode' },
   { key: 'paymentStatus', labelKey: 'paymentStatus' },
   { key: 'financialEngineVersion', labelKey: 'financialEngineVersion' },
+  { key: 'taxPricingModeAtCalculation', labelKey: 'taxPricingModeAtCalculation' },
+  { key: 'currencyExRate', labelKey: 'currencyExRate' },
 ];
 
 export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanelProps) {

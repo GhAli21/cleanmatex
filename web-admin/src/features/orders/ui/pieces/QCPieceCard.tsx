@@ -71,7 +71,7 @@ export function QCPieceCard({
         </CmxButton>
         
         <CmxButton
-          variant="default"
+          variant="primary"
           className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white"
           onClick={() => onPass?.(piece.id)}
         >
