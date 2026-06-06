@@ -156,7 +156,7 @@ function deriveBalanceStatus(
     return RIGHT_RAIL_BALANCE_STATUS.BLOCKED;
   }
 
-  if (input.changeAmount > input.epsilon) {
+  if (input.changeAmount > input.epsilon && !input.canReturnChangeFromCash) {
     return RIGHT_RAIL_BALANCE_STATUS.OVERPAID;
   }
 

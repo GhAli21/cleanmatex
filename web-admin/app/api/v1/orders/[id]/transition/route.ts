@@ -13,6 +13,12 @@ import {
 import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import type { OrderStatus } from '@/lib/types/workflow';
+import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+
+const ORDER_STATUS_EVENT: Record<string, string> = {
+  ready:     'order.ready',
+  cancelled: 'order.cancelled',
+};
 
 /**
  * POST /api/v1/orders/[id]/transition
@@ -56,6 +62,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             authHeader,
           }
         );
+
+        if (result.ok && result.to_status) {
+          const eventCode = ORDER_STATUS_EVENT[result.to_status.toLowerCase()];
+          if (eventCode) {
+            void emitNotificationEvent({
+              code: eventCode,
+              tenantOrgId: tenantId,
+              recipientUserIds: [userId],
+              sourceEntityType: 'order',
+              sourceEntityId: result.order_id,
+              variables: { order_number: result.order_id },
+            });
+          }
+        }
 
         return NextResponse.json({
           success: result.ok,
@@ -165,6 +185,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error, blockers: result.blockers }, { status: 400 });
+    }
+
+    if (result.order) {
+      const eventCode = ORDER_STATUS_EVENT[normalizedToStatus];
+      if (eventCode) {
+        void emitNotificationEvent({
+          code: eventCode,
+          tenantOrgId: tenantId,
+          recipientUserIds: [userId],
+          sourceEntityType: 'order',
+          sourceEntityId: result.order.id,
+          variables: { order_number: result.order.id },
+        });
+      }
     }
 
     return NextResponse.json({ success: true, data: result.order });

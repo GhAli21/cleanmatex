@@ -10,8 +10,8 @@
 
 ## Phase 1 — Foundation + In-App Notifications
 
-**Status:** 🟡 IN PROGRESS  
-**Gate:** `npm run build` green + bell shows real-time notifications
+**Status:** ✅ COMPLETE (2026-06-06)  
+**Gate:** `npm run build` green ✅ · `npx tsc --noEmit` 0 errors ✅ · `npm run check:i18n` parity ✅
 
 | Step | Description | Status | Migration / File | Date |
 |------|-------------|--------|-----------------|------|
@@ -22,13 +22,13 @@
 | 1.5 | Migration 0348: Runtime Tables (inbox, outbox, delivery log) | ✅ DONE | `0348_ntf_runtime_tables.sql` | 2026-06-06 |
 | 1.6 | Migration 0349: Permissions + Nav Dual-Write | ✅ DONE | `0349_ntf_permissions_and_nav.sql` | 2026-06-06 |
 | 1.7 | Navigation frontend dual-write (navigation.ts) | ✅ DONE | `web-admin/config/navigation.ts` | 2026-06-06 |
-| 1.8 | Notification Library (lib/notifications/) | ⬜ TODO | `web-admin/lib/notifications/` | — |
-| 1.9 | API Routes (/api/notifications/*) | ⬜ TODO | `web-admin/app/api/notifications/` | — |
-| 1.10 | React Hooks (useNotificationBell, useNotifications) | ⬜ TODO | `web-admin/src/features/notifications/hooks/` | — |
-| 1.11 | UI Components (Bell, Drawer, Center Page) | ⬜ TODO | `web-admin/src/features/notifications/ui/` | — |
-| 1.12 | i18n Keys (EN + AR) | ⬜ TODO | `messages/en.json`, `messages/ar.json` | — |
-| 1.13 | Wire 3 Order Events (created, ready, cancelled) | ⬜ TODO | Order server actions | — |
-| 1.14 | Build Validation + Phase 1 Close | ⬜ TODO | — | — |
+| 1.8 | Notification Library (lib/notifications/) | ✅ DONE | `web-admin/lib/notifications/` | 2026-06-06 |
+| 1.9 | API Routes (/api/notifications/*) | ✅ DONE | `web-admin/app/api/v1/notifications/` | 2026-06-06 |
+| 1.10 | React Hooks (useNotificationBell, useNotifications) | ✅ DONE | `web-admin/src/features/notifications/hooks/` | 2026-06-06 |
+| 1.11 | UI Components (Bell, Drawer, Center Page) | ✅ DONE | `web-admin/src/features/notifications/ui/` | 2026-06-06 |
+| 1.12 | i18n Keys (EN + AR) | ✅ DONE | `messages/en.json`, `messages/ar.json` | 2026-06-06 |
+| 1.13 | Wire 3 Order Events (created, ready, cancelled) | ✅ DONE | `app/api/v1/orders/route.ts` + `[id]/transition/route.ts` | 2026-06-06 |
+| 1.14 | Build Validation + Phase 1 Close | ✅ DONE | build green · tsc 0 errors · i18n parity pass | 2026-06-06 |
 
 ---
 

@@ -3709,6 +3709,30 @@
       "payment": "دفع",
       "system": "نظام",
       "delivery": "توصيل"
+    },
+    "bell": {
+      "viewAll": "عرض جميع الإشعارات"
+    },
+    "center": {
+      "tabs": {
+        "all": "الكل",
+        "unread": "غير المقروءة",
+        "orders": "الطلبات",
+        "payments": "المدفوعات",
+        "system": "النظام"
+      },
+      "empty": "أنت على اطلاع بكل شيء",
+      "emptyDesc": "لا توجد إشعارات لعرضها هنا",
+      "emptyUnread": "لا توجد إشعارات غير مقروءة",
+      "emptyUnreadDesc": "لقد قرأت جميع إشعاراتك",
+      "loadMore": "تحميل المزيد",
+      "prevPage": "السابق",
+      "nextPage": "التالي"
+    },
+    "item": {
+      "markRead": "تحديد كمقروء",
+      "viewDetails": "عرض التفاصيل",
+      "justNow": "الآن"
     }
   },
   "reports": {
@@ -5335,7 +5359,8 @@
         "helperDescription": "اختر طريقة دفع أو عدّل مبلغاً أو طبّق رصيداً. ستظهر المهمة النشطة هنا.",
         "helperMethod": "اختر الطريقة",
         "helperAmount": "عدّل المبلغ",
-        "helperCredits": "طبّق الأرصدة"
+        "helperCredits": "طبّق الأرصدة",
+        "remainingForLeg": "يمكنك توزيع حتى {amount} على هذا القسط."
       },
       "sections": {
         "paymentTools": "أدوات الدفع",
@@ -5432,7 +5457,8 @@
         "paymentMethodNote": "طريقة الدفع: {method}",
         "discardChanges": "لديك تغييرات دفع غير محفوظة. هل تريد إغلاق هذه النافذة والتخلص منها؟",
         "readyToSubmit": "جاهز للإرسال",
-        "validationErrors": "يرجى إصلاح الأخطاء التالية"
+        "validationErrors": "يرجى إصلاح الأخطاء التالية",
+        "totalsAdjusted": "تغيّر إجمالي الطلب. تم تعديل مبالغ أقساط الدفع لتتوافق معه."
       },
       "receipt": {
         "title": "إيصال الدفع",
@@ -5480,6 +5506,9 @@
         "allocated": "تم التوزيع الكامل",
         "over": "تجاوز المبلغ",
         "legSum": "مجموع الأقساط",
+        "settledTotal": "إجمالي المُسوّى",
+        "fillRemaining": "ملء المتبقي",
+        "noRemainingToFill": "لا يوجد رصيد متبقٍ متاح لهذا القسط.",
         "validation": {
           "sumMismatch": "مجموع أقساط الدفع يجب أن يساوي إجمالي الطلب",
           "amountMustBePositive": "يجب أن يكون مبلغ كل قسط أكبر من صفر",

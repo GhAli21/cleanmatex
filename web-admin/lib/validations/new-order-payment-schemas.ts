@@ -165,12 +165,20 @@ export const newOrderPaymentPayloadSchema = z
     cashDrawerSessionId: z.string().uuid().optional(),
     /** Selected tax profile IDs shown in the payment modal tax panel. */
     taxProfileIds: z.array(z.string().uuid()).optional(),
-    /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal saleTotal. */
+    /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal amountToCharge. */
     paymentLegs: z.array(paymentLegSchema).optional(),
   })
   .refine(
     (data) => data.amountToCharge <= data.totals.saleTotal + 0.001,
     { message: 'Amount to charge cannot exceed total', path: ['amountToCharge'] }
+  )
+  .refine(
+    (data) => {
+      if (!data.paymentLegs || data.paymentLegs.length === 0) return true;
+      const legSum = data.paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
+      return Math.abs(legSum - data.amountToCharge) <= 0.001;
+    },
+    { message: 'Payment leg sum must equal amount to charge', path: ['paymentLegs'] }
   );
 
 export type NewOrderPaymentTotals = z.infer<typeof newOrderPaymentTotalsSchema>;

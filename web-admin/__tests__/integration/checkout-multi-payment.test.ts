@@ -160,5 +160,43 @@ describe('checkout multi-leg payment — validation layer', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('rejects split legs whose sum does not equal amountToCharge', () => {
+      const result = newOrderPaymentPayloadSchema.safeParse({
+        amountToCharge: 100,
+        totals: {
+          subtotal: 100,
+          manualDiscount: 0,
+          promoDiscount: 0,
+          vatValue: 0,
+          saleTotal: 100,
+        },
+        paymentLegs: [
+          { method: 'CASH', amount: 60 },
+          { method: 'CARD', amount: 30 },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts split legs when sum equals amountToCharge', () => {
+      const result = newOrderPaymentPayloadSchema.safeParse({
+        amountToCharge: 100,
+        totals: {
+          subtotal: 100,
+          manualDiscount: 0,
+          promoDiscount: 0,
+          vatValue: 0,
+          saleTotal: 100,
+        },
+        paymentLegs: [
+          { method: 'CASH', amount: 60 },
+          { method: 'CARD', amount: 40 },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
   });
 });

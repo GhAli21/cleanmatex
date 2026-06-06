@@ -3709,6 +3709,30 @@
       "payment": "Payment",
       "system": "System",
       "delivery": "Delivery"
+    },
+    "bell": {
+      "viewAll": "View all notifications"
+    },
+    "center": {
+      "tabs": {
+        "all": "All",
+        "unread": "Unread",
+        "orders": "Orders",
+        "payments": "Payments",
+        "system": "System"
+      },
+      "empty": "You're all caught up",
+      "emptyDesc": "No notifications to show here",
+      "emptyUnread": "No unread notifications",
+      "emptyUnreadDesc": "You've read all your notifications",
+      "loadMore": "Load more",
+      "prevPage": "Previous",
+      "nextPage": "Next"
+    },
+    "item": {
+      "markRead": "Mark as read",
+      "viewDetails": "View details",
+      "justNow": "Just now"
     }
   },
   "reports": {
@@ -5335,7 +5359,8 @@
         "helperDescription": "Select a payment method, edit an amount, or apply a credit. The active task will appear here.",
         "helperMethod": "Choose method",
         "helperAmount": "Edit amount",
-        "helperCredits": "Apply credits"
+        "helperCredits": "Apply credits",
+        "remainingForLeg": "You can allocate up to {amount} on this payment leg."
       },
       "sections": {
         "paymentTools": "Payment Tools",
@@ -5432,7 +5457,8 @@
         "paymentMethodNote": "Payment method: {method}",
         "discardChanges": "You have unsaved payment changes. Close this modal and discard them?",
         "readyToSubmit": "Ready to submit",
-        "validationErrors": "Please fix the following errors"
+        "validationErrors": "Please fix the following errors",
+        "totalsAdjusted": "Order total changed. Payment leg amounts were adjusted to match."
       },
       "receipt": {
         "title": "Payment Receipt",
@@ -5480,6 +5506,9 @@
         "allocated": "Fully Allocated",
         "over": "Over-allocated",
         "legSum": "Legs Total",
+        "settledTotal": "Settled Total",
+        "fillRemaining": "Fill remaining",
+        "noRemainingToFill": "No remaining balance is available for this payment leg.",
         "validation": {
           "sumMismatch": "Sum of payment legs must equal order total",
           "amountMustBePositive": "Each leg amount must be greater than 0",

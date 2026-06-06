@@ -41,10 +41,22 @@ describe('payment-modal-v4 right rail', () => {
 
   it('prioritizes overpaid status above fully settled', () => {
     const state = derivePaymentModalRightRailState(
-      makeInput({ changeAmount: 5, remainingBalance: 0 })
+      makeInput({ changeAmount: 5, remainingBalance: 0, canReturnChangeFromCash: false })
     );
 
     expect(state.balanceStatus).toBe(RIGHT_RAIL_BALANCE_STATUS.OVERPAID);
+  });
+
+  it('treats cash-backed change as fully settled instead of overpaid', () => {
+    const state = derivePaymentModalRightRailState(
+      makeInput({
+        changeAmount: 0.5,
+        remainingBalance: 0,
+        canReturnChangeFromCash: true,
+      })
+    );
+
+    expect(state.balanceStatus).toBe(RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED);
   });
 
   it('derives fully settled status when remaining balance is cleared', () => {

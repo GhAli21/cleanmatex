@@ -13,6 +13,7 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 
 /**
  * POST /api/v1/orders
@@ -140,6 +141,17 @@ export async function POST(request: NextRequest) {
         { success: false, error: result.error },
         { status: 400 }
       );
+    }
+
+    if (result.order) {
+      void emitNotificationEvent({
+        code: 'order.created',
+        tenantOrgId: tenantId,
+        recipientUserIds: [userId],
+        sourceEntityType: 'order',
+        sourceEntityId: result.order.id,
+        variables: { order_number: result.order.orderNo },
+      });
     }
 
     return NextResponse.json({ success: true, data: result.order });

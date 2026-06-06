@@ -40,11 +40,18 @@ import type { Control } from 'react-hook-form';
 import type { PaymentMethodCode } from '@/lib/constants/order-types';
 import {
   applyKeypadInput,
+  capPaymentLegAmount,
   deriveOutstandingPolicy,
   formatDecimalDraft,
   getPreferredCashDrawerStorageKey,
+  getAmountAppliedToOrder,
+  getDisplayChangeAmount,
+  getNetCashRetainedAmount,
+  getRemainingToAllocate,
+  getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
-  getWalletLegMaxAmount,
+  getUnresolvedOverpaymentAmount,
+  reconcilePaymentLegAmounts,
   resolvePreferredCashDrawerSessionId,
   walletLegExceedsBalance,
   parseDecimalDraft,
@@ -588,6 +595,7 @@ export function PaymentModalV4({
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeLegDraftSyncKeyRef = useRef<string | null>(null);
+  const allocationBaselineRef = useRef<{ saleTotal: number; giftCard: number } | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
   const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
@@ -907,6 +915,7 @@ export function PaymentModalV4({
       setPendingSubmission(null);
       setPaymentLegs([]);
       setTaxProfileEntries([]);
+      allocationBaselineRef.current = null;
     }
   }, [open, reset, defaultPaymentMethod, defaultOutstandingPolicy, initialPaymentNotes]);
 
@@ -1038,6 +1047,7 @@ export function PaymentModalV4({
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
 
   const saleTotal = totals.saleTotal;
+  const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
 
   const IMMEDIATE_METHOD_CODES = [
     PAYMENT_METHODS.CASH,
@@ -1197,10 +1207,15 @@ export function PaymentModalV4({
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
     const currentLeg = paymentLegs[idx];
     const normalizedValue =
-      key === 'amount' && typeof value === 'number' && currentLeg?.method === 'WALLET'
-        ? (Math.min(
+      key === 'amount' && typeof value === 'number'
+        ? (capPaymentLegAmount(
             value,
-            getWalletLegMaxAmount(liveWalletBalance, paymentLegs, idx, saleTotal, decimalPlaces)
+            paymentLegs,
+            idx,
+            saleTotal,
+            giftCardSettlementAmount,
+            decimalPlaces,
+            currentLeg?.method === 'WALLET' ? liveWalletBalance : undefined
           ) as PaymentLeg[K])
         : value;
 
@@ -1212,19 +1227,26 @@ export function PaymentModalV4({
       updated[idx] = { ...updated[idx], [key]: normalizedValue };
       return updated;
     });
-  }, [decimalPlaces, liveWalletBalance, paymentLegs, saleTotal]);
+  }, [decimalPlaces, giftCardSettlementAmount, liveWalletBalance, paymentLegs, saleTotal]);
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
-      const nextAmount = Number.parseFloat(
-        Math.max(0, Math.min(saleTotal, defaultAmount)).toFixed(decimalPlaces)
-      );
       setIsDirtySinceOpen(true);
       setPaymentLegs((prev) => {
         const existingIndex = prev.findIndex(
           (leg) =>
             leg.method === option.payment_method_code &&
             (leg.gateway_code ?? '') === (option.gateway_code ?? '')
+        );
+        const targetIndex = existingIndex >= 0 ? existingIndex : prev.length;
+        const nextAmount = capPaymentLegAmount(
+          defaultAmount,
+          prev,
+          targetIndex,
+          saleTotal,
+          giftCardSettlementAmount,
+          decimalPlaces,
+          option.payment_method_code === 'WALLET' ? liveWalletBalance : undefined
         );
         const nextLeg: PaymentLeg = {
           method: option.payment_method_code as PaymentLeg['method'],
@@ -1239,7 +1261,7 @@ export function PaymentModalV4({
           updated[existingIndex] = {
             ...updated[existingIndex],
             ...nextLeg,
-            amount: updated[existingIndex].amount > 0 ? updated[existingIndex].amount : nextAmount,
+            amount: nextAmount,
           };
           setActiveLegIndex(existingIndex);
           return updated;
@@ -1255,30 +1277,27 @@ export function PaymentModalV4({
       });
       focusAmountEditor();
     },
-    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, saleTotal]
+    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, giftCardSettlementAmount, liveWalletBalance, saleTotal]
   );
 
   const handleMethodSelect = useCallback(
     (option: CheckoutSettlementOption) => {
       setValue('paymentMethod', option.payment_method_code as PaymentMethodCode, { shouldDirty: true });
-      const alreadyApplied = paymentLegs.some(
+      const existingIndex = paymentLegs.findIndex(
         (leg) =>
           leg.method === option.payment_method_code &&
           (leg.gateway_code ?? '') === (option.gateway_code ?? '')
       );
-      const currentSettled = paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
-      const suggestedAmount = alreadyApplied
-        ? getMethodOption(option.payment_method_code, option.gateway_code)
-          ? paymentLegs.find(
-              (leg) =>
-                leg.method === option.payment_method_code &&
-                (leg.gateway_code ?? '') === (option.gateway_code ?? '')
-            )?.amount ?? 0
-          : 0
-        : Math.max(0, saleTotal - currentSettled);
+      const suggestedAmount = getSuggestedDefaultLegAmount(
+        paymentLegs,
+        existingIndex >= 0 ? existingIndex : undefined,
+        saleTotal,
+        giftCardSettlementAmount,
+        decimalPlaces
+      );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [getMethodOption, paymentLegs, setValue, saleTotal, upsertSettlementLeg]
+    [decimalPlaces, giftCardSettlementAmount, paymentLegs, setValue, saleTotal, upsertSettlementLeg]
   );
 
   const handleCustomerCreditSelect = useCallback(
@@ -1291,17 +1310,45 @@ export function PaymentModalV4({
         option.credit_application_type === 'WALLET'
           ? liveWalletBalance
           : option.available_balance ?? 0;
-      const currentSettled = paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
+      const existingIndex = paymentLegs.findIndex(
+        (leg) => leg.method === option.payment_method_code
+      );
       const suggestedAmount = getSuggestedStoredValueAmount(
         availableBalance,
-        currentSettled,
+        paymentLegs,
         saleTotal,
-        decimalPlaces
+        giftCardSettlementAmount,
+        decimalPlaces,
+        existingIndex >= 0 ? existingIndex : undefined
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [decimalPlaces, liveWalletBalance, paymentLegs, t, saleTotal, upsertSettlementLeg]
+    [decimalPlaces, giftCardSettlementAmount, liveWalletBalance, paymentLegs, t, saleTotal, upsertSettlementLeg]
   );
+
+  useEffect(() => {
+    if (!open) {
+      allocationBaselineRef.current = null;
+      return;
+    }
+
+    const epsilon = Math.pow(10, -(decimalPlaces + 1));
+    const previous = allocationBaselineRef.current;
+
+    if (previous !== null && paymentLegs.length > 0) {
+      const saleTotalChanged = Math.abs(previous.saleTotal - saleTotal) > epsilon;
+      const giftCardChanged = Math.abs(previous.giftCard - giftCardSettlementAmount) > epsilon;
+
+      if (saleTotalChanged || giftCardChanged) {
+        setPaymentLegs((prevLegs) =>
+          reconcilePaymentLegAmounts(prevLegs, saleTotal, giftCardSettlementAmount, decimalPlaces)
+        );
+        cmxMessage.info(t('messages.totalsAdjusted'));
+      }
+    }
+
+    allocationBaselineRef.current = { saleTotal, giftCard: giftCardSettlementAmount };
+  }, [decimalPlaces, giftCardSettlementAmount, open, paymentLegs.length, saleTotal, t]);
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -1328,10 +1375,11 @@ export function PaymentModalV4({
     [paymentLegs]
   );
 
-  const editableLegEntries = useMemo(
-    () => paymentLegs.map((leg, index) => ({ leg, index })),
-    [paymentLegs]
-  );
+  const editableLegEntries = useMemo(() => {
+    const entries = paymentLegs.map((leg, index) => ({ leg, index }));
+    const nonZero = entries.filter(({ leg }) => (leg.amount ?? 0) > 0);
+    return nonZero.length > 0 ? nonZero : entries;
+  }, [paymentLegs]);
 
   const realPaymentEntries = useMemo(
     () =>
@@ -1367,7 +1415,6 @@ export function PaymentModalV4({
         .reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
     [realPaymentEntries]
   );
-  const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
   const totalSettledNowAmount = settledNowAmount + giftCardSettlementAmount;
   const walletLegEntry = useMemo(
     () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
@@ -1381,6 +1428,19 @@ export function PaymentModalV4({
   const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
   const canReturnChangeFromCash = cashLegAmount > moneyEpsilon;
   const overpaymentNeedsResolution = changeAmount > moneyEpsilon && !canReturnChangeFromCash;
+  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
+  const displayChangeAmount = getDisplayChangeAmount(changeAmount, canReturnChangeFromCash, moneyEpsilon);
+  const unresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
+    changeAmount,
+    canReturnChangeFromCash,
+    moneyEpsilon
+  );
+  const netCashRetainedAmount = getNetCashRetainedAmount(
+    cashLegAmount,
+    changeAmount,
+    canReturnChangeFromCash,
+    moneyEpsilon
+  );
   const primaryMethodOption = getMethodOption(paymentMethod);
   const cashDrawerRequired = useMemo(() => {
     const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
@@ -1636,8 +1696,9 @@ export function PaymentModalV4({
         setGiftCardDetails(details);
         const defaultAmount = getSuggestedStoredValueAmount(
           result.availableBalance,
-          settledNowAmount,
+          paymentLegs,
           saleTotal,
+          giftCardSettlementAmount,
           decimalPlaces
         );
         setValue('giftCardAmount', defaultAmount);
@@ -1660,8 +1721,9 @@ export function PaymentModalV4({
     const amountToUse = Number(giftCardAmount) || 0;
     const maxAmount = getSuggestedStoredValueAmount(
       giftCardDetails.balance,
-      settledNowAmount,
+      paymentLegs,
       saleTotal,
+      giftCardSettlementAmount,
       decimalPlaces
     );
     if (amountToUse <= 0) { cmxMessage.error(t('giftCard.errors.amountRequired')); return; }
@@ -1725,6 +1787,21 @@ export function PaymentModalV4({
         cmxMessage.error(t('splitPayment.validation.checkNumberRequired'));
         return;
       }
+    }
+
+    if (settlementLegEntries.length > 1) {
+      const legSum = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
+      if (Math.abs(legSum - settledNowAmount) > 0.001) {
+        cmxMessage.error(t('splitPayment.validation.sumMismatch'));
+        return;
+      }
+    }
+
+    if (overpaymentNeedsResolution) {
+      cmxMessage.error(t('rightRail.requiredAction.overpaymentMessage', {
+        amount: `${currencyCode} ${formatAmount(changeAmount)}`,
+      }));
+      return;
     }
 
     if (walletLegExceedsLiveBalance) {
@@ -1891,6 +1968,16 @@ export function PaymentModalV4({
 
   const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
   const activeLeg = paymentLegs[activeLegIndex] ?? null;
+  const activeLegRemainingCap = useMemo(() => {
+    if (!activeLeg) return 0;
+    return getRemainingToAllocate(
+      saleTotal,
+      paymentLegs,
+      giftCardSettlementAmount,
+      activeLegIndex,
+      decimalPlaces
+    );
+  }, [activeLeg, activeLegIndex, decimalPlaces, giftCardSettlementAmount, paymentLegs, saleTotal]);
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
     totalSettledNowAmount,
     saleTotal,
@@ -1913,6 +2000,13 @@ export function PaymentModalV4({
     ? getOptionDisplayName(activeLegOption, activeLeg.method)
     : getPaymentLabel(paymentMethod || defaultPaymentMethod);
   const paymentLegsTotal = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
+  const splitSidebarSettledTotal = paymentLegsTotal + giftCardSettlementAmount;
+  const allocationStatusLabel =
+    unresolvedOverpaymentAmount > moneyEpsilon
+      ? t('splitPayment.over')
+      : remainingBalance > moneyEpsilon
+        ? t('splitPayment.outstanding')
+        : t('splitPayment.allocated');
   const customerHeaderName = customerDisplayName?.trim() || t('customerCard.walkInCustomer');
   const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
   const invalidImmediateAmount =
@@ -1930,6 +2024,52 @@ export function PaymentModalV4({
     });
     focusAmountEditor();
   }, [editableLegEntries, focusAmountEditor]);
+
+  const fillLegRemaining = useCallback(
+    (legIndex: number) => {
+      const targetLeg = paymentLegs[legIndex];
+      if (!targetLeg) return;
+
+      const fillAmount = getSuggestedDefaultLegAmount(
+        paymentLegs,
+        legIndex,
+        saleTotal,
+        giftCardSettlementAmount,
+        decimalPlaces
+      );
+      const cappedAmount = capPaymentLegAmount(
+        fillAmount,
+        paymentLegs,
+        legIndex,
+        saleTotal,
+        giftCardSettlementAmount,
+        decimalPlaces,
+        targetLeg.method === 'WALLET' ? liveWalletBalance : undefined
+      );
+
+      if (cappedAmount <= moneyEpsilon) {
+        cmxMessage.info(t('splitPayment.noRemainingToFill'));
+        return;
+      }
+
+      setIsDirtySinceOpen(true);
+      setActiveLegIndex(legIndex);
+      updateLeg(legIndex, 'amount', cappedAmount);
+      setActiveAmountDraft(formatDecimalDraft(cappedAmount, decimalPlaces));
+      focusAmountEditor();
+    },
+    [
+      decimalPlaces,
+      focusAmountEditor,
+      giftCardSettlementAmount,
+      liveWalletBalance,
+      moneyEpsilon,
+      paymentLegs,
+      saleTotal,
+      t,
+      updateLeg,
+    ]
+  );
 
   const scrollAndFocusTarget = useCallback(
     (
@@ -2533,10 +2673,30 @@ export function PaymentModalV4({
       decimalPlaces
     );
     const nextAmount = parseDecimalDraft(nextDraft);
-    const cappedAmount = Math.max(0, Math.min(saleTotal, nextAmount));
-    setActiveAmountDraft(nextAmount > saleTotal ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft);
+    const cappedAmount = capPaymentLegAmount(
+      nextAmount,
+      paymentLegs,
+      activeLegIndex,
+      saleTotal,
+      giftCardSettlementAmount,
+      decimalPlaces,
+      activeLeg.method === 'WALLET' ? liveWalletBalance : undefined
+    );
+    setActiveAmountDraft(
+      nextAmount > cappedAmount ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft
+    );
     updateLeg(activeLegIndex, 'amount', cappedAmount);
-  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces, saleTotal, updateLeg]);
+  }, [
+    activeAmountDraft,
+    activeLeg,
+    activeLegIndex,
+    decimalPlaces,
+    giftCardSettlementAmount,
+    liveWalletBalance,
+    paymentLegs,
+    saleTotal,
+    updateLeg,
+  ]);
 
   const closeWithGuard = useCallback(() => {
     if (!isDirtySinceOpen) {
@@ -2787,7 +2947,7 @@ export function PaymentModalV4({
                         </CmxCardTitle>
                         {editableLegEntries.length > 0 && (
                           <span className="text-xs font-semibold text-cyan-700">
-                            {t('splitPayment.legSum')}: {currencyCode} {formatAmount(paymentLegsTotal)}
+                            {t('splitPayment.settledTotal')}: {currencyCode} {formatAmount(splitSidebarSettledTotal)}
                           </span>
                         )}
                       </div>
@@ -2799,35 +2959,62 @@ export function PaymentModalV4({
                         editableLegEntries.map(({ leg, index }) => {
                           const option = getMethodOption(leg.method, leg.gateway_code);
                           const label = getOptionDisplayName(option, leg.method);
+                          const legRemainingCap = getRemainingToAllocate(
+                            saleTotal,
+                            paymentLegs,
+                            giftCardSettlementAmount,
+                            index,
+                            decimalPlaces
+                          );
+                          const canFillLeg = legRemainingCap > moneyEpsilon;
                           return (
-                          <CmxButton
+                          <div
                             key={`payment-leg-summary-${index}`}
-                            type="button"
-                            variant="ghost"
-                            onClick={() => {
-                              setActiveLegIndex(index);
-                              focusAmountEditor();
-                            }}
-                            className={`h-auto w-full justify-between rounded-2xl border px-3 py-3 text-sm transition ${
+                            className={`flex items-stretch gap-2 rounded-2xl border transition ${
                               activeLegIndex === index
-                                ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-cyan-900 shadow-sm'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white shadow-sm'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
                             }`}
                           >
-                            <span className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-500">
-                                {index + 1}
+                            <CmxButton
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setActiveLegIndex(index);
+                                focusAmountEditor();
+                              }}
+                              className={`h-auto min-h-0 flex-1 justify-between rounded-2xl border-0 px-3 py-3 text-sm shadow-none ${
+                                activeLegIndex === index
+                                  ? 'text-cyan-900 hover:bg-transparent'
+                                  : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-500">
+                                  {index + 1}
+                                </span>
+                                <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${getMethodToneClasses(leg.method).iconWrap}`}>
+                                  {getPaymentIcon(leg.method)}
+                                </span>
+                                <span className="font-medium">{label}</span>
                               </span>
-                              <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${getMethodToneClasses(leg.method).iconWrap}`}>
-                                {getPaymentIcon(leg.method)}
+                              <span className="flex items-center gap-2">
+                                <span className="tabular-nums font-semibold">{currencyCode} {formatAmount(leg.amount || 0)}</span>
+                                <EllipsisVertical className="h-4 w-4 text-slate-300" />
                               </span>
-                              <span className="font-medium">{label}</span>
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <span className="tabular-nums font-semibold">{currencyCode} {formatAmount(leg.amount || 0)}</span>
-                              <EllipsisVertical className="h-4 w-4 text-slate-300" />
-                            </span>
-                          </CmxButton>
+                            </CmxButton>
+                            <CmxButton
+                              type="button"
+                              variant="outline"
+                              size="xs"
+                              disabled={!canFillLeg}
+                              aria-label={t('splitPayment.fillRemaining')}
+                              onClick={() => fillLegRemaining(index)}
+                              className="my-2 me-2 shrink-0 rounded-xl border-cyan-200 px-2.5 text-cyan-700"
+                            >
+                              {t('splitPayment.fillRemaining')}
+                            </CmxButton>
+                          </div>
                         );
                         })
                       )}
@@ -2889,8 +3076,14 @@ export function PaymentModalV4({
                           </CmxCardTitle>
                           <p className="mt-1 text-xs text-slate-500">{t('sections.balanceSnapshotHelp')}</p>
                         </div>
-                        <Badge variant="secondary" className={`rounded-full px-3 py-1 text-xs font-semibold ${remainingBalance > moneyEpsilon ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                          {remainingBalance > moneyEpsilon ? t('splitPayment.outstanding') : t('splitPayment.allocated')}
+                        <Badge variant="secondary" className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          unresolvedOverpaymentAmount > moneyEpsilon
+                            ? 'bg-rose-50 text-rose-700'
+                            : remainingBalance > moneyEpsilon
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-emerald-50 text-emerald-700'
+                        }`}>
+                          {allocationStatusLabel}
                         </Badge>
                       </div>
                     </CmxCardHeader>
@@ -2902,7 +3095,9 @@ export function PaymentModalV4({
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                           <p className="text-xs font-semibold text-slate-500">{t('workspace.change') || 'Change'}</p>
-                          <p className="mt-2 text-xl font-bold tabular-nums text-emerald-600">{currencyCode} {formatAmount(changeAmount)}</p>
+                          <p className={`mt-2 text-xl font-bold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
+                            {currencyCode} {formatAmount(displayChangeAmount)}
+                          </p>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                           <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
@@ -2910,8 +3105,8 @@ export function PaymentModalV4({
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                           <p className="text-xs font-semibold text-slate-500">{t('rightRail.overpaidAmount')}</p>
-                          <p className={`mt-2 text-xl font-bold tabular-nums ${changeAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {currencyCode} {formatAmount(changeAmount)}
+                          <p className={`mt-2 text-xl font-bold tabular-nums ${unresolvedOverpaymentAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
+                            {currencyCode} {formatAmount(unresolvedOverpaymentAmount)}
                           </p>
                         </div>
                       </div>
@@ -2992,6 +3187,25 @@ export function PaymentModalV4({
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
                               {t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}
                             </p>
+                            {activeLeg ? (
+                              <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <p className="text-xs text-slate-600">
+                                  {t('workspace.remainingForLeg', {
+                                    amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
+                                  })}
+                                </p>
+                                <CmxButton
+                                  type="button"
+                                  variant="outline"
+                                  size="xs"
+                                  disabled={activeLegRemainingCap <= moneyEpsilon}
+                                  onClick={() => fillLegRemaining(activeLegIndex)}
+                                  className="shrink-0 rounded-lg border-cyan-200 text-cyan-700"
+                                >
+                                  {t('splitPayment.fillRemaining')}
+                                </CmxButton>
+                              </div>
+                            ) : null}
                           </div>
                           <div className="min-w-0">
                             <CmxKeypad
@@ -3763,12 +3977,12 @@ export function PaymentModalV4({
                                   </p>
                                   <SummaryRow
                                     label={t('rightRail.cashRetained')}
-                                    value={`${currencyCode} ${formatAmount(cashLegAmount)}`}
+                                    value={`${currencyCode} ${formatAmount(netCashRetainedAmount)}`}
                                   />
                                   <SummaryRow
                                     label={t('rightRail.changeReturned')}
-                                    value={`${currencyCode} ${formatAmount(changeAmount)}`}
-                                    negative={changeAmount > moneyEpsilon}
+                                    value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                                    negative={displayChangeAmount > moneyEpsilon}
                                   />
                                 </div>
                               </div>
@@ -4119,18 +4333,26 @@ export function PaymentModalV4({
                         />
                           <SummaryRow
                             label={t('rightRail.totalSettledNow')}
-                            value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                            value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`}
                           />
                         <SummaryRow
                           label={t('rightRail.remainingBalance')}
                           value={`${currencyCode} ${formatAmount(remainingBalance)}`}
                           negative={remainingBalance > moneyEpsilon}
                         />
-                        <SummaryRow
-                          label={t('rightRail.overpaidAmount')}
-                          value={`${currencyCode} ${formatAmount(changeAmount)}`}
-                          negative={changeAmount > moneyEpsilon}
-                        />
+                        {displayChangeAmount > moneyEpsilon ? (
+                          <SummaryRow
+                            label={t('rightRail.changeReturned')}
+                            value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                          />
+                        ) : null}
+                        {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                          <SummaryRow
+                            label={t('rightRail.overpaidAmount')}
+                            value={`${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`}
+                            negative
+                          />
+                        ) : null}
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                           <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                             {t('rightRail.status')}
@@ -4212,7 +4434,7 @@ export function PaymentModalV4({
                       <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
                         <SummaryRow
                           label={t('rightRail.totalSettledNow')}
-                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                          value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`}
                           bold
                         />
                       </div>
@@ -4419,7 +4641,7 @@ export function PaymentModalV4({
             <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
               <div className="space-y-2">
                 <SummaryRow label={t('rightRail.orderTotal')} value={`${currencyCode} ${formatAmount(saleTotal)}`} />
-                <SummaryRow label={t('rightRail.totalSettledNow')} value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`} />
+                <SummaryRow label={t('rightRail.totalSettledNow')} value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`} />
                 {appliedGiftCard ? (
                   <SummaryRow label={t('giftCard.title')} value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`} />
                 ) : null}
@@ -4428,6 +4650,19 @@ export function PaymentModalV4({
                   value={`${currencyCode} ${formatAmount(remainingBalance)}`}
                   negative={remainingBalance > moneyEpsilon}
                 />
+                {displayChangeAmount > moneyEpsilon ? (
+                  <SummaryRow
+                    label={t('rightRail.changeReturned')}
+                    value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                  />
+                ) : null}
+                {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                  <SummaryRow
+                    label={t('rightRail.overpaidAmount')}
+                    value={`${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`}
+                    negative
+                  />
+                ) : null}
                 <SummaryRow label={t('submitConfirm.paymentMethod')} value={summaryMethodLabel} />
               </div>
             </div>

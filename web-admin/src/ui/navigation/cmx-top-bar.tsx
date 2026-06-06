@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X, RefreshCw } from 'lucide-react'
+import { ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
   evaluateAccessRequirement,
@@ -22,6 +22,7 @@ import {
 import { getAllPageAccessContracts, getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { NotificationBell } from '@features/notifications/ui/notification-bell'
 
 function RequirementBadge({
   passed,
@@ -160,7 +161,6 @@ export default function CmxTopBar() {
   const queryClient = useQueryClient()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTenantMenu, setShowTenantMenu] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
   const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api' | 'flags'>('ui')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -266,28 +266,7 @@ export default function CmxTopBar() {
               <ShieldCheck className="h-5 w-5" />
             </button>
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md relative"
-                aria-label="Notifications"
-              >
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-              </button>
-
-              {showNotifications && (
-                <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50`}>
-                  <div className="px-4 py-3 border-b border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900">{t('notifications')}</h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    <div className="px-4 py-8 text-center text-sm text-gray-500">{t('noNotifications')}</div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
             {availableTenants.length > 1 && (
               <div className="relative">

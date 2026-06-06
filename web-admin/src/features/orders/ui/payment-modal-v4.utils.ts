@@ -58,28 +58,163 @@ export function deriveOutstandingPolicy(
   return preferred;
 }
 
+export function getAmountAppliedToOrder(
+  saleTotal: number,
+  totalSettledNowAmount: number
+): number {
+  return Math.min(totalSettledNowAmount, saleTotal);
+}
+
+export function getDisplayChangeAmount(
+  changeAmount: number,
+  canReturnChangeFromCash: boolean,
+  epsilon = 0.001
+): number {
+  return canReturnChangeFromCash && changeAmount > epsilon ? changeAmount : 0;
+}
+
+export function getUnresolvedOverpaymentAmount(
+  changeAmount: number,
+  canReturnChangeFromCash: boolean,
+  epsilon = 0.001
+): number {
+  return changeAmount > epsilon && !canReturnChangeFromCash ? changeAmount : 0;
+}
+
+export function getNetCashRetainedAmount(
+  cashLegAmount: number,
+  changeAmount: number,
+  canReturnChangeFromCash: boolean,
+  epsilon = 0.001
+): number {
+  if (!canReturnChangeFromCash || changeAmount <= epsilon) {
+    return cashLegAmount;
+  }
+  return Math.max(0, cashLegAmount - changeAmount);
+}
+
+/** Sum of payment-leg amounts, optionally excluding one leg index. */
+export function getTotalLegSettled(
+  paymentLegs: Array<{ amount?: number }>,
+  excludeLegIndex?: number
+): number {
+  return paymentLegs.reduce(
+    (sum, leg, legIdx) => sum + (legIdx === excludeLegIndex ? 0 : (leg.amount || 0)),
+    0
+  );
+}
+
+/**
+ * Remaining order balance still available to allocate across payment legs,
+ * after gift-card credits and other legs (optionally excluding one leg).
+ */
+export function getRemainingToAllocate(
+  saleTotal: number,
+  paymentLegs: Array<{ amount?: number }>,
+  giftCardAmount: number,
+  excludeLegIndex?: number,
+  decimalPlaces = 3
+): number {
+  const otherLegsTotal = getTotalLegSettled(paymentLegs, excludeLegIndex);
+  const remaining = saleTotal - giftCardAmount - otherLegsTotal;
+  return Number.parseFloat(Math.max(0, remaining).toFixed(decimalPlaces));
+}
+
+/** Max amount a single leg may hold without exceeding sale total minus gift card and other legs. */
 export function getLegOrderCap(
   paymentLegs: Array<{ amount?: number }>,
   idx: number,
-  saleTotal: number
+  saleTotal: number,
+  giftCardAmount = 0
 ): number {
-  const otherLegsTotal = paymentLegs.reduce(
-    (sum, leg, legIdx) => sum + (legIdx === idx ? 0 : (leg.amount || 0)),
-    0
-  );
+  return getRemainingToAllocate(saleTotal, paymentLegs, giftCardAmount, idx);
+}
 
-  return Math.max(0, saleTotal - otherLegsTotal);
+/** Default amount when selecting or re-selecting a payment method leg. */
+export function getSuggestedDefaultLegAmount(
+  paymentLegs: Array<{ amount?: number }>,
+  legIndex: number | undefined,
+  saleTotal: number,
+  giftCardAmount: number,
+  decimalPlaces: number
+): number {
+  return getRemainingToAllocate(
+    saleTotal,
+    paymentLegs,
+    giftCardAmount,
+    legIndex,
+    decimalPlaces
+  );
 }
 
 export function getSuggestedStoredValueAmount(
   availableBalance: number,
-  currentSettled: number,
+  paymentLegs: Array<{ amount?: number }>,
   saleTotal: number,
-  decimalPlaces: number
+  giftCardAmount: number,
+  decimalPlaces: number,
+  excludeLegIndex?: number
 ): number {
-  return Number.parseFloat(
-    Math.max(0, Math.min(availableBalance, saleTotal - currentSettled)).toFixed(decimalPlaces)
+  const remaining = getRemainingToAllocate(
+    saleTotal,
+    paymentLegs,
+    giftCardAmount,
+    excludeLegIndex,
+    decimalPlaces
   );
+  return Number.parseFloat(
+    Math.max(0, Math.min(availableBalance, remaining)).toFixed(decimalPlaces)
+  );
+}
+
+export function capPaymentLegAmount(
+  rawAmount: number,
+  paymentLegs: Array<{ amount?: number }>,
+  idx: number,
+  saleTotal: number,
+  giftCardAmount: number,
+  decimalPlaces: number,
+  walletBalance?: number
+): number {
+  let maxAmount = getLegOrderCap(paymentLegs, idx, saleTotal, giftCardAmount);
+  if (walletBalance != null) {
+    maxAmount = Math.min(maxAmount, walletBalance);
+  }
+  return Number.parseFloat(
+    Math.max(0, Math.min(maxAmount, rawAmount)).toFixed(decimalPlaces)
+  );
+}
+
+/**
+ * Caps each leg when checkout totals or gift-card credits change so allocations
+ * never exceed the canonical sale total.
+ */
+export function reconcilePaymentLegAmounts<T extends { amount?: number }>(
+  paymentLegs: T[],
+  saleTotal: number,
+  giftCardAmount: number,
+  decimalPlaces: number
+): T[] {
+  const next = paymentLegs.map((leg) => ({ ...leg }));
+  for (let i = 0; i < next.length; i++) {
+    const cap = getLegOrderCap(next, i, saleTotal, giftCardAmount);
+    const current = next[i].amount ?? 0;
+    if (current > cap + Math.pow(10, -(decimalPlaces + 1))) {
+      next[i] = {
+        ...next[i],
+        amount: Number.parseFloat(cap.toFixed(decimalPlaces)),
+      };
+    }
+  }
+  return next;
+}
+
+/** Drops zero-amount placeholder legs while preserving at least one leg when provided. */
+export function pruneZeroAmountLegs<T extends { amount?: number }>(
+  paymentLegs: T[]
+): T[] {
+  const nonZero = paymentLegs.filter((leg) => (leg.amount ?? 0) > 0);
+  return nonZero.length > 0 ? nonZero : paymentLegs;
 }
 
 export function getWalletLegMaxAmount(
@@ -87,10 +222,17 @@ export function getWalletLegMaxAmount(
   paymentLegs: Array<{ amount?: number }>,
   idx: number,
   saleTotal: number,
-  decimalPlaces: number
+  decimalPlaces: number,
+  giftCardAmount = 0
 ): number {
-  return Number.parseFloat(
-    Math.max(0, Math.min(walletBalance, getLegOrderCap(paymentLegs, idx, saleTotal))).toFixed(decimalPlaces)
+  return capPaymentLegAmount(
+    walletBalance,
+    paymentLegs,
+    idx,
+    saleTotal,
+    giftCardAmount,
+    decimalPlaces,
+    walletBalance
   );
 }
 

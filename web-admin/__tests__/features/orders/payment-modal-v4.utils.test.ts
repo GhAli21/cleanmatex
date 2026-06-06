@@ -1,11 +1,19 @@
 import {
   applyKeypadInput,
   buildGatewayReturnState,
+  capPaymentLegAmount,
   deriveOutstandingPolicy,
   getPreferredCashDrawerStorageKey,
+  getAmountAppliedToOrder,
+  getDisplayChangeAmount,
+  getNetCashRetainedAmount,
+  getRemainingToAllocate,
+  getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
+  getUnresolvedOverpaymentAmount,
   getWalletLegMaxAmount,
   parseGatewayReturnState,
+  reconcilePaymentLegAmounts,
   resolvePreferredCashDrawerSessionId,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
@@ -62,14 +70,57 @@ describe('payment-modal-v4 utils', () => {
   });
 
   it('suggests a wallet leg amount capped by live balance and remaining due', () => {
-    expect(getSuggestedStoredValueAmount(40, 20, 100, 3)).toBe(40);
-    expect(getSuggestedStoredValueAmount(80, 40, 100, 3)).toBe(60);
+    expect(getSuggestedStoredValueAmount(40, [{ amount: 20 }], 100, 0, 3)).toBe(40);
+    expect(getSuggestedStoredValueAmount(80, [{ amount: 40 }], 100, 0, 3)).toBe(60);
+  });
+
+  it('subtracts gift card credits when suggesting stored-value amounts', () => {
+    expect(getSuggestedStoredValueAmount(80, [], 100, 20, 3)).toBe(80);
+    expect(getSuggestedStoredValueAmount(80, [{ amount: 50 }], 100, 20, 3)).toBe(30);
   });
 
   it('caps wallet editing to the remaining order allocation for that leg', () => {
     const paymentLegs = [{ amount: 60 }, { amount: 40 }];
     expect(getWalletLegMaxAmount(50, paymentLegs, 1, 100, 3)).toBe(40);
     expect(getWalletLegMaxAmount(50, paymentLegs, 0, 100, 3)).toBe(50);
+  });
+
+  it('computes remaining to allocate excluding the active leg', () => {
+    const legs = [{ amount: 8.321 }, { amount: 2 }];
+    expect(getRemainingToAllocate(8.321, legs, 0, 0, 3)).toBe(6.321);
+    expect(getRemainingToAllocate(8.321, legs, 0, 1, 3)).toBe(0);
+    expect(getRemainingToAllocate(8.321, legs, 2, undefined, 3)).toBe(0);
+    expect(getRemainingToAllocate(8.321, [{ amount: 2 }], 0, undefined, 3)).toBe(6.321);
+    expect(getRemainingToAllocate(8.321, [{ amount: 6 }], 2, undefined, 3)).toBe(0.321);
+  });
+
+  it('defaults a newly selected leg to remaining balance', () => {
+    expect(getSuggestedDefaultLegAmount([{ amount: 2 }], undefined, 8.321, 0, 3)).toBe(6.321);
+    expect(getSuggestedDefaultLegAmount([{ amount: 8.321 }, { amount: 2 }], 0, 8.321, 0, 3)).toBe(6.321);
+    expect(getSuggestedDefaultLegAmount([], undefined, 8.321, 0, 3)).toBe(8.321);
+  });
+
+  it('caps payment leg amounts to remaining allocation', () => {
+    const legs = [{ amount: 8.321 }, { amount: 0 }];
+    expect(capPaymentLegAmount(8.321, legs, 1, 8.321, 0, 3)).toBe(0);
+    expect(capPaymentLegAmount(5, [{ amount: 6 }], 0, 10, 2, 3)).toBe(5);
+    expect(capPaymentLegAmount(9, [{ amount: 6 }], 0, 10, 2, 3)).toBe(8);
+  });
+
+  it('reconciles legs when sale total drops', () => {
+    const legs = [{ amount: 8.321 }, { amount: 2 }];
+    const reconciled = reconcilePaymentLegAmounts(legs, 8.321, 0, 3);
+    expect(reconciled[0].amount).toBe(6.321);
+    expect(reconciled[1].amount).toBe(2);
+  });
+
+  it('separates cash change from unresolved overpayment', () => {
+    expect(getAmountAppliedToOrder(8.321, 8.821)).toBe(8.321);
+    expect(getDisplayChangeAmount(0.5, true)).toBe(0.5);
+    expect(getDisplayChangeAmount(0.5, false)).toBe(0);
+    expect(getUnresolvedOverpaymentAmount(0.5, true)).toBe(0);
+    expect(getUnresolvedOverpaymentAmount(0.5, false)).toBe(0.5);
+    expect(getNetCashRetainedAmount(6.821, 0.5, true)).toBe(6.321);
   });
 
   it('detects when a live wallet refresh makes the applied leg invalid', () => {

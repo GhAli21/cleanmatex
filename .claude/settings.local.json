@@ -222,7 +222,11 @@
       "Read(//f/jhapp/cleanmatexsaas\" 2>/dev/**)",
       "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match \"0053\" })",
       "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -notmatch '^\\(x_|xproduction|archive\\)' } | Sort-Object Name | Select-Object -Last 5 | Select-Object Name)",
-      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match '^\\\\d{4}_' } | Sort-Object Name | Select-Object -Last 5 | Select-Object Name)"
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match '^\\\\d{4}_' } | Sort-Object Name | Select-Object -Last 5 | Select-Object Name)",
+      "Bash(tasklist /FI \"IMAGENAME eq node.exe\")",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "PowerShell($lock = \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\.next\\\\lock\"; if \\(Test-Path $lock\\) { \"Lock file exists, created: $\\(\\(Get-Item $lock\\).LastWriteTime\\)\" } else { \"No lock file\" })",
+      "PowerShell($f = \"C:\\\\Users\\\\JHNLP\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\f--jhapp-cleanmatex\\\\dcf94d9a-b632-4e06-8806-1e94d2c82ea8\\\\tasks\\\\brfvnnpl3.output\"; \\(Get-Item $f\\).Length)"
     ],
     "deny": [
       "Read(node_modules)",
