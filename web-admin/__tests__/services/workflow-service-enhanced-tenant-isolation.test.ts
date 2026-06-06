@@ -127,17 +127,31 @@ describe('WorkflowServiceEnhanced — Tenant Isolation', () => {
             }),
           };
         }
-        if (table === 'org_users_mst') {
-          return createChain(
-            { data: { roles: ['operator'] }, error: null },
-            null
-          );
+        if (table === 'org_auth_user_roles') {
+          // getUserPermissions: .select('role_code').eq().eq().eq() — eq is terminal
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  eq: jest.fn().mockResolvedValue({
+                    data: [{ role_code: 'operator' }],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
         }
-        if (table === 'sys_rbac_permissions_cd') {
-          return createChain(null, {
-            data: [{ permission_key: 'orders:cancel' }],
-            error: null,
-          });
+        if (table === 'sys_auth_role_default_permissions') {
+          // getUserPermissions: .select('permission_code').in('role_code', [...])
+          return {
+            select: jest.fn().mockReturnValue({
+              in: jest.fn().mockResolvedValue({
+                data: [{ permission_code: 'orders:cancel' }],
+                error: null,
+              }),
+            }),
+          };
         }
         return createChain({ data: null, error: null }, { data: [], error: null });
       });

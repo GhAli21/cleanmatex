@@ -1,5 +1,15 @@
 import type { OutstandingPolicy } from '@/lib/validations/new-order-payment-schemas';
+import {
+  sanitizeMoneyDraft as sanitizeDecimalDraft,
+  parseMoneyDraft as parseDecimalDraft,
+  applyKeypadInput,
+  formatMoneyDraft,
+} from '@/lib/money/money-draft';
 
+export { sanitizeDecimalDraft, parseDecimalDraft, applyKeypadInput };
+
+// PaymentKeypadKey moved to cmx-keypad-presets.ts (Phase 3a).
+// Re-exported here for backward compatibility until payment-modal-v4.tsx is updated in Phase 5.
 export type PaymentKeypadKey =
   | '0'
   | '1'
@@ -18,57 +28,10 @@ export type PaymentKeypadKey =
   | '+20'
   | '+50';
 
-export function sanitizeDecimalDraft(raw: string, decimalPlaces: number): string {
-  let value = raw.replace(/[^\d.]/g, '');
-  if (value.startsWith('.')) value = `0${value}`;
-  const decimalIndex = value.indexOf('.');
-  if (decimalIndex !== -1) {
-    value =
-      value.slice(0, decimalIndex + 1) +
-      value.slice(decimalIndex + 1).replace(/\./g, '');
-    const fraction = value.slice(decimalIndex + 1);
-    if (fraction.length > decimalPlaces) {
-      value = value.slice(0, decimalIndex + 1 + decimalPlaces);
-    }
-  }
-  return value;
-}
-
-export function parseDecimalDraft(value: string): number {
-  if (!value || value === '.') return 0;
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
+// Backward-compat wrapper — strips trailing zeros as the old implementation did.
+// New code should import formatMoneyDraft from '@/lib/money/money-draft' directly.
 export function formatDecimalDraft(value: number, decimalPlaces: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '';
-  return value.toFixed(decimalPlaces).replace(/\.?0+$/, '');
-}
-
-export function applyKeypadInput(
-  currentDraft: string,
-  key: PaymentKeypadKey,
-  decimalPlaces: number
-): string {
-  if (key === 'backspace') {
-    return currentDraft.slice(0, -1);
-  }
-
-  if (key === 'clear') {
-    return '';
-  }
-
-  if (key === '+10' || key === '+20' || key === '+50') {
-    const increment = Number.parseInt(key.slice(1), 10);
-    return formatDecimalDraft(parseDecimalDraft(currentDraft) + increment, decimalPlaces);
-  }
-
-  if (key === '.') {
-    if (currentDraft.includes('.')) return currentDraft;
-    return currentDraft === '' ? '0.' : `${currentDraft}.`;
-  }
-
-  return sanitizeDecimalDraft(`${currentDraft}${key}`, decimalPlaces);
+  return formatMoneyDraft(value, decimalPlaces, false).replace(/\.?0+$/, '');
 }
 
 export function syncDiscountFromPercent(

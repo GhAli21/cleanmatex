@@ -75,8 +75,8 @@ type AnyMock = (...args: any[]) => Promise<any>;
 
 interface CapturedTx {
   $queryRaw: MockFn;
-  org_promo_usage_log: { create: AnyMock };
-  org_promo_codes_mst: { update: AnyMock };
+  org_promotion_usage_dtl: { create: AnyMock };
+  org_promotions_mst: { update: AnyMock };
   /** Updated model name from migration 0257 */
   org_gift_card_txn_dtl: { create: AnyMock; findFirst: AnyMock };
   org_gift_cards_mst: { findFirst: AnyMock; update: AnyMock };
@@ -103,7 +103,7 @@ function buildFakeTx(opts: {
     queryRawCalls.push(_args);
     // Inspect tagged-template strings: first arg is a TemplateStringsArray.
     const sql = String((_args[0] as TemplateStringsArray | undefined)?.raw?.join(' ') ?? '');
-    if (sql.includes('org_promo_codes_mst')) {
+    if (sql.includes('org_promotions_mst')) {
       return Promise.resolve(opts.promoLocked ?? []);
     }
     if (sql.includes('org_gift_cards_mst')) {
@@ -123,8 +123,8 @@ function buildFakeTx(opts: {
   );
   return {
     $queryRaw,
-    org_promo_usage_log: { create: jest.fn().mockResolvedValue({}) },
-    org_promo_codes_mst: { update: jest.fn().mockResolvedValue({}) },
+    org_promotion_usage_dtl: { create: jest.fn().mockResolvedValue({}) },
+    org_promotions_mst: { update: jest.fn().mockResolvedValue({}) },
     org_gift_card_txn_dtl: { create: gcTxCreate, findFirst: gcTxFindFirst },
     org_gift_cards_mst: { findFirst: gcFindFirst, update: jest.fn().mockResolvedValue({}) },
   };
@@ -182,8 +182,8 @@ describe('create-with-payment: promo + gift card integration', () => {
 
     // Assertions: usage log + gift transaction both written; both row updates
     // happened on the same tx instance (proves single-tx semantics).
-    expect(tx.org_promo_usage_log.create).toHaveBeenCalledTimes(1);
-    expect(tx.org_promo_codes_mst.update).toHaveBeenCalledWith(
+    expect(tx.org_promotion_usage_dtl.create).toHaveBeenCalledTimes(1);
+    expect(tx.org_promotions_mst.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ current_uses: { increment: 1 } }),
       })
@@ -281,7 +281,7 @@ describe('create-with-payment: promo + gift card integration', () => {
       .join(' || ');
 
     expect(allSqlConcatenated).toMatch(/FOR UPDATE/);
-    expect(allSqlConcatenated).toMatch(/org_promo_codes_mst/);
+    expect(allSqlConcatenated).toMatch(/org_promotions_mst/);
     expect(allSqlConcatenated).toMatch(/org_gift_cards_mst/);
   });
 

@@ -69,6 +69,7 @@ export interface PaymentModalRightRailInput {
   hasCheckLegWithoutNumber: boolean;
   walletLegExceedsLiveBalance: boolean;
   invalidImmediateAmount: boolean;
+  canReturnChangeFromCash: boolean;
   currencyExRate?: number | null;
   roundingAmount?: number | null;
 }
@@ -171,7 +172,7 @@ function deriveRequiredAction(
     return null;
   }
 
-  if (input.changeAmount > input.epsilon) {
+  if (input.changeAmount > input.epsilon && !input.canReturnChangeFromCash) {
     return RIGHT_RAIL_REQUIRED_ACTION.OVERPAYMENT;
   }
 

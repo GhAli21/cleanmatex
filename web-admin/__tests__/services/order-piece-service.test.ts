@@ -191,6 +191,10 @@ describe('OrderPieceService', () => {
         { id: 'piece-2', piece_seq: 2 },
       ];
 
+      // Spy on attachPieceLevelPreferencesFromDtl to skip the second Supabase query
+      jest.spyOn(OrderPieceService, 'attachPieceLevelPreferencesFromDtl')
+        .mockImplementation(async (_supabase, _tenantId, pieces) => pieces);
+
       mockSupabaseClient.from.mockReturnValueOnce({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
@@ -252,6 +256,22 @@ describe('OrderPieceService', () => {
         quantityReady: 1,
       });
 
+      // Spy on attachPieceLevelPreferencesFromDtl to skip the third Supabase query
+      jest.spyOn(OrderPieceService, 'attachPieceLevelPreferencesFromDtl')
+        .mockImplementation(async (_supabase, _tenantId, pieces) => pieces);
+
+      // First from() call: beforeRow select — .select().eq().eq().maybeSingle()
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      });
+
+      // Second from() call: the actual update — .update().eq().eq().select().single()
       mockSupabaseClient.from.mockReturnValueOnce({
         update: jest.fn(() => ({
           eq: jest.fn(() => ({
@@ -286,6 +306,18 @@ describe('OrderPieceService', () => {
       const pieceId = 'piece-123';
       const updates = { piece_status: 'ready' as const };
 
+      // First from() call: beforeRow select
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      });
+
+      // Second from() call: the update that returns an error
       mockSupabaseClient.from.mockReturnValueOnce({
         update: jest.fn(() => ({
           eq: jest.fn(() => ({

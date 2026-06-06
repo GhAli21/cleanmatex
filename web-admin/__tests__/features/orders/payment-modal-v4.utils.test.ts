@@ -42,7 +42,7 @@ describe('payment-modal-v4 utils', () => {
 
   it('supports quick-add keypad shortcuts', () => {
     const draft = applyKeypadInput('1.5', '+10', 3);
-    expect(draft).toBe('11.5');
+    expect(draft).toBe('11.500');
   });
 
   it('derives no outstanding policy for full payment', () => {

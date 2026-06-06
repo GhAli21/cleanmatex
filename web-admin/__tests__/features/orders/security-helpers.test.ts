@@ -20,8 +20,9 @@ describe('Security Helpers', () => {
     });
 
     it('should remove event handlers', () => {
-      expect(sanitizeInput('onclick="alert(1)"')).toBe('alert(1)"');
-      expect(sanitizeInput('onerror="bad()"')).toBe('bad()"');
+      // /on\w+=/ removes `onclick=` leaving the quoted value `"alert(1)"`
+      expect(sanitizeInput('onclick="alert(1)"')).toBe('"alert(1)"');
+      expect(sanitizeInput('onerror="bad()"')).toBe('"bad()"');
     });
 
     it('should remove javascript protocol', () => {

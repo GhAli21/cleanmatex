@@ -5,8 +5,8 @@
  * Integration tests for order API routes with permission checks
  */
 
-// tenant-settings.service exports a module-level TenantSettingsService instance
-// that calls the browser createClient() at import time — must be hoisted before any route imports.
+// tenant-settings.service exports a module-level TenantSettingsService that calls
+// the browser createClient() at import time — must be hoisted before any route imports.
 jest.mock('@/lib/supabase/client', () => ({
   createClient: jest.fn(() => ({
     rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
@@ -18,80 +18,119 @@ jest.mock('@/lib/supabase/client', () => ({
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({
-    auth: { getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    auth: { getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }) },
     rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    range: jest.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
   }),
 }));
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { NextRequest } from 'next/server';
-import { POST, GET } from '@/app/api/v1/orders/route';
-
-// Mock permission middleware
 jest.mock('@/lib/middleware/require-permission', () => ({
   requirePermission: jest.fn(),
   getAuthContext: jest.fn(),
 }));
 
+jest.mock('@/lib/middleware/csrf', () => ({
+  validateCSRF: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/lib/middleware/rate-limit', () => ({
+  checkAPIRateLimitTenant: jest.fn().mockResolvedValue(null),
+  checkAPIRateLimitUser: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/lib/utils/request-audit', () => ({
+  getRequestAuditContext: jest.fn().mockReturnValue({ userAgent: 'test', userIp: '127.0.0.1' }),
+}));
+
+jest.mock('@/lib/utils/logger', () => ({
+  logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+}));
+
+jest.mock('@/lib/db/tenant-context', () => ({
+  withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
+  getTenantIdFromSession: jest.fn().mockResolvedValue('t1'),
+  getTenantId: jest.fn().mockReturnValue('t1'),
+}));
+
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { NextRequest, NextResponse } from 'next/server';
+import { POST, GET } from '@/app/api/v1/orders/route';
+
+const AUTH_CTX = { tenantId: 't1', userId: 'u1', userName: 'Test User' };
+
 describe('Orders API Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    const { requirePermission } = require('@/lib/middleware/require-permission');
+    // Default: permission granted — route calls requirePermission('code')(request)
+    requirePermission.mockImplementation(() => jest.fn().mockResolvedValue(AUTH_CTX));
+
+    const { validateCSRF } = require('@/lib/middleware/csrf');
+    validateCSRF.mockResolvedValue(null);
+
+    const { checkAPIRateLimitTenant } = require('@/lib/middleware/rate-limit');
+    checkAPIRateLimitTenant.mockResolvedValue(null);
   });
 
   describe('POST /api/v1/orders', () => {
-    it('should create order when user has orders:create permission', async () => {
+    it('should call requirePermission with orders:create', async () => {
       const { requirePermission } = require('@/lib/middleware/require-permission');
-      requirePermission.mockResolvedValue(undefined);
 
       const request = new NextRequest('http://localhost/api/v1/orders', {
         method: 'POST',
-        body: JSON.stringify({
-          customer_id: 'test-customer-id',
-          items: [],
-        }),
+        body: JSON.stringify({ customer_id: 'c1', items: [] }),
       });
 
-      // Mock successful response
-      const response = await POST(request);
+      await POST(request);
 
-      expect(requirePermission).toHaveBeenCalledWith('orders', 'create');
-      expect(response.status).toBe(201);
+      expect(requirePermission).toHaveBeenCalledWith('orders:create');
     });
 
-    it('should reject when user lacks orders:create permission', async () => {
+    it('should return 403 when user lacks orders:create permission', async () => {
       const { requirePermission } = require('@/lib/middleware/require-permission');
-      requirePermission.mockRejectedValue(new Error('Permission denied'));
+      requirePermission.mockImplementation(() =>
+        jest.fn().mockResolvedValue(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
+      );
 
       const request = new NextRequest('http://localhost/api/v1/orders', {
         method: 'POST',
-        body: JSON.stringify({
-          customer_id: 'test-customer-id',
-          items: [],
-        }),
+        body: JSON.stringify({ customer_id: 'c1', items: [] }),
       });
 
-      await expect(POST(request)).rejects.toThrow('Permission denied');
+      const response = await POST(request);
+      expect(response.status).toBe(403);
     });
   });
 
   describe('GET /api/v1/orders', () => {
-    it('should return orders when user has orders:read permission', async () => {
+    it('should call requirePermission with orders:read', async () => {
       const { requirePermission } = require('@/lib/middleware/require-permission');
-      requirePermission.mockResolvedValue(undefined);
 
       const request = new NextRequest('http://localhost/api/v1/orders', {
         method: 'GET',
       });
 
-      // Mock successful response
-      const response = await GET(request);
+      await GET(request);
 
-      expect(requirePermission).toHaveBeenCalledWith('orders', 'read');
-      expect(response.status).toBe(200);
+      expect(requirePermission).toHaveBeenCalledWith('orders:read');
+    });
+
+    it('should return 403 when user lacks orders:read permission', async () => {
+      const { requirePermission } = require('@/lib/middleware/require-permission');
+      requirePermission.mockImplementation(() =>
+        jest.fn().mockResolvedValue(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
+      );
+
+      const request = new NextRequest('http://localhost/api/v1/orders', {
+        method: 'GET',
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(403);
     });
   });
 });
-

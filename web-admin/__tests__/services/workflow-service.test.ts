@@ -104,25 +104,30 @@ describe('WorkflowService', () => {
   describe('getWorkflowTemplate', () => {
     test('should fetch workflow template', async () => {
       const mockFrom = mockSupabaseClient.from as jest.Mock;
+      // Service: .from('org_tenant_workflow_templates_cf').select('*,...').eq(...).eq(...).eq(...).single()
       const mockSelect = jest.fn(() => ({
         eq: jest.fn(() => ({
-          single: jest.fn(() =>
-            Promise.resolve({
-              data: {
-                template_id: 'template-1',
-                template_code: 'WF_STANDARD',
-                template_name: 'Standard Workflow',
-              },
-              error: null,
-            })
-          ),
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() =>
+                Promise.resolve({
+                  data: {
+                    template_id: 'template-1',
+                    template_code: 'WF_STANDARD',
+                    template_name: 'Standard Workflow',
+                  },
+                  error: null,
+                })
+              ),
+            })),
+          })),
         })),
       }));
       mockFrom.mockReturnValue({ select: mockSelect });
 
-      const result = await WorkflowService.getWorkflowTemplate('template-1');
+      const result = await WorkflowService.getWorkflowTemplate('tenant-1');
 
-      expect(mockFrom).toHaveBeenCalledWith('sys_workflow_template_cd');
+      expect(mockFrom).toHaveBeenCalledWith('org_tenant_workflow_templates_cf');
       expect(result?.template_code).toBe('WF_STANDARD');
     });
 
@@ -130,17 +135,21 @@ describe('WorkflowService', () => {
       const mockFrom = mockSupabaseClient.from as jest.Mock;
       const mockSelect = jest.fn(() => ({
         eq: jest.fn(() => ({
-          single: jest.fn(() =>
-            Promise.resolve({
-              data: null,
-              error: { code: 'PGRST116' },
-            })
-          ),
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() =>
+                Promise.resolve({
+                  data: null,
+                  error: { code: 'PGRST116' },
+                })
+              ),
+            })),
+          })),
         })),
       }));
       mockFrom.mockReturnValue({ select: mockSelect });
 
-      const result = await WorkflowService.getWorkflowTemplate('nonexistent');
+      const result = await WorkflowService.getWorkflowTemplate('nonexistent-tenant');
 
       expect(result).toBeNull();
     });

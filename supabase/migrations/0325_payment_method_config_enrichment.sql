@@ -75,3 +75,46 @@ SET
   requires_cash_drawer      = COALESCE(o.requires_cash_drawer, s.requires_cash_drawer)
 FROM sys_payment_method_cd s
 WHERE o.payment_method_code = s.payment_method_code;
+
+-- Update Order 
+
+Update sys_payment_method_cd Set rec_order=1 Where payment_method_code='CASH'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=2 Where payment_method_code='CARD'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=3 Where payment_method_code='MOBILE_PAYMENT'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=4 Where payment_method_code='BANK_TRANSFER'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=5 Where payment_method_code='CHECK'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=9 Where payment_method_code='ADVANCE'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=11 Where payment_method_code='GIFT_CARD'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=12 Where payment_method_code='LOYALTY_POINTS'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=13 Where payment_method_code='WALLET'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=21 Where payment_method_code='CREDIT_NOTE'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=101 Where payment_method_code='PAYMENT_GATEWAY' And ( rec_order<100 Or rec_order is null);
+Update sys_payment_method_cd Set rec_order=102 Where payment_method_code='HYPERPAY'  And ( rec_order<100 Or rec_order is null);
+Update sys_payment_method_cd Set rec_order=103 Where payment_method_code='PAYTABS'  And ( rec_order<100 Or rec_order is null);
+Update sys_payment_method_cd Set rec_order=104 Where payment_method_code='STRIPE'  And ( rec_order<100 Or rec_order is null);
+Update sys_payment_method_cd Set rec_order=200 Where payment_method_code='PAY_ON_COLLECTION' And rec_order is null;
+Update sys_payment_method_cd Set rec_order=201 Where payment_method_code='PAY_ON_DELIVERY'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=202 Where payment_method_code='CREDIT_INVOICE'  And rec_order is null;
+Update sys_payment_method_cd Set rec_order=203 Where payment_method_code='INVOICE'  And rec_order is null;
+--
+
+UPDATE org_payment_methods_cf SET display_order=1 WHERE payment_method_code='CASH' AND payment_method_code = 'CASH' AND display_order!=1;
+UPDATE org_payment_methods_cf SET display_order=2 WHERE payment_method_code='CARD' AND payment_method_code = 'CARD' AND display_order!=2;
+UPDATE org_payment_methods_cf SET display_order=3 WHERE payment_method_code='MOBILE_PAYMENT' AND payment_method_code = 'MOBILE_PAYMENT' AND display_order!=3;
+UPDATE org_payment_methods_cf SET display_order=4 WHERE payment_method_code='BANK_TRANSFER' AND payment_method_code = 'BANK_TRANSFER' AND display_order!=4;
+UPDATE org_payment_methods_cf SET display_order=5 WHERE payment_method_code='CHECK' AND payment_method_code = 'CHECK' AND display_order!=5;
+UPDATE org_payment_methods_cf SET display_order=9 WHERE payment_method_code='ADVANCE' AND payment_method_code = 'ADVANCE' AND display_order!=9;
+UPDATE org_payment_methods_cf SET display_order=11 WHERE payment_method_code='GIFT_CARD' AND payment_method_code = 'GIFT_CARD' AND display_order!=11;
+UPDATE org_payment_methods_cf SET display_order=12 WHERE payment_method_code='LOYALTY_POINTS' AND payment_method_code = 'LOYALTY_POINTS' AND display_order!=12;
+UPDATE org_payment_methods_cf SET display_order=13 WHERE payment_method_code='WALLET' AND payment_method_code = 'WALLET' AND display_order!=13;
+UPDATE org_payment_methods_cf SET display_order=21 WHERE payment_method_code='CREDIT_NOTE' AND payment_method_code = 'CREDIT_NOTE' AND display_order!=21;
+UPDATE org_payment_methods_cf SET display_order=104 WHERE payment_method_code='PAYMENT_GATEWAY' AND gateway_code = 'HYPERPAY' AND display_order!=101;
+UPDATE org_payment_methods_cf SET display_order=104 WHERE payment_method_code='PAYMENT_GATEWAY' AND gateway_code = 'PAYTABS' AND display_order!=102;
+UPDATE org_payment_methods_cf SET display_order=104 WHERE payment_method_code='PAYMENT_GATEWAY' AND gateway_code = 'STRIPE' AND display_order!=103;
+UPDATE org_payment_methods_cf SET display_order=104 WHERE payment_method_code='PAYMENT_GATEWAY' AND gateway_code = 'MANUAL' AND display_order!=104;
+UPDATE org_payment_methods_cf SET display_order=200 WHERE payment_method_code='PAY_ON_COLLECTION' AND payment_method_code = 'PAY_ON_COLLECTION' AND display_order!=200;
+UPDATE org_payment_methods_cf SET display_order=201 WHERE payment_method_code='PAY_ON_DELIVERY' AND payment_method_code = 'PAY_ON_DELIVERY' AND display_order!=201;
+UPDATE org_payment_methods_cf SET display_order=202 WHERE payment_method_code='CREDIT_INVOICE' AND payment_method_code = 'CREDIT_INVOICE' AND display_order!=202;
+
+Commit;
+ 

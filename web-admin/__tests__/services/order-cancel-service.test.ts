@@ -45,6 +45,10 @@ jest.mock('@/lib/services/gift-card-service', () => ({
   refundGiftCardTx: jest.fn(),
 }));
 
+jest.mock('@/lib/db/order-discounts', () => ({
+  voidDiscountLinesTx: jest.fn().mockResolvedValue(undefined),
+}));
+
 const { getPaymentsForOrder, cancelPayment } = jest.requireMock(
   '@/lib/services/payment-service'
 );

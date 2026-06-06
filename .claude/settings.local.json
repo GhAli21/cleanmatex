@@ -215,7 +215,9 @@
       "Bash(ls -la /mnt/f/jhapp/cleanmatex/web-admin/ 2>/dev/null || ls -la \"f:/jhapp/cleanmatex/web-admin/\" 2>/dev/null || pwd)",
       "Read(//mnt/f/jhapp/cleanmatex/**)",
       "Bash(git stash *)",
-      "Bash(node -e \"require\\('jest-resolve'\\).default\")"
+      "Bash(node -e \"require\\('jest-resolve'\\).default\")",
+      "Bash(Get-ChildItem -Path \"supabase/migrations/\" -Name)",
+      "Bash(Sort-Object)"
     ],
     "deny": [
       "Read(node_modules)",

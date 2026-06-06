@@ -1328,6 +1328,13 @@ export function PaymentModalV4({
     () => payNowAmount + customerCreditAmount,
     [customerCreditAmount, payNowAmount]
   );
+  const cashLegAmount = useMemo(
+    () =>
+      realPaymentEntries
+        .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
+        .reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
+    [realPaymentEntries]
+  );
   const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
   const totalSettledNowAmount = settledNowAmount + giftCardSettlementAmount;
   const walletLegEntry = useMemo(
@@ -1337,8 +1344,11 @@ export function PaymentModalV4({
   const walletLegExceedsLiveBalance = !!walletLegEntry &&
     walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
 
+  const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
   const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
   const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
+  const canReturnChangeFromCash = cashLegAmount > moneyEpsilon;
+  const overpaymentNeedsResolution = changeAmount > moneyEpsilon && !canReturnChangeFromCash;
   const primaryMethodOption = getMethodOption(paymentMethod);
   const cashDrawerRequired = useMemo(() => {
     const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
@@ -1881,8 +1891,6 @@ export function PaymentModalV4({
     paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
     paymentMethod !== PAYMENT_METHODS.INVOICE &&
     totalSettledNowAmount <= 0;
-  const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
-
   const cycleActiveLeg = useCallback(() => {
     if (editableLegEntries.length <= 1) return;
     setActiveLegIndex((prev) => {
@@ -1922,6 +1930,11 @@ export function PaymentModalV4({
     }
     if (giftCardValidating) {
       items.push(t('giftCard.checking'));
+    }
+    if (overpaymentNeedsResolution) {
+      items.push(t('rightRail.requiredAction.overpaymentMessage', {
+        amount: `${currencyCode} ${formatAmount(changeAmount)}`,
+      }));
     }
     if (errors.checkNumber?.message) {
       items.push(String(errors.checkNumber.message));
@@ -1973,9 +1986,13 @@ export function PaymentModalV4({
     hasCheckLegWithoutNumber,
     liveWalletBalanceDisplay,
     cashDrawerBlockingMessage,
+    changeAmount,
+    currencyCode,
     paymentMethod,
+    formatAmount,
     pinRequired,
     promoCodeValidating,
+    overpaymentNeedsResolution,
     remainingBalance,
     serverTotals?.creditLimit?.mode,
     serverTotals?.creditLimit?.wouldExceed,
@@ -2002,6 +2019,7 @@ export function PaymentModalV4({
         hasCheckLegWithoutNumber,
         walletLegExceedsLiveBalance,
         invalidImmediateAmount,
+        canReturnChangeFromCash,
         currencyExRate: currencyConfig?.currencyExRate,
         roundingAmount: 0,
       }),
@@ -2019,6 +2037,7 @@ export function PaymentModalV4({
       hasCheckLegWithoutNumber,
       walletLegExceedsLiveBalance,
       invalidImmediateAmount,
+      canReturnChangeFromCash,
       currencyConfig?.currencyExRate,
     ]
   );
@@ -2121,13 +2140,6 @@ export function PaymentModalV4({
       })),
     [customerCreditEntries, getOptionDisplayName, getMethodOption, currencyCode, formatAmount]
   );
-  const cashLegAmount = useMemo(
-    () =>
-      realPaymentEntries
-        .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
-        .reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
-    [realPaymentEntries]
-  );
   const orderValueSummaryItems = useMemo<RightRailSummaryItem[]>(
     () => {
       const rows: RightRailSummaryItem[] = [
@@ -2227,6 +2239,14 @@ export function PaymentModalV4({
       return;
     }
 
+    if (overpaymentNeedsResolution) {
+      focusAmountEditor();
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
     if (hasCheckLegWithoutNumber) {
       const checkLegIndex = paymentLegs.findIndex(
         (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
@@ -2290,6 +2310,7 @@ export function PaymentModalV4({
     setValue,
     t,
     invalidImmediateAmount,
+    overpaymentNeedsResolution,
   ]);
 
   const handleBlockedSubmitAttempt = useCallback(() => {

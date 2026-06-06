@@ -23,6 +23,11 @@ import type {
   CustomerUpgradeRequest,
 } from '@/lib/types/customer'
 
+// Mock CSRF token so mutation methods don't consume the fetch mock
+jest.mock('@/lib/utils/csrf-token', () => ({
+  getCSRFToken: jest.fn().mockResolvedValue(null),
+}));
+
 // Mock fetch globally
 global.fetch = jest.fn()
 
@@ -349,6 +354,7 @@ describe('Customers API Client', () => {
         expect(fetch).toHaveBeenCalledWith(
           '/api/v1/customers/cust-1/addresses/addr-1',
           {
+            headers: {},
             method: 'DELETE',
           }
         )

@@ -23,6 +23,7 @@ function makeInput(
     hasCheckLegWithoutNumber: false,
     walletLegExceedsLiveBalance: false,
     invalidImmediateAmount: false,
+    canReturnChangeFromCash: false,
     currencyExRate: 1,
     roundingAmount: 0,
     ...overrides,
@@ -88,6 +89,19 @@ describe('payment-modal-v4 right rail', () => {
     );
 
     expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.OVERPAYMENT);
+  });
+
+  it('does not treat cash-backed change as an overpayment required action', () => {
+    const state = derivePaymentModalRightRailState(
+      makeInput({
+        hasBlockingIssues: true,
+        changeAmount: 2,
+        canReturnChangeFromCash: true,
+        hasCheckLegWithoutNumber: true,
+      })
+    );
+
+    expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.CHECK_DETAILS);
   });
 
   it('surfaces a cash drawer blocker before other validation items', () => {
