@@ -335,6 +335,8 @@ Tasks:
 - [ ] On failure (4xx provider error): status → FAILED_PERMANENT, write log
 - [ ] On failure (5xx/timeout): status → FAILED_TEMPORARY, increment retry_count, set next_retry_at
 - [ ] NEVER log full API key. Mask: `sk-****${key.slice(-4)}`
+- [ ] Update STATUS.md: mark Step 2.3 done
+- [ ] Refresh docs: add email adapter pattern to ROADMAP.md architecture notes
 
 ---
 
@@ -349,6 +351,8 @@ Tasks:
 - [ ] For each row: mark PROCESSING → call appropriate adapter by `channel_code` → update status
 - [ ] Re-fetch FAILED_TEMPORARY rows where `next_retry_at <= NOW()` and `retry_count < max_retries`
 - [ ] Idempotent: skip rows with status not in (QUEUED, FAILED_TEMPORARY)
+- [ ] Update STATUS.md: mark Step 2.4 done
+- [ ] Refresh docs: document process-outbox route in API routes reference
 
 ---
 
@@ -362,6 +366,8 @@ Tasks:
 - [ ] If in quiet hours AND priority not URGENT/CRITICAL: set `scheduled_at = quiet_hours_end_time`
 - [ ] Check `org_notification_events_cd.is_transactional`: if false, check `org_notif_user_prefs_dtl.marketing_consent` — if false, write outbox with status=SKIPPED, skip_reason='NO_MARKETING_CONSENT'
 - [ ] Check `org_notification_settings_cf.is_enabled` for the channel: if false, skip
+- [ ] Update STATUS.md: mark Step 2.5 done
+- [ ] Refresh docs: note quiet-hours and consent logic in orchestrator architecture section
 
 ---
 
@@ -377,6 +383,8 @@ Tasks:
 - [ ] `DeliveryLogPage.tsx` at `/dashboard/notifications/delivery-log` — table of delivery attempts. Columns: event, channel, recipient, status, timestamp, error. Uses `CmxDatagrid`. Filter by channel + status.
 - [ ] Add Phase 2 i18n keys (EN + AR)
 - [ ] Run `npm run check:i18n`
+- [ ] Update STATUS.md: mark Step 2.6 done
+- [ ] Refresh docs: update i18n key listing with new keys
 
 ---
 
@@ -387,6 +395,8 @@ Tasks:
 - [ ] `payment.received`, `payment.failed`, `payment.reminder`, `payment.link_expired`
 - [ ] `delivery.started`, `delivery.otp_generated`, `delivery.completed`, `delivery.failed`
 - [ ] `workflow.stage_changed` (generic — carries stage name)
+- [ ] Update STATUS.md: mark Step 2.7 done
+- [ ] Refresh docs: update event wiring list in feature doc
 
 ---
 
@@ -433,6 +443,8 @@ Tasks:
 - [ ] `POST /api/notifications/fcm-token` — register or refresh token
 - [ ] `DELETE /api/notifications/fcm-token` — deregister on logout
 - [ ] FCM error handler: on UNREGISTERED/INVALID_ARGUMENT → `is_active = false`, log
+- [ ] Update STATUS.md: mark Step 3.2 done
+- [ ] Refresh docs: document FCM token registration route in API routes reference
 
 ---
 
@@ -443,6 +455,8 @@ Tasks:
 - [ ] Template variable substitution from notification metadata JSONB
 - [ ] Quiet hours bypass: URGENT/CRITICAL messages ignore quiet hours
 - [ ] Delivery webhooks: `POST /api/notifications/webhooks/whatsapp` — update outbox + delivery log on provider callback
+- [ ] Update STATUS.md: mark Step 3.3 done
+- [ ] Refresh docs: record approved WhatsApp template IDs in STATUS.md WhatsApp tracker
 
 ---
 
@@ -450,6 +464,8 @@ Tasks:
 
 - [ ] `adapters/sms.ts` — Twilio. Message truncated to 160 chars if needed.
 - [ ] Provider config via HQ API (same pattern as email)
+- [ ] Update STATUS.md: mark Step 3.4 done
+- [ ] Refresh docs: add SMS adapter notes to ROADMAP.md
 
 ---
 
@@ -460,6 +476,8 @@ Tasks:
 - [ ] Handle multi-device: one push per active token per user
 - [ ] On `UNREGISTERED` FCM error → mark token `is_active = false`
 - [ ] Weekly cleanup pg_cron: `UPDATE ... SET is_active = false WHERE failure_count > 3 OR last_verified_at < NOW() - INTERVAL '90 days'`
+- [ ] Update STATUS.md: mark Step 3.5 done
+- [ ] Refresh docs: note multi-device push pattern in architecture notes
 
 ---
 
@@ -470,6 +488,8 @@ Tasks:
 - [ ] `GET /platform/tenants/:id/notification-quota` — returns per-channel used/limit for current month
 - [ ] cleanmatex orchestrator: before dispatching to external channel → call quota API → if over limit → status = SKIPPED, skip_reason = 'QUOTA_EXCEEDED'
 - [ ] Update integration-contracts.md
+- [ ] Update STATUS.md: mark Step 3.6 done
+- [ ] Refresh docs: update integration-contracts.md with quota API contract
 
 ---
 
@@ -481,6 +501,8 @@ Tasks:
 - [ ] Template editor: bilingual fields (EN/AR), per-channel preview, version history
 - [ ] Approve/retire template version workflow
 - [ ] Sync button: pushes approved template to cleanmatex DB
+- [ ] Update STATUS.md: mark Step 3.7 done
+- [ ] Refresh docs: document template approval workflow in feature doc
 
 ---
 
@@ -528,6 +550,8 @@ Tasks:
 - [ ] `GET  /api/notifications/campaigns/[id]` — detail + stats
 - [ ] `PATCH /api/notifications/campaigns/[id]/status` — state machine transitions
 - [ ] `POST /api/notifications/campaigns/[id]/test` — send to self only
+- [ ] Update STATUS.md: mark Step 4.2 done
+- [ ] Refresh docs: add campaign API routes to API reference doc
 
 ---
 
@@ -536,6 +560,8 @@ Tasks:
 - [ ] Migration: add pg_cron job every minute: check APPROVED campaigns where `scheduled_at <= NOW()` → transition to RUNNING → batch-enqueue targets into `org_notification_outbox_dtl`
 - [ ] Respect consent: all campaign targets must have `marketing_consent = true`
 - [ ] Respect quota: check cleanmatexsaas quota API before enqueuing
+- [ ] Update STATUS.md: mark Step 4.3 done
+- [ ] Refresh docs: add campaign scheduler migration to migration manifest
 
 ---
 
@@ -546,6 +572,8 @@ Tasks:
 - [ ] `CampaignDetailPage.tsx` — delivery stats, open rate, cancel button
 - [ ] Behind `campaign_notifications_enabled` feature flag: routes return 404 if flag is off
 - [ ] Add i18n keys (EN + AR)
+- [ ] Update STATUS.md: mark Step 4.4 done
+- [ ] Refresh docs: update i18n key listing with campaign keys
 
 ---
 
@@ -553,6 +581,8 @@ Tasks:
 
 - [ ] Per-plan limits: Free=0/mo, Starter=2/mo, Pro=20/mo, Enterprise=unlimited
 - [ ] HQ quota dashboard: per-tenant campaign usage this month
+- [ ] Update STATUS.md: mark Step 4.5 done
+- [ ] Refresh docs: update integration-contracts.md with quota plan limits
 
 ---
 

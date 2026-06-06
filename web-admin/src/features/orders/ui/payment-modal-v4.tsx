@@ -3087,50 +3087,6 @@ export function PaymentModalV4({
                                 </div>
                               </div>
 
-                              {cashDrawerRequired ? (
-                                <div className="rounded-2xl border border-cyan-200 bg-white px-4 py-3">
-                                  <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                                    <div>
-                                      <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                                        <Banknote className="h-4 w-4 text-cyan-700" />
-                                        {t('workspace.cashImpactTitle')}
-                                      </p>
-                                      <p className="mt-1 text-xs text-slate-500">
-                                        {selectedCashDrawerChoice ? t('cashDrawer.boundHint') : cashDrawerBlockingMessage}
-                                      </p>
-                                    </div>
-                                    <Badge
-                                      variant="secondary"
-                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        selectedCashDrawerChoice ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'
-                                      }`}
-                                    >
-                                      {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
-                                    </Badge>
-                                  </div>
-                                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <SummaryRow
-                                      label={t('rightRail.cashRetained')}
-                                      value={`${currencyCode} ${formatAmount(cashLegAmount)}`}
-                                    />
-                                    <SummaryRow
-                                      label={t('rightRail.changeReturned')}
-                                      value={`${currencyCode} ${formatAmount(changeAmount)}`}
-                                      negative={changeAmount > moneyEpsilon}
-                                    />
-                                    <CmxButton
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => cashDrawerSelectorCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                                      className="rounded-xl"
-                                    >
-                                      {t('workspace.manageDrawer')}
-                                    </CmxButton>
-                                  </div>
-                                </div>
-                              ) : null}
-
                               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                                 <p className={`mb-3 text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
                                   {t('workspace.detailsTitle')}

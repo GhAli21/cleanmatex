@@ -36,6 +36,7 @@ import {
   Calculator,
   BookOpen,
   FilePlus,
+  Bell,
 } from 'lucide-react'
 
 /** `none` = placeholder sections with no role gate (permissions-only). */
@@ -733,6 +734,42 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       },
     ],
   },
+  {
+    key: 'notifications',
+    label: 'Notifications',
+    label2: 'الإشعارات',
+    icon: Bell,
+    path: '/dashboard/notifications',
+    roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+    permissions: ['notifications:read'],
+    children: [
+      {
+        key: 'notifications_center',
+        label: 'Notification Center',
+        label2: 'مركز الإشعارات',
+        path: '/dashboard/notifications',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+        permissions: ['notifications:read'],
+      },
+      {
+        key: 'notifications_delivery_log',
+        label: 'Delivery Log',
+        label2: 'سجل التسليم',
+        path: '/dashboard/notifications/delivery-log',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager'],
+        permissions: ['notifications:view_log'],
+      },
+      {
+        key: 'notifications_settings',
+        label: 'Channel Settings',
+        label2: 'إعدادات القنوات',
+        path: '/dashboard/notifications/settings',
+        roles: ['super_admin', 'tenant_admin', 'admin'],
+        permissions: ['notifications:configure'],
+      },
+    ],
+  },
+
   {
     key: 'inventory',
     label: 'Inventory & Machines',
