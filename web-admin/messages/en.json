@@ -5337,6 +5337,18 @@
         "helperAmount": "Edit amount",
         "helperCredits": "Apply credits"
       },
+      "sections": {
+        "balanceSnapshot": "Balance Snapshot",
+        "amountEditor": "Amount Editor",
+        "paymentWorkspace": "Payment Workspace",
+        "discountsCredits": "Discounts & Credits",
+        "discountsCreditsHelp": "Apply manual discounts, promo codes, and gift cards here while keeping the receipt rail compact.",
+        "cashDrawer": "Cash Drawer",
+        "financialInspector": "Financial Inspector",
+        "financialInspectorHelp": "Review order value, taxes, discounts, warnings, AR details, and notes without scrolling the receipt rail.",
+        "balancePolicy": "Balance Policy",
+        "shortcuts": "Workbench Shortcuts"
+      },
       "security": {
         "cardPayment": "Secure card payment. Data is encrypted and PCI compliant."
       },

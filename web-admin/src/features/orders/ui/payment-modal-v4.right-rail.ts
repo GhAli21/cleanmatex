@@ -15,6 +15,9 @@ export const RIGHT_RAIL_BALANCE_STATUS = {
   PAYMENT_REQUIRED: 'PAYMENT_REQUIRED',
 } as const;
 
+/**
+ * Union of cashier-facing balance statuses derived from trusted modal totals.
+ */
 export type RightRailBalanceStatus =
   (typeof RIGHT_RAIL_BALANCE_STATUS)[keyof typeof RIGHT_RAIL_BALANCE_STATUS];
 
@@ -36,6 +39,9 @@ export const RIGHT_RAIL_REQUIRED_ACTION = {
   GENERIC: 'GENERIC',
 } as const;
 
+/**
+ * Union of required-action reasons shown in the prominent action surface.
+ */
 export type RightRailRequiredActionKind =
   (typeof RIGHT_RAIL_REQUIRED_ACTION)[keyof typeof RIGHT_RAIL_REQUIRED_ACTION];
 
@@ -49,6 +55,9 @@ export const RIGHT_RAIL_WARNING = {
   CREDIT_LIMIT_OVERRIDE: 'CREDIT_LIMIT_OVERRIDE',
 } as const;
 
+/**
+ * Union of non-blocking warning codes supported by the right rail.
+ */
 export type RightRailWarningCode =
   (typeof RIGHT_RAIL_WARNING)[keyof typeof RIGHT_RAIL_WARNING];
 
@@ -88,6 +97,7 @@ export interface PaymentModalRightRailState {
 /**
  * Maps existing trusted modal state into a stable right-rail view model.
  *
+ * @param input Already-derived payment modal state used only for view mapping.
  * @example
  * derivePaymentModalRightRailState({
  *   hasBlockingIssues: false,

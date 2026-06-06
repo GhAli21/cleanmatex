@@ -5,14 +5,14 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useForm, Controller, type FieldErrors, type Resolver } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
-  Loader2, ChevronDown, ChevronUp,
+  Loader2,
   Eye, EyeOff, Maximize2, Trash2, Wallet, UserRound,
   ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info, RefreshCw,
 } from 'lucide-react';
@@ -62,6 +62,12 @@ import {
   RIGHT_RAIL_WARNING,
   type PaymentModalRightRailState,
 } from './payment-modal-v4.right-rail';
+import {
+  derivePaymentInspectorTabs,
+  deriveVisiblePaymentSections,
+  PAYMENT_MODAL_INSPECTOR_TAB_IDS,
+  PAYMENT_MODAL_SECTION_IDS,
+} from './payment-modal-v04-sections-definition';
 
 // Cmx component imports
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
@@ -80,6 +86,7 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms';
+import { CmxTabsPanel, type CmxTabItem } from '@ui/navigation';
 
 // ---------------------------------------------------------------------------
 // B2B contract selector
@@ -274,41 +281,6 @@ type RightRailSummaryItem = {
   negative?: boolean;
 };
 
-function CollapsibleRailCard({
-  title,
-  badge,
-  open,
-  onToggle,
-  children,
-  isRTL,
-}: {
-  title: string;
-  badge?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-  isRTL: boolean;
-}) {
-  return (
-    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-      <CmxButton
-        type="button"
-        variant="ghost"
-        onClick={onToggle}
-        aria-expanded={open}
-        className={`h-auto w-full justify-between rounded-none px-4 py-3 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}
-      >
-        <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {title}
-          {badge ? <Badge variant="secondary" className="text-xs">{badge}</Badge> : null}
-        </span>
-        {open ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
-      </CmxButton>
-      {open ? <CmxCardContent className="space-y-3 border-t">{children}</CmxCardContent> : null}
-    </CmxCard>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -459,14 +431,6 @@ export function PaymentModalV4({
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
 
-  // Collapsible panel state
-  const [adjustmentsOpen, setAdjustmentsOpen] = useState(false);
-  const [orderValueOpen, setOrderValueOpen] = useState(false);
-  const [taxPanelOpen, setTaxPanelOpen] = useState(false);
-  const [currencyPanelOpen, setCurrencyPanelOpen] = useState(true);
-  const [warningsOpen, setWarningsOpen] = useState(true);
-  const [paymentNotesDialogOpen, setPaymentNotesDialogOpen] = useState(false);
-
   // Tax state
   const [taxRate, setTaxRate] = useState<number>(0.06);
 
@@ -549,6 +513,10 @@ export function PaymentModalV4({
   const couponCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerSelectorCardRef = useRef<HTMLDivElement | null>(null);
+  const balanceSnapshotSectionRef = useRef<HTMLDivElement | null>(null);
+  const paymentWorkspaceSectionRef = useRef<HTMLDivElement | null>(null);
+  const financialInspectorSectionRef = useRef<HTMLDivElement | null>(null);
+  const balancePolicySectionRef = useRef<HTMLDivElement | null>(null);
   const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
@@ -835,12 +803,6 @@ export function PaymentModalV4({
       setPinRequired(false);
       setPinVisible(false);
       setPinFieldError(null);
-      setAdjustmentsOpen(false);
-      setOrderValueOpen(false);
-      setTaxPanelOpen(false);
-      setCurrencyPanelOpen(true);
-      setWarningsOpen(true);
-      setPaymentNotesDialogOpen(false);
       setSelectedCashDrawerSessionId('');
       setCashDrawerDialogOpen(false);
       setCashDrawerToOpenId('');
@@ -1839,10 +1801,6 @@ export function PaymentModalV4({
     }
   };
 
-  const showAdjustmentsContent = NEW_ORDER_PROMO_GIFT_DISABLED
-    ? true
-    : adjustmentsOpen || !!appliedPromoCode || !!appliedGiftCard;
-
   const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
   const activeLeg = paymentLegs[activeLegIndex] ?? null;
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
@@ -2187,9 +2145,98 @@ export function PaymentModalV4({
     return warnings;
   }, [rightRailState.warningCodes, t]);
 
+  const hasDiscountBreakdown =
+    totals.manualDiscount > moneyEpsilon ||
+    totals.promoDiscount > moneyEpsilon ||
+    (totals.autoRuleDiscount ?? 0) > moneyEpsilon ||
+    !!appliedPromoCode ||
+    !!appliedGiftCard;
+  const visiblePaymentSectionIds = useMemo(
+    () =>
+      new Set(
+        deriveVisiblePaymentSections({
+          hasActivePaymentLeg: !!activeLeg,
+          showDeferredExplanation,
+          discountsEnabled: true,
+          hasDiscountsApplied: hasDiscountBreakdown,
+          hasPromoActivity: !!promoCode?.trim() || !!appliedPromoCode,
+          hasGiftCardActivity:
+            !!giftCardNumber?.trim() ||
+            !!giftCardDetails ||
+            !!appliedGiftCard ||
+            pinRequired,
+          hasCashLeg: cashDrawerRequired,
+          showBalancePolicy: rightRailState.showBalancePolicy,
+        }).map((section) => section.id)
+      ),
+    [
+      activeLeg,
+      appliedGiftCard,
+      appliedPromoCode,
+      cashDrawerRequired,
+      giftCardDetails,
+      giftCardNumber,
+      hasDiscountBreakdown,
+      pinRequired,
+      promoCode,
+      rightRailState.showBalancePolicy,
+      showDeferredExplanation,
+    ]
+  );
+  const inspectorTabIds = useMemo(
+    () =>
+      derivePaymentInspectorTabs({
+        hasTaxBreakdown: displayTaxBreakdown.length > 0,
+        hasDiscountBreakdown,
+        hasWarnings: warningMessages.length > 0,
+        isB2B: customerType === 'b2b' && !!customerId,
+      }),
+    [
+      customerId,
+      customerType,
+      displayTaxBreakdown.length,
+      hasDiscountBreakdown,
+      warningMessages.length,
+    ]
+  );
+  const showAmountEditorSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR
+  );
+  const showDiscountsCreditsSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS
+  );
+  const showCashDrawerWorkbenchSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER
+  );
+  const showBalancePolicySection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
+  );
+
+  const scrollToWorkbenchSection = useCallback(
+    (sectionId: string) => {
+      const target =
+        sectionId === PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT
+          ? balanceSnapshotSectionRef.current
+          : sectionId === PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE
+            ? paymentWorkspaceSectionRef.current
+            : sectionId === PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS
+              ? couponCardRef.current
+              : sectionId === PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER
+                ? cashDrawerCardRef.current
+                : sectionId === PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR
+                  ? financialInspectorSectionRef.current
+                  : sectionId === PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
+                    ? balancePolicySectionRef.current
+                    : null;
+
+      scrollAndFocusTarget(target);
+    },
+    [scrollAndFocusTarget]
+  );
+
   const focusFirstBlockingIssue = useCallback(() => {
     if (promoCodeValidating || giftCardValidating || pinRequired) {
-      setAdjustmentsOpen(true);
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS);
       if (pinRequired && !giftCardPin.trim()) {
         setPinFieldError(t('giftCard.pinPendingError'));
       }
@@ -2287,6 +2334,7 @@ export function PaymentModalV4({
     promoCodeValidating,
     remainingBalance,
     scrollAndFocusTarget,
+    scrollToWorkbenchSection,
     serverTotals?.creditLimit?.mode,
     serverTotals?.creditLimit?.wouldExceed,
     setValue,
@@ -2504,147 +2552,6 @@ export function PaymentModalV4({
                   </CmxCard>
                   </div>
 
-                  {cashDrawerRequired && (
-                    <div
-                      ref={(node) => {
-                        cashDrawerCardRef.current = node;
-                        cashDrawerSelectorCardRef.current = node;
-                      }}
-                    >
-                      <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                        <CmxCardHeader className="border-b border-slate-100 pb-2">
-                          <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <Banknote className="h-4 w-4" />
-                            {t('cashDrawer.title')}
-                          </CmxCardTitle>
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-3 pt-4">
-                          <p className="text-xs leading-5 text-slate-500">{t('cashDrawer.subtitle')}</p>
-
-                          {cashDrawersLoading ? (
-                            <div className="space-y-2">
-                              <CmxSkeleton className="h-10 w-full" />
-                              <CmxSkeleton className="h-20 w-full" />
-                            </div>
-                          ) : (
-                            <>
-                              {cashDrawerRequestError && (
-                                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                                  {cashDrawerRequestError}
-                                </div>
-                              )}
-
-                              {cashDrawerSessionChoices.length > 1 && (
-                                <div className="space-y-2">
-                                  <label className={`block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {t('cashDrawer.selectLabel')}
-                                  </label>
-                                  <CmxSelectDropdown
-                                    value={selectedCashDrawerSessionId}
-                                    onValueChange={(value) => {
-                                      setSelectedCashDrawerSessionId(value);
-                                      const selectedChoice = cashDrawerSessionChoices.find(
-                                        ({ session }) => session.id === value
-                                      );
-                                      persistPreferredCashDrawerId(selectedChoice?.drawer.id);
-                                      setCashDrawerRequestError(null);
-                                    }}
-                                    emptyLabel={t('cashDrawer.selectPlaceholder')}
-                                  >
-                                    <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
-                                      <CmxSelectDropdownValue
-                                        displayValue={
-                                          selectedCashDrawerChoice
-                                            ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
-                                            : t('cashDrawer.selectPlaceholder')
-                                        }
-                                        placeholder={t('cashDrawer.selectPlaceholder')}
-                                      />
-                                    </CmxSelectDropdownTrigger>
-                                    <CmxSelectDropdownContent>
-                                      {cashDrawerSessionChoices.map(({ drawer, session }) => (
-                                        <CmxSelectDropdownItem key={session.id} value={session.id}>
-                                          {`${getDrawerDisplayName(drawer)} • ${session.session_no}`}
-                                        </CmxSelectDropdownItem>
-                                      ))}
-                                    </CmxSelectDropdownContent>
-                                  </CmxSelectDropdown>
-                                </div>
-                              )}
-
-                              {selectedCashDrawerChoice ? (
-                                <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3">
-                                  <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`${isRTL ? 'text-right' : 'text-left'}`}>
-                                      <p className="text-sm font-semibold text-slate-900">
-                                        {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
-                                      </p>
-                                      <p className="text-xs text-slate-500">
-                                        {selectedCashDrawerChoice.session.session_no}
-                                      </p>
-                                    </div>
-                                    <Badge variant="secondary" className="rounded-full bg-cyan-600 px-2.5 py-1 text-[11px] font-semibold text-white">
-                                      {t('cashDrawer.selectedBadge')}
-                                    </Badge>
-                                  </div>
-                                  <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                                    <div>
-                                      <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
-                                      <p>{formatCashDrawerOpenedAt(selectedCashDrawerChoice.session.opened_at)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
-                                      <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className={`rounded-2xl border px-3 py-3 text-xs ${
-                                  cashDrawerSessionChoices.length === 0
-                                    ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600'
-                                }`}>
-                                  {cashDrawerSessionChoices.length === 0
-                                    ? t('cashDrawer.messages.noOpenSession')
-                                    : t('cashDrawer.messages.sessionRequired')}
-                                </div>
-                              )}
-                            </>
-                          )}
-
-                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <CmxButton
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => void refetchCashDrawers()}
-                              disabled={cashDrawersFetching}
-                              className="rounded-xl"
-                            >
-                              {cashDrawersFetching ? (
-                                <Loader2 className="me-1 h-4 w-4 animate-spin" />
-                              ) : (
-                                <RefreshCw className="me-1 h-4 w-4" />
-                              )}
-                              {t('cashDrawer.refresh')}
-                            </CmxButton>
-                            <CmxButton
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleOpenCashDrawerDialog}
-                              disabled={!canOpenNewCashDrawerSession}
-                              className="rounded-xl"
-                            >
-                              <Plus className="me-1 h-4 w-4" />
-                              {t('cashDrawer.openSession')}
-                            </CmxButton>
-                          </div>
-                        </CmxCardContent>
-                      </CmxCard>
-                    </div>
-                  )}
-
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-slate-100 pb-2">
                       <CmxCardTitle className={`text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -2835,6 +2742,7 @@ export function PaymentModalV4({
                 </div>
 
                 <div className="space-y-4">
+                  <div ref={balanceSnapshotSectionRef} tabIndex={-1} className="outline-none">
                   <CmxCard className="border-cyan-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50 shadow-sm">
                     <CmxCardContent className="pt-5">
                       <div className="grid gap-3 md:grid-cols-3">
@@ -2860,171 +2768,9 @@ export function PaymentModalV4({
                       </div>
                     </CmxCardContent>
                   </CmxCard>
+                  </div>
 
-                  {showGiftCardWorkspace ? (
-                    <CmxCard ref={giftCardDetailsRef} className="overflow-hidden border-purple-200 bg-gradient-to-br from-white via-purple-50/40 to-cyan-50/50 shadow-sm">
-                      <CmxCardHeader className={`flex-row items-center justify-between gap-3 border-b border-purple-100 pb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <div className={isRTL ? 'text-right' : 'text-left'}>
-                          <CmxCardTitle className="text-base font-bold text-slate-900">
-                            {t('giftCard.workspaceTitle')}
-                          </CmxCardTitle>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {t('giftCard.workspaceHint')}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
-                          {t('giftCard.title')}
-                        </Badge>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-5 pt-5">
-                        <div className={`grid gap-4 ${giftCardDetails ? 'lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]' : 'lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]'}`}>
-                          <div className="space-y-3 rounded-2xl border border-purple-100 bg-white/80 p-4">
-                            <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              <div className={isRTL ? 'text-right' : 'text-left'}>
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">
-                                  {t('giftCard.cardCode')}
-                                </p>
-                                <p className="mt-2 break-all text-lg font-bold text-slate-900" dir="ltr">
-                                  {giftCardDetails?.number || giftCardNumber}
-                                </p>
-                              </div>
-                              <CmxButton type="button" variant="outline" size="sm" onClick={handleClearGiftCard}>
-                                {tCommon('cancel')}
-                              </CmxButton>
-                            </div>
-                            {giftCardDetails ? (
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                  <p className="text-xs text-slate-500">{t('giftCard.balance')}</p>
-                                  <p className="mt-1 text-xl font-bold tabular-nums text-purple-700">
-                                    {currencyCode} {formatAmount(giftCardDetails.balance)}
-                                  </p>
-                                </div>
-                                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                  <p className="text-xs text-slate-500">{t('rightRail.remainingBalance')}</p>
-                                  <p className="mt-1 text-xl font-bold tabular-nums text-amber-600">
-                                    {currencyCode} {formatAmount(remainingBalance)}
-                                  </p>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                                {t('giftCard.pinPendingError')}
-                              </div>
-                            )}
-                            {giftCardResult && !giftCardResult.isValid ? (
-                              <p className={`text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                {resolveGiftCardError(giftCardResult)}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <div className="space-y-3 rounded-2xl border border-purple-100 bg-white p-4 shadow-sm">
-                            {pinRequired ? (
-                              <div className="space-y-3">
-                                <div className={`flex items-end gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                  <CmxInput
-                                    ref={pinInputRef}
-                                    label={t('giftCard.pinLabel')}
-                                    value={giftCardPin}
-                                    type={pinVisible ? 'text' : 'password'}
-                                    dir="ltr"
-                                    error={pinFieldError ?? undefined}
-                                    className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
-                                    onChange={(event) => {
-                                      setGiftCardPin(event.target.value);
-                                      setPinFieldError(null);
-                                    }}
-                                    onKeyDown={(event) => {
-                                      if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        void handleFetchGiftCardDetails();
-                                      }
-                                    }}
-                                  />
-                                  <CmxButton
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 shrink-0"
-                                    onClick={() => setPinVisible((value) => !value)}
-                                    aria-label={pinVisible ? (t('giftCard.hidePin') || 'Hide PIN') : (t('giftCard.showPin') || 'Show PIN')}
-                                  >
-                                    {pinVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                  </CmxButton>
-                                </div>
-                                <CmxButton
-                                  type="button"
-                                  variant="secondary"
-                                  onClick={handleFetchGiftCardDetails}
-                                  disabled={!giftCardNumber?.trim() || giftCardValidating || !giftCardPin.trim()}
-                                  className="w-full"
-                                >
-                                  {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
-                                </CmxButton>
-                              </div>
-                            ) : null}
-
-                            {giftCardDetails ? (
-                              <div className="space-y-3">
-                                <Controller
-                                  name="giftCardAmount"
-                                  control={control}
-                                  render={({ field }) => (
-                                    <CmxInput
-                                      {...field}
-                                      ref={(node) => {
-                                        field.ref(node);
-                                        giftCardAmountInputRef.current = node;
-                                      }}
-                                      type="number"
-                                      label={t('giftCard.applyAmount')}
-                                      value={field.value ?? ''}
-                                      dir="ltr"
-                                      min="0"
-                                      step="0.001"
-                                      inputMode="decimal"
-                                      placeholder={t('giftCard.amountPlaceholder')}
-                                      onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
-                                      onKeyDown={(event) => {
-                                        if (event.key === 'Enter') {
-                                          event.preventDefault();
-                                          event.stopPropagation();
-                                          handleApplyGiftCard();
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                />
-                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                  <CmxButton
-                                    type="button"
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={handleApplyGiftCard}
-                                    disabled={!giftCardAmount || giftCardAmount <= 0}
-                                    className="flex-1"
-                                  >
-                                    {t('giftCard.applyAmount')}
-                                  </CmxButton>
-                                  <CmxButton
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleClearGiftCard}
-                                    className="flex-1"
-                                  >
-                                    {tCommon('cancel')}
-                                  </CmxButton>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : showDeferredExplanation ? (
+                  {showDeferredExplanation ? (
                     <CmxCard>
                       <CmxCardContent className="pt-5">
                         <p className="text-lg font-semibold text-slate-900">{t('workspace.noImmediateTitle') || 'No pay-now amount selected'}</p>
@@ -3033,6 +2779,8 @@ export function PaymentModalV4({
                     </CmxCard>
                   ) : (
                     <>
+                      {showAmountEditorSection ? (
+                      <>
                       <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
                         <CmxCardHeader className="border-b border-slate-100 pb-2">
                           <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -3122,7 +2870,10 @@ export function PaymentModalV4({
                           />
                         </CmxCardContent>
                       </CmxCard>
+                      </>
+                      ) : null}
 
+                      <div ref={paymentWorkspaceSectionRef} tabIndex={-1} className="outline-none">
                       <CmxCard className="min-h-[360px] overflow-hidden border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/50 shadow-sm">
                         <CmxCardHeader className="border-b border-cyan-100 pb-3">
                           <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -3413,356 +3164,747 @@ export function PaymentModalV4({
                           )}
                         </CmxCardContent>
                       </CmxCard>
+                      </div>
                     </>
                   )}
-                </div>
 
-                <div className="relative flex flex-col bg-slate-50/50 lg:col-span-5 xl:col-span-4">
-                  <div className="flex-1 space-y-4 overflow-y-auto p-6 pb-32">
-                  <CollapsibleRailCard
-                    title={t('rightRail.orderValue')}
-                    open={orderValueOpen}
-                    onToggle={() => setOrderValueOpen((value) => !value)}
-                    isRTL={isRTL}
-                  >
-                    <div className="space-y-2">
-                      {orderValueSummaryItems.map((item) => (
-                        <SummaryRow
-                          key={`${item.label}-${item.value}`}
-                          label={item.label}
-                          value={item.value}
-                          negative={item.negative}
-                        />
-                      ))}
-                    </div>
-                  </CollapsibleRailCard>
-                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                    <CmxCardContent className="pt-5">
-                      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
-                          <UserRound className="h-6 w-6" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <p className="truncate text-lg font-semibold text-slate-900">{customerHeaderName}</p>
-                            {customerType === 'b2b' ? (
-                              <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700">
-                                B2B
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <p className="mt-1 truncate text-sm text-slate-500">{customerHeaderMeta}</p>
-                        </div>
-                      </div>
-                    </CmxCardContent>
-                  </CmxCard>
-                  <div ref={couponCardRef}>
-                    <CollapsibleRailCard
-                      title={t('rightRail.adjustments')}
-                      badge={appliedBadgeCount > 0 ? String(appliedBadgeCount) : undefined}
-                      open={showAdjustmentsContent}
-                      onToggle={() => setAdjustmentsOpen((value) => !value)}
-                      isRTL={isRTL}
-                    >
-                      <div className="space-y-4">
-                        <div className="space-y-3">
+                  {showDiscountsCreditsSection ? (
+                    <div ref={couponCardRef} tabIndex={-1} className="outline-none">
+                      <CmxCard className="overflow-hidden border-purple-100 bg-white/95 shadow-sm">
+                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-purple-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                           <div>
-                            <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t('rightRail.discounts')}
-                            </p>
-                            <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t('rightRail.discountsHelp')}
+                            <CmxCardTitle className="text-base text-slate-900">
+                              {t('rightRail.adjustments')}
+                            </CmxCardTitle>
+                            <p className="mt-1 text-sm text-slate-600">
+                              {t('sections.discountsCreditsHelp')}
                             </p>
                           </div>
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <Controller
-                              name="amountDiscount"
-                              control={control}
-                              render={({ field }) => (
-                                <CmxInput
-                                  ref={amountDiscountInputRef}
-                                  label={t('manualDiscount.amount')}
-                                  value={amountDiscountFocused ? amountDiscountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
-                                  dir="ltr"
-                                  placeholder={t('manualDiscount.amountPlaceholder')}
-                                  onFocus={() => {
-                                    setAmountDiscountFocused(true);
-                                    setAmountDiscountDraft(formatDecimalDraft(field.value ?? 0, decimalPlaces));
-                                  }}
-                                  onBlur={() => {
-                                    setAmountDiscountFocused(false);
-                                    const raw = sanitizeAmountDiscountDraft(amountDiscountDraft.trim());
-                                    const nextAmount = Math.max(0, Math.min(parseDecimalDraft(raw), total));
-                                    field.onChange(nextAmount);
-                                    setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
-                                    setAmountDiscountDraft('');
-                                  }}
-                                  onChange={(event) => {
-                                    const nextDraft = sanitizeAmountDiscountDraft(event.target.value);
-                                    setAmountDiscountDraft(nextDraft);
-                                    const nextAmount = Math.max(0, Math.min(parseDecimalDraft(nextDraft), total));
-                                    field.onChange(nextAmount);
-                                    setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
-                                  }}
-                                />
-                              )}
-                            />
-                            <Controller
-                              name="percentDiscount"
-                              control={control}
-                              render={({ field }) => (
-                                <CmxInput
-                                  ref={percentDiscountInputRef}
-                                  label={t('manualDiscount.percent')}
-                                  value={field.value ? String(field.value) : ''}
-                                  dir="ltr"
-                                  placeholder={t('manualDiscount.percentPlaceholder')}
-                                  onChange={(event) => {
-                                    const nextPercent = Math.max(0, Math.min(100, Number.parseFloat(event.target.value) || 0));
-                                    field.onChange(nextPercent);
-                                    setValue('amountDiscount', syncDiscountFromPercent(total, nextPercent, decimalPlaces));
-                                  }}
-                                />
-                              )}
-                            />
-                          </div>
-                          {(errors.percentDiscount || errors.amountDiscount) ? (
-                            <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {errors.percentDiscount?.message || errors.amountDiscount?.message}
-                            </p>
+                          {appliedBadgeCount > 0 ? (
+                            <Badge variant="secondary" className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
+                              {appliedBadgeCount}
+                            </Badge>
                           ) : null}
-                          {totals.manualDiscount > moneyEpsilon ? (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                              <SummaryRow
-                                label={t('summary.manualDiscount')}
-                                value={`-${currencyCode} ${formatAmount(totals.manualDiscount)}`}
-                                negative
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {!NEW_ORDER_PROMO_GIFT_DISABLED ? (
-                          <div className="space-y-4 border-t border-slate-100 pt-4">
-                            <div>
-                              <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                {t('rightRail.creditsAndStoredValue')}
-                              </p>
-                              <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                {t('rightRail.creditsAndStoredValueHelp')}
-                              </p>
-                            </div>
-
-                            {!appliedPromoCode ? (
-                              <div className="space-y-2">
-                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                  <Controller
-                                    name="promoCode"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <CmxInput
-                                        {...field}
-                                        value={field.value || ''}
-                                        onChange={(event) => field.onChange(event.target.value.toUpperCase())}
-                                        placeholder={t('promoCode.placeholder')}
-                                        disabled={promoCodeValidating}
-                                      />
-                                    )}
-                                  />
-                                  <CmxButton
-                                    type="button"
-                                    size="sm"
-                                    onClick={handleValidatePromoCode}
-                                    disabled={!promoCode?.trim() || promoCodeValidating}
-                                  >
-                                    {promoCodeValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('promoCode.apply')}
-                                  </CmxButton>
-                                </div>
-                                {promoCodeResult && !promoCodeResult.isValid ? (
-                                  <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {promoCodeResult.error}
+                        </CmxCardHeader>
+                        <CmxCardContent className="space-y-5 pt-5">
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
+                            <div className="space-y-4">
+                              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <div>
+                                  <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {t('rightRail.discounts')}
                                   </p>
-                                ) : null}
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2">
-                                <span className="text-sm font-medium text-green-900">
-                                  {appliedPromoCode.code} -{currencyCode} {formatAmount(appliedPromoCode.discount)}
-                                </span>
-                                <CmxButton type="button" variant="ghost" size="sm" onClick={handleClearPromoCode}>
-                                  {t('promoCode.remove')}
-                                </CmxButton>
-                              </div>
-                            )}
-
-                            {!appliedGiftCard ? (
-                              <div className="space-y-2">
-                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                  <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {t('rightRail.discountsHelp')}
+                                  </p>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
                                   <Controller
-                                    name="giftCardNumber"
+                                    name="amountDiscount"
                                     control={control}
                                     render={({ field }) => (
                                       <CmxInput
-                                        {...field}
-                                        value={field.value || ''}
-                                        onChange={(event) => field.onChange(event.target.value.toUpperCase())}
-                                        placeholder={t('giftCard.placeholder')}
-                                        disabled={giftCardValidating}
-                                        onKeyDown={(event) => {
-                                          if (event.key === 'Enter') {
-                                            event.preventDefault();
-                                            event.stopPropagation();
-                                            void handleFetchGiftCardDetails();
-                                          }
+                                        ref={amountDiscountInputRef}
+                                        label={t('manualDiscount.amount')}
+                                        value={amountDiscountFocused ? amountDiscountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
+                                        dir="ltr"
+                                        placeholder={t('manualDiscount.amountPlaceholder')}
+                                        onFocus={() => {
+                                          setAmountDiscountFocused(true);
+                                          setAmountDiscountDraft(formatDecimalDraft(field.value ?? 0, decimalPlaces));
+                                        }}
+                                        onBlur={() => {
+                                          setAmountDiscountFocused(false);
+                                          const raw = sanitizeAmountDiscountDraft(amountDiscountDraft.trim());
+                                          const nextAmount = Math.max(0, Math.min(parseDecimalDraft(raw), total));
+                                          field.onChange(nextAmount);
+                                          setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
+                                          setAmountDiscountDraft('');
+                                        }}
+                                        onChange={(event) => {
+                                          const nextDraft = sanitizeAmountDiscountDraft(event.target.value);
+                                          setAmountDiscountDraft(nextDraft);
+                                          const nextAmount = Math.max(0, Math.min(parseDecimalDraft(nextDraft), total));
+                                          field.onChange(nextAmount);
+                                          setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
                                         }}
                                       />
                                     )}
                                   />
-                                  <CmxButton
-                                    type="button"
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={handleFetchGiftCardDetails}
-                                    disabled={!giftCardNumber?.trim() || giftCardValidating || (pinRequired && !giftCardPin.trim())}
-                                  >
-                                    {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
-                                  </CmxButton>
+                                  <Controller
+                                    name="percentDiscount"
+                                    control={control}
+                                    render={({ field }) => (
+                                      <CmxInput
+                                        ref={percentDiscountInputRef}
+                                        label={t('manualDiscount.percent')}
+                                        value={field.value ? String(field.value) : ''}
+                                        dir="ltr"
+                                        placeholder={t('manualDiscount.percentPlaceholder')}
+                                        onChange={(event) => {
+                                          const nextPercent = Math.max(0, Math.min(100, Number.parseFloat(event.target.value) || 0));
+                                          field.onChange(nextPercent);
+                                          setValue('amountDiscount', syncDiscountFromPercent(total, nextPercent, decimalPlaces));
+                                        }}
+                                      />
+                                    )}
+                                  />
                                 </div>
-                                {giftCardResult && !giftCardResult.isValid ? (
+                                {(errors.percentDiscount || errors.amountDiscount) ? (
                                   <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {resolveGiftCardError(giftCardResult)}
+                                    {errors.percentDiscount?.message || errors.amountDiscount?.message}
                                   </p>
                                 ) : null}
-                                {showGiftCardWorkspace ? (
-                                  <div className="space-y-2 rounded-xl border border-purple-200 bg-purple-50 p-3">
-                                    <p className={`text-xs text-purple-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                      {pinRequired ? t('giftCard.workspacePinHint') : t('giftCard.workspaceAmountHint')}
+                              </div>
+
+                              {!NEW_ORDER_PROMO_GIFT_DISABLED ? (
+                                <div className="space-y-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+                                  <div>
+                                    <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                      {t('rightRail.creditsAndStoredValue')}
                                     </p>
+                                    <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                      {t('rightRail.creditsAndStoredValueHelp')}
+                                    </p>
+                                  </div>
+
+                                  {!appliedPromoCode ? (
+                                    <div className="space-y-2">
+                                      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                        <Controller
+                                          name="promoCode"
+                                          control={control}
+                                          render={({ field }) => (
+                                            <CmxInput
+                                              {...field}
+                                              value={field.value || ''}
+                                              onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                                              placeholder={t('promoCode.placeholder')}
+                                              disabled={promoCodeValidating}
+                                            />
+                                          )}
+                                        />
+                                        <CmxButton
+                                          type="button"
+                                          size="sm"
+                                          onClick={handleValidatePromoCode}
+                                          disabled={!promoCode?.trim() || promoCodeValidating}
+                                        >
+                                          {promoCodeValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('promoCode.apply')}
+                                        </CmxButton>
+                                      </div>
+                                      {promoCodeResult && !promoCodeResult.isValid ? (
+                                        <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                          {promoCodeResult.error}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2">
+                                      <span className="text-sm font-medium text-green-900">
+                                        {appliedPromoCode.code} -{currencyCode} {formatAmount(appliedPromoCode.discount)}
+                                      </span>
+                                      <CmxButton type="button" variant="ghost" size="sm" onClick={handleClearPromoCode}>
+                                        {t('promoCode.remove')}
+                                      </CmxButton>
+                                    </div>
+                                  )}
+
+                                  {!appliedGiftCard ? (
+                                    <div ref={giftCardDetailsRef} className="space-y-3 rounded-xl border border-purple-200 bg-white p-3">
+                                      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                        <Controller
+                                          name="giftCardNumber"
+                                          control={control}
+                                          render={({ field }) => (
+                                            <CmxInput
+                                              {...field}
+                                              value={field.value || ''}
+                                              onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                                              placeholder={t('giftCard.placeholder')}
+                                              disabled={giftCardValidating}
+                                              onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                  event.preventDefault();
+                                                  event.stopPropagation();
+                                                  void handleFetchGiftCardDetails();
+                                                }
+                                              }}
+                                            />
+                                          )}
+                                        />
+                                        <CmxButton
+                                          type="button"
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={handleFetchGiftCardDetails}
+                                          disabled={!giftCardNumber?.trim() || giftCardValidating || (pinRequired && !giftCardPin.trim())}
+                                        >
+                                          {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
+                                        </CmxButton>
+                                      </div>
+                                      {giftCardResult && !giftCardResult.isValid ? (
+                                        <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                          {resolveGiftCardError(giftCardResult)}
+                                        </p>
+                                      ) : null}
+                                      {showGiftCardWorkspace ? (
+                                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
+                                          <div className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-500">
+                                              {t('giftCard.cardCode')}
+                                            </p>
+                                            <p className="mt-1 break-all text-sm font-semibold text-slate-900" dir="ltr">
+                                              {giftCardDetails?.number || giftCardNumber}
+                                            </p>
+                                            {giftCardDetails ? (
+                                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                <SummaryRow
+                                                  label={t('giftCard.balance')}
+                                                  value={`${currencyCode} ${formatAmount(giftCardDetails.balance)}`}
+                                                />
+                                                <SummaryRow
+                                                  label={t('rightRail.remainingBalance')}
+                                                  value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+                                                  negative={remainingBalance > moneyEpsilon}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <p className="mt-2 text-xs text-amber-700">{t('giftCard.pinPendingError')}</p>
+                                            )}
+                                          </div>
+                                          <div className="space-y-3">
+                                            {pinRequired ? (
+                                              <div className={`flex items-end gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                <CmxInput
+                                                  ref={pinInputRef}
+                                                  label={t('giftCard.pinLabel')}
+                                                  value={giftCardPin}
+                                                  type={pinVisible ? 'text' : 'password'}
+                                                  dir="ltr"
+                                                  error={pinFieldError ?? undefined}
+                                                  className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
+                                                  onChange={(event) => {
+                                                    setGiftCardPin(event.target.value);
+                                                    setPinFieldError(null);
+                                                  }}
+                                                  onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                      event.preventDefault();
+                                                      event.stopPropagation();
+                                                      void handleFetchGiftCardDetails();
+                                                    }
+                                                  }}
+                                                />
+                                                <CmxButton
+                                                  type="button"
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="h-9 shrink-0"
+                                                  onClick={() => setPinVisible((value) => !value)}
+                                                  aria-label={pinVisible ? (t('giftCard.hidePin') || 'Hide PIN') : (t('giftCard.showPin') || 'Show PIN')}
+                                                >
+                                                  {pinVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </CmxButton>
+                                              </div>
+                                            ) : null}
+                                            {giftCardDetails ? (
+                                              <>
+                                                <Controller
+                                                  name="giftCardAmount"
+                                                  control={control}
+                                                  render={({ field }) => (
+                                                    <CmxInput
+                                                      {...field}
+                                                      ref={(node) => {
+                                                        field.ref(node);
+                                                        giftCardAmountInputRef.current = node;
+                                                      }}
+                                                      type="number"
+                                                      label={t('giftCard.applyAmount')}
+                                                      value={field.value ?? ''}
+                                                      dir="ltr"
+                                                      min="0"
+                                                      step="0.001"
+                                                      inputMode="decimal"
+                                                      placeholder={t('giftCard.amountPlaceholder')}
+                                                      onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
+                                                      onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') {
+                                                          event.preventDefault();
+                                                          event.stopPropagation();
+                                                          handleApplyGiftCard();
+                                                        }
+                                                      }}
+                                                    />
+                                                  )}
+                                                />
+                                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                  <CmxButton
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={handleApplyGiftCard}
+                                                    disabled={!giftCardAmount || giftCardAmount <= 0}
+                                                    className="flex-1"
+                                                  >
+                                                    {t('giftCard.applyAmount')}
+                                                  </CmxButton>
+                                                  <CmxButton
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={handleClearGiftCard}
+                                                    className="flex-1"
+                                                  >
+                                                    {tCommon('cancel')}
+                                                  </CmxButton>
+                                                </div>
+                                              </>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2">
+                                      <span className="text-sm font-medium text-purple-900">
+                                        {appliedGiftCard.number} -{currencyCode} {formatAmount(appliedGiftCard.amount)}
+                                      </span>
+                                      <CmxButton type="button" variant="ghost" size="sm" onClick={handleClearGiftCard}>
+                                        {t('giftCard.remove')}
+                                      </CmxButton>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+                              <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                {t('rightRail.liveEffect')}
+                              </p>
+                              <SummaryRow
+                                label={t('rightRail.orderTotalAfterDiscounts')}
+                                value={`${currencyCode} ${formatAmount(saleTotal)}`}
+                              />
+                              <SummaryRow
+                                label={t('rightRail.creditsApplied')}
+                                value={`${currencyCode} ${formatAmount(customerCreditAmount + (appliedGiftCard?.amount || 0))}`}
+                              />
+                              <SummaryRow
+                                label={t('rightRail.remainingBalance')}
+                                value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+                                negative={remainingBalance > moneyEpsilon}
+                              />
+                            </div>
+                          </div>
+                        </CmxCardContent>
+                      </CmxCard>
+                    </div>
+                  ) : null}
+
+                  {showCashDrawerWorkbenchSection ? (
+                    <div
+                      ref={(node) => {
+                        cashDrawerCardRef.current = node;
+                        cashDrawerSelectorCardRef.current = node;
+                      }}
+                      tabIndex={-1}
+                      className="outline-none"
+                    >
+                      <CmxCard className="overflow-hidden border-cyan-200 bg-white/95 shadow-sm">
+                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-cyan-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                          <div>
+                            <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <Banknote className="h-4 w-4 text-cyan-700" />
+                              {t('sections.cashDrawer')}
+                            </CmxCardTitle>
+                            <p className="mt-1 text-sm text-slate-600">{t('cashDrawer.subtitle')}</p>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={`rounded-full px-3 py-1 ${
+                              selectedCashDrawerChoice
+                                ? 'bg-cyan-100 text-cyan-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
+                          </Badge>
+                        </CmxCardHeader>
+                        <CmxCardContent className="space-y-4 pt-5">
+                          {cashDrawersLoading ? (
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <CmxSkeleton className="h-20 w-full" />
+                              <CmxSkeleton className="h-20 w-full" />
+                            </div>
+                          ) : (
+                            <>
+                              {cashDrawerRequestError ? (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                  {cashDrawerRequestError}
+                                </div>
+                              ) : null}
+
+                              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+                                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                  {cashDrawerSessionChoices.length > 1 ? (
+                                    <div className="space-y-2">
+                                      <label className={`block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        {t('cashDrawer.selectLabel')}
+                                      </label>
+                                      <CmxSelectDropdown
+                                        value={selectedCashDrawerSessionId}
+                                        onValueChange={(value) => {
+                                          setSelectedCashDrawerSessionId(value);
+                                          const selectedChoice = cashDrawerSessionChoices.find(
+                                            ({ session }) => session.id === value
+                                          );
+                                          persistPreferredCashDrawerId(selectedChoice?.drawer.id);
+                                          setCashDrawerRequestError(null);
+                                        }}
+                                        emptyLabel={t('cashDrawer.selectPlaceholder')}
+                                      >
+                                        <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
+                                          <CmxSelectDropdownValue
+                                            displayValue={
+                                              selectedCashDrawerChoice
+                                                ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
+                                                : t('cashDrawer.selectPlaceholder')
+                                            }
+                                            placeholder={t('cashDrawer.selectPlaceholder')}
+                                          />
+                                        </CmxSelectDropdownTrigger>
+                                        <CmxSelectDropdownContent>
+                                          {cashDrawerSessionChoices.map(({ drawer, session }) => (
+                                            <CmxSelectDropdownItem key={session.id} value={session.id}>
+                                              {`${getDrawerDisplayName(drawer)} • ${session.session_no}`}
+                                            </CmxSelectDropdownItem>
+                                          ))}
+                                        </CmxSelectDropdownContent>
+                                      </CmxSelectDropdown>
+                                    </div>
+                                  ) : null}
+
+                                  {selectedCashDrawerChoice ? (
+                                    <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3">
+                                      <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                        <div className={isRTL ? 'text-right' : 'text-left'}>
+                                          <p className="text-sm font-semibold text-slate-900">
+                                            {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
+                                          </p>
+                                          <p className="text-xs text-slate-500">
+                                            {selectedCashDrawerChoice.session.session_no}
+                                          </p>
+                                        </div>
+                                        <Banknote className="h-4 w-4 text-cyan-700" />
+                                      </div>
+                                      <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                                        <div>
+                                          <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
+                                          <p>{formatCashDrawerOpenedAt(selectedCashDrawerChoice.session.opened_at)}</p>
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
+                                          <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className={`rounded-2xl border px-3 py-3 text-xs ${
+                                      cashDrawerSessionChoices.length === 0
+                                        ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-600'
+                                    }`}>
+                                      {cashDrawerSessionChoices.length === 0
+                                        ? t('cashDrawer.messages.noOpenSession')
+                                        : t('cashDrawer.messages.sessionRequired')}
+                                    </div>
+                                  )}
+
+                                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                     <CmxButton
                                       type="button"
-                                      size="sm"
                                       variant="outline"
-                                      className="w-full"
-                                      onClick={() => {
-                                        giftCardDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        window.setTimeout(() => {
-                                          if (pinRequired) {
-                                            pinInputRef.current?.focus();
-                                            pinInputRef.current?.select();
-                                            return;
-                                          }
-                                          giftCardAmountInputRef.current?.focus();
-                                          giftCardAmountInputRef.current?.select();
-                                        }, 80);
-                                      }}
+                                      size="sm"
+                                      onClick={() => void refetchCashDrawers()}
+                                      disabled={cashDrawersFetching}
+                                      className="rounded-xl"
                                     >
-                                      {t('giftCard.continueInWorkspace')}
+                                      {cashDrawersFetching ? (
+                                        <Loader2 className="me-1 h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="me-1 h-4 w-4" />
+                                      )}
+                                      {t('cashDrawer.refresh')}
+                                    </CmxButton>
+                                    <CmxButton
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleOpenCashDrawerDialog}
+                                      disabled={!canOpenNewCashDrawerSession}
+                                      className="rounded-xl"
+                                    >
+                                      <Plus className="me-1 h-4 w-4" />
+                                      {t('cashDrawer.openSession')}
                                     </CmxButton>
                                   </div>
-                                ) : null}
+                                </div>
+
+                                <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+                                  <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {t('rightRail.cashDrawerImpact')}
+                                  </p>
+                                  <SummaryRow
+                                    label={t('rightRail.cashRetained')}
+                                    value={`${currencyCode} ${formatAmount(cashLegAmount)}`}
+                                  />
+                                  <SummaryRow
+                                    label={t('rightRail.changeReturned')}
+                                    value={`${currencyCode} ${formatAmount(changeAmount)}`}
+                                    negative={changeAmount > moneyEpsilon}
+                                  />
+                                </div>
                               </div>
-                            ) : (
-                              <div className="flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2">
-                                <span className="text-sm font-medium text-purple-900">
-                                  {appliedGiftCard.number} -{currencyCode} {formatAmount(appliedGiftCard.amount)}
-                                </span>
-                                <CmxButton type="button" variant="ghost" size="sm" onClick={handleClearGiftCard}>
-                                  {t('giftCard.remove')}
-                                </CmxButton>
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
+                            </>
+                          )}
+                        </CmxCardContent>
+                      </CmxCard>
+                    </div>
+                  ) : null}
 
-                        <div className="space-y-2 border-t border-slate-100 pt-4">
-                          <div>
-                            <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t('rightRail.liveEffect')}
-                            </p>
-                          </div>
-                          <SummaryRow
-                            label={t('rightRail.orderTotalAfterDiscounts')}
-                            value={`${currencyCode} ${formatAmount(saleTotal)}`}
-                          />
-                          <SummaryRow
-                            label={t('rightRail.creditsApplied')}
-                            value={`${currencyCode} ${formatAmount(customerCreditAmount + (appliedGiftCard?.amount || 0))}`}
-                          />
-                          <SummaryRow
-                            label={t('rightRail.remainingBalance')}
-                            value={`${currencyCode} ${formatAmount(remainingBalance)}`}
-                            negative={remainingBalance > moneyEpsilon}
-                          />
-                        </div>
-                      </div>
-                    </CollapsibleRailCard>
-                  </div>
-                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                    <CmxCardHeader className="border-b border-slate-100 pb-3">
-                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.settlementNow')}</CmxCardTitle>
-                    </CmxCardHeader>
-                    <CmxCardContent className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.realPaymentsReceived')}
-                        </p>
-                        {realPaymentSummaryItems.length > 0 ? (
-                          realPaymentSummaryItems.map((item) => (
-                            <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-                          ))
-                        ) : (
-                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.noneApplied')}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.creditsApplied')}
-                        </p>
-                        {storedValueSummaryItems.length > 0 || appliedGiftCard ? (
-                          <>
-                            {storedValueSummaryItems.map((item) => (
-                              <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-                            ))}
-                            {appliedGiftCard ? (
-                              <SummaryRow
-                                label={t('giftCard.title')}
-                                value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`}
-                              />
-                            ) : null}
-                          </>
-                        ) : (
-                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.noneApplied')}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
-                        <SummaryRow
-                          label={t('rightRail.totalSettledNow')}
-                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
-                          bold
-                        />
-                      </div>
-                    </CmxCardContent>
-                  </CmxCard>
-
-                  {rightRailState.showBalancePolicy ? (
+                  <div ref={financialInspectorSectionRef} tabIndex={-1} className="outline-none">
                     <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                      <CmxCardHeader className="border-b border-slate-100 pb-3">
-                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          {t('rightRail.balancePolicy')}
-                          <Info className="h-4 w-4 text-slate-400" />
-                        </CmxCardTitle>
+                      <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <div>
+                          <CmxCardTitle className="text-base text-slate-900">
+                            {t('sections.financialInspector')}
+                          </CmxCardTitle>
+                          <p className="mt-1 text-sm text-slate-600">{t('sections.financialInspectorHelp')}</p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                          {inspectorTabIds.length}
+                        </Badge>
                       </CmxCardHeader>
-                      <CmxCardContent className="space-y-3 pt-4">
-                        <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.balancePolicyHelp')}
-                        </p>
-                        <div className="space-y-2">
+                      <CmxCardContent className="pt-0">
+                        <CmxTabsPanel
+                          tabs={[
+                            {
+                              id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.ORDER_VALUE,
+                              label: t('rightRail.orderValue'),
+                              content: (
+                                <div className="space-y-2">
+                                  {orderValueSummaryItems.map((item) => (
+                                    <SummaryRow
+                                      key={`${item.label}-${item.value}`}
+                                      label={item.label}
+                                      value={item.value}
+                                      negative={item.negative}
+                                    />
+                                  ))}
+                                </div>
+                              ),
+                            },
+                            ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.TAX_BREAKDOWN)
+                              ? [
+                                  {
+                                    id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.TAX_BREAKDOWN,
+                                    label: t('rightRail.taxBreakdown'),
+                                    content: displayTaxBreakdown.length === 0 ? (
+                                      <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        {t('tax.noProfiles')}
+                                      </p>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {displayTaxBreakdown.map((entry, index) => (
+                                          <div
+                                            key={entry.profileId ?? `${entry.taxType}-${index}`}
+                                            className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                                          >
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-xs font-medium text-slate-700">
+                                                {isRTL ? (entry.label2 || entry.label) : entry.label}
+                                              </p>
+                                              <p className="text-xs text-slate-400">
+                                                {t('tax.rate')}: {entry.rate.toFixed(2)}%
+                                              </p>
+                                            </div>
+                                            <span className="text-sm font-semibold tabular-nums text-slate-900">
+                                              {currencyCode} {formatAmount(entry.taxAmount)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ),
+                                  },
+                                ]
+                              : []),
+                            ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.DISCOUNTS)
+                              ? [
+                                  {
+                                    id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.DISCOUNTS,
+                                    label: t('rightRail.discounts'),
+                                    content: (
+                                      <div className="space-y-2">
+                                        {(totals.autoRuleDiscount ?? 0) > moneyEpsilon ? (
+                                          <SummaryRow
+                                            label={t('summary.rulesDiscount')}
+                                            value={`-${currencyCode} ${formatAmount(totals.autoRuleDiscount ?? 0)}`}
+                                            negative
+                                          />
+                                        ) : null}
+                                        {totals.manualDiscount > moneyEpsilon ? (
+                                          <SummaryRow
+                                            label={t('summary.manualDiscount')}
+                                            value={`-${currencyCode} ${formatAmount(totals.manualDiscount)}`}
+                                            negative
+                                          />
+                                        ) : null}
+                                        {totals.promoDiscount > moneyEpsilon ? (
+                                          <SummaryRow
+                                            label={t('summary.promoDiscount')}
+                                            value={`-${currencyCode} ${formatAmount(totals.promoDiscount)}`}
+                                            negative
+                                          />
+                                        ) : null}
+                                        {appliedGiftCard ? (
+                                          <SummaryRow
+                                            label={t('summary.giftCardApplied')}
+                                            value={`-${currencyCode} ${formatAmount(appliedGiftCard.amount)}`}
+                                            negative
+                                          />
+                                        ) : null}
+                                      </div>
+                                    ),
+                                  },
+                                ]
+                              : []),
+                            ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS)
+                              ? [
+                                  {
+                                    id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS,
+                                    label: t('rightRail.warnings'),
+                                    content: (
+                                      <div className="space-y-2">
+                                        {warningMessages.map((warning) => (
+                                          <div
+                                            key={warning}
+                                            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                                          >
+                                            {warning}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ),
+                                  },
+                                ]
+                              : []),
+                            ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.B2B_AR)
+                              ? [
+                                  {
+                                    id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.B2B_AR,
+                                    label: t('rightRail.b2bArDetails'),
+                                    content: customerId ? (
+                                      <div className="space-y-3">
+                                        <B2BContractsSelect customerId={customerId} control={control} isRTL={isRTL} />
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                          <Controller
+                                            name="costCenterCode"
+                                            control={control}
+                                            render={({ field }) => (
+                                              <CmxInput
+                                                {...field}
+                                                label={t('b2b.costCenter') || 'Cost Center'}
+                                                dir="ltr"
+                                                placeholder={t('b2b.costCenterPlaceholder') || 'Optional'}
+                                              />
+                                            )}
+                                          />
+                                          <Controller
+                                            name="poNumber"
+                                            control={control}
+                                            render={({ field }) => (
+                                              <CmxInput
+                                                {...field}
+                                                label={t('b2b.poNumber') || 'PO Number'}
+                                                dir="ltr"
+                                                placeholder={t('b2b.poNumberPlaceholder') || 'Optional'}
+                                              />
+                                            )}
+                                          />
+                                        </div>
+                                        {serverTotals?.creditLimit?.creditLimit && serverTotals.creditLimit.creditLimit > 0 ? (
+                                          <div
+                                            ref={creditLimitCardRef}
+                                            className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}
+                                          >
+                                            <p className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                              <CircleAlert className="h-4 w-4 text-amber-600" />
+                                              {t('b2b.creditLimit') || 'Credit Limit'}
+                                            </p>
+                                            <p className="mt-1 text-xs text-slate-600">
+                                              {t('b2b.creditUsed') || 'Used'}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable') || 'Available'}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
+                                            </p>
+                                            {serverTotals.creditLimit.wouldExceed && serverTotals.creditLimit.mode === 'warn' ? (
+                                              <div className="mt-2">
+                                                <CmxCheckbox
+                                                  ref={creditLimitOverrideRef}
+                                                  checked={creditLimitOverride}
+                                                  onChange={(event) => setCreditLimitOverride(event.target.checked)}
+                                                  label={t('b2b.creditOverrideConfirm') || 'I confirm override of credit limit'}
+                                                />
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    ) : null,
+                                  },
+                                ]
+                              : []),
+                            {
+                              id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.PAYMENT_NOTES,
+                              label: t('rightRail.paymentNotes'),
+                              content: (
+                                <Controller
+                                  name="paymentNotes"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <CmxTextarea
+                                      {...field}
+                                      id="v4-payment-notes"
+                                      value={field.value ?? ''}
+                                      onChange={(event) => field.onChange(event.target.value)}
+                                      dir={isRTL ? 'rtl' : 'ltr'}
+                                      rows={4}
+                                      className="min-h-28 resize-none"
+                                      placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
+                                    />
+                                  )}
+                                />
+                              ),
+                            },
+                          ] satisfies CmxTabItem[]}
+                        />
+                      </CmxCardContent>
+                    </CmxCard>
+                  </div>
+
+                  {showBalancePolicySection ? (
+                    <div ref={balancePolicySectionRef} tabIndex={-1} className="outline-none">
+                      <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                          <div>
+                            <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              {t('rightRail.balancePolicy')}
+                              <Info className="h-4 w-4 text-slate-400" />
+                            </CmxCardTitle>
+                            <p className="mt-1 text-sm text-slate-600">{t('rightRail.balancePolicyHelp')}</p>
+                          </div>
+                        </CmxCardHeader>
+                        <CmxCardContent className="space-y-3 pt-5">
                           {([
                             {
                               policy: 'NONE' as OutstandingPolicy,
@@ -3786,7 +3928,7 @@ export function PaymentModalV4({
                               type="button"
                               variant="outline"
                               onClick={() => handleOutstandingPolicyChange(option.policy)}
-                              className={`h-auto w-full justify-start rounded-2xl border px-3 py-3 text-left ${
+                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-3 text-left ${
                                 effectiveOutstandingPolicy === option.policy
                                   ? 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm'
                                   : 'border-slate-200 bg-white text-slate-700'
@@ -3798,288 +3940,35 @@ export function PaymentModalV4({
                               </div>
                             </CmxButton>
                           ))}
-                        </div>
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : null}
-
-                  {cashDrawerRequired ? (
-                    <div>
-                      <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                        <CmxCardHeader className="border-b border-slate-100 pb-3">
-                          <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.cashDrawerImpact')}</CmxCardTitle>
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-3 pt-4">
-                          <SummaryRow
-                            label={t('rightRail.cashRetained')}
-                            value={`${currencyCode} ${formatAmount(cashLegAmount)}`}
-                          />
-                          {changeAmount > moneyEpsilon ? (
-                            <SummaryRow
-                              label={t('rightRail.changeReturned')}
-                              value={`${currencyCode} ${formatAmount(changeAmount)}`}
-                              negative
-                            />
-                          ) : null}
-
-                          <div className={`rounded-2xl border px-3 py-3 ${
-                            selectedCashDrawerChoice
-                              ? 'border-cyan-200 bg-cyan-50/80'
-                              : 'border-amber-200 bg-amber-50'
-                          }`}>
-                            <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              <div className={isRTL ? 'text-right' : 'text-left'}>
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                  {t('cashDrawer.boundTitle')}
-                                </p>
-                                <p className={`mt-1 text-xs ${selectedCashDrawerChoice ? 'text-slate-600' : 'text-amber-800'}`}>
-                                  {selectedCashDrawerChoice ? t('cashDrawer.boundHint') : cashDrawerBlockingMessage}
-                                </p>
-                              </div>
-                              <Badge
-                                variant="secondary"
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                  selectedCashDrawerChoice
-                                    ? 'bg-cyan-600 text-white'
-                                    : 'bg-amber-600 text-white'
-                                }`}
-                              >
-                                {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
-                              </Badge>
-                            </div>
-
-                            {selectedCashDrawerChoice ? (
-                              <div className="mt-3 space-y-2">
-                                <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                                    <p className="text-sm font-semibold text-slate-900">
-                                      {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      {selectedCashDrawerChoice.session.session_no}
-                                    </p>
-                                  </div>
-                                  <Banknote className="h-4 w-4 text-cyan-700" />
-                                </div>
-                                <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                                  <div>
-                                    <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
-                                    <p>{formatCashDrawerOpenedAt(selectedCashDrawerChoice.session.opened_at)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
-                                    <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
                         </CmxCardContent>
                       </CmxCard>
                     </div>
                   ) : null}
-                  <CollapsibleRailCard
-                    title={t('rightRail.taxBreakdown')}
-                    badge={profilesTaxAmount > moneyEpsilon ? `${currencyCode} ${formatAmount(profilesTaxAmount)}` : undefined}
-                    open={taxPanelOpen}
-                    onToggle={() => setTaxPanelOpen((value) => !value)}
-                    isRTL={isRTL}
-                  >
-                    {displayTaxBreakdown.length === 0 ? (
-                      <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t('tax.noProfiles')}
-                      </p>
-                    ) : (
-                      displayTaxBreakdown.map((entry, index) => (
-                        <div
-                          key={entry.profileId ?? `${entry.taxType}-${index}`}
-                          className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-medium text-slate-700">
-                              {isRTL ? (entry.label2 || entry.label) : entry.label}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {t('tax.rate')}: {entry.rate.toFixed(2)}%
-                            </p>
-                          </div>
-                          <span className="text-sm font-semibold tabular-nums text-slate-900">
-                            {currencyCode} {formatAmount(entry.taxAmount)}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </CollapsibleRailCard>
+                </div>
 
-                  {customerType === 'b2b' && customerId ? (
-                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                      <CmxCardHeader className="border-b border-slate-100 pb-3">
-                        <CmxCardTitle className="text-sm">{t('rightRail.b2bArDetails')}</CmxCardTitle>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-3 pt-4">
-                        <B2BContractsSelect customerId={customerId} control={control} isRTL={isRTL} />
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <Controller
-                            name="costCenterCode"
-                            control={control}
-                            render={({ field }) => (
-                              <CmxInput
-                                {...field}
-                                label={t('b2b.costCenter') || 'Cost Center'}
-                                dir="ltr"
-                                placeholder={t('b2b.costCenterPlaceholder') || 'Optional'}
-                              />
-                            )}
-                          />
-                          <Controller
-                            name="poNumber"
-                            control={control}
-                            render={({ field }) => (
-                              <CmxInput
-                                {...field}
-                                label={t('b2b.poNumber') || 'PO Number'}
-                                dir="ltr"
-                                placeholder={t('b2b.poNumberPlaceholder') || 'Optional'}
-                              />
-                            )}
-                          />
+                <div className="space-y-4">
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardContent className="pt-5">
+                      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
+                          <UserRound className="h-6 w-6" />
                         </div>
-                        {serverTotals?.creditLimit?.creditLimit && serverTotals.creditLimit.creditLimit > 0 ? (
-                          <div
-                            ref={creditLimitCardRef}
-                            className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}
-                          >
-                            <p className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              <CircleAlert className="h-4 w-4 text-amber-600" />
-                              {t('b2b.creditLimit') || 'Credit Limit'}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-600">
-                              {t('b2b.creditUsed') || 'Used'}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable') || 'Available'}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
-                            </p>
-                            {serverTotals.creditLimit.wouldExceed && serverTotals.creditLimit.mode === 'warn' ? (
-                              <div className="mt-2">
-                                <CmxCheckbox
-                                  ref={creditLimitOverrideRef}
-                                  checked={creditLimitOverride}
-                                  onChange={(event) => setCreditLimitOverride(event.target.checked)}
-                                  label={t('b2b.creditOverrideConfirm') || 'I confirm override of credit limit'}
-                                />
-                              </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <p className="truncate text-lg font-semibold text-slate-900">{customerHeaderName}</p>
+                            {customerType === 'b2b' ? (
+                              <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700">
+                                B2B
+                              </Badge>
                             ) : null}
                           </div>
-                        ) : null}
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : null}
-
-                  {rightRailState.showCurrencyRounding ? (
-                    <CollapsibleRailCard
-                      title={t('rightRail.currencyRounding')}
-                      open={currencyPanelOpen}
-                      onToggle={() => setCurrencyPanelOpen((value) => !value)}
-                      isRTL={isRTL}
-                    >
-                      <div className="space-y-2">
-                        <SummaryRow
-                          label={t('summary.currencyCode')}
-                          value={currencyConfig?.currencyCode || currencyCode}
-                        />
-                        {Math.abs((currencyConfig?.currencyExRate ?? 1) - 1) > moneyEpsilon ? (
-                          <SummaryRow
-                            label={t('summary.exchangeRate')}
-                            value={formatAmount(currencyConfig?.currencyExRate ?? 1)}
-                          />
-                        ) : null}
+                          <p className="mt-1 truncate text-sm text-slate-500">{customerHeaderMeta}</p>
+                        </div>
                       </div>
-                    </CollapsibleRailCard>
-                  ) : null}
-                  <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
-                    <CmxCardHeader className={`flex-row items-center justify-between border-b border-slate-100 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.paymentNotes')}</CmxCardTitle>
-                      <CmxButton
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPaymentNotesDialogOpen(true)}
-                        aria-label={t('paymentNotesDialogTitle') || 'Edit payment notes'}
-                      >
-                        <Maximize2 className="h-4 w-4" />
-                      </CmxButton>
-                    </CmxCardHeader>
-                    <CmxCardContent className="space-y-2 px-4 py-3">
-                      <label htmlFor="v4-payment-notes" className="sr-only">
-                        {t('rightRail.paymentNotes')}
-                      </label>
-                      <Controller
-                        name="paymentNotes"
-                        control={control}
-                        render={({ field }) => (
-                          <CmxTextarea
-                            {...field}
-                            id="v4-payment-notes"
-                            value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
-                            onDoubleClick={() => setPaymentNotesDialogOpen(true)}
-                            dir={isRTL ? 'rtl' : 'ltr'}
-                            rows={2}
-                            className="min-h-16 resize-none"
-                            placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
-                          />
-                        )}
-                      />
                     </CmxCardContent>
                   </CmxCard>
 
-                  {warningMessages.length > 0 ? (
-                    <CollapsibleRailCard
-                      title={t('rightRail.warnings')}
-                      badge={String(warningMessages.length)}
-                      open={warningsOpen}
-                      onToggle={() => setWarningsOpen((value) => !value)}
-                      isRTL={isRTL}
-                    >
-                      <div className="space-y-2">
-                        {warningMessages.map((warning) => (
-                          <div
-                            key={warning}
-                            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
-                          >
-                            {warning}
-                          </div>
-                        ))}
-                      </div>
-                    </CollapsibleRailCard>
-                  ) : null}
-                  </div>
-                  <div className="sticky bottom-0 z-10 space-y-4 bg-white/95 p-6 shadow-[0_-8px_16px_-4px_rgb(0,0,0,0.05)] backdrop-blur">
-                  {requiredActionCopy ? (
-                    <CmxCard className="overflow-hidden border-rose-200 bg-rose-50/80 shadow-sm">
-                      <CmxCardHeader className="border-b border-rose-100 pb-3">
-                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-rose-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <CircleAlert className="h-4 w-4" />
-                          {requiredActionCopy.title}
-                        </CmxCardTitle>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-2 pt-4">
-                        <p className={`text-sm font-medium text-rose-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {requiredActionCopy.message}
-                        </p>
-                        {validationItems.length > 1 ? (
-                          <div className="space-y-1">
-                            {validationItems.slice(1, 3).map((item) => (
-                              <p
-                                key={item}
-                                className={`text-xs text-rose-700 ${isRTL ? 'text-right' : 'text-left'}`}
-                              >
-                                {item}
-                              </p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : null}
-                  <div className="border-t border-slate-200">
+                  <div className="md:sticky md:top-0 md:z-10 md:pb-1">
                     <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm backdrop-blur">
                       <CmxCardHeader className="border-b border-slate-100 pb-3">
                         <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -4130,7 +4019,134 @@ export function PaymentModalV4({
                       </CmxCardContent>
                     </CmxCard>
                   </div>
-                  </div>
+
+                  {requiredActionCopy ? (
+                    <CmxCard className="overflow-hidden border-rose-200 bg-rose-50/80 shadow-sm">
+                      <CmxCardHeader className="border-b border-rose-100 pb-3">
+                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-rose-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <CircleAlert className="h-4 w-4" />
+                          {requiredActionCopy.title}
+                        </CmxCardTitle>
+                      </CmxCardHeader>
+                      <CmxCardContent className="space-y-3 pt-4">
+                        <p className={`text-sm font-medium text-rose-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {requiredActionCopy.message}
+                        </p>
+                        <CmxButton
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleBlockedSubmitAttempt}
+                          className="w-full rounded-xl border-rose-200 bg-white text-rose-800 hover:bg-rose-100"
+                        >
+                          {t('workspace.fixAction')}
+                        </CmxButton>
+                      </CmxCardContent>
+                    </CmxCard>
+                  ) : null}
+
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-3">
+                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.settlementNow')}</CmxCardTitle>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {t('rightRail.realPaymentsReceived')}
+                        </p>
+                        {realPaymentSummaryItems.length > 0 ? (
+                          realPaymentSummaryItems.map((item) => (
+                            <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                          ))
+                        ) : (
+                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('rightRail.noneApplied')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {t('rightRail.creditsApplied')}
+                        </p>
+                        {storedValueSummaryItems.length > 0 || appliedGiftCard ? (
+                          <>
+                            {storedValueSummaryItems.map((item) => (
+                              <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                            ))}
+                            {appliedGiftCard ? (
+                              <SummaryRow
+                                label={t('giftCard.title')}
+                                value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`}
+                              />
+                            ) : null}
+                          </>
+                        ) : (
+                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('rightRail.noneApplied')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+                        <SummaryRow
+                          label={t('rightRail.totalSettledNow')}
+                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                          bold
+                        />
+                      </div>
+                    </CmxCardContent>
+                  </CmxCard>
+
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-3">
+                      <CmxCardTitle className="text-sm text-slate-900">{t('sections.shortcuts')}</CmxCardTitle>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-2 pt-4">
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS)}
+                        className="w-full justify-between rounded-xl"
+                      >
+                        <span>{t('rightRail.adjustments')}</span>
+                        {appliedBadgeCount > 0 ? <Badge variant="secondary">{appliedBadgeCount}</Badge> : null}
+                      </CmxButton>
+                      {cashDrawerRequired ? (
+                        <CmxButton
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER)}
+                          className="w-full justify-between rounded-xl"
+                        >
+                          <span>{t('sections.cashDrawer')}</span>
+                          <Badge variant="secondary">{selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}</Badge>
+                        </CmxButton>
+                      ) : null}
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR)}
+                        className="w-full justify-between rounded-xl"
+                      >
+                        <span>{t('sections.financialInspector')}</span>
+                        <Badge variant="secondary">{inspectorTabIds.length}</Badge>
+                      </CmxButton>
+                      {showBalancePolicySection ? (
+                        <CmxButton
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY)}
+                          className="w-full justify-between rounded-xl"
+                        >
+                          <span>{t('rightRail.balancePolicy')}</span>
+                          <Badge variant="secondary">{balanceStatusLabel}</Badge>
+                        </CmxButton>
+                      ) : null}
+                    </CmxCardContent>
+                  </CmxCard>
                 </div>
               </div>
             </div>
@@ -4254,33 +4270,6 @@ export function PaymentModalV4({
               ) : (
                 t('cashDrawer.openSession')
               )}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
-
-      <CmxDialog open={paymentNotesDialogOpen} onOpenChange={setPaymentNotesDialogOpen}>
-        <CmxDialogContent className="max-w-xl">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{t('paymentNotesDialogTitle')}</CmxDialogTitle>
-          </CmxDialogHeader>
-          <Controller
-            name="paymentNotes"
-            control={control}
-            render={({ field }) => (
-              <CmxTextarea
-                {...field}
-                value={field.value ?? ''}
-                onChange={(event) => field.onChange(event.target.value)}
-                dir={isRTL ? 'rtl' : 'ltr'}
-                rows={8}
-                placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
-              />
-            )}
-          />
-          <CmxDialogFooter>
-            <CmxButton type="button" onClick={() => setPaymentNotesDialogOpen(false)}>
-              {tCommon('close')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
