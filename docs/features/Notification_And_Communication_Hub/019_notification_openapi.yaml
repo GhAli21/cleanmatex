@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: CleanMateX Notification & Communication Hub API
+  version: 1.0.0
+  description: Enterprise API contract for CMX-PRD-019.
+servers:
+  - url: https://api.cleanmatex.com/v1
+security:
+  - bearerAuth: []
+paths:
+  /notifications:
+    get:
+      summary: List current user's notifications
+      tags: [Notifications]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [UNREAD, READ, ARCHIVED] }
+        - in: query
+          name: category_code
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: Notification page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+  /notifications/unread-count:
+    get:
+      summary: Get unread notification count
+      tags: [Notifications]
+      responses:
+        '200':
+          description: Count response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread_count: { type: integer }
+  /notifications/{notificationId}/read:
+    patch:
+      summary: Mark one notification as read
+      tags: [Notifications]
+      parameters:
+        - in: path
+          name: notificationId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Updated }
+  /notifications/read-all:
+    patch:
+      summary: Mark all current user's notifications as read
+      tags: [Notifications]
+      responses:
+        '200': { description: Updated }
+  /tenant/notification-settings:
+    get:
+      summary: Get tenant notification settings
+      tags: [Settings]
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+    patch:
+      summary: Update tenant notification settings
+      tags: [Settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationSettingsPatch' }
+      responses:
+        '200': { description: Updated }
+  /tenant/notification-preferences:
+    get:
+      summary: Get current recipient preferences
+      tags: [Preferences]
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPreference' }
+    patch:
+      summary: Update current recipient preferences
+      tags: [Preferences]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationPreferencePatch' }
+      responses:
+        '200': { description: Updated }
+  /platform/notification-templates:
+    get:
+      summary: List global notification templates
+      tags: [Templates]
+      responses:
+        '200': { description: Template list }
+    post:
+      summary: Create global notification template
+      tags: [Templates]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateCreateRequest' }
+      responses:
+        '201': { description: Created }
+  /notification-events:
+    post:
+      summary: Emit notification event
+      tags: [Events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationEventCreateRequest' }
+      responses:
+        '202': { description: Accepted }
+  /notification-delivery-log:
+    get:
+      summary: Search notification delivery logs
+      tags: [Logs]
+      parameters:
+        - in: query
+          name: channel_code
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+      responses:
+        '200': { description: Log page }
+  /campaigns:
+    get:
+      summary: List campaigns
+      tags: [Campaigns]
+      responses:
+        '200': { description: Campaign list }
+    post:
+      summary: Create campaign
+      tags: [Campaigns]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CampaignCreateRequest' }
+      responses:
+        '201': { description: Created }
+  /campaigns/{campaignId}/approve:
+    post:
+      summary: Approve campaign
+      tags: [Campaigns]
+      parameters:
+        - in: path
+          name: campaignId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Approved }
+  /campaigns/{campaignId}/launch:
+    post:
+      summary: Launch campaign
+      tags: [Campaigns]
+      parameters:
+        - in: path
+          name: campaignId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202': { description: Launch queued }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Notification:
+      type: object
+      properties:
+        notification_id: { type: string, format: uuid }
+        category_code: { type: string }
+        event_code: { type: string }
+        title: { type: string }
+        body: { type: string }
+        priority: { type: string, enum: [LOW, NORMAL, HIGH, URGENT, CRITICAL] }
+        status: { type: string, enum: [UNREAD, READ, ARCHIVED, DELETED] }
+        deep_link: { type: string }
+        created_at: { type: string, format: date-time }
+    NotificationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Notification' }
+        next_cursor: { type: string, nullable: true }
+    NotificationSettings:
+      type: object
+      properties:
+        default_language: { type: string, enum: [en, ar] }
+        enabled_channels:
+          type: array
+          items: { type: string }
+        fallback_rules: { type: object }
+        quiet_hours_jsonb: { type: object }
+        marketing_enabled: { type: boolean }
+    NotificationSettingsPatch:
+      allOf:
+        - $ref: '#/components/schemas/NotificationSettings'
+    NotificationPreference:
+      type: object
+      properties:
+        preferred_language: { type: string, enum: [en, ar] }
+        allow_in_app: { type: boolean }
+        allow_push: { type: boolean }
+        allow_whatsapp: { type: boolean }
+        allow_sms: { type: boolean }
+        allow_email: { type: boolean }
+        allow_marketing: { type: boolean }
+    NotificationPreferencePatch:
+      allOf:
+        - $ref: '#/components/schemas/NotificationPreference'
+    TemplateCreateRequest:
+      type: object
+      required: [template_code, category_code, name]
+      properties:
+        template_code: { type: string }
+        category_code: { type: string }
+        event_code: { type: string }
+        name: { type: string }
+        name2: { type: string }
+    NotificationEventCreateRequest:
+      type: object
+      required: [event_code, source_module, payload_jsonb]
+      properties:
+        event_code: { type: string }
+        source_module: { type: string }
+        source_entity_type: { type: string }
+        source_entity_id: { type: string, format: uuid }
+        idempotency_key: { type: string }
+        payload_jsonb: { type: object }
+    CampaignCreateRequest:
+      type: object
+      required: [campaign_code, name, template_code, channels, segment_definition_jsonb]
+      properties:
+        campaign_code: { type: string }
+        name: { type: string }
+        name2: { type: string }
+        template_code: { type: string }
+        channels:
+          type: array
+          items: { type: string }
+        segment_definition_jsonb: { type: object }
+        scheduled_at: { type: string, format: date-time }

@@ -24,6 +24,12 @@ const customJestConfig = {
 
   // Module name mapping for absolute imports
   moduleNameMapper: {
+    // Force all react/react-dom imports to the local web-admin copies (v19)
+    // so @testing-library/react and @radix-ui (both at root) share one React instance.
+    '^react$': '<rootDir>/node_modules/react',
+    '^react/(.*)$': '<rootDir>/node_modules/react/$1',
+    '^react-dom$': '<rootDir>/node_modules/react-dom',
+    '^react-dom/(.*)$': '<rootDir>/node_modules/react-dom/$1',
     '^@/(.*)$': '<rootDir>/$1',
     '^@features/(.*)$': '<rootDir>/src/features/$1',
     '^@ui/(.*)$': '<rootDir>/src/ui/$1',
@@ -52,11 +58,11 @@ const customJestConfig = {
     },
   },
 
-  // Transform files with ts-jest
+  // Transform files with ts-jest — match tsconfig jsx mode so element formats align.
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: {
-        jsx: 'react',
+        jsx: 'react-jsx',
       },
     }],
   },

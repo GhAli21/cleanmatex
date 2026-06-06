@@ -72,7 +72,7 @@ import { CmxMoneyField } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
-import { CmxKeypad } from '@ui/utilities';
+import { CmxKeypad, KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -217,24 +217,6 @@ type StoredValueSummaryResponse = {
   }>;
 };
 
-const PAYMENT_KEYPAD_KEYS: readonly PaymentKeypadKey[] = [
-  '1',
-  '2',
-  '3',
-  '+10',
-  '4',
-  '5',
-  '6',
-  '+20',
-  '7',
-  '8',
-  '9',
-  '+50',
-  '.',
-  '0',
-  'backspace',
-  'clear',
-] as const;
 
 interface PaymentModalProps {
   open: boolean;
@@ -3086,7 +3068,6 @@ export function PaymentModalV4({
                                 decimalPlaces={decimalPlaces}
                                 showZero
                                 aria-label={t('workspace.editingAmount') || 'Editing amount'}
-                                dir="ltr"
                                 onValueChange={(value, draft) => {
                                   if (!activeLeg) return;
                                   setActiveAmountDraft(draft);
@@ -3120,9 +3101,14 @@ export function PaymentModalV4({
                       <CmxCard className="border-slate-200 shadow-sm">
                         <CmxCardContent className="pt-4">
                           <CmxKeypad
-                            keys={PAYMENT_KEYPAD_KEYS}
+                            keys={KEYPAD_PAYMENT_4COL}
                             disabled={!activeLeg}
                             onKeyPress={handleKeypadPress}
+                            onKeyLongPress={(key) => {
+                              if (key === 'backspace') handleKeypadPress('clear');
+                            }}
+                            getKeyVariant={PAYMENT_KEY_VARIANT}
+                            getKeyClassName={PAYMENT_KEY_CLASS}
                             getKeyAriaLabel={(key) => {
                               if (key === 'backspace') return t('workspace.backspace') || 'Backspace';
                               if (key === 'clear') return tCommon('clear');
@@ -3132,13 +3118,6 @@ export function PaymentModalV4({
                               if (key === 'backspace') return '⌫';
                               if (key === 'clear') return tCommon('clear');
                               return key;
-                            }}
-                            getKeyClassName={(key) => {
-                              if (key === 'clear') {
-                                return 'text-base font-bold uppercase tracking-[0.18em]';
-                              }
-
-                              return key.startsWith('+') ? undefined : 'bg-white';
                             }}
                           />
                         </CmxCardContent>
@@ -3438,7 +3417,25 @@ export function PaymentModalV4({
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="relative flex flex-col bg-slate-50/50 lg:col-span-5 xl:col-span-4">
+                  <div className="flex-1 space-y-4 overflow-y-auto p-6 pb-32">
+                  <CollapsibleRailCard
+                    title={t('rightRail.orderValue')}
+                    open={orderValueOpen}
+                    onToggle={() => setOrderValueOpen((value) => !value)}
+                    isRTL={isRTL}
+                  >
+                    <div className="space-y-2">
+                      {orderValueSummaryItems.map((item) => (
+                        <SummaryRow
+                          key={`${item.label}-${item.value}`}
+                          label={item.label}
+                          value={item.value}
+                          negative={item.negative}
+                        />
+                      ))}
+                    </div>
+                  </CollapsibleRailCard>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardContent className="pt-5">
                       <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -3459,193 +3456,6 @@ export function PaymentModalV4({
                       </div>
                     </CmxCardContent>
                   </CmxCard>
-
-                  <div className="md:sticky md:top-0 md:z-10 md:pb-1">
-                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-                      <CmxCardHeader className="border-b border-slate-100 pb-3">
-                        <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.balanceResult')}</CmxCardTitle>
-                          <Badge
-                            variant="secondary"
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.BLOCKED
-                                ? 'bg-rose-100 text-rose-700'
-                                : rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.OVERPAID
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-cyan-100 text-cyan-700'
-                            }`}
-                          >
-                            {balanceStatusLabel}
-                          </Badge>
-                        </div>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-2 pt-4">
-                        <SummaryRow
-                          label={t('rightRail.orderTotal')}
-                          value={`${currencyCode} ${formatAmount(saleTotal)}`}
-                        />
-                          <SummaryRow
-                            label={t('rightRail.totalSettledNow')}
-                            value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
-                          />
-                        <SummaryRow
-                          label={t('rightRail.remainingBalance')}
-                          value={`${currencyCode} ${formatAmount(remainingBalance)}`}
-                          negative={remainingBalance > moneyEpsilon}
-                        />
-                        <SummaryRow
-                          label={t('rightRail.overpaidAmount')}
-                          value={`${currencyCode} ${formatAmount(changeAmount)}`}
-                          negative={changeAmount > moneyEpsilon}
-                        />
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.status')}
-                          </p>
-                          <p className={`mt-1 text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {balanceStatusLabel}
-                          </p>
-                        </div>
-                      </CmxCardContent>
-                    </CmxCard>
-                  </div>
-
-                  {requiredActionCopy ? (
-                    <CmxCard className="overflow-hidden border-rose-200 bg-rose-50/80 shadow-sm">
-                      <CmxCardHeader className="border-b border-rose-100 pb-3">
-                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-rose-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <CircleAlert className="h-4 w-4" />
-                          {requiredActionCopy.title}
-                        </CmxCardTitle>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-2 pt-4">
-                        <p className={`text-sm font-medium text-rose-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {requiredActionCopy.message}
-                        </p>
-                        {validationItems.length > 1 ? (
-                          <div className="space-y-1">
-                            {validationItems.slice(1, 3).map((item) => (
-                              <p
-                                key={item}
-                                className={`text-xs text-rose-700 ${isRTL ? 'text-right' : 'text-left'}`}
-                              >
-                                {item}
-                              </p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : null}
-
-                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                    <CmxCardHeader className="border-b border-slate-100 pb-3">
-                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.settlementNow')}</CmxCardTitle>
-                    </CmxCardHeader>
-                    <CmxCardContent className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.realPaymentsReceived')}
-                        </p>
-                        {realPaymentSummaryItems.length > 0 ? (
-                          realPaymentSummaryItems.map((item) => (
-                            <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-                          ))
-                        ) : (
-                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.noneApplied')}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.creditsApplied')}
-                        </p>
-                        {storedValueSummaryItems.length > 0 || appliedGiftCard ? (
-                          <>
-                            {storedValueSummaryItems.map((item) => (
-                              <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-                            ))}
-                            {appliedGiftCard ? (
-                              <SummaryRow
-                                label={t('giftCard.title')}
-                                value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`}
-                              />
-                            ) : null}
-                          </>
-                        ) : (
-                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.noneApplied')}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
-                        <SummaryRow
-                          label={t('rightRail.totalSettledNow')}
-                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
-                          bold
-                        />
-                      </div>
-                    </CmxCardContent>
-                  </CmxCard>
-
-                  {rightRailState.showBalancePolicy ? (
-                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                      <CmxCardHeader className="border-b border-slate-100 pb-3">
-                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          {t('rightRail.balancePolicy')}
-                          <Info className="h-4 w-4 text-slate-400" />
-                        </CmxCardTitle>
-                      </CmxCardHeader>
-                      <CmxCardContent className="space-y-3 pt-4">
-                        <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('rightRail.balancePolicyHelp')}
-                        </p>
-                        <div className="space-y-2">
-                          {([
-                            {
-                              policy: 'NONE' as OutstandingPolicy,
-                              title: t('rightRail.fullPaymentRequired'),
-                              description: t('rightRail.fullPaymentRequiredHelp'),
-                            },
-                            {
-                              policy: 'PAY_ON_COLLECTION' as OutstandingPolicy,
-                              title: t('remainder.payOnCollection'),
-                              description: t('rightRail.payOnCollectionHelp'),
-                            },
-                            {
-                              policy: 'CREDIT_INVOICE' as OutstandingPolicy,
-                              title: t('remainder.invoiceOutstanding'),
-                              description: t('rightRail.invoiceOutstandingHelp'),
-                            },
-                          ]).map((option) => (
-                            <CmxButton
-                              key={option.policy}
-                              ref={option.policy === 'PAY_ON_COLLECTION' ? payOnCollectionPolicyButtonRef : undefined}
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleOutstandingPolicyChange(option.policy)}
-                              className={`h-auto w-full justify-start rounded-2xl border px-3 py-3 text-left ${
-                                effectiveOutstandingPolicy === option.policy
-                                  ? 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm'
-                                  : 'border-slate-200 bg-white text-slate-700'
-                              } ${isRTL ? 'text-right' : ''}`}
-                            >
-                              <div className="space-y-1">
-                                <p className="text-sm font-semibold">{option.title}</p>
-                                <p className="text-xs text-slate-500">{option.description}</p>
-                              </div>
-                            </CmxButton>
-                          ))}
-                        </div>
-                      </CmxCardContent>
-                    </CmxCard>
-                  ) : null}
-
                   <div ref={couponCardRef}>
                     <CollapsibleRailCard
                       title={t('rightRail.adjustments')}
@@ -3887,24 +3697,111 @@ export function PaymentModalV4({
                       </div>
                     </CollapsibleRailCard>
                   </div>
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-3">
+                      <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.settlementNow')}</CmxCardTitle>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {t('rightRail.realPaymentsReceived')}
+                        </p>
+                        {realPaymentSummaryItems.length > 0 ? (
+                          realPaymentSummaryItems.map((item) => (
+                            <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                          ))
+                        ) : (
+                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('rightRail.noneApplied')}
+                          </p>
+                        )}
+                      </div>
 
-                  <CollapsibleRailCard
-                    title={t('rightRail.orderValue')}
-                    open={orderValueOpen}
-                    onToggle={() => setOrderValueOpen((value) => !value)}
-                    isRTL={isRTL}
-                  >
-                    <div className="space-y-2">
-                      {orderValueSummaryItems.map((item) => (
+                      <div className="space-y-2">
+                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {t('rightRail.creditsApplied')}
+                        </p>
+                        {storedValueSummaryItems.length > 0 || appliedGiftCard ? (
+                          <>
+                            {storedValueSummaryItems.map((item) => (
+                              <SummaryRow key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                            ))}
+                            {appliedGiftCard ? (
+                              <SummaryRow
+                                label={t('giftCard.title')}
+                                value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`}
+                              />
+                            ) : null}
+                          </>
+                        ) : (
+                          <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('rightRail.noneApplied')}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
                         <SummaryRow
-                          key={`${item.label}-${item.value}`}
-                          label={item.label}
-                          value={item.value}
-                          negative={item.negative}
+                          label={t('rightRail.totalSettledNow')}
+                          value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                          bold
                         />
-                      ))}
-                    </div>
-                  </CollapsibleRailCard>
+                      </div>
+                    </CmxCardContent>
+                  </CmxCard>
+
+                  {rightRailState.showBalancePolicy ? (
+                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                      <CmxCardHeader className="border-b border-slate-100 pb-3">
+                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          {t('rightRail.balancePolicy')}
+                          <Info className="h-4 w-4 text-slate-400" />
+                        </CmxCardTitle>
+                      </CmxCardHeader>
+                      <CmxCardContent className="space-y-3 pt-4">
+                        <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {t('rightRail.balancePolicyHelp')}
+                        </p>
+                        <div className="space-y-2">
+                          {([
+                            {
+                              policy: 'NONE' as OutstandingPolicy,
+                              title: t('rightRail.fullPaymentRequired'),
+                              description: t('rightRail.fullPaymentRequiredHelp'),
+                            },
+                            {
+                              policy: 'PAY_ON_COLLECTION' as OutstandingPolicy,
+                              title: t('remainder.payOnCollection'),
+                              description: t('rightRail.payOnCollectionHelp'),
+                            },
+                            {
+                              policy: 'CREDIT_INVOICE' as OutstandingPolicy,
+                              title: t('remainder.invoiceOutstanding'),
+                              description: t('rightRail.invoiceOutstandingHelp'),
+                            },
+                          ]).map((option) => (
+                            <CmxButton
+                              key={option.policy}
+                              ref={option.policy === 'PAY_ON_COLLECTION' ? payOnCollectionPolicyButtonRef : undefined}
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleOutstandingPolicyChange(option.policy)}
+                              className={`h-auto w-full justify-start rounded-2xl border px-3 py-3 text-left ${
+                                effectiveOutstandingPolicy === option.policy
+                                  ? 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm'
+                                  : 'border-slate-200 bg-white text-slate-700'
+                              } ${isRTL ? 'text-right' : ''}`}
+                            >
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold">{option.title}</p>
+                                <p className="text-xs text-slate-500">{option.description}</p>
+                              </div>
+                            </CmxButton>
+                          ))}
+                        </div>
+                      </CmxCardContent>
+                    </CmxCard>
+                  ) : null}
 
                   {cashDrawerRequired ? (
                     <div>
@@ -3981,7 +3878,6 @@ export function PaymentModalV4({
                       </CmxCard>
                     </div>
                   ) : null}
-
                   <CollapsibleRailCard
                     title={t('rightRail.taxBreakdown')}
                     badge={profilesTaxAmount > moneyEpsilon ? `${currencyCode} ${formatAmount(profilesTaxAmount)}` : undefined}
@@ -4097,7 +3993,6 @@ export function PaymentModalV4({
                       </div>
                     </CollapsibleRailCard>
                   ) : null}
-
                   <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
                     <CmxCardHeader className={`flex-row items-center justify-between border-b border-slate-100 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.paymentNotes')}</CmxCardTitle>
@@ -4155,6 +4050,87 @@ export function PaymentModalV4({
                       </div>
                     </CollapsibleRailCard>
                   ) : null}
+                  </div>
+                  <div className="sticky bottom-0 z-10 space-y-4 bg-white/95 p-6 shadow-[0_-8px_16px_-4px_rgb(0,0,0,0.05)] backdrop-blur">
+                  {requiredActionCopy ? (
+                    <CmxCard className="overflow-hidden border-rose-200 bg-rose-50/80 shadow-sm">
+                      <CmxCardHeader className="border-b border-rose-100 pb-3">
+                        <CmxCardTitle className={`flex items-center gap-2 text-sm text-rose-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <CircleAlert className="h-4 w-4" />
+                          {requiredActionCopy.title}
+                        </CmxCardTitle>
+                      </CmxCardHeader>
+                      <CmxCardContent className="space-y-2 pt-4">
+                        <p className={`text-sm font-medium text-rose-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          {requiredActionCopy.message}
+                        </p>
+                        {validationItems.length > 1 ? (
+                          <div className="space-y-1">
+                            {validationItems.slice(1, 3).map((item) => (
+                              <p
+                                key={item}
+                                className={`text-xs text-rose-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                              >
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </CmxCardContent>
+                    </CmxCard>
+                  ) : null}
+                  <div className="border-t border-slate-200">
+                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+                      <CmxCardHeader className="border-b border-slate-100 pb-3">
+                        <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.balanceResult')}</CmxCardTitle>
+                          <Badge
+                            variant="secondary"
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                              rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.BLOCKED
+                                ? 'bg-rose-100 text-rose-700'
+                                : rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.OVERPAID
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-cyan-100 text-cyan-700'
+                            }`}
+                          >
+                            {balanceStatusLabel}
+                          </Badge>
+                        </div>
+                      </CmxCardHeader>
+                      <CmxCardContent className="space-y-2 pt-4">
+                        <SummaryRow
+                          label={t('rightRail.orderTotal')}
+                          value={`${currencyCode} ${formatAmount(saleTotal)}`}
+                        />
+                          <SummaryRow
+                            label={t('rightRail.totalSettledNow')}
+                            value={`${currencyCode} ${formatAmount(totalSettledNowAmount)}`}
+                          />
+                        <SummaryRow
+                          label={t('rightRail.remainingBalance')}
+                          value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+                          negative={remainingBalance > moneyEpsilon}
+                        />
+                        <SummaryRow
+                          label={t('rightRail.overpaidAmount')}
+                          value={`${currencyCode} ${formatAmount(changeAmount)}`}
+                          negative={changeAmount > moneyEpsilon}
+                        />
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('rightRail.status')}
+                          </p>
+                          <p className={`mt-1 text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {balanceStatusLabel}
+                          </p>
+                        </div>
+                      </CmxCardContent>
+                    </CmxCard>
+                  </div>
+                  </div>
                 </div>
               </div>
             </div>

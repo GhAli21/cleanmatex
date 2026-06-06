@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxSpinner } from '@ui/primitives/cmx-spinner';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import {
@@ -67,6 +69,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
   const t       = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const locale  = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
   const isRtl   = locale === 'ar';
   const router  = useRouter();
   const { showSuccess, showError } = useMessage();
@@ -153,7 +156,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
-  const formTotalAmount   = parseFloat(form.total_amount) || 0;
+  const formTotalAmount   = parseMoneyDraft(form.total_amount);
   const isHeaderDirty =
     detail !== null &&
     (form.voucher_date !== (detail.voucher_date ?? '')  ||
@@ -427,13 +430,12 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">
                               {t('declaredTotal')}
                             </label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={form.total_amount}
-                              onChange={(e) => { setField('total_amount')(e); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
-                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.total_amount ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                            <CmxMoneyField
+                              value={parseMoneyDraft(form.total_amount) || null}
+                              draftValue={form.total_amount}
+                              decimalPlaces={decimalPlaces}
+                              min={0}
+                              onValueChange={(_, d) => { setForm((prev) => ({ ...prev, total_amount: d })); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
                               placeholder="0.00"
                             />
                             {fieldErrors.total_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.total_amount}</p>}

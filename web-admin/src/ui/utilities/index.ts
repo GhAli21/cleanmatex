@@ -4,3 +4,5 @@
  */
 
 export * from './cmx-keypad'
+export * from './cmx-keypad-presets'
+export * from './cmx-money-keypad'

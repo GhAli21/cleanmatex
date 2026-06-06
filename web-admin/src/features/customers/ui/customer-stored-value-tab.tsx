@@ -11,7 +11,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { PlusCircle } from 'lucide-react';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxMoneyField } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
 import { cmxMessage } from '@ui/feedback';
@@ -58,6 +60,7 @@ type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
 export function CustomerStoredValueTab({ customerId }: Props) {
   const t       = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');
+  const { decimalPlaces } = useTenantCurrency();
 
   const [detail, setDetail]       = useState<StoredValueDetail | null>(null);
   const [isLoading, setLoading]   = useState(true);
@@ -93,8 +96,8 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   }
 
   async function handleSubmit() {
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    const numAmount = parseMoneyDraft(amount);
+    if (numAmount <= 0) {
       cmxMessage.error('Amount must be greater than zero');
       return;
     }
@@ -270,13 +273,13 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             {/* Amount */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">{t('amount')}</label>
-              <input
-                type="number"
-                min="0.001"
-                step="0.001"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              <CmxMoneyField
+                value={parseMoneyDraft(amount) || null}
+                draftValue={amount}
+                decimalPlaces={decimalPlaces}
+                min={0.001}
+                showZero={false}
+                onValueChange={(_, d) => setAmount(d)}
                 placeholder="0.000"
               />
             </div>

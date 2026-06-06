@@ -25,7 +25,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
@@ -282,19 +282,13 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
               {/* Amount + Currency (read-only badge) */}
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
-                  <Label htmlFor="sell-amount">{t('fields.amount')} *</Label>
-                  <CmxInput
+                  <CmxMoneyFieldController
                     id="sell-amount"
-                    type="number"
-                    step="0.001"
-                    {...form.register('amount')}
-                    dir="ltr"
+                    name="amount"
+                    control={form.control}
+                    label={`${t('fields.amount')} *`}
+                    min={0.001}
                   />
-                  {form.formState.errors.amount && (
-                    <p className="text-destructive text-xs mt-1">
-                      {form.formState.errors.amount.message}
-                    </p>
-                  )}
                 </div>
                 <div className="w-24 pb-0.5">
                   <Label>{t('fields.currency')}</Label>

@@ -1,0 +1,2484 @@
+[
+  {
+    "template_code": "ORDER_CREATED",
+    "event_code": "order.created",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Created",
+            "body": "Order {{orderNo}} has been created. Track it here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Created",
+            "body": "تم إنشاء الطلب {{orderNo}}. يمكنك تتبعه من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Created",
+            "body": "Order {{orderNo}} has been created. Track it here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Created",
+            "body": "تم إنشاء الطلب {{orderNo}}. يمكنك تتبعه من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Created",
+            "body": "Order {{orderNo}} has been created. Track it here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Created",
+            "body": "تم إنشاء الطلب {{orderNo}}. يمكنك تتبعه من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Created",
+            "body": "Order {{orderNo}} has been created. Track it here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Created",
+            "body": "تم إنشاء الطلب {{orderNo}}. يمكنك تتبعه من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Created",
+            "body": "Order {{orderNo}} has been created. Track it here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Created",
+            "body": "تم إنشاء الطلب {{orderNo}}. يمكنك تتبعه من هنا: {{trackingUrl}}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_QUICK_DROP_CREATED",
+    "event_code": "order.quick_drop.created",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Quick_Drop Created",
+            "body": "Quick drop order {{orderNo}} has been received. We will itemize it soon."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Quick_Drop Created",
+            "body": "تم استلام طلب التسليم السريع {{orderNo}} وسيتم تفصيل القطع قريباً."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Quick_Drop Created",
+            "body": "Quick drop order {{orderNo}} has been received. We will itemize it soon."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Quick_Drop Created",
+            "body": "تم استلام طلب التسليم السريع {{orderNo}} وسيتم تفصيل القطع قريباً."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Quick_Drop Created",
+            "body": "Quick drop order {{orderNo}} has been received. We will itemize it soon."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Quick_Drop Created",
+            "body": "تم استلام طلب التسليم السريع {{orderNo}} وسيتم تفصيل القطع قريباً."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Quick_Drop Created",
+            "body": "Quick drop order {{orderNo}} has been received. We will itemize it soon."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Quick_Drop Created",
+            "body": "تم استلام طلب التسليم السريع {{orderNo}} وسيتم تفصيل القطع قريباً."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Quick_Drop Created",
+            "body": "Quick drop order {{orderNo}} has been received. We will itemize it soon."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Quick_Drop Created",
+            "body": "تم استلام طلب التسليم السريع {{orderNo}} وسيتم تفصيل القطع قريباً."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_PREPARATION_REQUIRED",
+    "event_code": "order.preparation.required",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Preparation Required",
+            "body": "Order {{orderNo}} requires preparation/itemization."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Preparation Required",
+            "body": "الطلب {{orderNo}} يحتاج إلى تجهيز وتفصيل القطع."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Preparation Required",
+            "body": "Order {{orderNo}} requires preparation/itemization."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Preparation Required",
+            "body": "الطلب {{orderNo}} يحتاج إلى تجهيز وتفصيل القطع."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Preparation Required",
+            "body": "Order {{orderNo}} requires preparation/itemization."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Preparation Required",
+            "body": "الطلب {{orderNo}} يحتاج إلى تجهيز وتفصيل القطع."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Preparation Required",
+            "body": "Order {{orderNo}} requires preparation/itemization."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Preparation Required",
+            "body": "الطلب {{orderNo}} يحتاج إلى تجهيز وتفصيل القطع."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Preparation Required",
+            "body": "Order {{orderNo}} requires preparation/itemization."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Preparation Required",
+            "body": "الطلب {{orderNo}} يحتاج إلى تجهيز وتفصيل القطع."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_READY",
+    "event_code": "order.ready",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Ready",
+            "body": "Order {{orderNo}} is ready. Total due: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Ready",
+            "body": "الطلب {{orderNo}} جاهز. المبلغ المستحق: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Ready",
+            "body": "Order {{orderNo}} is ready. Total due: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Ready",
+            "body": "الطلب {{orderNo}} جاهز. المبلغ المستحق: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Ready",
+            "body": "Order {{orderNo}} is ready. Total due: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Ready",
+            "body": "الطلب {{orderNo}} جاهز. المبلغ المستحق: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Ready",
+            "body": "Order {{orderNo}} is ready. Total due: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Ready",
+            "body": "الطلب {{orderNo}} جاهز. المبلغ المستحق: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Ready",
+            "body": "Order {{orderNo}} is ready. Total due: {{totalAmount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Ready",
+            "body": "الطلب {{orderNo}} جاهز. المبلغ المستحق: {{totalAmount}} {{currency}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_DELAYED",
+    "event_code": "order.delayed",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Delayed",
+            "body": "Order {{orderNo}} is delayed. New expected time: {{readyByAt}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Delayed",
+            "body": "يوجد تأخير في الطلب {{orderNo}}. الوقت المتوقع الجديد: {{readyByAt}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Delayed",
+            "body": "Order {{orderNo}} is delayed. New expected time: {{readyByAt}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Delayed",
+            "body": "يوجد تأخير في الطلب {{orderNo}}. الوقت المتوقع الجديد: {{readyByAt}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Delayed",
+            "body": "Order {{orderNo}} is delayed. New expected time: {{readyByAt}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Delayed",
+            "body": "يوجد تأخير في الطلب {{orderNo}}. الوقت المتوقع الجديد: {{readyByAt}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Delayed",
+            "body": "Order {{orderNo}} is delayed. New expected time: {{readyByAt}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Delayed",
+            "body": "يوجد تأخير في الطلب {{orderNo}}. الوقت المتوقع الجديد: {{readyByAt}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Delayed",
+            "body": "Order {{orderNo}} is delayed. New expected time: {{readyByAt}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Delayed",
+            "body": "يوجد تأخير في الطلب {{orderNo}}. الوقت المتوقع الجديد: {{readyByAt}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_CANCELLED",
+    "event_code": "order.cancelled",
+    "category": "ORDER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Cancelled",
+            "body": "Order {{orderNo}} has been cancelled. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Cancelled",
+            "body": "تم إلغاء الطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Cancelled",
+            "body": "Order {{orderNo}} has been cancelled. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Cancelled",
+            "body": "تم إلغاء الطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Cancelled",
+            "body": "Order {{orderNo}} has been cancelled. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Cancelled",
+            "body": "تم إلغاء الطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Cancelled",
+            "body": "Order {{orderNo}} has been cancelled. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Cancelled",
+            "body": "تم إلغاء الطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Cancelled",
+            "body": "Order {{orderNo}} has been cancelled. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Cancelled",
+            "body": "تم إلغاء الطلب {{orderNo}}. السبب: {{reason}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_ITEM_MISSING",
+    "event_code": "order.item.missing",
+    "category": "ORDER_ITEM",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Item Missing",
+            "body": "Item {{itemName}} in order {{orderNo}} is missing and requires action."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Item Missing",
+            "body": "القطعة {{itemName}} في الطلب {{orderNo}} مفقودة وتحتاج إلى إجراء."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Item Missing",
+            "body": "Item {{itemName}} in order {{orderNo}} is missing and requires action."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Item Missing",
+            "body": "القطعة {{itemName}} في الطلب {{orderNo}} مفقودة وتحتاج إلى إجراء."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Item Missing",
+            "body": "Item {{itemName}} in order {{orderNo}} is missing and requires action."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Item Missing",
+            "body": "القطعة {{itemName}} في الطلب {{orderNo}} مفقودة وتحتاج إلى إجراء."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Item Missing",
+            "body": "Item {{itemName}} in order {{orderNo}} is missing and requires action."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Item Missing",
+            "body": "القطعة {{itemName}} في الطلب {{orderNo}} مفقودة وتحتاج إلى إجراء."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Item Missing",
+            "body": "Item {{itemName}} in order {{orderNo}} is missing and requires action."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Item Missing",
+            "body": "القطعة {{itemName}} في الطلب {{orderNo}} مفقودة وتحتاج إلى إجراء."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ORDER_ITEM_DAMAGED",
+    "event_code": "order.item.damaged",
+    "category": "ORDER_ITEM",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Order Item Damaged",
+            "body": "Damage was recorded for {{itemName}} in order {{orderNo}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Order Item Damaged",
+            "body": "تم تسجيل تلف في {{itemName}} ضمن الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Order Item Damaged",
+            "body": "Damage was recorded for {{itemName}} in order {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Order Item Damaged",
+            "body": "تم تسجيل تلف في {{itemName}} ضمن الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Order Item Damaged",
+            "body": "Damage was recorded for {{itemName}} in order {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Order Item Damaged",
+            "body": "تم تسجيل تلف في {{itemName}} ضمن الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Order Item Damaged",
+            "body": "Damage was recorded for {{itemName}} in order {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Order Item Damaged",
+            "body": "تم تسجيل تلف في {{itemName}} ضمن الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Order Item Damaged",
+            "body": "Damage was recorded for {{itemName}} in order {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Order Item Damaged",
+            "body": "تم تسجيل تلف في {{itemName}} ضمن الطلب {{orderNo}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "ASSEMBLY_EXCEPTION",
+    "event_code": "assembly.exception",
+    "category": "ASSEMBLY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Assembly Exception",
+            "body": "Assembly exception for order {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Assembly Exception",
+            "body": "استثناء في التجميع للطلب {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Assembly Exception",
+            "body": "Assembly exception for order {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Assembly Exception",
+            "body": "استثناء في التجميع للطلب {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Assembly Exception",
+            "body": "Assembly exception for order {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Assembly Exception",
+            "body": "استثناء في التجميع للطلب {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Assembly Exception",
+            "body": "Assembly exception for order {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Assembly Exception",
+            "body": "استثناء في التجميع للطلب {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Assembly Exception",
+            "body": "Assembly exception for order {{orderNo}}: {{exceptionType}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Assembly Exception",
+            "body": "استثناء في التجميع للطلب {{orderNo}}: {{exceptionType}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "QA_FAILED",
+    "event_code": "qa.failed",
+    "category": "QA",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Qa Failed",
+            "body": "QA failed for order {{orderNo}}. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Qa Failed",
+            "body": "فشل فحص الجودة للطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Qa Failed",
+            "body": "QA failed for order {{orderNo}}. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Qa Failed",
+            "body": "فشل فحص الجودة للطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Qa Failed",
+            "body": "QA failed for order {{orderNo}}. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Qa Failed",
+            "body": "فشل فحص الجودة للطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Qa Failed",
+            "body": "QA failed for order {{orderNo}}. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Qa Failed",
+            "body": "فشل فحص الجودة للطلب {{orderNo}}. السبب: {{reason}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Qa Failed",
+            "body": "QA failed for order {{orderNo}}. Reason: {{reason}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Qa Failed",
+            "body": "فشل فحص الجودة للطلب {{orderNo}}. السبب: {{reason}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "QA_PASSED",
+    "event_code": "qa.passed",
+    "category": "QA",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Qa Passed",
+            "body": "QA passed for order {{orderNo}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Qa Passed",
+            "body": "تم اجتياز فحص الجودة للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Qa Passed",
+            "body": "QA passed for order {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Qa Passed",
+            "body": "تم اجتياز فحص الجودة للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Qa Passed",
+            "body": "QA passed for order {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Qa Passed",
+            "body": "تم اجتياز فحص الجودة للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Qa Passed",
+            "body": "QA passed for order {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Qa Passed",
+            "body": "تم اجتياز فحص الجودة للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Qa Passed",
+            "body": "QA passed for order {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Qa Passed",
+            "body": "تم اجتياز فحص الجودة للطلب {{orderNo}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "DELIVERY_ASSIGNED",
+    "event_code": "delivery.assigned",
+    "category": "DELIVERY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Delivery Assigned",
+            "body": "A driver has been assigned for order {{orderNo}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Delivery Assigned",
+            "body": "تم تعيين سائق للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Delivery Assigned",
+            "body": "A driver has been assigned for order {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Delivery Assigned",
+            "body": "تم تعيين سائق للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Delivery Assigned",
+            "body": "A driver has been assigned for order {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Delivery Assigned",
+            "body": "تم تعيين سائق للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Delivery Assigned",
+            "body": "A driver has been assigned for order {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Delivery Assigned",
+            "body": "تم تعيين سائق للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Delivery Assigned",
+            "body": "A driver has been assigned for order {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Delivery Assigned",
+            "body": "تم تعيين سائق للطلب {{orderNo}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "DELIVERY_OUT_FOR_DELIVERY",
+    "event_code": "delivery.out_for_delivery",
+    "category": "DELIVERY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Delivery Out_For_Delivery",
+            "body": "Order {{orderNo}} is out for delivery. Driver: {{driverName}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Delivery Out_For_Delivery",
+            "body": "الطلب {{orderNo}} خرج للتوصيل. السائق: {{driverName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Delivery Out_For_Delivery",
+            "body": "Order {{orderNo}} is out for delivery. Driver: {{driverName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Delivery Out_For_Delivery",
+            "body": "الطلب {{orderNo}} خرج للتوصيل. السائق: {{driverName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Delivery Out_For_Delivery",
+            "body": "Order {{orderNo}} is out for delivery. Driver: {{driverName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Delivery Out_For_Delivery",
+            "body": "الطلب {{orderNo}} خرج للتوصيل. السائق: {{driverName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Delivery Out_For_Delivery",
+            "body": "Order {{orderNo}} is out for delivery. Driver: {{driverName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Delivery Out_For_Delivery",
+            "body": "الطلب {{orderNo}} خرج للتوصيل. السائق: {{driverName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Delivery Out_For_Delivery",
+            "body": "Order {{orderNo}} is out for delivery. Driver: {{driverName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Delivery Out_For_Delivery",
+            "body": "الطلب {{orderNo}} خرج للتوصيل. السائق: {{driverName}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "DELIVERY_OTP_GENERATED",
+    "event_code": "delivery.otp_generated",
+    "category": "DELIVERY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Delivery Otp_Generated",
+            "body": "Your delivery OTP for order {{orderNo}} is {{otpCode}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Delivery Otp_Generated",
+            "body": "رمز التحقق للتوصيل للطلب {{orderNo}} هو {{otpCode}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Delivery Otp_Generated",
+            "body": "Your delivery OTP for order {{orderNo}} is {{otpCode}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Delivery Otp_Generated",
+            "body": "رمز التحقق للتوصيل للطلب {{orderNo}} هو {{otpCode}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Delivery Otp_Generated",
+            "body": "Your delivery OTP for order {{orderNo}} is {{otpCode}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Delivery Otp_Generated",
+            "body": "رمز التحقق للتوصيل للطلب {{orderNo}} هو {{otpCode}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Delivery Otp_Generated",
+            "body": "Your delivery OTP for order {{orderNo}} is {{otpCode}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Delivery Otp_Generated",
+            "body": "رمز التحقق للتوصيل للطلب {{orderNo}} هو {{otpCode}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Delivery Otp_Generated",
+            "body": "Your delivery OTP for order {{orderNo}} is {{otpCode}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Delivery Otp_Generated",
+            "body": "رمز التحقق للتوصيل للطلب {{orderNo}} هو {{otpCode}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "DELIVERY_DELIVERED",
+    "event_code": "delivery.delivered",
+    "category": "DELIVERY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Delivery Delivered",
+            "body": "Order {{orderNo}} has been delivered. Thank you."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Delivery Delivered",
+            "body": "تم توصيل الطلب {{orderNo}}. شكراً لك."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Delivery Delivered",
+            "body": "Order {{orderNo}} has been delivered. Thank you."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Delivery Delivered",
+            "body": "تم توصيل الطلب {{orderNo}}. شكراً لك."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Delivery Delivered",
+            "body": "Order {{orderNo}} has been delivered. Thank you."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Delivery Delivered",
+            "body": "تم توصيل الطلب {{orderNo}}. شكراً لك."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Delivery Delivered",
+            "body": "Order {{orderNo}} has been delivered. Thank you."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Delivery Delivered",
+            "body": "تم توصيل الطلب {{orderNo}}. شكراً لك."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Delivery Delivered",
+            "body": "Order {{orderNo}} has been delivered. Thank you."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Delivery Delivered",
+            "body": "تم توصيل الطلب {{orderNo}}. شكراً لك."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "PAYMENT_REQUESTED",
+    "event_code": "payment.requested",
+    "category": "PAYMENT",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Payment Requested",
+            "body": "Payment is requested for order {{orderNo}}: {{amount}} {{currency}}. Pay: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Payment Requested",
+            "body": "مطلوب دفع مبلغ الطلب {{orderNo}}: {{amount}} {{currency}}. رابط الدفع: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Payment Requested",
+            "body": "Payment is requested for order {{orderNo}}: {{amount}} {{currency}}. Pay: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Payment Requested",
+            "body": "مطلوب دفع مبلغ الطلب {{orderNo}}: {{amount}} {{currency}}. رابط الدفع: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Payment Requested",
+            "body": "Payment is requested for order {{orderNo}}: {{amount}} {{currency}}. Pay: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Payment Requested",
+            "body": "مطلوب دفع مبلغ الطلب {{orderNo}}: {{amount}} {{currency}}. رابط الدفع: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Payment Requested",
+            "body": "Payment is requested for order {{orderNo}}: {{amount}} {{currency}}. Pay: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Payment Requested",
+            "body": "مطلوب دفع مبلغ الطلب {{orderNo}}: {{amount}} {{currency}}. رابط الدفع: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Payment Requested",
+            "body": "Payment is requested for order {{orderNo}}: {{amount}} {{currency}}. Pay: {{paymentUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Payment Requested",
+            "body": "مطلوب دفع مبلغ الطلب {{orderNo}}: {{amount}} {{currency}}. رابط الدفع: {{paymentUrl}}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "PAYMENT_RECEIVED",
+    "event_code": "payment.received",
+    "category": "PAYMENT",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Payment Received",
+            "body": "Payment received for order {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Payment Received",
+            "body": "تم استلام دفعة للطلب {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Payment Received",
+            "body": "Payment received for order {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Payment Received",
+            "body": "تم استلام دفعة للطلب {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Payment Received",
+            "body": "Payment received for order {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Payment Received",
+            "body": "تم استلام دفعة للطلب {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Payment Received",
+            "body": "Payment received for order {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Payment Received",
+            "body": "تم استلام دفعة للطلب {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Payment Received",
+            "body": "Payment received for order {{orderNo}}: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Payment Received",
+            "body": "تم استلام دفعة للطلب {{orderNo}}: {{amount}} {{currency}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "PAYMENT_FAILED",
+    "event_code": "payment.failed",
+    "category": "PAYMENT",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Payment Failed",
+            "body": "Payment failed for order {{orderNo}}. Please try again or contact the branch."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Payment Failed",
+            "body": "فشلت عملية الدفع للطلب {{orderNo}}. يرجى المحاولة مرة أخرى أو التواصل مع الفرع."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Payment Failed",
+            "body": "Payment failed for order {{orderNo}}. Please try again or contact the branch."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Payment Failed",
+            "body": "فشلت عملية الدفع للطلب {{orderNo}}. يرجى المحاولة مرة أخرى أو التواصل مع الفرع."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Payment Failed",
+            "body": "Payment failed for order {{orderNo}}. Please try again or contact the branch."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Payment Failed",
+            "body": "فشلت عملية الدفع للطلب {{orderNo}}. يرجى المحاولة مرة أخرى أو التواصل مع الفرع."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Payment Failed",
+            "body": "Payment failed for order {{orderNo}}. Please try again or contact the branch."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Payment Failed",
+            "body": "فشلت عملية الدفع للطلب {{orderNo}}. يرجى المحاولة مرة أخرى أو التواصل مع الفرع."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Payment Failed",
+            "body": "Payment failed for order {{orderNo}}. Please try again or contact the branch."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Payment Failed",
+            "body": "فشلت عملية الدفع للطلب {{orderNo}}. يرجى المحاولة مرة أخرى أو التواصل مع الفرع."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "REFUND_APPROVED",
+    "event_code": "refund.approved",
+    "category": "REFUND",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Refund Approved",
+            "body": "Refund for order {{orderNo}} has been approved. Amount: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Refund Approved",
+            "body": "تم اعتماد الاسترجاع للطلب {{orderNo}}. المبلغ: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Refund Approved",
+            "body": "Refund for order {{orderNo}} has been approved. Amount: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Refund Approved",
+            "body": "تم اعتماد الاسترجاع للطلب {{orderNo}}. المبلغ: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Refund Approved",
+            "body": "Refund for order {{orderNo}} has been approved. Amount: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Refund Approved",
+            "body": "تم اعتماد الاسترجاع للطلب {{orderNo}}. المبلغ: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Refund Approved",
+            "body": "Refund for order {{orderNo}} has been approved. Amount: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Refund Approved",
+            "body": "تم اعتماد الاسترجاع للطلب {{orderNo}}. المبلغ: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Refund Approved",
+            "body": "Refund for order {{orderNo}} has been approved. Amount: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Refund Approved",
+            "body": "تم اعتماد الاسترجاع للطلب {{orderNo}}. المبلغ: {{amount}} {{currency}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "INVOICE_ISSUED",
+    "event_code": "invoice.issued",
+    "category": "INVOICE",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Invoice Issued",
+            "body": "Invoice {{invoiceNo}} for order {{orderNo}} has been issued."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Invoice Issued",
+            "body": "تم إصدار الفاتورة {{invoiceNo}} للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Invoice Issued",
+            "body": "Invoice {{invoiceNo}} for order {{orderNo}} has been issued."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Invoice Issued",
+            "body": "تم إصدار الفاتورة {{invoiceNo}} للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Invoice Issued",
+            "body": "Invoice {{invoiceNo}} for order {{orderNo}} has been issued."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Invoice Issued",
+            "body": "تم إصدار الفاتورة {{invoiceNo}} للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Invoice Issued",
+            "body": "Invoice {{invoiceNo}} for order {{orderNo}} has been issued."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Invoice Issued",
+            "body": "تم إصدار الفاتورة {{invoiceNo}} للطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Invoice Issued",
+            "body": "Invoice {{invoiceNo}} for order {{orderNo}} has been issued."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Invoice Issued",
+            "body": "تم إصدار الفاتورة {{invoiceNo}} للطلب {{orderNo}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "STATEMENT_GENERATED",
+    "event_code": "statement.generated",
+    "category": "STATEMENT",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Statement Generated",
+            "body": "Statement {{statementNo}} is ready for {{companyName}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Statement Generated",
+            "body": "كشف الحساب {{statementNo}} جاهز للعميل {{companyName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Statement Generated",
+            "body": "Statement {{statementNo}} is ready for {{companyName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Statement Generated",
+            "body": "كشف الحساب {{statementNo}} جاهز للعميل {{companyName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Statement Generated",
+            "body": "Statement {{statementNo}} is ready for {{companyName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Statement Generated",
+            "body": "كشف الحساب {{statementNo}} جاهز للعميل {{companyName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Statement Generated",
+            "body": "Statement {{statementNo}} is ready for {{companyName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Statement Generated",
+            "body": "كشف الحساب {{statementNo}} جاهز للعميل {{companyName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Statement Generated",
+            "body": "Statement {{statementNo}} is ready for {{companyName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Statement Generated",
+            "body": "كشف الحساب {{statementNo}} جاهز للعميل {{companyName}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "CUSTOMER_STUB_CREATED",
+    "event_code": "customer.stub.created",
+    "category": "CUSTOMER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Customer Stub Created",
+            "body": "Welcome {{customerName}}. Track your order here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Customer Stub Created",
+            "body": "مرحباً {{customerName}}. يمكنك تتبع طلبك من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Customer Stub Created",
+            "body": "Welcome {{customerName}}. Track your order here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Customer Stub Created",
+            "body": "مرحباً {{customerName}}. يمكنك تتبع طلبك من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Customer Stub Created",
+            "body": "Welcome {{customerName}}. Track your order here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Customer Stub Created",
+            "body": "مرحباً {{customerName}}. يمكنك تتبع طلبك من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Customer Stub Created",
+            "body": "Welcome {{customerName}}. Track your order here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Customer Stub Created",
+            "body": "مرحباً {{customerName}}. يمكنك تتبع طلبك من هنا: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Customer Stub Created",
+            "body": "Welcome {{customerName}}. Track your order here: {{trackingUrl}}"
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Customer Stub Created",
+            "body": "مرحباً {{customerName}}. يمكنك تتبع طلبك من هنا: {{trackingUrl}}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "CUSTOMER_UPGRADED",
+    "event_code": "customer.upgraded",
+    "category": "CUSTOMER",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Customer Upgraded",
+            "body": "Your CleanMateX profile is active. You can now track orders and receive digital receipts."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Customer Upgraded",
+            "body": "تم تفعيل ملفك في CleanMateX ويمكنك الآن تتبع الطلبات واستلام الإيصالات الرقمية."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Customer Upgraded",
+            "body": "Your CleanMateX profile is active. You can now track orders and receive digital receipts."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Customer Upgraded",
+            "body": "تم تفعيل ملفك في CleanMateX ويمكنك الآن تتبع الطلبات واستلام الإيصالات الرقمية."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Customer Upgraded",
+            "body": "Your CleanMateX profile is active. You can now track orders and receive digital receipts."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Customer Upgraded",
+            "body": "تم تفعيل ملفك في CleanMateX ويمكنك الآن تتبع الطلبات واستلام الإيصالات الرقمية."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Customer Upgraded",
+            "body": "Your CleanMateX profile is active. You can now track orders and receive digital receipts."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Customer Upgraded",
+            "body": "تم تفعيل ملفك في CleanMateX ويمكنك الآن تتبع الطلبات واستلام الإيصالات الرقمية."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Customer Upgraded",
+            "body": "Your CleanMateX profile is active. You can now track orders and receive digital receipts."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Customer Upgraded",
+            "body": "تم تفعيل ملفك في CleanMateX ويمكنك الآن تتبع الطلبات واستلام الإيصالات الرقمية."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "LOYALTY_POINTS_ADDED",
+    "event_code": "loyalty.points_added",
+    "category": "LOYALTY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Loyalty Points_Added",
+            "body": "You earned {{points}} loyalty points from order {{orderNo}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Loyalty Points_Added",
+            "body": "حصلت على {{points}} نقطة ولاء من الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Loyalty Points_Added",
+            "body": "You earned {{points}} loyalty points from order {{orderNo}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Loyalty Points_Added",
+            "body": "حصلت على {{points}} نقطة ولاء من الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Loyalty Points_Added",
+            "body": "You earned {{points}} loyalty points from order {{orderNo}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Loyalty Points_Added",
+            "body": "حصلت على {{points}} نقطة ولاء من الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Loyalty Points_Added",
+            "body": "You earned {{points}} loyalty points from order {{orderNo}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Loyalty Points_Added",
+            "body": "حصلت على {{points}} نقطة ولاء من الطلب {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Loyalty Points_Added",
+            "body": "You earned {{points}} loyalty points from order {{orderNo}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Loyalty Points_Added",
+            "body": "حصلت على {{points}} نقطة ولاء من الطلب {{orderNo}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "WALLET_TOPUP",
+    "event_code": "wallet.topup",
+    "category": "WALLET",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Wallet Topup",
+            "body": "Wallet top-up successful: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Wallet Topup",
+            "body": "تم شحن المحفظة بنجاح: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Wallet Topup",
+            "body": "Wallet top-up successful: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Wallet Topup",
+            "body": "تم شحن المحفظة بنجاح: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Wallet Topup",
+            "body": "Wallet top-up successful: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Wallet Topup",
+            "body": "تم شحن المحفظة بنجاح: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Wallet Topup",
+            "body": "Wallet top-up successful: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Wallet Topup",
+            "body": "تم شحن المحفظة بنجاح: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Wallet Topup",
+            "body": "Wallet top-up successful: {{amount}} {{currency}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Wallet Topup",
+            "body": "تم شحن المحفظة بنجاح: {{amount}} {{currency}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "GIFTCARD_ACTIVATED",
+    "event_code": "giftcard.activated",
+    "category": "GIFTCARD",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Giftcard Activated",
+            "body": "Gift card {{giftCardCode}} is now active."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Giftcard Activated",
+            "body": "بطاقة الهدية {{giftCardCode}} أصبحت مفعلة."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Giftcard Activated",
+            "body": "Gift card {{giftCardCode}} is now active."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Giftcard Activated",
+            "body": "بطاقة الهدية {{giftCardCode}} أصبحت مفعلة."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Giftcard Activated",
+            "body": "Gift card {{giftCardCode}} is now active."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Giftcard Activated",
+            "body": "بطاقة الهدية {{giftCardCode}} أصبحت مفعلة."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Giftcard Activated",
+            "body": "Gift card {{giftCardCode}} is now active."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Giftcard Activated",
+            "body": "بطاقة الهدية {{giftCardCode}} أصبحت مفعلة."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Giftcard Activated",
+            "body": "Gift card {{giftCardCode}} is now active."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Giftcard Activated",
+            "body": "بطاقة الهدية {{giftCardCode}} أصبحت مفعلة."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "MEMBERSHIP_RENEWAL_DUE",
+    "event_code": "membership.renewal_due",
+    "category": "MEMBERSHIP",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Membership Renewal_Due",
+            "body": "Your membership renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Membership Renewal_Due",
+            "body": "سيتم تجديد عضويتك بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Membership Renewal_Due",
+            "body": "Your membership renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Membership Renewal_Due",
+            "body": "سيتم تجديد عضويتك بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Membership Renewal_Due",
+            "body": "Your membership renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Membership Renewal_Due",
+            "body": "سيتم تجديد عضويتك بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Membership Renewal_Due",
+            "body": "Your membership renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Membership Renewal_Due",
+            "body": "سيتم تجديد عضويتك بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Membership Renewal_Due",
+            "body": "Your membership renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Membership Renewal_Due",
+            "body": "سيتم تجديد عضويتك بتاريخ {{renewalDate}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "INVENTORY_LOW_STOCK",
+    "event_code": "inventory.low_stock",
+    "category": "INVENTORY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Inventory Low_Stock",
+            "body": "Low stock alert: {{itemName}} is below threshold at {{branchName}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Inventory Low_Stock",
+            "body": "تنبيه انخفاض المخزون: {{itemName}} أقل من الحد المطلوب في {{branchName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Inventory Low_Stock",
+            "body": "Low stock alert: {{itemName}} is below threshold at {{branchName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Inventory Low_Stock",
+            "body": "تنبيه انخفاض المخزون: {{itemName}} أقل من الحد المطلوب في {{branchName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Inventory Low_Stock",
+            "body": "Low stock alert: {{itemName}} is below threshold at {{branchName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Inventory Low_Stock",
+            "body": "تنبيه انخفاض المخزون: {{itemName}} أقل من الحد المطلوب في {{branchName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Inventory Low_Stock",
+            "body": "Low stock alert: {{itemName}} is below threshold at {{branchName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Inventory Low_Stock",
+            "body": "تنبيه انخفاض المخزون: {{itemName}} أقل من الحد المطلوب في {{branchName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Inventory Low_Stock",
+            "body": "Low stock alert: {{itemName}} is below threshold at {{branchName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Inventory Low_Stock",
+            "body": "تنبيه انخفاض المخزون: {{itemName}} أقل من الحد المطلوب في {{branchName}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "MACHINE_MAINTENANCE_DUE",
+    "event_code": "machine.maintenance_due",
+    "category": "MACHINE",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Machine Maintenance_Due",
+            "body": "Maintenance is due for machine {{machineName}} at {{branchName}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Machine Maintenance_Due",
+            "body": "الصيانة مستحقة للآلة {{machineName}} في {{branchName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Machine Maintenance_Due",
+            "body": "Maintenance is due for machine {{machineName}} at {{branchName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Machine Maintenance_Due",
+            "body": "الصيانة مستحقة للآلة {{machineName}} في {{branchName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Machine Maintenance_Due",
+            "body": "Maintenance is due for machine {{machineName}} at {{branchName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Machine Maintenance_Due",
+            "body": "الصيانة مستحقة للآلة {{machineName}} في {{branchName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Machine Maintenance_Due",
+            "body": "Maintenance is due for machine {{machineName}} at {{branchName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Machine Maintenance_Due",
+            "body": "الصيانة مستحقة للآلة {{machineName}} في {{branchName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Machine Maintenance_Due",
+            "body": "Maintenance is due for machine {{machineName}} at {{branchName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Machine Maintenance_Due",
+            "body": "الصيانة مستحقة للآلة {{machineName}} في {{branchName}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "CAMPAIGN_LAUNCHED",
+    "event_code": "campaign.launched",
+    "category": "MARKETING",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Campaign Launched",
+            "body": "Campaign {{campaignName}} has been launched."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Campaign Launched",
+            "body": "تم إطلاق الحملة {{campaignName}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Campaign Launched",
+            "body": "Campaign {{campaignName}} has been launched."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Campaign Launched",
+            "body": "تم إطلاق الحملة {{campaignName}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Campaign Launched",
+            "body": "Campaign {{campaignName}} has been launched."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Campaign Launched",
+            "body": "تم إطلاق الحملة {{campaignName}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Campaign Launched",
+            "body": "Campaign {{campaignName}} has been launched."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Campaign Launched",
+            "body": "تم إطلاق الحملة {{campaignName}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Campaign Launched",
+            "body": "Campaign {{campaignName}} has been launched."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Campaign Launched",
+            "body": "تم إطلاق الحملة {{campaignName}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "SUBSCRIPTION_RENEWAL_DUE",
+    "event_code": "subscription.renewal_due",
+    "category": "SUBSCRIPTION",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Subscription Renewal_Due",
+            "body": "Your CleanMateX subscription renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Subscription Renewal_Due",
+            "body": "سيتم تجديد اشتراك CleanMateX بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Subscription Renewal_Due",
+            "body": "Your CleanMateX subscription renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Subscription Renewal_Due",
+            "body": "سيتم تجديد اشتراك CleanMateX بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Subscription Renewal_Due",
+            "body": "Your CleanMateX subscription renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Subscription Renewal_Due",
+            "body": "سيتم تجديد اشتراك CleanMateX بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Subscription Renewal_Due",
+            "body": "Your CleanMateX subscription renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Subscription Renewal_Due",
+            "body": "سيتم تجديد اشتراك CleanMateX بتاريخ {{renewalDate}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Subscription Renewal_Due",
+            "body": "Your CleanMateX subscription renews on {{renewalDate}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Subscription Renewal_Due",
+            "body": "سيتم تجديد اشتراك CleanMateX بتاريخ {{renewalDate}}."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "PLAN_LIMIT_REACHED",
+    "event_code": "plan.limit_reached",
+    "category": "PLAN_LIMIT",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Plan Limit_Reached",
+            "body": "Plan limit reached for {{limitName}}. Upgrade or adjust usage."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Plan Limit_Reached",
+            "body": "تم الوصول إلى حد الخطة لـ {{limitName}}. يرجى الترقية أو ضبط الاستخدام."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Plan Limit_Reached",
+            "body": "Plan limit reached for {{limitName}}. Upgrade or adjust usage."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Plan Limit_Reached",
+            "body": "تم الوصول إلى حد الخطة لـ {{limitName}}. يرجى الترقية أو ضبط الاستخدام."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Plan Limit_Reached",
+            "body": "Plan limit reached for {{limitName}}. Upgrade or adjust usage."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Plan Limit_Reached",
+            "body": "تم الوصول إلى حد الخطة لـ {{limitName}}. يرجى الترقية أو ضبط الاستخدام."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Plan Limit_Reached",
+            "body": "Plan limit reached for {{limitName}}. Upgrade or adjust usage."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Plan Limit_Reached",
+            "body": "تم الوصول إلى حد الخطة لـ {{limitName}}. يرجى الترقية أو ضبط الاستخدام."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Plan Limit_Reached",
+            "body": "Plan limit reached for {{limitName}}. Upgrade or adjust usage."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Plan Limit_Reached",
+            "body": "تم الوصول إلى حد الخطة لـ {{limitName}}. يرجى الترقية أو ضبط الاستخدام."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "SECURITY_SUSPICIOUS_ACTIVITY",
+    "event_code": "security.suspicious_activity",
+    "category": "SECURITY",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "Security Suspicious_Activity",
+            "body": "Suspicious activity detected. Review your account immediately."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "Security Suspicious_Activity",
+            "body": "تم اكتشاف نشاط مريب. يرجى مراجعة حسابك فوراً."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "Security Suspicious_Activity",
+            "body": "Suspicious activity detected. Review your account immediately."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "Security Suspicious_Activity",
+            "body": "تم اكتشاف نشاط مريب. يرجى مراجعة حسابك فوراً."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "Security Suspicious_Activity",
+            "body": "Suspicious activity detected. Review your account immediately."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "Security Suspicious_Activity",
+            "body": "تم اكتشاف نشاط مريب. يرجى مراجعة حسابك فوراً."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "Security Suspicious_Activity",
+            "body": "Suspicious activity detected. Review your account immediately."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "Security Suspicious_Activity",
+            "body": "تم اكتشاف نشاط مريب. يرجى مراجعة حسابك فوراً."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "Security Suspicious_Activity",
+            "body": "Suspicious activity detected. Review your account immediately."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "Security Suspicious_Activity",
+            "body": "تم اكتشاف نشاط مريب. يرجى مراجعة حسابك فوراً."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "template_code": "SYSTEM_MAINTENANCE_SCHEDULED",
+    "event_code": "system.maintenance.scheduled",
+    "category": "SYSTEM",
+    "versions": [
+      {
+        "version_no": 1,
+        "status": "APPROVED",
+        "channels": [
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "en",
+            "title": "System Maintenance Scheduled",
+            "body": "System maintenance is scheduled from {{startAt}} to {{endAt}}."
+          },
+          {
+            "channel_code": "IN_APP",
+            "lang_code": "ar",
+            "title": "System Maintenance Scheduled",
+            "body": "تمت جدولة صيانة النظام من {{startAt}} إلى {{endAt}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "en",
+            "title": "System Maintenance Scheduled",
+            "body": "System maintenance is scheduled from {{startAt}} to {{endAt}}."
+          },
+          {
+            "channel_code": "PUSH",
+            "lang_code": "ar",
+            "title": "System Maintenance Scheduled",
+            "body": "تمت جدولة صيانة النظام من {{startAt}} إلى {{endAt}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "en",
+            "title": "System Maintenance Scheduled",
+            "body": "System maintenance is scheduled from {{startAt}} to {{endAt}}."
+          },
+          {
+            "channel_code": "WHATSAPP",
+            "lang_code": "ar",
+            "title": "System Maintenance Scheduled",
+            "body": "تمت جدولة صيانة النظام من {{startAt}} إلى {{endAt}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "en",
+            "title": "System Maintenance Scheduled",
+            "body": "System maintenance is scheduled from {{startAt}} to {{endAt}}."
+          },
+          {
+            "channel_code": "SMS",
+            "lang_code": "ar",
+            "title": "System Maintenance Scheduled",
+            "body": "تمت جدولة صيانة النظام من {{startAt}} إلى {{endAt}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "en",
+            "title": "System Maintenance Scheduled",
+            "body": "System maintenance is scheduled from {{startAt}} to {{endAt}}."
+          },
+          {
+            "channel_code": "EMAIL",
+            "lang_code": "ar",
+            "title": "System Maintenance Scheduled",
+            "body": "تمت جدولة صيانة النظام من {{startAt}} إلى {{endAt}}."
+          }
+        ]
+      }
+    ]
+  }
+]

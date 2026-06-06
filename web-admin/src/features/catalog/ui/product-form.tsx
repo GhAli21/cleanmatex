@@ -27,10 +27,12 @@ import {
   CmxCardHeader,
   CmxCardTitle,
   CmxInput,
+  CmxMoneyField,
   CmxSelect,
   CmxSwitch,
 } from '@ui/primitives'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 
 interface CategoryOption {
   code: string
@@ -93,6 +95,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')
   const isRtl = useRTL()
+  const { decimalPlaces } = useTenantCurrency()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loadingCategories, setLoadingCategories] = useState(false)
@@ -454,17 +457,16 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
 
           <CmxFormSection title={t('pricing')} description={t('priceRegular')} layout="twoColumn">
             <CmxFormField name="default_sell_price" label={t('priceRegular')} required>
-              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
-                <CmxInput
+              {({ id, describedBy, invalid, value, onChange, onBlur, ref }) => (
+                <CmxMoneyField
                   id={id}
-                  name={name}
                   ref={ref}
-                  type="number"
-                  step="0.001"
-                  value={value ?? ''}
-                  onChange={(event) =>
-                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
-                  }
+                  value={typeof value === 'number' ? value : null}
+                  decimalPlaces={decimalPlaces}
+                  min={0}
+                  onValueChange={(v, _, isComplete) => {
+                    if (isComplete) onChange(v)
+                  }}
                   onBlur={onBlur}
                   aria-describedby={describedBy}
                   aria-invalid={invalid}
@@ -477,17 +479,16 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               label={t('priceExpress')}
               optionalLabel={tCommon('optional')}
             >
-              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
-                <CmxInput
+              {({ id, describedBy, invalid, value, onChange, onBlur, ref }) => (
+                <CmxMoneyField
                   id={id}
-                  name={name}
                   ref={ref}
-                  type="number"
-                  step="0.001"
-                  value={value ?? ''}
-                  onChange={(event) =>
-                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
-                  }
+                  value={typeof value === 'number' ? value : null}
+                  decimalPlaces={decimalPlaces}
+                  min={0}
+                  onValueChange={(v, _, isComplete) => {
+                    if (isComplete) onChange(v > 0 ? v : undefined)
+                  }}
                   onBlur={onBlur}
                   aria-describedby={describedBy}
                   aria-invalid={invalid}

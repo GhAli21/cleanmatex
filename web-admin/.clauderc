@@ -150,6 +150,8 @@ ui_components:
   button: "import { CmxButton } from '@ui/primitives'"
   loading_button: "import { LoadingButton } from '@ui/primitives'"
   input: "import { CmxInput } from '@ui/primitives'"
+  money_field: "import { CmxMoneyField } from '@ui/primitives'"
+  money_field_controller: "import { CmxMoneyFieldController } from '@ui/primitives'"
   textarea: "import { CmxTextarea } from '@ui/primitives'"
   select: "import { CmxSelect } from '@ui/primitives'"
   checkbox: "import { CmxCheckbox } from '@ui/primitives'"
@@ -186,6 +188,9 @@ ui_components:
   progress_steps: "import { CmxProgressSteps } from '@ui/navigation'"
   # ── Page-level Patterns ──────────────────────────────────────────
   crud_page_shell: "import { CmxCrudPageShell } from '@ui/patterns'"
+  money_keypad: "import { CmxMoneyKeypad } from '@ui/utilities'"
+  keypad: "import { CmxKeypad } from '@ui/utilities'"
+  keypad_presets: "import { KEYPAD_PAYMENT_4COL, KEYPAD_NUMERIC_3COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities'"
   card_with_header: "import { CmxCardWithHeader } from '@ui/patterns'"
   # ── Toast (imperative) ───────────────────────────────────────────
   toast: "import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'"

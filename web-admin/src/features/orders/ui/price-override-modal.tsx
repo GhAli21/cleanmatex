@@ -11,9 +11,11 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode, roundMoneyAmount } from '@/lib/money/format-money'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
-import { CmxButton } from '@ui/primitives'
+import { CmxButton, CmxMoneyField } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
 import { CmxTextarea } from '@ui/primitives'
+import { CmxKeypad, KEYPAD_NUMERIC_3COL } from '@ui/utilities'
+import { parseMoneyDraft, applyKeypadInput } from '@/lib/money/money-draft'
 import { AlertCircle, Info } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
 
@@ -45,7 +47,6 @@ export function PriceOverrideModal({
     const moneyLocale = locale === 'ar' ? 'ar' : 'en'
     const fmt = (n: number) =>
         formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
-    const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces
     const [overridePrice, setOverridePrice] = useState(
         item.currentPrice ? String(item.currentPrice) : String(item.calculatedPrice)
     )
@@ -67,8 +68,8 @@ export function PriceOverrideModal({
     function validate(): boolean {
         const newErrors: Record<string, string> = {}
 
-        const price = parseFloat(overridePrice)
-        if (isNaN(price) || price < 0) {
+        const price = parseMoneyDraft(overridePrice)
+        if (price < 0) {
             newErrors.price = 'Price must be a valid number >= 0'
         }
 
@@ -89,7 +90,7 @@ export function PriceOverrideModal({
 
         setSaving(true)
         try {
-            const price = parseFloat(overridePrice)
+            const price = parseMoneyDraft(overridePrice)
             onSave({
                 price,
                 reason: reason.trim(),
@@ -129,7 +130,7 @@ export function PriceOverrideModal({
         )
     }
 
-    const priceDiff = parseFloat(overridePrice) - item.calculatedPrice
+    const priceDiff = parseMoneyDraft(overridePrice) - item.calculatedPrice
     const priceDiffPercent = item.calculatedPrice > 0
         ? ((priceDiff / item.calculatedPrice) * 100).toFixed(1)
         : '0'
@@ -168,13 +169,14 @@ export function PriceOverrideModal({
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Override Price ({currencyCode}) *
                         </label>
-                        <CmxInput
-                            type="number"
-                            step={priceStep}
-                            min="0"
-                            value={overridePrice}
-                            onChange={(e) => setOverridePrice(e.target.value)}
-                            required
+                        <CmxMoneyField
+                            value={parseMoneyDraft(overridePrice) || null}
+                            draftValue={overridePrice}
+                            decimalPlaces={decimalPlaces}
+                            min={0}
+                            showZero
+                            onValueChange={(_, d) => setOverridePrice(d)}
+                            placeholder={fmt(0)}
                         />
                         {errors.price && (
                             <p className="mt-1 text-sm text-red-600">{errors.price}</p>
@@ -185,6 +187,19 @@ export function PriceOverrideModal({
                                 {priceDiff > 0 ? ' increase' : ' decrease'}
                             </p>
                         )}
+                        <div className="mt-3">
+                            <CmxKeypad
+                                keys={KEYPAD_NUMERIC_3COL}
+                                columns={3}
+                                keyHeight="lg"
+                                onKeyPress={(key) => {
+                                    const next = applyKeypadInput(overridePrice, key, decimalPlaces)
+                                    setOverridePrice(next)
+                                }}
+                                onKeyLongPress={(k) => { if (k === 'backspace') setOverridePrice('') }}
+                                getKeyClassName={(k) => k === 'backspace' ? undefined : 'bg-white'}
+                            />
+                        </div>
                     </div>
 
                     {/* Reason */}

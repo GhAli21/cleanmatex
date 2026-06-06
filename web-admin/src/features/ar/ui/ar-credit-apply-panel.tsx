@@ -3,13 +3,16 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyField, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 export function ArCreditApplyPanel() {
   const t = useTranslations('invoices.ar.v2.credits');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { decimalPlaces } = useTenantCurrency();
   const [mode, setMode] = useState<'apply' | 'reverse'>('apply');
   const [invoiceId, setInvoiceId] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -39,7 +42,7 @@ export function ArCreditApplyPanel() {
                     invoice_id: invoiceId,
                     customer_id: customerId,
                     source_ledger_id: sourceLedgerId,
-                    applied_amount: Number(appliedAmount),
+                    applied_amount: parseMoneyDraft(appliedAmount),
                     notes,
                   }
                 : {
@@ -96,7 +99,14 @@ export function ArCreditApplyPanel() {
             <CmxInput label={t('apply.fields.invoiceId')} value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)} />
             <CmxInput label={t('apply.fields.customerId')} value={customerId} onChange={(event) => setCustomerId(event.target.value)} />
             <CmxInput label={t('apply.fields.sourceLedgerId')} value={sourceLedgerId} onChange={(event) => setSourceLedgerId(event.target.value)} />
-            <CmxInput label={t('apply.fields.appliedAmount')} type="number" min="0" step="0.0001" value={appliedAmount} onChange={(event) => setAppliedAmount(event.target.value)} />
+            <CmxMoneyField
+              label={t('apply.fields.appliedAmount')}
+              value={appliedAmount !== '' ? parseMoneyDraft(appliedAmount) : null}
+              draftValue={appliedAmount}
+              decimalPlaces={decimalPlaces}
+              min={0}
+              onValueChange={(_, d) => setAppliedAmount(d)}
+            />
             <div className="md:col-span-2">
               <p className="mb-1 text-sm font-medium text-slate-900">{t('apply.fields.notes')}</p>
               <CmxTextarea placeholder={t('apply.fields.notesPlaceholder')} value={notes} onChange={(event) => setNotes(event.target.value)} />

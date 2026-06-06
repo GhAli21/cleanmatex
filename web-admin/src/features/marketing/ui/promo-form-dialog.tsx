@@ -20,7 +20,7 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { CmxSwitch } from '@ui/primitives';
 import { Label } from '@ui/primitives';
@@ -88,6 +88,8 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       is_enabled: true,
     },
   });
+
+  const discountType = form.watch('discount_type');
 
   // Reset form when editing different promo.
   useEffect(() => {
@@ -205,10 +207,21 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
             </div>
 
             <div className="col-span-2 sm:col-span-1">
-              <Label>{t('fields.discountValue')}</Label>
-              <CmxInput type="number" step="0.01" {...form.register('discount_value')} />
-              {form.formState.errors.discount_value && (
-                <p className="text-destructive text-xs mt-1">{form.formState.errors.discount_value.message}</p>
+              {discountType === 'fixed_amount' ? (
+                <CmxMoneyFieldController
+                  name="discount_value"
+                  control={form.control}
+                  label={t('fields.discountValue')}
+                  min={0}
+                />
+              ) : (
+                <div>
+                  <Label>{t('fields.discountValue')}</Label>
+                  <CmxInput type="number" step="0.01" min="0" max="100" {...form.register('discount_value', { valueAsNumber: true })} />
+                  {form.formState.errors.discount_value && (
+                    <p className="text-destructive text-xs mt-1">{form.formState.errors.discount_value.message}</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -218,8 +231,12 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
             </div>
 
             <div>
-              <Label>{t('fields.minOrder')}</Label>
-              <CmxInput type="number" step="0.01" {...form.register('min_order_amount')} />
+              <CmxMoneyFieldController
+                name="min_order_amount"
+                control={form.control}
+                label={t('fields.minOrder')}
+                min={0}
+              />
             </div>
 
             <div>

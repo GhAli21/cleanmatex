@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import {
   LINE_ROLE,
@@ -195,6 +197,7 @@ const EMPTY_FORM: LineFormState = {
 export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }: AddLineDialogProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
+  const { decimalPlaces } = useTenantCurrency();
   const [form, setForm] = useState<LineFormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
 
@@ -216,8 +219,8 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
 
   function validate(): string | null {
     if (!form.line_role) return t('validation.lineRoleRequired');
-    const amt = parseFloat(form.amount);
-    if (isNaN(amt) || amt <= 0) return t('validation.amountPositive');
+    const amt = parseMoneyDraft(form.amount);
+    if (amt <= 0) return t('validation.amountPositive');
     if (needsOrderId(form.line_role) && !form.order_id.trim()) return t('validation.orderIdRequired');
     if (needsCustomerId(form.line_role) && !form.customer_id.trim()) return t('validation.customerIdRequired');
     if (needsPartyName(form.line_role) && !form.party_name.trim()) return t('validation.partyNameRequired');
@@ -235,7 +238,7 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
     const err = validate();
     if (err) { setError(err); return; }
 
-    const amt = parseFloat(form.amount);
+    const amt = parseMoneyDraft(form.amount);
     const selectedRole = form.line_role as LineRole;
     const input: CreateVoucherLineInput = {
       line_type:              ROLE_LINE_TYPE[selectedRole] ?? LINE_TYPE.PAYMENT,
@@ -252,7 +255,7 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
       check_number:           form.check_number.trim()            || undefined,
       check_bank:             form.check_bank.trim()              || undefined,
       check_date:             form.check_date.trim()              || undefined,
-      tendered_amount:        form.tendered_amount ? parseFloat(form.tendered_amount) : undefined,
+      tendered_amount:        form.tendered_amount ? parseMoneyDraft(form.tendered_amount) : undefined,
       card_brand_code:        form.card_brand_code.trim()         || undefined,
       card_last4:             form.card_last4.trim()              || undefined,
       auth_code:              form.auth_code.trim()               || undefined,
@@ -335,13 +338,12 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   {t('amount')} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.amount}
-                  onChange={(e) => set('amount', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                <CmxMoneyField
+                  value={parseMoneyDraft(form.amount) || null}
+                  draftValue={form.amount}
+                  decimalPlaces={decimalPlaces}
+                  min={0}
+                  onValueChange={(_, d) => set('amount', d)}
                   placeholder="0.00"
                 />
               </div>
@@ -369,13 +371,12 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     {t('tenderedAmount')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.tendered_amount}
-                    onChange={(e) => set('tendered_amount', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  <CmxMoneyField
+                    value={parseMoneyDraft(form.tendered_amount) || null}
+                    draftValue={form.tendered_amount}
+                    decimalPlaces={decimalPlaces}
+                    min={0}
+                    onValueChange={(_, d) => set('tendered_amount', d)}
                     placeholder="0.00"
                   />
                 </div>

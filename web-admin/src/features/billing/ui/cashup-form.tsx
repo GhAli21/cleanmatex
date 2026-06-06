@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { submitCashUp } from '@/app/actions/billing/cashup-actions';
 import type { CashUpDayData, CashUpSubmitEntry } from '@/lib/types/payment';
+import { CmxMoneyField } from '@ui/primitives';
+import { CmxKeypad, KEYPAD_NUMERIC_3COL } from '@ui/utilities';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { applyKeypadInput, parseMoneyDraft } from '@/lib/money/money-draft';
 
 interface CashUpFormProps {
   data: CashUpDayData;
@@ -28,7 +32,8 @@ export default function CashUpForm({
   const t = useTranslations('cashup');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const decimals = 3;
+  const { decimalPlaces: decimals } = useTenantCurrency();
+  const [activeMethodCode, setActiveMethodCode] = useState<string | null>(null);
 
   const reconByMethod = Object.fromEntries(
     data.reconciliation.map((r) => [r.payment_method_code, r])
@@ -76,8 +81,7 @@ export default function CashUpForm({
       const entries: CashUpSubmitEntry[] = data.paymentMethods.map((m) => {
         const code = m.payment_method_code;
         const raw = actualByMethod[code] ?? '';
-        const num = raw === '' ? 0 : Number.parseFloat(raw);
-        const actual_amount = Number.isNaN(num) ? 0 : Math.max(0, num);
+        const actual_amount = Math.max(0, parseMoneyDraft(raw));
         return {
           payment_method_code: code,
           actual_amount,
@@ -145,8 +149,7 @@ export default function CashUpForm({
               const code = m.payment_method_code;
               const expected = data.expectedByMethod[code] ?? 0;
               const actualStr = actualByMethod[code] ?? '';
-              const actualNum = actualStr === '' ? 0 : Number.parseFloat(actualStr);
-              const actual = Number.isNaN(actualNum) ? 0 : actualNum;
+              const actual = parseMoneyDraft(actualStr);
               const variance = actual - expected;
               const methodName =
                 locale === 'ar'
@@ -161,14 +164,16 @@ export default function CashUpForm({
                     {formatAmount(expected, decimals)} {currencyCode}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <input
-                      type="number"
+                    <CmxMoneyField
+                      value={parseMoneyDraft(actualByMethod[code] ?? '') || null}
+                      draftValue={actualByMethod[code] ?? ''}
+                      decimalPlaces={decimals}
                       min={0}
-                      step={10 ** -decimals}
-                      value={actualByMethod[code] ?? ''}
-                      onChange={(e) => handleActualChange(code, e.target.value)}
-                      className="w-28 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm"
+                      showZero
+                      onFocus={() => setActiveMethodCode(code)}
+                      onValueChange={(_, d) => handleActualChange(code, d)}
                       aria-label={`${t('actualAmount')} ${methodName}`}
+                      className="w-28 text-right"
                     />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
@@ -200,6 +205,25 @@ export default function CashUpForm({
           </tbody>
         </table>
       </div>
+
+      {activeMethodCode && (
+        <div className="mt-4">
+          <CmxKeypad
+            keys={KEYPAD_NUMERIC_3COL}
+            columns={3}
+            keyHeight="lg"
+            onKeyPress={(key) => {
+              const current = actualByMethod[activeMethodCode] ?? '';
+              const next = applyKeypadInput(current, key, decimals);
+              handleActualChange(activeMethodCode, next);
+            }}
+            onKeyLongPress={(k) => {
+              if (k === 'backspace') handleActualChange(activeMethodCode, '');
+            }}
+            getKeyClassName={(k) => k === 'backspace' ? undefined : 'bg-white'}
+          />
+        </div>
+      )}
 
       {message && (
         <div

@@ -8,53 +8,36 @@
 'use client'
 
 import * as React from 'react'
+import {
+  sanitizeMoneyDraft,
+  parseMoneyDraft,
+  formatMoneyDraft,
+} from '@/lib/money/money-draft'
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import { CmxInput, type CmxInputProps } from './cmx-input'
 
 export interface CmxMoneyFieldProps
-  extends Omit<CmxInputProps, 'type' | 'value' | 'onChange' | 'inputMode'> {
+  extends Omit<CmxInputProps, 'type' | 'value' | 'onChange' | 'inputMode' | 'dir'> {
   /** Canonical numeric value controlled by the parent. */
   value: number | null | undefined
   /** Optional externally controlled draft string for advanced editors such as keypads. */
   draftValue?: string
-  /** Maximum supported decimal places. */
+  /** Maximum supported decimal places. Defaults to ORDER_DEFAULTS.PRICE.DECIMAL_PLACES. */
   decimalPlaces?: number
-  /** Called whenever the sanitized numeric value changes. */
-  onValueChange: (value: number, draft: string) => void
-  /** When true, zero is rendered as `0` instead of an empty field. */
+  /**
+   * Called whenever the sanitized numeric value changes.
+   * `isComplete` is false while the draft ends with '.' (user mid-typing a decimal).
+   * Callers with (value, draft) signatures silently ignore the third argument.
+   */
+  onValueChange: (value: number, draft: string, isComplete: boolean) => void
+  /** When true, zero is rendered as the full precision form instead of an empty field. */
   showZero?: boolean
-}
-
-function sanitizeMoneyDraft(raw: string, decimalPlaces: number): string {
-  let value = raw.replace(/[^\d.]/g, '')
-  if (value.startsWith('.')) value = `0${value}`
-  const decimalIndex = value.indexOf('.')
-  if (decimalIndex !== -1) {
-    value =
-      value.slice(0, decimalIndex + 1) +
-      value.slice(decimalIndex + 1).replace(/\./g, '')
-    const fraction = value.slice(decimalIndex + 1)
-    if (fraction.length > decimalPlaces) {
-      value = value.slice(0, decimalIndex + 1 + decimalPlaces)
-    }
-  }
-  return value
-}
-
-function parseMoneyDraft(value: string): number {
-  if (!value || value === '.') return 0
-  const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function formatMoneyDraft(
-  value: number | null | undefined,
-  decimalPlaces: number,
-  showZero: boolean
-): string {
-  if (value == null || !Number.isFinite(value)) return ''
-  if (value === 0) return showZero ? '0' : ''
-  const fixed = value.toFixed(decimalPlaces).replace(/\.?0+$/, '')
-  return fixed.startsWith('.') ? `0${fixed}` : fixed
+  /** Clamp lower bound. Undefined = unconstrained. */
+  min?: number
+  /** Clamp upper bound. Undefined = unconstrained. */
+  max?: number
+  /** Formats the display value when the field is NOT focused (e.g. thousands separator). */
+  formatDisplayValue?: (value: number, decimalPlaces: number) => string
 }
 
 export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldProps>(
@@ -62,9 +45,12 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
     {
       value,
       draftValue,
-      decimalPlaces = 3,
+      decimalPlaces = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
       onValueChange,
       showZero = false,
+      min,
+      max,
+      formatDisplayValue,
       onBlur,
       onFocus,
       ...props
@@ -74,6 +60,11 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
     const [isFocused, setIsFocused] = React.useState(false)
     const [draft, setDraft] = React.useState(
       formatMoneyDraft(value, decimalPlaces, showZero)
+    )
+
+    const clamp = React.useCallback(
+      (v: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v)),
+      [max, min]
     )
 
     React.useEffect(() => {
@@ -87,6 +78,11 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
       }
     }, [decimalPlaces, draftValue, isFocused, showZero, value])
 
+    const displayValue =
+      !isFocused && value != null && formatDisplayValue
+        ? formatDisplayValue(value, decimalPlaces)
+        : draft
+
     return (
       <CmxInput
         {...props}
@@ -94,7 +90,7 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
         type="text"
         inputMode="decimal"
         dir="ltr"
-        value={draft}
+        value={displayValue}
         onFocus={(event) => {
           setIsFocused(true)
           onFocus?.(event)
@@ -102,16 +98,23 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
         onBlur={(event) => {
           setIsFocused(false)
           const normalizedDraft = sanitizeMoneyDraft(draft, decimalPlaces)
-          const normalizedValue = parseMoneyDraft(normalizedDraft)
-          const nextDraft = formatMoneyDraft(normalizedValue, decimalPlaces, showZero)
+          const rawValue = parseMoneyDraft(normalizedDraft)
+          const clampedValue = clamp(rawValue)
+          const nextDraft = formatMoneyDraft(clampedValue, decimalPlaces, showZero)
           setDraft(nextDraft)
-          onValueChange(normalizedValue, nextDraft)
+          const isComplete = !nextDraft.endsWith('.')
+          onValueChange(clampedValue, nextDraft, isComplete)
           onBlur?.(event)
         }}
         onChange={(event) => {
           const nextDraft = sanitizeMoneyDraft(event.target.value, decimalPlaces)
-          setDraft(nextDraft)
-          onValueChange(parseMoneyDraft(nextDraft), nextDraft)
+          const rawValue = parseMoneyDraft(nextDraft)
+          const clampedValue = clamp(rawValue)
+          const clampedDraft =
+            rawValue > (max ?? Infinity) ? clampedValue.toFixed(decimalPlaces) : nextDraft
+          setDraft(clampedDraft)
+          const isComplete = !clampedDraft.endsWith('.')
+          onValueChange(clampedValue, clampedDraft, isComplete)
         }}
       />
     )

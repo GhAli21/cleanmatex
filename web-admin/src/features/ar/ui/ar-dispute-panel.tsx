@@ -3,13 +3,16 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyField, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 export function ArDisputePanel() {
   const t = useTranslations('invoices.ar.v2.disputes');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { decimalPlaces } = useTenantCurrency();
   const [mode, setMode] = useState<'create' | 'resolve'>('create');
   const [form, setForm] = useState<Record<string, string>>({
     invoiceId: '',
@@ -42,7 +45,7 @@ export function ArDisputePanel() {
               reason_cd: form.reasonCode,
               title: form.title,
               description: form.description,
-              disputed_amount: Number(form.disputedAmount),
+              disputed_amount: parseMoneyDraft(form.disputedAmount),
             }
           : {
               status_cd: form.statusCode,
@@ -88,7 +91,14 @@ export function ArDisputePanel() {
             <CmxInput label={t('create.fields.invoiceId')} value={form.invoiceId} onChange={(event) => setValue('invoiceId', event.target.value)} />
             <CmxInput label={t('create.fields.customerId')} value={form.customerId} onChange={(event) => setValue('customerId', event.target.value)} />
             <CmxInput label={t('create.fields.reasonCode')} value={form.reasonCode} onChange={(event) => setValue('reasonCode', event.target.value)} />
-            <CmxInput label={t('create.fields.amount')} type="number" min="0" step="0.0001" value={form.disputedAmount} onChange={(event) => setValue('disputedAmount', event.target.value)} />
+            <CmxMoneyField
+              label={t('create.fields.amount')}
+              value={form.disputedAmount !== '' ? parseMoneyDraft(form.disputedAmount) : null}
+              draftValue={form.disputedAmount}
+              decimalPlaces={decimalPlaces}
+              min={0}
+              onValueChange={(_, d) => setValue('disputedAmount', d)}
+            />
             <div className="md:col-span-2">
               <CmxInput label={t('create.fields.title')} value={form.title} onChange={(event) => setValue('title', event.target.value)} />
             </div>

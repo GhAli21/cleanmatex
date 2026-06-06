@@ -4,8 +4,10 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { CmxSummaryMessage } from '@ui/feedback';
-import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyField, CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { parseMoneyDraft } from '@/lib/money/money-draft';
 
 type WizardMode = 'MANUAL' | 'FROM_ORDERS';
 
@@ -16,6 +18,12 @@ interface ManualLineDraft {
   unitPrice: string;
   discount: string;
   tax: string;
+}
+
+function draftToValue(draft: string | undefined): number | null {
+  if (draft === '' || draft == null) return null;
+  const n = parseMoneyDraft(draft);
+  return Number.isFinite(n) ? n : null;
 }
 
 function todayDateString() {
@@ -44,6 +52,7 @@ export function ArInvoiceCreateWizard() {
   const t = useTranslations('invoices.ar.create');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const { decimalPlaces } = useTenantCurrency();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [mode, setMode] = useState<WizardMode>('MANUAL');
   const [isSaving, setIsSaving] = useState(false);
@@ -300,9 +309,30 @@ export function ArInvoiceCreateWizard() {
                     <CmxInput label={t('fields.lineDescription')} value={line.description} onChange={(event) => updateLine(line.id, 'description', event.target.value)} required />
                   </div>
                   <CmxInput label={t('fields.quantity')} type="number" min="0.0001" step="0.0001" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} required />
-                  <CmxInput label={t('fields.unitPrice')} type="number" min="0" step="0.0001" value={line.unitPrice} onChange={(event) => updateLine(line.id, 'unitPrice', event.target.value)} required />
-                  <CmxInput label={t('fields.discount')} type="number" min="0" step="0.0001" value={line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} />
-                  <CmxInput label={t('fields.tax')} type="number" min="0" step="0.0001" value={line.tax} onChange={(event) => updateLine(line.id, 'tax', event.target.value)} />
+                  <CmxMoneyField
+                    label={t('fields.unitPrice')}
+                    value={draftToValue(line.unitPrice)}
+                    draftValue={line.unitPrice}
+                    decimalPlaces={decimalPlaces}
+                    min={0}
+                    onValueChange={(_, d) => updateLine(line.id, 'unitPrice', d)}
+                  />
+                  <CmxMoneyField
+                    label={t('fields.discount')}
+                    value={draftToValue(line.discount)}
+                    draftValue={line.discount}
+                    decimalPlaces={decimalPlaces}
+                    min={0}
+                    onValueChange={(_, d) => updateLine(line.id, 'discount', d)}
+                  />
+                  <CmxMoneyField
+                    label={t('fields.tax')}
+                    value={draftToValue(line.tax)}
+                    draftValue={line.tax}
+                    decimalPlaces={decimalPlaces}
+                    min={0}
+                    onValueChange={(_, d) => updateLine(line.id, 'tax', d)}
+                  />
                 </div>
                 <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-3">
                   <div>
