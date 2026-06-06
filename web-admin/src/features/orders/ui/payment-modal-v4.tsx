@@ -3187,7 +3187,7 @@ export function PaymentModalV4({
                           ) : null}
                         </CmxCardHeader>
                         <CmxCardContent className="space-y-5 pt-5">
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
+                          <div className={`grid gap-4 ${showGiftCardWorkspace ? '' : 'xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]'}`}>
                             <div className="space-y-4">
                               <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                                 <div>
@@ -3312,7 +3312,7 @@ export function PaymentModalV4({
 
                                   {!appliedGiftCard ? (
                                     <div ref={giftCardDetailsRef} className="space-y-3 rounded-xl border border-purple-200 bg-white p-3">
-                                      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                      <div className={`grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}>
                                         <Controller
                                           name="giftCardNumber"
                                           control={control}
@@ -3323,6 +3323,7 @@ export function PaymentModalV4({
                                               onChange={(event) => field.onChange(event.target.value.toUpperCase())}
                                               placeholder={t('giftCard.placeholder')}
                                               disabled={giftCardValidating}
+                                              className="min-w-0"
                                               onKeyDown={(event) => {
                                                 if (event.key === 'Enter') {
                                                   event.preventDefault();
@@ -3339,6 +3340,7 @@ export function PaymentModalV4({
                                           variant="secondary"
                                           onClick={handleFetchGiftCardDetails}
                                           disabled={!giftCardNumber?.trim() || giftCardValidating || (pinRequired && !giftCardPin.trim())}
+                                          className="shrink-0"
                                         >
                                           {giftCardValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('giftCard.fetch')}
                                         </CmxButton>
@@ -3375,7 +3377,7 @@ export function PaymentModalV4({
                                           </div>
                                           <div className="space-y-3">
                                             {pinRequired ? (
-                                              <div className={`flex items-end gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                              <div className={`grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}>
                                                 <CmxInput
                                                   ref={pinInputRef}
                                                   label={t('giftCard.pinLabel')}
@@ -3383,7 +3385,7 @@ export function PaymentModalV4({
                                                   type={pinVisible ? 'text' : 'password'}
                                                   dir="ltr"
                                                   error={pinFieldError ?? undefined}
-                                                  className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
+                                                  className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : ''}`}
                                                   onChange={(event) => {
                                                     setGiftCardPin(event.target.value);
                                                     setPinFieldError(null);

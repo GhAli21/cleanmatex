@@ -219,7 +219,8 @@
       "Bash(Get-ChildItem -Path \"supabase/migrations/\" -Name)",
       "Bash(Sort-Object)",
       "Bash(ls \"f:\\\\jhapp\\\\cleanmatexsaas\\\\\" 2>/dev/null || echo \"cleanmatexsaas not found at this path\")",
-      "Read(//f/jhapp/cleanmatexsaas\" 2>/dev/**)"
+      "Read(//f/jhapp/cleanmatexsaas\" 2>/dev/**)",
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match \"0053\" })"
     ],
     "deny": [
       "Read(node_modules)",
