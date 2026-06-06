@@ -5338,7 +5338,21 @@
         "helperCredits": "Apply credits"
       },
       "sections": {
+        "paymentTools": "Payment Tools",
+        "paymentToolsHelp": "Select methods, manage credits, and build payment legs.",
+        "paymentWorkbench": "Payment Workbench",
+        "paymentWorkbenchHelp": "Use this workspace to edit, adjust, and complete the payment.",
+        "receiptBrain": "Receipt Brain",
+        "receiptBrainHelp": "Read-only summary and quick access shortcuts.",
+        "sectionA": "Section A",
+        "sectionB": "Section B",
+        "sectionC": "Section C",
+        "sectionD": "Section D",
+        "sectionE": "Section E",
+        "sectionF": "Section F",
+        "sectionG": "Section G",
         "balanceSnapshot": "Balance Snapshot",
+        "balanceSnapshotHelp": "Quick overview of the current balance situation.",
         "amountEditor": "Amount Editor",
         "paymentWorkspace": "Payment Workspace",
         "discountsCredits": "Discounts & Credits",
@@ -5348,6 +5362,16 @@
         "financialInspectorHelp": "Review order value, taxes, discounts, warnings, AR details, and notes without scrolling the receipt rail.",
         "balancePolicy": "Balance Policy",
         "shortcuts": "Workbench Shortcuts"
+      },
+      "orderValue": {
+        "grossValue": "Gross Value",
+        "grossValueHelp": "Original order value before cashier adjustments.",
+        "discounts": "Discounts",
+        "discountsHelp": "Reductions applied before tax and final payment.",
+        "taxes": "Taxes",
+        "taxesHelp": "Tax amounts included in the payable total.",
+        "finalTotal": "Final Order Total",
+        "finalTotalHelp": "Trusted checkout total used for settlement and remaining-balance logic."
       },
       "security": {
         "cardPayment": "Secure card payment. Data is encrypted and PCI compliant."

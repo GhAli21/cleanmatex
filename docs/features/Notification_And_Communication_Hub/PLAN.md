@@ -3,7 +3,7 @@
 
 **Roadmap:** [ROADMAP.md](./ROADMAP.md)  
 **Status file:** [STATUS.md](./STATUS.md)  
-**Next migration seq:** 0344  
+**Next migration seq:** 0350  
 **Architecture:** web-admin native · Supabase Realtime · pg_cron outbox  
 **Created:** 2026-06-06
 
@@ -15,6 +15,11 @@
 - After each migration file is written → STOP and wait for user to apply it before continuing.
 - After every phase → update STATUS.md checkboxes + ROADMAP.md status table.
 - Load skills before writing: `/database` for SQL, `/frontend` for UI, `/i18n` for translations.
+
+**Mandatory end-of-step tasks (add to EVERY step):**
+1. `[ ] Update STATUS.md: mark Step X.Y done` — check off the step immediately after it is complete.
+2. `[ ] Refresh docs: update any affected documentation files` — if the step adds schema, permissions, nav, API routes, i18n keys, or new components, note changes in ROADMAP.md and relevant docs/.
+3. At the end of each PHASE: `[ ] Run /documentation skill` — generate/refresh the full feature doc set for everything completed so far.
 
 ---
 
@@ -111,40 +116,40 @@ Tasks:
 
 ---
 
-### Step 1.6 — Migration 0349: Permissions Seed
+### Step 1.6 — Migration 0349: Permissions + Navigation Dual-Write ✅ DONE
 
-**Skills to load first:** `/database`  
-**File:** `supabase/migrations/0349_notif_permissions_seed.sql`
+**Skills loaded:** `/database`  
+**File:** `supabase/migrations/0349_ntf_permissions_and_nav.sql` (permissions + nav combined — same pattern as mig 0343)
 
 Tasks:
-- [ ] Seed into `sys_auth_permissions` (or equivalent permissions table — check schema first):
-  - `notifications:read` — View own notifications
-  - `notifications:manage` — Mark read, manage preferences
-  - `notifications:view_log` — View delivery log (admin)
-  - `notifications:configure` — Manage tenant channel settings
-  - `notifications:send_test` — Send test notification
-- [ ] Assign default permissions to appropriate roles (check existing role seeding pattern in previous migrations)
-- [ ] **STOP → wait for user to apply migration 0349**
+- [x] Seed 5 permissions into `sys_auth_permissions`:
+  - `notifications:read` — View own notifications (all roles)
+  - `notifications:manage` — Mark read, manage preferences (all except viewer)
+  - `notifications:view_log` — View delivery log (admin+)
+  - `notifications:configure` — Manage tenant channel settings (admin+)
+  - `notifications:send_test` — Send test notification (admin+)
+- [x] Role default permissions seeded via CROSS JOIN + NOT EXISTS guard
+- [x] `sys_components_cd` rows inserted: `notifications` (section), `notifications_center`, `notifications_delivery_log`, `notifications_settings`
+- [x] `parent_comp_id` resolved via post-INSERT UPDATE
+- [x] **STOP → wait for user to apply migration 0349**
 - [ ] Update STATUS.md: mark Step 1.6 done
+- [ ] Refresh docs: note 5 permissions added, 4 nav components seeded
 
 ---
 
-### Step 1.7 — Migration 0352: Navigation Dual-Write
+### Step 1.7 — Navigation Frontend Dual-Write (merged from original Steps 1.7+1.8)
 
-**Skills to load first:** `/database` + `/navigation`  
-**File:** `supabase/migrations/0352_notif_nav_components.sql`
+**⚠️ DB side done in 0349. Frontend side still required.**
+
+**Skills to load first:** `/frontend` + `/navigation`  
+**File:** `web-admin/config/navigation.ts`
 
 Tasks:
-- [ ] Insert rows into `sys_components_cd` for:
-  - `notifications` (section header, feature-flagged)
-  - `notification-center` (child page)
-  - `notification-delivery-log` (child page)
-  - `notification-settings` (child page)
-  - `notification-campaigns` (under marketing, feature-flagged)
-- [ ] Insert permission assignments for each component
-- [ ] **STOP → wait for user to apply migration 0352**
-- [ ] Update navigation.ts (frontend dual-write — see Step 1.8)
+- [ ] Add `notifications` section with 3 children (center, delivery-log, settings) matching comp_codes in 0349
+- [ ] Permission guards: `notifications:read` for section and center, `notifications:view_log` for delivery-log, `notifications:configure` for settings
+- [ ] Verify `getNavigationForRole()` handles the new entries
 - [ ] Update STATUS.md: mark Step 1.7 done
+- [ ] Refresh docs: update navigation tree section in ROADMAP.md
 
 ---
 

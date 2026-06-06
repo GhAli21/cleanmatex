@@ -281,6 +281,94 @@ type RightRailSummaryItem = {
   negative?: boolean;
 };
 
+type OrderValueBreakdownRow = RightRailSummaryItem & {
+  id: string;
+};
+
+type OrderValueBreakdownModel = {
+  grossRows: OrderValueBreakdownRow[];
+  discountRows: OrderValueBreakdownRow[];
+  taxRows: OrderValueBreakdownRow[];
+  totalRow: OrderValueBreakdownRow;
+};
+
+function OrderValueBreakdownPanel({
+  model,
+  labels,
+  isRTL,
+}: {
+  model: OrderValueBreakdownModel;
+  labels: {
+    grossValue: string;
+    grossValueHelp: string;
+    discounts: string;
+    discountsHelp: string;
+    taxes: string;
+    taxesHelp: string;
+    finalTotal: string;
+    finalTotalHelp: string;
+  };
+  isRTL: boolean;
+}) {
+  return (
+    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="space-y-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className={isRTL ? 'text-right' : 'text-left'}>
+            <p className="text-sm font-semibold text-slate-900">{labels.grossValue}</p>
+            <p className="mt-1 text-xs text-slate-500">{labels.grossValueHelp}</p>
+          </div>
+          <div className="mt-3 space-y-2">
+            {model.grossRows.map((row) => (
+              <SummaryRow key={row.id} label={row.label} value={row.value} />
+            ))}
+          </div>
+        </div>
+
+        {model.discountRows.length > 0 ? (
+          <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-semibold text-rose-900">{labels.discounts}</p>
+              <p className="mt-1 text-xs text-rose-700">{labels.discountsHelp}</p>
+            </div>
+            <div className="mt-3 space-y-2">
+              {model.discountRows.map((row) => (
+                <SummaryRow key={row.id} label={row.label} value={row.value} negative />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {model.taxRows.length > 0 ? (
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
+              <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
+            </div>
+            <div className="mt-3 space-y-2">
+              {model.taxRows.map((row) => (
+                <SummaryRow key={row.id} label={row.label} value={row.value} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-teal-50 p-4 shadow-sm">
+        <p className={`text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {labels.finalTotal}
+        </p>
+        <p className={`mt-3 text-2xl font-bold tabular-nums text-slate-950 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {model.totalRow.value}
+        </p>
+        <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {labels.finalTotalHelp}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -2080,14 +2168,21 @@ export function PaymentModalV4({
       })),
     [customerCreditEntries, getOptionDisplayName, getMethodOption, currencyCode, formatAmount]
   );
-  const orderValueSummaryItems = useMemo<RightRailSummaryItem[]>(
+  const orderValueBreakdownModel = useMemo<OrderValueBreakdownModel>(
     () => {
-      const rows: RightRailSummaryItem[] = [
-        { label: t('summary.subtotal'), value: `${currencyCode} ${formatAmount(totals.subtotal)}` },
+      const grossRows: OrderValueBreakdownRow[] = [
+        {
+          id: 'subtotal',
+          label: t('summary.subtotal'),
+          value: `${currencyCode} ${formatAmount(totals.subtotal)}`,
+        },
       ];
+      const discountRows: OrderValueBreakdownRow[] = [];
+      const taxRows: OrderValueBreakdownRow[] = [];
 
       if ((totals.autoRuleDiscount ?? 0) > moneyEpsilon) {
-        rows.push({
+        discountRows.push({
+          id: 'rules-discount',
           label: t('summary.rulesDiscount'),
           value: `-${currencyCode} ${formatAmount(totals.autoRuleDiscount ?? 0)}`,
           negative: true,
@@ -2095,7 +2190,8 @@ export function PaymentModalV4({
       }
 
       if (totals.manualDiscount > moneyEpsilon) {
-        rows.push({
+        discountRows.push({
+          id: 'manual-discount',
           label: t('summary.manualDiscount'),
           value: `-${currencyCode} ${formatAmount(totals.manualDiscount)}`,
           negative: true,
@@ -2103,7 +2199,8 @@ export function PaymentModalV4({
       }
 
       if (totals.promoDiscount > moneyEpsilon) {
-        rows.push({
+        discountRows.push({
+          id: 'promo-discount',
           label: t('summary.promoDiscount'),
           value: `-${currencyCode} ${formatAmount(totals.promoDiscount)}`,
           negative: true,
@@ -2111,25 +2208,33 @@ export function PaymentModalV4({
       }
 
       if (totals.vatValue > moneyEpsilon) {
-        rows.push({
+        taxRows.push({
+          id: 'vat',
           label: `VAT (${totals.vatTaxPercent.toFixed(0)}%)`,
           value: `${currencyCode} ${formatAmount(totals.vatValue)}`,
         });
       }
 
       if ((totals.taxAmount ?? 0) > moneyEpsilon) {
-        rows.push({
+        taxRows.push({
+          id: 'additional-tax',
           label: t('summary.taxAmount'),
           value: `${currencyCode} ${formatAmount(totals.taxAmount ?? 0)}`,
         });
       }
 
-      rows.push({
+      const totalRow: OrderValueBreakdownRow = {
+        id: 'order-total',
         label: t('rightRail.orderTotal'),
         value: `${currencyCode} ${formatAmount(saleTotal)}`,
-      });
+      };
 
-      return rows;
+      return {
+        grossRows,
+        discountRows,
+        taxRows,
+        totalRow,
+      };
     },
     [currencyCode, formatAmount, moneyEpsilon, saleTotal, t, totals]
   );
@@ -2458,7 +2563,7 @@ export function PaymentModalV4({
     <>
       <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeWithGuard()}>
         <CmxDialogContent
-          className="mx-4 h-[92vh] w-[calc(100vw-2rem)] max-w-[1500px] overflow-hidden rounded-[28px] border border-slate-200/80 p-0 shadow-2xl"
+          className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-[28px] border border-slate-200/80 p-0 shadow-2xl"
           bodyPadding="none"
         >
           <div
@@ -2481,8 +2586,20 @@ export function PaymentModalV4({
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
-              <div className="grid min-h-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
-                <div className="space-y-4">
+              <div className="mx-auto grid min-h-full max-w-[1880px] items-start gap-4 xl:grid-cols-[320px_minmax(720px,1fr)_360px]">
+                <aside className="min-w-0">
+                  <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                      <CmxCardTitle className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <CreditCard className="h-4 w-4 text-cyan-700" />
+                        {t('sections.paymentTools')}
+                      </CmxCardTitle>
+                      <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('sections.paymentToolsHelp')}
+                      </p>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-3 pt-3">
+                <div className="space-y-3">
                   <div ref={methodsAnchorRef}>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-slate-100 pb-3">
@@ -2740,31 +2857,63 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
                 </div>
+                    </CmxCardContent>
+                  </CmxCard>
+                </aside>
 
-                <div className="space-y-4">
-                  <div ref={balanceSnapshotSectionRef} tabIndex={-1} className="outline-none">
-                  <CmxCard className="border-cyan-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50 shadow-sm">
-                    <CmxCardContent className="pt-5">
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="md:border-e md:border-slate-200 md:pe-6">
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
-                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
+                <section className="min-w-0">
+                  <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                      <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <div>
+                          <CmxCardTitle className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Maximize2 className="h-4 w-4 text-cyan-700" />
+                            {t('sections.paymentWorkbench')}
+                          </CmxCardTitle>
+                          <p className="mt-1 text-xs text-slate-500">{t('sections.paymentWorkbenchHelp')}</p>
                         </div>
-                        <div className="md:border-e md:border-slate-200 md:px-6">
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.change') || 'Change'}</p>
-                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-emerald-600">{currencyCode} {formatAmount(changeAmount)}</p>
-                        </div>
-                        <div className="md:ps-6">
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
-                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
-                        </div>
-                      </div>
-                      <div className="mt-5 flex items-center justify-center gap-2">
-                        <Badge variant="secondary" className={`rounded-full px-4 py-2 text-sm font-semibold ${remainingBalance > 0.001 ? 'border border-amber-300 bg-amber-50 text-amber-700' : 'border border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
-                          {remainingBalance > 0.001
-                            ? `${t('splitPayment.outstanding')}: ${currencyCode} ${formatAmount(remainingBalance)}`
-                            : `✓ ${t('splitPayment.allocated')}`}
+                        <Badge variant="secondary" className="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700">
+                          {visiblePaymentSectionIds.size}
                         </Badge>
+                      </div>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-3 pt-3">
+                <div className="space-y-3">
+                  <div ref={balanceSnapshotSectionRef} tabIndex={-1} className="outline-none">
+                  <CmxCard className="overflow-hidden border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 shadow-sm">
+                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                      <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <div>
+                          <CmxCardTitle className="text-sm text-cyan-900">
+                            {t('sections.sectionA')} · {t('sections.balanceSnapshot')}
+                          </CmxCardTitle>
+                          <p className="mt-1 text-xs text-slate-500">{t('sections.balanceSnapshotHelp')}</p>
+                        </div>
+                        <Badge variant="secondary" className={`rounded-full px-3 py-1 text-xs font-semibold ${remainingBalance > moneyEpsilon ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                          {remainingBalance > moneyEpsilon ? t('splitPayment.outstanding') : t('splitPayment.allocated')}
+                        </Badge>
+                      </div>
+                    </CmxCardHeader>
+                    <CmxCardContent className="pt-4">
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
+                          <p className="mt-2 text-xl font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-500">{t('workspace.change') || 'Change'}</p>
+                          <p className="mt-2 text-xl font-bold tabular-nums text-emerald-600">{currencyCode} {formatAmount(changeAmount)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
+                          <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-500">{t('rightRail.overpaidAmount')}</p>
+                          <p className={`mt-2 text-xl font-bold tabular-nums ${changeAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
+                            {currencyCode} {formatAmount(changeAmount)}
+                          </p>
+                        </div>
                       </div>
                     </CmxCardContent>
                   </CmxCard>
@@ -2780,14 +2929,11 @@ export function PaymentModalV4({
                   ) : (
                     <>
                       {showAmountEditorSection ? (
-                      <>
-                      <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
+                      <CmxCard className="overflow-hidden border-slate-200 bg-white shadow-sm">
                         <CmxCardHeader className="border-b border-slate-100 pb-2">
                           <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <CmxCardTitle className={`text-sm text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t('workspace.editingAmount') || 'Editing amount'}
-                              {activeLeg ? ` ${t('workspace.forMethod')} ` : ' '}
-                              {activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : ''}
+                              {t('sections.sectionB')} · {t('sections.amountEditor')} · {activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : t('workspace.editingAmount')}
                             </CmxCardTitle>
                             {settlementLegEntries.length > 1 && (
                               <CmxButton
@@ -2803,74 +2949,74 @@ export function PaymentModalV4({
                             )}
                           </div>
                         </CmxCardHeader>
-                        <CmxCardContent className="space-y-4 pt-4">
-                          <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
-                            <div className="flex min-w-[104px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-xl font-semibold text-cyan-700">
-                              {currencyCode}
+                        <CmxCardContent className="grid gap-4 pt-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(360px,1.1fr)]">
+                          <div className="space-y-3">
+                            <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
+                              <div className="flex min-w-[88px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-lg font-semibold text-cyan-700">
+                                {currencyCode}
+                              </div>
+                              <div className="min-w-0 flex-1 px-3">
+                                <CmxMoneyField
+                                  ref={amountInputRef}
+                                  draftValue={activeAmountDraft}
+                                  value={activeLeg?.amount ?? null}
+                                  decimalPlaces={decimalPlaces}
+                                  showZero
+                                  aria-label={t('workspace.editingAmount') || 'Editing amount'}
+                                  onValueChange={(value, draft) => {
+                                    if (!activeLeg) return;
+                                    setActiveAmountDraft(draft);
+                                    updateLeg(activeLegIndex, 'amount', value);
+                                  }}
+                                  placeholder={formatAmount(0)}
+                                  disabled={!activeLeg}
+                                  className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
+                                />
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1 px-3">
-                              <CmxMoneyField
-                                ref={amountInputRef}
-                                draftValue={activeAmountDraft}
-                                value={activeLeg?.amount ?? null}
-                                decimalPlaces={decimalPlaces}
-                                showZero
-                                aria-label={t('workspace.editingAmount') || 'Editing amount'}
-                                onValueChange={(value, draft) => {
-                                  if (!activeLeg) return;
-                                  setActiveAmountDraft(draft);
-                                  updateLeg(activeLegIndex, 'amount', value);
-                                }}
-                                placeholder={formatAmount(0)}
-                                disabled={!activeLeg}
-                                className="h-16 border-0 bg-transparent px-0 text-[2.65rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
-                              />
-                            </div>
+                            {activeLeg?.method === 'WALLET' && (
+                              <div className={`rounded-xl border px-3 py-2 text-xs ${
+                                walletLegExceedsLiveBalance
+                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  : 'border-cyan-200 bg-cyan-50 text-cyan-800'
+                              }`}>
+                                {walletLegExceedsLiveBalance
+                                  ? t('customerCredits.walletBalanceExceeded', {
+                                      amount: liveWalletBalanceDisplay,
+                                    })
+                                  : t('customerCredits.available', {
+                                      amount: liveWalletBalanceDisplay,
+                                    })}
+                              </div>
+                            )}
+                            <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
+                              {t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}
+                            </p>
                           </div>
-                          {activeLeg?.method === 'WALLET' && (
-                            <div className={`rounded-xl border px-3 py-2 text-xs ${
-                              walletLegExceedsLiveBalance
-                                ? 'border-red-200 bg-red-50 text-red-700'
-                                : 'border-cyan-200 bg-cyan-50 text-cyan-800'
-                            }`}>
-                              {walletLegExceedsLiveBalance
-                                ? t('customerCredits.walletBalanceExceeded', {
-                                    amount: liveWalletBalanceDisplay,
-                                  })
-                                : t('customerCredits.available', {
-                                    amount: liveWalletBalanceDisplay,
-                                  })}
-                            </div>
-                          )}
-                          <p className="text-xs text-slate-500">{t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}</p>
+                          <div className="min-w-0">
+                            <CmxKeypad
+                              keys={KEYPAD_PAYMENT_4COL}
+                              disabled={!activeLeg}
+                              onKeyPress={handleKeypadPress}
+                              onKeyLongPress={(key) => {
+                                if (key === 'backspace') handleKeypadPress('clear');
+                              }}
+                              getKeyVariant={PAYMENT_KEY_VARIANT}
+                              getKeyClassName={PAYMENT_KEY_CLASS}
+                              getKeyAriaLabel={(key) => {
+                                if (key === 'backspace') return t('workspace.backspace') || 'Backspace';
+                                if (key === 'clear') return tCommon('clear');
+                                return undefined;
+                              }}
+                              renderKeyLabel={(key) => {
+                                if (key === 'backspace') return '⌫';
+                                if (key === 'clear') return tCommon('clear');
+                                return key;
+                              }}
+                            />
+                          </div>
                         </CmxCardContent>
                       </CmxCard>
-
-                      <CmxCard className="border-slate-200 shadow-sm">
-                        <CmxCardContent className="pt-4">
-                          <CmxKeypad
-                            keys={KEYPAD_PAYMENT_4COL}
-                            disabled={!activeLeg}
-                            onKeyPress={handleKeypadPress}
-                            onKeyLongPress={(key) => {
-                              if (key === 'backspace') handleKeypadPress('clear');
-                            }}
-                            getKeyVariant={PAYMENT_KEY_VARIANT}
-                            getKeyClassName={PAYMENT_KEY_CLASS}
-                            getKeyAriaLabel={(key) => {
-                              if (key === 'backspace') return t('workspace.backspace') || 'Backspace';
-                              if (key === 'clear') return tCommon('clear');
-                              return undefined;
-                            }}
-                            renderKeyLabel={(key) => {
-                              if (key === 'backspace') return '⌫';
-                              if (key === 'clear') return tCommon('clear');
-                              return key;
-                            }}
-                          />
-                        </CmxCardContent>
-                      </CmxCard>
-                      </>
                       ) : null}
 
                       <div ref={paymentWorkspaceSectionRef} tabIndex={-1} className="outline-none">
@@ -2880,7 +3026,7 @@ export function PaymentModalV4({
                             <div>
                               <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                 <Maximize2 className="h-4 w-4 text-cyan-700" />
-                                {t('workspace.activeTitle')}
+                                {t('sections.sectionC')} · {t('workspace.activeTitle')}
                               </CmxCardTitle>
                               <p className="mt-1 text-sm text-slate-600">{t('workspace.activeDescription')}</p>
                             </div>
@@ -3174,7 +3320,7 @@ export function PaymentModalV4({
                         <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-purple-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                           <div>
                             <CmxCardTitle className="text-base text-slate-900">
-                              {t('rightRail.adjustments')}
+                              {t('sections.sectionE')} · {t('rightRail.adjustments')}
                             </CmxCardTitle>
                             <p className="mt-1 text-sm text-slate-600">
                               {t('sections.discountsCreditsHelp')}
@@ -3520,7 +3666,7 @@ export function PaymentModalV4({
                           <div>
                             <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               <Banknote className="h-4 w-4 text-cyan-700" />
-                              {t('sections.cashDrawer')}
+                              {t('sections.sectionF')} · {t('sections.cashDrawer')}
                             </CmxCardTitle>
                             <p className="mt-1 text-sm text-slate-600">{t('cashDrawer.subtitle')}</p>
                           </div>
@@ -3682,7 +3828,7 @@ export function PaymentModalV4({
                       <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                         <div>
                           <CmxCardTitle className="text-base text-slate-900">
-                            {t('sections.financialInspector')}
+                            {t('sections.sectionG')} · {t('sections.financialInspector')}
                           </CmxCardTitle>
                           <p className="mt-1 text-sm text-slate-600">{t('sections.financialInspectorHelp')}</p>
                         </div>
@@ -3697,16 +3843,20 @@ export function PaymentModalV4({
                               id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.ORDER_VALUE,
                               label: t('rightRail.orderValue'),
                               content: (
-                                <div className="space-y-2">
-                                  {orderValueSummaryItems.map((item) => (
-                                    <SummaryRow
-                                      key={`${item.label}-${item.value}`}
-                                      label={item.label}
-                                      value={item.value}
-                                      negative={item.negative}
-                                    />
-                                  ))}
-                                </div>
+                                <OrderValueBreakdownPanel
+                                  model={orderValueBreakdownModel}
+                                  isRTL={isRTL}
+                                  labels={{
+                                    grossValue: t('orderValue.grossValue'),
+                                    grossValueHelp: t('orderValue.grossValueHelp'),
+                                    discounts: t('orderValue.discounts'),
+                                    discountsHelp: t('orderValue.discountsHelp'),
+                                    taxes: t('orderValue.taxes'),
+                                    taxesHelp: t('orderValue.taxesHelp'),
+                                    finalTotal: t('orderValue.finalTotal'),
+                                    finalTotalHelp: t('orderValue.finalTotalHelp'),
+                                  }}
+                                />
                               ),
                             },
                             ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.TAX_BREAKDOWN)
@@ -3900,7 +4050,7 @@ export function PaymentModalV4({
                         <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                           <div>
                             <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              {t('rightRail.balancePolicy')}
+                              {t('sections.sectionD')} · {t('rightRail.balancePolicy')}
                               <Info className="h-4 w-4 text-slate-400" />
                             </CmxCardTitle>
                             <p className="mt-1 text-sm text-slate-600">{t('rightRail.balancePolicyHelp')}</p>
@@ -3947,8 +4097,23 @@ export function PaymentModalV4({
                     </div>
                   ) : null}
                 </div>
+                    </CmxCardContent>
+                  </CmxCard>
+                </section>
 
-                <div className="space-y-4">
+                <aside className="min-w-0">
+                  <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                      <CmxCardTitle className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <UserRound className="h-4 w-4 text-cyan-700" />
+                        {t('sections.receiptBrain')}
+                      </CmxCardTitle>
+                      <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('sections.receiptBrainHelp')}
+                      </p>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-3 pt-3">
+                <div className="space-y-3">
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardContent className="pt-5">
                       <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -4150,6 +4315,9 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
                 </div>
+                    </CmxCardContent>
+                  </CmxCard>
+                </aside>
               </div>
             </div>
 
