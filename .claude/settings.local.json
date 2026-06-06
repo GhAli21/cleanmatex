@@ -220,7 +220,9 @@
       "Bash(Sort-Object)",
       "Bash(ls \"f:\\\\jhapp\\\\cleanmatexsaas\\\\\" 2>/dev/null || echo \"cleanmatexsaas not found at this path\")",
       "Read(//f/jhapp/cleanmatexsaas\" 2>/dev/**)",
-      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match \"0053\" })"
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match \"0053\" })",
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -notmatch '^\\(x_|xproduction|archive\\)' } | Sort-Object Name | Select-Object -Last 5 | Select-Object Name)",
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match '^\\\\d{4}_' } | Sort-Object Name | Select-Object -Last 5 | Select-Object Name)"
     ],
     "deny": [
       "Read(node_modules)",

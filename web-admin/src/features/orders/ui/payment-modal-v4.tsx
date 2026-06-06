@@ -3970,7 +3970,7 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
 
-                  <div className="md:sticky md:top-0 md:z-10 md:pb-1">
+                  <div>
                     <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm backdrop-blur">
                       <CmxCardHeader className="border-b border-slate-100 pb-3">
                         <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>

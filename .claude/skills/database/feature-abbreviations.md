@@ -170,6 +170,15 @@ author: CleanMateX Team
   - Functions: `sys_otp_generate_code()`, `sys_otp_validate_code()`
   - Views: `sys_otp_pending_verifications_vw`
 
+### Notifications
+- **Abbreviation**: `ntf`
+- **Scope**: `sys_ntf_` (system/global catalog), `org_ntf_` (tenant runtime)
+- **Examples**:
+  - Tables: `sys_ntf_categories_cd`, `sys_ntf_events_cd`, `sys_ntf_event_chan_map`, `sys_ntf_providers_cd`, `sys_ntf_templates_mst`, `org_ntf_settings_cf`, `org_ntf_inbox_mst`, `org_ntf_outbox_dtl`
+  - Functions: `org_ntf_dispatch_event()`, `org_ntf_mark_read()`
+  - Views: `org_ntf_unread_vw`
+- **Note**: `sys_notification_type_cd` and `sys_notification_channel_cd` are grandfathered (created in migration 0053 before this abbreviation system).
+
 ---
 
 ## Adding New Features
@@ -231,6 +240,7 @@ author: CleanMateX Team
 | Usage | `usg` | - | `org_usg_` |
 | Audit | `aud` | `sys_aud_` | `org_aud_` |
 | OTP | `otp` | `sys_otp_` | - |
+| Notifications | `ntf` | `sys_ntf_` | `org_ntf_` |
 
 ---
 
