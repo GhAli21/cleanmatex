@@ -491,36 +491,63 @@ Tasks:
 
 ---
 
-### Step 3.3 — WhatsApp Adapter
+### Step 3.5 — SMS Adapter ✅ DONE
 
-- [ ] `adapters/whatsapp.ts` — Twilio BSP / Meta Business API
-- [ ] Uses approved template IDs stored in `sys_notif_template_chan_dtl`
-- [ ] Template variable substitution from notification metadata JSONB
-- [ ] Quiet hours bypass: URGENT/CRITICAL messages ignore quiet hours
-- [ ] Delivery webhooks: `POST /api/notifications/webhooks/whatsapp` — update outbox + delivery log on provider callback
-- [ ] Update STATUS.md: mark Step 3.3 done
-- [ ] Refresh docs: record approved WhatsApp template IDs in STATUS.md WhatsApp tracker
+- [x] `lib/notifications/adapters/sms.ts` — Twilio Programmable Messaging
+- [x] ENV: TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_SMS_FROM
+- [x] Permanent error detection: codes 21211 (invalid number), 21614 (not SMS-capable)
 
 ---
 
-### Step 3.4 — SMS Adapter
+### Step 3.6 — WhatsApp Adapter ✅ DONE
 
-- [ ] `adapters/sms.ts` — Twilio. Message truncated to 160 chars if needed.
-- [ ] Provider config via HQ API (same pattern as email)
-- [ ] Update STATUS.md: mark Step 3.4 done
-- [ ] Refresh docs: add SMS adapter notes to ROADMAP.md
+- [x] `lib/notifications/adapters/whatsapp.ts` — factory supporting two providers
+- [x] TWILIO_WHATSAPP: Twilio as BSP (twilio npm package)
+- [x] META_WHATSAPP: Meta Cloud API direct HTTP (graph.facebook.com v18.0)
+- [x] Provider selected at runtime via NotificationSettingsService
 
 ---
 
-### Step 3.5 — Push Adapter
+### Step 3.7 — Push Adapter Factory ✅ DONE
 
-- [ ] `adapters/push.ts` — FCM v1 HTTP API
-- [ ] Reads active tokens from `org_notif_fcm_tokens_dtl`
-- [ ] Handle multi-device: one push per active token per user
-- [ ] On `UNREGISTERED` FCM error → mark token `is_active = false`
-- [ ] Weekly cleanup pg_cron: `UPDATE ... SET is_active = false WHERE failure_count > 3 OR last_verified_at < NOW() - INTERVAL '90 days'`
-- [ ] Update STATUS.md: mark Step 3.5 done
-- [ ] Refresh docs: note multi-device push pattern in architecture notes
+- [x] `lib/notifications/adapters/push/vapid.ts` — W3C Web Push (web-push npm package; VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT)
+- [x] `lib/notifications/adapters/push/fcm.ts` — FCM v1 HTTP API + JWT service account (FCM_SERVICE_ACCOUNT_JSON / FCM_PROJECT_ID; no Firebase SDK)
+- [x] `lib/notifications/adapters/push/onesignal.ts` — OneSignal REST API (ONESIGNAL_APP_ID / ONESIGNAL_REST_API_KEY; free tier)
+- [x] `lib/notifications/adapters/push.ts` — main factory: reads active provider from settings service, fan-out to all active subscriptions per user, records failure_count + deactivates on permanent errors
+
+---
+
+### Step 3.8 — Push Subscription API ✅ DONE
+
+- [x] `app/api/notifications/push-subscription/route.ts` — POST (register/refresh) / DELETE (deregister)
+- [x] Upsert keyed on (tenant_org_id, user_id, device_id, provider_code)
+- [x] Auth: requirePermission('notifications:read')
+
+---
+
+### Step 3.9 — Outbox Processor: Wire All Channels ✅ DONE
+
+- [x] Updated `app/api/notifications/process-outbox/route.ts`
+- [x] EMAIL → deliverEmailOutbox (Phase 2, unchanged)
+- [x] SMS → deliverSmsOutbox
+- [x] WHATSAPP → deliverWhatsAppOutbox (factory reads active provider)
+- [x] PUSH → deliverPushOutbox (factory reads active provider + fans out to subscriptions)
+- [x] IN_APP → SKIPPED (written directly to inbox by orchestrator, not outbox)
+
+---
+
+### Step 3.10 — Migration 0353: Stale Push Subscription Sweep ✅ DONE
+
+- [x] `supabase/migrations/0353_notif_push_sweep_cron.sql`
+- [x] Creates `ntf_sweep_stale_push_subs()` PL/pgSQL function
+- [x] pg_cron job: every Sunday 03:00 UTC — deactivates failure_count > 3 or last_verified_at < NOW() - 90 days
+- [x] **STOP → wait for user to apply migration 0353**
+
+---
+
+### Step 3.11 — Build Validation ✅ DONE
+
+- [x] `npm run build` — green (no errors, no warnings)
 
 ---
 

@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { assertVoucherIsMutable, validateVoucherLine } from './voucher-validation.service';
 import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } from '../types/voucher';
+import { TARGET_TYPE } from '../constants/voucher';
 
 /** Prisma transaction client type — accepted by addVoucherLine when the caller
  *  composes header + lines + redemptions in a single submit-order tx. */
@@ -61,6 +62,12 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
     check_date:             (row.check_date as Date) ?? null,
     branch_id:              (row.branch_id as string) ?? null,
   };
+}
+
+function resolveTargetId(input: CreateVoucherLineInput): string | null {
+  if (input.target_id !== undefined) return input.target_id;
+  if (input.target_type === TARGET_TYPE.ORDER) return input.order_id ?? null;
+  return null;
 }
 
 async function getNextLineNoTx(
@@ -122,7 +129,7 @@ async function addVoucherLineInTx(
       line_type:              input.line_type,
       line_role:              input.line_role,
       target_type:            input.target_type ?? null,
-      target_id:              input.target_id ?? null,
+      target_id:              resolveTargetId(input),
       order_id:               input.order_id ?? null,
       customer_id:            input.customer_id ?? null,
       supplier_id:            input.supplier_id ?? null,

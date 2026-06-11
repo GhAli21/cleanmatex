@@ -10,10 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { OUTBOX_STATUS } from '@lib/notifications/types';
-import { deliverEmailOutbox,    type OutboxEmailRow     } from '@lib/notifications/adapters/email';
-import { deliverSmsOutbox,      type OutboxSmsRow       } from '@lib/notifications/adapters/sms';
-import { deliverWhatsAppOutbox, type OutboxWhatsAppRow  } from '@lib/notifications/adapters/whatsapp';
-import { deliverPushOutbox,     type OutboxPushRow      } from '@lib/notifications/adapters/push';
+import { deliverEmailOutbox    } from '@lib/notifications/adapters/email';
+import { deliverSmsOutbox      } from '@lib/notifications/adapters/sms';
+import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
+import { deliverPushOutbox     } from '@lib/notifications/adapters/push';
 
 const BATCH_SIZE       = 50;
 const RETRY_BATCH_SIZE = 25;
@@ -31,10 +31,22 @@ function isAuthorized(request: NextRequest): boolean {
   return authHeader === `Bearer ${secret}`;
 }
 
-type OutboxRow = OutboxEmailRow & OutboxSmsRow & OutboxWhatsAppRow & OutboxPushRow & {
-  status:     string
-  max_retries: number
+// Flat union of all fields fetched from org_ntf_outbox_dtl.
+// Each adapter only uses the subset of fields relevant to its channel.
+type OutboxRow = {
+  id:                 string
+  tenant_org_id:      string
+  channel_code:       string
+  recipient_address:  string | null
+  recipient_user_id:  string | null
+  rendered_subject:   string | null
+  rendered_body:      string
+  event_code:         string | null
+  retry_count:        number
+  max_retries:        number
+  status:             string
 };
+
 
 async function markProcessing(supabase: ReturnType<typeof createAdminSupabaseClient>, id: string): Promise<void> {
   await supabase
