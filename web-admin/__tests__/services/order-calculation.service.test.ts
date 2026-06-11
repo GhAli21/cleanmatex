@@ -112,6 +112,25 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     expect(result.subtotal).toBeCloseTo(30);
   });
 
+  it('uses item price override for subtotal when provided', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 15, basePrice: 15 });
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [
+        {
+          productId: 'prod-1',
+          quantity: 2,
+          priceOverride: 10,
+          servicePrefCharge: 1.25,
+          packingPrefCharge: 0.75,
+        },
+      ],
+    });
+
+    expect(result.subtotal).toBeCloseTo(22);
+  });
+
   it('applies percent discount', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 10, basePrice: 10 });
 

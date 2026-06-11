@@ -146,6 +146,7 @@ export function NewOrderModals() {
       state.state.items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
+        priceOverride: i.priceOverride ?? null,
         servicePrefCharge: i.servicePrefCharge ?? 0,
         packingPrefCharge: i.packingPrefCharge ?? 0,
       })),

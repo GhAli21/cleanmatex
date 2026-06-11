@@ -31,6 +31,7 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
     supplier_id:            (row.supplier_id as string) ?? null,
     employee_id:            (row.employee_id as string) ?? null,
     payment_method_code:    (row.payment_method_code as string) ?? null,
+    payment_status:         (row.payment_status as string) ?? null,
     amount:                 Number(row.amount),
     currency_code:          (row.currency_code as string) ?? null,
     direction:              (row.direction as string) ?? null,
@@ -137,6 +138,7 @@ async function addVoucherLineInTx(
       branch_id:              input.branch_id ?? null,
       cash_drawer_session_id: input.cash_drawer_session_id ?? null,
       payment_method_code:    input.payment_method_code ?? null,
+      payment_status:         input.payment_status ?? null,
       // B5 fix: these three were dropped by the original create payload, leaving
       // org_payment_method_id NULL on every voucher line and breaking the wiring
       // handler's link from voucher line -> org_order_payments_dtl.org_payment_method_id.
@@ -235,6 +237,7 @@ export async function updateVoucherLine(
         ...(input.order_id               !== undefined && { order_id: input.order_id }),
         ...(input.customer_id            !== undefined && { customer_id: input.customer_id }),
         ...(input.payment_method_code    !== undefined && { payment_method_code: input.payment_method_code }),
+        ...(input.payment_status         !== undefined && { payment_status: input.payment_status }),
         ...(input.amount                 !== undefined && { amount: input.amount }),
         ...(input.currency_code          !== undefined && { currency_code: input.currency_code }),
         ...(input.direction              !== undefined && { direction: input.direction }),

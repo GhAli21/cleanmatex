@@ -28,6 +28,8 @@ export interface OrderCalculationParams {
   items: {
     productId: string;
     quantity: number;
+    /** Optional item-level unit price override approved in the order workspace. */
+    priceOverride?: number | null;
     /** Service preference surcharge for the line (`org_order_preferences_dtl.service_prefs`). */
     servicePrefCharge?: number;
     /** Packing surcharge for the line (`org_packing_preference_cf.extra_price` roll-up). Same subtotal role as service prefs. */
@@ -156,11 +158,17 @@ export async function calculateOrderTotals(
   );
 
   const subtotal = priceResults.reduce(
-    (sum, result, i) =>
-      sum +
-      result.basePrice * items[i].quantity +
-      (items[i].servicePrefCharge ?? 0) +
-      (items[i].packingPrefCharge ?? 0),
+    (sum, result, i) => {
+      const item = items[i];
+      const unitPrice = item.priceOverride ?? result.basePrice;
+
+      return (
+        sum +
+        unitPrice * item.quantity +
+        (item.servicePrefCharge ?? 0) +
+        (item.packingPrefCharge ?? 0)
+      );
+    },
     0
   );
   const subtotalRounded = round(subtotal, decimalPlaces);

@@ -9,15 +9,21 @@
  * behavior.
  */
 
-// idempotency.ts imports prisma at the module level; mock it so this pure-
-// function test file does not pull the Prisma client into jsdom env.
+const mockFindFirst = jest.fn();
+const mockUpsert = jest.fn();
+
+// idempotency.ts imports prisma at the module level; mock it so this test file
+// does not pull the Prisma client into jsdom env.
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
-    org_idempotency_keys: { findFirst: jest.fn(), upsert: jest.fn() },
+    org_idempotency_keys: {
+      findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      upsert: (...args: unknown[]) => mockUpsert(...args),
+    },
   },
 }));
 
-import { canonicalize, hashPayload } from '@/lib/utils/idempotency';
+import { canonicalize, hashPayload, stakeIdempotencyHash, storeIdempotencyHash } from '@/lib/utils/idempotency';
 
 describe('canonicalize', () => {
   it('produces the same string regardless of object key order', () => {
@@ -80,5 +86,35 @@ describe('hashPayload', () => {
     const h1 = hashPayload({ a: 1 });
     const h2 = hashPayload({ a: 1, b: 2 });
     expect(h1).not.toBe(h2);
+  });
+});
+
+describe('stakeIdempotencyHash', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('detects when a concurrent request already staked a different payload hash', async () => {
+    mockUpsert.mockResolvedValue({});
+    mockFindFirst.mockResolvedValue({
+      response_cache: { payload_hash: 'hash-from-other-payload' },
+      resource_id: null,
+    });
+
+    const result = await stakeIdempotencyHash('tenant-1', 'key-1', 'submit_order', 'current-hash');
+
+    expect(result).toEqual({ conflict: true, existingHash: 'hash-from-other-payload' });
+  });
+
+  it('does not clear resource_id when staking a placeholder over a committed row', async () => {
+    mockUpsert.mockResolvedValue({});
+
+    await storeIdempotencyHash('tenant-1', 'key-1', 'submit_order', 'hash-1', null);
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: {},
+      }),
+    );
   });
 });

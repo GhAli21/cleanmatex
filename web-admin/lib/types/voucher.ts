@@ -184,6 +184,7 @@ export interface CreateVoucherLineInput {
   branch_id?: string;
   cash_drawer_session_id?: string;
   payment_method_code?: string;
+  payment_status?: string;
   amount: number;
   currency_code?: string;
   currency_ex_rate?: number;
@@ -227,6 +228,7 @@ export interface VoucherLineData {
   supplier_id?: string | null;
   employee_id?: string | null;
   payment_method_code: string | null;
+  payment_status: string | null;
   amount: number;
   currency_code: string | null;
   direction: string | null;

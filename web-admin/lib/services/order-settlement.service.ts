@@ -21,7 +21,8 @@ import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-va
 import { createTenantSettingsService } from './tenant-settings.service';
 import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
 
-type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+/** Prisma transaction client shared with submit-order's atomic settlement flow. */
+export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 async function getPartialLaterCollectionPolicy(tenantId: string): Promise<{
   allowPartialLaterCollection: boolean;
@@ -84,6 +85,28 @@ export interface SettlementResult {
  * @returns normalized snapshot result after persistence
  */
 export async function settleOrder(params: SettlementParams): Promise<SettlementResult> {
+  return prisma.$transaction((tx) => settleOrderTx(tx, params));
+}
+
+/**
+ * Settle an order using the caller's transaction.
+ *
+ * This is used by submit-order so the order header, voucher wiring, stored-value
+ * debits, payment fact rows, and financial snapshot commit or roll back together.
+ *
+ * @param tx active Prisma transaction owned by the caller
+ * @param params settlement payload resolved by checkout
+ * @returns normalized snapshot result after persistence
+ *
+ * @example
+ * await prisma.$transaction((tx) =>
+ *   settleOrderTx(tx, { orderId, tenantId, breakdown, chargeLines: [], taxLines, discountLines, settlementLegs })
+ * );
+ */
+export async function settleOrderTx(
+  tx: PrismaTransactionClient,
+  params: SettlementParams,
+): Promise<SettlementResult> {
   const {
     orderId,
     tenantId,
@@ -98,7 +121,6 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
   } = params;
   const currencyCode = breakdown.currencyCode;
 
-  return prisma.$transaction(async (tx) => {
     // ── 1. Charges ────────────────────────────────────────────────────────────
     for (const charge of chargeLines) {
       await tx.org_order_charges_dtl.create({
@@ -314,7 +336,6 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
       outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
-  });
 }
 
 // ─── Verify Payment (BVM Wiring Phase 6 Sub-item 1) ─────────────────────────
@@ -383,6 +404,9 @@ export interface VerifyPaymentResult {
  * Tenant context: this service is called from a route handler that has
  * already resolved tenant via `requirePermission('orders:verify_payment')`.
  * `tenantId` is passed explicitly and bound into every Prisma query.
+ *
+ * @param params payment verification payload scoped to one tenant/order/payment row
+ * @returns verification result with the refreshed order payment snapshot
  *
  * @throws Error('Payment not found') when no matching row exists for
  *         the composite key.
@@ -709,6 +733,28 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
             created_by: collectedBy,
           },
         });
+
+        if (change > 0.001 && method.supports_change_return) {
+          await tx.org_cash_drawer_movements_dtl.create({
+            data: {
+              tenant_org_id: tenantId,
+              branch_id: session.branch_id ?? branchId,
+              cash_drawer_id: session.cash_drawer_id,
+              cash_drawer_session_id: session.id,
+              movement_type: 'CASH_OUT',
+              direction: 'OUT',
+              amount: change,
+              currency_code: currencyCode ?? session.currency_code,
+              order_id: orderId,
+              order_payment_id: payment.id,
+              performed_by: collectedBy,
+              performed_at: new Date(),
+              is_active: true,
+              rec_status: 1,
+              created_by: collectedBy,
+            },
+          });
+        }
       }
 
       appliedBeforeLeg += leg.amount;

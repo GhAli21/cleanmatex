@@ -30,43 +30,10 @@ import {
   findIdempotencyHash,
   storeIdempotencyHash,
   deleteIdempotencyHash,
+  stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
-
-/**
- * Errors thrown by the orchestrator BEFORE any DB write (totals validation,
- * credit checks, settlement-plan validation, product lookup). A throw with one
- * of these codes means no order row exists, no voucher row exists, no orphan
- * state — so the idempotency placeholder must be deleted to let the caller
- * fix the input and retry with the SAME key.
- *
- * If you add a new pre-tx1 throw in the orchestrator, add its code here too.
- * Anything not in this set is treated as post-mutation and keeps the
- * placeholder so the next retry surfaces PRIOR_ATTEMPT_FAILED.
- */
-const PRE_MUTATION_ERROR_CODES = new Set([
-  'AMOUNT_MISMATCH',
-  'B2B_CREDIT_HOLD',
-  'B2B_CREDIT_EXCEEDED',
-  'SPLIT_AMOUNT_MISMATCH',
-  'DEFERRED_LEG_NOT_ALONE',
-  'OUTSTANDING_POLICY_REQUIRED',
-  'CHECK_NUMBER_REQUIRED',
-  'CASH_DRAWER_SESSION_REQUIRED',
-  'CASH_DRAWER_SESSION_SELECTION_REQUIRED',
-  'CASH_DRAWER_SESSION_CLOSED',
-  'CASH_TENDERED_REQUIRED',
-  'CASH_TENDERED_LESS_THAN_AMOUNT',
-  'CASH_CHANGE_NOT_ALLOWED',
-  'METHOD_OVERPAYMENT_NOT_ALLOWED',
-  'CASH_TENDERED_ONLY_FOR_CASH',
-  'GATEWAY_NOT_CONFIGURED',
-  'PAYMENT_REFERENCE_REQUIRED',
-  'CREDIT_APPLICATION_TYPE_REQUIRED',
-  'INVALID_TAX_PROFILE_SELECTION',
-  'PRODUCT_NOT_FOUND',
-]);
 
 /**
  * POST /api/v1/orders/submit-order
@@ -238,9 +205,41 @@ export async function POST(request: NextRequest) {
   // claim itself fails, the request must abort — proceeding without the claim
   // is what allowed the B6 orphan voucher to be created.
   try {
-    await storeIdempotencyHash(
-      tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE, currentHash, null
+    const stakedRecord = await stakeIdempotencyHash(
+      tenantId,
+      input.idempotencyKey,
+      IDEMPOTENCY_RESOURCE,
+      currentHash,
     );
+    if (stakedRecord.conflict) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'IDEMPOTENCY_CONFLICT',
+          error: 'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
+        },
+        { status: 409 },
+      );
+    }
+    if (stakedRecord.resourceId) {
+      const stakedOrder = await prisma.org_orders_mst.findFirst({
+        where:  { id: stakedRecord.resourceId, tenant_org_id: tenantId },
+        select: { id: true, order_no: true, current_status: true },
+      });
+      if (stakedOrder) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            order: {
+              id:            stakedOrder.id,
+              orderNo:       stakedOrder.order_no,
+              currentStatus: stakedOrder.current_status,
+            },
+            fromCache: true,
+          },
+        });
+      }
+    }
   } catch (err) {
     logger.error('[submit-order] failed to stake idempotency claim — aborting before orchestrator',
       err instanceof Error ? err : new Error(String(err)),
@@ -293,21 +292,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const committedOrder = await prisma.org_orders_mst.findFirst({
+      where: {
+        tenant_org_id:    tenantId,
+        idempotency_key:  input.idempotencyKey,
+      },
+      select: { id: true, order_no: true, current_status: true },
+    }).catch(() => null);
 
-    // Pre-mutation errors (validation / pre-flight) → unstake the placeholder
-    // so the caller can fix the input and retry with the SAME idempotency key.
-    // Anything outside this set is treated as potentially post-mutation
-    // (orphan state possible) and the placeholder stays.
-    const errorCode = message.startsWith('Product not found:') ? 'PRODUCT_NOT_FOUND' : message;
-    if (PRE_MUTATION_ERROR_CODES.has(errorCode)) {
-      await deleteIdempotencyHash(tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE)
-        .catch((err: unknown) => {
-          logger.warn?.('[submit-order] failed to unstake idempotency placeholder after pre-mutation error', {
-            feature: 'orders', action: 'submit-order',
-            errorCode, error: err instanceof Error ? err.message : String(err),
-          });
-        });
+    if (committedOrder) {
+      await storeIdempotencyHash(
+        tenantId,
+        input.idempotencyKey,
+        IDEMPOTENCY_RESOURCE,
+        currentHash,
+        committedOrder.id,
+      ).catch(() => { /* non-fatal recovery cache write */ });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          order: {
+            id:            committedOrder.id,
+            orderNo:       committedOrder.order_no,
+            currentStatus: committedOrder.current_status,
+          },
+          fromCache: true,
+        },
+      });
     }
+
+    // submitOrder is atomic: if no committed order carries this idempotency key,
+    // the transaction rolled back and the placeholder can be safely unstaked.
+    const errorCode = message.startsWith('Product not found:') ? 'PRODUCT_NOT_FOUND' : message;
+    await deleteIdempotencyHash(tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE)
+      .catch((err: unknown) => {
+        logger.warn?.('[submit-order] failed to unstake idempotency placeholder after rolled-back error', {
+          feature: 'orders', action: 'submit-order',
+          errorCode, error: err instanceof Error ? err.message : String(err),
+        });
+      });
 
     if (message === 'AMOUNT_MISMATCH') {
       return NextResponse.json(

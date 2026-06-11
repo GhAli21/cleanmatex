@@ -304,6 +304,38 @@ export function walletLegExceedsBalance(
   return appliedAmount - availableBalance > epsilon;
 }
 
+/** Mirrors server `validateSettlementPlan` reference checks for a single leg. */
+export type PaymentLegReferenceFields = {
+  checkNumber?: string;
+  bank_reference?: string;
+  gateway_reference?: string;
+  gateway_transaction_id?: string;
+};
+
+export function legHasRequiredPaymentReference(
+  leg: PaymentLegReferenceFields,
+  requiresReference: boolean
+): boolean {
+  if (!requiresReference) {
+    return true;
+  }
+  return !!(
+    leg.gateway_reference?.trim() ||
+    leg.gateway_transaction_id?.trim() ||
+    leg.bank_reference?.trim() ||
+    leg.checkNumber?.trim()
+  );
+}
+
+/** True when a leg amount was capped because allocation cannot exceed remaining due. */
+export function wasPaymentLegAmountCapped(
+  rawAmount: number,
+  cappedAmount: number,
+  epsilon = 0.001
+): boolean {
+  return rawAmount - cappedAmount > epsilon;
+}
+
 /**
  * Scope for a cashier-local cash drawer preference.
  *

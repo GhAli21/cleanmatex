@@ -89,7 +89,7 @@ jest.mock('@/lib/services/gift-card-service', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { collectPaymentTx, settleOrder } from '@/lib/services/order-settlement.service';
+import { collectPaymentTx, settleOrder, settleOrderTx } from '@/lib/services/order-settlement.service';
 import type { FinancialBreakdownSnapshot, ResolvedSettlementLeg } from '@/lib/types/order-financial';
 
 // ---------------------------------------------------------------------------
@@ -232,9 +232,23 @@ describe('order-settlement.service — collectPaymentTx', () => {
           amount: 50,
           cash_drawer_session_id: 'session-1',
           order_payment_id: 'payment-1',
+          movement_type: 'CASH_SALE',
+          direction: 'IN',
         }),
       })
     );
+    expect(mockCashDrawerMovementCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          amount: 1,
+          cash_drawer_session_id: 'session-1',
+          order_payment_id: 'payment-1',
+          movement_type: 'CASH_OUT',
+          direction: 'OUT',
+        }),
+      })
+    );
+    expect(mockCashDrawerMovementCreate).toHaveBeenCalledTimes(2);
   });
 
   it('blocks overpayment introduced by a later collection leg without overpayment policy', async () => {
@@ -350,5 +364,25 @@ describe('order-settlement.service — settleOrder', () => {
     });
 
     expect(mockRedeemWallet).toHaveBeenCalled();
+  });
+
+  it('settleOrderTx joins the caller transaction without opening a nested transaction', async () => {
+    const tx = makeTx();
+    mockOutboxCreate.mockResolvedValue({});
+    mockPaymentCreate.mockResolvedValue({ id: 'pay-1' });
+
+    const result = await settleOrderTx(tx, {
+      orderId: ORDER,
+      tenantId: TENANT,
+      breakdown: makeBreakdown(),
+      chargeLines: [],
+      taxLines: [],
+      discountLines: [],
+      settlementLegs: [makeCashLeg()],
+    });
+
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockPaymentCreate).toHaveBeenCalled();
+    expect(result.orderId).toBe(ORDER);
   });
 });

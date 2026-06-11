@@ -171,6 +171,7 @@ export interface CreateOrderParams {
   internalNotes?: string;
   paymentNotes?: string;
   paymentMethod?: string;
+  idempotencyKey?: string;
   readyByAt?: string; // ISO datetime string for ready-by date from screen
   /** B2B: Contract, cost center, PO */
   b2bContractId?: string;
@@ -1146,6 +1147,7 @@ export class OrderService {
       customerNotes,
       internalNotes,
       paymentMethod,
+      idempotencyKey,
       userId,
       readyByAt,
       totals,
@@ -1260,6 +1262,7 @@ export class OrderService {
         total_amount: total,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
+        idempotency_key: idempotencyKey ?? null,
         total_paid_amount: 0,
         outstanding_amount: total,
         service_category_code: primaryServiceCategory,

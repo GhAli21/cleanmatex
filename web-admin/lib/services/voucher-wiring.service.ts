@@ -59,6 +59,7 @@ const LINE_SELECT = {
   wiring_status:           true,
   direction:               true,
   payment_method_code:     true,
+  payment_status:          true,
   amount:                  true,
   currency_code:           true,
   target_type:             true,

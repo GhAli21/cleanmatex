@@ -84,6 +84,31 @@ export const cashDrawerWiringHandler: WiringHandler = {
       select: { id: true },
     });
 
+    const changeReturned =
+      line.change_returned_amount != null ? Number(line.change_returned_amount) : 0;
+    if (changeReturned > 0.001) {
+      await tx.org_cash_drawer_movements_dtl.create({
+        data: {
+          tenant_org_id:          tenantOrgId,
+          branch_id:              session.branch_id,
+          cash_drawer_id:         session.cash_drawer_id,
+          cash_drawer_session_id: line.cash_drawer_session_id!,
+          movement_type:          'CASH_OUT',
+          direction:              'OUT',
+          amount:                 changeReturned,
+          currency_code:          line.currency_code ?? session.currency_code,
+          order_id:               line.order_id ?? null,
+          order_payment_id:       line.order_payment_id ?? null,
+          fin_voucher_id:         voucherId,
+          performed_by:           userId,
+          performed_at:           now,
+          is_active:              true,
+          rec_status:             1,
+          created_by:             userId,
+        },
+      });
+    }
+
     // Write cash_drawer_mvt_id back to the voucher line
     await tx.org_fin_voucher_trx_lines_dtl.updateMany({
       where: { id: line.id, tenant_org_id: tenantOrgId },

@@ -210,6 +210,8 @@ export const previewPaymentRequestSchema = z.object({
     z.object({
       productId: z.string().uuid(),
       quantity: z.number().positive(),
+      /** Optional item-level unit price override used by preview totals. */
+      priceOverride: z.number().min(0).nullable().optional(),
       /** Service preference surcharge for the line. Included in subtotal. */
       servicePrefCharge: z.number().min(0).optional(),
       /** Packing surcharge for the line (`org_packing_preference_cf.extra_price` roll-up). Included in subtotal. */
@@ -304,6 +306,10 @@ export const createWithPaymentRequestSchema = z.object({
       packingPrefIsOverride: z.boolean().optional(),
       packingPrefSource: z.string().optional(),
       packingCfId: z.string().uuid().optional().nullable(),
+      /** Item-level unit price override captured for pricing audit and server total validation. */
+      priceOverride: z.number().min(0).nullable().optional(),
+      overrideReason: z.string().max(500).nullable().optional(),
+      overrideBy: z.string().uuid().nullable().optional(),
       servicePrefCharge: z.number().min(0).optional(),
       packingPrefCharge: z.number().min(0).optional(),
     })

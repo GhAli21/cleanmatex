@@ -5544,7 +5544,11 @@
           "sumMismatch": "Sum of payment legs must equal order total",
           "amountMustBePositive": "Each leg amount must be greater than 0",
           "deferredMustBeAlone": "A deferred payment method must be the only leg",
-          "checkNumberRequired": "Check number is required for cheque legs"
+          "checkNumberRequired": "Check number is required for cheque legs",
+          "referenceRequired": "Payment reference is required for {method}",
+          "referenceRequiredField": "Enter a transaction ID, gateway reference, bank reference, or check number",
+          "cashOverRemainingTitle": "Cash amount limited",
+          "cashOverRemainingNotAllowed": "This cash method does not allow change. The maximum for this leg is {max}."
         }
       }
     },

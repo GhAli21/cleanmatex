@@ -147,7 +147,38 @@ export async function storeIdempotencyHash(
     update: {
       // Refresh resource_id on success but keep the original hash so a later
       // mutated retry can still detect the mismatch.
-      resource_id: resourceId,
+      ...(resourceId != null && { resource_id: resourceId }),
     },
   });
+}
+
+/**
+ * Atomically stake an idempotency key and verify the persisted payload hash.
+ *
+ * Why:
+ * Two concurrent requests can both miss the pre-read. The upsert preserves the
+ * first payload hash, then this post-write read detects whether the caller lost
+ * the race to a different payload before any side effects run.
+ *
+ * @param tenantId active tenant scope
+ * @param key idempotency key from the request
+ * @param resourceType endpoint-specific resource namespace
+ * @param payloadHash canonical request payload hash
+ * @returns conflict=false when the key belongs to this payload; conflict=true when a different payload already owns it
+ */
+export async function stakeIdempotencyHash(
+  tenantId: string,
+  key: string,
+  resourceType: string,
+  payloadHash: string,
+): Promise<{ conflict: false; resourceId: string | null } | { conflict: true; existingHash: string | null }> {
+  await storeIdempotencyHash(tenantId, key, resourceType, payloadHash, null);
+  const staked = await findIdempotencyHash(tenantId, key, resourceType);
+  if (!staked) {
+    throw new Error('IDEMPOTENCY_CLAIM_NOT_FOUND_AFTER_STAKE');
+  }
+  if (staked.hash && staked.hash !== payloadHash) {
+    return { conflict: true, existingHash: staked.hash };
+  }
+  return { conflict: false, resourceId: staked.resourceId };
 }

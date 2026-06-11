@@ -63,6 +63,8 @@ import {
   syncDiscountPercentFromAmount,
   todayYyyyMmDd,
   validateCheckDueDate,
+  legHasRequiredPaymentReference,
+  wasPaymentLegAmountCapped,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
@@ -243,7 +245,7 @@ interface PaymentModalProps {
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
-  items: { productId: string; quantity: number; servicePrefCharge?: number; packingPrefCharge?: number }[];
+  items: { productId: string; quantity: number; priceOverride?: number | null; servicePrefCharge?: number; packingPrefCharge?: number }[];
   isExpress?: boolean;
   tenantOrgId: string;
   customerId?: string;
@@ -550,6 +552,7 @@ export function PaymentModalV4({
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
   const [activeLegIndex, setActiveLegIndex] = useState(0);
   const [activeAmountDraft, setActiveAmountDraft] = useState('');
+  const [cashOverRemainingNotice, setCashOverRemainingNotice] = useState<string | null>(null);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
@@ -1462,6 +1465,35 @@ export function PaymentModalV4({
     walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
 
   const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
+
+  const notifyIfLegAmountCapped = useCallback(
+    (leg: PaymentLeg, rawAmount: number, cappedAmount: number) => {
+      const option = getMethodOption(leg.method, leg.gateway_code);
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: leg.method,
+        supportsChangeReturn: option?.supports_change_return,
+        supportsOverpayment: option?.supports_overpayment,
+        requiresCashDrawer: option?.requires_cash_drawer,
+      });
+
+      if (
+        policy.isCash &&
+        !policy.supportsChangeReturn &&
+        wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)
+      ) {
+        setCashOverRemainingNotice(
+          t('splitPayment.validation.cashOverRemainingNotAllowed', {
+            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
+          })
+        );
+        return;
+      }
+
+      setCashOverRemainingNotice(null);
+    },
+    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, t]
+  );
+
   const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
   const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
   const canReturnChangeFromCash = realPaymentEntries.some(({ leg }) => {
@@ -2055,6 +2087,18 @@ export function PaymentModalV4({
   const hasCheckLegWithoutNumber = paymentLegs.some(
     (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
   );
+  const legsMissingRequiredReference = useMemo(
+    () =>
+      paymentLegs.filter((leg) => {
+        const option = getMethodOption(leg.method, leg.gateway_code);
+        return (
+          (leg.amount ?? 0) > moneyEpsilon &&
+          option?.requires_reference === true &&
+          !legHasRequiredPaymentReference(leg, true)
+        );
+      }),
+    [getMethodOption, moneyEpsilon, paymentLegs]
+  );
   const activeLegOption = activeLeg
     ? getMethodOption(activeLeg.method, activeLeg.gateway_code)
     : undefined;
@@ -2181,6 +2225,13 @@ export function PaymentModalV4({
     if (hasCheckLegWithoutNumber) {
       items.push(t('splitPayment.validation.checkNumberRequired'));
     }
+    legsMissingRequiredReference.forEach((leg) => {
+      items.push(
+        t('splitPayment.validation.referenceRequired', {
+          method: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        })
+      );
+    });
     if (walletLegExceedsLiveBalance) {
       items.push(
         t('customerCredits.walletBalanceExceeded', {
@@ -2214,6 +2265,9 @@ export function PaymentModalV4({
     errors.percentDiscount?.message,
     giftCardValidating,
     hasCheckLegWithoutNumber,
+    legsMissingRequiredReference,
+    getMethodOption,
+    getOptionDisplayName,
     liveWalletBalanceDisplay,
     cashDrawerBlockingMessage,
     changeAmount,
@@ -2409,19 +2463,23 @@ export function PaymentModalV4({
         });
       }
 
-      if (totals.vatValue > moneyEpsilon) {
+      displayTaxBreakdown.forEach((entry, index) => {
+        if (entry.taxAmount <= moneyEpsilon) {
+          return;
+        }
+        const entryLabel = isRTL ? (entry.label2 || entry.label) : entry.label;
         taxRows.push({
-          id: 'vat',
-          label: `VAT (${totals.vatTaxPercent.toFixed(0)}%)`,
-          value: `${currencyCode} ${formatAmount(totals.vatValue)}`,
+          id: `tax-${entry.profileId ?? entry.taxType}-${index}`,
+          label: `${entryLabel} (${entry.rate.toFixed(2)}%)`,
+          value: `${currencyCode} ${formatAmount(entry.taxAmount)}`,
         });
-      }
+      });
 
-      if ((totals.taxAmount ?? 0) > moneyEpsilon) {
+      if (displayTaxBreakdown.length > 1 && profilesTaxAmount > moneyEpsilon) {
         taxRows.push({
-          id: 'additional-tax',
-          label: t('summary.taxAmount'),
-          value: `${currencyCode} ${formatAmount(totals.taxAmount ?? 0)}`,
+          id: 'tax-total',
+          label: t('tax.totalTax'),
+          value: `${currencyCode} ${formatAmount(profilesTaxAmount)}`,
         });
       }
 
@@ -2438,7 +2496,7 @@ export function PaymentModalV4({
         totalRow,
       };
     },
-    [currencyCode, formatAmount, moneyEpsilon, saleTotal, t, totals]
+    [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
   );
   const warningMessages = useMemo(() => {
     const warnings: string[] = [];
@@ -2761,6 +2819,9 @@ export function PaymentModalV4({
         ? formatDecimalDraft(cappedAmount, decimalPlaces)
         : nextDraft
     );
+    if (activeLeg) {
+      notifyIfLegAmountCapped(activeLeg, nextAmount, cappedAmount);
+    }
     updateLeg(activeLegIndex, 'amount', nextAmount);
   }, [
     activeAmountDraft,
@@ -2770,6 +2831,7 @@ export function PaymentModalV4({
     getMethodOption,
     giftCardSettlementAmount,
     liveWalletBalance,
+    notifyIfLegAmountCapped,
     paymentLegs,
     saleTotal,
     updateLeg,
@@ -3242,6 +3304,24 @@ export function PaymentModalV4({
                                   onValueChange={(value, draft) => {
                                     if (!activeLeg) return;
                                     setActiveAmountDraft(draft);
+                                    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
+                                    const policy = resolvePaymentOverpaymentPolicy({
+                                      paymentMethodCode: activeLeg.method,
+                                      supportsChangeReturn: option?.supports_change_return,
+                                      supportsOverpayment: option?.supports_overpayment,
+                                      requiresCashDrawer: option?.requires_cash_drawer,
+                                    });
+                                    const cappedAmount = deriveLegAppliedAmount({
+                                      rawAmount: value,
+                                      paymentLegs,
+                                      legIndex: activeLegIndex,
+                                      saleTotal,
+                                      giftCardAmount: giftCardSettlementAmount,
+                                      decimalPlaces,
+                                      walletBalance: activeLeg.method === 'WALLET' ? liveWalletBalance : undefined,
+                                      supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+                                    });
+                                    notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
                                     updateLeg(activeLegIndex, 'amount', value);
                                   }}
                                   placeholder={formatAmount(0)}
@@ -3282,6 +3362,13 @@ export function PaymentModalV4({
                                   ))}
                                 </span>
                               </div>
+                            ) : null}
+                            {cashOverRemainingNotice ? (
+                              <CmxSummaryMessage
+                                type="info"
+                                title={t('splitPayment.validation.cashOverRemainingTitle')}
+                                items={[cashOverRemainingNotice]}
+                              />
                             ) : null}
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
                               {t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}
@@ -3510,10 +3597,20 @@ export function PaymentModalV4({
 
                                   {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
                                     <CmxInput
-                                      label={t('splitPayment.bankReference')}
+                                      label={
+                                        activeLegOption?.requires_reference
+                                          ? `${t('splitPayment.bankReference')} *`
+                                          : t('splitPayment.bankReference')
+                                      }
                                       value={activeLeg.bank_reference ?? ''}
                                       dir="ltr"
                                       placeholder="—"
+                                      error={
+                                        activeLegOption?.requires_reference &&
+                                        !legHasRequiredPaymentReference(activeLeg, true)
+                                          ? t('splitPayment.validation.referenceRequiredField')
+                                          : undefined
+                                      }
                                       onChange={(event) => updateLeg(activeLegIndex, 'bank_reference', event.target.value || undefined)}
                                     />
                                   )}
@@ -3528,17 +3625,37 @@ export function PaymentModalV4({
                                         onChange={(event) => updateLeg(activeLegIndex, 'gateway_code', event.target.value || undefined)}
                                       />
                                       <CmxInput
-                                        label={t('splitPayment.gatewayTransactionId')}
+                                        label={
+                                          activeLegOption?.requires_reference
+                                            ? `${t('splitPayment.gatewayTransactionId')} *`
+                                            : t('splitPayment.gatewayTransactionId')
+                                        }
                                         value={activeLeg.gateway_transaction_id ?? ''}
                                         dir="ltr"
                                         placeholder="—"
+                                        error={
+                                          activeLegOption?.requires_reference &&
+                                          !legHasRequiredPaymentReference(activeLeg, true)
+                                            ? t('splitPayment.validation.referenceRequiredField')
+                                            : undefined
+                                        }
                                         onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
                                       />
                                       <CmxInput
-                                        label={t('splitPayment.gatewayReference')}
+                                        label={
+                                          activeLegOption?.requires_reference
+                                            ? `${t('splitPayment.gatewayReference')} *`
+                                            : t('splitPayment.gatewayReference')
+                                        }
                                         value={activeLeg.gateway_reference ?? ''}
                                         dir="ltr"
                                         placeholder="—"
+                                        error={
+                                          activeLegOption?.requires_reference &&
+                                          !legHasRequiredPaymentReference(activeLeg, true)
+                                            ? t('splitPayment.validation.referenceRequiredField')
+                                            : undefined
+                                      }
                                         onChange={(event) => updateLeg(activeLegIndex, 'gateway_reference', event.target.value || undefined)}
                                       />
                                     </div>

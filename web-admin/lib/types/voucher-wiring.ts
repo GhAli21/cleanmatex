@@ -27,6 +27,7 @@ export interface VoucherLineForWiring {
   wiring_status: string;
   direction: string | null;
   payment_method_code: string | null;
+  payment_status: string | null;
   amount: Prisma.Decimal;
   currency_code: string | null;
   target_type: string | null;

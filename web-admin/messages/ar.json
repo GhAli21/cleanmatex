@@ -5544,7 +5544,11 @@
           "sumMismatch": "مجموع أقساط الدفع يجب أن يساوي إجمالي الطلب",
           "amountMustBePositive": "يجب أن يكون مبلغ كل قسط أكبر من صفر",
           "deferredMustBeAlone": "طريقة الدفع المؤجلة يجب أن تكون القسط الوحيد",
-          "checkNumberRequired": "رقم الشيك مطلوب لأقساط الشيك"
+          "checkNumberRequired": "رقم الشيك مطلوب لأقساط الشيك",
+          "referenceRequired": "مرجع الدفع مطلوب لـ {method}",
+          "referenceRequiredField": "أدخل رقم المعاملة أو مرجع البوابة أو مرجع التحويل البنكي أو رقم الشيك",
+          "cashOverRemainingTitle": "مبلغ النقد محدود",
+          "cashOverRemainingNotAllowed": "طريقة الدفع النقدي هذه لا تسمح بالباقي. الحد الأقصى لهذا القسط هو {max}."
         }
       }
     },

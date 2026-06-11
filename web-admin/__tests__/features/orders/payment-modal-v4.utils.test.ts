@@ -24,6 +24,8 @@ import {
   todayYyyyMmDd,
   validateCheckDueDate,
   walletLegExceedsBalance,
+  legHasRequiredPaymentReference,
+  wasPaymentLegAmountCapped,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
 describe('payment-modal-v4 utils', () => {
@@ -167,6 +169,27 @@ describe('payment-modal-v4 utils', () => {
   it('detects when a live wallet refresh makes the applied leg invalid', () => {
     expect(walletLegExceedsBalance(40, 20)).toBe(true);
     expect(walletLegExceedsBalance(40, 40)).toBe(false);
+  });
+
+  it('validates required payment references the same way as settlement planner', () => {
+    expect(
+      legHasRequiredPaymentReference(
+        { bank_reference: 'TRX-1' },
+        true
+      )
+    ).toBe(true);
+    expect(
+      legHasRequiredPaymentReference(
+        { gateway_transaction_id: ' ' },
+        true
+      )
+    ).toBe(false);
+    expect(legHasRequiredPaymentReference({}, false)).toBe(true);
+  });
+
+  it('detects when a raw leg amount was capped to remaining allocation', () => {
+    expect(wasPaymentLegAmountCapped(10, 8.321)).toBe(true);
+    expect(wasPaymentLegAmountCapped(8.321, 8.321)).toBe(false);
   });
 
   it('scopes preferred cash drawer storage by tenant, branch, and user', () => {

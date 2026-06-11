@@ -6,11 +6,15 @@ import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
 
 /**
- * Derives payment_status from payment_method_code.
+ * Resolves payment_status from the voucher line, falling back to payment_method_code.
+ * submit-order writes the planner's resolved status onto the voucher line so
+ * wiringMode does not lose explicit PENDING card/check/bank statuses.
  * CASH and CARD are immediately COMPLETED.
  * Bank transfers, checks, and gateway payments start PENDING.
  */
-function derivePaymentStatus(paymentMethodCode: string | null): string {
+function resolvePaymentStatus(line: VoucherLineForWiring): string {
+  if (line.payment_status) return line.payment_status;
+  const paymentMethodCode = line.payment_method_code;
   if (!paymentMethodCode) return 'PENDING';
   const code = paymentMethodCode.toUpperCase();
   if (code === PAYMENT_METHODS.CASH || code === PAYMENT_METHODS.CARD) return 'COMPLETED';
@@ -55,7 +59,7 @@ export const orderPaymentWiringHandler: WiringHandler = {
     userId: string,
     tx: Prisma.TransactionClient
   ): Promise<string> {
-    const paymentStatus = derivePaymentStatus(line.payment_method_code);
+    const paymentStatus = resolvePaymentStatus(line);
     const now = new Date();
 
     const created = await tx.org_order_payments_dtl.create({

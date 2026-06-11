@@ -128,7 +128,7 @@ interface PaymentModalProps {
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
-  items: { productId: string; quantity: number; servicePrefCharge?: number; packingPrefCharge?: number }[];
+  items: { productId: string; quantity: number; priceOverride?: number | null; servicePrefCharge?: number; packingPrefCharge?: number }[];
   isExpress?: boolean;
   tenantOrgId: string;
   customerId?: string;

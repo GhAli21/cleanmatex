@@ -62,4 +62,27 @@ describe('voucher-line.service -> addVoucherLine', () => {
       }),
     );
   });
+
+  it('persists explicit payment_status on voucher lines for wiring', async () => {
+    await addVoucherLine(TENANT, VOUCHER_ID, {
+      line_type: LINE_TYPE.RECEIPT,
+      line_role: LINE_ROLE.ORDER_PAYMENT,
+      target_type: TARGET_TYPE.ORDER,
+      order_id: ORDER_ID,
+      payment_method_code: 'CARD',
+      payment_status: 'PENDING',
+      amount: 25,
+      currency_code: 'OMR',
+      direction: 'IN',
+    }, USER_ID);
+
+    expect(mockLineCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          payment_method_code: 'CARD',
+          payment_status: 'PENDING',
+        }),
+      }),
+    );
+  });
 });

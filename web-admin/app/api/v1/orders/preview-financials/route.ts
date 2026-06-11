@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       items: parsed.data.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        priceOverride: item.priceOverride ?? null,
         servicePrefCharge: item.servicePrefCharge ?? 0,
         packingPrefCharge: item.packingPrefCharge ?? 0,
       })),
