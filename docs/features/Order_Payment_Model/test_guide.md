@@ -193,22 +193,119 @@ Expected:
 
 Setup:
 
-- Customer has enough balance in `WALLET`, `ADVANCE`, `CREDIT_NOTE`, or `LOYALTY_POINTS`.
+- Customer has balance in `WALLET`, `ADVANCE`, open `CREDIT_NOTE`, or `LOYALTY_POINTS`.
+- For credit notes, ensure `org_customer_credit_notes` (or stored-value API) returns open notes.
 
 Steps:
 
 1. Use an order with sale total `8.321`.
-2. Select a stored-value method with available balance greater than the due amount.
-3. Observe default amount.
-4. Try entering an amount above the remaining due.
+2. Select a stored-value method.
+3. For `CREDIT_NOTE`, confirm picker opens and select a note.
+4. Observe default/suggested amount.
+5. Try entering an amount above live balance or remaining due.
 
 Expected:
 
-- Suggested amount is capped to the remaining order balance.
-- Stored-value leg cannot create retained overpayment.
-- `CREDIT_NOTE` requires a selected credit reference before submission.
+- Suggested amount is capped to `min(remaining due, live balance)`.
+- Validation rail shows balance-exceeded message when over cap.
+- `CREDIT_NOTE` requires `creditReferenceId` before submit.
+- Submit payload includes `creditReferenceId` on the leg.
 
-### 8. Split Payment Reconciliation
+### 8. Multi-Cash Change Policy
+
+Setup:
+
+- Two cash method configs (or split into two cash legs if product allows duplicate method legs).
+- Leg A: `supports_change_return = true`.
+- Leg B: `supports_change_return = false`.
+
+Steps:
+
+1. Use an order with sale total `10.000`.
+2. Add cash leg A amount `6.000` (change allowed).
+3. Add cash leg B amount `5.000` (change disallowed) — total settled exceeds sale total.
+4. Review right rail.
+
+Expected:
+
+- Aggregate change is **not** shown as returned change.
+- Unresolved overpayment appears until amounts are adjusted.
+- Submit blocked until overpayment is resolved.
+
+### 9. Check Due Date Validation
+
+Setup:
+
+- `CHECK` enabled in POS.
+
+Steps:
+
+1. Add a check leg with valid check number.
+2. Set due date to yesterday (or paste an invalid date).
+3. Attempt submit.
+
+Expected:
+
+- Inline error on check date field (`checkDateInPast` or `checkDateInvalid`).
+- Validation rail lists the error.
+- Focus shortcut scrolls to check date input.
+- Server Zod validation rejects past dates on submit if client bypassed.
+
+### 10. Payment Terminal Required
+
+Setup:
+
+- `CARD` (or other method) with `requires_terminal = true` in `org_payment_methods_cf`.
+- Active payment terminals seeded for branch.
+
+Steps:
+
+1. Select the terminal-required method.
+2. Leave terminal unselected.
+3. Attempt submit.
+
+Expected:
+
+- Leg workspace shows terminal dropdown with required indicator.
+- Validation rail: terminal required message.
+- Submit blocked until terminal selected.
+- Payload leg includes `terminalId`; voucher line gets `payment_terminal_id`.
+
+### 11. Gift Card + NONE Outstanding Policy
+
+Setup:
+
+- Gift card redemption enabled.
+- Outstanding policy set to `NONE` (full settlement required).
+
+Steps:
+
+1. Order sale total `100.000`.
+2. Apply gift card `30.000`.
+3. Add cash leg `70.000`.
+4. Submit.
+5. Repeat with cash leg `60.000` only.
+
+Expected:
+
+- Scenario A: submit succeeds (gift 30 + cash 70 covers 100).
+- Scenario B: submit blocked — remainder validation or `OUTSTANDING_POLICY_REQUIRED`.
+
+### 12. Price Override on Create Order
+
+Steps:
+
+1. Create new order with at least one line.
+2. Override line price (with permission).
+3. Open payment modal; confirm preview sale total reflects override.
+4. Submit order; inspect network payload or order line rows.
+
+Expected:
+
+- Preview API receives `priceOverride` on items.
+- Submit `items[]` includes `priceOverride`, `overrideReason`, `overrideBy` when override applied.
+
+### 13. Split Payment Reconciliation
 
 Steps:
 
@@ -224,7 +321,7 @@ Expected:
 - Active/default amount reflects remaining balance.
 - No hidden overpayment remains unless a method explicitly supports retained overpayment.
 
-### 9. Payment Gateway Method
+### 14. Payment Gateway Method
 
 Setup:
 
@@ -243,7 +340,7 @@ Expected:
 - Payment status follows configured default status or gateway processing fallback.
 - Overpayment is blocked unless `PAYMENT_GATEWAY.supports_overpayment = true`.
 
-### 10. Later Collection Policy
+### 15. Later Collection Policy
 
 Steps:
 
@@ -297,6 +394,24 @@ Expected:
 
 - Stored-value rows use canonical credit types such as `WALLET`, `ADVANCE`, `CREDIT_NOTE`, `LOYALTY_POINTS`, or `GIFT_CARD`.
 - Stored-value amounts do not exceed the remaining due balance.
+- `CREDIT_NOTE` rows reference the selected note id.
+
+```sql
+SELECT
+  id,
+  terminal_code,
+  terminal_name,
+  branch_id,
+  is_active
+FROM org_payment_terminals_cf
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND is_active = true;
+```
+
+Expected when terminal required:
+
+- Submit payload leg includes matching `terminalId`.
+- Voucher/payment row stores `payment_terminal_id`.
 
 ```sql
 SELECT
@@ -327,13 +442,23 @@ Expected:
 - Credit note picker applies a note and caps leg amount to note balance.
 - Terminal-required methods block submit until terminal is selected.
 - Create order with price override sends override fields on line items.
+- Check due date past/invalid blocked client and server.
+- Multi-cash: unresolved overpayment when any cash leg disallows change.
+- Submit hook shows localized messages for infrastructure error codes.
 - Build and focused tests pass.
 
-## Manual QA — Payment Modal V4 fixes
+## Submit Error Code Quick Reference
 
-1. **Gift + cash NONE:** Sale 100, apply gift 30 + cash 70, policy NONE → submit succeeds. Repeat with cash 60 → blocked with remainder validation.
-2. **Credit note pick:** Customer with open credit notes → CREDIT_NOTE → picker opens → select note → leg amount capped to note balance.
-3. **Terminal required:** Enable `requires_terminal` on CARD → leg workspace shows terminal dropdown → submit blocked until selected.
-4. **Price override create:** Override item price on new order → payment preview reflects override → submit payload includes `priceOverride`, `overrideReason`, `overrideBy`.
-5. **Multi-cash change:** Two cash legs where one disallows change → unresolved overpayment shown (not aggregate change).
-6. **Check due date:** Past check date blocked in validation rail and on submit.
+| Server code | When |
+|-------------|------|
+| `OUTSTANDING_POLICY_REQUIRED` | NONE policy with remaining balance |
+| `PAYMENT_TERMINAL_REQUIRED` | Terminal-required method without `terminalId` |
+| `PAYMENT_REFERENCE_REQUIRED` | Reference-required method without ref/auth |
+| `CREDIT_REFERENCE_REQUIRED` | CREDIT_NOTE without `creditReferenceId` |
+| `CASH_CHANGE_NOT_ALLOWED` | Cash tendered > applied, change disabled |
+| `METHOD_OVERPAYMENT_NOT_ALLOWED` | Non-cash amount > due, overpayment disabled |
+| `B2B_CREDIT_HOLD` / `B2B_CREDIT_EXCEEDED` | B2B credit limits |
+| `SPLIT_AMOUNT_MISMATCH` | Leg sum ≠ amount to charge |
+| `DEFERRED_LEG_NOT_ALONE` | Deferred method combined with other legs |
+
+UI messages: `newOrder.payment.errors.*` (EN/AR). Check date Zod errors: `newOrder.payment.splitPayment.checkDate*`.

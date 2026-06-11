@@ -35,3 +35,13 @@
 - `payment-modal-v4.tsx` is large; keep passes surgical and avoid finance logic rewrites.
 - The right rail must remain read-only except for focus/jump shortcuts.
 - Validate split-payment, gift-card, cash-drawer, B2B/AR, and deferred-policy scenarios after layout changes.
+
+## Payment Modal V4 Production Fixes (2026-06-11)
+
+Completed after center workbench redesign — see [overpayment-contract-implementation-tracker.md](./overpayment-contract-implementation-tracker.md):
+
+- P0: price override on create, gift+NONE orchestrator math, change clamp
+- P1: validation parity (check date, stored-value caps, multi-cash, error mapping)
+- P1: credit note picker, terminal forwarding, retail filter, checkout amount, CARD auth reference
+- P2: focus coverage, tax skeleton, CASH_OUT comment
+- Tests + docs: [test_guide.md](./test_guide.md), [overpayment-change-contract.md](./overpayment-change-contract.md)

@@ -47,7 +47,19 @@ No migration is required for this decision. Existing `org_payment_methods_cf` co
 
 ## Testing and Verification
 
-Verification includes modal helper tests, right rail tests, Zod payload tests, settlement planner tests, later collection/service tests, typecheck, i18n parity, and production build.
+Verification includes:
+
+- Modal helper tests: `payment-modal-v4.utils.test.ts` (caps, multi-cash, CARD auth, check date)
+- Right rail tests: `payment-modal-v4.right-rail.test.ts`
+- Submit payload: `use-order-submission.price-override.test.ts`
+- Orchestrator math: `order-submit-orchestrator.unpaid-balance.test.ts`
+- Planner: `order-settlement-planner.service.test.ts` (terminal, reference, cash change)
+- Voucher lines: `voucher-line.service.test.ts` (change clamp)
+- Integration: `checkout-multi-payment.test.ts`
+- Later collection: `settlement.service.test.ts`
+- Typecheck, i18n parity (`npm run check:i18n`), production build
+
+Full command list: [Order_Payment_Model/test_guide.md](../Order_Payment_Model/test_guide.md).
 
 ---
 

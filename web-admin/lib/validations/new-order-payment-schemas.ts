@@ -6,6 +6,10 @@
 
 import { z } from 'zod';
 import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/order-types';
+import {
+  OVERPAYMENT_DISPOSITION_MONEY_EPSILON,
+  OVERPAYMENT_DISPOSITION_TYPES,
+} from '@/lib/constants/overpayment-disposition';
 import { validateCheckDueDate } from '@/lib/utils/check-date';
 
 export const OUTSTANDING_POLICIES = {
@@ -106,6 +110,11 @@ export const paymentLegSchema = z
     /** Payment terminal id — for legs where requires_terminal is configured. */
     terminalId: z.string().uuid().optional(),
     /**
+     * Stable client-generated id for this leg (ADR-047).
+     * Used by RETURN_CHANGE disposition lines to reference the cash leg.
+     */
+    legRef: z.string().uuid().optional(),
+    /**
      * BVM Phase 6 Sub-item 6 (Phase-1B B7 closer): explicit per-leg payment
      * status. The field is optional — when omitted, the planner / settle
      * path runs the existing gateway-driven PENDING fallback, which mirrors
@@ -162,6 +171,54 @@ export const paymentLegSchema = z
   });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;
+
+// ---------------------------------------------------------------------------
+// Overpayment disposition (ADR-047) — explicit excess routing at checkout
+// ---------------------------------------------------------------------------
+
+const overpaymentDispositionLineSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal(OVERPAYMENT_DISPOSITION_TYPES.RETURN_CHANGE),
+    legRef: z.string().uuid(),
+    amount: z.number().positive(),
+  }),
+  z.object({
+    type: z.literal(OVERPAYMENT_DISPOSITION_TYPES.TO_WALLET),
+    amount: z.number().positive(),
+  }),
+  z.object({
+    type: z.literal(OVERPAYMENT_DISPOSITION_TYPES.TO_ADVANCE),
+    amount: z.number().positive(),
+  }),
+  z.object({
+    type: z.literal(OVERPAYMENT_DISPOSITION_TYPES.TO_CREDIT_NOTE),
+    amount: z.number().positive(),
+    noteReason: z.string().max(500).optional(),
+  }),
+]);
+
+/**
+ * Required when checkout excess > epsilon. Structural validation only —
+ * policy matrix and change capacity are enforced in settlement/disposition services.
+ */
+export const overpaymentDispositionSchema = z
+  .object({
+    excessAmount: z.number().positive(),
+    lines: z.array(overpaymentDispositionLineSchema).min(1),
+  })
+  .superRefine((disposition, ctx) => {
+    const lineSum = disposition.lines.reduce((sum, line) => sum + line.amount, 0);
+    if (Math.abs(lineSum - disposition.excessAmount) > OVERPAYMENT_DISPOSITION_MONEY_EPSILON) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'OVERPAYMENT_DISPOSITION_MISMATCH',
+        path: ['lines'],
+      });
+    }
+  });
+
+export type OverpaymentDispositionInput = z.infer<typeof overpaymentDispositionSchema>;
+export type OverpaymentDispositionLineInput = z.infer<typeof overpaymentDispositionLineSchema>;
 
 // ---------------------------------------------------------------------------
 // Extended payload (modal → submission hook)
@@ -406,9 +463,33 @@ export type ClientTotals = z.infer<typeof clientTotalsSchema>;
  *   idempotencyKey: crypto.randomUUID(),
  * });
  */
-export const submitOrderRequestSchema = createWithPaymentRequestSchema.extend({
-  idempotencyKey: z.string().min(1, 'idempotencyKey is required on submit-order'),
-});
+export const submitOrderRequestSchema = createWithPaymentRequestSchema
+  .extend({
+    idempotencyKey: z.string().min(1, 'idempotencyKey is required on submit-order'),
+    /** Explicit routing of checkout excess — ADR-047. Required when excess > epsilon. */
+    overpaymentDisposition: overpaymentDispositionSchema.optional(),
+  })
+  .superRefine((payload, ctx) => {
+    const disposition = payload.overpaymentDisposition;
+    if (!disposition) return;
+
+    const legRefs = new Set(
+      (payload.paymentLegs ?? [])
+        .map((leg) => leg.legRef)
+        .filter((ref): ref is string => typeof ref === 'string' && ref.length > 0)
+    );
+
+    disposition.lines.forEach((line, index) => {
+      if (line.type !== OVERPAYMENT_DISPOSITION_TYPES.RETURN_CHANGE) return;
+      if (!legRefs.has(line.legRef)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'RETURN_CHANGE_LEG_INVALID',
+          path: ['overpaymentDisposition', 'lines', index, 'legRef'],
+        });
+      }
+    });
+  });
 
 /**
  * TypeScript type derived from submitOrderRequestSchema.
