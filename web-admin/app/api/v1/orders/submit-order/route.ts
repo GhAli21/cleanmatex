@@ -407,7 +407,7 @@ export async function POST(request: NextRequest) {
     if (['CASH_DRAWER_SESSION_REQUIRED', 'CASH_DRAWER_SESSION_SELECTION_REQUIRED', 'CASH_DRAWER_SESSION_CLOSED',
          'CASH_TENDERED_REQUIRED', 'CASH_TENDERED_LESS_THAN_AMOUNT', 'CASH_CHANGE_NOT_ALLOWED',
          'METHOD_OVERPAYMENT_NOT_ALLOWED', 'CASH_TENDERED_ONLY_FOR_CASH', 'GATEWAY_NOT_CONFIGURED',
-         'PAYMENT_REFERENCE_REQUIRED'].includes(message)) {
+         'PAYMENT_REFERENCE_REQUIRED', 'PAYMENT_TERMINAL_REQUIRED'].includes(message)) {
       return NextResponse.json(
         { success: false, errorCode: message, error: message },
         { status: 422 }

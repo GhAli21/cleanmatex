@@ -103,6 +103,8 @@ export const paymentLegSchema = z
     gateway_reference: z.string().optional(),
     /** Credit-note / source reference for stored-value legs that require a specific document. */
     creditReferenceId: z.string().uuid().optional(),
+    /** Payment terminal id — for legs where requires_terminal is configured. */
+    terminalId: z.string().uuid().optional(),
     /**
      * BVM Phase 6 Sub-item 6 (Phase-1B B7 closer): explicit per-leg payment
      * status. The field is optional — when omitted, the planner / settle
@@ -146,6 +148,15 @@ export const paymentLegSchema = z
         code: z.ZodIssueCode.custom,
         message: 'CASH_TENDERED_LESS_THAN_AMOUNT',
         path: ['cashTendered'],
+      });
+    }
+  })
+  .superRefine((leg, ctx) => {
+    if (leg.method === 'CREDIT_NOTE' && (leg.amount ?? 0) > 0 && !leg.creditReferenceId?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CREDIT_REFERENCE_REQUIRED',
+        path: ['creditReferenceId'],
       });
     }
   });

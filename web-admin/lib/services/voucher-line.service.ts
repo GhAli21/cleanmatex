@@ -119,7 +119,7 @@ async function addVoucherLineInTx(
   // Auto-derive change for cash payments
   let changeReturned: number | null = null;
   if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined) {
-    changeReturned = input.tendered_amount - input.amount;
+    changeReturned = Math.max(0, input.tendered_amount - input.amount);
   }
 
   const created = await tx.org_fin_voucher_trx_lines_dtl.create({
@@ -224,7 +224,7 @@ export async function updateVoucherLine(
 
     let changeReturned: number | null | undefined = undefined;
     if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined && input.amount !== undefined) {
-      changeReturned = input.tendered_amount - input.amount;
+      changeReturned = Math.max(0, input.tendered_amount - input.amount);
     }
 
     await prisma.org_fin_voucher_trx_lines_dtl.updateMany({

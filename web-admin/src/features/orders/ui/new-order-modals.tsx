@@ -38,6 +38,7 @@ type PaymentModalComponentProps = {
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
+  checkoutAmount?: number;
   items: { productId: string; quantity: number; servicePrefCharge?: number; packingPrefCharge?: number }[];
   isExpress?: boolean;
   tenantOrgId: string;
@@ -391,6 +392,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
+          checkoutAmount={totals.subtotal + totals.servicePrefCharge + totals.packingPrefCharge}
           items={paymentItems}
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}

@@ -306,10 +306,12 @@ export function walletLegExceedsBalance(
 
 /** Mirrors server `validateSettlementPlan` reference checks for a single leg. */
 export type PaymentLegReferenceFields = {
+  method?: string;
   checkNumber?: string;
   bank_reference?: string;
   gateway_reference?: string;
   gateway_transaction_id?: string;
+  auth_code?: string;
 };
 
 export function legHasRequiredPaymentReference(
@@ -319,12 +321,48 @@ export function legHasRequiredPaymentReference(
   if (!requiresReference) {
     return true;
   }
+  if (leg.method === 'CARD' && leg.auth_code?.trim()) {
+    return true;
+  }
   return !!(
     leg.gateway_reference?.trim() ||
     leg.gateway_transaction_id?.trim() ||
     leg.bank_reference?.trim() ||
     leg.checkNumber?.trim()
   );
+}
+
+export type StoredValueCapContext = {
+  walletBalance?: number;
+  advanceBalance?: number;
+  creditNoteBalance?: number;
+  loyaltyBalance?: number;
+};
+
+/** Live balance cap for customer-credit payment legs, when applicable. */
+export function getStoredValueCapForLeg(
+  method: string,
+  caps: StoredValueCapContext
+): number | undefined {
+  switch (method) {
+    case 'WALLET':
+      return caps.walletBalance;
+    case 'ADVANCE':
+      return caps.advanceBalance;
+    case 'CREDIT_NOTE':
+      return caps.creditNoteBalance;
+    case 'LOYALTY_POINTS':
+      return caps.loyaltyBalance;
+    default:
+      return undefined;
+  }
+}
+
+/** All cash legs must allow change for aggregate change-return UX to match server rules. */
+export function canReturnChangeFromAllCashLegs(
+  cashLegs: Array<{ supportsChangeReturn: boolean }>
+): boolean {
+  return cashLegs.length > 0 && cashLegs.every((leg) => leg.supportsChangeReturn);
 }
 
 /** True when a leg amount was capped because allocation cannot exceed remaining due. */

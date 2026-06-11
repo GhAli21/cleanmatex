@@ -13,10 +13,16 @@
 - Live DB method codes: checkout and validation accept `PAYMENT_GATEWAY` with `gateway_code`, plus stored-value method codes `ADVANCE`, `CREDIT_NOTE`, and `LOYALTY_POINTS`. Deprecated provider rows (`HYPERPAY`, `PAYTABS`, `STRIPE`) normalize to the canonical gateway method; older semantic credit aliases remain tolerated only as TypeScript constant aliases.
 - Snapshot: existing financial snapshot aggregation uses applied payment amounts for paid/overpaid calculation and tracks returned change separately.
 - i18n: EN/AR labels added for Applied and Cash Tendered in the payment modal right rail namespace.
+- Payment Modal V4 fixes (2026-06): price override on create submit; gift-card subtracted before `NONE` policy check; voucher `change_returned_amount` clamped ≥ 0; stored-value caps for WALLET/ADVANCE/CREDIT_NOTE/LOYALTY; multi-cash `.every()` change policy; credit-note picker + terminal forwarding; retail `PAY_ON_COLLECTION` filter; checkout-options uses preview sale total; CARD `auth_code` reference parity; submit error-code i18n mapping.
 
 ## Tests Added or Updated
 
 - `payment-modal-v4.utils`: cash tendered, applied cash cap, change returned, non-cash retained overpayment helper behavior.
+- `payment-modal-v4.utils`: stored-value caps, multi-cash change policy, CARD auth_code reference helper.
+- `use-order-submission.price-override`: create payload includes override audit fields.
+- `order-submit-orchestrator.unpaid-balance`: gift + cash NONE unpaid balance math.
+- `voucher-line.service`: change_returned_amount clamp when tendered < amount.
+- `order-settlement-planner.service`: PAYMENT_TERMINAL_REQUIRED and CARD auth_code reference validation.
 - `payment-modal-v4.right-rail`: existing cash-change status coverage retained.
 - `checkout-multi-payment`: cashTendered structural validation and service-level overpayment policy delegation.
 - `checkout-multi-payment`: live DB payment method code validation for `PAYMENT_GATEWAY`, `ADVANCE`, `CREDIT_NOTE`, and `LOYALTY_POINTS`.

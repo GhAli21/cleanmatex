@@ -87,6 +87,9 @@ export const cashDrawerWiringHandler: WiringHandler = {
     const changeReturned =
       line.change_returned_amount != null ? Number(line.change_returned_amount) : 0;
     if (changeReturned > 0.001) {
+      // Change-out rows link only fin_voucher_id (not fin_voucher_trx_line_id) because
+      // the drawer movement unique index is scoped per voucher line and CASH_OUT is
+      // a separate physical movement from the tendered CASH_IN leg.
       await tx.org_cash_drawer_movements_dtl.create({
         data: {
           tenant_org_id:          tenantOrgId,

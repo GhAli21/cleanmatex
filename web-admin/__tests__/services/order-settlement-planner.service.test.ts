@@ -534,4 +534,40 @@ describe('buildSettlementPlan', () => {
 
     expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('PROCESSING');
   });
+
+  it('validateSettlementPlan accepts CARD auth_code as required reference', async () => {
+    const card = makeRealOption({
+      paymentMethodCode: 'CARD',
+      requiresCashDrawer: false,
+      requiresReference: true,
+    });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(card, 100, { authCode: 'AUTH-123' })],
+      [makeOriginalLeg('CARD', 100, { auth_code: 'AUTH-123' })],
+      'PAY_IN_ADVANCE'
+    );
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).resolves.toBeUndefined();
+  });
+
+  it('validateSettlementPlan blocks legs that require a terminal when terminalId is missing', async () => {
+    const card = makeRealOption({
+      paymentMethodCode: 'CARD',
+      requiresCashDrawer: false,
+      requiresTerminal: true,
+    });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(card, 100)],
+      [makeOriginalLeg('CARD', 100)],
+      'PAY_IN_ADVANCE'
+    );
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).rejects.toThrow('PAYMENT_TERMINAL_REQUIRED');
+  });
 });

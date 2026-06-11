@@ -238,6 +238,11 @@ export function useOrderSubmission() {
                             packingPrefSource: item.packingPrefSource,
                             ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
                         }),
+                        ...(item.priceOverride != null && {
+                            priceOverride: item.priceOverride,
+                            overrideReason: item.overrideReason,
+                            overrideBy: item.overrideBy,
+                        }),
                     })),
                     isQuickDrop: state.state.isQuickDrop || false,
                     ...(state.state.isQuickDrop && state.state.quickDropQuantity > 0 && {
@@ -475,17 +480,38 @@ export function useOrderSubmission() {
                             Array.isArray(json.details) &&
                             json.details.length > 0
                         ) {
-                            const detailMessages = (json.details as Array<{
-                                path?: string;
+                            const details = json.details as Array<{
+                                path?: string | string[];
                                 message: string;
-                            }>)
-                                .map(
-                                    (d) => `${d.path ? `${d.path}: ` : ''}${d.message}`
-                                )
-                                .join('; ');
-                            errorMessage = errorMessage
-                                ? `${errorMessage} - ${detailMessages}`
-                                : detailMessages;
+                            }>;
+                            const checkDateDetail = details.find((detail) => {
+                                const path = Array.isArray(detail.path)
+                                    ? detail.path.join('.')
+                                    : detail.path ?? '';
+                                return path.includes('checkDate');
+                            });
+                            if (checkDateDetail) {
+                                const reason = checkDateDetail.message;
+                                if (reason === 'checkDateInvalid' || reason === 'checkDateInPast') {
+                                    errorMessage = t(`payment.splitPayment.${reason}`);
+                                } else {
+                                    errorMessage = checkDateDetail.message;
+                                }
+                            } else {
+                                const detailMessages = details
+                                    .map(
+                                        (d) => {
+                                            const path = Array.isArray(d.path)
+                                                ? d.path.join('.')
+                                                : d.path;
+                                            return `${path ? `${path}: ` : ''}${d.message}`;
+                                        }
+                                    )
+                                    .join('; ');
+                                errorMessage = errorMessage
+                                    ? `${errorMessage} - ${detailMessages}`
+                                    : detailMessages;
+                            }
                         }
                         if (!errorMessage) {
                             errorMessage =
@@ -502,10 +528,18 @@ export function useOrderSubmission() {
                             CASH_CHANGE_NOT_ALLOWED: t('payment.messages.validationErrors'),
                             METHOD_OVERPAYMENT_NOT_ALLOWED: t('payment.messages.validationErrors'),
                             CASH_TENDERED_ONLY_FOR_CASH: t('payment.messages.validationErrors'),
-                            PAYMENT_REFERENCE_REQUIRED: t('payment.messages.validationErrors'),
+                            PAYMENT_REFERENCE_REQUIRED: t('payment.errors.paymentReferenceRequired'),
+                            PAYMENT_TERMINAL_REQUIRED: t('payment.errors.paymentTerminalRequired'),
                             GATEWAY_NOT_CONFIGURED: t('errors.serverError', {
                                 default: 'A payment service configuration issue prevented this order from being submitted.',
                             }),
+                            OUTSTANDING_POLICY_REQUIRED: t('payment.errors.outstandingPolicyRequired'),
+                            B2B_CREDIT_HOLD: t('payment.errors.b2bCreditHold'),
+                            B2B_CREDIT_EXCEEDED: t('payment.errors.b2bCreditExceeded'),
+                            SPLIT_AMOUNT_MISMATCH: t('payment.errors.splitAmountMismatch'),
+                            DEFERRED_LEG_NOT_ALONE: t('payment.errors.deferredLegNotAlone'),
+                            CHECK_NUMBER_REQUIRED: t('payment.splitPayment.validation.checkNumberRequired'),
+                            CREDIT_REFERENCE_REQUIRED: t('payment.customerCredits.creditNoteRequired'),
                         };
 
                         errorMessage =

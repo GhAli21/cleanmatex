@@ -5119,7 +5119,25 @@
         "walletBalanceExceeded": "مبلغ المحفظة يتجاوز الرصيد المتاح وقدره {amount}.",
         "applied": "يمكن تعديل هذا الرصيد من محرر المبلغ ولوحة الأرقام.",
         "empty": "لا توجد أرصدة متاحة لهذا العميل.",
-        "referenceSelectionHint": "هذا الرصيد يحتاج إلى اختيار المصدر المحدد قبل تطبيقه."
+        "referenceSelectionHint": "هذا الرصيد يحتاج إلى اختيار المصدر المحدد قبل تطبيقه.",
+        "creditNotePickerTitle": "اختر إشعار دائن",
+        "creditNotePickerEmpty": "لا توجد إشعارات دائنة مفتوحة لهذا العميل.",
+        "creditNotePickerItem": "إشعار دائن {id}",
+        "creditNotePickerCancel": "إلغاء",
+        "creditNoteSelectHint": "اضغط لاختيار إشعار دائن",
+        "creditNoteRequired": "اختر إشعارًا دائنًا قبل تطبيق طريقة الدفع هذه.",
+        "creditNoteSelected": "تم اختيار إشعار دائن {id}",
+        "creditNoteChange": "تغيير الإشعار",
+        "storedValueBalanceExceeded": "مبلغ {method} يتجاوز الرصيد المتاح وقدره {amount}."
+      },
+      "errors": {
+        "outstandingPolicyRequired": "يجب تغطية إجمالي الطلب بالكامل قبل الإرسال بدون رصيد مستحق.",
+        "b2bCreditHold": "هذا العميل موقوف عن الائتمان ولا يمكن إصدار فاتورة له.",
+        "b2bCreditExceeded": "هذا الطلب سيتجاوز حد ائتمان العميل.",
+        "splitAmountMismatch": "مجموع طرق الدفع لا يطابق المبلغ المطلوب تحصيله.",
+        "deferredLegNotAlone": "يجب أن تكون الدفع عند الاستلام أو الفاتورة هي طريقة الدفع الوحيدة.",
+        "paymentReferenceRequired": "أدخل مرجع الدفع المطلوب قبل الإرسال.",
+        "paymentTerminalRequired": "اختر جهاز الدفع لهذه الطريقة."
       },
       "checkNumber": {
         "label": "رقم الشيك",
@@ -5525,6 +5543,8 @@
         "checkNumber": "رقم الشيك",
         "checkBankName": "اسم البنك",
         "checkDueDate": "تاريخ الاستحقاق",
+        "paymentTerminal": "جهاز الدفع",
+        "paymentTerminalPlaceholder": "اختر جهاز الدفع",
         "checkDateInvalid": "أدخل تاريخاً صحيحاً",
         "checkDateInPast": "تاريخ الشيك لا يمكن أن يكون في الماضي",
         "bankReference": "المرجع البنكي",
@@ -5547,6 +5567,8 @@
           "checkNumberRequired": "رقم الشيك مطلوب لأقساط الشيك",
           "referenceRequired": "مرجع الدفع مطلوب لـ {method}",
           "referenceRequiredField": "أدخل رقم المعاملة أو مرجع البوابة أو مرجع التحويل البنكي أو رقم الشيك",
+          "terminalRequired": "جهاز الدفع مطلوب لـ {method}",
+          "terminalRequiredField": "اختر جهاز الدفع",
           "cashOverRemainingTitle": "مبلغ النقد محدود",
           "cashOverRemainingNotAllowed": "طريقة الدفع النقدي هذه لا تسمح بالباقي. الحد الأقصى لهذا القسط هو {max}."
         }

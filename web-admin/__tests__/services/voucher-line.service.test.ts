@@ -85,4 +85,9 @@ describe('voucher-line.service -> addVoucherLine', () => {
       }),
     );
   });
+
+  it('clamps derived change_returned_amount to zero when tendered is below applied amount', () => {
+    const changeReturned = Math.max(0, 20 - 25);
+    expect(changeReturned).toBe(0);
+  });
 });

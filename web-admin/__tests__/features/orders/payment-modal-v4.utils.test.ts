@@ -26,6 +26,8 @@ import {
   walletLegExceedsBalance,
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
+  getStoredValueCapForLeg,
+  canReturnChangeFromAllCashLegs,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
 describe('payment-modal-v4 utils', () => {
@@ -180,11 +182,41 @@ describe('payment-modal-v4 utils', () => {
     ).toBe(true);
     expect(
       legHasRequiredPaymentReference(
+        { method: 'CARD', auth_code: 'AUTH-1' },
+        true
+      )
+    ).toBe(true);
+    expect(
+      legHasRequiredPaymentReference(
         { gateway_transaction_id: ' ' },
         true
       )
     ).toBe(false);
     expect(legHasRequiredPaymentReference({}, false)).toBe(true);
+  });
+
+  it('returns stored-value caps per payment method', () => {
+    expect(getStoredValueCapForLeg('WALLET', { walletBalance: 25 })).toBe(25);
+    expect(getStoredValueCapForLeg('ADVANCE', { advanceBalance: 40 })).toBe(40);
+    expect(getStoredValueCapForLeg('CREDIT_NOTE', { creditNoteBalance: 15 })).toBe(15);
+    expect(getStoredValueCapForLeg('LOYALTY_POINTS', { loyaltyBalance: 8 })).toBe(8);
+    expect(getStoredValueCapForLeg('CASH', { walletBalance: 25 })).toBeUndefined();
+  });
+
+  it('requires every cash leg to allow change before aggregate change return', () => {
+    expect(
+      canReturnChangeFromAllCashLegs([
+        { supportsChangeReturn: true },
+        { supportsChangeReturn: true },
+      ])
+    ).toBe(true);
+    expect(
+      canReturnChangeFromAllCashLegs([
+        { supportsChangeReturn: true },
+        { supportsChangeReturn: false },
+      ])
+    ).toBe(false);
+    expect(canReturnChangeFromAllCashLegs([])).toBe(false);
   });
 
   it('detects when a raw leg amount was capped to remaining allocation', () => {

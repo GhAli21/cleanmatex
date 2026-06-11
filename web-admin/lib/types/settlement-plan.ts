@@ -68,6 +68,8 @@ export interface RealPaymentLeg {
    * referenced session must have session_status = 'OPEN'.
    */
   requiresCashDrawer: boolean;
+  /** When true, terminalId must be present (from D9 COALESCE config). */
+  requiresTerminal: boolean;
   /**
    * Default payment creation status sourced from D9 COALESCE config:
    * COMPLETED | PENDING | PROCESSING. Falls back to resolveDefaultStatus()

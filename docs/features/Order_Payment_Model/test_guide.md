@@ -15,7 +15,7 @@ The canonical live DB model is:
 Run from `web-admin/`:
 
 ```powershell
-npm test -- --runTestsByPath __tests__/features/orders/payment-modal-v4.utils.test.ts __tests__/features/orders/payment-modal-v4.right-rail.test.ts __tests__/integration/checkout-multi-payment.test.ts __tests__/services/order-settlement-planner.service.test.ts __tests__/services/settlement.service.test.ts
+npm test -- --runTestsByPath __tests__/features/orders/payment-modal-v4.utils.test.ts __tests__/features/orders/payment-modal-v4.right-rail.test.ts __tests__/features/orders/use-order-submission.price-override.test.ts __tests__/integration/checkout-multi-payment.test.ts __tests__/services/order-settlement-planner.service.test.ts __tests__/services/settlement.service.test.ts __tests__/services/voucher-line.service.test.ts __tests__/services/order-submit-orchestrator.unpaid-balance.test.ts
 npm run check:i18n
 npm run build
 ```
@@ -323,4 +323,17 @@ Expected:
 - `PAYMENT_GATEWAY` works with provider-specific `gateway_code`.
 - Stored-value canonical codes match DB values.
 - EN/AR labels are present for Applied and Cash Tendered.
+- Gift card + cash with `NONE` policy submits when legs + gift cover sale total.
+- Credit note picker applies a note and caps leg amount to note balance.
+- Terminal-required methods block submit until terminal is selected.
+- Create order with price override sends override fields on line items.
 - Build and focused tests pass.
+
+## Manual QA — Payment Modal V4 fixes
+
+1. **Gift + cash NONE:** Sale 100, apply gift 30 + cash 70, policy NONE → submit succeeds. Repeat with cash 60 → blocked with remainder validation.
+2. **Credit note pick:** Customer with open credit notes → CREDIT_NOTE → picker opens → select note → leg amount capped to note balance.
+3. **Terminal required:** Enable `requires_terminal` on CARD → leg workspace shows terminal dropdown → submit blocked until selected.
+4. **Price override create:** Override item price on new order → payment preview reflects override → submit payload includes `priceOverride`, `overrideReason`, `overrideBy`.
+5. **Multi-cash change:** Two cash legs where one disallows change → unresolved overpayment shown (not aggregate change).
+6. **Check due date:** Past check date blocked in validation rail and on submit.

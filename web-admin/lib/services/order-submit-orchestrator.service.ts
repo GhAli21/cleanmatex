@@ -337,7 +337,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   const amountToCharge = sumMoney(
     paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method)).map((leg) => leg.amount)
   ).toNumber();
-  const unpaidBalance = Math.max(0, serverSaleTotal - amountToCharge);
+  // Gift-card credit is synthesized into settlementLegs after this check; subtract it here
+  // so outstandingPolicy NONE is valid when legs + gift cover the sale total.
+  const giftApplied =
+    input.giftCardId && serverTotals.giftCardApplied > 0 ? serverTotals.giftCardApplied : 0;
+  const unpaidBalance = Math.max(0, serverSaleTotal - amountToCharge - giftApplied);
 
   if (input.outstandingPolicy === 'NONE' && unpaidBalance > TOLERANCE) {
     throw new Error('OUTSTANDING_POLICY_REQUIRED');
@@ -442,8 +446,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       amount:           leg.amount,
       cashTendered:     leg.cashTendered,
       reference:        leg.bank_reference ?? leg.gateway_reference,
-      terminalId:       undefined,
-      creditReferenceId: undefined,
+      terminalId:       leg.terminalId ?? undefined,
+      creditReferenceId: leg.creditReferenceId ?? undefined,
       // BVM Phase 6 Sub-item 6: forward the explicit per-leg payment status.
       paymentStatus:    leg.paymentStatus,
     };

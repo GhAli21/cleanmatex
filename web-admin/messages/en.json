@@ -5119,7 +5119,25 @@
         "walletBalanceExceeded": "Wallet amount exceeds the available balance of {amount}.",
         "applied": "This stored-value leg can be adjusted from the amount editor and keypad.",
         "empty": "No customer credits are available for this customer.",
-        "referenceSelectionHint": "This credit needs a specific source selection before it can be applied."
+        "referenceSelectionHint": "This credit needs a specific source selection before it can be applied.",
+        "creditNotePickerTitle": "Select credit note",
+        "creditNotePickerEmpty": "No open credit notes are available for this customer.",
+        "creditNotePickerItem": "Credit note {id}",
+        "creditNotePickerCancel": "Cancel",
+        "creditNoteSelectHint": "Tap to choose a credit note",
+        "creditNoteRequired": "Select a credit note before applying this payment leg.",
+        "creditNoteSelected": "Credit note {id} selected",
+        "creditNoteChange": "Change note",
+        "storedValueBalanceExceeded": "{method} amount exceeds the available balance of {amount}."
+      },
+      "errors": {
+        "outstandingPolicyRequired": "The full order total must be covered before submitting with no outstanding balance.",
+        "b2bCreditHold": "This customer is on credit hold and cannot be invoiced.",
+        "b2bCreditExceeded": "This order would exceed the customer's credit limit.",
+        "splitAmountMismatch": "Split payment leg totals do not match the amount to charge.",
+        "deferredLegNotAlone": "Pay on collection or invoice must be the only payment leg.",
+        "paymentReferenceRequired": "Enter the required payment reference before submitting.",
+        "paymentTerminalRequired": "Select a payment terminal for this payment method."
       },
       "checkNumber": {
         "label": "Check Number",
@@ -5525,6 +5543,8 @@
         "checkNumber": "Check Number",
         "checkBankName": "Bank Name",
         "checkDueDate": "Due Date",
+        "paymentTerminal": "Payment Terminal",
+        "paymentTerminalPlaceholder": "Select terminal",
         "checkDateInvalid": "Enter a valid date",
         "checkDateInPast": "Check date cannot be in the past",
         "bankReference": "Bank Reference",
@@ -5547,6 +5567,8 @@
           "checkNumberRequired": "Check number is required for cheque legs",
           "referenceRequired": "Payment reference is required for {method}",
           "referenceRequiredField": "Enter a transaction ID, gateway reference, bank reference, or check number",
+          "terminalRequired": "Payment terminal is required for {method}",
+          "terminalRequiredField": "Select a payment terminal",
           "cashOverRemainingTitle": "Cash amount limited",
           "cashOverRemainingNotAllowed": "This cash method does not allow change. The maximum for this leg is {max}."
         }

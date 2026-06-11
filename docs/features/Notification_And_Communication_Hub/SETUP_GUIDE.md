@@ -188,13 +188,13 @@ PUT /api/v1/notifications/settings/providers
 POST /api/v1/notifications/settings/providers
 {
   "channel_code": "SMS",
-  "provider_code": "TWILIO",
+  "provider_code": "TWILIO_SMS",
   "display_name": "Twilio SMS",
   "config": { "from_number": "+14155238886" }
 }
 
 PUT /api/v1/notifications/settings/providers
-{ "channel_code": "SMS", "provider_code": "TWILIO" }
+{ "channel_code": "SMS", "provider_code": "TWILIO_SMS" }
 ```
 
 ### Activate WhatsApp → Twilio BSP
@@ -356,9 +356,9 @@ The outbox processor is called every minute by pg_cron via pg_net. Verify it is 
 -- Check pg_cron jobs
 SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'ntf%';
 -- Expected:
---   ntf-process-outbox-queued    | * * * * *  | t
---   ntf-retry-failed-outbox      | * * * * *  | t
---   ntf-sweep-stale-push-subs    | 0 3 * * 0  | t
+--   ntf-outbox-processor         | * * * * *   | t
+--   ntf-outbox-retry             | */5 * * * * | t
+--   ntf-sweep-stale-push-subs    | 0 3 * * 0   | t
 
 -- Check recent outbox deliveries
 SELECT channel_code, status, COUNT(*) 

@@ -128,6 +128,7 @@ export function buildSettlementPlan(
         terminalId:           leg.terminalId ?? undefined,
         requiresReference:    option.requiresReference ?? false,
         requiresCashDrawer:   option.requiresCashDrawer,
+        requiresTerminal:     option.requiresTerminal ?? false,
         defaultCreationStatus,
         allowStatusOverride,
         resolvedPaymentStatus,
@@ -265,10 +266,15 @@ export async function validateSettlementPlan(
       if (leg.requiresReference) {
         const hasRef =
           leg.gatewayReference || leg.gatewayTransactionId ||
-          leg.bankReference || leg.checkNumber;
+          leg.bankReference || leg.checkNumber ||
+          (leg.paymentMethodCode === 'CARD' && leg.authCode);
         if (!hasRef) {
           throw new Error('PAYMENT_REFERENCE_REQUIRED');
         }
+      }
+
+      if (leg.requiresTerminal && !leg.terminalId) {
+        throw new Error('PAYMENT_TERMINAL_REQUIRED');
       }
 
       if (leg.paymentMethodCode === 'CASH') {

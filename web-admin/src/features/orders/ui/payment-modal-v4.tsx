@@ -65,8 +65,11 @@ import {
   validateCheckDueDate,
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
+  getStoredValueCapForLeg,
+  canReturnChangeFromAllCashLegs,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
+import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -245,6 +248,8 @@ interface PaymentModalProps {
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
+  /** Order amount for checkout-options eligibility; defaults to preview saleTotal when loaded. */
+  checkoutAmount?: number;
   items: { productId: string; quantity: number; priceOverride?: number | null; servicePrefCharge?: number; packingPrefCharge?: number }[];
   isExpress?: boolean;
   tenantOrgId: string;
@@ -311,6 +316,7 @@ function OrderValueBreakdownPanel({
   model,
   labels,
   isRTL,
+  taxLoading,
 }: {
   model: OrderValueBreakdownModel;
   labels: {
@@ -324,6 +330,7 @@ function OrderValueBreakdownPanel({
     finalTotalHelp: string;
   };
   isRTL: boolean;
+  taxLoading?: boolean;
 }) {
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
@@ -354,7 +361,18 @@ function OrderValueBreakdownPanel({
           </div>
         ) : null}
 
-        {model.taxRows.length > 0 ? (
+        {taxLoading ? (
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
+              <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
+            </div>
+            <div className="mt-3 space-y-2">
+              <CmxSkeleton className="h-4 w-full" />
+              <CmxSkeleton className="h-4 w-3/4" />
+            </div>
+          </div>
+        ) : model.taxRows.length > 0 ? (
           <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
             <div className={isRTL ? 'text-right' : 'text-left'}>
               <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
@@ -416,6 +434,7 @@ export function PaymentModalV4({
   onClose,
   onSubmit,
   total,
+  checkoutAmount,
   items,
   isExpress = false,
   tenantOrgId,
@@ -566,6 +585,8 @@ export function PaymentModalV4({
   const [openingBalanceValue, setOpeningBalanceValue] = useState(0);
   const [openingDrawerSession, setOpeningDrawerSession] = useState(false);
   const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
+  const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
+  const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
 
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
   /** Normalized tax line used to render cashier-facing totals consistently across preview sources. */
@@ -602,6 +623,7 @@ export function PaymentModalV4({
   } | null>(null);
 
   const [totalsLoading, setTotalsLoading] = useState(false);
+  const checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total;
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeLegDraftSyncKeyRef = useRef<string | null>(null);
   const allocationBaselineRef = useRef<{ saleTotal: number; giftCard: number } | null>(null);
@@ -612,6 +634,7 @@ export function PaymentModalV4({
   const amountDiscountInputRef = useRef<HTMLInputElement | null>(null);
   const percentDiscountInputRef = useRef<HTMLInputElement | null>(null);
   const checkNumberInputRef = useRef<HTMLInputElement | null>(null);
+  const checkDateInputRef = useRef<HTMLInputElement | null>(null);
   const payOnCollectionPolicyButtonRef = useRef<HTMLButtonElement | null>(null);
   const creditLimitCardRef = useRef<HTMLDivElement | null>(null);
   const creditLimitOverrideRef = useRef<HTMLInputElement | null>(null);
@@ -643,13 +666,42 @@ export function PaymentModalV4({
     staleTime: 5 * 60 * 1000,
   });
 
+  type PaymentTerminalOption = {
+    id: string;
+    terminal_code: string;
+    terminal_name: string;
+    terminal_name2: string | null;
+    branch_id: string | null;
+    is_active: boolean;
+  };
+
+  const { data: paymentTerminals = [] } = useQuery<PaymentTerminalOption[]>({
+    queryKey: ['payment-terminals-checkout', tenantOrgId, branchId ?? ''],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/settings/payments/terminals');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return ((json.data ?? []) as PaymentTerminalOption[]).filter((terminal) => terminal.is_active);
+    },
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const branchPaymentTerminals = useMemo(
+    () =>
+      paymentTerminals.filter(
+        (terminal) => !branchId || !terminal.branch_id || terminal.branch_id === branchId
+      ),
+    [branchId, paymentTerminals]
+  );
+
   const { data: checkoutOptions, isLoading: checkoutMethodsLoading } = useQuery<CheckoutOptionsResponse>({
-    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', customerId ?? '', total],
+    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', customerId ?? '', checkoutEligibilityAmount],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (branchId) params.set('branchId', branchId);
       if (customerId) params.set('customerId', customerId);
-      params.set('amount', String(total));
+      params.set('amount', String(checkoutEligibilityAmount));
       const res = await fetch(`/api/v1/orders/checkout-options?${params.toString()}`);
       if (!res.ok) return { paymentMethods: [], customerCredits: [] };
       const json = await res.json();
@@ -1002,7 +1054,12 @@ export function PaymentModalV4({
     return [];
   }, [taxProfileEntries, afterDiscountsForTax, decimalPlaces, taxRate]);
 
-  const displayTaxBreakdown = serverTotals?.taxBreakdown?.length ? serverTotals.taxBreakdown : fallbackTaxBreakdown;
+  const displayTaxBreakdown =
+    serverTotals?.taxBreakdown?.length
+      ? serverTotals.taxBreakdown
+      : totalsLoading || (items.length > 0 && !serverTotals)
+        ? []
+        : fallbackTaxBreakdown;
   const profilesTaxAmount = useMemo(
     () => parseFloat(displayTaxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0).toFixed(decimalPlaces)),
     [displayTaxBreakdown, decimalPlaces]
@@ -1078,6 +1135,7 @@ export function PaymentModalV4({
       checkoutMethods
         .filter((method) => method.payment_nature === 'REAL_PAYMENT' && method.allowed_in_pos)
         .filter((method) => !isRetailOnlyOrder || method.payment_method_code !== PAYMENT_METHODS.INVOICE)
+        .filter((method) => !isRetailOnlyOrder || method.payment_method_code !== PAYMENT_METHODS.PAY_ON_COLLECTION)
         .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
     [checkoutMethods, isRetailOnlyOrder]
   );
@@ -1095,6 +1153,7 @@ export function PaymentModalV4({
   const walletBalanceLoaded = !!walletCreditOption && !storedValueLoading;
   const walletHasAvailableBalance = liveWalletBalance > 0.001;
   const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
+  const liveAdvanceBalance = storedValueSummary?.advance.balance ?? 0;
 
   const optionByMethodKey = useMemo(() => {
     const allOptions = [...realPaymentOptions, ...customerCreditOptions];
@@ -1182,6 +1241,23 @@ export function PaymentModalV4({
     [optionByMethodKey]
   );
 
+  const getLegStoredValueCap = useCallback(
+    (leg: PaymentLeg) => {
+      const option = getMethodOption(leg.method, leg.gateway_code);
+      const creditNoteBalance = leg.creditReferenceId
+        ? storedValueSummary?.creditNotes.find((note) => note.id === leg.creditReferenceId)?.remaining_balance
+        : undefined;
+      return getStoredValueCapForLeg(leg.method, {
+        walletBalance: leg.method === 'WALLET' ? liveWalletBalance : undefined,
+        advanceBalance: leg.method === 'ADVANCE' ? liveAdvanceBalance : undefined,
+        creditNoteBalance: leg.method === 'CREDIT_NOTE' ? creditNoteBalance : undefined,
+        loyaltyBalance:
+          leg.method === 'LOYALTY_POINTS' ? option?.available_balance ?? undefined : undefined,
+      });
+    },
+    [getMethodOption, liveAdvanceBalance, liveWalletBalance, storedValueSummary?.creditNotes]
+  );
+
   const getOptionDisplayName = (option: CheckoutSettlementOption | undefined, fallbackMethodCode?: string) => {
     if (option) {
       return isRTL ? (option.display_name2 || option.display_name) : option.display_name;
@@ -1234,7 +1310,7 @@ export function PaymentModalV4({
           saleTotal,
           giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
-          walletBalance: target.method === 'WALLET' ? liveWalletBalance : undefined,
+          walletBalance: getLegStoredValueCap(target),
           supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
         });
         const cashTendered = policy.isCash
@@ -1252,7 +1328,7 @@ export function PaymentModalV4({
       updated[idx] = { ...updated[idx], [key]: value };
       return updated;
     });
-  }, [decimalPlaces, getMethodOption, giftCardSettlementAmount, liveWalletBalance, saleTotal]);
+  }, [decimalPlaces, getLegStoredValueCap, getMethodOption, giftCardSettlementAmount, saleTotal]);
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
@@ -1277,7 +1353,11 @@ export function PaymentModalV4({
           saleTotal,
           giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
-          walletBalance: option.payment_method_code === 'WALLET' ? liveWalletBalance : undefined,
+          walletBalance: getLegStoredValueCap({
+            method: option.payment_method_code as PaymentLeg['method'],
+            amount: defaultAmount,
+            ...(existingIndex >= 0 ? prev[existingIndex] : {}),
+          }),
           supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
         });
         const nextLeg: PaymentLeg = {
@@ -1310,7 +1390,69 @@ export function PaymentModalV4({
       });
       focusAmountEditor();
     },
-    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, giftCardSettlementAmount, liveWalletBalance, saleTotal]
+    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, getLegStoredValueCap, giftCardSettlementAmount, saleTotal]
+  );
+
+  const handleCreditNoteSelect = useCallback(
+    (noteId: string) => {
+      const option = pendingCreditNoteOption;
+      if (!option) return;
+      const note = storedValueSummary?.creditNotes.find((entry) => entry.id === noteId);
+      if (!note) return;
+
+      setCreditNotePickerOpen(false);
+      setPendingCreditNoteOption(null);
+      setIsDirtySinceOpen(true);
+      setPaymentLegs((prev) => {
+        const existingIndex = prev.findIndex(
+          (leg) => leg.method === 'CREDIT_NOTE' && leg.creditReferenceId === noteId
+        );
+        const fallbackIndex = prev.findIndex((leg) => leg.method === 'CREDIT_NOTE');
+        const targetIndex =
+          existingIndex >= 0 ? existingIndex : fallbackIndex >= 0 ? fallbackIndex : prev.length;
+        const amount = getSuggestedStoredValueAmount(
+          note.remaining_balance,
+          prev,
+          saleTotal,
+          giftCardSettlementAmount,
+          decimalPlaces,
+          targetIndex < prev.length ? targetIndex : undefined
+        );
+        const nextLeg: PaymentLeg = {
+          method: 'CREDIT_NOTE',
+          amount,
+          creditReferenceId: noteId,
+        };
+
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updated[existingIndex], ...nextLeg };
+          setActiveLegIndex(existingIndex);
+          return updated;
+        }
+        if (fallbackIndex >= 0) {
+          const updated = [...prev];
+          updated[fallbackIndex] = { ...updated[fallbackIndex], ...nextLeg };
+          setActiveLegIndex(fallbackIndex);
+          return updated;
+        }
+        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
+          setActiveLegIndex(0);
+          return [{ ...prev[0], ...nextLeg }];
+        }
+        setActiveLegIndex(prev.length);
+        return [...prev, nextLeg];
+      });
+      focusAmountEditor();
+    },
+    [
+      decimalPlaces,
+      focusAmountEditor,
+      giftCardSettlementAmount,
+      pendingCreditNoteOption,
+      saleTotal,
+      storedValueSummary?.creditNotes,
+    ]
   );
 
   const handleMethodSelect = useCallback(
@@ -1335,6 +1477,19 @@ export function PaymentModalV4({
 
   const handleCustomerCreditSelect = useCallback(
     (option: CheckoutSettlementOption) => {
+      if (option.payment_method_code === 'CREDIT_NOTE') {
+        if (storedValueLoading) {
+          cmxMessage.info(t('customerCredits.loadingBalance'));
+          return;
+        }
+        if (!storedValueSummary?.creditNotes.length) {
+          cmxMessage.info(t('customerCredits.creditNotePickerEmpty'));
+          return;
+        }
+        setPendingCreditNoteOption(option);
+        setCreditNotePickerOpen(true);
+        return;
+      }
       if (option.requires_credit_reference_selection) {
         cmxMessage.info(t('customerCredits.referenceSelectionHint'));
         return;
@@ -1343,7 +1498,9 @@ export function PaymentModalV4({
         option.credit_application_type === 'WALLET' ||
         option.payment_method_code === 'WALLET'
           ? liveWalletBalance
-          : option.available_balance ?? 0;
+          : option.payment_method_code === 'ADVANCE'
+            ? liveAdvanceBalance
+            : option.available_balance ?? 0;
       const existingIndex = paymentLegs.findIndex(
         (leg) => leg.method === option.payment_method_code
       );
@@ -1357,7 +1514,18 @@ export function PaymentModalV4({
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [decimalPlaces, giftCardSettlementAmount, liveWalletBalance, paymentLegs, t, saleTotal, upsertSettlementLeg]
+    [
+      decimalPlaces,
+      giftCardSettlementAmount,
+      liveAdvanceBalance,
+      liveWalletBalance,
+      paymentLegs,
+      saleTotal,
+      storedValueLoading,
+      storedValueSummary?.creditNotes.length,
+      t,
+      upsertSettlementLeg,
+    ]
   );
 
   useEffect(() => {
@@ -1461,8 +1629,19 @@ export function PaymentModalV4({
     () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
     [settlementLegEntries]
   );
-  const walletLegExceedsLiveBalance = !!walletLegEntry &&
-    walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
+  const storedValueLegExceedance = useMemo(() => {
+    for (const { leg, index } of settlementLegEntries) {
+      const cap = getLegStoredValueCap(leg);
+      if (cap != null && walletLegExceedsBalance(leg.amount || 0, cap)) {
+        return { leg, index, cap };
+      }
+    }
+    return null;
+  }, [getLegStoredValueCap, settlementLegEntries]);
+  const walletLegExceedsLiveBalance =
+    storedValueLegExceedance?.leg.method === 'WALLET' &&
+    !!storedValueLegExceedance;
+  const storedValueLegExceedsBalance = !!storedValueLegExceedance;
 
   const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
 
@@ -1496,11 +1675,18 @@ export function PaymentModalV4({
 
   const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
   const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
-  const canReturnChangeFromCash = realPaymentEntries.some(({ leg }) => {
-    if (leg.method !== PAYMENT_METHODS.CASH) return false;
-    const option = getMethodOption(leg.method, leg.gateway_code);
-    return option?.supports_change_return === true;
-  });
+  const canReturnChangeFromCash = useMemo(
+    () =>
+      canReturnChangeFromAllCashLegs(
+        realPaymentEntries
+          .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
+          .map(({ leg }) => ({
+            supportsChangeReturn:
+              getMethodOption(leg.method, leg.gateway_code)?.supports_change_return === true,
+          }))
+      ),
+    [getMethodOption, realPaymentEntries]
+  );
   const cashChangeAmount = deriveChangeReturnedAmount(
     cashTenderedAmount,
     cashLegAmount,
@@ -1873,6 +2059,26 @@ export function PaymentModalV4({
         cmxMessage.error(t('splitPayment.validation.checkNumberRequired'));
         return;
       }
+      if (leg.method === PAYMENT_METHODS.CHECK && (leg.amount ?? 0) > 0) {
+        const checkDateIssue = validateCheckDueDate(leg.checkDate);
+        if (checkDateIssue) {
+          cmxMessage.error(t(`splitPayment.${checkDateIssue}`));
+          return;
+        }
+      }
+      if (leg.method === 'CREDIT_NOTE' && !leg.creditReferenceId?.trim()) {
+        cmxMessage.error(t('customerCredits.creditNoteRequired'));
+        return;
+      }
+      const legOption = getMethodOption(leg.method, leg.gateway_code);
+      if (legOption?.requires_terminal && !leg.terminalId?.trim()) {
+        cmxMessage.error(
+          t('splitPayment.validation.terminalRequired', {
+            method: getOptionDisplayName(legOption, leg.method),
+          })
+        );
+        return;
+      }
     }
 
     if (settlementLegEntries.length > 1) {
@@ -1894,6 +2100,19 @@ export function PaymentModalV4({
       cmxMessage.error(
         t('customerCredits.walletBalanceExceeded', {
           amount: liveWalletBalanceDisplay,
+        })
+      );
+      return;
+    }
+
+    if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
+      cmxMessage.error(
+        t('customerCredits.storedValueBalanceExceeded', {
+          method: getOptionDisplayName(
+            getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
+            storedValueLegExceedance.leg.method
+          ),
+          amount: `${currencyCode} ${formatAmount(storedValueLegExceedance.cap)}`,
         })
       );
       return;
@@ -2087,6 +2306,29 @@ export function PaymentModalV4({
   const hasCheckLegWithoutNumber = paymentLegs.some(
     (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
   );
+  const hasCheckLegWithInvalidDate = useMemo(
+    () =>
+      paymentLegs.some((leg) => {
+        if (leg.method !== PAYMENT_METHODS.CHECK || !(leg.amount ?? 0)) return false;
+        return !!validateCheckDueDate(leg.checkDate);
+      }),
+    [paymentLegs]
+  );
+  const creditNoteLegsMissingReference = useMemo(
+    () =>
+      settlementLegEntries.filter(
+        ({ leg }) => leg.method === 'CREDIT_NOTE' && !leg.creditReferenceId?.trim()
+      ),
+    [settlementLegEntries]
+  );
+  const terminalRequiredLegs = useMemo(
+    () =>
+      settlementLegEntries.filter(({ leg }) => {
+        const option = getMethodOption(leg.method, leg.gateway_code);
+        return option?.requires_terminal && !leg.terminalId?.trim();
+      }),
+    [getMethodOption, settlementLegEntries]
+  );
   const legsMissingRequiredReference = useMemo(
     () =>
       paymentLegs.filter((leg) => {
@@ -2150,7 +2392,7 @@ export function PaymentModalV4({
         saleTotal,
         giftCardSettlementAmount,
         decimalPlaces,
-        targetLeg.method === 'WALLET' ? liveWalletBalance : undefined
+        getLegStoredValueCap(targetLeg)
       );
 
       if (cappedAmount <= moneyEpsilon) {
@@ -2167,8 +2409,8 @@ export function PaymentModalV4({
     [
       decimalPlaces,
       focusAmountEditor,
+      getLegStoredValueCap,
       giftCardSettlementAmount,
-      liveWalletBalance,
       moneyEpsilon,
       paymentLegs,
       saleTotal,
@@ -2225,6 +2467,17 @@ export function PaymentModalV4({
     if (hasCheckLegWithoutNumber) {
       items.push(t('splitPayment.validation.checkNumberRequired'));
     }
+    if (hasCheckLegWithInvalidDate) {
+      const invalidLeg = paymentLegs.find(
+        (leg) =>
+          leg.method === PAYMENT_METHODS.CHECK &&
+          (leg.amount ?? 0) > 0 &&
+          validateCheckDueDate(leg.checkDate)
+      );
+      if (invalidLeg) {
+        items.push(t(`splitPayment.${validateCheckDueDate(invalidLeg.checkDate)!}`));
+      }
+    }
     legsMissingRequiredReference.forEach((leg) => {
       items.push(
         t('splitPayment.validation.referenceRequired', {
@@ -2239,6 +2492,27 @@ export function PaymentModalV4({
         })
       );
     }
+    if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
+      items.push(
+        t('customerCredits.storedValueBalanceExceeded', {
+          method: getOptionDisplayName(
+            getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
+            storedValueLegExceedance.leg.method
+          ),
+          amount: `${currencyCode} ${formatAmount(storedValueLegExceedance.cap)}`,
+        })
+      );
+    }
+    creditNoteLegsMissingReference.forEach(() => {
+      items.push(t('customerCredits.creditNoteRequired'));
+    });
+    terminalRequiredLegs.forEach(({ leg }) => {
+      items.push(
+        t('splitPayment.validation.terminalRequired', {
+          method: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        })
+      );
+    });
     if (cashDrawerBlockingMessage) {
       items.push(cashDrawerBlockingMessage);
     }
@@ -2265,6 +2539,11 @@ export function PaymentModalV4({
     errors.percentDiscount?.message,
     giftCardValidating,
     hasCheckLegWithoutNumber,
+    hasCheckLegWithInvalidDate,
+    creditNoteLegsMissingReference,
+    terminalRequiredLegs,
+    storedValueLegExceedance,
+    storedValueLegExceedsBalance,
     legsMissingRequiredReference,
     getMethodOption,
     getOptionDisplayName,
@@ -2641,6 +2920,22 @@ export function PaymentModalV4({
       return;
     }
 
+    if (legsMissingRequiredReference.length > 0) {
+      const missingRefLeg = legsMissingRequiredReference[0];
+      const refLegIndex = paymentLegs.findIndex(
+        (leg) =>
+          leg.method === missingRefLeg.method &&
+          (leg.gateway_code ?? '') === (missingRefLeg.gateway_code ?? '')
+      );
+      if (refLegIndex >= 0) {
+        setActiveLegIndex(refLegIndex);
+      }
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
     if (hasCheckLegWithoutNumber) {
       const checkLegIndex = paymentLegs.findIndex(
         (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
@@ -2655,10 +2950,46 @@ export function PaymentModalV4({
       return;
     }
 
-    if (walletLegExceedsLiveBalance) {
-      const walletLegIndex = paymentLegs.findIndex((leg) => leg.method === 'WALLET');
-      if (walletLegIndex >= 0) {
-        setActiveLegIndex(walletLegIndex);
+    if (hasCheckLegWithInvalidDate) {
+      const checkLegIndex = paymentLegs.findIndex(
+        (leg) =>
+          leg.method === PAYMENT_METHODS.CHECK &&
+          (leg.amount ?? 0) > 0 &&
+          validateCheckDueDate(leg.checkDate)
+      );
+      if (checkLegIndex >= 0) {
+        setActiveLegIndex(checkLegIndex);
+        setValue('paymentMethod', PAYMENT_METHODS.CHECK, { shouldDirty: true });
+      }
+      window.setTimeout(() => {
+        scrollAndFocusTarget(checkDateInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
+    if (terminalRequiredLegs.length > 0) {
+      setActiveLegIndex(terminalRequiredLegs[0].index);
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountInputRef.current);
+      }, 90);
+      return;
+    }
+
+    if (creditNoteLegsMissingReference.length > 0) {
+      setActiveLegIndex(creditNoteLegsMissingReference[0].index);
+      setPendingCreditNoteOption(
+        customerCreditOptions.find((option) => option.payment_method_code === 'CREDIT_NOTE') ?? null
+      );
+      setCreditNotePickerOpen(true);
+      return;
+    }
+
+    if (storedValueLegExceedsBalance) {
+      const exceedLegIndex =
+        storedValueLegExceedance?.index ??
+        paymentLegs.findIndex((leg) => leg.method === 'WALLET');
+      if (exceedLegIndex >= 0) {
+        setActiveLegIndex(exceedLegIndex);
       }
       window.setTimeout(() => {
         scrollAndFocusTarget(amountInputRef.current, { selectText: true });
@@ -2685,6 +3016,8 @@ export function PaymentModalV4({
     }
   }, [
     creditLimitOverride,
+    creditNoteLegsMissingReference,
+    customerCreditOptions,
     errors.amountDiscount?.message,
     errors.percentDiscount?.message,
     effectiveOutstandingPolicy,
@@ -2692,7 +3025,10 @@ export function PaymentModalV4({
     giftCardPin,
     giftCardValidating,
     hasCheckLegWithoutNumber,
-    walletLegExceedsLiveBalance,
+    hasCheckLegWithInvalidDate,
+    legsMissingRequiredReference,
+    storedValueLegExceedance,
+    storedValueLegExceedsBalance,
     cashDrawerBlockingMessage,
     paymentLegs,
     pinRequired,
@@ -2704,6 +3040,7 @@ export function PaymentModalV4({
     serverTotals?.creditLimit?.wouldExceed,
     setValue,
     t,
+    terminalRequiredLegs,
     invalidImmediateAmount,
     overpaymentNeedsResolution,
   ]);
@@ -2811,7 +3148,7 @@ export function PaymentModalV4({
       saleTotal,
       giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
-      walletBalance: activeLeg.method === 'WALLET' ? liveWalletBalance : undefined,
+      walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
       supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
     });
     setActiveAmountDraft(
@@ -2828,9 +3165,9 @@ export function PaymentModalV4({
     activeLeg,
     activeLegIndex,
     decimalPlaces,
+    getLegStoredValueCap,
     getMethodOption,
     giftCardSettlementAmount,
-    liveWalletBalance,
     notifyIfLegAmountCapped,
     paymentLegs,
     saleTotal,
@@ -2985,7 +3322,12 @@ export function PaymentModalV4({
                           const isWalletOption =
                             option.credit_application_type === 'WALLET' ||
                             option.payment_method_code === 'WALLET';
-                          const disabled = option.requires_credit_reference_selection ||
+                          const isCreditNoteOption = option.payment_method_code === 'CREDIT_NOTE';
+                          const creditNotesAvailable = (storedValueSummary?.creditNotes.length ?? 0) > 0;
+                          const disabled =
+                            (isCreditNoteOption
+                              ? storedValueLoading || !creditNotesAvailable
+                              : option.requires_credit_reference_selection) ||
                             (isWalletOption && (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
                           const balanceLabel = isWalletOption
                             ? storedValueLoading
@@ -2995,6 +3337,12 @@ export function PaymentModalV4({
                                     amount: liveWalletBalanceDisplay,
                                   })
                                 : t('customerCredits.noWalletBalance')
+                            : isCreditNoteOption
+                              ? storedValueLoading
+                                ? t('customerCredits.loadingBalance')
+                                : creditNotesAvailable
+                                  ? t('customerCredits.creditNoteSelectHint')
+                                  : t('customerCredits.creditNotePickerEmpty')
                             : disabled
                               ? t('customerCredits.referenceSelectionHint')
                               : t('customerCredits.available', {
@@ -3318,7 +3666,7 @@ export function PaymentModalV4({
                                       saleTotal,
                                       giftCardAmount: giftCardSettlementAmount,
                                       decimalPlaces,
-                                      walletBalance: activeLeg.method === 'WALLET' ? liveWalletBalance : undefined,
+                                      walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
                                       supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
                                     });
                                     notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
@@ -3495,7 +3843,77 @@ export function PaymentModalV4({
                                 <div className="space-y-4">
                                   {creditMethodCodes.includes(activeLeg.method) && (
                                     <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
-                                      {t('customerCredits.applied')}
+                                      {activeLeg.method === 'CREDIT_NOTE' ? (
+                                        <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                          <span>
+                                            {activeLeg.creditReferenceId
+                                              ? t('customerCredits.creditNoteSelected', {
+                                                  id: activeLeg.creditReferenceId.slice(0, 8),
+                                                })
+                                              : t('customerCredits.creditNoteRequired')}
+                                          </span>
+                                          <CmxButton
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              setPendingCreditNoteOption(
+                                                customerCreditOptions.find(
+                                                  (option) => option.payment_method_code === 'CREDIT_NOTE'
+                                                ) ?? null
+                                              );
+                                              setCreditNotePickerOpen(true);
+                                            }}
+                                          >
+                                            {t('customerCredits.creditNoteChange')}
+                                          </CmxButton>
+                                        </div>
+                                      ) : (
+                                        t('customerCredits.applied')
+                                      )}
+                                    </div>
+                                  )}
+                                  {activeLegOption?.requires_terminal && (
+                                    <div>
+                                      <label className="mb-1 block text-xs font-medium text-slate-600">
+                                        {`${t('splitPayment.paymentTerminal')} *`}
+                                      </label>
+                                      <CmxSelectDropdown
+                                        value={activeLeg.terminalId ?? ''}
+                                        onValueChange={(value) =>
+                                          updateLeg(activeLegIndex, 'terminalId', value || undefined)
+                                        }
+                                      >
+                                        <CmxSelectDropdownTrigger>
+                                          <CmxSelectDropdownValue
+                                            displayValue={
+                                              activeLeg.terminalId
+                                                ? branchPaymentTerminals.find(
+                                                    (terminal) => terminal.id === activeLeg.terminalId
+                                                  )?.terminal_name ?? activeLeg.terminalId
+                                                : ''
+                                            }
+                                            placeholder={t('splitPayment.paymentTerminalPlaceholder')}
+                                          />
+                                        </CmxSelectDropdownTrigger>
+                                        <CmxSelectDropdownContent>
+                                          <CmxSelectDropdownItem value="">
+                                            {t('splitPayment.paymentTerminalPlaceholder')}
+                                          </CmxSelectDropdownItem>
+                                          {branchPaymentTerminals.map((terminal) => (
+                                            <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
+                                              {isRTL
+                                                ? terminal.terminal_name2 || terminal.terminal_name
+                                                : terminal.terminal_name}
+                                            </CmxSelectDropdownItem>
+                                          ))}
+                                        </CmxSelectDropdownContent>
+                                      </CmxSelectDropdown>
+                                      {!activeLeg.terminalId?.trim() ? (
+                                        <p className="mt-1 text-xs text-red-600">
+                                          {t('splitPayment.validation.terminalRequiredField')}
+                                        </p>
+                                      ) : null}
                                     </div>
                                   )}
                                   {activeLeg.method === PAYMENT_METHODS.CARD && (
@@ -3536,10 +3954,20 @@ export function PaymentModalV4({
                                         onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
                                       />
                                       <CmxInput
-                                        label={t('splitPayment.authCode')}
+                                        label={
+                                          activeLegOption?.requires_reference
+                                            ? `${t('splitPayment.authCode')} *`
+                                            : t('splitPayment.authCode')
+                                        }
                                         value={activeLeg.auth_code ?? ''}
                                         dir="ltr"
                                         placeholder="—"
+                                        error={
+                                          activeLegOption?.requires_reference &&
+                                          !legHasRequiredPaymentReference(activeLeg, true)
+                                            ? t('splitPayment.validation.referenceRequiredField')
+                                            : undefined
+                                        }
                                         onChange={(event) => updateLeg(activeLegIndex, 'auth_code', event.target.value || undefined)}
                                       />
                                     </div>
@@ -3572,6 +4000,7 @@ export function PaymentModalV4({
                                         }}
                                       />
                                       <CmxInput
+                                        ref={checkDateInputRef}
                                         type="date"
                                         label={t('splitPayment.checkDueDate')}
                                         value={activeLeg.checkDate ?? ''}
@@ -4232,6 +4661,7 @@ export function PaymentModalV4({
                                 <OrderValueBreakdownPanel
                                   model={orderValueBreakdownModel}
                                   isRTL={isRTL}
+                                  taxLoading={totalsLoading && items.length > 0 && !serverTotals}
                                   labels={{
                                     grossValue: t('orderValue.grossValue'),
                                     grossValueHelp: t('orderValue.grossValueHelp'),
@@ -4913,6 +5343,20 @@ export function PaymentModalV4({
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+
+      <PaymentModalV4CreditNotePicker
+        open={creditNotePickerOpen}
+        onClose={() => {
+          setCreditNotePickerOpen(false);
+          setPendingCreditNoteOption(null);
+        }}
+        notes={storedValueSummary?.creditNotes ?? []}
+        selectedNoteId={
+          paymentLegs.find((leg) => leg.method === 'CREDIT_NOTE')?.creditReferenceId ?? null
+        }
+        onSelect={handleCreditNoteSelect}
+        isRTL={isRTL}
+      />
 
       <CmxConfirmDialog
         open={confirmCloseOpen}
