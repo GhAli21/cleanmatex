@@ -3733,6 +3733,34 @@
       "markRead": "Mark as read",
       "viewDetails": "View details",
       "justNow": "Just now"
+    },
+    "settings": {
+      "title": "Notification Settings",
+      "myPrefs": "My Preferences",
+      "channelSettings": "Channel Settings",
+      "enableChannel": "Receive notifications via this channel",
+      "marketingConsent": "Marketing notification consent",
+      "quietHours": "Enable quiet hours",
+      "quietHoursStart": "Start",
+      "quietHoursEnd": "End",
+      "saved": "Settings saved",
+      "saveFailed": "Failed to save settings",
+      "loadFailed": "Failed to load settings"
+    },
+    "deliveryLog": {
+      "title": "Delivery Log",
+      "event": "Event",
+      "channel": "Channel",
+      "recipient": "Recipient",
+      "status": "Status",
+      "retries": "Retries",
+      "date": "Date",
+      "error": "Error",
+      "allChannels": "All channels",
+      "allStatuses": "All statuses",
+      "refresh": "Refresh",
+      "empty": "No delivery records found",
+      "loadFailed": "Failed to load delivery log"
     }
   },
   "reports": {
@@ -5035,6 +5063,7 @@
         "payOnCollection": "Pay on Collection",
         "bankTransfer": "Bank Transfer",
         "mobilePayment": "Mobile Payment",
+        "paymentGateway": "Payment Gateway",
         "hyperpay": "HyperPay",
         "paytabs": "PayTabs",
         "stripe": "Stripe",
@@ -5277,6 +5306,8 @@
       "rightRail": {
         "balanceResult": "Balance Result",
         "orderTotal": "Order Total",
+        "appliedAmount": "Applied",
+        "cashTendered": "Cash Tendered",
         "totalSettledNow": "Total Settled Now",
         "remainingBalance": "Remaining Balance",
         "overpaidAmount": "Overpaid Amount",

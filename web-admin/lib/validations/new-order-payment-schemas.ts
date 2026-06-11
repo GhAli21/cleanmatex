@@ -44,13 +44,16 @@ const canonicalPaymentMethodCodeSchema = z.enum([
   PAYMENT_METHODS.CARD,
   PAYMENT_METHODS.CHECK,
   PAYMENT_METHODS.PAY_ON_COLLECTION,
+  PAYMENT_METHODS.PAY_ON_DELIVERY,
   PAYMENT_METHODS.INVOICE,
-  PAYMENT_METHODS.HYPERPAY,
-  PAYMENT_METHODS.PAYTABS,
-  PAYMENT_METHODS.STRIPE,
+  PAYMENT_METHODS.PAYMENT_GATEWAY,
   PAYMENT_METHODS.BANK_TRANSFER,
   PAYMENT_METHODS.MOBILE_PAYMENT,
   'WALLET',
+  'GIFT_CARD',
+  'CREDIT_NOTE',
+  'ADVANCE',
+  'LOYALTY_POINTS',
   'CUSTOMER_CREDIT',
   'CUSTOMER_ADVANCE',
   'LOYALTY_CREDIT',
@@ -127,6 +130,24 @@ export const paymentLegSchema = z
         path: ['checkDate'],
       });
     }
+  })
+  .superRefine((leg, ctx) => {
+    if (leg.cashTendered === undefined) return;
+    if (leg.method !== PAYMENT_METHODS.CASH) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CASH_TENDERED_ONLY_FOR_CASH',
+        path: ['cashTendered'],
+      });
+      return;
+    }
+    if (leg.cashTendered < leg.amount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CASH_TENDERED_LESS_THAN_AMOUNT',
+        path: ['cashTendered'],
+      });
+    }
   });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;
@@ -168,10 +189,6 @@ export const newOrderPaymentPayloadSchema = z
     /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal amountToCharge. */
     paymentLegs: z.array(paymentLegSchema).optional(),
   })
-  .refine(
-    (data) => data.amountToCharge <= data.totals.saleTotal + 0.001,
-    { message: 'Amount to charge cannot exceed total', path: ['amountToCharge'] }
-  )
   .refine(
     (data) => {
       if (!data.paymentLegs || data.paymentLegs.length === 0) return true;

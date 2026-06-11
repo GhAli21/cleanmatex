@@ -554,8 +554,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
   const policy = await getPartialLaterCollectionPolicy(tenantId);
 
   return prisma.$transaction(async (tx) => {
-    const rows = await tx.$queryRaw<{ id: string; outstanding_amount: number; currency_code: string }[]>`
-      SELECT id, outstanding_amount::float8, currency_code
+    const rows = await tx.$queryRaw<{ id: string; outstanding_amount: number; currency_code: string; branch_id: string | null }[]>`
+      SELECT id, outstanding_amount::float8, currency_code, branch_id
       FROM public.org_orders_mst
       WHERE id = ${orderId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
@@ -570,6 +570,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
 
     const outstanding = rows[0].outstanding_amount;
     const currencyCode = rows[0].currency_code ?? 'OMR';
+    const branchId = rows[0].branch_id;
     const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
 
     if (totalCollected <= 0) {
@@ -580,6 +581,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     }
 
     let changeReturned = 0;
+    let appliedBeforeLeg = 0;
 
     for (const leg of paymentLegs) {
       const change = leg.cashTendered && leg.cashTendered > leg.amount ? leg.cashTendered - leg.amount : 0;
@@ -597,14 +599,52 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           payment_method_code: true,
           gateway_code: true,
           requires_cash_drawer: true,
+          supports_change_return: true,
+          supports_overpayment: true,
         },
       });
       if (!method) {
         throw new Error('Selected payment method is not available for later collection');
       }
+      const branchOverride = branchId
+        ? await tx.org_branch_payment_methods_cf.findFirst({
+            where: {
+              tenant_org_id: tenantId,
+              branch_id: branchId,
+              org_payment_method_id: leg.paymentMethodId,
+              is_active: true,
+              rec_status: 1,
+            },
+            select: { cash_drawer_required: true },
+          })
+        : null;
+      const requiresCashDrawer = branchOverride?.cash_drawer_required ?? method.requires_cash_drawer;
+
+      const excessBeforeLeg = Math.max(0, appliedBeforeLeg - outstanding);
+      const excessAfterLeg = Math.max(0, appliedBeforeLeg + leg.amount - outstanding);
+      const excessIntroducedByLeg = excessAfterLeg - excessBeforeLeg;
+      if (excessIntroducedByLeg > 0.001) {
+        const canRetainExcess =
+          method.payment_method_code !== 'CASH' && method.supports_overpayment;
+        if (!canRetainExcess) {
+          throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
+        }
+      }
+
+      if (method.payment_method_code === 'CASH') {
+        const cashTendered = leg.cashTendered ?? leg.amount;
+        if (cashTendered < leg.amount) {
+          throw new Error('CASH_TENDERED_LESS_THAN_AMOUNT');
+        }
+        if (cashTendered - leg.amount > 0.001 && !method.supports_change_return) {
+          throw new Error('CASH_CHANGE_NOT_ALLOWED');
+        }
+      } else if (leg.cashTendered != null) {
+        throw new Error('CASH_TENDERED_ONLY_FOR_CASH');
+      }
       const paymentStatus = method.gateway_code ? 'PENDING' : 'COMPLETED';
 
-      await tx.org_order_payments_dtl.create({
+      const payment = await tx.org_order_payments_dtl.create({
         data: {
           tenant_org_id: tenantId,
           order_id: orderId,
@@ -615,7 +655,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           amount: leg.amount,
           tendered_amount: leg.cashTendered ?? null,
           change_returned_amount: change > 0 ? change : null,
-          cash_drawer_session_id: method.requires_cash_drawer ? (cashDrawerSessionId ?? null) : null,
+          cash_drawer_session_id: requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
           gateway_code: method.gateway_code ?? null,
           gateway_reference: leg.reference ?? null,
           // CHECK payment metadata — preserved on later collection so a paid order
@@ -632,7 +672,46 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           rec_status: 1,
           received_by: collectedBy,
         },
+        select: { id: true },
       });
+
+      if (method.payment_method_code === 'CASH' && requiresCashDrawer) {
+        if (!cashDrawerSessionId) {
+          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
+        }
+        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+          where: {
+            id: cashDrawerSessionId,
+            tenant_org_id: tenantId,
+            status: 'OPEN',
+          },
+          select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
+        });
+        if (!session) {
+          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
+        }
+        await tx.org_cash_drawer_movements_dtl.create({
+          data: {
+            tenant_org_id: tenantId,
+            branch_id: session.branch_id ?? branchId,
+            cash_drawer_id: session.cash_drawer_id,
+            cash_drawer_session_id: session.id,
+            movement_type: 'CASH_SALE',
+            direction: 'IN',
+            amount: leg.amount,
+            currency_code: currencyCode ?? session.currency_code,
+            order_id: orderId,
+            order_payment_id: payment.id,
+            performed_by: collectedBy,
+            performed_at: new Date(),
+            is_active: true,
+            rec_status: 1,
+            created_by: collectedBy,
+          },
+        });
+      }
+
+      appliedBeforeLeg += leg.amount;
     }
 
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);

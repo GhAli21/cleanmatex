@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
       description2: method.description2,
       requires_cash_drawer: method.requires_cash_drawer,
       requires_terminal: method.requires_terminal,
+      supports_overpayment: method.supports_overpayment,
+      supports_change_return: method.supports_change_return,
       requires_reference: method.requires_reference,
       allowed_in_pos: method.allowed_in_pos,
       allowed_for_pay_now: method.allowed_for_pay_now,
@@ -48,15 +50,19 @@ export async function GET(request: NextRequest) {
       allowed_for_invoice_payment: method.allowed_for_invoice_payment,
       credit_application_type: method.credit_application_type,
       available_balance:
-        method.credit_application_type === CREDIT_APPLICATION_TYPES.WALLET
+        method.credit_application_type === CREDIT_APPLICATION_TYPES.WALLET ||
+        method.payment_method_code === 'WALLET'
           ? storedValueSummary?.wallet.balance ?? 0
-          : method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE
+          : method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE ||
+              method.payment_method_code === 'ADVANCE'
             ? storedValueSummary?.advance.balance ?? 0
-            : method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT
+            : method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT ||
+                method.payment_method_code === 'CREDIT_NOTE'
               ? storedValueSummary?.creditNoteTotal ?? 0
               : null,
       requires_credit_reference_selection:
-        method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT,
+        method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT ||
+        method.payment_method_code === 'CREDIT_NOTE',
       display_order: method.display_order,
     }));
 

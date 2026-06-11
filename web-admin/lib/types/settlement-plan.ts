@@ -38,6 +38,10 @@ export interface RealPaymentLeg {
   cashDrawerSessionId?: string;
   /** Cash tendered by customer (CASH legs only). */
   tenderedAmount?: number;
+  /** Effective payment config flag after branch overrides and tenant fallback. */
+  supportsChangeReturn: boolean;
+  /** Effective payment config flag allowing retained non-cash overpayment. */
+  supportsOverpayment: boolean;
   cardBrandCode?: string;
   cardLast4?: string;
   /** Authorization code from terminal for CARD legs. */

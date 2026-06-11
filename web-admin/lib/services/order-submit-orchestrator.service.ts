@@ -367,7 +367,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }
   }
 
-  if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverSaleTotal + TOLERANCE)
+  if (!Number.isFinite(amountToCharge) || amountToCharge < 0)
     throw new Error('AMOUNT_OUT_OF_RANGE');
   if (hasImmediatePayment && amountToCharge <= 0)
     throw new Error('AMOUNT_OUT_OF_RANGE');
@@ -403,7 +403,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   });
 
   const settlementLegs: ResolvedSettlementLeg[] = paymentLegs.map((leg) => {
-    const row = methodRows.find((r) => r.payment_method_code === leg.method);
+    const row = methodRows.find((r) => {
+      if (r.payment_method_code !== leg.method) return false;
+      if (leg.method !== PAYMENT_METHODS.PAYMENT_GATEWAY) return true;
+      return (r.gateway_code ?? null) === (leg.gateway_code ?? null);
+    });
     if (!row) throw new Error(`Payment method config not found for code: ${leg.method}`);
 
     const settlementOption: SettlementOption = {
@@ -417,6 +421,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
       requiresCashDrawer:    row.requires_cash_drawer,
       requiresTerminal:      row.requires_terminal,
+      supportsOverpayment:   row.supports_overpayment,
+      supportsChangeReturn:  row.supports_change_return,
       minAmount:             row.min_amount,
       maxAmount:             row.max_amount,
       minOrderAmount:        row.min_order_amount,
@@ -478,6 +484,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
       requiresCashDrawer:    row.requires_cash_drawer,
       requiresTerminal:      row.requires_terminal,
+      supportsOverpayment:   row.supports_overpayment,
+      supportsChangeReturn:  row.supports_change_return,
       minAmount:             row.min_amount,
       maxAmount:             row.max_amount,
       minOrderAmount:        row.min_order_amount,

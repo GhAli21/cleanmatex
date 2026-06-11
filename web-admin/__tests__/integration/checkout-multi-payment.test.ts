@@ -124,6 +124,22 @@ describe('checkout multi-leg payment — validation layer', () => {
     it('rejects leg with negative amount', () => {
       expect(paymentLegSchema.safeParse({ method: 'CASH', amount: -1 }).success).toBe(false);
     });
+
+    it('accepts cash tendered on cash legs when tendered is not below applied amount', () => {
+      expect(paymentLegSchema.safeParse({ method: 'CASH', amount: 8.321, cashTendered: 8.821 }).success).toBe(true);
+      expect(paymentLegSchema.safeParse({ method: 'CASH', amount: 8.321, cashTendered: 8 }).success).toBe(false);
+    });
+
+    it('rejects cash tendered on non-cash legs', () => {
+      expect(paymentLegSchema.safeParse({ method: 'CARD', amount: 8.321, cashTendered: 8.821 }).success).toBe(false);
+    });
+
+    it('accepts live DB payment method codes from org_payment_methods_cf', () => {
+      for (const method of ['PAYMENT_GATEWAY', 'ADVANCE', 'CREDIT_NOTE', 'LOYALTY_POINTS']) {
+        expect(paymentLegSchema.safeParse({ method, amount: 1, gateway_code: method === 'PAYMENT_GATEWAY' ? 'HYPERPAY' : undefined }).success)
+          .toBe(true);
+      }
+    });
   });
 
   describe('partial payment outstanding policy payload', () => {
@@ -194,6 +210,22 @@ describe('checkout multi-leg payment — validation layer', () => {
           { method: 'CASH', amount: 60 },
           { method: 'CARD', amount: 40 },
         ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('leaves overpayment policy checks to settlement services where method config is available', () => {
+      const result = newOrderPaymentPayloadSchema.safeParse({
+        amountToCharge: 101,
+        totals: {
+          subtotal: 100,
+          manualDiscount: 0,
+          promoDiscount: 0,
+          vatValue: 0,
+          saleTotal: 100,
+        },
+        paymentLegs: [{ method: 'CARD', amount: 101 }],
       });
 
       expect(result.success).toBe(true);

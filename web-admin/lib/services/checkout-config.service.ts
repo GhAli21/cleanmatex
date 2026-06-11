@@ -25,6 +25,8 @@ function mapToSettlementOption(row: {
   credit_application_type: string | null;
   requires_cash_drawer: boolean;
   requires_terminal: boolean;
+  supports_overpayment: boolean;
+  supports_change_return: boolean;
   min_amount: Decimal | null;
   max_amount: Decimal | null;
   min_order_amount: Decimal | null;
@@ -49,6 +51,8 @@ function mapToSettlementOption(row: {
     creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
     requiresCashDrawer:    row.requires_cash_drawer,
     requiresTerminal:      row.requires_terminal,
+    supportsOverpayment:   row.supports_overpayment,
+    supportsChangeReturn:  row.supports_change_return,
     minAmount:             row.min_amount ? toNumber(row.min_amount) : null,
     maxAmount:             row.max_amount ? toNumber(row.max_amount) : null,
     minOrderAmount:        row.min_order_amount ? toNumber(row.min_order_amount) : null,
@@ -128,6 +132,8 @@ export async function getCheckoutOptions(
       credit_application_type: row.credit_application_type,
       requires_cash_drawer: row.requires_cash_drawer,
       requires_terminal: row.requires_terminal,
+      supports_overpayment: row.supports_overpayment,
+      supports_change_return: row.supports_change_return,
       min_amount: row.min_amount != null ? new Decimal(row.min_amount) : null,
       max_amount: row.max_amount != null ? new Decimal(row.max_amount) : null,
       min_order_amount: row.min_order_amount != null ? new Decimal(row.min_order_amount) : null,
@@ -145,16 +151,26 @@ export async function getCheckoutOptions(
       result.paymentMethods.push(option);
     } else if (option.paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION) {
       if (customerId) {
-        switch (option.creditApplicationType) {
-          case CREDIT_APPLICATION_TYPES.WALLET:
-            option.availableBalance = walletBalance; break;
-          case CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE:
-            option.availableBalance = advanceBalance; break;
-          case CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT:
-            option.availableBalance = creditNotesTotal; break;
-          case CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT:
-            option.availableBalance = loyaltyPointsValue; break;
-          // GIFT_CARD: balance looked up at redemption time by card code
+        if (
+          option.creditApplicationType === CREDIT_APPLICATION_TYPES.WALLET ||
+          option.paymentMethodCode === 'WALLET'
+        ) {
+          option.availableBalance = walletBalance;
+        } else if (
+          option.creditApplicationType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE ||
+          option.paymentMethodCode === 'ADVANCE'
+        ) {
+          option.availableBalance = advanceBalance;
+        } else if (
+          option.creditApplicationType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT ||
+          option.paymentMethodCode === 'CREDIT_NOTE'
+        ) {
+          option.availableBalance = creditNotesTotal;
+        } else if (
+          option.creditApplicationType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT ||
+          option.paymentMethodCode === 'LOYALTY_POINTS'
+        ) {
+          option.availableBalance = loyaltyPointsValue;
         }
       }
       result.creditApplications.push(option);
@@ -209,6 +225,8 @@ export async function resolveSettlementLeg(
     credit_application_type: row.credit_application_type,
     requires_cash_drawer: row.requires_cash_drawer,
     requires_terminal: row.requires_terminal,
+    supports_overpayment: row.supports_overpayment,
+    supports_change_return: row.supports_change_return,
     min_amount: row.min_amount != null ? new Decimal(row.min_amount) : null,
     max_amount: row.max_amount != null ? new Decimal(row.max_amount) : null,
     min_order_amount: row.min_order_amount != null ? new Decimal(row.min_order_amount) : null,

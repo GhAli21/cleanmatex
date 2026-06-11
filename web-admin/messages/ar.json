@@ -3733,6 +3733,34 @@
       "markRead": "تحديد كمقروء",
       "viewDetails": "عرض التفاصيل",
       "justNow": "الآن"
+    },
+    "settings": {
+      "title": "إعدادات الإشعارات",
+      "myPrefs": "تفضيلاتي",
+      "channelSettings": "إعدادات القنوات",
+      "enableChannel": "تلقّي الإشعارات عبر هذه القناة",
+      "marketingConsent": "الموافقة على الإشعارات التسويقية",
+      "quietHours": "تفعيل ساعات الهدوء",
+      "quietHoursStart": "البداية",
+      "quietHoursEnd": "النهاية",
+      "saved": "تم حفظ الإعدادات",
+      "saveFailed": "فشل حفظ الإعدادات",
+      "loadFailed": "فشل تحميل الإعدادات"
+    },
+    "deliveryLog": {
+      "title": "سجل التسليم",
+      "event": "الحدث",
+      "channel": "القناة",
+      "recipient": "المستلم",
+      "status": "الحالة",
+      "retries": "المحاولات",
+      "date": "التاريخ",
+      "error": "الخطأ",
+      "allChannels": "كل القنوات",
+      "allStatuses": "كل الحالات",
+      "refresh": "تحديث",
+      "empty": "لا توجد سجلات تسليم",
+      "loadFailed": "فشل تحميل سجل التسليم"
     }
   },
   "reports": {
@@ -5035,6 +5063,7 @@
         "payOnCollection": "دفع عند الاستلام",
         "bankTransfer": "تحويل بنكي",
         "mobilePayment": "دفع عبر الجوال",
+        "paymentGateway": "بوابة الدفع",
         "hyperpay": "هايبر باي",
         "paytabs": "باي تابز",
         "stripe": "سترايب",
@@ -5277,6 +5306,8 @@
       "rightRail": {
         "balanceResult": "نتيجة الرصيد",
         "orderTotal": "إجمالي الطلب",
+        "appliedAmount": "المطبّق",
+        "cashTendered": "النقد المستلم",
         "totalSettledNow": "إجمالي المسوّى الآن",
         "remainingBalance": "الرصيد المتبقي",
         "overpaidAmount": "المبلغ الزائد",

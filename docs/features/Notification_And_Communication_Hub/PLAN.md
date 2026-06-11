@@ -423,28 +423,71 @@ Tasks:
 
 ---
 
-### Step 3.1 — Migration 0351: FCM Tokens Table
+### Step 3.1 — Migration 0351: Provider-Agnostic Push Subscriptions ✅ DONE
 
-**Skills to load first:** `/database`  
-**File:** `supabase/migrations/0351_notif_fcm_tokens.sql`
+**Skills loaded:** `/database`  
+**File:** `supabase/migrations/0351_notif_push_subscriptions.sql`
 
 Tasks:
-- [ ] Create `org_notif_fcm_tokens_dtl`: `id UUID PK`, `tenant_org_id`, `user_id`, `device_id TEXT`, `token TEXT`, `platform TEXT` (IOS/ANDROID/WEB), `app_version TEXT`, `last_verified_at TIMESTAMP`, `failure_count INT DEFAULT 0`, `is_active BOOLEAN DEFAULT true`, audit fields
-- [ ] RLS: `tenant_org_id = auth.jwt()->>'tenant_org_id'`
-- [ ] Unique index: `(tenant_org_id, user_id, device_id)`
-- [ ] Index: `(tenant_org_id, is_active, last_verified_at)`
+- [x] Create `org_notif_push_subs_dtl` (22 chars): `id UUID PK`, `tenant_org_id`, `user_id`, `device_id TEXT`, `provider_code TEXT CHECK (FCM|VAPID|ONESIGNAL)`, `platform TEXT CHECK (IOS|ANDROID|WEB|BROWSER)`, `subscription_data JSONB`, `app_version TEXT`, `last_verified_at TIMESTAMP`, `failure_count INT DEFAULT 0`, `is_active BOOLEAN DEFAULT true`, audit fields
+- [x] UNIQUE index: `(tenant_org_id, user_id, device_id, provider_code)` — one subscription per device per provider
+- [x] Partial index on active subscriptions for push adapter query
+- [x] Stale-sweep index: `(tenant_org_id, is_active, last_verified_at)`
+- [x] RLS: `current_tenant_id()` policy
 - [ ] **STOP → wait for user to apply 0351**
 - [ ] Update STATUS.md: mark Step 3.1 done
 
 ---
 
-### Step 3.2 — FCM Token API Routes
+### Step 3.2 — Migration 0352: Channel Provider Config Table ✅ DONE
 
-- [ ] `POST /api/notifications/fcm-token` — register or refresh token
-- [ ] `DELETE /api/notifications/fcm-token` — deregister on logout
-- [ ] FCM error handler: on UNREGISTERED/INVALID_ARGUMENT → `is_active = false`, log
+**Skills loaded:** `/database`  
+**File:** `supabase/migrations/0352_notif_channel_provider_cf.sql`
+
+Tasks:
+- [x] Create `org_ntf_channel_provider_cf` (28 chars): `id UUID PK`, `tenant_org_id`, `channel_code TEXT REFERENCES sys_notification_channel_cd`, `provider_code TEXT`, `display_name TEXT`, `config JSONB` (non-secrets only), `is_active BOOLEAN DEFAULT false`, audit fields
+- [x] UNIQUE on `(tenant_org_id, channel_code, provider_code)` — no duplicate provider per channel
+- [x] Partial UNIQUE on `(tenant_org_id, channel_code) WHERE is_active=true` — exactly one active provider per channel
+- [x] RLS: `current_tenant_id()` policy
+- [ ] **STOP → wait for user to apply 0352**
 - [ ] Update STATUS.md: mark Step 3.2 done
-- [ ] Refresh docs: document FCM token registration route in API routes reference
+
+---
+
+### Step 3.3 — NotificationSettingsService (Source of Truth) ✅ DONE
+
+**Skills loaded:** `/backend`  
+**File:** `web-admin/lib/notifications/settings-service.ts`
+
+Tasks:
+- [x] Singleton `NotificationSettingsService` with 30 s in-memory cache per tenant
+- [x] `getAllChannelConfigs(tenantOrgId)` — parallel fetch of settings + active provider; returns `ChannelConfig[]`
+- [x] `getChannelConfig(tenantOrgId, channelCode)` — single channel lookup
+- [x] `isChannelEnabled(tenantOrgId, channelCode)` — quick boolean
+- [x] `getActiveProvider(tenantOrgId, channelCode)` — returns `{ providerCode, config }` or null
+- [x] `getUserPrefs(tenantOrgId, userId, channelCode?)` — user pref rows (cached 30 s per user)
+- [x] `hasMarketingConsent(tenantOrgId, userId, channelCode)` — derived from user prefs
+- [x] `invalidateChannel(tenantOrgId)` / `invalidateUserPrefs(tenantOrgId, userId)` / `invalidateAll()`
+- [x] Orchestrator updated to use service instead of direct DB queries
+- [x] Update STATUS.md: mark Step 3.3 done
+
+---
+
+### Step 3.4 — Provider Settings API Routes ✅ DONE
+
+**Skills loaded:** `/backend`  
+**File:** `web-admin/app/api/v1/notifications/settings/providers/route.ts`  
+**Updated:** `web-admin/app/api/v1/notifications/settings/route.ts` (GET now uses service; PUT invalidates cache)
+
+Tasks:
+- [x] `GET  /api/v1/notifications/settings` — returns configs merged with active provider (via service)
+- [x] `PUT  /api/v1/notifications/settings` — upserts channel settings + invalidates cache
+- [x] `GET  /api/v1/notifications/settings/providers` — list all provider configs, optional `?channel_code=`
+- [x] `POST /api/v1/notifications/settings/providers` — add provider config (is_active=false by default)
+- [x] `PUT  /api/v1/notifications/settings/providers` — activate provider: deactivates all others for channel, then activates target
+- [x] `DELETE /api/v1/notifications/settings/providers?channel_code=&provider_code=` — soft-delete (blocks deleting active provider)
+- [x] All writes invalidate `notificationSettingsService` cache
+- [x] Update STATUS.md: mark Step 3.4 done
 
 ---
 

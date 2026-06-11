@@ -58,11 +58,23 @@ export function deriveOutstandingPolicy(
   return preferred;
 }
 
-export function getAmountAppliedToOrder(
+export function deriveAmountAppliedToOrder(
   saleTotal: number,
   totalSettledNowAmount: number
 ): number {
   return Math.min(totalSettledNowAmount, saleTotal);
+}
+
+export const getAmountAppliedToOrder = deriveAmountAppliedToOrder;
+
+export function deriveChangeReturnedAmount(
+  cashTenderedAmount: number,
+  cashAppliedAmount: number,
+  canReturnChangeFromCash: boolean,
+  epsilon = 0.001
+): number {
+  const changeAmount = cashTenderedAmount - cashAppliedAmount;
+  return canReturnChangeFromCash && changeAmount > epsilon ? changeAmount : 0;
 }
 
 export function getDisplayChangeAmount(
@@ -73,13 +85,15 @@ export function getDisplayChangeAmount(
   return canReturnChangeFromCash && changeAmount > epsilon ? changeAmount : 0;
 }
 
-export function getUnresolvedOverpaymentAmount(
+export function deriveUnresolvedOverpaymentAmount(
   changeAmount: number,
   canReturnChangeFromCash: boolean,
   epsilon = 0.001
 ): number {
   return changeAmount > epsilon && !canReturnChangeFromCash ? changeAmount : 0;
 }
+
+export const getUnresolvedOverpaymentAmount = deriveUnresolvedOverpaymentAmount;
 
 export function getNetCashRetainedAmount(
   cashLegAmount: number,
@@ -91,6 +105,52 @@ export function getNetCashRetainedAmount(
     return cashLegAmount;
   }
   return Math.max(0, cashLegAmount - changeAmount);
+}
+
+export function deriveCashTenderedAmount(
+  rawTenderedAmount: number,
+  appliedAmount: number,
+  canReturnChangeFromCash: boolean,
+  decimalPlaces: number
+): number {
+  const tenderedAmount = canReturnChangeFromCash
+    ? Math.max(0, rawTenderedAmount)
+    : appliedAmount;
+  return Number.parseFloat(tenderedAmount.toFixed(decimalPlaces));
+}
+
+export function deriveLegAppliedAmount({
+  rawAmount,
+  paymentLegs,
+  legIndex,
+  saleTotal,
+  giftCardAmount,
+  decimalPlaces,
+  walletBalance,
+  supportsOverpayment = false,
+}: {
+  rawAmount: number;
+  paymentLegs: Array<{ amount?: number }>;
+  legIndex: number;
+  saleTotal: number;
+  giftCardAmount: number;
+  decimalPlaces: number;
+  walletBalance?: number;
+  supportsOverpayment?: boolean;
+}): number {
+  if (supportsOverpayment && walletBalance == null) {
+    return Number.parseFloat(Math.max(0, rawAmount).toFixed(decimalPlaces));
+  }
+
+  return capPaymentLegAmount(
+    rawAmount,
+    paymentLegs,
+    legIndex,
+    saleTotal,
+    giftCardAmount,
+    decimalPlaces,
+    walletBalance
+  );
 }
 
 /** Sum of payment-leg amounts, optionally excluding one leg index. */

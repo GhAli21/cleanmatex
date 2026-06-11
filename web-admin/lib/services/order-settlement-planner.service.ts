@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants/order-financial';
 import type { ResolvedSettlementLeg } from '@/lib/types/order-financial';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import type {
   SettlementPlan,
   RealPaymentLeg,
@@ -87,6 +88,12 @@ export function buildSettlementPlan(
         option.defaultCreationStatus ||
         resolveDefaultStatus(option.paymentMethodCode, option.gatewayCode);
       const allowStatusOverride = option.allowStatusOverride ?? false;
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: option.paymentMethodCode,
+        supportsChangeReturn: option.supportsChangeReturn,
+        supportsOverpayment: option.supportsOverpayment,
+        requiresCashDrawer: option.requiresCashDrawer,
+      });
       // BVM Phase 6 Sub-item 6 (B7 closer): explicit per-leg paymentStatus.
       // An explicit `'PENDING'` from the request overrides every fallback;
       // omitting the field (Zod defaults to `'COMPLETED'`) keeps the prior
@@ -105,7 +112,9 @@ export function buildSettlementPlan(
         amount,
         currencyCode,
         cashDrawerSessionId:  option.requiresCashDrawer ? cashDrawerSessionId : undefined,
-        tenderedAmount:       leg.cashTendered,
+        tenderedAmount:       policy.isCash ? leg.cashTendered ?? amount : leg.cashTendered,
+        supportsChangeReturn: policy.supportsChangeReturn,
+        supportsOverpayment:  policy.supportsOverpayment,
         cardBrandCode:        orig?.card_brand_code ?? undefined,
         cardLast4:            orig?.card_last4 ?? undefined,
         authCode:             orig?.auth_code ?? undefined,
@@ -207,6 +216,50 @@ export async function validateSettlementPlan(
   plan: SettlementPlan,
   tenantOrgId: string
 ): Promise<void> {
+  const orderedSettlementLegs = [
+    ...plan.realPaymentLegs.map((leg) => ({
+      legIndex: leg.legIndex,
+      amount: leg.amount,
+      paymentMethodCode: leg.paymentMethodCode,
+      supportsOverpayment: leg.supportsOverpayment,
+      isCreditApplication: false,
+    })),
+    ...plan.creditApplicationLegs.map((leg) => ({
+      legIndex: leg.legIndex,
+      amount: leg.amount,
+      paymentMethodCode: leg.creditType,
+      supportsOverpayment: false,
+      isCreditApplication: true,
+    })),
+  ].sort((a, b) => a.legIndex - b.legIndex);
+  let appliedBeforeLeg = 0;
+  for (const leg of orderedSettlementLegs) {
+    const excessBeforeLeg = Math.max(0, appliedBeforeLeg - plan.totalAmount);
+    const excessAfterLeg = Math.max(0, appliedBeforeLeg + leg.amount - plan.totalAmount);
+    const excessIntroducedByLeg = excessAfterLeg - excessBeforeLeg;
+
+    if (excessIntroducedByLeg > TOLERANCE) {
+      const canRetainExcess =
+        !leg.isCreditApplication &&
+        leg.paymentMethodCode !== 'CASH' &&
+        leg.supportsOverpayment;
+      if (!canRetainExcess) {
+        throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
+      }
+    }
+
+    appliedBeforeLeg += leg.amount;
+  }
+
+  if (plan.immediateSettlementAmount - plan.totalAmount > TOLERANCE) {
+    const hasAllowedRetainedOverpayment = orderedSettlementLegs.some(
+      (leg) => !leg.isCreditApplication && leg.paymentMethodCode !== 'CASH' && leg.supportsOverpayment
+    );
+    if (!hasAllowedRetainedOverpayment) {
+      throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
+    }
+  }
+
   return withTenantContext(tenantOrgId, async () => {
     for (const leg of plan.realPaymentLegs) {
       if (leg.requiresReference) {
@@ -218,9 +271,19 @@ export async function validateSettlementPlan(
         }
       }
 
-      if (leg.paymentMethodCode === 'CASH' && leg.tenderedAmount !== undefined) {
+      if (leg.paymentMethodCode === 'CASH') {
+        if (leg.tenderedAmount === undefined) {
+          throw new Error('CASH_TENDERED_REQUIRED');
+        }
         if (leg.tenderedAmount < leg.amount) {
           throw new Error('CASH_TENDERED_LESS_THAN_AMOUNT');
+        }
+        if (leg.tenderedAmount - leg.amount > TOLERANCE && !leg.supportsChangeReturn) {
+          throw new Error('CASH_CHANGE_NOT_ALLOWED');
+        }
+      } else if (leg.tenderedAmount !== undefined && leg.tenderedAmount > leg.amount + TOLERANCE) {
+        if (!leg.supportsOverpayment) {
+          throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
         }
       }
 

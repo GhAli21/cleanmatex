@@ -497,7 +497,11 @@ export function useOrderSubmission() {
                             CASH_DRAWER_SESSION_REQUIRED: t('payment.cashDrawer.messages.sessionRequired'),
                             CASH_DRAWER_SESSION_SELECTION_REQUIRED: t('payment.cashDrawer.messages.selectionRequired'),
                             CASH_DRAWER_SESSION_CLOSED: t('payment.cashDrawer.messages.sessionClosed'),
+                            CASH_TENDERED_REQUIRED: t('payment.messages.invalidAmount'),
                             CASH_TENDERED_LESS_THAN_AMOUNT: t('payment.messages.invalidAmount'),
+                            CASH_CHANGE_NOT_ALLOWED: t('payment.messages.validationErrors'),
+                            METHOD_OVERPAYMENT_NOT_ALLOWED: t('payment.messages.validationErrors'),
+                            CASH_TENDERED_ONLY_FOR_CASH: t('payment.messages.validationErrors'),
                             PAYMENT_REFERENCE_REQUIRED: t('payment.messages.validationErrors'),
                             GATEWAY_NOT_CONFIGURED: t('errors.serverError', {
                                 default: 'A payment service configuration issue prevented this order from being submitted.',

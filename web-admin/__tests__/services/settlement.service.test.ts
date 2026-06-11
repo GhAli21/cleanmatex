@@ -20,6 +20,7 @@ const mockOrderUpdate    = jest.fn();
 const mockOutboxCreate   = jest.fn();
 const mockTransaction    = jest.fn();
 const mockRedeemWallet   = jest.fn();
+const mockCashDrawerMovementCreate = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -32,7 +33,9 @@ jest.mock('@/lib/db/tenant-context', () => ({
 }));
 
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn().mockResolvedValue({}),
+  createClient: jest.fn().mockResolvedValue({
+    rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+  }),
 }));
 
 // tenant-settings.service exports a module-level instance that calls the
@@ -52,6 +55,8 @@ jest.mock('@/lib/services/order-financial-write.service', () => ({
   recalculateOrderFinancialSnapshotTx: jest.fn().mockResolvedValue({
     paymentStatus: 'PAID',
     outstandingAmount: 0,
+    totalPaidAmount: 100,
+    totalCreditAppliedAmount: 0,
   }),
 }));
 
@@ -84,7 +89,7 @@ jest.mock('@/lib/services/gift-card-service', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { settleOrder } from '@/lib/services/order-settlement.service';
+import { collectPaymentTx, settleOrder } from '@/lib/services/order-settlement.service';
 import type { FinancialBreakdownSnapshot, ResolvedSettlementLeg } from '@/lib/types/order-financial';
 
 // ---------------------------------------------------------------------------
@@ -125,6 +130,8 @@ const makeCashLeg = (amount = 100): ResolvedSettlementLeg => ({
     creditApplicationType: null,
     requiresCashDrawer:    false,
     requiresTerminal:      false,
+    supportsOverpayment:   false,
+    supportsChangeReturn:  true,
     minAmount:             null,
     maxAmount:             null,
     minOrderAmount:        null,
@@ -148,6 +155,8 @@ const makeWalletLeg = (amount = 100): ResolvedSettlementLeg => ({
     creditApplicationType: 'WALLET',
     requiresCashDrawer:    false,
     requiresTerminal:      false,
+    supportsOverpayment:   false,
+    supportsChangeReturn:  false,
     minAmount:             null,
     maxAmount:             null,
     minOrderAmount:        null,
@@ -164,6 +173,10 @@ const makeTx = () => ({
   org_order_taxes_dtl:      { create: (...a: unknown[]) => mockTaxCreate(...a) },
   org_order_discounts_dtl:  { create: (...a: unknown[]) => mockDiscountCreate(...a) },
   org_order_payments_dtl:   { create: (...a: unknown[]) => mockPaymentCreate(...a) },
+  org_payment_methods_cf:   { findFirst: jest.fn() },
+  org_branch_payment_methods_cf: { findFirst: jest.fn() },
+  org_cash_drawer_sessions_mst: { findFirst: jest.fn() },
+  org_cash_drawer_movements_dtl: { create: (...a: unknown[]) => mockCashDrawerMovementCreate(...a) },
   org_order_credit_apps_dtl:{ create: jest.fn().mockResolvedValue({}) },
   org_orders_mst: {
     update:            (...a: unknown[]) => mockOrderUpdate(...a),
@@ -178,6 +191,74 @@ const makeTx = () => ({
   org_loyalty_txn_dtl:      { create: jest.fn() },
   org_loyalty_accounts_mst: { update: jest.fn() },
   $queryRaw: jest.fn().mockResolvedValue([]),
+});
+
+describe('order-settlement.service — collectPaymentTx', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('uses branch cash drawer override when collecting later cash payment', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([{ id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: 'branch-1' }]);
+    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
+      payment_method_code: 'CASH',
+      gateway_code: null,
+      requires_cash_drawer: false,
+      supports_change_return: true,
+      supports_overpayment: false,
+    });
+    tx.org_branch_payment_methods_cf.findFirst.mockResolvedValue({ cash_drawer_required: true });
+    tx.org_cash_drawer_sessions_mst.findFirst.mockResolvedValue({
+      id: 'session-1',
+      cash_drawer_id: 'drawer-1',
+      branch_id: 'branch-1',
+      currency_code: 'OMR',
+    });
+    mockPaymentCreate.mockResolvedValue({ id: 'payment-1' });
+    mockCashDrawerMovementCreate.mockResolvedValue({ id: 'movement-1' });
+    mockOutboxCreate.mockResolvedValue({});
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    await collectPaymentTx({
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-cash', amount: 50, cashTendered: 51 }],
+      cashDrawerSessionId: 'session-1',
+      collectedBy: 'user-1',
+    });
+
+    expect(mockCashDrawerMovementCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          amount: 50,
+          cash_drawer_session_id: 'session-1',
+          order_payment_id: 'payment-1',
+        }),
+      })
+    );
+  });
+
+  it('blocks overpayment introduced by a later collection leg without overpayment policy', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([{ id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null }]);
+    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
+      payment_method_code: 'CARD',
+      gateway_code: null,
+      requires_cash_drawer: false,
+      supports_change_return: false,
+      supports_overpayment: false,
+    });
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    await expect(
+      collectPaymentTx({
+        orderId: ORDER,
+        tenantId: TENANT,
+        paymentLegs: [{ paymentMethodId: 'method-card', amount: 51 }],
+        collectedBy: 'user-1',
+      })
+    ).rejects.toThrow('METHOD_OVERPAYMENT_NOT_ALLOWED');
+    expect(mockPaymentCreate).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------

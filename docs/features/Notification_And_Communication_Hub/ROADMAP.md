@@ -1,9 +1,9 @@
 # CMX-PRD-019 — Notification & Communication Hub
 # Cross-Project Implementation Roadmap
 
-**Date:** 2026-06-06  
-**Next migration seq:** 0344  
-**Status:** EXPLORATION COMPLETE — Awaiting approval to begin Phase 1 planning
+**Date:** 2026-06-11  
+**Next migration seq:** 0351  
+**Status:** PHASE 1 ✅ COMPLETE · PHASE 2 ✅ COMPLETE — Awaiting approval to begin Phase 3
 
 ---
 
@@ -69,7 +69,7 @@ All new table names verified ≤ 30 characters. Abbreviation rule: `notification
 |---|---|---|
 | `sys_notif_categories_cd` | 23 | ✓ New in 0344 |
 | `sys_notification_events_cd` | 26 | ✓ New in 0344 |
-| `sys_notification_providers_cd` | 29 | ✓ New in 0346 |
+| `sys_ntf_providers_cd` | 29 | ✓ New in 0346 |
 | `sys_notification_templates_mst` | 30 | ✓ New in 0346 |
 | `sys_notif_template_ver_dtl` | 26 | ✓ New in 0346 |
 | `sys_notif_template_chan_dtl` | 27 | ✓ New in 0346 |
@@ -86,7 +86,8 @@ All new table names verified ≤ 30 characters. Abbreviation rule: `notification
 | `org_notif_campaign_targets_dtl` | 30 | ✓ New in 0349 |
 | `org_notification_usage_daily` | 28 | ✓ New in 0349 |
 | `org_notification_audit_dtl` | 26 | ✓ New in 0349 |
-| `org_notif_fcm_tokens_dtl` | 24 | ✓ New in 0350 (Phase 3) |
+| `org_notif_push_subs_dtl` | 23 | ✓ New in 0351 (Phase 3) — provider-agnostic |
+| `org_ntf_channel_provider_cf` | 28 | ✓ New in 0352 (Phase 3) — provider config |
 
 ---
 
@@ -115,11 +116,13 @@ Note: PostgreSQL does NOT allow expression columns in primary keys. Surrogate UU
 ### Bug 2 — Table names exceeding 30 chars (PRD used full words)
 Fixed in Section 4 above. Using `notif` abbreviation consistently.
 
-### Bug 3 — Missing FCM tokens table
-The PRD has no table for device push tokens. Added as `org_notif_fcm_tokens_dtl` in migration 0350 (Phase 3).
+### Bug 3 — Push tokens table was FCM-only (resolved)
+The PRD had no push token table. Replaced FCM-only design with provider-agnostic `org_notif_push_subs_dtl`
+(migration 0351) + `org_ntf_channel_provider_cf` (migration 0352). Active provider selected per channel
+via config table; subscription_data JSONB shape varies by provider (VAPID/FCM/OneSignal).
 
 ### Bug 4 — Provider secrets in JSONB (security issue)
-**PRD:** `provider_config_jsonb JSONB` in `sys_notification_providers_cd`  
+**PRD:** `provider_config_jsonb JSONB` in `sys_ntf_providers_cd`  
 **Fix:** Store only non-sensitive metadata in DB. Provider API keys go to env vars. HQ API returns short-lived config reference, not raw secrets.
 
 ### Bug 5 — Missing branch_id in preferences
@@ -139,13 +142,14 @@ branch_id UUID REFERENCES org_branches_mst(id) -- NULL = applies to all branches
 |---|---|---|---|
 | 0344 | `notif_catalog_schema` | `sys_notif_categories_cd`, `sys_notification_events_cd`, event-channel default mappings table, WEB_SOCKET channel row in `sys_notification_channel_cd` | 1 |
 | 0345 | `notif_catalog_seed` | All 27 categories + 116 events seeded. Keep separate for re-seedability. | 1 |
-| 0346 | `notif_templates_schema` | `sys_notification_providers_cd`, `sys_notification_templates_mst`, `sys_notif_template_ver_dtl`, `sys_notif_template_chan_dtl`. No provider secrets in DB. | 1 |
+| 0346 | `notif_templates_schema` | `sys_ntf_providers_cd`, `sys_notification_templates_mst`, `sys_notif_template_ver_dtl`, `sys_notif_template_chan_dtl`. No provider secrets in DB. | 1 |
 | 0347 | `notif_tenant_settings` | `org_notification_settings_cf`, `org_notif_user_prefs_dtl` (with `branch_id`). RLS on all org_* tables. | 1 |
 | 0348 | `notif_runtime_tables` | `org_notifications_mst`, `org_notification_outbox_dtl`, `org_notif_delivery_log_dtl`. RLS. Realtime enabled on `org_notifications_mst`. Indexes. | 1 |
 | 0349 | `notif_permissions_seed` | Permission codes for notification hub. All in one dedicated migration. | 1 |
-| 0350 | `notif_campaign_tables` | `org_notification_campaigns_mst`, `org_notif_campaign_targets_dtl`, `org_notification_usage_daily` (fixed PK), `org_notification_audit_dtl`. Feature flag seeds. RLS. | 4 |
-| 0351 | `notif_fcm_tokens` | `org_notif_fcm_tokens_dtl`: device_id, token, platform, last_verified_at, failure_count, is_active. RLS. | 3 |
-| 0352 | `notif_nav_components` | `sys_components_cd` + `sys_auth_permissions` rows for notification nav entries (dual-write requirement). | 1 |
+| 0350 | `notif_outbox_cron` | pg_cron + pg_net outbox processor job (every 1 min) + retry sweep (every 5 min). ✅ Applied. | 2 |
+| 0351 | `notif_push_subscriptions` | `org_notif_push_subs_dtl`: provider-agnostic push subscription registry (VAPID/FCM/OneSignal). RLS. | 3 |
+| 0352 | `notif_channel_provider_cf` | `org_ntf_channel_provider_cf`: per-tenant channel→provider mapping; exactly one active provider per channel. RLS. | 3 |
+| 0353+ | (future) | Campaign tables (Phase 4), nav dual-write cleanup, WhatsApp webhooks. | 4 |
 
 > **RULE:** Create SQL files only. STOP after each migration and wait for user confirmation of application before continuing.
 
@@ -438,18 +442,31 @@ web-admin server action / route handler
 #### Deliverables
 
 **DB:**
-- [ ] Migration 0351: `org_notif_fcm_tokens_dtl` (device_id, token, platform, last_verified_at, failure_count, is_active). RLS.
+- [ ] Migration 0351: `org_notif_push_subs_dtl` — provider-agnostic push subscription table (VAPID/FCM/OneSignal). RLS.
+- [ ] Migration 0352: `org_ntf_channel_provider_cf` — per-tenant channel→provider config. Exactly one active provider per (tenant, channel). RLS.
+
+**Settings Service (source of truth):**
+- [x] `lib/notifications/settings-service.ts` — `NotificationSettingsService` singleton; caches channel configs + user prefs 30 s; provides `getChannelConfig()`, `getActiveProvider()`, `isChannelEnabled()`, `getUserPrefs()`, `hasMarketingConsent()`, `invalidateChannel/UserPrefs/All()`.
+- [x] Orchestrator updated to use settings service instead of direct DB queries.
+- [x] Settings route updated to call `invalidateChannel()` on PUT.
+
+**Settings / Provider API routes:**
+- [x] `GET/PUT /api/v1/notifications/settings` — channel settings (now returns activeProvider from service)
+- [x] `GET /api/v1/notifications/settings/providers` — list provider configs
+- [x] `POST /api/v1/notifications/settings/providers` — add provider config
+- [x] `PUT /api/v1/notifications/settings/providers` — activate provider (atomic deactivate-all → activate-one)
+- [x] `DELETE /api/v1/notifications/settings/providers` — soft-delete provider config
 
 **Adapters:**
-- [ ] `adapters/whatsapp.ts` — Meta Business API / Twilio BSP; reads provider config from HQ API
-- [ ] `adapters/sms.ts` — full Twilio implementation (was stub in Phase 2)
-- [ ] `adapters/push.ts` — FCM v1 API; reads FCM tokens from `org_notif_fcm_tokens_dtl`
+- [ ] `adapters/whatsapp.ts` — Meta Business API / Twilio BSP
+- [ ] `adapters/sms.ts` — full Twilio implementation
+- [ ] `adapters/push.ts` — reads active provider from settings service; dispatches to VAPID/FCM/OneSignal sub-adapter
 
-**FCM token management:**
-- [ ] `POST /api/notifications/fcm-token` — register/refresh device token
-- [ ] `DELETE /api/notifications/fcm-token` — deregister on logout
-- [ ] FCM error handling: mark token `is_active = false` on UNREGISTERED/INVALID_ARGUMENT
-- [ ] Weekly pg_cron cleanup: remove tokens with `failure_count > 3 OR last_verified_at < NOW() - INTERVAL '90 days'`
+**Push subscription management:**
+- [ ] `POST /api/notifications/push-subscription` — register/refresh subscription (upsert by device_id + provider_code)
+- [ ] `DELETE /api/notifications/push-subscription` — deregister on logout
+- [ ] Failure handling: set `is_active = false` on UNREGISTERED/INVALID provider error
+- [ ] Weekly pg_cron cleanup: deactivate subscriptions with `failure_count > 3 OR last_verified_at < NOW() - INTERVAL '90 days'`
 
 **Quiet hours enforcement:**
 - [ ] Read `org_notification_settings_cf.quiet_hours_start/end` per tenant
@@ -532,7 +549,7 @@ web-admin server action / route handler
 ### cleanmatexsaas — Phase B: Provider Config API (MUST complete before cleanmatex Phase 2 dispatch)
 **Duration:** ~1 week (quick, high priority)
 
-- [ ] `sys_notification_providers_cd` records seeded in cleanmatex (via cleanmatex migration 0346)
+- [ ] `sys_ntf_providers_cd` records seeded in cleanmatex (via cleanmatex migration 0346)
 - [ ] Provider credential resolution: env-var lookup by provider code + channel code
 - [ ] API: `GET /platform/provider-config?channel=EMAIL` — returns `{ provider: 'sendgrid', api_endpoint: '...', from_email: '...' }` (NO raw API keys in response)
 - [ ] Short-lived config object (5-min cache, signed response)
@@ -600,9 +617,9 @@ At the end of Phase 1, these MUST work in the browser:
 |---|---|---|
 | Exploration | ✅ COMPLETE | 2026-06-06 |
 | Roadmap | ✅ COMPLETE | 2026-06-06 |
-| Phase 1 — Foundation + In-App | ⏳ Awaiting approval | — |
-| Phase 2 — Email + Prefs | ⏳ Not started | — |
-| Phase 3 — WhatsApp + SMS + Push | ⏳ Not started | — |
+| Phase 1 — Foundation + In-App | ✅ COMPLETE | 2026-06-11 |
+| Phase 2 — Email + Prefs | ✅ COMPLETE | 2026-06-11 |
+| Phase 3 — WhatsApp + SMS + Push | 🔄 IN PROGRESS | 2026-06-11 |
 | Phase 4 — Campaign Engine | ⏳ Not started | — |
 | HQ Phase A — Template Mgmt | ⏳ Not started | — |
 | HQ Phase B — Provider Config API | ⏳ Not started | — |

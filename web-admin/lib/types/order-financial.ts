@@ -210,6 +210,8 @@ export type SettlementOption = {
   creditApplicationType: CreditApplicationType | null;
   requiresCashDrawer:    boolean;
   requiresTerminal:      boolean;
+  supportsOverpayment:   boolean;
+  supportsChangeReturn:  boolean;
   minAmount:             number | null;
   maxAmount:             number | null;
   minOrderAmount:        number | null;

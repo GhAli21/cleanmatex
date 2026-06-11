@@ -26,7 +26,9 @@ The right rail is intentionally compact and read-only except for jump/focus shor
 - Workbench Shortcuts
 
 ## Implementation Notes
-- No backend contracts, schemas, migrations, permissions, navigation, submit payloads, or settlement semantics changed.
+- Payment Modal V4 submits cash legs with separate `amount` and `cashTendered` values. `amount` is the portion applied to the order; `cashTendered` is the physical cash received.
+- Cash change and retained overpayment behavior is driven by effective payment method configuration from `org_payment_methods_cf`, with branch-level payment method overrides applied by the payment config service where those override columns exist.
+- Stored value legs, gift cards, wallets, customer credit, advances, and loyalty credit remain capped to the remaining order balance unless a configured method explicitly supports retained overpayment.
 - The section order and visibility rules live in `payment-modal-v04-sections-definition.ts`.
 - New EN/AR keys were added under `newOrder.payment.sections`.
 - The old right-rail edit surfaces were moved into the center to reduce scrolling and avoid duplicate cashier work areas.

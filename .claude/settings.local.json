@@ -226,7 +226,10 @@
       "Bash(tasklist /FI \"IMAGENAME eq node.exe\")",
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
       "PowerShell($lock = \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\.next\\\\lock\"; if \\(Test-Path $lock\\) { \"Lock file exists, created: $\\(\\(Get-Item $lock\\).LastWriteTime\\)\" } else { \"No lock file\" })",
-      "PowerShell($f = \"C:\\\\Users\\\\JHNLP\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\f--jhapp-cleanmatex\\\\dcf94d9a-b632-4e06-8806-1e94d2c82ea8\\\\tasks\\\\brfvnnpl3.output\"; \\(Get-Item $f\\).Length)"
+      "PowerShell($f = \"C:\\\\Users\\\\JHNLP\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\f--jhapp-cleanmatex\\\\dcf94d9a-b632-4e06-8806-1e94d2c82ea8\\\\tasks\\\\brfvnnpl3.output\"; \\(Get-Item $f\\).Length)",
+      "Bash(New-Item -Path \"f:\\\\jhapp\\\\cleanmatex\\\\docs\\\\features\\\\Notification_And_Communication_Hub\\\\STATUS.md\" -ItemType File -Force)",
+      "PowerShell(New-Item -Path \"f:\\\\jhapp\\\\cleanmatex\\\\docs\\\\features\\\\Notification_And_Communication_Hub\\\\STATUS.md\" -ItemType File -Force)",
+      "PowerShell(Rename-Item \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\0351_notif_fcm_tokens.sql\" \"0351_notif_push_subscriptions.sql\")"
     ],
     "deny": [
       "Read(node_modules)",

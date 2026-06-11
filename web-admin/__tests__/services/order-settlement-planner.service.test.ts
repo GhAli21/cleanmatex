@@ -19,6 +19,7 @@ jest.mock('@/lib/db/prisma', () => ({
     $queryRaw: jest.fn(),
     org_cash_drawer_sessions_mst: { findFirst: jest.fn() },
     org_payment_gateway_cf: { findFirst: jest.fn() },
+    sys_payment_gateway_cd: { findFirst: jest.fn() },
   },
 }));
 
@@ -31,7 +32,11 @@ jest.mock('@/lib/db/tenant-context', () => ({
 import { PAYMENT_NATURE, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import type { ResolvedSettlementLeg, SettlementOption } from '@/lib/types/order-financial';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
-import { buildSettlementPlan } from '@/lib/services/order-settlement-planner.service';
+import {
+  buildSettlementPlan,
+  validateSettlementPlan,
+} from '@/lib/services/order-settlement-planner.service';
+import { prisma } from '@/lib/db/prisma';
 
 // --- fixtures ----------------------------------------------------------------
 
@@ -48,6 +53,8 @@ function makeRealOption(overrides: Partial<SettlementOption> = {}): SettlementOp
     creditApplicationType: null,
     requiresCashDrawer: true,
     requiresTerminal: false,
+    supportsOverpayment: false,
+    supportsChangeReturn: true,
     defaultCreationStatus: 'COMPLETED',
     allowStatusOverride: false,
     requiresReference: false,
@@ -236,6 +243,55 @@ describe('buildSettlementPlan', () => {
     );
 
     expect(plan.realPaymentLegs[0].cashDrawerSessionId).toBeUndefined();
+  });
+
+  it('allows cash tendered above applied amount when change return is enabled', async () => {
+    const option = makeRealOption({ supportsChangeReturn: true });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(option, 100, { cashTendered: 101 })],
+      [makeOriginalLeg('CASH', 100, { cashTendered: 101 })],
+      'PAY_IN_ADVANCE',
+      'session-1'
+    );
+    (prisma.org_cash_drawer_sessions_mst.findFirst as jest.Mock).mockResolvedValue({ status: 'OPEN' });
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).resolves.toBeUndefined();
+  });
+
+  it('blocks cash change when method policy disables change return', async () => {
+    const option = makeRealOption({ supportsChangeReturn: false });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(option, 100, { cashTendered: 101 })],
+      [makeOriginalLeg('CASH', 100, { cashTendered: 101 })],
+      'PAY_IN_ADVANCE',
+      'session-1'
+    );
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).rejects.toThrow('CASH_CHANGE_NOT_ALLOWED');
+  });
+
+  it('blocks non-cash over-application unless the method supports retained overpayment', async () => {
+    const card = makeRealOption({
+      paymentMethodCode: 'CARD',
+      requiresCashDrawer: false,
+      supportsOverpayment: false,
+    });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(card, 101)],
+      [makeOriginalLeg('CARD', 101)],
+      'PAY_IN_ADVANCE'
+    );
+
+    await expect(validateSettlementPlan(plan, 'tenant-1')).rejects.toThrow('METHOD_OVERPAYMENT_NOT_ALLOWED');
   });
 
   it('check fields (checkNumber/checkBank/checkDate) are zipped from originalLegs', () => {

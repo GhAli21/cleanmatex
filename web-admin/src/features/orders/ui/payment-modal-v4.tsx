@@ -41,6 +41,9 @@ import type { PaymentMethodCode } from '@/lib/constants/order-types';
 import {
   applyKeypadInput,
   capPaymentLegAmount,
+  deriveCashTenderedAmount,
+  deriveChangeReturnedAmount,
+  deriveLegAppliedAmount,
   deriveOutstandingPolicy,
   formatDecimalDraft,
   getPreferredCashDrawerStorageKey,
@@ -62,6 +65,7 @@ import {
   validateCheckDueDate,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
+import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
   RIGHT_RAIL_BALANCE_STATUS,
@@ -177,6 +181,8 @@ type CheckoutSettlementOption = {
   description2: string | null;
   requires_cash_drawer: boolean;
   requires_terminal: boolean;
+  supports_overpayment: boolean;
+  supports_change_return: boolean;
   requires_reference: boolean;
   allowed_in_pos: boolean;
   allowed_for_pay_now?: boolean | null;
@@ -1055,12 +1061,11 @@ export function PaymentModalV4({
     PAYMENT_METHODS.CHECK,
     PAYMENT_METHODS.BANK_TRANSFER,
     PAYMENT_METHODS.MOBILE_PAYMENT,
-    PAYMENT_METHODS.HYPERPAY,
-    PAYMENT_METHODS.PAYTABS,
-    PAYMENT_METHODS.STRIPE,
+    PAYMENT_METHODS.PAYMENT_GATEWAY,
   ] as const;
 
   const GATEWAY_METHOD_CODES: string[] = [
+    PAYMENT_METHODS.PAYMENT_GATEWAY,
     PAYMENT_METHODS.HYPERPAY,
     PAYMENT_METHODS.PAYTABS,
     PAYMENT_METHODS.STRIPE,
@@ -1205,29 +1210,46 @@ export function PaymentModalV4({
   }, []);
 
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
-    const currentLeg = paymentLegs[idx];
-    const normalizedValue =
-      key === 'amount' && typeof value === 'number'
-        ? (capPaymentLegAmount(
-            value,
-            paymentLegs,
-            idx,
-            saleTotal,
-            giftCardSettlementAmount,
-            decimalPlaces,
-            currentLeg?.method === 'WALLET' ? liveWalletBalance : undefined
-          ) as PaymentLeg[K])
-        : value;
-
     setIsDirtySinceOpen(true);
     setPaymentLegs((prev) => {
       const target = prev[idx];
       if (!target) return prev;
       const updated = [...prev];
-      updated[idx] = { ...updated[idx], [key]: normalizedValue };
+
+      if (key === 'amount' && typeof value === 'number') {
+        const option = getMethodOption(target.method, target.gateway_code);
+        const policy = resolvePaymentOverpaymentPolicy({
+          paymentMethodCode: target.method,
+          supportsChangeReturn: option?.supports_change_return,
+          supportsOverpayment: option?.supports_overpayment,
+          requiresCashDrawer: option?.requires_cash_drawer,
+        });
+        const appliedAmount = deriveLegAppliedAmount({
+          rawAmount: value,
+          paymentLegs: prev,
+          legIndex: idx,
+          saleTotal,
+          giftCardAmount: giftCardSettlementAmount,
+          decimalPlaces,
+          walletBalance: target.method === 'WALLET' ? liveWalletBalance : undefined,
+          supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+        });
+        const cashTendered = policy.isCash
+          ? deriveCashTenderedAmount(value, appliedAmount, policy.supportsChangeReturn, decimalPlaces)
+          : undefined;
+
+        updated[idx] = {
+          ...target,
+          amount: appliedAmount,
+          ...(policy.isCash ? { cashTendered } : { cashTendered: undefined }),
+        };
+        return updated;
+      }
+
+      updated[idx] = { ...updated[idx], [key]: value };
       return updated;
     });
-  }, [decimalPlaces, giftCardSettlementAmount, liveWalletBalance, paymentLegs, saleTotal]);
+  }, [decimalPlaces, getMethodOption, giftCardSettlementAmount, liveWalletBalance, saleTotal]);
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
@@ -1239,18 +1261,26 @@ export function PaymentModalV4({
             (leg.gateway_code ?? '') === (option.gateway_code ?? '')
         );
         const targetIndex = existingIndex >= 0 ? existingIndex : prev.length;
-        const nextAmount = capPaymentLegAmount(
-          defaultAmount,
-          prev,
-          targetIndex,
+        const policy = resolvePaymentOverpaymentPolicy({
+          paymentMethodCode: option.payment_method_code,
+          supportsChangeReturn: option.supports_change_return,
+          supportsOverpayment: option.supports_overpayment,
+          requiresCashDrawer: option.requires_cash_drawer,
+        });
+        const nextAmount = deriveLegAppliedAmount({
+          rawAmount: defaultAmount,
+          paymentLegs: prev,
+          legIndex: targetIndex,
           saleTotal,
-          giftCardSettlementAmount,
+          giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
-          option.payment_method_code === 'WALLET' ? liveWalletBalance : undefined
-        );
+          walletBalance: option.payment_method_code === 'WALLET' ? liveWalletBalance : undefined,
+          supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+        });
         const nextLeg: PaymentLeg = {
           method: option.payment_method_code as PaymentLeg['method'],
           amount: nextAmount,
+          ...(policy.isCash ? { cashTendered: nextAmount } : {}),
           ...(GATEWAY_METHOD_CODES.includes(option.payment_method_code)
             ? { gateway_code: option.gateway_code ?? undefined }
             : {}),
@@ -1307,7 +1337,8 @@ export function PaymentModalV4({
         return;
       }
       const availableBalance =
-        option.credit_application_type === 'WALLET'
+        option.credit_application_type === 'WALLET' ||
+        option.payment_method_code === 'WALLET'
           ? liveWalletBalance
           : option.available_balance ?? 0;
       const existingIndex = paymentLegs.findIndex(
@@ -1415,6 +1446,13 @@ export function PaymentModalV4({
         .reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
     [realPaymentEntries]
   );
+  const cashTenderedAmount = useMemo(
+    () =>
+      realPaymentEntries
+        .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
+        .reduce((sum, { leg }) => sum + (leg.cashTendered ?? leg.amount ?? 0), 0),
+    [realPaymentEntries]
+  );
   const totalSettledNowAmount = settledNowAmount + giftCardSettlementAmount;
   const walletLegEntry = useMemo(
     () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
@@ -1426,18 +1464,34 @@ export function PaymentModalV4({
   const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
   const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
   const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
-  const canReturnChangeFromCash = cashLegAmount > moneyEpsilon;
-  const overpaymentNeedsResolution = changeAmount > moneyEpsilon && !canReturnChangeFromCash;
-  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
-  const displayChangeAmount = getDisplayChangeAmount(changeAmount, canReturnChangeFromCash, moneyEpsilon);
-  const unresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
-    changeAmount,
+  const canReturnChangeFromCash = realPaymentEntries.some(({ leg }) => {
+    if (leg.method !== PAYMENT_METHODS.CASH) return false;
+    const option = getMethodOption(leg.method, leg.gateway_code);
+    return option?.supports_change_return === true;
+  });
+  const cashChangeAmount = deriveChangeReturnedAmount(
+    cashTenderedAmount,
+    cashLegAmount,
     canReturnChangeFromCash,
     moneyEpsilon
   );
-  const netCashRetainedAmount = getNetCashRetainedAmount(
-    cashLegAmount,
+  const hasAllowedRetainedOverpayment = changeAmount > moneyEpsilon && settlementLegEntries.some(({ leg }) => {
+    if (leg.method === PAYMENT_METHODS.CASH) return false;
+    const option = getMethodOption(leg.method, leg.gateway_code);
+    return option?.supports_overpayment === true;
+  });
+  const overpaymentNeedsResolution =
+    changeAmount > moneyEpsilon && !canReturnChangeFromCash && !hasAllowedRetainedOverpayment;
+  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
+  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
+  const unresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
     changeAmount,
+    canReturnChangeFromCash || hasAllowedRetainedOverpayment,
+    moneyEpsilon
+  );
+  const netCashRetainedAmount = getNetCashRetainedAmount(
+    cashTenderedAmount,
+    cashChangeAmount,
     canReturnChangeFromCash,
     moneyEpsilon
   );
@@ -1890,10 +1944,14 @@ export function PaymentModalV4({
       case PAYMENT_METHODS.INVOICE:           return <FileText className={cls} />;
       case PAYMENT_METHODS.BANK_TRANSFER:     return <FileText className={cls} />;
       case PAYMENT_METHODS.MOBILE_PAYMENT:    return <CreditCard className={cls} />;
+      case PAYMENT_METHODS.PAYMENT_GATEWAY:   return <CreditCard className={cls} />;
       case PAYMENT_METHODS.HYPERPAY:          return <CreditCard className={cls} />;
       case PAYMENT_METHODS.PAYTABS:           return <CreditCard className={cls} />;
       case PAYMENT_METHODS.STRIPE:            return <CreditCard className={cls} />;
       case 'WALLET':                          return <Wallet className={cls} />;
+      case 'ADVANCE':                         return <Wallet className={cls} />;
+      case 'CREDIT_NOTE':                     return <Wallet className={cls} />;
+      case 'LOYALTY_POINTS':                  return <Wallet className={cls} />;
       case 'CUSTOMER_ADVANCE':                return <Wallet className={cls} />;
       case 'CUSTOMER_CREDIT':                 return <Wallet className={cls} />;
       case 'LOYALTY_CREDIT':                  return <Wallet className={cls} />;
@@ -1910,10 +1968,14 @@ export function PaymentModalV4({
       case PAYMENT_METHODS.INVOICE:           return t('methods.invoice');
       case PAYMENT_METHODS.BANK_TRANSFER:     return t('methods.bankTransfer');
       case PAYMENT_METHODS.MOBILE_PAYMENT:    return t('methods.mobilePayment');
+      case PAYMENT_METHODS.PAYMENT_GATEWAY:   return t('methods.paymentGateway');
       case PAYMENT_METHODS.HYPERPAY:          return t('methods.hyperpay');
       case PAYMENT_METHODS.PAYTABS:           return t('methods.paytabs');
       case PAYMENT_METHODS.STRIPE:            return t('methods.stripe');
       case 'WALLET':                          return t('customerCredits.wallet');
+      case 'ADVANCE':                         return t('customerCredits.customerAdvance');
+      case 'CREDIT_NOTE':                     return t('customerCredits.customerCredit');
+      case 'LOYALTY_POINTS':                  return t('customerCredits.loyaltyCredit');
       case 'CUSTOMER_ADVANCE':                return t('customerCredits.customerAdvance');
       case 'CUSTOMER_CREDIT':                 return t('customerCredits.customerCredit');
       case 'LOYALTY_CREDIT':                  return t('customerCredits.loyaltyCredit');
@@ -2649,10 +2711,14 @@ export function PaymentModalV4({
     }
 
     const activeLegDraftSyncKey = `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`;
-    const normalizedLegDraft = formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces);
+    const draftSourceAmount =
+      activeLeg.method === PAYMENT_METHODS.CASH
+        ? activeLeg.cashTendered ?? activeLeg.amount ?? 0
+        : activeLeg.amount ?? 0;
+    const normalizedLegDraft = formatDecimalDraft(draftSourceAmount, decimalPlaces);
     const normalizedCurrentDraft = sanitizeDecimalDraft(activeAmountDraft, decimalPlaces);
     const currentDraftAmount = parseDecimalDraft(normalizedCurrentDraft);
-    const legAmount = activeLeg.amount ?? 0;
+    const legAmount = draftSourceAmount;
     const sameLeg = activeLegDraftSyncKeyRef.current === activeLegDraftSyncKey;
     const draftMatchesSameLegAmount = sameLeg && currentDraftAmount === legAmount;
 
@@ -2673,24 +2739,35 @@ export function PaymentModalV4({
       decimalPlaces
     );
     const nextAmount = parseDecimalDraft(nextDraft);
-    const cappedAmount = capPaymentLegAmount(
-      nextAmount,
+    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
+    const policy = resolvePaymentOverpaymentPolicy({
+      paymentMethodCode: activeLeg.method,
+      supportsChangeReturn: option?.supports_change_return,
+      supportsOverpayment: option?.supports_overpayment,
+      requiresCashDrawer: option?.requires_cash_drawer,
+    });
+    const cappedAmount = deriveLegAppliedAmount({
+      rawAmount: nextAmount,
       paymentLegs,
-      activeLegIndex,
+      legIndex: activeLegIndex,
       saleTotal,
-      giftCardSettlementAmount,
+      giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
-      activeLeg.method === 'WALLET' ? liveWalletBalance : undefined
-    );
+      walletBalance: activeLeg.method === 'WALLET' ? liveWalletBalance : undefined,
+      supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+    });
     setActiveAmountDraft(
-      nextAmount > cappedAmount ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft
+      nextAmount > cappedAmount && !(policy.isCash && policy.supportsChangeReturn)
+        ? formatDecimalDraft(cappedAmount, decimalPlaces)
+        : nextDraft
     );
-    updateLeg(activeLegIndex, 'amount', cappedAmount);
+    updateLeg(activeLegIndex, 'amount', nextAmount);
   }, [
     activeAmountDraft,
     activeLeg,
     activeLegIndex,
     decimalPlaces,
+    getMethodOption,
     giftCardSettlementAmount,
     liveWalletBalance,
     paymentLegs,
@@ -3154,7 +3231,11 @@ export function PaymentModalV4({
                                 <CmxMoneyField
                                   ref={amountInputRef}
                                   draftValue={activeAmountDraft}
-                                  value={activeLeg?.amount ?? null}
+                                  value={
+                                    activeLeg?.method === PAYMENT_METHODS.CASH
+                                      ? activeLeg.cashTendered ?? activeLeg.amount ?? null
+                                      : activeLeg?.amount ?? null
+                                  }
                                   decimalPlaces={decimalPlaces}
                                   showZero
                                   aria-label={t('workspace.editingAmount') || 'Editing amount'}
@@ -3184,6 +3265,24 @@ export function PaymentModalV4({
                                     })}
                               </div>
                             )}
+                            {activeLeg?.method === PAYMENT_METHODS.CASH ? (
+                              <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 sm:grid-cols-3">
+                                <span>
+                                  {t('rightRail.appliedAmount')}: {currencyCode} {formatAmount(activeLeg.amount ?? 0)}
+                                </span>
+                                <span>
+                                  {t('rightRail.cashTendered')}: {currencyCode} {formatAmount(activeLeg.cashTendered ?? activeLeg.amount ?? 0)}
+                                </span>
+                                <span>
+                                  {t('rightRail.changeReturned')}: {currencyCode} {formatAmount(deriveChangeReturnedAmount(
+                                    activeLeg.cashTendered ?? activeLeg.amount ?? 0,
+                                    activeLeg.amount ?? 0,
+                                    activeLegOption?.supports_change_return === true,
+                                    moneyEpsilon
+                                  ))}
+                                </span>
+                              </div>
+                            ) : null}
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
                               {t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}
                             </p>
@@ -4642,6 +4741,12 @@ export function PaymentModalV4({
               <div className="space-y-2">
                 <SummaryRow label={t('rightRail.orderTotal')} value={`${currencyCode} ${formatAmount(saleTotal)}`} />
                 <SummaryRow label={t('rightRail.totalSettledNow')} value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`} />
+                {cashTenderedAmount > moneyEpsilon ? (
+                  <SummaryRow
+                    label={t('rightRail.cashTendered')}
+                    value={`${currencyCode} ${formatAmount(cashTenderedAmount)}`}
+                  />
+                ) : null}
                 {appliedGiftCard ? (
                   <SummaryRow label={t('giftCard.title')} value={`${currencyCode} ${formatAmount(appliedGiftCard.amount)}`} />
                 ) : null}

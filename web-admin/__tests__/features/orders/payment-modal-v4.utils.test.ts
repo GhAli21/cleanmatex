@@ -2,6 +2,9 @@ import {
   applyKeypadInput,
   buildGatewayReturnState,
   capPaymentLegAmount,
+  deriveCashTenderedAmount,
+  deriveChangeReturnedAmount,
+  deriveLegAppliedAmount,
   deriveOutstandingPolicy,
   getPreferredCashDrawerStorageKey,
   getAmountAppliedToOrder,
@@ -121,6 +124,44 @@ describe('payment-modal-v4 utils', () => {
     expect(getUnresolvedOverpaymentAmount(0.5, true)).toBe(0);
     expect(getUnresolvedOverpaymentAmount(0.5, false)).toBe(0.5);
     expect(getNetCashRetainedAmount(6.821, 0.5, true)).toBe(6.321);
+  });
+
+  it('derives cash tendered separately while keeping applied cash capped', () => {
+    const applied = deriveLegAppliedAmount({
+      rawAmount: 8.821,
+      paymentLegs: [{ amount: 0 }],
+      legIndex: 0,
+      saleTotal: 8.321,
+      giftCardAmount: 0,
+      decimalPlaces: 3,
+    });
+
+    expect(applied).toBe(8.321);
+    expect(deriveCashTenderedAmount(8.821, applied, true, 3)).toBe(8.821);
+    expect(deriveCashTenderedAmount(8.821, applied, false, 3)).toBe(8.321);
+    expect(deriveChangeReturnedAmount(8.821, applied, true)).toBeCloseTo(0.5);
+    expect(deriveChangeReturnedAmount(8.821, applied, false)).toBe(0);
+  });
+
+  it('allows retained non-cash overpayment only when the helper receives policy allowance', () => {
+    expect(deriveLegAppliedAmount({
+      rawAmount: 105,
+      paymentLegs: [{ amount: 0 }],
+      legIndex: 0,
+      saleTotal: 100,
+      giftCardAmount: 0,
+      decimalPlaces: 3,
+      supportsOverpayment: false,
+    })).toBe(100);
+    expect(deriveLegAppliedAmount({
+      rawAmount: 105,
+      paymentLegs: [{ amount: 0 }],
+      legIndex: 0,
+      saleTotal: 100,
+      giftCardAmount: 0,
+      decimalPlaces: 3,
+      supportsOverpayment: true,
+    })).toBe(105);
   });
 
   it('detects when a live wallet refresh makes the applied leg invalid', () => {
