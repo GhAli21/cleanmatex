@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { CmxSwitch } from '@ui/primitives/cmx-switch'
@@ -42,6 +42,7 @@ type Tab = 'my-prefs' | 'channel-settings'
 export function NotificationSettingsPage() {
   const locale = useLocale()
   const isAr = locale === 'ar'
+  const t = useTranslations('notifications')
   const { currentTenant } = useAuth()
   const userRole = currentTenant?.user_role
 
@@ -70,11 +71,11 @@ export function NotificationSettingsPage() {
         if (j.success) setPrefs(j.data)
       }
     } catch {
-      setError(isAr ? 'فشل تحميل الإعدادات' : 'Failed to load settings')
+      setError(t('settings.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [isAdmin, isAr])
+  }, [isAdmin, t])
 
   useEffect(() => { void fetchData() }, [fetchData])
 
@@ -120,14 +121,15 @@ export function NotificationSettingsPage() {
   const getChannelSetting = (channelCode: ChannelCode) =>
     settings.find((s) => s.channel_code === channelCode)
 
-  const TABS: { id: Tab; labelEn: string; labelAr: string }[] = [
-    { id: 'my-prefs', labelEn: 'My Preferences', labelAr: 'تفضيلاتي' },
-    ...(isAdmin ? [{ id: 'channel-settings' as Tab, labelEn: 'Channel Settings', labelAr: 'إعدادات القنوات' }] : []),
+  type TabDef = { id: Tab; label: string }
+  const TABS: TabDef[] = [
+    { id: 'my-prefs', label: t('settings.myPrefs') },
+    ...(isAdmin ? [{ id: 'channel-settings' as Tab, label: t('settings.channelSettings') }] : []),
   ]
 
-  const tabsWithContent = TABS.map(({ id, labelEn, labelAr }) => ({
+  const tabsWithContent = TABS.map(({ id, label }) => ({
     id,
-    label: isAr ? labelAr : labelEn,
+    label,
     content: (
       <div className="mt-4 space-y-3">
         {loading ? (
@@ -148,7 +150,7 @@ export function NotificationSettingsPage() {
                         {isAr ? CHANNEL_LABELS[ch].ar : CHANNEL_LABELS[ch].en}
                       </p>
                       <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                        {isAr ? 'تلقّي الإشعارات عبر هذه القناة' : 'Receive notifications via this channel'}
+                        {t('settings.enableChannel')}
                       </p>
                     </div>
                     <CmxSwitch
@@ -160,7 +162,7 @@ export function NotificationSettingsPage() {
                   {ch !== 'IN_APP' && (
                     <div className="mt-3 flex items-center justify-between gap-4 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-3">
                       <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                        {isAr ? 'الموافقة على الإشعارات التسويقية' : 'Marketing notification consent'}
+                        {t('settings.marketingConsent')}
                       </p>
                       <CmxSwitch
                         checked={consent}
@@ -197,7 +199,7 @@ export function NotificationSettingsPage() {
                   <CmxCardContent className="pt-0 pb-4 space-y-3">
                     <div className="flex items-center justify-between gap-4">
                       <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                        {isAr ? 'تفعيل ساعات الهدوء' : 'Enable quiet hours'}
+                        {t('settings.quietHours')}
                       </p>
                       <CmxSwitch
                         checked={quietEnabled}
@@ -209,7 +211,7 @@ export function NotificationSettingsPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                            {isAr ? 'البداية' : 'Start'}
+                            {t('settings.quietHoursStart')}
                           </label>
                           <input
                             type="time"
@@ -220,7 +222,7 @@ export function NotificationSettingsPage() {
                         </div>
                         <div>
                           <label className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                            {isAr ? 'النهاية' : 'End'}
+                            {t('settings.quietHoursEnd')}
                           </label>
                           <input
                             type="time"
@@ -244,7 +246,7 @@ export function NotificationSettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-6 text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-        {isAr ? 'إعدادات الإشعارات' : 'Notification Settings'}
+        {t('settings.title')}
       </h1>
       <CmxTabsPanel tabs={tabsWithContent} defaultTab="my-prefs" />
     </div>

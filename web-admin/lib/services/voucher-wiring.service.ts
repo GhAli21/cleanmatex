@@ -32,6 +32,8 @@ import { validateStatusTransition, validateVoucherForPosting } from './voucher-v
 import { orderPaymentWiringHandler } from './wiring/order-payment-wiring.handler';
 import { orderCreditApplicationWiringHandler } from './wiring/order-credit-application-wiring.handler';
 import { cashDrawerWiringHandler } from './wiring/cash-drawer-wiring.handler';
+import { invoicePaymentWiringHandler } from './wiring/invoice-payment-wiring.handler';
+import { statementPaymentWiringHandler } from './wiring/statement-payment-wiring.handler';
 import type {
   VoucherLineForWiring,
   WiringHandler,
@@ -44,6 +46,8 @@ import type {
 
 const WIRING_HANDLERS: WiringHandler[] = [
   orderPaymentWiringHandler,
+  invoicePaymentWiringHandler,
+  statementPaymentWiringHandler,
   orderCreditApplicationWiringHandler,
   cashDrawerWiringHandler,
 ];

@@ -1,113 +1,126 @@
 # Overpayment Contract Implementation Tracker
 
-Last updated: 2026-06-11
+**Last updated:** 2026-06-11  
+**Plan status:** [Payment Settlement & Receipt Allocation](../Order_Fin/Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) — **Phases 0–6 complete** (Approved_By_Jh)  
+**Pending backlog:** [Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md)
 
-## Completed Changes
+---
+
+## Program completion summary
+
+| Phase | Status | Key deliverables |
+|-------|--------|------------------|
+| 0 — Discovery & ADR | ✅ | ADR-047 finalized, product defaults |
+| 1 — Catalogs | ✅ | `0357`, `0354`, `settlement-catalog.ts` |
+| 2 — Basic disposition | ✅ | Validator, extra-receipt UI, cash change |
+| 3 — Stored-value disposition | ✅ | Advance + credit in submit TX |
+| 4 — Customer receipt allocation | ✅ | Services, APIs, drawers, wiring handlers |
+| 5 — Later collection | ✅ | Collect modal, account receipt screen, nav `0359` |
+| 6 — Legacy cleanup | ✅ | `0360`, silent retention removed, V4 hook refactor |
+
+**Automated tests (payment/settlement scope):** 124/124 pass (2026-06-12) · `npm run build` green
+
+---
+
+## Completed changes
 
 ### Core overpayment contract (baseline)
 
-- UI: Payment Modal V4 models CASH `cashTendered` separately from applied `amount`, shows Applied, Cash Tendered, Change Returned, and Unresolved Overpayment consistently.
-- API/schema: payment payload validation keeps structural checks in Zod and leaves method-policy checks to settlement services where effective payment config is available.
-- Policy: `resolvePaymentOverpaymentPolicy()` normalizes effective payment config flags for frontend and backend use.
-- Services: submit-order settlement planning enforces cash change and retained overpayment policy before voucher creation.
-- BVM wiring: voucher lines carry `tendered_amount`; voucher line service derives `change_returned_amount`; order payment wiring persists both values.
-- Cash drawer: voucher wiring and later collection record retained cash amount, not gross tendered cash. `CASH_OUT` drawer movements link `fin_voucher_id` only (no `fin_voucher_trx_line_id`) due to the per-line unique index on drawer wiring.
-- Later collection: `collectPaymentTx()` rejects disallowed cash change/non-cash overpayment and writes drawer movement for cash collections requiring a drawer.
-- Gateway methods: gateway-code methods in Payment Modal V4 are metadata/manual settlement legs today; they block overpayment by default through the same method-policy validation. No gateway redirect/return route exists in this modal path, so return-state persistence remains not applicable until a redirect flow is introduced.
-- Live DB method codes: checkout and validation accept `PAYMENT_GATEWAY` with `gateway_code`, plus stored-value method codes `ADVANCE`, `CREDIT_NOTE`, and `LOYALTY_POINTS`. Deprecated provider rows (`HYPERPAY`, `PAYTABS`, `STRIPE`) normalize to the canonical gateway method; older semantic credit aliases remain tolerated only as TypeScript constant aliases.
-- Snapshot: existing financial snapshot aggregation uses applied payment amounts for paid/overpaid calculation and tracks returned change separately.
-- i18n: EN/AR labels added for Applied and Cash Tendered in the payment modal right rail namespace.
+- UI: Payment Modal V4 models CASH `cashTendered` separately from applied `amount`; shows Applied, Cash Tendered, Change Returned, Unresolved Overpayment.
+- API/schema: Structural checks in Zod; method-policy in settlement services.
+- Policy: `resolvePaymentOverpaymentPolicy()` for frontend and backend.
+- Services: Submit-order planner enforces cash change and retained overpayment before voucher creation.
+- BVM wiring: `tendered_amount` / `change_returned_amount` on voucher lines and order payments.
+- Cash drawer: Retained cash amount (not gross tendered); `CASH_OUT` links `fin_voucher_id` only.
+- Later collection: `collectPaymentTx()` parity with submit-order disposition + allocation.
+- Gateway methods: Metadata legs only; no redirect integration ([ADR-049](../Order_Fin/ADR/ADR-049-Online-Payment-Gateway-Integration.md) deferred).
+- Snapshot: `overpaid_amount` = unresolved excess only after Phase 6.
 
 ### Payment Modal V4 production fixes (2026-06-11)
 
-| Area | Change | Primary files |
-|------|--------|---------------|
-| Price override on create | Create submit sends `priceOverride`, `overrideReason`, `overrideBy` on line items (mirrors edit path) | `use-order-submission.ts` |
-| Gift + NONE policy | Orchestrator subtracts `giftCardApplied` before `OUTSTANDING_POLICY_REQUIRED` (gift leg is synthesized later; wallet/advance/credit legs already in `amountToCharge`) | `order-submit-orchestrator.service.ts` |
-| Change clamp | `change_returned_amount = max(0, tendered - amount)` on voucher line add/update | `voucher-line.service.ts` |
-| Check due date | Client blocks past/invalid check dates in validation rail, submit guard, and focus order | `payment-modal-v4.tsx`, `new-order-payment-schemas.ts`, `lib/utils/check-date.ts` |
-| Stored-value caps | `getStoredValueCapForLeg()` caps WALLET, ADVANCE, CREDIT_NOTE (selected note balance), LOYALTY_POINTS in keypad, money field, and leg updates | `payment-modal-v4.utils.ts`, `payment-modal-v4.tsx` |
-| Multi-cash change | Aggregate change requires **all** cash legs to allow change (`.every()` via `canReturnChangeFromAllCashLegs`) | `payment-modal-v4.utils.ts`, `payment-modal-v4.tsx` |
-| Submit error mapping | Infrastructure + validation error codes mapped to EN/AR under `newOrder.payment.errors.*`; Zod `checkDate` path resolves to `splitPayment.checkDate*` keys | `use-order-submission.ts`, `messages/en.json`, `messages/ar.json` |
-| Credit note picker | CREDIT_NOTE opens picker; leg requires `creditReferenceId`; amount capped to note balance | `payment-modal-v4-credit-note-picker.tsx`, `payment-modal-v4.tsx`, `new-order-payment-schemas.ts` |
-| Terminal required | Terminal dropdown when `requires_terminal`; planner throws `PAYMENT_TERMINAL_REQUIRED`; `terminalId` forwarded through orchestrator | `payment-modal-v4.tsx`, `order-settlement-planner.service.ts`, `order-submit-orchestrator.service.ts` |
-| Retail filter | `PAY_ON_COLLECTION` hidden from real payment options on retail-only orders (aligned with submit hook) | `payment-modal-v4.tsx` |
-| Checkout amount | `checkoutAmount` passed from new-order modals; checkout-options query uses preview `saleTotal` when loaded | `new-order-modals.tsx`, `payment-modal-v4.tsx` |
-| CARD auth reference | `auth_code` satisfies `requires_reference` on client and in `validateSettlementPlan` | `payment-modal-v4.utils.ts`, `order-settlement-planner.service.ts` |
-| UX polish | Extended `focusFirstBlockingIssue`; tax skeleton until preview totals load; `submitBusy` covers `totalsLoading` | `payment-modal-v4.tsx` |
+| Area | Primary files |
+|------|---------------|
+| Price override on create | `use-order-submission.ts` |
+| Gift + NONE policy | `order-submit-orchestrator.service.ts` |
+| Change clamp | `voucher-line.service.ts` |
+| Check due date | `payment-modal-v4.tsx`, `new-order-payment-schemas.ts`, `check-date.ts` |
+| Stored-value caps | `payment-modal-v4.utils.ts`, `payment-modal-v4.tsx` |
+| Multi-cash change | `payment-modal-v4.utils.ts` (`.every()` on cash legs) |
+| Submit error mapping | `use-order-submission.ts`, `messages/en.json`, `messages/ar.json` |
+| Credit note picker | `payment-modal-v4-credit-note-picker.tsx` (one note per leg — MVP) |
+| Terminal required | `payment-modal-v4.tsx`, `order-settlement-planner.service.ts` |
+| CARD auth reference | `payment-modal-v4.utils.ts`, planner |
+| Overpayment allocation hook | `use-overpayment-allocation.ts` shared with collect + account receipt |
 
-## Tests Added or Updated
+### Phase 4–5 UI surfaces
+
+| Surface | Path / component |
+|---------|------------------|
+| Payment Modal V4 | Extra receipt card + auto/manual allocation drawers |
+| Order collect | `OrderCollectPaymentModal` on order detail + ready screen |
+| Account receipt | `/dashboard/customers/account-receipt` (nav `0359`, permission `0358`) |
+
+---
+
+## Tests
 
 | Suite | Coverage |
 |-------|----------|
-| `payment-modal-v4.utils.test.ts` | Cash tendered/applied cap, change returned, stored-value caps, multi-cash `.every()`, CARD `auth_code` reference, check due date |
-| `payment-modal-v4.right-rail.test.ts` | Cash-change status (retained) |
-| `use-order-submission.price-override.test.ts` | Create payload override fields |
-| `order-submit-orchestrator.unpaid-balance.test.ts` | Gift + cash NONE unpaid balance math |
-| `voucher-line.service.test.ts` | Change clamp derivation |
-| `order-settlement-planner.service.test.ts` | Cash change, overpayment policy, `PAYMENT_TERMINAL_REQUIRED`, CARD auth reference |
-| `settlement.service.test.ts` | Later collection, CASH_OUT drawer wiring |
-| `checkout-multi-payment.test.ts` | Payload validation, live DB method codes |
+| `payment-modal-v4.utils.test.ts` | Cash, caps, multi-cash, CARD auth, check date, gateway state helpers |
+| `order-settlement-planner.service.test.ts` | Change, overpayment, terminal, explicit `paymentStatus` |
+| `settlement.service.test.ts` | Later collection + disposition |
+| `collection-overpayment.test.ts` | Collect metrics parity |
+| `customer-receipt-allocation.service.test.ts` | Auto oldest-due, fallback |
+| `overpayment-resolution-validator.service.test.ts` | Resolution gates |
+| `settlement-catalog.test.ts` | DB constant parity |
 
-Run command: see [test_guide.md](./test_guide.md#automated-validation).
+Run: [test_guide.md § Automated validation](./test_guide.md#automated-validation)
 
-## Database and Migrations
+---
 
-No migration was created for this work. Existing columns used:
+## Migrations (applied)
 
-- `org_payment_methods_cf`: `supports_change_return`, `supports_overpayment`, `requires_cash_drawer`, `requires_terminal`, `requires_reference`
-- `org_branch_payment_methods_cf`: branch overrides for enablement, limits, drawer, terminal, gateway
-- Payment legs: `terminalId`, `creditReferenceId` on submit payload (Zod); forwarded to settlement planner and voucher lines
+| Migration | Purpose |
+|-----------|---------|
+| `0357_fin_settlement_catalogs_v1_1.sql` | Catalog tables + BVM seed extensions |
+| `0354_order_overpay_disposition.sql` | `org_fin_overpay_disp_dtl` audit |
+| `0358_permissions_customer_receipt_allocate.sql` | `customers:receipt_allocate` |
+| `0359_nav_customers_account_receipt.sql` | Account receipt nav dual-write |
+| `0360_order_fin_phase6_legacy_cleanup.sql` | Disp table align + `overpaid_amount` backfill |
 
-## Expected Numbers
+---
 
-- Cash exact: Applied `8.321`, Tendered `8.321`, Change Returned `0.000`, Unresolved Overpayment `0.000`.
-- Cash over-tender allowed: Applied `8.321`, Tendered `8.821`, Change Returned `0.500`, Unresolved Overpayment `0.000`.
-- Cash over-tender blocked: Applied `8.321`, Tendered `8.821`, submit blocked with `CASH_CHANGE_NOT_ALLOWED`.
-- Card overpayment blocked: Applied `8.821` against order `8.321`, submit blocked with `METHOD_OVERPAYMENT_NOT_ALLOWED` unless method supports retained overpayment.
-- Gift card plus cash: Gift card `2.000`, cash Applied `6.321`, cash Tendered `6.821`, Change Returned `0.500`.
-- Gift + NONE (orchestrator): Sale `100`, gift `30`, cash leg `70`, policy `NONE` → unpaid balance `0` (submit allowed). Cash `60` → unpaid `10` → `OUTSTANDING_POLICY_REQUIRED`.
-- Wallet/advance/loyalty/credit-note cap: leg amount cannot exceed live balance or remaining due.
-- Multi-cash: two cash legs where one has `supports_change_return = false` → unresolved overpayment (no aggregate change display).
+## Expected numbers (QA)
 
-## Deferred Work
+- Cash exact: Applied = Tendered, Change = 0, Unresolved = 0
+- Cash over-tender (allowed): Change = tendered − applied, Unresolved = 0
+- Cash over-tender (blocked): `CASH_CHANGE_NOT_ALLOWED`
+- Card overpayment (blocked): `METHOD_OVERPAYMENT_NOT_ALLOWED` unless policy allows retention
+- Gift + NONE: Orchestrator unpaid balance excludes gift from cash requirement correctly
 
-- **Credit note picker:** MVP = one note per leg; no multi-note split in a single checkout.
-- **Branch policy overrides:** `supports_change_return` / `supports_overpayment` branch columns remain unnecessary until product asks branch admins to override tenant flags.
-- **Gateway redirect:** `buildGatewayReturnState` / `parseGatewayReturnState` helpers exist; no redirect flow wired in Payment Modal V4 yet.
+---
 
-## Planned — ADR-047 Overpayment Disposition (2026-06-11)
+## Deferred / pending (not plan blockers)
 
-Documentation and schema sketches created; **not wired to submit path yet**.
+See **[Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md)** for full backlog:
 
-| Artifact | Path | Status |
-|----------|------|--------|
-| ADR-047 | `docs/features/Order_Fin/ADR/ADR-047-Overpayment-Disposition.md` | Proposed — pending `Approved_By_Jh` |
-| Contract update | `overpayment-change-contract.md` | Disposition section added |
-| DB migration (review only) | `supabase/migrations/0354_order_overpay_disposition.sql` | Created — **do not apply until approved** |
-| Constants | `web-admin/lib/constants/overpayment-disposition.ts` | Created |
-| Types | `web-admin/lib/types/overpayment-disposition.ts` | Created |
-| Zod sketch | `new-order-payment-schemas.ts` (`overpaymentDispositionSchema`, `legRef`) | Created — optional on submit |
+- HQ feature flags (`customer_receipt_allocation_v1`, `overpayment_disposition_v1`)
+- Reconciliation check: unallocated excess = 0
+- Online payment gateway ([ADR-049](../Order_Fin/ADR/ADR-049-Online-Payment-Gateway-Integration.md))
+- Credit note multi-note split; branch policy overrides
 
-### Implementation phases (ADR-047)
+---
 
-| Phase | Scope |
-|-------|--------|
-| A | Server block submit on unresolved excess; no silent `overpaid_amount` |
-| B | Disposition UI + `RETURN_CHANGE` + adjust legs |
-| C | `TO_WALLET`, `TO_ADVANCE` in submit transaction |
-| D | `TO_CREDIT_NOTE`, split lines, permission gates |
-| E | Later collection parity + test_guide matrix |
+## Related documentation
 
-### Service to implement
-
-- `web-admin/lib/services/overpayment-disposition.service.ts` — validate + execute inside orchestrator transaction
-- Modal: disposition panel, `legRef` on each leg, i18n `newOrder.payment.overpaymentDisposition.*`
-
-## Related Documentation
-
-- [overpayment-change-contract.md](./overpayment-change-contract.md) — canonical money concepts and service contract
-- [test_guide.md](./test_guide.md) — manual and automated QA
-- [walkthrough.md](./walkthrough.md) — UI layout and cashier flow
-- [ADR-046 Payment Method Overpayment Policy](../Order_Fin/ADR/ADR-046-Payment-Method-Overpayment-Policy.md)
-- [ADR-047 Overpayment Disposition](../Order_Fin/ADR/ADR-047-Overpayment-Disposition.md)
+| Doc | Role |
+|-----|------|
+| [overpayment-change-contract.md](./overpayment-change-contract.md) | Money concepts |
+| [test_guide.md](./test_guide.md) | Manual + automated QA |
+| [walkthrough.md](./walkthrough.md) | Cashier UI flow |
+| [tech_settlement_catalogs.md](../Order_Fin/technical_docs/tech_settlement_catalogs.md) | Catalog tables + vocabulary |
+| [tech_customer_receipt_allocation.md](../Order_Fin/technical_docs/tech_customer_receipt_allocation.md) | Allocation services + APIs |
+| [ADR-046](../Order_Fin/ADR/ADR-046-Payment-Method-Overpayment-Policy.md) | Method overpayment policy |
+| [ADR-047](../Order_Fin/ADR/ADR-047-Overpayment-Disposition.md) | Disposition model |
+| [ADR-048](../Order_Fin/ADR/ADR-048-Canonical-Payment-Gateway-Method-Model.md) | Gateway canonical model |
+| [ADR-049](../Order_Fin/ADR/ADR-049-Online-Payment-Gateway-Integration.md) | Gateway integration (deferred) |

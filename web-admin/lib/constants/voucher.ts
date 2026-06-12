@@ -104,9 +104,14 @@ export type LineType = (typeof LINE_TYPE)[keyof typeof LINE_TYPE];
 export const LINE_ROLE = {
   ORDER_PAYMENT:            'ORDER_PAYMENT',
   INVOICE_PAYMENT:          'INVOICE_PAYMENT',
+  STATEMENT_PAYMENT:        'STATEMENT_PAYMENT',
+  STATEMENT_CREDIT_APPLICATION: 'STATEMENT_CREDIT_APPLICATION',
   WALLET_TOPUP:             'WALLET_TOPUP',
   GIFT_CARD_SALE:           'GIFT_CARD_SALE',
+  /** @deprecated Use CUSTOMER_CREDIT_ISSUE for new code. Kept for legacy rows and UI compat. */
   CUSTOMER_CREDIT_RECEIPT:  'CUSTOMER_CREDIT_RECEIPT',
+  /** Canonical role for issuing customer credit from excess/compensation. */
+  CUSTOMER_CREDIT_ISSUE:    'CUSTOMER_CREDIT_ISSUE',
   CUSTOMER_ADVANCE_RECEIPT: 'CUSTOMER_ADVANCE_RECEIPT',
   SUPPLIER_PAYMENT:         'SUPPLIER_PAYMENT',
   EXPENSE_PAYMENT:          'EXPENSE_PAYMENT',
@@ -126,9 +131,20 @@ export const LINE_ROLE = {
 
 export type LineRole = (typeof LINE_ROLE)[keyof typeof LINE_ROLE];
 
+/** Maps legacy line roles to canonical codes (DB accepts both during transition). */
+export function normalizeVoucherLineRole(role: string): LineRole {
+  const upper = role.toUpperCase();
+  if (upper === LINE_ROLE.CUSTOMER_CREDIT_RECEIPT) {
+    return LINE_ROLE.CUSTOMER_CREDIT_ISSUE;
+  }
+  return upper as LineRole;
+}
+
 export const TARGET_TYPE = {
   ORDER:        'ORDER',
+  /** AR invoice — use INVOICE (not AR_INVOICE) per production BVM catalog. */
   INVOICE:      'INVOICE',
+  B2B_STATEMENT: 'B2B_STATEMENT',
   CUSTOMER:     'CUSTOMER',
   SUPPLIER:     'SUPPLIER',
   EMPLOYEE:     'EMPLOYEE',
@@ -184,6 +200,7 @@ export const CASHIER_ALLOWED_LINE_ROLES = [
   LINE_ROLE.CUSTOMER_ADVANCE_RECEIPT,
   LINE_ROLE.WALLET_TOPUP,
   LINE_ROLE.GIFT_CARD_SALE,
+  LINE_ROLE.CUSTOMER_CREDIT_ISSUE,
   LINE_ROLE.CUSTOMER_CREDIT_RECEIPT,
 ] as const;
 
@@ -194,8 +211,11 @@ export const CASHIER_ALLOWED_LINE_ROLES = [
 export const LINE_ROLE_REQUIREMENTS: Record<string, { targetTypes: string[]; requiredFields: string[] }> = {
   [LINE_ROLE.ORDER_PAYMENT]:            { targetTypes: [TARGET_TYPE.ORDER],       requiredFields: ['order_id'] },
   [LINE_ROLE.INVOICE_PAYMENT]:          { targetTypes: [TARGET_TYPE.INVOICE],     requiredFields: [] },
+  [LINE_ROLE.STATEMENT_PAYMENT]:        { targetTypes: [TARGET_TYPE.B2B_STATEMENT], requiredFields: [] },
+  [LINE_ROLE.STATEMENT_CREDIT_APPLICATION]: { targetTypes: [TARGET_TYPE.B2B_STATEMENT], requiredFields: [] },
   [LINE_ROLE.WALLET_TOPUP]:             { targetTypes: [TARGET_TYPE.WALLET],      requiredFields: ['customer_id'] },
   [LINE_ROLE.GIFT_CARD_SALE]:           { targetTypes: [TARGET_TYPE.GIFT_CARD],   requiredFields: [] },
+  [LINE_ROLE.CUSTOMER_CREDIT_ISSUE]:    { targetTypes: [TARGET_TYPE.CUSTOMER],    requiredFields: ['customer_id'] },
   [LINE_ROLE.CUSTOMER_CREDIT_RECEIPT]:  { targetTypes: [TARGET_TYPE.CUSTOMER],    requiredFields: ['customer_id'] },
   [LINE_ROLE.CUSTOMER_ADVANCE_RECEIPT]: { targetTypes: [TARGET_TYPE.CUSTOMER],    requiredFields: ['customer_id'] },
   [LINE_ROLE.SUPPLIER_PAYMENT]:         { targetTypes: [TARGET_TYPE.SUPPLIER],    requiredFields: ['party_name'] },

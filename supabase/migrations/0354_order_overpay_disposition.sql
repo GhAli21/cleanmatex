@@ -1,27 +1,29 @@
 -- ==================================================================
 -- Migration: 0354_order_overpay_disposition.sql
--- Purpose: Audit table for explicit overpayment disposition at checkout
---          (ADR-047). Seeds RBAC permissions for disposition destinations.
+-- Purpose: Audit/index table for checkout overpayment resolution (ADR-047).
+--          BVM voucher lines remain authoritative financial posting.
 -- ADR: docs/features/Order_Fin/ADR/ADR-047-Overpayment-Disposition.md
+-- Depends: 0357_fin_settlement_catalogs_v1_1.sql (sys_fin_overpay_res_cd)
 -- Do NOT apply via agent — user reviews and runs migrations manually.
+-- Apply 0357 BEFORE 0354 if resolution FK is desired; 0354 is audit-only without FK.
 -- ==================================================================
 
 BEGIN;
 
 -- ------------------------------------------------------------------
--- Disposition type codes (mirror TypeScript OVERPAYMENT_DISPOSITION_TYPES)
+-- Audit rows mirror sys_fin_overpay_res_cd.resolution_code
 -- ------------------------------------------------------------------
 
-CREATE TABLE org_order_overpay_disp_dtl (
+CREATE TABLE org_fin_overpay_disp_dtl (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_org_id       UUID NOT NULL,
   order_id            UUID NOT NULL,
   branch_id           UUID,
   voucher_id          UUID,
-  disposition_type    TEXT NOT NULL,
+  voucher_trx_line_id UUID,
+  resolution_code     TEXT NOT NULL,
   amount              DECIMAL(19, 4) NOT NULL,
   currency_code       TEXT NOT NULL,
-  -- Client leg reference for RETURN_CHANGE; wallet/advance/credit note id otherwise
   target_ref          TEXT,
   cash_leg_ref        TEXT,
   note_reason         TEXT,
@@ -36,60 +38,66 @@ CREATE TABLE org_order_overpay_disp_dtl (
   updated_at          TIMESTAMPTZ,
   updated_by          TEXT,
   updated_info        TEXT,
-  CONSTRAINT org_order_overpay_disp_dtl_amt_chk
+  CONSTRAINT org_fin_overpay_disp_amt_chk
     CHECK (amount > 0),
-  CONSTRAINT org_order_overpay_disp_dtl_type_chk
-    CHECK (disposition_type IN (
-      'RETURN_CHANGE',
-      'TO_WALLET',
-      'TO_ADVANCE',
-      'TO_CREDIT_NOTE'
+  CONSTRAINT org_fin_overpay_disp_res_chk
+    CHECK (resolution_code IN (
+      'REDUCE_PAYMENT',
+      'RETURN_CASH_CHANGE',
+      'VOID_OR_REFUND_EXCESS',
+      'SAVE_AS_CUSTOMER_ADVANCE',
+      'SAVE_AS_CUSTOMER_CREDIT',
+      'RESTORE_STORED_VALUE',
+      'ALLOCATE_TO_CUSTOMER_BALANCES',
+      'AUTO_ALLOCATE_TO_CUSTOMER_BALANCES'
     )),
-  CONSTRAINT org_order_overpay_disp_dtl_tenant_order_fk
+  CONSTRAINT org_fin_overpay_disp_tenant_order_fk
     FOREIGN KEY (order_id, tenant_org_id)
     REFERENCES org_orders_mst (id, tenant_org_id)
     ON DELETE RESTRICT
 );
 
-COMMENT ON TABLE org_order_overpay_disp_dtl IS
-  'Explicit routing of checkout excess (change, wallet, advance, credit note). ADR-047.';
-COMMENT ON COLUMN org_order_overpay_disp_dtl.disposition_type IS
-  'RETURN_CHANGE | TO_WALLET | TO_ADVANCE | TO_CREDIT_NOTE';
-COMMENT ON COLUMN org_order_overpay_disp_dtl.target_ref IS
-  'Created entity id (wallet ledger row, advance id, credit note id) or voucher ref for change';
-COMMENT ON COLUMN org_order_overpay_disp_dtl.cash_leg_ref IS
-  'Client legRef for RETURN_CHANGE — links to settlement leg identity';
-COMMENT ON COLUMN org_order_overpay_disp_dtl.idempotency_key IS
-  'Matches submit-order idempotencyKey for replay-safe inserts';
+COMMENT ON TABLE org_fin_overpay_disp_dtl IS
+  'Audit/index for checkout excess resolution. Authoritative posting is on org_fin_voucher_trx_lines_dtl.';
+COMMENT ON COLUMN org_fin_overpay_disp_dtl.resolution_code IS
+  'sys_fin_overpay_res_cd.resolution_code — how excess was resolved at checkout.';
+COMMENT ON COLUMN org_fin_overpay_disp_dtl.voucher_trx_line_id IS
+  'Optional link to the BVM line that posted this resolution effect.';
+COMMENT ON COLUMN org_fin_overpay_disp_dtl.target_ref IS
+  'Created entity id (wallet txn, advance id, credit id) or drawer movement ref.';
+COMMENT ON COLUMN org_fin_overpay_disp_dtl.cash_leg_ref IS
+  'Client legRef for RETURN_CASH_CHANGE — links to settlement leg identity.';
+COMMENT ON COLUMN org_fin_overpay_disp_dtl.idempotency_key IS
+  'Matches submit-order idempotencyKey for replay-safe audit inserts.';
 
-CREATE INDEX idx_ord_overpay_disp_tenant
-  ON org_order_overpay_disp_dtl (tenant_org_id);
-CREATE INDEX idx_ord_overpay_disp_tenant_order
-  ON org_order_overpay_disp_dtl (tenant_org_id, order_id);
-CREATE INDEX idx_ord_overpay_disp_tenant_created
-  ON org_order_overpay_disp_dtl (tenant_org_id, created_at DESC);
-CREATE UNIQUE INDEX uq_ord_overpay_disp_idempotency
-  ON org_order_overpay_disp_dtl (tenant_org_id, idempotency_key, disposition_type, cash_leg_ref)
-  WHERE idempotency_key IS NOT NULL AND disposition_type = 'RETURN_CHANGE';
+CREATE INDEX idx_fin_overpay_disp_tenant
+  ON org_fin_overpay_disp_dtl (tenant_org_id);
+CREATE INDEX idx_fin_overpay_disp_tenant_order
+  ON org_fin_overpay_disp_dtl (tenant_org_id, order_id);
+CREATE INDEX idx_fin_overpay_disp_tenant_created
+  ON org_fin_overpay_disp_dtl (tenant_org_id, created_at DESC);
+CREATE UNIQUE INDEX uq_fin_overpay_disp_idempotency
+  ON org_fin_overpay_disp_dtl (tenant_org_id, idempotency_key, resolution_code, cash_leg_ref)
+  WHERE idempotency_key IS NOT NULL AND resolution_code = 'RETURN_CASH_CHANGE';
 
-CREATE UNIQUE INDEX uq_ord_overpay_disp_idempotency_simple
-  ON org_order_overpay_disp_dtl (tenant_org_id, idempotency_key, disposition_type)
-  WHERE idempotency_key IS NOT NULL AND disposition_type <> 'RETURN_CHANGE';
+CREATE UNIQUE INDEX uq_fin_overpay_disp_idempotency_simple
+  ON org_fin_overpay_disp_dtl (tenant_org_id, idempotency_key, resolution_code)
+  WHERE idempotency_key IS NOT NULL AND resolution_code <> 'RETURN_CASH_CHANGE';
 
 -- ------------------------------------------------------------------
 -- RLS
 -- ------------------------------------------------------------------
 
-ALTER TABLE org_order_overpay_disp_dtl ENABLE ROW LEVEL SECURITY;
+ALTER TABLE org_fin_overpay_disp_dtl ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS tenant_isolation_org_order_overpay_disp_dtl ON org_order_overpay_disp_dtl;
-CREATE POLICY tenant_isolation_org_order_overpay_disp_dtl ON org_order_overpay_disp_dtl
+DROP POLICY IF EXISTS tenant_isolation_org_fin_overpay_disp_dtl ON org_fin_overpay_disp_dtl;
+CREATE POLICY tenant_isolation_org_fin_overpay_disp_dtl ON org_fin_overpay_disp_dtl
   FOR ALL
   USING (tenant_org_id = current_tenant_id())
   WITH CHECK (tenant_org_id = current_tenant_id());
 
-DROP POLICY IF EXISTS service_role_org_order_overpay_disp_dtl ON org_order_overpay_disp_dtl;
-CREATE POLICY service_role_org_order_overpay_disp_dtl ON org_order_overpay_disp_dtl
+DROP POLICY IF EXISTS service_role_org_fin_overpay_disp_dtl ON org_fin_overpay_disp_dtl;
+CREATE POLICY service_role_org_fin_overpay_disp_dtl ON org_fin_overpay_disp_dtl
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role')
   WITH CHECK (auth.jwt() ->> 'role' = 'service_role');
@@ -117,8 +125,8 @@ INSERT INTO sys_auth_permissions (
     'Dispose Checkout Overpayment',
     'تصرف فائض الدفع عند الإنهاء',
     'actions',
-    'Route checkout excess to change, wallet, advance, or credit note',
-    'توجيه فائض الدفع عند الإنهاء إلى الباقي أو المحفظة أو السلفة أو إشعار الدائن',
+    'Route checkout excess to change, wallet, advance, or customer credit',
+    'توجيه فائض الدفع عند الإنهاء',
     'Orders',
     true,
     true,
@@ -159,7 +167,7 @@ INSERT INTO sys_auth_permissions (
     'Overpayment to Credit Note',
     'فائض الدفع إلى إشعار دائن',
     'actions',
-    'Issue credit note from checkout overpayment',
+    'Issue credit note from checkout overpayment (when legally allowed)',
     'إصدار إشعار دائن من فائض الدفع',
     'Orders',
     true,

@@ -1,6 +1,13 @@
 -- =============================================================================
 -- CMX-PRD-019 Notification Hub — Step 1: Set Supabase GUCs
 -- =============================================================================
+-- ⚠️  SUPERSEDED by migration 0355_ntf_config_table_cron_fix.sql
+--     Supabase's postgres role (rolsuper = false) cannot ALTER DATABASE or
+--     ALTER ROLE SET for custom GUC namespaces. Migration 0355 replaces this
+--     with a sys_ntf_runtime_cf config table — no superuser required.
+--     Apply 0355 instead of running this script.
+-- =============================================================================
+-- Original approach (kept for reference — requires true superuser):
 -- Paste this into: Supabase Dashboard > SQL Editor
 -- Run ONCE per database (local + production separately).
 --

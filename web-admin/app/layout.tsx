@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 //import { AuthProvider } from "@/lib/auth/auth-context";
 import '@mdi/font/css/materialdesignicons.min.css';
 import { AppProviders } from '@/lib/providers/AppProviders'
 import { getLocaleFromCookies } from '@/lib/utils/locale.server';
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "CleanMateX - Laundry Management System",
@@ -37,7 +26,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <AppProviders initialLocale={locale}>
          {children}

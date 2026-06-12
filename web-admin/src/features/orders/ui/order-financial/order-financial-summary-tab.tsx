@@ -19,7 +19,12 @@ export function OrderFinancialSummaryTab({ viewModel }: OrderFinancialSummaryTab
         <OrderValueBreakdown viewModel={viewModel} />
         <div className="space-y-4">
           <OrderSettlementSummary viewModel={viewModel} />
-          <OrderReceivableCollectionPanel viewModel={viewModel} />
+          <OrderReceivableCollectionPanel
+            viewModel={viewModel}
+            orderId={viewModel.orderId}
+            customerId={viewModel.customerId}
+            branchId={viewModel.branchId}
+          />
           <OrderTaxDocumentPanel viewModel={viewModel} />
         </div>
       </div>

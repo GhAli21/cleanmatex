@@ -185,6 +185,8 @@ export function OrderDetailClient({
         received_at: order.received_at ? String(order.received_at) : undefined,
         customer_name: customerName,
         branch_name: branch?.branch_name,
+        customer_id: order.customer_id ? String(order.customer_id) : null,
+        branch_id: order.branch_id ? String(order.branch_id) : null,
       },
       preferenceExtraTotal,
       pieceExtraTotal: 0,

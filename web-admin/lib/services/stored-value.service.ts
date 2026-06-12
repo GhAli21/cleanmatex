@@ -303,6 +303,86 @@ export async function redeemAdvanceTx(
 
 // ── Credit Note ───────────────────────────────────────────────────────────────
 
+export async function issueCreditNoteTx(
+  tx: PrismaTransactionClient,
+  params: {
+    tenantId: string;
+    customerId: string;
+    amount: number;
+    reason: string;
+    orderId?: string;
+    expiresAt?: Date;
+    issuedBy?: string;
+    currencyCode: string;
+    idempotencyKey?: string;
+  }
+) {
+  const {
+    tenantId,
+    customerId,
+    amount,
+    reason,
+    orderId,
+    expiresAt,
+    issuedBy,
+    currencyCode,
+    idempotencyKey,
+  } = params;
+
+  if (idempotencyKey) {
+    const existingTxn = await tx.org_credit_note_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existingTxn) {
+      const existingNote = await tx.org_credit_notes_mst.findFirst({
+        where: { id: existingTxn.credit_note_id, tenant_org_id: tenantId },
+      });
+      if (existingNote) return existingNote;
+    }
+  }
+
+  const count = await tx.org_credit_notes_mst.count({ where: { tenant_org_id: tenantId } });
+  const creditNoteNo = `CN-${tenantId.slice(0, 8).toUpperCase()}-${String(count + 1).padStart(5, '0')}`;
+
+  const creditNote = await tx.org_credit_notes_mst.create({
+    data: {
+      tenant_org_id: tenantId,
+      customer_id: customerId,
+      credit_note_no: creditNoteNo,
+      original_amount: amount,
+      remaining_balance: amount,
+      currency_code: currencyCode,
+      status: CREDIT_NOTE_STATUSES.ACTIVE,
+      reason,
+      related_order_id: orderId ?? null,
+      expires_at: expiresAt ?? null,
+      issued_by: issuedBy ?? null,
+      is_active: true,
+      rec_status: 1,
+    },
+  });
+
+  if (idempotencyKey) {
+    await tx.org_credit_note_txn_dtl.create({
+      data: {
+        tenant_org_id: tenantId,
+        credit_note_id: creditNote.id,
+        customer_id: customerId,
+        txn_type: STORED_VALUE_TXN_TYPES.ISSUE,
+        amount,
+        currency_code: currencyCode,
+        balance_before: 0,
+        balance_after: amount,
+        order_id: orderId ?? null,
+        idempotency_key: idempotencyKey,
+        rec_status: 1,
+      },
+    });
+  }
+
+  return creditNote;
+}
+
 export async function issueCreditNote(
   tenantId: string,
   params: {

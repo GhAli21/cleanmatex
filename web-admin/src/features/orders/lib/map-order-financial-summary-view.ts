@@ -136,6 +136,8 @@ export function mapOrderFinancialSummaryView(
   return {
     orderId: snapshot.orderId,
     orderNo: snapshot.orderNo ?? snapshot.orderId,
+    customerId: input.order?.customer_id ?? null,
+    branchId: input.order?.branch_id ?? null,
     currencyCode: snapshot.currencyCode ?? 'OMR',
     baseCurrency,
     customerName: input.order?.customer_name ?? undefined,

@@ -59,10 +59,20 @@ export interface VoucherLineForWiring {
  * Returned by getLinkedEffect() and included in LinkedEffectsResult.
  */
 export interface LinkedEffect {
-  effectType: 'ORDER_PAYMENT' | 'CASH_DRAWER_MOVEMENT' | 'CREDIT_APPLICATION';
+  effectType:
+    | 'ORDER_PAYMENT'
+    | 'CASH_DRAWER_MOVEMENT'
+    | 'CREDIT_APPLICATION'
+    | 'INVOICE_PAYMENT'
+    | 'STATEMENT_PAYMENT';
   effectId: string;
-  tableRef: 'org_order_payments_dtl' | 'org_cash_drawer_movements_dtl' | 'org_order_credit_apps_dtl';
-  amount: Prisma.Decimal;
+  tableRef:
+    | 'org_order_payments_dtl'
+    | 'org_cash_drawer_movements_dtl'
+    | 'org_order_credit_apps_dtl'
+    | 'org_invoice_payments_dtl'
+    | 'org_b2b_statements_mst';
+  amount: Prisma.Decimal | number;
   currency_code: string | null;
 }
 

@@ -140,4 +140,14 @@ export interface SettlementPlan {
   shouldCreateReceiptVoucher: boolean;
   /** True when outstanding balance settles via AR invoice (CREDIT_INVOICE policy). */
   shouldCreateArInvoice: boolean;
+  /** Applied settlement minus order total (leg amounts). */
+  excessAmount: number;
+  /** Cash tendered minus applied on change-capable cash legs. */
+  cashChangeCapacity: number;
+  /** All cash legs support change return. */
+  canReturnChangeFromCash: boolean;
+  /** Non-cash supports_overpayment retains excess without explicit disposition. */
+  hasAllowedRetainedOverpayment: boolean;
+  /** Excess requiring explicit resolution before submit (ADR-047). */
+  unresolvedExcessAmount: number;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CREDIT_APPLICATION_TYPES, PAYMENT_NATURE } from '@/lib/constants/order-financial';
-import { requirePermission } from '@/lib/middleware/require-permission';
+import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { getAvailableStoredValueSummary } from '@/lib/services/order-credit-application.service';
 import { listCheckoutEligiblePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 
@@ -11,7 +11,7 @@ import { listCheckoutEligiblePaymentMethodConfigs } from '@/lib/services/payment
  * @returns POS-ready payment options grouped for the payment modal method and customer-credit sections.
  */
 export async function GET(request: NextRequest) {
-  const auth = await requirePermission('orders:create')(request);
+  const auth = await requireAnyPermission(['orders:create', 'orders:collect_payment'])(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 

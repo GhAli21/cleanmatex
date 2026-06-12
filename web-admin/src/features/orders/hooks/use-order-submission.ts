@@ -316,6 +316,9 @@ export function useOrderSubmission() {
                     ...(payload.paymentLegs && payload.paymentLegs.length > 0 && {
                         paymentLegs: payload.paymentLegs,
                     }),
+                    ...(payload.overpaymentResolution && {
+                        overpaymentResolution: payload.overpaymentResolution,
+                    }),
                     idempotencyKey: idempotencyKeyRef.current,
                 };
 
@@ -527,6 +530,15 @@ export function useOrderSubmission() {
                             CASH_TENDERED_LESS_THAN_AMOUNT: t('payment.messages.invalidAmount'),
                             CASH_CHANGE_NOT_ALLOWED: t('payment.messages.validationErrors'),
                             METHOD_OVERPAYMENT_NOT_ALLOWED: t('payment.messages.validationErrors'),
+                            OVERPAYMENT_RESOLUTION_REQUIRED: t('payment.rightRail.requiredAction.overpaymentMessage', {
+                                amount: '',
+                                default: 'Extra receipt amount must be resolved before submitting.',
+                            }),
+                            OVERPAYMENT_RESOLUTION_MISMATCH: t('payment.messages.validationErrors'),
+                            OVERPAYMENT_RESOLUTION_NOT_ALLOWED: t('payment.messages.validationErrors'),
+                            RETURN_CHANGE_EXCEEDS_CAPACITY: t('payment.messages.validationErrors'),
+                            RETURN_CHANGE_LEG_INVALID: t('payment.messages.validationErrors'),
+                            RECEIPT_ALLOCATION_EXCESS_UNRESOLVED: t('payment.messages.validationErrors'),
                             CASH_TENDERED_ONLY_FOR_CASH: t('payment.messages.validationErrors'),
                             PAYMENT_REFERENCE_REQUIRED: t('payment.errors.paymentReferenceRequired'),
                             PAYMENT_TERMINAL_REQUIRED: t('payment.errors.paymentTerminalRequired'),

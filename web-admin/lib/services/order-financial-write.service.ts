@@ -692,6 +692,15 @@ export async function recalculateOrderFinancialSnapshotTx(
   const changeReturnedAmount = sumChangeReturned(payments);
   const ambiguousHistoricalPaymentRow = hasAmbiguousHistoricalPaymentRow(payments);
 
+  const disposedOverpaymentRows = await tx.$queryRaw<Array<{ total: number | null }>>`
+    SELECT COALESCE(SUM(amount)::float8, 0) AS total
+    FROM org_fin_overpay_disp_dtl
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND order_id = ${orderId}::uuid
+      AND is_active = true
+  `;
+  const disposedOverpaymentAmount = Number(disposedOverpaymentRows[0]?.total ?? 0);
+
   const {
     refundedAmount,
     realPaymentRefundedAmount,
@@ -722,7 +731,14 @@ export async function recalculateOrderFinancialSnapshotTx(
       + refundReopensDueAmount
       + creditReversalReopensDueAmount,
   );
-  const overpaidAmount = Math.max(0, totalPaidAmount + totalCreditAppliedAmount - totalAmount);
+  const grossOverpaidAmount = Math.max(
+    0,
+    totalPaidAmount + totalCreditAppliedAmount - totalAmount,
+  );
+  const overpaidAmount = Math.max(
+    0,
+    grossOverpaidAmount - changeReturnedAmount - disposedOverpaymentAmount,
+  );
   const payOnCollectionAmount =
     order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
       ? outstandingAmount

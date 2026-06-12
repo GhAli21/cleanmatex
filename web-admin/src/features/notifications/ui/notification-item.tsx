@@ -2,7 +2,7 @@
 
 import type { ElementType } from 'react'
 import { Bell, ShoppingBag, CreditCard, Settings, Package } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import type { NotificationRow } from '@lib/notifications/types'
 
@@ -15,10 +15,10 @@ const CATEGORY_ICON: Record<string, ElementType> = {
   delivery: Package,
 }
 
-function getRelativeTime(isoString: string, locale: string): string {
+function getRelativeTime(isoString: string, locale: string, justNow: string): string {
   const diff = Date.now() - new Date(isoString).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return locale === 'ar' ? 'الآن' : 'Just now'
+  if (mins < 1) return justNow
   const rtf = new Intl.RelativeTimeFormat(locale === 'ar' ? 'ar' : 'en', { numeric: 'auto', style: 'short' })
   if (mins < 60) return rtf.format(-mins, 'minute')
   const hrs = Math.floor(mins / 60)
@@ -36,6 +36,7 @@ export interface NotificationItemProps {
 export function NotificationItem({ notification, onMarkRead, compact = false, className }: NotificationItemProps) {
   const locale = useLocale()
   const isAr = locale === 'ar'
+  const t = useTranslations('notifications')
 
   const title = isAr && notification.title2 ? notification.title2 : notification.title
   const body  = isAr && notification.body2  ? notification.body2  : notification.body
@@ -91,7 +92,7 @@ export function NotificationItem({ notification, onMarkRead, compact = false, cl
         )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            {getRelativeTime(notification.created_at, locale)}
+            {getRelativeTime(notification.created_at, locale, t('item.justNow'))}
           </span>
           {!notification.is_read && onMarkRead && !compact && (
             <button
@@ -99,7 +100,7 @@ export function NotificationItem({ notification, onMarkRead, compact = false, cl
               onClick={() => onMarkRead(notification.id)}
               className="text-[11px] font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
             >
-              {isAr ? 'تحديد كمقروء' : 'Mark as read'}
+              {t('item.markRead')}
             </button>
           )}
         </div>

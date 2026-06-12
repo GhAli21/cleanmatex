@@ -20,6 +20,8 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { RecordPaymentClient } from '@/app/dashboard/internal_fin/invoices/[id]/record-payment-client';
 import { processPayment } from '@/app/actions/payments/process-payment';
+import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import {
   mapReadyOrderFromStateResponse,
   type ReadyOrder,
@@ -55,6 +57,7 @@ export default function ReadyDetailPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('');
   /** 'single' = apply to selected invoice; 'distribute' = FIFO across all invoices */
   const [paymentTargetMode, setPaymentTargetMode] = useState<'single' | 'distribute'>('single');
+  const [collectOpen, setCollectOpen] = useState(false);
 
   const orderId = (params as any)?.id as string | undefined;
 
@@ -297,6 +300,21 @@ export default function ReadyDetailPage() {
                       <span className="text-orange-700">{formatMoneyWithCode(order.paymentSummary.remaining)}</span>
                     </div>
                     {currentTenant?.tenant_id && orderId && (() => {
+                      const isPoc =
+                        order.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
+                      if (isPoc) {
+                        return (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => setCollectOpen(true)}
+                              className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                            >
+                              {tOrders('collectPayment.collectButton')}
+                            </button>
+                          </div>
+                        );
+                      }
                       const invoicesWithBalance = order.invoices?.filter((inv) => inv.remaining > 0) ?? [];
                       const selectedInvoice =
                         invoicesWithBalance.find((inv) => inv.id === selectedInvoiceId) ??
@@ -545,6 +563,18 @@ export default function ReadyDetailPage() {
           </div>
         </div>
       )}
+      {order && orderId ? (
+        <OrderCollectPaymentModal
+          open={collectOpen}
+          onOpenChange={setCollectOpen}
+          orderId={orderId}
+          customerId={order.customerId}
+          branchId={order.branchId}
+          outstandingAmount={order.paymentSummary?.remaining ?? 0}
+          currencyCode={order.currencyCode ?? 'OMR'}
+          onCollected={() => loadOrder()}
+        />
+      ) : null}
     </div>
   );
 }

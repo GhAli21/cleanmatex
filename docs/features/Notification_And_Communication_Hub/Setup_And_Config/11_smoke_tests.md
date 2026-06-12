@@ -1,9 +1,11 @@
 # Notification Hub — Smoke Tests
 
-**Last Updated:** 2026-06-11  
+**Last Updated:** 2026-06-12  
 **Purpose:** Per-channel smoke test procedure with exact SQL test harness and expected outcomes.
 
-**Prerequisites:** All migrations applied, GUCs set, at least one channel enabled and its provider activated.
+**Prerequisites:** All migrations 0344–0356 applied, `sys_ntf_runtime_cf` populated, at least one channel enabled and its provider activated.
+
+> See also: `../testing_scenarios.md` for full QA test matrix including integration and multi-tenant isolation tests.
 
 ---
 
@@ -13,7 +15,8 @@ Replace `<tenant_id>` and `<user_id>` with real UUIDs from your `org_tenants_mst
 
 ```sql
 -- Generic outbox insert for any channel
-INSERT INTO org_ntf_outbox_dtl (
+-- Actual table: org_notification_outbox_dtl (created in migration 0348)
+INSERT INTO org_notification_outbox_dtl (
   id, tenant_org_id, channel_code,
   recipient_address, recipient_user_id,
   rendered_subject, rendered_body,
@@ -43,14 +46,11 @@ curl -X POST https://your-domain.com/api/notifications/process-outbox \
   -H "Authorization: Bearer YOUR_NOTIFICATIONS_OUTBOX_SECRET"
 ```
 
-Or call it from the Supabase SQL Editor via pg_net:
+Or call it from the Supabase SQL Editor via the runtime config function (migration 0355 replaced GUCs with `sys_ntf_runtime_cf`):
 
 ```sql
-SELECT net.http_post(
-  url     := current_setting('app.next_js_base_url') || '/api/notifications/process-outbox',
-  headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.outbox_secret_key')),
-  body    := '{}'::jsonb
-);
+-- Use the SECURITY DEFINER function that reads base_url + secret from sys_ntf_runtime_cf
+SELECT ntf_trigger_outbox_proc();
 ```
 
 ---
@@ -58,15 +58,17 @@ SELECT net.http_post(
 ## Check Delivery Results
 
 ```sql
--- View latest outbox status
+-- View latest outbox status (actual table name: org_notification_outbox_dtl)
 SELECT id, channel_code, status, error_message, sent_at, retry_count, updated_at
-FROM org_ntf_outbox_dtl
+FROM org_notification_outbox_dtl
+WHERE tenant_org_id = '<tenant_id>'
 ORDER BY updated_at DESC
 LIMIT 20;
 
--- View delivery log
+-- View delivery log (actual table name: org_notif_delivery_log_dtl)
 SELECT channel_code, status, attempt_number, error_message, logged_at
-FROM org_ntf_delivery_log_dtl
+FROM org_notif_delivery_log_dtl
+WHERE tenant_org_id = '<tenant_id>'
 ORDER BY logged_at DESC
 LIMIT 20;
 ```
@@ -77,17 +79,18 @@ LIMIT 20;
 
 ```sql
 -- Insert directly into inbox (orchestrator does this; not via outbox)
-INSERT INTO org_ntf_inbox_mst (
+-- Actual table: org_notifications_mst (created in migration 0348)
+INSERT INTO org_notifications_mst (
   id, tenant_org_id, recipient_user_id,
   event_code, category_code,
   title, title2, body, body2,
-  is_read, is_active, rec_status, created_at
+  channel_code, is_read, is_active, rec_status, created_at
 ) VALUES (
   gen_random_uuid(), '<tenant_id>', '<user_id>',
   'order.status_changed', 'ORDER',
   'Test Notification', 'إشعار اختباري',
   'Your order is ready', 'طلبك جاهز',
-  false, true, 1, NOW()
+  'IN_APP', false, true, 1, NOW()
 );
 ```
 
@@ -98,7 +101,7 @@ Expected: The notification bell in the web-admin sidebar shows `1 unread`. Supab
 ## Channel: EMAIL
 
 ```sql
-INSERT INTO org_ntf_outbox_dtl (
+INSERT INTO org_notification_outbox_dtl (
   id, tenant_org_id, channel_code,
   recipient_address, recipient_user_id,
   rendered_subject, rendered_body,
@@ -123,7 +126,7 @@ If `FAILED_PERMANENT`: check `error_message` — likely invalid `RESEND_API_KEY`
 ## Channel: SMS
 
 ```sql
-INSERT INTO org_ntf_outbox_dtl (
+INSERT INTO org_notification_outbox_dtl (
   id, tenant_org_id, channel_code,
   recipient_address, recipient_user_id,
   rendered_subject, rendered_body,
@@ -152,7 +155,7 @@ Common failures:
 ## Channel: WHATSAPP
 
 ```sql
-INSERT INTO org_ntf_outbox_dtl (
+INSERT INTO org_notification_outbox_dtl (
   id, tenant_org_id, channel_code,
   recipient_address, recipient_user_id,
   rendered_subject, rendered_body,
@@ -183,7 +186,7 @@ WHERE tenant_org_id = '<tenant_id>'
 ```
 
 ```sql
-INSERT INTO org_ntf_outbox_dtl (
+INSERT INTO org_notification_outbox_dtl (
   id, tenant_org_id, channel_code,
   recipient_address, recipient_user_id,
   rendered_subject, rendered_body,
@@ -227,8 +230,9 @@ Expected: `status = succeeded` for recent runs.
 
 If all runs show `status = failed`:
 1. Check `return_message` — likely contains a `401` or network error
-2. Verify `app.next_js_base_url` and `app.outbox_secret_key` GUCs
-3. Ensure `NOTIFICATIONS_OUTBOX_SECRET` env var matches the GUC
+2. Verify `sys_ntf_runtime_cf` has correct `next_js_base_url` and `outbox_secret_key` values (GUCs replaced in migration 0355)
+3. Ensure `NOTIFICATIONS_OUTBOX_SECRET` env var matches `outbox_secret_key` in `sys_ntf_runtime_cf`
+4. Run: `SELECT key, value FROM sys_ntf_runtime_cf ORDER BY key;` to inspect current values
 
 ---
 

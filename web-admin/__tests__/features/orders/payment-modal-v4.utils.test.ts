@@ -125,8 +125,9 @@ describe('payment-modal-v4 utils', () => {
     expect(getAmountAppliedToOrder(8.321, 8.821)).toBe(8.321);
     expect(getDisplayChangeAmount(0.5, true)).toBe(0.5);
     expect(getDisplayChangeAmount(0.5, false)).toBe(0);
-    expect(getUnresolvedOverpaymentAmount(0.5, true)).toBe(0);
-    expect(getUnresolvedOverpaymentAmount(0.5, false)).toBe(0.5);
+    expect(getUnresolvedOverpaymentAmount(0.5, 0.5, true)).toBe(0);
+    expect(getUnresolvedOverpaymentAmount(0.5, 0, true)).toBe(0.5);
+    expect(getUnresolvedOverpaymentAmount(0.5, 0, false)).toBe(0.5);
     expect(getNetCashRetainedAmount(6.821, 0.5, true)).toBe(6.321);
   });
 

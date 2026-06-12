@@ -20,6 +20,20 @@ import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.ser
 import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
+import {
+  computeCollectionOverpaymentMetrics,
+  type CollectionLegInput,
+} from '@/lib/payments/collection-overpayment';
+import { validateOverpaymentResolution } from '@/lib/services/overpayment-resolution-validator.service';
+import { executeOverpaymentDispositionTx } from '@/lib/services/overpayment-disposition.service';
+import {
+  executeAllocationPreviewTx,
+  extractAllocationPreviewId,
+  getDispositionLinesExcludingAllocation,
+  resolutionIncludesAllocation,
+} from '@/lib/services/customer-receipt-excess-executor.service';
+import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-payment-schemas';
+import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 
 /** Prisma transaction client shared with submit-order's atomic settlement flow. */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -561,6 +575,9 @@ export interface CollectPaymentParams {
   }>;
   cashDrawerSessionId?: string;
   collectedBy: string;
+  customerId?: string | null;
+  overpaymentResolution?: OverpaymentResolutionInput;
+  idempotencyKey?: string;
 }
 
 /**
@@ -574,12 +591,29 @@ export interface CollectPaymentParams {
  * @returns normalized snapshot result after collection
  */
 export async function collectPaymentTx(params: CollectPaymentParams): Promise<SettlementResult> {
-  const { orderId, tenantId, paymentLegs, cashDrawerSessionId, collectedBy } = params;
+  const {
+    orderId,
+    tenantId,
+    paymentLegs,
+    cashDrawerSessionId,
+    collectedBy,
+    overpaymentResolution,
+    idempotencyKey: idempotencyKeyInput,
+  } = params;
   const policy = await getPartialLaterCollectionPolicy(tenantId);
+  const idempotencyKey = idempotencyKeyInput ?? `${orderId}_collect_${collectedBy}`;
 
   return prisma.$transaction(async (tx) => {
-    const rows = await tx.$queryRaw<{ id: string; outstanding_amount: number; currency_code: string; branch_id: string | null }[]>`
-      SELECT id, outstanding_amount::float8, currency_code, branch_id
+    const rows = await tx.$queryRaw<
+      Array<{
+        id: string;
+        outstanding_amount: number;
+        currency_code: string;
+        branch_id: string | null;
+        customer_id: string;
+      }>
+    >`
+      SELECT id, outstanding_amount::float8, currency_code, branch_id, customer_id
       FROM public.org_orders_mst
       WHERE id = ${orderId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
@@ -595,6 +629,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     const outstanding = rows[0].outstanding_amount;
     const currencyCode = rows[0].currency_code ?? 'OMR';
     const branchId = rows[0].branch_id;
+    const customerId = params.customerId ?? rows[0].customer_id;
     const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
 
     if (totalCollected <= 0) {
@@ -604,13 +639,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       throw new Error(`Collected amount (${totalCollected}) is less than outstanding (${outstanding})`);
     }
 
-    let changeReturned = 0;
-    let appliedBeforeLeg = 0;
-
-    for (const leg of paymentLegs) {
-      const change = leg.cashTendered && leg.cashTendered > leg.amount ? leg.cashTendered - leg.amount : 0;
-      changeReturned += change;
-
+    const resolvedLegs: CollectionLegInput[] = [];
+    for (const [legIndex, leg] of paymentLegs.entries()) {
       const method = await tx.org_payment_methods_cf.findFirst({
         where: {
           id: leg.paymentMethodId,
@@ -620,6 +650,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           is_platform_disabled: false,
         },
         select: {
+          id: true,
           payment_method_code: true,
           gateway_code: true,
           requires_cash_drawer: true,
@@ -644,52 +675,110 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         : null;
       const requiresCashDrawer = branchOverride?.cash_drawer_required ?? method.requires_cash_drawer;
 
-      const excessBeforeLeg = Math.max(0, appliedBeforeLeg - outstanding);
-      const excessAfterLeg = Math.max(0, appliedBeforeLeg + leg.amount - outstanding);
-      const excessIntroducedByLeg = excessAfterLeg - excessBeforeLeg;
-      if (excessIntroducedByLeg > 0.001) {
-        const canRetainExcess =
-          method.payment_method_code !== 'CASH' && method.supports_overpayment;
-        if (!canRetainExcess) {
-          throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
-        }
-      }
-
       if (method.payment_method_code === 'CASH') {
         const cashTendered = leg.cashTendered ?? leg.amount;
         if (cashTendered < leg.amount) {
           throw new Error('CASH_TENDERED_LESS_THAN_AMOUNT');
         }
-        if (cashTendered - leg.amount > 0.001 && !method.supports_change_return) {
+        if (cashTendered - leg.amount > SETTLEMENT_MONEY_EPSILON && !method.supports_change_return) {
           throw new Error('CASH_CHANGE_NOT_ALLOWED');
         }
       } else if (leg.cashTendered != null) {
         throw new Error('CASH_TENDERED_ONLY_FOR_CASH');
       }
-      const paymentStatus = method.gateway_code ? 'PENDING' : 'COMPLETED';
+
+      resolvedLegs.push({
+        legIndex,
+        orgPaymentMethodId: method.id,
+        paymentMethodCode: method.payment_method_code,
+        amount: leg.amount,
+        cashTendered: leg.cashTendered,
+        supportsChangeReturn: method.supports_change_return,
+        supportsOverpayment: method.supports_overpayment,
+        gatewayCode: method.gateway_code,
+        requiresCashDrawer,
+        reference: leg.reference,
+        checkNumber: leg.checkNumber,
+        checkBank: leg.checkBank,
+        checkDate: leg.checkDate,
+      });
+    }
+
+    const overpaymentMetrics = computeCollectionOverpaymentMetrics(outstanding, resolvedLegs);
+    if (overpaymentMetrics.unresolvedExcessAmount > SETTLEMENT_MONEY_EPSILON) {
+      if (!overpaymentResolution) {
+        throw new Error('OVERPAYMENT_RESOLUTION_REQUIRED');
+      }
+      await validateOverpaymentResolution(
+        {
+          orderId,
+          totalAmount: outstanding,
+          realPaymentLegs: resolvedLegs.map(
+            (leg) =>
+              ({
+                legIndex: leg.legIndex,
+                paymentMethodCode: leg.paymentMethodCode,
+                orgPaymentMethodId: leg.orgPaymentMethodId,
+                amount: leg.amount,
+                currencyCode,
+                tenderedAmount: leg.cashTendered,
+                supportsChangeReturn: leg.supportsChangeReturn,
+                supportsOverpayment: leg.supportsOverpayment,
+                requiresReference: false,
+                requiresCashDrawer: leg.requiresCashDrawer,
+                requiresTerminal: false,
+                defaultCreationStatus: 'COMPLETED',
+                allowStatusOverride: false,
+                resolvedPaymentStatus: 'COMPLETED',
+              }) as import('@/lib/types/settlement-plan').RealPaymentLeg
+          ),
+          creditApplicationLegs: [],
+          realPaymentAmount: totalCollected,
+          creditAppliedAmount: 0,
+          immediateSettlementAmount: totalCollected,
+          outstandingAmount: Math.max(0, outstanding - totalCollected),
+          outstandingPolicy: 'NONE',
+          shouldCreateReceiptVoucher: false,
+          shouldCreateArInvoice: false,
+          excessAmount: overpaymentMetrics.excessAmount,
+          unresolvedExcessAmount: overpaymentMetrics.unresolvedExcessAmount,
+          cashChangeCapacity: overpaymentMetrics.cashChangeCapacity,
+          canReturnChangeFromCash: overpaymentMetrics.canReturnChangeFromCash,
+          hasAllowedRetainedOverpayment: overpaymentMetrics.hasAllowedRetainedOverpayment,
+        },
+        overpaymentResolution,
+        { customerId, tenantId }
+      );
+    }
+
+    let changeReturned = 0;
+
+    for (const resolved of resolvedLegs) {
+      const change =
+        resolved.cashTendered && resolved.cashTendered > resolved.amount
+          ? resolved.cashTendered - resolved.amount
+          : 0;
+      changeReturned += change;
+
+      const paymentStatus = resolved.gatewayCode ? 'PENDING' : 'COMPLETED';
 
       const payment = await tx.org_order_payments_dtl.create({
         data: {
           tenant_org_id: tenantId,
           order_id: orderId,
-          org_payment_method_id: leg.paymentMethodId,
-          payment_method_code: method.payment_method_code,
+          org_payment_method_id: resolved.orgPaymentMethodId,
+          payment_method_code: resolved.paymentMethodCode,
           currency_code: currencyCode,
           payment_nature_snapshot: 'REAL_PAYMENT',
-          amount: leg.amount,
-          tendered_amount: leg.cashTendered ?? null,
+          amount: resolved.amount,
+          tendered_amount: resolved.cashTendered ?? null,
           change_returned_amount: change > 0 ? change : null,
-          cash_drawer_session_id: requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-          gateway_code: method.gateway_code ?? null,
-          gateway_reference: leg.reference ?? null,
-          // CHECK payment metadata — preserved on later collection so a paid order
-          // retains the same fact-row shape as one paid at submit time via BVM wiring.
-          // Column names follow the org_order_payments_dtl schema (check_no /
-          // check_bank_name / check_due_date) rather than the newer voucher-line
-          // naming (check_number / check_bank / check_date).
-          check_no: leg.checkNumber ?? null,
-          check_bank_name: leg.checkBank ?? null,
-          check_due_date: leg.checkDate ? new Date(leg.checkDate) : null,
+          cash_drawer_session_id: resolved.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
+          gateway_code: resolved.gatewayCode ?? null,
+          gateway_reference: resolved.reference ?? null,
+          check_no: resolved.checkNumber ?? null,
+          check_bank_name: resolved.checkBank ?? null,
+          check_due_date: resolved.checkDate ? new Date(resolved.checkDate) : null,
           payment_status: paymentStatus,
           paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
           is_active: true,
@@ -699,7 +788,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
         select: { id: true },
       });
 
-      if (method.payment_method_code === 'CASH' && requiresCashDrawer) {
+      if (resolved.paymentMethodCode === 'CASH' && resolved.requiresCashDrawer) {
         if (!cashDrawerSessionId) {
           throw new Error('CASH_DRAWER_SESSION_REQUIRED');
         }
@@ -722,7 +811,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
             cash_drawer_session_id: session.id,
             movement_type: 'CASH_SALE',
             direction: 'IN',
-            amount: leg.amount,
+            amount: resolved.amount,
             currency_code: currencyCode ?? session.currency_code,
             order_id: orderId,
             order_payment_id: payment.id,
@@ -734,7 +823,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           },
         });
 
-        if (change > 0.001 && method.supports_change_return) {
+        if (change > SETTLEMENT_MONEY_EPSILON && resolved.supportsChangeReturn) {
           await tx.org_cash_drawer_movements_dtl.create({
             data: {
               tenant_org_id: tenantId,
@@ -756,8 +845,43 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           });
         }
       }
+    }
 
-      appliedBeforeLeg += leg.amount;
+    if (overpaymentResolution && overpaymentMetrics.excessAmount > SETTLEMENT_MONEY_EPSILON) {
+      const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)
+        ? getDispositionLinesExcludingAllocation(overpaymentResolution)
+        : overpaymentResolution;
+
+      if (dispositionOnly.lines.length > 0) {
+        await executeOverpaymentDispositionTx({
+          tx,
+          tenantId,
+          userId: collectedBy,
+          orderId,
+          branchId,
+          customerId,
+          currencyCode,
+          voucherId: null,
+          resolution: dispositionOnly,
+          idempotencyKey,
+        });
+      }
+
+      const previewId = extractAllocationPreviewId(overpaymentResolution);
+      if (previewId && customerId) {
+        await executeAllocationPreviewTx({
+          tx,
+          tenantId,
+          userId: collectedBy,
+          customerId,
+          sourceOrderId: orderId,
+          currencyCode,
+          voucherId: null,
+          previewId,
+          idempotencyKey,
+          paymentMethodCode: resolvedLegs[0]?.paymentMethodCode ?? 'CASH',
+        });
+      }
     }
 
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);

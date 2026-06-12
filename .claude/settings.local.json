@@ -234,7 +234,9 @@
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
       "PowerShell(if \\(Test-Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\.env.local\"\\) { Get-Content \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\.env.local\" | Where-Object { $_ -match '^[A-Z_]+=' } | ForEach-Object { \\($_ -split '='\\)[0] } } else { Write-Output \"__NOT_FOUND__\" })",
       "PowerShell(New-Item -ItemType Directory -Path \"f:\\\\jhapp\\\\cleanmatex\\\\docs\\\\features\\\\Notification_And_Communication_Hub\\\\Setup_And_Config\\\\sql_scripts\" -Force)",
-      "PowerShell(New-Item -ItemType Directory -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\push\" -Force)"
+      "PowerShell(New-Item -ItemType Directory -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\push\" -Force)",
+      "PowerShell(psql \"postgresql://postgres:postgres@localhost:54322/postgres\" -c \"SELECT current_user, pg_has_role\\(current_user, 'pg_read_all_settings', 'member'\\) AS can_read_settings;\" 2>&1)",
+      "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match \"^\\\\d{4}_\" } | Sort-Object Name | Select-Object -Last 3 -ExpandProperty Name)"
     ],
     "deny": [
       "Read(node_modules)",

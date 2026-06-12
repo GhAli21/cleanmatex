@@ -70,6 +70,15 @@ import {
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
 import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
+import {
+  ExtraReceiptHandlingCard,
+} from './payment-modal/allocation/extra-receipt-handling-card';
+import { buildOverpaymentResolutionPayload } from './payment-modal/allocation/build-overpayment-resolution';
+import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
+import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
+import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
+import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
+import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -103,6 +112,7 @@ import {
   CmxSelectDropdownItem,
 } from '@ui/forms';
 import { CmxTabsPanel, type CmxTabItem } from '@ui/navigation';
+import { showErrorToast } from '@ui/components/cmx-toast';
 
 // ---------------------------------------------------------------------------
 // B2B contract selector
@@ -587,7 +597,6 @@ export function PaymentModalV4({
   const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
-
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
   /** Normalized tax line used to render cashier-facing totals consistently across preview sources. */
   type TaxBreakdownLine = {
@@ -642,6 +651,7 @@ export function PaymentModalV4({
   const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerSelectorCardRef = useRef<HTMLDivElement | null>(null);
   const balanceSnapshotSectionRef = useRef<HTMLDivElement | null>(null);
+  const extraReceiptCardRef = useRef<HTMLDivElement | null>(null);
   const paymentWorkspaceSectionRef = useRef<HTMLDivElement | null>(null);
   const financialInspectorSectionRef = useRef<HTMLDivElement | null>(null);
   const balancePolicySectionRef = useRef<HTMLDivElement | null>(null);
@@ -1361,6 +1371,7 @@ export function PaymentModalV4({
           supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
         });
         const nextLeg: PaymentLeg = {
+          legRef: existingIndex >= 0 ? prev[existingIndex].legRef ?? crypto.randomUUID() : crypto.randomUUID(),
           method: option.payment_method_code as PaymentLeg['method'],
           amount: nextAmount,
           ...(policy.isCash ? { cashTendered: nextAmount } : {}),
@@ -1419,6 +1430,12 @@ export function PaymentModalV4({
           targetIndex < prev.length ? targetIndex : undefined
         );
         const nextLeg: PaymentLeg = {
+          legRef:
+            existingIndex >= 0
+              ? prev[existingIndex].legRef ?? crypto.randomUUID()
+              : fallbackIndex >= 0
+                ? prev[fallbackIndex].legRef ?? crypto.randomUUID()
+                : crypto.randomUUID(),
           method: 'CREDIT_NOTE',
           amount,
           creditReferenceId: noteId,
@@ -1693,20 +1710,68 @@ export function PaymentModalV4({
     canReturnChangeFromCash,
     moneyEpsilon
   );
-  const hasAllowedRetainedOverpayment = changeAmount > moneyEpsilon && settlementLegEntries.some(({ leg }) => {
-    if (leg.method === PAYMENT_METHODS.CASH) return false;
+  const cashChangeCapacity = realPaymentEntries.reduce((sum, { leg }) => {
+    if (leg.method !== PAYMENT_METHODS.CASH) return sum;
     const option = getMethodOption(leg.method, leg.gateway_code);
-    return option?.supports_overpayment === true;
-  });
-  const overpaymentNeedsResolution =
-    changeAmount > moneyEpsilon && !canReturnChangeFromCash && !hasAllowedRetainedOverpayment;
-  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
-  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
+    if (option?.supports_change_return !== true) return sum;
+    const applied = deriveLegAppliedAmount({
+      rawAmount: leg.amount,
+      paymentLegs: settlementLegEntries.map(({ leg: l }) => ({ amount: l.amount })),
+      legIndex: settlementLegEntries.findIndex(({ leg: l }) => l === leg),
+      saleTotal,
+      giftCardAmount: giftCardAppliedAmount,
+      decimalPlaces,
+      supportsOverpayment: option?.supports_overpayment === true,
+    });
+    const tendered = deriveCashTenderedAmount(
+      leg.cashTendered ?? leg.amount,
+      applied,
+      true,
+      decimalPlaces
+    );
+    return sum + Math.max(0, tendered - applied);
+  }, 0);
   const unresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
     changeAmount,
-    canReturnChangeFromCash || hasAllowedRetainedOverpayment,
+    cashChangeCapacity,
+    canReturnChangeFromCash,
     moneyEpsilon
   );
+  const overpaymentNeedsResolution = unresolvedOverpaymentAmount > moneyEpsilon;
+  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
+  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
+
+  const allocation = useOverpaymentAllocation({
+    customerId,
+    branchId,
+    currencyCode,
+    excessAmount: unresolvedOverpaymentAmount,
+    receiptAmount: totalSettledNowAmount,
+    currentOrderAllocationAmount: amountAppliedToOrder,
+    sourceType: 'ORDER_PAYMENT_MODAL',
+    paymentMethodCode: paymentMethod,
+    moneyEpsilon,
+    confirmedToastMessage: t('extraReceipt.allocation.confirmedToast'),
+    remainingUnallocatedErrorMessage: t('extraReceipt.allocation.remainingUnallocatedError'),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    allocation.resetAllocationState();
+    allocation.setExtraReceiptMode('adjust_legs');
+    allocation.setAutoDrawerOpen(false);
+    allocation.setManualDrawerOpen(false);
+  }, [open]);
+
+  const overpaymentResolutionPayload = useMemo(
+    () =>
+      buildOverpaymentResolutionPayload(allocation.extraReceiptMode, unresolvedOverpaymentAmount, {
+        allocationPreviewId: allocation.allocationPreviewId,
+      }),
+    [allocation.allocationPreviewId, allocation.extraReceiptMode, unresolvedOverpaymentAmount]
+  );
+  const overpaymentBlocksSubmit =
+    overpaymentNeedsResolution && !overpaymentResolutionPayload;
   const netCashRetainedAmount = getNetCashRetainedAmount(
     cashTenderedAmount,
     cashChangeAmount,
@@ -2089,7 +2154,7 @@ export function PaymentModalV4({
       }
     }
 
-    if (overpaymentNeedsResolution) {
+    if (overpaymentBlocksSubmit) {
       cmxMessage.error(t('rightRail.requiredAction.overpaymentMessage', {
         amount: `${currencyCode} ${formatAmount(changeAmount)}`,
       }));
@@ -2129,6 +2194,12 @@ export function PaymentModalV4({
       return;
     }
 
+    const legsWithRefs = ensurePaymentLegRefs(
+      settlementLegEntries.length > 0
+        ? settlementLegEntries.map(({ leg }) => leg)
+        : paymentLegs
+    );
+
     const payload = {
       amountToCharge: settledNowAmount,
       totals: {
@@ -2158,7 +2229,10 @@ export function PaymentModalV4({
           .map((entry) => entry.id),
       }),
       ...(settlementLegEntries.length > 0 && {
-        paymentLegs: settlementLegEntries.map(({ leg }) => leg),
+        paymentLegs: legsWithRefs,
+      }),
+      ...(overpaymentResolutionPayload && {
+        overpaymentResolution: overpaymentResolutionPayload,
       }),
     };
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
@@ -2447,7 +2521,7 @@ export function PaymentModalV4({
     if (giftCardValidating) {
       items.push(t('giftCard.checking'));
     }
-    if (overpaymentNeedsResolution) {
+    if (overpaymentBlocksSubmit) {
       items.push(t('rightRail.requiredAction.overpaymentMessage', {
         amount: `${currencyCode} ${formatAmount(changeAmount)}`,
       }));
@@ -2555,7 +2629,7 @@ export function PaymentModalV4({
     formatAmount,
     pinRequired,
     promoCodeValidating,
-    overpaymentNeedsResolution,
+    overpaymentBlocksSubmit,
     remainingBalance,
     serverTotals?.creditLimit?.mode,
     serverTotals?.creditLimit?.wouldExceed,
@@ -2912,11 +2986,8 @@ export function PaymentModalV4({
       return;
     }
 
-    if (overpaymentNeedsResolution) {
-      focusAmountEditor();
-      window.setTimeout(() => {
-        scrollAndFocusTarget(amountInputRef.current, { selectText: true });
-      }, 90);
+    if (overpaymentBlocksSubmit) {
+      scrollAndFocusTarget(extraReceiptCardRef.current);
       return;
     }
 
@@ -3042,7 +3113,7 @@ export function PaymentModalV4({
     t,
     terminalRequiredLegs,
     invalidImmediateAmount,
-    overpaymentNeedsResolution,
+    overpaymentBlocksSubmit,
   ]);
 
   const handleBlockedSubmitAttempt = useCallback(() => {
@@ -3600,6 +3671,31 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
                   </div>
+
+                  {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                    <div ref={extraReceiptCardRef} tabIndex={-1} className="outline-none">
+                      <ExtraReceiptHandlingCard
+                        excessAmount={unresolvedOverpaymentAmount}
+                        currencyCode={currencyCode}
+                        formatAmount={formatAmount}
+                        hasLinkedCustomer={Boolean(customerId?.trim())}
+                        selectedMode={allocation.extraReceiptMode}
+                        onModeChange={(mode) => {
+                          allocation.setExtraReceiptMode(mode);
+                          if (
+                            mode !== OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES &&
+                            mode !== OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES
+                          ) {
+                            allocation.resetAllocationState();
+                          }
+                        }}
+                        onOpenAutoAllocate={() => void allocation.handleOpenAutoAllocate()}
+                        onOpenManualAllocate={() => void allocation.handleOpenManualAllocate()}
+                        allocationConfirmed={Boolean(allocation.allocationPreviewId)}
+                        isRTL={isRTL}
+                      />
+                    </div>
+                  ) : null}
 
                   {showDeferredExplanation ? (
                     <CmxCard>
@@ -5370,6 +5466,31 @@ export function PaymentModalV4({
           setIsDirtySinceOpen(false);
           onClose();
         }}
+      />
+
+      <AutoAllocationPreviewDrawer
+        open={allocation.autoDrawerOpen}
+        onOpenChange={allocation.setAutoDrawerOpen}
+        preview={allocation.allocationPreview}
+        loading={allocation.previewLoading}
+        confirming={allocation.confirmLoading}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        onConfirm={() => void allocation.handleConfirmAutoAllocation()}
+        isRTL={isRTL}
+      />
+
+      <ManualAllocationDrawer
+        open={allocation.manualDrawerOpen}
+        onOpenChange={allocation.setManualDrawerOpen}
+        targets={allocation.openBalanceTargets}
+        excessAmount={unresolvedOverpaymentAmount}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        loading={allocation.openBalancesLoading}
+        submitting={allocation.confirmLoading}
+        onSubmit={(lines) => void allocation.handleSubmitManualAllocation(lines)}
+        isRTL={isRTL}
       />
     </>
   );

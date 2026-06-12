@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CmxDataTable } from '@ui/data-display/cmx-datatable'
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms/cmx-select-dropdown'
@@ -51,8 +51,7 @@ function formatDate(iso: string | null) {
 }
 
 export function DeliveryLogPage() {
-  const locale = useLocale()
-  const isAr = locale === 'ar'
+  const t = useTranslations('notifications')
 
   const [rows, setRows] = useState<LogRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,28 +77,28 @@ export function DeliveryLogPage() {
         setError(json.error ?? 'Error')
       }
     } catch {
-      setError(isAr ? 'فشل تحميل سجل التسليم' : 'Failed to load delivery log')
+      setError(t('deliveryLog.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [page, channelFilter, statusFilter, isAr])
+  }, [page, channelFilter, statusFilter, t])
 
   useEffect(() => { void fetchLog() }, [fetchLog])
 
   const columns: ColumnDef<LogRow>[] = [
     {
       accessorKey: 'event_code',
-      header: isAr ? 'الحدث' : 'Event',
+      header: t('deliveryLog.event'),
       cell: ({ row }) => <span className="text-xs font-mono">{row.original.event_code ?? '—'}</span>,
     },
     {
       accessorKey: 'channel_code',
-      header: isAr ? 'القناة' : 'Channel',
+      header: t('deliveryLog.channel'),
       cell: ({ row }) => <span className="text-xs font-medium">{row.original.channel_code}</span>,
     },
     {
       accessorKey: 'recipient_address',
-      header: isAr ? 'المستلم' : 'Recipient',
+      header: t('deliveryLog.recipient'),
       cell: ({ row }) => {
         const addr = row.original.recipient_address
         if (!addr) return <span className="text-xs text-gray-400">—</span>
@@ -108,22 +107,22 @@ export function DeliveryLogPage() {
     },
     {
       accessorKey: 'status',
-      header: isAr ? 'الحالة' : 'Status',
+      header: t('deliveryLog.status'),
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
       accessorKey: 'retry_count',
-      header: isAr ? 'المحاولات' : 'Retries',
+      header: t('deliveryLog.retries'),
       cell: ({ row }) => <span className="text-xs text-center block">{row.original.retry_count}</span>,
     },
     {
       accessorKey: 'created_at',
-      header: isAr ? 'التاريخ' : 'Date',
+      header: t('deliveryLog.date'),
       cell: ({ row }) => <span className="text-xs whitespace-nowrap">{formatDate(row.original.created_at)}</span>,
     },
     {
       accessorKey: 'error_message',
-      header: isAr ? 'الخطأ' : 'Error',
+      header: t('deliveryLog.error'),
       cell: ({ row }) => {
         const msg = row.original.error_message ?? row.original.skip_reason
         if (!msg) return <span className="text-xs text-gray-400">—</span>
@@ -136,7 +135,7 @@ export function DeliveryLogPage() {
     <div className="px-4 py-6">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] me-auto">
-          {isAr ? 'سجل التسليم' : 'Delivery Log'}
+          {t('deliveryLog.title')}
         </h1>
 
         {/* Channel filter */}
@@ -145,12 +144,12 @@ export function DeliveryLogPage() {
           onValueChange={(v) => { setChannelFilter(v); setPage(1) }}
         >
           <CmxSelectDropdownTrigger className="w-36 text-sm">
-            {channelFilter || (isAr ? 'كل القنوات' : 'All channels')}
+            {channelFilter || t('deliveryLog.allChannels')}
           </CmxSelectDropdownTrigger>
           <CmxSelectDropdownContent>
             {CHANNEL_OPTIONS.map((ch) => (
               <CmxSelectDropdownItem key={ch} value={ch}>
-                {ch || (isAr ? 'كل القنوات' : 'All channels')}
+                {ch || t('deliveryLog.allChannels')}
               </CmxSelectDropdownItem>
             ))}
           </CmxSelectDropdownContent>
@@ -162,19 +161,19 @@ export function DeliveryLogPage() {
           onValueChange={(v) => { setStatusFilter(v); setPage(1) }}
         >
           <CmxSelectDropdownTrigger className="w-44 text-sm">
-            {statusFilter || (isAr ? 'كل الحالات' : 'All statuses')}
+            {statusFilter || t('deliveryLog.allStatuses')}
           </CmxSelectDropdownTrigger>
           <CmxSelectDropdownContent>
             {STATUS_OPTIONS.map((st) => (
               <CmxSelectDropdownItem key={st} value={st}>
-                {st || (isAr ? 'كل الحالات' : 'All statuses')}
+                {st || t('deliveryLog.allStatuses')}
               </CmxSelectDropdownItem>
             ))}
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
 
         <CmxButton variant="outline" size="sm" onClick={() => void fetchLog()}>
-          {isAr ? 'تحديث' : 'Refresh'}
+          {t('deliveryLog.refresh')}
         </CmxButton>
       </div>
 
@@ -187,7 +186,7 @@ export function DeliveryLogPage() {
         total={totalPages * 20}
         currentPage={page}
         onPageChange={setPage}
-        emptyMessage={isAr ? 'لا توجد سجلات تسليم' : 'No delivery records found'}
+        emptyMessage={t('deliveryLog.empty')}
       />
     </div>
   )

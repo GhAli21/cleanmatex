@@ -21,6 +21,9 @@ const mockOutboxCreate   = jest.fn();
 const mockTransaction    = jest.fn();
 const mockRedeemWallet   = jest.fn();
 const mockCashDrawerMovementCreate = jest.fn();
+const mockValidateOverpaymentResolution = jest.fn();
+const mockExecuteOverpaymentDispositionTx = jest.fn();
+const mockExecuteAllocationPreviewTx = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -84,6 +87,22 @@ jest.mock('@/lib/services/gift-card-service', () => ({
   validateGiftCardByIdForCalculation: jest.fn().mockResolvedValue({ isValid: true }),
   redeemGiftCardTx: jest.fn(),
 }));
+
+jest.mock('@/lib/services/overpayment-resolution-validator.service', () => ({
+  validateOverpaymentResolution: (...a: unknown[]) => mockValidateOverpaymentResolution(...a),
+}));
+
+jest.mock('@/lib/services/overpayment-disposition.service', () => ({
+  executeOverpaymentDispositionTx: (...a: unknown[]) => mockExecuteOverpaymentDispositionTx(...a),
+}));
+
+jest.mock('@/lib/services/customer-receipt-excess-executor.service', () => {
+  const actual = jest.requireActual('@/lib/services/customer-receipt-excess-executor.service');
+  return {
+    ...actual,
+    executeAllocationPreviewTx: (...a: unknown[]) => mockExecuteAllocationPreviewTx(...a),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
@@ -198,8 +217,17 @@ describe('order-settlement.service — collectPaymentTx', () => {
 
   it('uses branch cash drawer override when collecting later cash payment', async () => {
     const tx = makeTx();
-    tx.$queryRaw.mockResolvedValue([{ id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: 'branch-1' }]);
+    tx.$queryRaw.mockResolvedValue([
+      {
+        id: ORDER,
+        outstanding_amount: 50,
+        currency_code: 'OMR',
+        branch_id: 'branch-1',
+        customer_id: 'cust-1',
+      },
+    ]);
     tx.org_payment_methods_cf.findFirst.mockResolvedValue({
+      id: 'method-cash',
       payment_method_code: 'CASH',
       gateway_code: null,
       requires_cash_drawer: false,
@@ -251,10 +279,19 @@ describe('order-settlement.service — collectPaymentTx', () => {
     expect(mockCashDrawerMovementCreate).toHaveBeenCalledTimes(2);
   });
 
-  it('blocks overpayment introduced by a later collection leg without overpayment policy', async () => {
+  it('requires overpayment resolution when collection exceeds outstanding without retention policy', async () => {
     const tx = makeTx();
-    tx.$queryRaw.mockResolvedValue([{ id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null }]);
+    tx.$queryRaw.mockResolvedValue([
+      {
+        id: ORDER,
+        outstanding_amount: 50,
+        currency_code: 'OMR',
+        branch_id: null,
+        customer_id: 'cust-1',
+      },
+    ]);
     tx.org_payment_methods_cf.findFirst.mockResolvedValue({
+      id: 'method-card',
       payment_method_code: 'CARD',
       gateway_code: null,
       requires_cash_drawer: false,
@@ -270,8 +307,60 @@ describe('order-settlement.service — collectPaymentTx', () => {
         paymentLegs: [{ paymentMethodId: 'method-card', amount: 51 }],
         collectedBy: 'user-1',
       })
-    ).rejects.toThrow('METHOD_OVERPAYMENT_NOT_ALLOWED');
+    ).rejects.toThrow('OVERPAYMENT_RESOLUTION_REQUIRED');
     expect(mockPaymentCreate).not.toHaveBeenCalled();
+  });
+
+  it('executes overpayment disposition when collection includes valid resolution', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([
+      {
+        id: ORDER,
+        outstanding_amount: 50,
+        currency_code: 'OMR',
+        branch_id: null,
+        customer_id: 'cust-1',
+      },
+    ]);
+    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
+      id: 'method-card',
+      payment_method_code: 'CARD',
+      gateway_code: null,
+      requires_cash_drawer: false,
+      supports_change_return: false,
+      supports_overpayment: false,
+    });
+    mockPaymentCreate.mockResolvedValue({ id: 'payment-card-1' });
+    mockOutboxCreate.mockResolvedValue({});
+    mockValidateOverpaymentResolution.mockResolvedValue(undefined);
+    mockExecuteOverpaymentDispositionTx.mockResolvedValue(undefined);
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    const overpaymentResolution = {
+      excessAmount: 5,
+      lines: [{ resolutionCode: 'SAVE_AS_CUSTOMER_ADVANCE' as const, amount: 5 }],
+    };
+
+    await collectPaymentTx({
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-card', amount: 55 }],
+      collectedBy: 'user-1',
+      overpaymentResolution,
+      idempotencyKey: 'collect-advance-001',
+    });
+
+    expect(mockValidateOverpaymentResolution).toHaveBeenCalled();
+    expect(mockExecuteOverpaymentDispositionTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: TENANT,
+        orderId: ORDER,
+        customerId: 'cust-1',
+        resolution: overpaymentResolution,
+        idempotencyKey: 'collect-advance-001',
+      })
+    );
+    expect(mockPaymentCreate).toHaveBeenCalled();
   });
 });
 

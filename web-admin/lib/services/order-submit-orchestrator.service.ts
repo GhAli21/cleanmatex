@@ -24,6 +24,14 @@ import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
+import { validateOverpaymentResolution } from '@/lib/services/overpayment-resolution-validator.service';
+import { executeOverpaymentDispositionTx } from '@/lib/services/overpayment-disposition.service';
+import {
+  executeAllocationPreviewTx,
+  extractAllocationPreviewId,
+  getDispositionLinesExcludingAllocation,
+  resolutionIncludesAllocation,
+} from '@/lib/services/customer-receipt-excess-executor.service';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
@@ -540,6 +548,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
   await validateSettlementPlan(plan, tenantId);
 
+  await validateOverpaymentResolution(
+    plan,
+    input.overpaymentResolution ?? input.overpaymentDisposition,
+    { paymentLegs, customerId: input.customerId ?? null, tenantId }
+  );
+
   const warnings: string[] = [];
   for (const leg of plan.realPaymentLegs) {
     if (leg.resolvedPaymentStatus === 'PENDING')    warnings.push(`${leg.paymentMethodCode}_PENDING_CONFIRMATION`);
@@ -893,6 +907,47 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           `${orderId}_vch_post`,
           tx,
         );
+      }
+
+      const overpaymentResolution =
+        input.overpaymentResolution ?? input.overpaymentDisposition;
+      if (overpaymentResolution && overpaymentResolution.excessAmount > TOLERANCE) {
+        const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)
+          ? getDispositionLinesExcludingAllocation(overpaymentResolution)
+          : overpaymentResolution;
+
+        if (dispositionOnly.lines.length > 0) {
+          await executeOverpaymentDispositionTx({
+            tx,
+            tenantId,
+            userId,
+            orderId,
+            branchId: branchId ?? null,
+            customerId: input.customerId ?? null,
+            currencyCode: serverTotals.currencyCode,
+            voucherId: plan.shouldCreateReceiptVoucher ? voucherPostResult?.voucherId ?? null : null,
+            resolution: dispositionOnly,
+            idempotencyKey: input.idempotencyKey,
+          });
+        }
+
+        const previewId = extractAllocationPreviewId(overpaymentResolution);
+        if (previewId && input.customerId) {
+          const primaryMethod =
+            paymentLegs?.[0]?.method ?? plan.realPaymentLegs[0]?.paymentMethodCode ?? 'CASH';
+          await executeAllocationPreviewTx({
+            tx,
+            tenantId,
+            userId,
+            customerId: input.customerId,
+            sourceOrderId: orderId,
+            currencyCode: serverTotals.currencyCode,
+            voucherId: plan.shouldCreateReceiptVoucher ? voucherPostResult?.voucherId ?? null : null,
+            previewId,
+            idempotencyKey: input.idempotencyKey,
+            paymentMethodCode: primaryMethod,
+          });
+        }
       }
 
       // ── 6. settleOrderTx — same transaction as order + voucher wiring ───────

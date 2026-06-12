@@ -1,14 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import type { OrderFinancialSummaryViewModel } from '@features/orders/model/order-financial-summary-view';
 import { OrderFinancialMoneyValue } from './order-financial-money-value';
+import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 
 interface OrderReceivableCollectionPanelProps {
   viewModel: OrderFinancialSummaryViewModel;
+  orderId: string;
+  customerId?: string | null;
+  branchId?: string | null;
 }
 
 function FieldRow({
@@ -28,14 +35,24 @@ function FieldRow({
   );
 }
 
-export function OrderReceivableCollectionPanel({ viewModel }: OrderReceivableCollectionPanelProps) {
+export function OrderReceivableCollectionPanel({
+  viewModel,
+  orderId,
+  customerId,
+  branchId,
+}: OrderReceivableCollectionPanelProps) {
   const t = useTranslations('orders.detail.financial');
+  const tCollect = useTranslations('orders.collectPayment');
   const isRTL = useRTL();
+  const router = useRouter();
+  const [collectOpen, setCollectOpen] = useState(false);
   const { amounts, currencyCode, payment, arInvoice } = viewModel;
   const isPoc = payment.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
   const isCreditInvoice = payment.paymentTypeCode === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE;
+  const showCollect = isPoc && amounts.payOnCollectionAmount > 0.001;
 
   return (
+    <>
     <CmxCard>
       <CmxCardHeader>
         <CmxCardTitle>{t('section.receivableCollection')}</CmxCardTitle>
@@ -64,7 +81,23 @@ export function OrderReceivableCollectionPanel({ viewModel }: OrderReceivableCol
         <FieldRow label={t('arInvoice')} isRTL={isRTL}>
           {arInvoice ? `${arInvoice.invoiceNo} (${arInvoice.status})` : t('none')}
         </FieldRow>
+        {showCollect ? (
+          <div className={`pt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <CmxButton onClick={() => setCollectOpen(true)}>{tCollect('collectButton')}</CmxButton>
+          </div>
+        ) : null}
       </CmxCardContent>
     </CmxCard>
+    <OrderCollectPaymentModal
+      open={collectOpen}
+      onOpenChange={setCollectOpen}
+      orderId={orderId}
+      customerId={customerId}
+      branchId={branchId}
+      outstandingAmount={amounts.payOnCollectionAmount}
+      currencyCode={currencyCode}
+      onCollected={() => router.refresh()}
+    />
+    </>
   );
 }

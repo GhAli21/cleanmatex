@@ -34,6 +34,9 @@ export interface ReadyOrder {
   orderNo: string;
   /** From `org_orders_mst.branch_id` — piece preference catalog scoping */
   branchId?: string | null;
+  customerId?: string | null;
+  paymentTypeCode?: string | null;
+  currencyCode?: string | null;
   customer: ReadyOrderCustomer;
   items: ReadyOrderItem[];
   total: number;
@@ -124,6 +127,9 @@ export function mapReadyOrderFromStateResponse(
     id: String(raw.id),
     orderNo: raw.order_no || '',
     branchId: raw.branch_id ?? null,
+    customerId: raw.customer_id ? String(raw.customer_id) : null,
+    paymentTypeCode: raw.payment_type_code ?? null,
+    currencyCode: raw.currency_code ?? null,
     customer,
     items,
     total: totalVal,

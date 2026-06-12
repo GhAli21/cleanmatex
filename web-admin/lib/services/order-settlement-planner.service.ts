@@ -10,6 +10,7 @@ import {
 import type { ResolvedSettlementLeg } from '@/lib/types/order-financial';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import { computeSettlementOverpaymentMetrics } from '@/lib/payments/settlement-overpayment';
 import type {
   SettlementPlan,
   RealPaymentLeg,
@@ -177,6 +178,12 @@ export function buildSettlementPlan(
     }
   }
 
+  const overpayment = computeSettlementOverpaymentMetrics({
+    totalAmount,
+    immediateSettlementAmount,
+    realPaymentLegs,
+  });
+
   return {
     orderId,
     totalAmount,
@@ -189,6 +196,7 @@ export function buildSettlementPlan(
     outstandingPolicy,
     shouldCreateReceiptVoucher: realPaymentLegs.length > 0 || creditApplicationLegs.length > 0,
     shouldCreateArInvoice:      outstandingPolicy === 'CREDIT_INVOICE',
+    ...overpayment,
   };
 }
 
@@ -252,14 +260,8 @@ export async function validateSettlementPlan(
     appliedBeforeLeg += leg.amount;
   }
 
-  if (plan.immediateSettlementAmount - plan.totalAmount > TOLERANCE) {
-    const hasAllowedRetainedOverpayment = orderedSettlementLegs.some(
-      (leg) => !leg.isCreditApplication && leg.paymentMethodCode !== 'CASH' && leg.supportsOverpayment
-    );
-    if (!hasAllowedRetainedOverpayment) {
-      throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
-    }
-  }
+  // Total excess without disposition is enforced by validateOverpaymentResolution()
+  // in the submit orchestrator (ADR-047 Phase 2).
 
   return withTenantContext(tenantOrgId, async () => {
     for (const leg of plan.realPaymentLegs) {

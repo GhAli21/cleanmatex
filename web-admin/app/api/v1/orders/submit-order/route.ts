@@ -32,6 +32,7 @@ import {
   deleteIdempotencyHash,
   stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
+import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -289,6 +290,15 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    void emitNotificationEvent({
+      code: 'order.created',
+      tenantOrgId: tenantId,
+      recipientUserIds: [userId],
+      sourceEntityType: 'order',
+      sourceEntityId: result.order.id,
+      variables: { order_number: result.order.orderNo },
+    });
+
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -407,7 +417,10 @@ export async function POST(request: NextRequest) {
     if (['CASH_DRAWER_SESSION_REQUIRED', 'CASH_DRAWER_SESSION_SELECTION_REQUIRED', 'CASH_DRAWER_SESSION_CLOSED',
          'CASH_TENDERED_REQUIRED', 'CASH_TENDERED_LESS_THAN_AMOUNT', 'CASH_CHANGE_NOT_ALLOWED',
          'METHOD_OVERPAYMENT_NOT_ALLOWED', 'CASH_TENDERED_ONLY_FOR_CASH', 'GATEWAY_NOT_CONFIGURED',
-         'PAYMENT_REFERENCE_REQUIRED', 'PAYMENT_TERMINAL_REQUIRED'].includes(message)) {
+         'PAYMENT_REFERENCE_REQUIRED', 'PAYMENT_TERMINAL_REQUIRED',
+         'OVERPAYMENT_RESOLUTION_REQUIRED', 'OVERPAYMENT_RESOLUTION_MISMATCH',
+         'OVERPAYMENT_RESOLUTION_NOT_ALLOWED', 'RETURN_CHANGE_EXCEEDS_CAPACITY',
+         'RETURN_CHANGE_LEG_INVALID', 'RECEIPT_ALLOCATION_EXCESS_UNRESOLVED'].includes(message)) {
       return NextResponse.json(
         { success: false, errorCode: message, error: message },
         { status: 422 }

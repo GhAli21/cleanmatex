@@ -86,11 +86,16 @@ export function getDisplayChangeAmount(
 }
 
 export function deriveUnresolvedOverpaymentAmount(
-  changeAmount: number,
+  excessAmount: number,
+  cashChangeCapacity: number,
   canReturnChangeFromCash: boolean,
   epsilon = 0.001
 ): number {
-  return changeAmount > epsilon && !canReturnChangeFromCash ? changeAmount : 0;
+  if (excessAmount <= epsilon) return 0;
+  const changeResolved = canReturnChangeFromCash
+    ? Math.min(excessAmount, cashChangeCapacity)
+    : 0;
+  return Math.max(0, excessAmount - changeResolved);
 }
 
 export const getUnresolvedOverpaymentAmount = deriveUnresolvedOverpaymentAmount;

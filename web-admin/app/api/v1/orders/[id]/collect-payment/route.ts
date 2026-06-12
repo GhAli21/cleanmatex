@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { collectPaymentTx } from '@/lib/services/order-settlement.service';
+import { overpaymentResolutionSchema } from '@/lib/validations/new-order-payment-schemas';
 
 const schema = z.object({
   paymentLegs: z.array(z.object({
@@ -13,6 +14,9 @@ const schema = z.object({
   })).min(1),
   cashDrawerSessionId: z.string().uuid().optional(),
   collectedBy:         z.string().min(1),
+  customerId:          z.string().uuid().optional(),
+  overpaymentResolution: overpaymentResolutionSchema.optional(),
+  idempotencyKey:      z.string().min(1).max(200).optional(),
 });
 
 export async function POST(

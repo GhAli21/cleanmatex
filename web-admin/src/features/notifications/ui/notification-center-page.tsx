@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { Bell } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
@@ -13,12 +13,14 @@ import { useNotifications } from '../hooks/use-notifications'
 import { NotificationItem } from './notification-item'
 import type { NotificationTab } from '../hooks/use-notifications'
 
-const TABS: { id: NotificationTab; labelEn: string; labelAr: string }[] = [
-  { id: 'all',      labelEn: 'All',       labelAr: 'الكل' },
-  { id: 'unread',   labelEn: 'Unread',    labelAr: 'غير المقروءة' },
-  { id: 'order',    labelEn: 'Orders',    labelAr: 'الطلبات' },
-  { id: 'payment',  labelEn: 'Payments',  labelAr: 'المدفوعات' },
-  { id: 'system',   labelEn: 'System',    labelAr: 'النظام' },
+type TabDef = { id: NotificationTab; labelKey: string }
+
+const TABS: TabDef[] = [
+  { id: 'all',     labelKey: 'center.tabs.all' },
+  { id: 'unread',  labelKey: 'center.tabs.unread' },
+  { id: 'order',   labelKey: 'center.tabs.orders' },
+  { id: 'payment', labelKey: 'center.tabs.payments' },
+  { id: 'system',  labelKey: 'center.tabs.system' },
 ]
 
 function NotificationListSkeleton() {
@@ -39,7 +41,7 @@ function NotificationListSkeleton() {
 
 export function NotificationCenterPage() {
   const locale = useLocale()
-  const isAr = locale === 'ar'
+  const t = useTranslations('notifications')
   const qc = useQueryClient()
   const { currentTenant, user } = useAuth()
   const tenantId = currentTenant?.tenant_id ?? ''
@@ -59,13 +61,8 @@ export function NotificationCenterPage() {
     qc.invalidateQueries({ queryKey: ['notification-unread-count', tenantId, userId] })
   }, [qc, tenantId, userId])
 
-  const emptyTitle = tab === 'unread'
-    ? (isAr ? 'لا توجد إشعارات غير مقروءة' : 'No unread notifications')
-    : (isAr ? 'أنت على اطلاع بكل شيء' : "You're all caught up")
-
-  const emptyDesc = tab === 'unread'
-    ? (isAr ? 'لقد قرأت جميع إشعاراتك' : "You've read all your notifications")
-    : (isAr ? 'لا توجد إشعارات لعرضها هنا' : 'No notifications to show here')
+  const emptyTitle = tab === 'unread' ? t('center.emptyUnread') : t('center.empty')
+  const emptyDesc  = tab === 'unread' ? t('center.emptyUnreadDesc') : t('center.emptyDesc')
 
   const listContent = (
     <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white">
@@ -91,26 +88,28 @@ export function NotificationCenterPage() {
     </div>
   )
 
-  const tabsWithContent = TABS.map((t) => ({
-    id: t.id,
-    label: isAr ? t.labelAr : t.labelEn,
+  const tabsWithContent = TABS.map((tab) => ({
+    id: tab.id,
+    label: t(tab.labelKey as Parameters<typeof t>[0]),
     content: listContent,
   }))
+
+  const isRtl = locale === 'ar'
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-          {isAr ? 'الإشعارات' : 'Notifications'}
+          {t('title')}
         </h1>
         <CmxButton
           variant="outline"
           size="sm"
-          onClick={handleMarkAllRead}
+          onClick={markAllRead}
           disabled={isFetching}
         >
-          {isAr ? 'تحديد الكل كمقروء' : 'Mark all as read'}
+          {t('markAllRead')}
         </CmxButton>
       </div>
 
@@ -130,10 +129,10 @@ export function NotificationCenterPage() {
             disabled={page <= 1 || isFetching}
             onClick={() => setPage(page - 1)}
           >
-            {isAr ? 'السابق' : 'Previous'}
+            {t('center.prevPage')}
           </CmxButton>
           <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            {isAr
+            {isRtl
               ? `صفحة ${page} من ${pagination.totalPages}`
               : `Page ${page} of ${pagination.totalPages}`}
           </span>
@@ -143,7 +142,7 @@ export function NotificationCenterPage() {
             disabled={page >= pagination.totalPages || isFetching}
             onClick={() => setPage(page + 1)}
           >
-            {isAr ? 'التالي' : 'Next'}
+            {t('center.nextPage')}
           </CmxButton>
         </div>
       )}

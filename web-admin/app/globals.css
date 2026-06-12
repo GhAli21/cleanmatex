@@ -28,6 +28,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --font-geist-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-geist-mono: 'Menlo', 'Monaco', 'Lucida Console', 'Courier New', monospace;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

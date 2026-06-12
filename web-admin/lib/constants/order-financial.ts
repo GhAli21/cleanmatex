@@ -39,6 +39,7 @@ export const CREDIT_APPLICATION_TYPES = {
   ADVANCE:          'ADVANCE',
   CREDIT_NOTE:      'CREDIT_NOTE',
   LOYALTY_POINTS:   'LOYALTY_POINTS',
+  /** @deprecated Alias — use CREDIT_NOTE. Kept for refund-classification compat. */
   CUSTOMER_CREDIT:  'CREDIT_NOTE',
   CUSTOMER_ADVANCE: 'ADVANCE',
   LOYALTY_CREDIT:   'LOYALTY_POINTS',

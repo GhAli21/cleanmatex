@@ -135,10 +135,22 @@ describe('checkout multi-leg payment — validation layer', () => {
     });
 
     it('accepts live DB payment method codes from org_payment_methods_cf', () => {
-      for (const method of ['PAYMENT_GATEWAY', 'ADVANCE', 'CREDIT_NOTE', 'LOYALTY_POINTS']) {
-        expect(paymentLegSchema.safeParse({ method, amount: 1, gateway_code: method === 'PAYMENT_GATEWAY' ? 'HYPERPAY' : undefined }).success)
-          .toBe(true);
-      }
+      const gateway = paymentLegSchema.safeParse({
+        method: 'PAYMENT_GATEWAY',
+        amount: 1,
+        gateway_code: 'HYPERPAY',
+      });
+      expect(gateway.success).toBe(true);
+
+      expect(paymentLegSchema.safeParse({ method: 'ADVANCE', amount: 1 }).success).toBe(true);
+      expect(
+        paymentLegSchema.safeParse({
+          method: 'CREDIT_NOTE',
+          amount: 1,
+          creditReferenceId: '11111111-1111-4111-8111-111111111111',
+        }).success
+      ).toBe(true);
+      expect(paymentLegSchema.safeParse({ method: 'LOYALTY_POINTS', amount: 1 }).success).toBe(true);
     });
   });
 

@@ -52,6 +52,8 @@ export interface OrderTaxDocumentView {
 export interface OrderFinancialSummaryViewModel {
   orderId: string;
   orderNo: string;
+  customerId?: string | null;
+  branchId?: string | null;
   currencyCode: string;
   baseCurrency: {
     currencyCode: string | null;
@@ -154,6 +156,8 @@ export interface MapOrderFinancialSummaryInput {
     received_at?: string | null;
     customer_name?: string | null;
     branch_name?: string | null;
+    customer_id?: string | null;
+    branch_id?: string | null;
   };
   preferenceExtraTotal?: number;
   pieceExtraTotal?: number;
