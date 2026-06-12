@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/middleware/require-permission'
 import { logger } from '@/lib/utils/logger'
+import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -25,7 +26,7 @@ const registerSchema = z.object({
   device_id:         z.string().min(1).max(200),
   provider_code:     z.enum(PROVIDER_CODES),
   platform:          z.enum(PLATFORMS),
-  subscription_data: z.record(z.unknown()),
+  subscription_data: z.record(z.string(), z.unknown()),
   app_version:       z.string().max(50).optional(),
 })
 
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           device_id,
           provider_code,
           platform,
-          subscription_data,
+          subscription_data: subscription_data as unknown as Json,
           app_version:      app_version ?? null,
           is_active:        true,
           failure_count:    0,

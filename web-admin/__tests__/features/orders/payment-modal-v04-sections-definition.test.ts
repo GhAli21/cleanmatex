@@ -3,6 +3,7 @@ import {
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
   PAYMENT_MODAL_SECTION_IDS,
+  PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL,
   PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
   type PaymentModalSectionVisibilityContext,
 } from '@features/orders/ui/payment-modal-v04-sections-definition';
@@ -26,6 +27,10 @@ function makeSectionContext(
 describe('payment-modal-v04 section definitions', () => {
   it('defaults Live Effect preview to hidden (Balance Result covers settlement)', () => {
     expect(PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT).toBe(false);
+  });
+
+  it('pins Final Order Total to the receipt rail above submit by default', () => {
+    expect(PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL).toBe(true);
   });
 
   it('keeps the approved center workbench order', () => {

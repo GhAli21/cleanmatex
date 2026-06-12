@@ -18,6 +18,7 @@ import { requirePermission } from '@/lib/middleware/require-permission'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { notificationSettingsService } from '@/lib/notifications/settings-service'
 import { logger } from '@/lib/utils/logger'
+import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
 // GET — list all provider configs for the tenant
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       channel_code:  body.channel_code,
       provider_code: body.provider_code,
       display_name:  body.display_name ?? null,
-      config:        body.config ?? null,
+      config:        (body.config ?? null) as unknown as Json,
       is_active:     false,
       is_rec_active: true,
       rec_status:    1,
@@ -148,11 +149,16 @@ export async function PUT(request: NextRequest) {
   }
 
   // Step 2: activate the target provider (also update config/display_name if provided)
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: {
+    is_active: boolean;
+    updated_at: string;
+    config?: Json;
+    display_name?: string;
+  } = {
     is_active:  true,
     updated_at: new Date().toISOString(),
   }
-  if (body.config       !== undefined) updatePayload.config       = body.config
+  if (body.config       !== undefined) updatePayload.config       = body.config as unknown as Json
   if (body.display_name !== undefined) updatePayload.display_name = body.display_name
 
   const { data, error: activateError } = await supabase

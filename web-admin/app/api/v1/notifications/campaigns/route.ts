@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { requirePermission } from '@/lib/middleware/require-permission'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import type { Json } from '@/types/database'
 
 const PAGE_SIZE_MAX = 50
 
@@ -21,7 +22,7 @@ const createCampaignSchema = z.object({
   description2:    z.string().optional(),
   channel_code:    z.enum(['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH']),
   template_code:   z.string().max(200).optional(),
-  target_segment:  z.record(z.unknown()).optional(),
+  target_segment:  z.record(z.string(), z.unknown()).optional(),
   scheduled_at:    z.string().datetime().optional(),
 })
 
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       status:         'DRAFT',
       channel_code,
       template_code:  template_code  ?? null,
-      target_segment: target_segment ?? null,
+      target_segment: (target_segment ?? null) as unknown as Json,
       scheduled_at:   scheduled_at   ?? null,
       total_targets:  0,
       sent_count:     0,

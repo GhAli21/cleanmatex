@@ -14,6 +14,12 @@
  */
 export const PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT = false;
 
+/**
+ * Pins Final Order Total to the bottom of the receipt rail (desktop) so it stays
+ * visible above the submit footer while the center workbench scrolls.
+ */
+export const PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL = true;
+
 export const PAYMENT_MODAL_SECTION_IDS = {
   BALANCE_SNAPSHOT: 'BALANCE_SNAPSHOT',
   AMOUNT_EDITOR: 'AMOUNT_EDITOR',

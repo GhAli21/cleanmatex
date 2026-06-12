@@ -255,6 +255,7 @@ async function dispatchTargets(
             retry_count:       0,
             max_retries:       3,
             rec_status:        1,
+            idempotency_key:   `campaign:${campaign.id}:target:${target.id}`,
           })
           .select('id')
           .single()

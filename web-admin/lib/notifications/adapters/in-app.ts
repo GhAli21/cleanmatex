@@ -9,6 +9,7 @@ import { logger } from '@lib/utils/logger';
 import type { NotificationEvent, InAppResult } from '@lib/notifications/types';
 import { NOTIFICATION_CHANNEL, NOTIFICATION_PRIORITY } from '@lib/notifications/types';
 import type { RenderedContent } from '@lib/notifications/template-renderer';
+import type { Json } from '@/types/database';
 
 /** Format: {tenant_org_id}:{event_code}:{source_entity_id}:{recipient_user_id} */
 function buildIdempotencyKey(
@@ -57,7 +58,7 @@ export async function deliverInApp(
       action_label2:       event.actionLabel2 ?? null,
       source_entity_type:  event.sourceEntityType ?? null,
       source_entity_id:    event.sourceEntityId ?? null,
-      metadata:            rendered.metadata,
+      metadata:            rendered.metadata as unknown as Json,
       idempotency_key:     idempotencyKey,
       created_by:          'system',
       rec_status:          1,

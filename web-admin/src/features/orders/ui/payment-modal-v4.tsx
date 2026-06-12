@@ -92,6 +92,7 @@ import {
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
   PAYMENT_MODAL_SECTION_IDS,
+  PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL,
   PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
 } from './payment-modal-v04-sections-definition';
 
@@ -323,6 +324,32 @@ type OrderValueBreakdownModel = {
   totalRow: OrderValueBreakdownRow;
 };
 
+function FinalOrderTotalPanel({
+  value,
+  title,
+  help,
+  isRTL,
+}: {
+  value: string;
+  title: string;
+  help: string;
+  isRTL: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-teal-50 p-4 shadow-sm">
+      <p className={`text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {title}
+      </p>
+      <p className={`mt-3 text-2xl font-bold tabular-nums text-slate-950 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {value}
+      </p>
+      <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {help}
+      </p>
+    </div>
+  );
+}
+
 function OrderValueBreakdownPanel({
   model,
   labels,
@@ -337,15 +364,12 @@ function OrderValueBreakdownPanel({
     discountsHelp: string;
     taxes: string;
     taxesHelp: string;
-    finalTotal: string;
-    finalTotalHelp: string;
   };
   isRTL: boolean;
   taxLoading?: boolean;
 }) {
   return (
-    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="space-y-3">
+    <div className="space-y-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <p className="text-sm font-semibold text-slate-900">{labels.grossValue}</p>
@@ -396,19 +420,6 @@ function OrderValueBreakdownPanel({
             </div>
           </div>
         ) : null}
-      </div>
-
-      <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-teal-50 p-4 shadow-sm">
-        <p className={`text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {labels.finalTotal}
-        </p>
-        <p className={`mt-3 text-2xl font-bold tabular-nums text-slate-950 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {model.totalRow.value}
-        </p>
-        <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {labels.finalTotalHelp}
-        </p>
-      </div>
     </div>
   );
 }
@@ -4768,8 +4779,6 @@ export function PaymentModalV4({
                                     discountsHelp: t('orderValue.discountsHelp'),
                                     taxes: t('orderValue.taxes'),
                                     taxesHelp: t('orderValue.taxesHelp'),
-                                    finalTotal: t('orderValue.finalTotal'),
-                                    finalTotalHelp: t('orderValue.finalTotalHelp'),
                                   }}
                                 />
                               ),
@@ -5016,9 +5025,19 @@ export function PaymentModalV4({
                   </CmxCard>
                 </section>
 
-                <aside className="min-w-0">
-                  <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
-                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                <aside
+                  className={`min-w-0 ${
+                    PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
+                      ? 'xl:sticky xl:top-0 xl:z-10 xl:flex xl:max-h-[calc(94vh-11rem)] xl:flex-col xl:self-start'
+                      : ''
+                  }`}
+                >
+                  <CmxCard
+                    className={`overflow-hidden border-cyan-100 bg-white/95 shadow-sm ${
+                      PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? 'flex min-h-0 flex-1 flex-col' : ''
+                    }`}
+                  >
+                    <CmxCardHeader className="shrink-0 border-b border-cyan-100 pb-3">
                       <CmxCardTitle className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
                         <UserRound className="h-4 w-4 text-cyan-700" />
                         {t('sections.receiptBrain')}
@@ -5027,8 +5046,20 @@ export function PaymentModalV4({
                         {t('sections.receiptBrainHelp')}
                       </p>
                     </CmxCardHeader>
-                    <CmxCardContent className="space-y-3 pt-3">
-                <div className="space-y-3">
+                    <CmxCardContent
+                      className={`pt-3 ${
+                        PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
+                          ? 'flex min-h-0 flex-1 flex-col gap-0'
+                          : 'space-y-3'
+                      }`}
+                    >
+                <div
+                  className={
+                    PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
+                      ? 'min-h-0 flex-1 space-y-3 overflow-y-auto pe-0.5'
+                      : 'space-y-3'
+                  }
+                >
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardContent className="pt-5">
                       <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -5238,6 +5269,16 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
                 </div>
+                {PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? (
+                  <div className="hidden shrink-0 border-t border-slate-200 pt-3 xl:block">
+                    <FinalOrderTotalPanel
+                      value={orderValueBreakdownModel.totalRow.value}
+                      title={t('orderValue.finalTotal')}
+                      help={t('orderValue.finalTotalHelp')}
+                      isRTL={isRTL}
+                    />
+                  </div>
+                ) : null}
                     </CmxCardContent>
                   </CmxCard>
                 </aside>
@@ -5245,6 +5286,16 @@ export function PaymentModalV4({
             </div>
 
               <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
+                {PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? (
+                  <div className="w-full xl:hidden">
+                    <FinalOrderTotalPanel
+                      value={orderValueBreakdownModel.totalRow.value}
+                      title={t('orderValue.finalTotal')}
+                      help={t('orderValue.finalTotalHelp')}
+                      isRTL={isRTL}
+                    />
+                  </div>
+                ) : null}
                 {validationItems.length > 0 ? (
                   <CmxSummaryMessage
                     type="warning"
