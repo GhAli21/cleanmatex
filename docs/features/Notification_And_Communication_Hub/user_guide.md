@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-06-12  
 **Audience:** End users (staff, managers, admins) using the CleanMateX web admin  
-**Status:** Phases 1–3 + Frontend Track A complete
+**Status:** Phases 1–4 complete (cleanmatex MVP)
 
 ---
 
@@ -139,7 +139,63 @@ Use the Channel and Status dropdowns to filter by delivery channel or delivery s
 
 ---
 
-## 5. Notification Types by Event
+## 5. Campaigns (Phase 4)
+
+**Route:** `/dashboard/marketing/campaigns`  
+**Requires:** `notifications:manage` permission · feature flag `campaigns_enabled` must be ON
+
+Campaigns let admins broadcast targeted notifications to specific customer segments. Unlike transactional notifications (which fire automatically from events), campaigns are manually created, reviewed, and approved before sending.
+
+### Campaign Lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| DRAFT | Just created; not yet ready for review |
+| PENDING_APPROVAL | Submitted for review; awaiting approver action |
+| APPROVED | Approved but not yet launched |
+| SCHEDULED | Approved and scheduled for a future date/time |
+| RUNNING | Currently processing and dispatching targets |
+| COMPLETED | All recipients processed |
+| PAUSED | Temporarily halted |
+| FAILED | Processing error — check the details page |
+| CANCELLED | Cancelled before or during run |
+
+### Creating a Campaign
+
+1. Go to **Marketing → Campaigns**
+2. Click **Create Campaign**
+3. Fill in:
+   - **Name** (English) and optionally **Name (Arabic)**
+   - **Channel** — select from available channels (IN_APP, EMAIL, etc.)
+   - **Target User IDs** — paste user UUIDs one per line or comma-separated
+   - **Scheduled At** — optional; leave blank to send immediately after approval
+4. Click **Save as Draft**
+
+### Submitting for Approval
+
+From the campaign detail page, click **Submit for Approval** to move from DRAFT → PENDING_APPROVAL.
+
+### Approving and Launching
+
+Users with the `notifications:manage` permission can:
+- Click **Approve** to approve a PENDING_APPROVAL campaign
+- Click **Launch** to immediately start a SCHEDULED or APPROVED campaign
+
+### Test Send
+
+Before launching, click **Send Test** to send a preview to yourself. Available in DRAFT, PENDING_APPROVAL, and APPROVED states.
+
+### Cancelling
+
+Click **Cancel** on any active campaign to stop it. A RUNNING campaign will finish dispatching its current batch before stopping.
+
+### Consent Gate
+
+Campaigns only deliver to users who have given **marketing consent** for the chosen channel. Users without consent are automatically marked as SKIPPED in the delivery log.
+
+---
+
+## 6. Notification Types by Event
 
 | Event | Channel | Who Receives |
 |-------|---------|-------------|

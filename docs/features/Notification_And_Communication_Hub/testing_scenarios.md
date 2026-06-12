@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-06-12  
 **Audience:** QA engineers, developers, admins  
-**Status:** Covers Phases 1–3 + Frontend Track A
+**Status:** Covers Phases 1–4 (cleanmatex MVP)
 
 See also: `Setup_And_Config/11_smoke_tests.md` for SQL-level smoke test harness.
 
@@ -284,5 +284,78 @@ Expected: Zero errors and zero warnings for all three commands.
 - [ ] Settings page: preference toggle saves correctly
 - [ ] Admin channel settings: quiet hours, enable/disable
 - [ ] RTL layout: notification bell, center, settings all correct in Arabic
+- [ ] Campaign list page loads at `/dashboard/marketing/campaigns`
+- [ ] Campaign create form saves as DRAFT
+- [ ] Campaign status transitions work end-to-end (DRAFT → PENDING → APPROVED → RUNNING → COMPLETED)
+- [ ] Campaign test send delivers to creator
+- [ ] Users without marketing consent appear as SKIPPED in campaign targets
+
+---
+
+## 11. Phase 4 — Campaign Engine Test Scenarios
+
+### Unit Tests — Campaign API
+
+- [ ] `POST /api/v1/notifications/campaigns` — valid payload creates DRAFT campaign
+- [ ] `POST /api/v1/notifications/campaigns` — missing `name` returns 400
+- [ ] `PATCH .../status` — DRAFT → PENDING_APPROVAL succeeds
+- [ ] `PATCH .../status` — PENDING_APPROVAL → APPROVED succeeds
+- [ ] `PATCH .../status` — DRAFT → RUNNING (invalid) returns 400 with state machine error
+- [ ] `PATCH .../status` — COMPLETED → APPROVED (invalid) returns 400
+- [ ] `POST .../test` — DRAFT state → dispatches test notification to creator
+- [ ] `POST .../test` — RUNNING state → returns 400 (test not allowed in terminal-adjacent state)
+
+### Unit Tests — Campaign Processor
+
+- [ ] Phase A: APPROVED campaign with no `scheduled_at` → activates immediately
+- [ ] Phase A: APPROVED campaign with `scheduled_at` in future → stays APPROVED (not activated)
+- [ ] Phase A: SCHEDULED campaign with `scheduled_at <= NOW()` → activates
+- [ ] Phase A: Creates `org_notif_campaign_targets_dtl` rows from `target_segment.user_ids`
+- [ ] Phase A: Campaign transitions to RUNNING status
+- [ ] Phase B: User with `marketing_consent = true` → target dispatched (SENT)
+- [ ] Phase B: User with `marketing_consent = false` → target skipped (SKIPPED + skip_reason)
+- [ ] Phase B: User with no pref row → target skipped (safe default)
+- [ ] Phase B: IN_APP channel → writes to inbox directly (not outbox)
+- [ ] Phase B: EMAIL channel → writes to outbox (outbox processor handles delivery)
+- [ ] Phase B: When 0 PENDING targets remain → campaign transitions to COMPLETED
+- [ ] Processor is idempotent: calling twice on same campaign does not double-process
+
+### Integration Tests — Campaign Lifecycle
+
+1. Create campaign via `POST /api/v1/notifications/campaigns` → verify DRAFT status
+2. Submit for approval via `PATCH .../status { "status": "PENDING_APPROVAL" }` → verify status
+3. Approve via `PATCH .../status { "status": "APPROVED" }` → verify `approved_at` set
+4. Call `POST /api/notifications/process-campaigns` with valid Bearer secret → verify:
+   - Campaign status = RUNNING
+   - Target rows created in `org_notif_campaign_targets_dtl`
+5. Call processor again → verify:
+   - Targets dispatched
+   - Users with consent = SENT; users without = SKIPPED
+   - Campaign = COMPLETED when all processed
+6. View detail page → stats grid shows correct total/sent/skipped/failed counts
+
+### Frontend QA — Campaign Pages
+
+| Scenario | Expected |
+|----------|---------|
+| Navigate to `/dashboard/marketing/campaigns` | Campaign list loads (or empty state) |
+| Click "Create Campaign" | Dialog opens with create form |
+| Fill form + save | Campaign appears in list with DRAFT status badge |
+| Click campaign row | Navigate to detail page |
+| Detail page loads | Stats grid + action buttons visible |
+| Submit for Approval button | Status changes to PENDING_APPROVAL |
+| Approve button (approved role) | Status changes to APPROVED |
+| Launch button | Status changes to RUNNING |
+| Cancel button | Confirmation + status changes to CANCELLED |
+| Send Test button | Success toast shows |
+| Filter tabs (ALL, DRAFT, RUNNING, etc.) | List filters correctly |
+| RTL locale | All campaign UI renders correctly in Arabic |
+| `campaigns_enabled` flag OFF | Campaigns not visible in sidebar |
+
+### Multi-Tenant Isolation — Campaigns
+
+- [ ] Tenant A's campaigns must not appear in Tenant B's list API response
+- [ ] Tenant A cannot transition Tenant B's campaign status via PATCH
+- [ ] Campaign targets are isolated by `tenant_org_id` in all queries
 - [ ] Multi-tenant: no cross-tenant data visible
 - [ ] pg_cron: all 3 ntf jobs showing `succeeded` status

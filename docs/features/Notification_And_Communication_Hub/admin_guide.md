@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-06-12  
 **Audience:** Tenant admins (super_admin, tenant_admin, admin roles)  
-**Status:** Phases 1–3 + Frontend Track A complete
+**Status:** Phases 1–4 complete (cleanmatex MVP)
 
 ---
 
@@ -259,7 +259,7 @@ ORDER BY dl.attempt_number;
 
 ## 9. Monitoring pg_cron Jobs
 
-All three notification cron jobs should show `status = succeeded`:
+All notification cron jobs should show `status = succeeded`:
 
 ```sql
 SELECT jobname, status, return_message, start_time, end_time
@@ -284,9 +284,63 @@ WHERE key = 'next_js_base_url';
 
 ---
 
-## 10. Notification Volume / Capacity
+## 10. Campaign Management (Phase 4)
 
-There are currently no per-tenant notification quotas enforced (quota API is planned for Phase 4/cleanmatexsaas). Monitor delivery volume manually:
+Campaigns are bulk notification broadcasts targeted at specific customer segments. Only available when the `campaigns_enabled` feature flag is ON.
+
+### Campaign Approval Workflow
+
+1. A user with `notifications:manage` creates a DRAFT campaign
+2. They click **Submit for Approval** → status moves to PENDING_APPROVAL
+3. An admin clicks **Approve** → status moves to APPROVED
+4. Either: admin clicks **Launch** (immediate), or the pg_cron job activates it when `scheduled_at <= NOW()` (SCHEDULED)
+5. The campaign processor runs targets in batches every minute
+6. When all targets are processed → COMPLETED
+
+### Monitoring Running Campaigns
+
+```sql
+-- View all RUNNING campaigns and their progress
+SELECT id, name, channel_code, total_targets_count, sent_count, skip_count, failed_count, started_at
+FROM org_notification_campaigns_mst
+WHERE tenant_org_id = 'your-tenant-uuid'
+  AND status = 'RUNNING'
+ORDER BY started_at DESC;
+```
+
+### View Campaign Targets
+
+```sql
+-- Campaign dispatch status breakdown
+SELECT status, skip_reason, COUNT(*) as count
+FROM org_notif_campaign_targets_dtl
+WHERE campaign_id = 'campaign-uuid'
+GROUP BY status, skip_reason
+ORDER BY status;
+```
+
+### Cancelling a Stuck Campaign
+
+If a campaign gets stuck in RUNNING (e.g., processor crashed mid-run):
+
+```sql
+-- Via API (preferred)
+PATCH /api/v1/notifications/campaigns/<id>/status
+{ "status": "CANCELLED", "reason": "Manual admin cancel — processor stall" }
+```
+
+Or directly:
+```sql
+UPDATE org_notification_campaigns_mst
+SET status = 'CANCELLED', cancelled_at = NOW(), updated_at = NOW(), updated_by = 'admin-override'
+WHERE id = 'campaign-uuid' AND tenant_org_id = 'your-tenant-uuid';
+```
+
+---
+
+## 11. Notification Volume / Capacity
+
+There are currently no per-tenant notification quotas enforced (quota API is planned in cleanmatexsaas — Phase A). Monitor delivery volume manually:
 
 ```sql
 -- Today's outbox volume by channel

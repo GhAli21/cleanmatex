@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-06-12  
 **Audience:** DevOps, SREs, and senior developers deploying or maintaining the Notification Hub  
-**Status:** Phases 1–3 complete · Next: Phase 4 Campaign Engine (seq 0357+)
+**Status:** Phases 1–4 complete (cleanmatex MVP)
 
 ---
 
@@ -37,6 +37,9 @@ Apply migrations **in strict order**. Never skip a migration. Never apply out of
 | 0353 | `notif_push_sweep_cron.sql` | Weekly push subscription stale sweep | 3 |
 | 0355 | `ntf_config_table_cron_fix.sql` | sys_ntf_runtime_cf + cron GUC workaround | 3 |
 | 0356 | `ntf_provider_cf_is_enabled.sql` | is_enabled column + audit cols on provider_cf | 3 |
+| 0361 | `ntf_campaign_engine_tables.sql` | Campaign + targets + usage + audit tables | 4 |
+| 0362 | `ntf_campaign_scheduler_cron.sql` | Campaign scheduler pg_cron job (every 1 min) | 4 |
+| 0363 | `nav_marketing_campaigns.sql` | Campaigns nav entry + sys_components_cd + permission | 4 |
 
 > **RULE:** Apply each file, verify success, then proceed to the next. Never run all at once on a new environment without checking intermediate state.
 
@@ -55,7 +58,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # Notification Hub security
-NOTIFICATIONS_OUTBOX_SECRET=your-random-32char-secret   # guards /api/notifications/process-outbox
+NOTIFICATIONS_OUTBOX_SECRET=your-random-32char-secret   # guards /api/notifications/process-outbox AND /api/notifications/process-campaigns
 ```
 
 ### Email (Resend — required for EMAIL channel)

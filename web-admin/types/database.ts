@@ -8873,6 +8873,92 @@ export type Database = {
           },
         ]
       }
+      org_fin_overpay_disp_dtl: {
+        Row: {
+          amount: number
+          branch_id: string | null
+          cash_leg_ref: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          id: string
+          idempotency_key: string | null
+          is_active: boolean
+          note_reason: string | null
+          order_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          resolution_code: string
+          target_ref: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          voucher_id: string | null
+          voucher_trx_line_id: string | null
+        }
+        Insert: {
+          amount: number
+          branch_id?: string | null
+          cash_leg_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          note_reason?: string | null
+          order_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          resolution_code: string
+          target_ref?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+          voucher_trx_line_id?: string | null
+        }
+        Update: {
+          amount?: number
+          branch_id?: string | null
+          cash_leg_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          note_reason?: string | null
+          order_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          resolution_code?: string
+          target_ref?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+          voucher_trx_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_order_overpay_disp_dtl_tenant_order_fk"
+            columns: ["order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_fin_period_mst: {
         Row: {
           closed_at: string | null
@@ -9780,6 +9866,210 @@ export type Database = {
             referencedColumns: ["tenant_org_id"]
           },
         ]
+      }
+      org_fin_rcpt_alloc_policy_cf: {
+        Row: {
+          allocation_mode: string
+          allow_cross_branch_allocation: boolean
+          allow_cross_contract_allocation: boolean
+          allow_partial_last_target: boolean
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          description2: string | null
+          fallback_destination: string
+          id: string
+          include_ar_invoices: boolean
+          include_b2b_statements: boolean
+          include_open_order_balances: boolean
+          include_pay_on_collection_orders: boolean
+          is_active: boolean
+          is_default: boolean
+          max_targets_per_allocation: number
+          metadata: Json
+          name: string
+          name2: string | null
+          policy_code: string
+          priority_ar_invoices: number
+          priority_b2b_statements: number
+          priority_open_order_balances: number
+          priority_pay_on_collection_orders: number
+          rec_status: number
+          require_confirmation_before_posting: boolean
+          require_same_currency: boolean
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allocation_mode?: string
+          allow_cross_branch_allocation?: boolean
+          allow_cross_contract_allocation?: boolean
+          allow_partial_last_target?: boolean
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          fallback_destination?: string
+          id?: string
+          include_ar_invoices?: boolean
+          include_b2b_statements?: boolean
+          include_open_order_balances?: boolean
+          include_pay_on_collection_orders?: boolean
+          is_active?: boolean
+          is_default?: boolean
+          max_targets_per_allocation?: number
+          metadata?: Json
+          name: string
+          name2?: string | null
+          policy_code: string
+          priority_ar_invoices?: number
+          priority_b2b_statements?: number
+          priority_open_order_balances?: number
+          priority_pay_on_collection_orders?: number
+          rec_status?: number
+          require_confirmation_before_posting?: boolean
+          require_same_currency?: boolean
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allocation_mode?: string
+          allow_cross_branch_allocation?: boolean
+          allow_cross_contract_allocation?: boolean
+          allow_partial_last_target?: boolean
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          fallback_destination?: string
+          id?: string
+          include_ar_invoices?: boolean
+          include_b2b_statements?: boolean
+          include_open_order_balances?: boolean
+          include_pay_on_collection_orders?: boolean
+          is_active?: boolean
+          is_default?: boolean
+          max_targets_per_allocation?: number
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          policy_code?: string
+          priority_ar_invoices?: number
+          priority_b2b_statements?: number
+          priority_open_order_balances?: number
+          priority_pay_on_collection_orders?: number
+          rec_status?: number
+          require_confirmation_before_posting?: boolean
+          require_same_currency?: boolean
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_fin_rcpt_alloc_policy_fb"
+            columns: ["fallback_destination"]
+            isOneToOne: false
+            referencedRelation: "sys_fin_rcpt_fb_dest_cd"
+            referencedColumns: ["fallback_destination"]
+          },
+          {
+            foreignKeyName: "fk_fin_rcpt_alloc_policy_mode"
+            columns: ["allocation_mode"]
+            isOneToOne: false
+            referencedRelation: "sys_fin_rcpt_alloc_mode_cd"
+            referencedColumns: ["allocation_mode"]
+          },
+        ]
+      }
+      org_fin_rcpt_alloc_preview_tr: {
+        Row: {
+          allocation_mode: string
+          amount_allocated: number
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          currency_ex_rate: number | null
+          current_order_allocation_amount: number
+          customer_id: string
+          excess_amount: number
+          expires_at: string | null
+          fallback_destination: string | null
+          id: string
+          idempotency_key: string | null
+          policy_id: string | null
+          preview_payload: Json
+          preview_status: string
+          receipt_amount: number
+          remaining_unallocated_amount: number
+          source_order_id: string | null
+          source_type: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          warning_payload: Json
+        }
+        Insert: {
+          allocation_mode: string
+          amount_allocated?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code: string
+          currency_ex_rate?: number | null
+          current_order_allocation_amount?: number
+          customer_id: string
+          excess_amount?: number
+          expires_at?: string | null
+          fallback_destination?: string | null
+          id?: string
+          idempotency_key?: string | null
+          policy_id?: string | null
+          preview_payload?: Json
+          preview_status?: string
+          receipt_amount: number
+          remaining_unallocated_amount?: number
+          source_order_id?: string | null
+          source_type: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          warning_payload?: Json
+        }
+        Update: {
+          allocation_mode?: string
+          amount_allocated?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          currency_ex_rate?: number | null
+          current_order_allocation_amount?: number
+          customer_id?: string
+          excess_amount?: number
+          expires_at?: string | null
+          fallback_destination?: string | null
+          id?: string
+          idempotency_key?: string | null
+          policy_id?: string | null
+          preview_payload?: Json
+          preview_status?: string
+          receipt_amount?: number
+          remaining_unallocated_amount?: number
+          source_order_id?: string | null
+          source_type?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          warning_payload?: Json
+        }
+        Relationships: []
       }
       org_fin_recon_issues_dtl: {
         Row: {
@@ -10795,7 +11085,6 @@ export type Database = {
           source_module: string | null
           source_ref_id: string | null
           source_ref_type: string | null
-          status: string
           subtotal_amount: number | null
           supplier_id: string | null
           tax_amount: number | null
@@ -10858,7 +11147,6 @@ export type Database = {
           source_module?: string | null
           source_ref_id?: string | null
           source_ref_type?: string | null
-          status?: string
           subtotal_amount?: number | null
           supplier_id?: string | null
           tax_amount?: number | null
@@ -10921,7 +11209,6 @@ export type Database = {
           source_module?: string | null
           source_ref_id?: string | null
           source_ref_type?: string | null
-          status?: string
           subtotal_amount?: number | null
           supplier_id?: string | null
           tax_amount?: number | null
@@ -12615,6 +12902,1070 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_loyalty_accounts_mst"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_notif_campaign_targets_dtl: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          outbox_id: string | null
+          processed_at: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          recipient_address: string | null
+          recipient_user_id: string | null
+          skip_reason: string | null
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          outbox_id?: string | null
+          processed_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          skip_reason?: string | null
+          status?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          outbox_id?: string | null
+          processed_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          skip_reason?: string | null
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notif_campaign_targets_dtl_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "org_notification_campaigns_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notif_campaign_targets_dtl_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_outbox_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notif_campaign_targets_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notif_campaign_targets_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_notif_campaign_targets_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_notif_push_subs_dtl: {
+        Row: {
+          app_version: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          device_id: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_verified_at: string | null
+          platform: string
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          subscription_data: Json
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          device_id: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_verified_at?: string | null
+          platform: string
+          provider_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          subscription_data: Json
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          device_id?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_verified_at?: string | null
+          platform?: string
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          subscription_data?: Json
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      org_notification_audit_dtl: {
+        Row: {
+          action_code: string
+          change_reason: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          is_active: boolean
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          performed_at: string
+          performed_by: string
+          rec_notes: string | null
+          rec_status: number
+          tenant_org_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action_code: string
+          change_reason?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by: string
+          rec_notes?: string | null
+          rec_status?: number
+          tenant_org_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action_code?: string
+          change_reason?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string
+          rec_notes?: string | null
+          rec_status?: number
+          tenant_org_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notification_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notification_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_notification_audit_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_notification_campaigns_mst: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          cancelled_at: string | null
+          channel_code: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          failed_count: number
+          id: string
+          is_active: boolean
+          name: string
+          name2: string | null
+          paused_at: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          scheduled_at: string | null
+          sent_count: number
+          skip_count: number
+          started_at: string | null
+          status: string
+          target_segment: Json | null
+          template_code: string | null
+          tenant_org_id: string
+          total_targets: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          channel_code: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          paused_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scheduled_at?: string | null
+          sent_count?: number
+          skip_count?: number
+          started_at?: string | null
+          status?: string
+          target_segment?: Json | null
+          template_code?: string | null
+          tenant_org_id: string
+          total_targets?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          channel_code?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          paused_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          scheduled_at?: string | null
+          sent_count?: number
+          skip_count?: number
+          started_at?: string | null
+          status?: string
+          target_segment?: Json | null
+          template_code?: string | null
+          tenant_org_id?: string
+          total_targets?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notification_campaigns_mst_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_notification_campaigns_mst_template_code_fkey"
+            columns: ["template_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_templates_mst"
+            referencedColumns: ["template_code"]
+          },
+          {
+            foreignKeyName: "org_notification_campaigns_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notification_campaigns_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_notification_campaigns_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_notification_usage_daily: {
+        Row: {
+          channel_code: string
+          cost_amount: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          failed_count: number
+          id: string
+          is_active: boolean
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sent_count: number
+          skip_count: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          usage_date: string
+        }
+        Insert: {
+          channel_code: string
+          cost_amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sent_count?: number
+          skip_count?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date: string
+        }
+        Update: {
+          channel_code?: string
+          cost_amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sent_count?: number
+          skip_count?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notification_usage_daily_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_notification_usage_daily_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_notification_usage_daily_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_notification_usage_daily_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_ntf_channel_provider_cf: {
+        Row: {
+          channel_code: string
+          config: Json | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          display_name: string | null
+          id: string
+          is_active: boolean
+          is_enabled: boolean
+          is_rec_active: boolean
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          is_rec_active?: boolean
+          provider_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          is_rec_active?: boolean
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_channel_provider_cf_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_delivery_log_dtl: {
+        Row: {
+          attempt_number: number
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          logged_at: string
+          outbox_id: string
+          provider_code: string | null
+          provider_message_id: string | null
+          provider_response: Json | null
+          rec_notes: string | null
+          rec_status: number | null
+          status: string
+          tenant_org_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          logged_at?: string
+          outbox_id: string
+          provider_code?: string | null
+          provider_message_id?: string | null
+          provider_response?: Json | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          status: string
+          tenant_org_id: string
+        }
+        Update: {
+          attempt_number?: number
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          logged_at?: string
+          outbox_id?: string
+          provider_code?: string | null
+          provider_message_id?: string | null
+          provider_response?: Json | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          status?: string
+          tenant_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_delivery_log_dtl_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_outbox_dtl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_ntf_inbox_mst: {
+        Row: {
+          action_label: string | null
+          action_label2: string | null
+          action_url: string | null
+          body: string
+          body2: string | null
+          category_code: string | null
+          channel_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          event_code: string
+          expires_at: string | null
+          id: string
+          idempotency_key: string
+          is_active: boolean
+          is_read: boolean
+          metadata: Json | null
+          priority: string
+          read_at: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          recipient_user_id: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          template_code: string | null
+          tenant_org_id: string
+          title: string
+          title2: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          action_label?: string | null
+          action_label2?: string | null
+          action_url?: string | null
+          body: string
+          body2?: string | null
+          category_code?: string | null
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key: string
+          is_active?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          recipient_user_id: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          template_code?: string | null
+          tenant_org_id: string
+          title: string
+          title2?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          action_label?: string | null
+          action_label2?: string | null
+          action_url?: string | null
+          body?: string
+          body2?: string | null
+          category_code?: string | null
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code?: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string
+          is_active?: boolean
+          is_read?: boolean
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          recipient_user_id?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          template_code?: string | null
+          tenant_org_id?: string
+          title?: string
+          title2?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_inbox_mst_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_categories_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_inbox_mst_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_inbox_mst_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_inbox_mst_template_code_fkey"
+            columns: ["template_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_templates_mst"
+            referencedColumns: ["template_code"]
+          },
+        ]
+      }
+      org_ntf_outbox_dtl: {
+        Row: {
+          channel_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          delivered_at: string | null
+          error_message: string | null
+          event_code: string | null
+          id: string
+          idempotency_key: string
+          inbox_id: string | null
+          is_active: boolean
+          max_retries: number
+          metadata: Json | null
+          next_retry_at: string | null
+          provider_code: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          rec_notes: string | null
+          rec_status: number | null
+          recipient_address: string | null
+          recipient_user_id: string | null
+          rendered_body: string
+          rendered_body2: string | null
+          rendered_subject: string | null
+          rendered_subject2: string | null
+          retry_count: number
+          scheduled_at: string
+          sent_at: string | null
+          skip_reason: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          event_code?: string | null
+          id?: string
+          idempotency_key: string
+          inbox_id?: string | null
+          is_active?: boolean
+          max_retries?: number
+          metadata?: Json | null
+          next_retry_at?: string | null
+          provider_code?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          rendered_body: string
+          rendered_body2?: string | null
+          rendered_subject?: string | null
+          rendered_subject2?: string | null
+          retry_count?: number
+          scheduled_at?: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          event_code?: string | null
+          id?: string
+          idempotency_key?: string
+          inbox_id?: string | null
+          is_active?: boolean
+          max_retries?: number
+          metadata?: Json | null
+          next_retry_at?: string | null
+          provider_code?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          rendered_body?: string
+          rendered_body2?: string | null
+          rendered_subject?: string | null
+          rendered_subject2?: string | null
+          retry_count?: number
+          scheduled_at?: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_outbox_dtl_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_outbox_dtl_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_outbox_dtl_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "org_ntf_inbox_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_ntf_outbox_dtl_provider_code_fkey"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_providers_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_settings_cf: {
+        Row: {
+          channel_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          daily_limit: number | null
+          is_active: boolean
+          is_enabled: boolean
+          metadata: Json | null
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          quiet_hours_tz: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          daily_limit?: number | null
+          is_active?: boolean
+          is_enabled?: boolean
+          metadata?: Json | null
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_tz?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          daily_limit?: number | null
+          is_active?: boolean
+          is_enabled?: boolean
+          metadata?: Json | null
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_tz?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_settings_cf_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_user_prefs_dtl: {
+        Row: {
+          branch_id: string | null
+          channel_code: string
+          consent_given_at: string | null
+          consent_ip: string | null
+          consent_withdrawn_at: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          event_code: string | null
+          id: string
+          is_active: boolean
+          is_enabled: boolean
+          marketing_consent: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          channel_code: string
+          consent_given_at?: string | null
+          consent_ip?: string | null
+          consent_withdrawn_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          marketing_consent?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          channel_code?: string
+          consent_given_at?: string | null
+          consent_ip?: string | null
+          consent_withdrawn_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          marketing_consent?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_ntf_user_prefs_dtl_branch_id_tenant_org_id_fkey"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_ntf_user_prefs_dtl_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_ntf_user_prefs_dtl_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -24739,6 +26090,108 @@ export type Database = {
           },
         ]
       }
+      sys_fin_overpay_res_cd: {
+        Row: {
+          allowed_for_bank: boolean
+          allowed_for_card: boolean
+          allowed_for_cash: boolean
+          allowed_for_check: boolean
+          allowed_for_gateway: boolean
+          allowed_for_mobile: boolean
+          allowed_for_stored_value: boolean
+          created_at: string
+          creates_change_return: boolean
+          creates_customer_advance: boolean
+          creates_customer_credit: boolean
+          creates_multi_target_allocation: boolean
+          creates_payment_reduction: boolean
+          creates_void_or_refund: boolean
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          is_system: boolean
+          metadata: Json
+          name: string
+          name2: string | null
+          permission_code: string | null
+          requires_allocation_details: boolean
+          requires_approval: boolean
+          requires_permission: boolean
+          requires_reason: boolean
+          resolution_code: string
+          restores_stored_value: boolean
+          updated_at: string | null
+          uses_allocation_policy: boolean
+        }
+        Insert: {
+          allowed_for_bank?: boolean
+          allowed_for_card?: boolean
+          allowed_for_cash?: boolean
+          allowed_for_check?: boolean
+          allowed_for_gateway?: boolean
+          allowed_for_mobile?: boolean
+          allowed_for_stored_value?: boolean
+          created_at?: string
+          creates_change_return?: boolean
+          creates_customer_advance?: boolean
+          creates_customer_credit?: boolean
+          creates_multi_target_allocation?: boolean
+          creates_payment_reduction?: boolean
+          creates_void_or_refund?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name: string
+          name2?: string | null
+          permission_code?: string | null
+          requires_allocation_details?: boolean
+          requires_approval?: boolean
+          requires_permission?: boolean
+          requires_reason?: boolean
+          resolution_code: string
+          restores_stored_value?: boolean
+          updated_at?: string | null
+          uses_allocation_policy?: boolean
+        }
+        Update: {
+          allowed_for_bank?: boolean
+          allowed_for_card?: boolean
+          allowed_for_cash?: boolean
+          allowed_for_check?: boolean
+          allowed_for_gateway?: boolean
+          allowed_for_mobile?: boolean
+          allowed_for_stored_value?: boolean
+          created_at?: string
+          creates_change_return?: boolean
+          creates_customer_advance?: boolean
+          creates_customer_credit?: boolean
+          creates_multi_target_allocation?: boolean
+          creates_payment_reduction?: boolean
+          creates_void_or_refund?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          permission_code?: string | null
+          requires_allocation_details?: boolean
+          requires_approval?: boolean
+          requires_permission?: boolean
+          requires_reason?: boolean
+          resolution_code?: string
+          restores_stored_value?: boolean
+          updated_at?: string | null
+          uses_allocation_policy?: boolean
+        }
+        Relationships: []
+      }
       sys_fin_period_tpl_dtl: {
         Row: {
           created_at: string
@@ -24865,6 +26318,198 @@ export type Database = {
             referencedColumns: ["tpl_pkg_id"]
           },
         ]
+      }
+      sys_fin_rcpt_alloc_mode_cd: {
+        Row: {
+          allocation_mode: string
+          created_at: string
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          is_manual_only: boolean
+          is_system: boolean
+          metadata: Json
+          name: string
+          name2: string | null
+          sort_by_document_date: boolean
+          sort_by_due_date: boolean
+          updated_at: string | null
+          uses_target_priority: boolean
+        }
+        Insert: {
+          allocation_mode: string
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_manual_only?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name: string
+          name2?: string | null
+          sort_by_document_date?: boolean
+          sort_by_due_date?: boolean
+          updated_at?: string | null
+          uses_target_priority?: boolean
+        }
+        Update: {
+          allocation_mode?: string
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_manual_only?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          sort_by_document_date?: boolean
+          sort_by_due_date?: boolean
+          updated_at?: string | null
+          uses_target_priority?: boolean
+        }
+        Relationships: []
+      }
+      sys_fin_rcpt_fb_dest_cd: {
+        Row: {
+          blocks_posting: boolean
+          created_at: string
+          creates_cash_change: boolean
+          creates_customer_advance: boolean
+          creates_customer_credit: boolean
+          creates_wallet_topup: boolean
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          fallback_destination: string
+          is_active: boolean
+          is_system: boolean
+          line_role: string | null
+          metadata: Json
+          name: string
+          name2: string | null
+          requires_cash: boolean
+          target_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          blocks_posting?: boolean
+          created_at?: string
+          creates_cash_change?: boolean
+          creates_customer_advance?: boolean
+          creates_customer_credit?: boolean
+          creates_wallet_topup?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          fallback_destination: string
+          is_active?: boolean
+          is_system?: boolean
+          line_role?: string | null
+          metadata?: Json
+          name: string
+          name2?: string | null
+          requires_cash?: boolean
+          target_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          blocks_posting?: boolean
+          created_at?: string
+          creates_cash_change?: boolean
+          creates_customer_advance?: boolean
+          creates_customer_credit?: boolean
+          creates_wallet_topup?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          fallback_destination?: string
+          is_active?: boolean
+          is_system?: boolean
+          line_role?: string | null
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          requires_cash?: boolean
+          target_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sys_fin_rem_bal_policy_cd: {
+        Row: {
+          created_at: string
+          creates_ar_invoice: boolean
+          creates_ar_ledger: boolean
+          creates_pay_on_collection_due: boolean
+          creates_statement_entry: boolean
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          is_system: boolean
+          metadata: Json
+          name: string
+          name2: string | null
+          policy_code: string
+          requires_approval: boolean
+          requires_b2b_customer: boolean
+          requires_credit_limit_check: boolean
+          requires_customer_account: boolean
+          requires_zero_remaining: boolean
+          resulting_payment_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          creates_ar_invoice?: boolean
+          creates_ar_ledger?: boolean
+          creates_pay_on_collection_due?: boolean
+          creates_statement_entry?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name: string
+          name2?: string | null
+          policy_code: string
+          requires_approval?: boolean
+          requires_b2b_customer?: boolean
+          requires_credit_limit_check?: boolean
+          requires_customer_account?: boolean
+          requires_zero_remaining?: boolean
+          resulting_payment_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          creates_ar_invoice?: boolean
+          creates_ar_ledger?: boolean
+          creates_pay_on_collection_due?: boolean
+          creates_statement_entry?: boolean
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          policy_code?: string
+          requires_approval?: boolean
+          requires_b2b_customer?: boolean
+          requires_credit_limit_check?: boolean
+          requires_customer_account?: boolean
+          requires_zero_remaining?: boolean
+          resulting_payment_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       sys_fin_resolver_cd: {
         Row: {
@@ -25524,6 +27169,78 @@ export type Database = {
           rec_status?: number | null
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      sys_fin_vch_source_type_cd: {
+        Row: {
+          created_at: string
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          is_manual: boolean
+          is_system: boolean
+          metadata: Json
+          name: string
+          name2: string | null
+          originates_from_ar: boolean
+          originates_from_b2b_statement: boolean
+          originates_from_customer_account: boolean
+          originates_from_gateway_callback: boolean
+          originates_from_gift_card: boolean
+          originates_from_order: boolean
+          originates_from_refund: boolean
+          originates_from_wallet: boolean
+          source_family: string
+          source_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_manual?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name: string
+          name2?: string | null
+          originates_from_ar?: boolean
+          originates_from_b2b_statement?: boolean
+          originates_from_customer_account?: boolean
+          originates_from_gateway_callback?: boolean
+          originates_from_gift_card?: boolean
+          originates_from_order?: boolean
+          originates_from_refund?: boolean
+          originates_from_wallet?: boolean
+          source_family: string
+          source_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_manual?: boolean
+          is_system?: boolean
+          metadata?: Json
+          name?: string
+          name2?: string | null
+          originates_from_ar?: boolean
+          originates_from_b2b_statement?: boolean
+          originates_from_customer_account?: boolean
+          originates_from_gateway_callback?: boolean
+          originates_from_gift_card?: boolean
+          originates_from_order?: boolean
+          originates_from_refund?: boolean
+          originates_from_wallet?: boolean
+          source_family?: string
+          source_type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -26574,6 +28291,560 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: []
+      }
+      sys_ntf_categories_cd: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          icon: string | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          icon?: string | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          icon?: string | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_ntf_event_chan_map: {
+        Row: {
+          can_override: boolean
+          channel_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          event_code: string
+          is_active: boolean
+          is_default: boolean
+          rec_notes: string | null
+          rec_status: number | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          can_override?: boolean
+          channel_code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code: string
+          is_active?: boolean
+          is_default?: boolean
+          rec_notes?: string | null
+          rec_status?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          can_override?: boolean
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          event_code?: string
+          is_active?: boolean
+          is_default?: boolean
+          rec_notes?: string | null
+          rec_status?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_event_chan_map_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sys_ntf_event_chan_map_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_ntf_events_cd: {
+        Row: {
+          category_code: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          default_recipients: string[] | null
+          description: string | null
+          description2: string | null
+          idempotency_key_pattern: string | null
+          is_active: boolean
+          is_transactional: boolean
+          name: string
+          name2: string | null
+          priority: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          requires_consent: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          category_code: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          default_recipients?: string[] | null
+          description?: string | null
+          description2?: string | null
+          idempotency_key_pattern?: string | null
+          is_active?: boolean
+          is_transactional?: boolean
+          name: string
+          name2?: string | null
+          priority?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          requires_consent?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          category_code?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          default_recipients?: string[] | null
+          description?: string | null
+          description2?: string | null
+          idempotency_key_pattern?: string | null
+          is_active?: boolean
+          is_transactional?: boolean
+          name?: string
+          name2?: string | null
+          priority?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          requires_consent?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_events_cd_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_categories_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_ntf_providers_cd: {
+        Row: {
+          api_endpoint: string | null
+          channel_code: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          max_message_length: number | null
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          supports_delivery_tracking: boolean
+          supports_read_receipt: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          webhook_path: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          channel_code: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          max_message_length?: number | null
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          supports_delivery_tracking?: boolean
+          supports_read_receipt?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          webhook_path?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          channel_code?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          max_message_length?: number | null
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          supports_delivery_tracking?: boolean
+          supports_read_receipt?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          webhook_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_providers_cd_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_ntf_runtime_cf: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          is_active: boolean
+          key: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          is_active?: boolean
+          key: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          is_active?: boolean
+          key?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      sys_ntf_template_chan_dtl: {
+        Row: {
+          channel_code: string
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          rec_notes: string | null
+          rec_status: number | null
+          rendered_body: string
+          rendered_body2: string | null
+          rendered_subject: string | null
+          rendered_subject2: string | null
+          template_version_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          rendered_body: string
+          rendered_body2?: string | null
+          rendered_subject?: string | null
+          rendered_subject2?: string | null
+          template_version_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          rec_notes?: string | null
+          rec_status?: number | null
+          rendered_body?: string
+          rendered_body2?: string | null
+          rendered_subject?: string | null
+          rendered_subject2?: string | null
+          template_version_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_template_chan_dtl_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "sys_notification_channel_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sys_ntf_template_chan_dtl_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_template_ver_dtl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_ntf_template_ver_dtl: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          body2: string | null
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_status: number | null
+          retired_at: string | null
+          status: string
+          subject: string | null
+          subject2: string | null
+          template_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_number: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body: string
+          body2?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_status?: number | null
+          retired_at?: string | null
+          status?: string
+          subject?: string | null
+          subject2?: string | null
+          template_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_number?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          body2?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_status?: number | null
+          retired_at?: string | null
+          status?: string
+          subject?: string | null
+          subject2?: string | null
+          template_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_template_ver_dtl_template_code_fkey"
+            columns: ["template_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_templates_mst"
+            referencedColumns: ["template_code"]
+          },
+        ]
+      }
+      sys_ntf_templates_mst: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          event_code: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number | null
+          template_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          event_code: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          template_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          event_code?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number | null
+          template_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_ntf_templates_mst_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       sys_ord_workflow_template_versions: {
         Row: {
@@ -31422,6 +33693,14 @@ export type Database = {
           users_migrated: number
         }[]
       }
+      ntf_sweep_stale_push_subs: {
+        Args: never
+        Returns: {
+          deactivated_count: number
+        }[]
+      }
+      ntf_trigger_campaign_proc: { Args: never; Returns: undefined }
+      ntf_trigger_outbox_proc: { Args: never; Returns: undefined }
       order_has_action: {
         Args: { p_action_type: string; p_order_id: string }
         Returns: boolean

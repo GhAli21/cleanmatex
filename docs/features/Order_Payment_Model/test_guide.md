@@ -1,18 +1,138 @@
-# Payment Modal V4 Test Guide
+# Payment Settlement & Receipt Allocation — Full Test Guide
 
-## Overview
+**Version:** 2.0  
+**Date:** 2026-06-11  
+**Scope:** Payment Modal V4, overpayment disposition (Phases 2–3), customer receipt allocation (Phase 4), later collection + account receipt (Phase 5), Phase 6 legacy cleanup  
+**Related:** [Implementation plan](../Order_Fin/Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) · [walkthrough.md](./walkthrough.md) · [tech_settlement_catalogs.md](../Order_Fin/technical_docs/tech_settlement_catalogs.md)
 
-This guide verifies the Payment Modal V4 overpayment and cash-change contract across UI behavior, checkout payload validation, settlement planning, later collection, and financial/cash drawer outcomes.
+---
 
-The canonical live DB model is:
+## Table of contents
 
-- Real payment gateway method: `PAYMENT_GATEWAY` with provider stored in `gateway_code`.
-- Deprecated provider rows: `HYPERPAY`, `PAYTABS`, `STRIPE` are not checkout payment method codes.
-- Stored-value method and credit codes: `GIFT_CARD`, `WALLET`, `ADVANCE`, `CREDIT_NOTE`, `LOYALTY_POINTS`.
+1. [What this guide covers](#what-this-guide-covers)
+2. [Test environment setup](#test-environment-setup)
+3. [Permissions & roles](#permissions--roles)
+4. [UI entry points](#ui-entry-points)
+5. [Automated validation](#automated-validation)
+6. [Pre-flight SQL](#pre-flight-sql)
+7. [Test data preparation](#test-data-preparation)
+8. [Manual scenarios — Payment Modal V4 (1–15)](#manual-scenarios--payment-modal-v4-115)
+9. [Manual scenarios — Overpayment disposition (16–19)](#manual-scenarios--overpayment-disposition-1619)
+10. [Manual scenarios — Customer receipt allocation (20–25)](#manual-scenarios--customer-receipt-allocation-2025)
+11. [Manual scenarios — Later collection (26–27)](#manual-scenarios--later-collection-2627)
+12. [Manual scenarios — Account receipt & collect UI (28–32)](#manual-scenarios--account-receipt--collect-ui-2832)
+13. [Manual scenarios — Phase 6 & RBAC (33–35)](#manual-scenarios--phase-6--rbac-3335)
+14. [API reference (optional API-only testing)](#api-reference-optional-api-only-testing)
+15. [Post-submit verification SQL](#post-submit-verification-sql)
+16. [Regression checklist](#regression-checklist)
+17. [Submit error code reference](#submit-error-code-reference)
+18. [Test execution log](#test-execution-log)
 
-## Automated Validation
+---
 
-Run from `web-admin/`:
+## What this guide covers
+
+| Area | Features to verify |
+|------|-------------------|
+| **Cash & change** | Tendered vs applied, change returned, drawer retained amount |
+| **Method policy** | Overpayment blocked/allowed, terminal, reference, check date |
+| **Stored value** | Wallet, advance, credit note picker, gift card, caps |
+| **Extra receipt** | Unallocated amount card, adjust legs, advance/credit |
+| **Allocation** | Auto/manual preview, confirm, embed in submit |
+| **Later collection** | `OrderCollectPaymentModal`, same resolution rules |
+| **Account receipt** | Standalone screen, auto-allocate full receipt |
+| **Financial snapshot** | `overpaid_amount` = unresolved excess only (Phase 6) |
+| **Gateway** | Canonical `PAYMENT_GATEWAY` + `gateway_code` (no live provider — submit blocked/deferred) |
+
+**Canonical DB payment codes:**
+
+- Gateway: `PAYMENT_GATEWAY` + `gateway_code` (`HYPERPAY`, `PAYTABS`, `STRIPE`, …)
+- Stored value: `WALLET`, `ADVANCE`, `CREDIT_NOTE`, `LOYALTY_POINTS`, `GIFT_CARD`
+- Deprecated provider-as-method rows (`HYPERPAY` as method) must **not** appear in checkout
+
+---
+
+## Test environment setup
+
+### Required migrations (apply in order)
+
+| Migration | Purpose |
+|-----------|---------|
+| `0357_fin_settlement_catalogs_v1_1.sql` | Catalog tables + policy/preview tables |
+| `0354_order_overpay_disposition.sql` | `org_fin_overpay_disp_dtl` audit |
+| `0358_permissions_customer_receipt_allocate.sql` | `customers:receipt_allocate` |
+| `0359_nav_customers_account_receipt.sql` | Nav + `sys_components_cd` |
+| `0360_order_fin_phase6_legacy_cleanup.sql` | Disp table align + `overpaid_amount` backfill |
+
+### Runtime prerequisites
+
+- [ ] `web-admin` dev server running (`cd web-admin; npm run dev`)
+- [ ] Logged in as user with **cashier** or **branch_manager** role (or super_admin)
+- [ ] Active branch selected in tenant context
+- [ ] For cash scenarios: **open cash drawer session** for branch/user when `requires_cash_drawer = true`
+- [ ] At least one **payment terminal** seeded if testing `requires_terminal`
+- [ ] Bilingual: switch EN ↔ AR once per session and spot-check Extra Receipt card labels
+
+### Recommended test role matrix
+
+| Role | Use for |
+|------|---------|
+| `super_admin` / `tenant_admin` | Full scenario pass |
+| `cashier` | Day-to-day POS flows |
+| User **without** `orders:overpayment_allocate` | Scenario 35 (RBAC) |
+| User **without** `customers:receipt_allocate` | Scenario 35 (account receipt) |
+
+---
+
+## Permissions & roles
+
+| Permission | Required for |
+|------------|--------------|
+| `orders:create` / order submit | New order + Payment Modal V4 |
+| `orders:collect_payment` | Later collection API + collect modal |
+| `orders:overpayment_dispose` | Save as advance/credit on extra receipt |
+| `orders:overpayment_allocate` | Auto/manual allocation preview + confirm |
+| `orders:overpayment_to_advance` | `SAVE_AS_CUSTOMER_ADVANCE` resolution |
+| `orders:overpayment_to_credit` | `SAVE_AS_CUSTOMER_CREDIT` resolution |
+| `customers:receipt_allocate` | `/dashboard/customers/account-receipt` |
+
+Verify permissions exist:
+
+```sql
+SELECT code, name, is_active
+FROM sys_auth_permissions
+WHERE code IN (
+  'orders:overpayment_dispose',
+  'orders:overpayment_allocate',
+  'orders:overpayment_to_advance',
+  'orders:overpayment_to_credit',
+  'orders:collect_payment',
+  'customers:receipt_allocate'
+)
+ORDER BY 1;
+```
+
+---
+
+## UI entry points
+
+| Flow | Path / component |
+|------|------------------|
+| New order payment | Orders → New order → Payment Modal V4 |
+| Order detail collection | Order detail → Financial / Receivable panel → **Collect payment** → `OrderCollectPaymentModal` |
+| Ready screen collection | `/dashboard/ready/[orderId]` → Collect payment button |
+| Standalone account receipt | Sidebar → Customers → **Account receipt** → `/dashboard/customers/account-receipt` |
+| Extra receipt card | Payment Modal V4 right rail (amber card when unallocated > 0) |
+| Auto allocation drawer | Extra receipt → **Auto allocate to open balances** |
+| Manual allocation drawer | Extra receipt → **Manual allocate** |
+
+**i18n namespace:** `newOrder.payment.extraReceipt.*` (EN/AR), `customers.accountReceipt.*`
+
+---
+
+## Automated validation
+
+Run from `web-admin/` before manual QA:
 
 ```powershell
 npm test -- --runTestsByPath `
@@ -33,575 +153,531 @@ npm run check:i18n
 npm run build
 ```
 
-Expected result:
+**Pass criteria:** all listed tests green, i18n parity, production build succeeds.
 
-- Focused tests pass.
-- EN/AR i18n parity passes.
-- Production build passes.
+---
 
-## Live DB Preconditions
+## Pre-flight SQL
 
-Before manual testing, verify tenant payment config from `org_payment_methods_cf`, not only `sys_payment_method_cd`.
+Replace `<TENANT_ID>` with your demo tenant UUID.
+
+### Tenant payment methods (effective checkout config)
 
 ```sql
 SELECT
+  id,
   payment_method_code,
   gateway_code,
   payment_nature,
-  credit_application_type,
   is_enabled,
   allowed_in_pos,
   supports_change_return,
   supports_overpayment,
-  requires_cash_drawer
+  requires_cash_drawer,
+  requires_terminal,
+  requires_reference
 FROM org_payment_methods_cf
-WHERE is_active = true
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND is_active = true
   AND rec_status = 1
 ORDER BY display_order;
 ```
 
-Required rows depend on the scenario being tested:
+### Allocation policy (Phase 4)
 
-- Cash exact/change tests require `CASH` enabled and `allowed_in_pos = true`.
-- Card/bank/mobile/check tests require their matching method enabled.
-- Gateway tests require `PAYMENT_GATEWAY` enabled with the target `gateway_code`.
-- Stored-value tests require the relevant method: `WALLET`, `ADVANCE`, `CREDIT_NOTE`, `LOYALTY_POINTS`, or `GIFT_CARD`.
-- Cash drawer tests require `requires_cash_drawer = true` on the effective cash config and an open drawer session for the selected branch/user.
+```sql
+SELECT
+  policy_code,
+  allocation_mode,
+  fallback_destination,
+  is_default,
+  include_ar_invoices,
+  include_b2b_statements,
+  include_pay_on_collection_orders,
+  require_confirmation_before_posting
+FROM org_fin_rcpt_alloc_policy_cf
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND is_active = true;
+```
 
-## Manual Test Scenarios
+**Expected:** at least one row e.g. `DEFAULT_OLDEST_DUE`, mode `AUTO_OLDEST_DUE`, fallback `CUSTOMER_ADVANCE`.
 
-### 1. Cash Exact Payment
+### Catalog seeds (sanity)
 
-Setup:
+```sql
+SELECT resolution_code, is_active FROM sys_fin_overpay_res_cd ORDER BY display_order;
+SELECT allocation_mode FROM sys_fin_rcpt_alloc_mode_cd WHERE is_active;
+SELECT fallback_destination FROM sys_fin_rcpt_fb_dest_cd WHERE is_active;
+```
 
-- `CASH.supports_change_return = true` or `false`.
-- Order sale total example: `8.321`.
+### Open cash drawer (if required)
 
-Steps:
+```sql
+SELECT id, branch_id, status, opened_at
+FROM org_cash_drawer_sessions_tr
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND status = 'OPEN'
+ORDER BY opened_at DESC
+LIMIT 5;
+```
 
-1. Create or open a new order with sale total `8.321`.
-2. Open Payment Modal V4.
-3. Select `CASH`.
-4. Enter cash tendered `8.321`.
-5. Submit payment.
+---
 
-Expected:
+## Test data preparation
 
-- Applied amount: `8.321`.
-- Cash tendered: `8.321`.
-- Change returned: `0.000`.
-- Unresolved overpayment: `0.000`.
-- Order is fully settled.
-- Cash drawer movement, when required, records retained cash `8.321`.
+Create or identify records **before** allocation scenarios (20+).
 
-### 2. Cash Over-Tender With Change Allowed
+### Customer A — “Allocation rich”
 
-Setup:
+Needs:
 
-- `CASH.supports_change_return = true`.
+- Linked on orders during checkout
+- ≥1 open **AR invoice** (`org_invoice_mst` with outstanding > 0)
+- Optional: open **B2B statement** (`org_b2b_statements_mst`)
+- Optional: **pay-on-collection** order with outstanding
+- Same **currency** as tenant functional currency
 
-Steps:
+### Customer B — “Walk-in”
 
-1. Use an order with sale total `8.321`.
-2. Select `CASH`.
-3. Enter cash tendered `8.821`.
-4. Review right rail and confirmation dialog.
-5. Submit payment.
+Use for scenario 24 — no customer linked on order.
 
-Expected:
+### Customer C — “Advance/credit only”
 
-- Applied amount: `8.321`.
-- Cash tendered: `8.821`.
-- Change returned: `0.500`.
-- Unresolved overpayment: `0.000`.
-- Total settled now uses applied amount, not gross tendered cash.
-- Order is fully settled, not overpaid.
-- Cash drawer movement records retained cash `8.321`, not `8.821`.
+Single open order, no other balances — excess should fall through to **customer advance** fallback.
 
-### 3. Cash Over-Tender With Change Blocked
+### Numeric example (from feature pack)
 
-Setup:
+Use when validating auto-allocation math:
 
-- `CASH.supports_change_return = false`.
+| Field | Value |
+|-------|-------|
+| Current order due | 10.000 |
+| Receipt / excess to allocate | 90.000 (or trigger via multi-leg excess) |
+| AR invoice 1 outstanding | 25.000 (due 2026-05-01) |
+| AR invoice 2 outstanding | 40.000 (due 2026-05-10) |
+| B2B statement outstanding | 50.000 (due 2026-06-01) |
 
-Steps:
+**Expected auto allocation (oldest due):** current order 10 → AR1 25 → AR2 40 → statement 15 partial → remainder 0 (or fallback advance if policy limits targets).
 
-1. Use an order with sale total `8.321`.
-2. Select `CASH`.
-3. Try to enter cash tendered `8.821`.
-4. Attempt submit if UI allows the draft.
+### Open balances API (sanity before UI)
 
-Expected:
+```http
+GET /api/v1/customers/{customerId}/open-balances?currencyCode=OMR&excludeOrderId={currentOrderId}
+```
 
-- Submit is blocked.
-- Backend/service error is `CASH_CHANGE_NOT_ALLOWED`.
-- No payment rows, voucher lines, or cash drawer movement are created.
+Requires permission `orders:overpayment_allocate`. Response `data.targets[]` should list eligible documents with `targetType`, `outstandingAmount`, `dueDate`.
 
-### 4. Non-Cash Overpayment Blocked
+---
 
-Setup:
+## Manual scenarios — Payment Modal V4 (1–15)
 
-- Use `CARD`, `BANK_TRANSFER`, `MOBILE_PAYMENT`, `CHECK`, or `PAYMENT_GATEWAY`.
-- Effective method has `supports_overpayment = false`.
+### 1. Cash exact payment
 
-Steps:
+| | |
+|---|---|
+| **Setup** | `CASH` enabled, POS allowed; sale total **8.321** |
+| **Steps** | CASH → tendered **8.321** → submit |
+| **UI** | Applied 8.321, tendered 8.321, change 0, unallocated 0 |
+| **DB** | Payment `amount=8.321`, `tendered_amount=8.321`, `change_returned_amount=0`; drawer movement = **8.321** retained |
 
-1. Use an order with sale total `8.321`.
-2. Select the non-cash method.
-3. Enter amount `8.821`.
-4. Submit.
+### 2. Cash over-tender — change allowed
 
-Expected:
+| | |
+|---|---|
+| **Setup** | `supports_change_return = true` |
+| **Steps** | Sale 8.321 → tendered **8.821** → submit |
+| **UI** | Change returned **0.500**, unallocated **0** |
+| **DB** | `amount=8.321`, `tendered_amount=8.821`, `change_returned_amount=0.500`; drawer IN **8.321**, CASH_OUT **0.500** |
 
-- Submit is blocked with `METHOD_OVERPAYMENT_NOT_ALLOWED`.
-- No retained overpayment is posted.
-- No financial snapshot overpayment is created.
+### 3. Cash over-tender — change blocked
 
-### 5. Retained Non-Cash Overpayment Allowed
+| | |
+|---|---|
+| **Setup** | `supports_change_return = false` |
+| **Steps** | Tendered > applied → submit |
+| **Expected** | Blocked; `CASH_CHANGE_NOT_ALLOWED`; no payment/voucher/drawer rows |
 
-Setup:
+### 4. Non-cash overpayment blocked
 
-- Choose a non-cash method that intentionally supports retained overpayment.
-- Set effective `supports_overpayment = true`.
+| | |
+|---|---|
+| **Setup** | CARD/BANK/CHECK/MOBILE/GATEWAY with `supports_overpayment = false` |
+| **Steps** | Amount **8.821** on sale **8.321** |
+| **Expected** | `METHOD_OVERPAYMENT_NOT_ALLOWED`; no retained overpayment |
 
-Steps:
+### 5. Retained non-cash overpayment allowed
 
-1. Use an order with sale total `8.321`.
-2. Select the method.
-3. Enter amount `8.821`.
-4. Submit.
+| | |
+|---|---|
+| **Setup** | Method with `supports_overpayment = true` (configure test row if needed) |
+| **Steps** | Pay 8.821 on 8.321 sale |
+| **Expected** | Applied 8.821; snapshot shows retained excess 0.500 until disposition required |
 
-Expected:
+### 6. Gift card + cash change
 
-- Payment is accepted.
-- Applied payment amount is `8.821`.
-- Retained overpayment is `0.500`.
-- Financial snapshot shows overpayment only for the retained excess.
+| | |
+|---|---|
+| **Setup** | Gift card + `CASH.supports_change_return = true` |
+| **Steps** | Sale 8.321; gift **2.000**; cash applied **6.321**, tendered **6.821** |
+| **Expected** | Total settled 8.321; change 0.500; gift + cash legs reconcile |
 
-### 6. Gift Card Plus Cash Change
+### 7. Wallet / stored-value cap
 
-Setup:
+| | |
+|---|---|
+| **Methods** | WALLET, ADVANCE, CREDIT_NOTE, LOYALTY_POINTS |
+| **Steps** | Select method → try amount > min(balance, remaining due) |
+| **Expected** | Keypad/field capped; validation message; CREDIT_NOTE requires picker + `creditReferenceId` in payload |
 
-- Gift card redemption available.
-- `CASH.supports_change_return = true`.
+### 8. Multi-cash change policy
 
-Steps:
+| | |
+|---|---|
+| **Setup** | Two cash legs: leg A change allowed, leg B change **disallowed**; combined applied > sale total |
+| **Expected** | No aggregate “change returned”; **unallocated overpayment** shown; submit blocked until legs adjusted or extra receipt resolution |
 
-1. Use an order with sale total `8.321`.
-2. Apply gift card amount `2.000`.
-3. Select `CASH`.
-4. Enter cash tendered `6.821`.
-5. Submit.
+### 9. Check due date validation
 
-Expected:
+| | |
+|---|---|
+| **Steps** | CHECK leg → due date **yesterday** or invalid |
+| **Expected** | Client error `checkDateInPast` / `checkDateInvalid`; focus scroll; server Zod rejects if bypassed |
 
-- Gift card applied: `2.000`.
-- Cash applied: `6.321`.
-- Cash tendered: `6.821`.
-- Change returned: `0.500`.
-- Unresolved overpayment: `0.000`.
-- Total settled now equals `8.321`.
+### 10. Payment terminal required
 
-### 7. Wallet or Stored-Value Cap
+| | |
+|---|---|
+| **Setup** | `requires_terminal = true`; active terminal for branch |
+| **Steps** | Submit without terminal |
+| **Expected** | `PAYMENT_TERMINAL_REQUIRED`; payload includes `terminalId` when fixed |
 
-Setup:
+### 11. Gift card + NONE outstanding policy
 
-- Customer has balance in `WALLET`, `ADVANCE`, open `CREDIT_NOTE`, or `LOYALTY_POINTS`.
-- For credit notes, ensure `org_customer_credit_notes` (or stored-value API) returns open notes.
+| | |
+|---|---|
+| **Steps** | Sale 100; gift 30; cash 70 → submit ✓. Repeat with cash **60** only |
+| **Expected** | First succeeds; second → `OUTSTANDING_POLICY_REQUIRED` |
 
-Steps:
+### 12. Price override on create order
 
-1. Use an order with sale total `8.321`.
-2. Select a stored-value method.
-3. For `CREDIT_NOTE`, confirm picker opens and select a note.
-4. Observe default/suggested amount.
-5. Try entering an amount above live balance or remaining due.
+| | |
+|---|---|
+| **Steps** | Override line price → open modal → submit |
+| **Expected** | Network payload `items[]` includes `priceOverride`, `overrideReason`, `overrideBy` |
 
-Expected:
+### 13. Split payment reconciliation
 
-- Suggested amount is capped to `min(remaining due, live balance)`.
-- Validation rail shows balance-exceeded message when over cap.
-- `CREDIT_NOTE` requires `creditReferenceId` before submit.
-- Submit payload includes `creditReferenceId` on the leg.
+| | |
+|---|---|
+| **Steps** | CASH 4 + CARD 6 on sale 10; change sale total to 8 |
+| **Expected** | Legs reconcile; no hidden overpayment |
 
-### 8. Multi-Cash Change Policy
+### 14. Payment gateway method (metadata only)
 
-Setup:
+| | |
+|---|---|
+| **Setup** | `PAYMENT_GATEWAY` + `gateway_code` (e.g. HYPERPAY) enabled |
+| **Steps** | Select gateway rail option; attempt submit |
+| **Expected** | Payload uses `payment_method_code=PAYMENT_GATEWAY` + `gateway_code`; status **PROCESSING/PENDING** if submit allowed; **no live redirect** (integration deferred). Overpayment blocked unless `supports_overpayment=true` |
 
-- Two cash method configs (or split into two cash legs if product allows duplicate method legs).
-- Leg A: `supports_change_return = true`.
-- Leg B: `supports_change_return = false`.
+### 15. Later collection policy (baseline)
 
-Steps:
+| | |
+|---|---|
+| **Steps** | POC/deferred order → collect exact cash; collect with change; collect non-cash overpay |
+| **Expected** | Same rules as new-order submit (see scenarios 26–27 for API detail) |
 
-1. Use an order with sale total `10.000`.
-2. Add cash leg A amount `6.000` (change allowed).
-3. Add cash leg B amount `5.000` (change disallowed) — total settled exceeds sale total.
-4. Review right rail.
+---
 
-Expected:
+## Manual scenarios — Overpayment disposition (16–19)
 
-- Aggregate change is **not** shown as returned change.
-- Unresolved overpayment appears until amounts are adjusted.
-- Submit blocked until overpayment is resolved.
+### 16. Extra receipt — adjust legs (REDUCE_PAYMENT)
 
-### 9. Check Due Date Validation
+| | |
+|---|---|
+| **Trigger** | Unresolved excess > 0 (scenario 8 pattern) |
+| **UI** | Amber **Extra Receipt Handling** card; **Adjust payment amounts** selected |
+| **Steps** | Reduce leg amounts until unallocated = 0 → submit |
+| **Expected** | No `overpaymentResolution` in payload; `overpaid_amount = 0` |
 
-Setup:
+**Note:** Cash **change** on a single cash leg (tendered > applied with change allowed) is **not** the Extra Receipt card — it uses tendered field and scenarios 2/27.
 
-- `CHECK` enabled in POS.
+### 17. Save excess as customer advance
 
-Steps:
+| | |
+|---|---|
+| **Preconditions** | Customer linked; excess > 0; permission `orders:overpayment_to_advance` |
+| **Steps** | Extra receipt → **Save as customer advance** → submit |
+| **Payload** | `overpaymentResolution.lines[].resolutionCode = SAVE_AS_CUSTOMER_ADVANCE` |
+| **DB** | `org_fin_overpay_disp_dtl` row; advance balance ↑; `overpaid_amount = 0` |
 
-1. Add a check leg with valid check number.
-2. Set due date to yesterday (or paste an invalid date).
-3. Attempt submit.
+### 18. Save excess as customer credit
 
-Expected:
+| | |
+|---|---|
+| **Preconditions** | `orders:overpayment_to_credit` |
+| **Steps** | **Save as customer credit** → submit |
+| **DB** | Resolution `SAVE_AS_CUSTOMER_CREDIT`; credit note issued; `target_ref` set |
 
-- Inline error on check date field (`checkDateInPast` or `checkDateInvalid`).
-- Validation rail lists the error.
-- Focus shortcut scrolls to check date input.
-- Server Zod validation rejects past dates on submit if client bypassed.
+### 19. Server rejects missing resolution
 
-### 10. Payment Terminal Required
+| | |
+|---|---|
+| **Steps** | DevTools: submit with excess but omit `overpaymentResolution` |
+| **Expected** | HTTP 400 `OVERPAYMENT_RESOLUTION_REQUIRED`; no duplicate order on replay without idempotency |
 
-Setup:
+---
 
-- `CARD` (or other method) with `requires_terminal = true` in `org_payment_methods_cf`.
-- Active payment terminals seeded for branch.
+## Manual scenarios — Customer receipt allocation (20–25)
 
-Steps:
+### 20. Auto allocate — preview + submit (order modal)
 
-1. Select the terminal-required method.
-2. Leave terminal unselected.
-3. Attempt submit.
+| | |
+|---|---|
+| **Preconditions** | Customer A; open balances; `orders:overpayment_allocate`; excess on checkout |
+| **Steps** | 1. Extra receipt → **Auto allocate** 2. Review drawer (documents, amounts, fallback) 3. **Confirm allocation** 4. Submit order |
+| **APIs** | `POST .../allocation/preview-auto` → `POST .../allocation/post` `{ confirmOnly: true }` → submit-order with `allocationPreviewId` |
+| **DB** | `org_fin_rcpt_alloc_preview_tr.preview_status = POSTED`; target invoices/orders updated; disp audit rows |
 
-Expected:
+### 21. AR invoice wins over order
 
-- Leg workspace shows terminal dropdown with required indicator.
-- Validation rail: terminal required message.
-- Submit blocked until terminal selected.
-- Payload leg includes `terminalId`; voucher line gets `payment_terminal_id`.
+| | |
+|---|---|
+| **Setup** | Order with linked open AR invoice + separate open order balance |
+| **Steps** | Auto preview |
+| **Expected** | Allocation hits **invoice** (`INVOICE_PAYMENT` / target `INVOICE`); open-balances API excludes order when invoice owns balance |
 
-### 11. Gift Card + NONE Outstanding Policy
+### 22. Manual allocate
 
-Setup:
+| | |
+|---|---|
+| **Steps** | **Manual allocate** → enter amounts per document summing to excess → confirm → submit |
+| **Expected** | `preview-manual` balanced; submit blocked until sum = excess; payload `ALLOCATE_TO_CUSTOMER_BALANCES` |
 
-- Gift card redemption enabled.
-- Outstanding policy set to `NONE` (full settlement required).
+### 23. Allocation blocked — unallocated remainder
 
-Steps:
+| | |
+|---|---|
+| **Setup** | Manual lines sum < excess OR policy fallback `BLOCK_AND_REQUIRE_MANUAL_ACTION` |
+| **Expected** | Confirm disabled; server `RECEIPT_ALLOCATION_EXCESS_UNRESOLVED` if bypassed |
 
-1. Order sale total `100.000`.
-2. Apply gift card `30.000`.
-3. Add cash leg `70.000`.
-4. Submit.
-5. Repeat with cash leg `60.000` only.
+### 24. Walk-in customer
 
-Expected:
+| | |
+|---|---|
+| **Setup** | No customer on order; unresolved excess |
+| **Expected** | Extra receipt shows **walk-in hint** only + adjust legs; no advance/credit/allocate buttons |
 
-- Scenario A: submit succeeds (gift 30 + cash 70 covers 100).
-- Scenario B: submit blocked — remainder validation or `OUTSTANDING_POLICY_REQUIRED`.
+### 25. Idempotent submit replay
 
-### 12. Price Override on Create Order
+| | |
+|---|---|
+| **Steps** | Complete scenario 20; replay submit with same `idempotencyKey` |
+| **Expected** | No duplicate allocation payments or disp rows; preview stays POSTED |
 
-Steps:
+---
 
-1. Create new order with at least one line.
-2. Override line price (with permission).
-3. Open payment modal; confirm preview sale total reflects override.
-4. Submit order; inspect network payload or order line rows.
+## Manual scenarios — Later collection (26–27)
 
-Expected:
+### 26. Collect payment — overpayment resolution parity
 
-- Preview API receives `priceOverride` on items.
-- Submit `items[]` includes `priceOverride`, `overrideReason`, `overrideBy` when override applied.
+| | |
+|---|---|
+| **UI** | Order detail or Ready → **Collect payment** → `OrderCollectPaymentModal` (same extra receipt / allocation hook as V4) |
+| **Setup** | POC order outstanding **50.000**; customer linked |
+| **Steps A** | Collect **55** on CARD without resolution → expect block / `OVERPAYMENT_RESOLUTION_REQUIRED` |
+| **Steps B** | Collect 55 with advance disposition for excess 5 |
 
-### 13. Split Payment Reconciliation
-
-Steps:
-
-1. Use an order with sale total `10.000`.
-2. Add `CASH` amount `4.000`.
-3. Add `CARD` amount `6.000`.
-4. Change the order total or discount so sale total becomes `8.000`.
-5. Reopen or refresh the modal state if needed.
-
-Expected:
-
-- Legs reconcile down to the new sale total.
-- Active/default amount reflects remaining balance.
-- No hidden overpayment remains unless a method explicitly supports retained overpayment.
-
-### 14. Payment Gateway Method
-
-Setup:
-
-- `org_payment_methods_cf.payment_method_code = 'PAYMENT_GATEWAY'`.
-- `gateway_code` identifies provider, for example `HYPERPAY`.
-
-Steps:
-
-1. Select the gateway option in Payment Modal V4.
-2. Submit exact amount.
-3. Confirm backend payload uses method `PAYMENT_GATEWAY` with `gateway_code`.
-
-Expected:
-
-- Gateway row resolves by both method code and gateway code.
-- Payment status follows configured default status or gateway processing fallback.
-- Overpayment is blocked unless `PAYMENT_GATEWAY.supports_overpayment = true`.
-
-### 15. Later Collection Policy
-
-Steps:
-
-1. Create an order with deferred balance, such as `PAY_ON_COLLECTION` or `PAY_ON_DELIVERY`.
-2. Open later payment collection.
-3. Collect exact cash and submit.
-4. Repeat with cash over-tender under both change-allowed and change-blocked configs.
-5. Repeat with non-cash overpayment.
-
-Expected:
-
-- Later collection enforces the same cash and overpayment rules as new-order submit.
-- Branch drawer override is respected when configured.
-- Cash drawer movement records retained cash amount only.
-
-### 16. Extra Receipt Card — Adjust Legs (Phase 2)
-
-Setup:
-
-- Multi-cash or non-cash scenario where `unresolvedOverpaymentAmount > 0` (see scenario 8).
-- Linked customer optional.
-
-Steps:
-
-1. Open Payment Modal V4 with excess that cannot auto-resolve as change or retained overpayment.
-2. Confirm **Extra Receipt Handling** card appears with unallocated amount.
-3. Leave mode on **Adjust payment amounts**.
-4. Reduce leg amounts until unallocated = `0.000`.
-5. Submit.
-
-Expected:
-
-- Submit enabled only when unallocated is zero.
-- No `overpaymentResolution` in payload when excess is fully adjusted away.
-- Order `overpaid_amount` remains `0.000`.
-
-### 17. Save Excess as Customer Advance (Phase 3)
-
-Setup:
-
-- Customer linked on order.
-- Unresolved excess (e.g. two cash legs, one with `supports_change_return = false`).
-- Permission `orders:overpayment_to_advance` for cashier role.
-
-Steps:
-
-1. Trigger unresolved excess on a linked customer order.
-2. Select **Save as customer advance** on Extra Receipt card.
-3. Submit order.
-
-Expected:
-
-- Payload includes `overpaymentResolution.lines[]` with `SAVE_AS_CUSTOMER_ADVANCE`.
-- Row in `org_fin_overpay_disp_dtl` with matching `resolution_code` and `amount`.
-- Customer advance balance increases by excess amount.
-- Order financial snapshot `overpaid_amount = 0.000` after disposition.
-
-### 18. Save Excess as Customer Credit (Phase 3)
-
-Setup:
-
-- Same as scenario 17, with `orders:overpayment_to_credit`.
-
-Steps:
-
-1. Select **Save as customer credit**.
-2. Submit.
-
-Expected:
-
-- Payload line `SAVE_AS_CUSTOMER_CREDIT`.
-- Open credit note issued via stored-value service.
-- Audit row in `org_fin_overpay_disp_dtl` with `target_ref` = credit note id.
-
-### 19. Server Rejects Missing Resolution (Phase 2)
-
-Setup:
-
-- Unresolved excess scenario.
-
-Steps:
-
-1. Bypass UI validation (devtools) and submit without `overpaymentResolution`.
-
-Expected:
-
-- HTTP 400 with `OVERPAYMENT_RESOLUTION_REQUIRED`.
-- No order committed (or idempotent replay only).
-
-### 20. Auto Allocate to Open Balances — Preview + Submit (Phase 4)
-
-Setup:
-
-- Customer with at least one open AR invoice or order balance (different from current order).
-- Tenant policy seeded: `org_fin_rcpt_alloc_policy_cf` (`DEFAULT_OLDEST_DUE`).
-- Permission `orders:overpayment_allocate`.
-- Unresolved excess on current checkout.
-
-Steps:
-
-1. Open Extra Receipt card → **Auto allocate to open balances**.
-2. Review auto-allocation preview drawer (documents + amounts).
-3. Confirm allocation (preview status → `CONFIRMED`).
-4. Submit order.
-
-Expected:
-
-- Preview API: `POST /api/v1/customer-receipts/allocation/preview-auto`.
-- Confirm API: `POST /api/v1/customer-receipts/allocation/post` with `confirmOnly: true`.
-- Submit payload includes `AUTO_ALLOCATE_TO_CUSTOMER_BALANCES` + `allocationPreviewId`.
-- Target invoice `paid_amount` / `outstanding_amount` updated OR target order receives allocation payment.
-- Fallback remainder posts to customer advance when no targets.
-- Preview row `preview_status = POSTED` after submit.
-- Audit rows in `org_fin_overpay_disp_dtl` per allocation line.
-
-### 21. AR Invoice Wins Over Order (Phase 4)
-
-Setup:
-
-- Customer has an old order with linked AR invoice still open.
-- Same customer has another open order balance without invoice.
-
-Steps:
-
-1. Run auto allocation preview for excess amount covering both.
-
-Expected:
-
-- Allocation targets invoice (`AR_INVOICE` / `INVOICE_PAYMENT`), not the underlying order.
-- Open-balances API excludes order when invoice still owns balance.
-
-### 22. Manual Allocate (Phase 4)
-
-Setup:
-
-- Customer with multiple open targets.
-- Unresolved excess.
-
-Steps:
-
-1. Select **Manual allocate**.
-2. Enter amounts on selected documents summing exactly to excess.
-3. Confirm preview → submit order.
-
-Expected:
-
-- `POST /api/v1/customer-receipts/allocation/preview-manual` with balanced lines.
-- Submit blocked until manual sum equals excess.
-- Payload uses `ALLOCATE_TO_CUSTOMER_BALANCES` + confirmed `allocationPreviewId`.
-
-### 23. Allocation Blocked — Unallocated Remainder
-
-Setup:
-
-- Policy fallback = `BLOCK_AND_REQUIRE_MANUAL_ACTION` **or** manual lines sum < excess.
-
-Steps:
-
-1. Attempt confirm/submit with `remainingUnallocatedAmount > 0`.
-
-Expected:
-
-- UI blocks confirm button.
-- Server returns `RECEIPT_ALLOCATION_EXCESS_UNRESOLVED` if bypassed.
-
-### 24. Walk-In Customer — No Stored-Value / Allocate Options
-
-Setup:
-
-- No customer linked.
-
-Steps:
-
-1. Create unresolved excess.
-
-Expected:
-
-- Extra Receipt card shows adjust-legs hint only (no advance/credit/allocate buttons).
-- Submit blocked until legs adjusted.
-
-### 25. Idempotent Submit Replay (Allocation)
-
-Setup:
-
-- Complete scenario 20 successfully; note `idempotencyKey`.
-
-Steps:
-
-1. Replay same submit payload with same idempotency key.
-
-Expected:
-
-- No duplicate allocation payments or duplicate `org_fin_overpay_disp_dtl` rows for same idempotency keys.
-- Preview remains `POSTED`.
-
-### 26. Later Collection — Overpayment Resolution Parity (Phase 5)
-
-Setup:
-
-- Existing `PAY_ON_COLLECTION` order with outstanding `50.000`.
-- Customer linked on order.
-- `CARD` with `supports_overpayment = false`.
-
-Steps:
-
-1. Call `POST /api/v1/orders/{id}/payments` (or `/collect-payment`) with leg amount `55.000` and **no** `overpaymentResolution`.
-2. Confirm API returns `OVERPAYMENT_RESOLUTION_REQUIRED`.
-3. Repeat with `overpaymentResolution` saving `5.000` as customer advance:
+**API alternative** (`POST /api/v1/orders/{id}/payments`):
 
 ```json
 {
-  "paymentLegs": [{ "paymentMethodId": "<CARD_METHOD_ID>", "amount": 55 }],
+  "paymentLegs": [
+    {
+      "paymentMethodId": "<CARD_ORG_METHOD_UUID>",
+      "amount": 55
+    }
+  ],
   "overpaymentResolution": {
     "excessAmount": 5,
-    "lines": [{ "resolutionCode": "SAVE_AS_CUSTOMER_ADVANCE", "amount": 5 }]
+    "lines": [
+      {
+        "resolutionCode": "SAVE_AS_CUSTOMER_ADVANCE",
+        "amount": 5
+      }
+    ]
   },
   "idempotencyKey": "collect-test-001"
 }
 ```
 
-Expected:
+**Expected:** Outstanding → 0; advance +5; `overpaid_amount = 0`.
 
-- Collection succeeds; order outstanding becomes `0`.
-- `org_fin_overpay_disp_dtl` row for `SAVE_AS_CUSTOMER_ADVANCE` amount `5.000`.
-- Customer advance balance increases by `5.000`.
-- Order `overpaid_amount = 0` after financial recalculation.
+### 27. Collect payment — cash change
 
-### 27. Later Collection — Cash Change (unchanged baseline)
+| | |
+|---|---|
+| **Setup** | Outstanding 50; CASH change allowed |
+| **Steps** | amount 50, cashTendered 51 |
+| **DB** | Drawer IN 50; CASH_OUT 1; no overpayment resolution |
 
-Setup:
+---
 
-- `PAY_ON_COLLECTION` order outstanding `50.000`.
-- `CASH.supports_change_return = true`.
+## Manual scenarios — Account receipt & collect UI (28–32)
 
-Steps:
+### 28. Standalone account receipt — happy path
 
-1. Collect with `amount: 50`, `cashTendered: 51`.
-2. Verify drawer movements.
+| | |
+|---|---|
+| **Route** | `/dashboard/customers/account-receipt` |
+| **Permission** | `customers:receipt_allocate` |
+| **Steps** | 1. Select Customer A 2. Receipt amount **100.000** 3. Payment method CASH (or CARD) 4. **Auto allocate** → confirm preview 5. **Post receipt** |
+| **API** | `POST /api/v1/customer-receipts/post` with `previewId`, `customerId`, `paymentMethodId`, `receiptAmount` |
+| **Expected** | Success toast; balances allocated per policy; voucher + wiring effects; no current order (standalone) |
 
-Expected:
+### 29. Account receipt — allocation required before post
 
-- `CASH_SALE` movement amount `50.000` (retained, not `51`).
-- `CASH_OUT` change movement `1.000`.
-- No overpayment resolution required.
+| | |
+|---|---|
+| **Steps** | Enter amount but skip auto/manual confirm |
+| **Expected** | Post button disabled; toast `allocationRequired` if forced |
 
-## Post-Submit Data Checks
+### 30. Account receipt — no permission
 
-Use these checks against the created order after submit.
+| | |
+|---|---|
+| **Setup** | User without `customers:receipt_allocate` |
+| **Expected** | Screen shows permission message; nav hidden if RBAC enforced |
+
+### 31. Order detail collect modal — allocation on excess
+
+| | |
+|---|---|
+| **Route** | Order detail → receivable / financial panel |
+| **Steps** | Collect more than outstanding with linked customer → use auto allocate on excess → submit |
+| **Expected** | Same preview/confirm flow as Payment Modal V4 (`useOverpaymentAllocation` shared hook) |
+
+### 32. Ready screen collect
+
+| | |
+|---|---|
+| **Route** | `/dashboard/ready/[id]` |
+| **Steps** | Open collect modal for ready order; pay outstanding |
+| **Expected** | Modal opens; collection succeeds; order financial summary updates |
+
+---
+
+## Manual scenarios — Phase 6 & RBAC (33–35)
+
+### 33. Phase 6 — `overpaid_amount` is unresolved only
+
+| | |
+|---|---|
+| **Steps** | Run scenario 2 (cash change) and scenario 17 (advance disposition) |
+| **SQL** | `SELECT overpaid_amount FROM org_orders_mst WHERE id = ?` |
+| **Expected** | After cash change: `overpaid_amount = 0` (excess returned as change, not retained). After advance disposition: `overpaid_amount = 0` (excess routed to advance) |
+
+### 34. Phase 6 — no silent overpayment retention
+
+| | |
+|---|---|
+| **Setup** | Method with `supports_overpayment = true` **and** unresolved excess without resolution |
+| **Expected** | Submit blocked (`OVERPAYMENT_RESOLUTION_REQUIRED`) — excess is **not** silently stored in `overpaid_amount` |
+
+### 35. RBAC — allocation actions hidden
+
+| | |
+|---|---|
+| **Setup** | User lacking `orders:overpayment_allocate` |
+| **Expected** | Extra receipt card: no auto/manual buttons (`canAllocate=false`); API preview returns 403 |
+
+---
+
+## API reference (optional API-only testing)
+
+All routes require auth + CSRF header (`x-csrf-token`) as per web-admin conventions.
+
+### Preview auto allocation
+
+```http
+POST /api/v1/customer-receipts/allocation/preview-auto
+Content-Type: application/json
+```
+
+```json
+{
+  "customerId": "<UUID>",
+  "branchId": "<UUID>",
+  "sourceType": "ORDER_PAYMENT_MODAL",
+  "sourceOrderId": "<UUID>",
+  "receiptAmount": 100,
+  "currentOrderAllocationAmount": 10,
+  "excessAmount": 90,
+  "currencyCode": "OMR",
+  "paymentMethodCode": "CASH",
+  "idempotencyKey": "preview-auto-001"
+}
+```
+
+### Confirm preview (no order submit yet)
+
+```http
+POST /api/v1/customer-receipts/allocation/post
+```
+
+```json
+{
+  "confirmOnly": true,
+  "previewId": "<UUID>",
+  "customerId": "<UUID>"
+}
+```
+
+### Submit order (excerpt — with allocation)
+
+Include in existing submit-order body:
+
+```json
+{
+  "overpaymentResolution": {
+    "excessAmount": 90,
+    "allocationPreviewId": "<UUID>",
+    "lines": [
+      {
+        "resolutionCode": "AUTO_ALLOCATE_TO_CUSTOMER_BALANCES",
+        "amount": 90
+      }
+    ]
+  },
+  "idempotencyKey": "submit-001"
+}
+```
+
+### Standalone account receipt post
+
+```http
+POST /api/v1/customer-receipts/post
+```
+
+```json
+{
+  "customerId": "<UUID>",
+  "previewId": "<UUID>",
+  "paymentMethodId": "<ORG_PAYMENT_METHOD_UUID>",
+  "receiptAmount": 100,
+  "currencyCode": "OMR",
+  "cashTendered": 100,
+  "idempotencyKey": "car-001"
+}
+```
+
+---
+
+## Post-submit verification SQL
+
+Replace placeholders after each scenario.
+
+### Order payments
 
 ```sql
 SELECT
@@ -610,67 +686,28 @@ SELECT
   amount,
   tendered_amount,
   change_returned_amount,
-  payment_status
+  payment_status,
+  fin_voucher_trx_line_id
 FROM org_order_payments_dtl
-WHERE order_id = '<ORDER_ID>'
-ORDER BY created_at;
-```
-
-Expected:
-
-- `amount` is the applied amount.
-- `tendered_amount` is populated for cash only.
-- `change_returned_amount` is populated only when cash change is returned.
-
-```sql
-SELECT
-  credit_type,
-  applied_amount,
-  credit_reference_id,
-  application_status
-FROM org_order_credit_apps_dtl
-WHERE order_id = '<ORDER_ID>'
-ORDER BY created_at;
-```
-
-Expected:
-
-- Stored-value rows use canonical credit types such as `WALLET`, `ADVANCE`, `CREDIT_NOTE`, `LOYALTY_POINTS`, or `GIFT_CARD`.
-- Stored-value amounts do not exceed the remaining due balance.
-- `CREDIT_NOTE` rows reference the selected note id.
-
-```sql
-SELECT
-  id,
-  terminal_code,
-  terminal_name,
-  branch_id,
-  is_active
-FROM org_payment_terminals_cf
 WHERE tenant_org_id = '<TENANT_ID>'
-  AND is_active = true;
-```
-
-Expected when terminal required:
-
-- Submit payload leg includes matching `terminalId`.
-- Voucher/payment row stores `payment_terminal_id`.
-
-```sql
-SELECT
-  movement_type,
-  amount,
-  direction,
-  order_payment_id
-FROM org_cash_drawer_movements_dtl
-WHERE order_id = '<ORDER_ID>'
+  AND order_id = '<ORDER_ID>'
 ORDER BY created_at;
 ```
 
-Expected:
+### Order financial snapshot
 
-- Cash sale movement amount equals retained cash applied to the order.
-- Gross tendered cash is not recorded as drawer revenue when change is returned.
+```sql
+SELECT
+  total_paid_amount,
+  outstanding_amount,
+  overpaid_amount,
+  pending_credit_application_amount
+FROM org_orders_mst
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND id = '<ORDER_ID>';
+```
+
+### Overpayment disposition audit
 
 ```sql
 SELECT
@@ -679,6 +716,7 @@ SELECT
   currency_code,
   target_ref,
   voucher_id,
+  voucher_trx_line_id,
   idempotency_key,
   created_at
 FROM org_fin_overpay_disp_dtl
@@ -688,11 +726,7 @@ WHERE tenant_org_id = '<TENANT_ID>'
 ORDER BY created_at;
 ```
 
-Expected (Phase 2–4):
-
-- One row per disposition/allocation line (`SAVE_AS_CUSTOMER_*`, `AUTO_ALLOCATE_TO_CUSTOMER_BALANCES`, etc.).
-- Sum of `amount` equals checkout excess routed away from `overpaid_amount`.
-- `target_ref` populated for advance/credit/invoice allocation effects.
+### Allocation preview
 
 ```sql
 SELECT
@@ -707,60 +741,86 @@ SELECT
   preview_payload
 FROM org_fin_rcpt_alloc_preview_tr
 WHERE tenant_org_id = '<TENANT_ID>'
-  AND source_order_id = '<ORDER_ID>'
-ORDER BY created_at DESC;
+  AND (source_order_id = '<ORDER_ID>' OR customer_id = '<CUSTOMER_ID>')
+ORDER BY created_at DESC
+LIMIT 5;
 ```
 
-Expected (Phase 4):
-
-- Preview exists after auto/manual confirm in UI.
-- `remaining_unallocated_amount = 0` before submit.
-- After submit: `preview_status = POSTED`.
+### Voucher lines (allocation / disposition)
 
 ```sql
-SELECT overpaid_amount, total_paid_amount, outstanding_amount
-FROM org_orders_mst
-WHERE id = '<ORDER_ID>';
-```
-
-Expected:
-
-- After advance/credit/allocation disposition, `overpaid_amount = 0` when excess fully resolved.
-
-```sql
-SELECT policy_code, allocation_mode, fallback_destination, is_default
-FROM org_fin_rcpt_alloc_policy_cf
+SELECT
+  line_no,
+  line_role,
+  target_type,
+  target_id,
+  amount,
+  payment_method_code,
+  payment_status,
+  wiring_status
+FROM org_fin_voucher_trx_lines_dtl
 WHERE tenant_org_id = '<TENANT_ID>'
-  AND is_active = true;
+  AND fin_voucher_id = '<VOUCHER_ID>'
+ORDER BY line_no;
 ```
 
-Expected:
+**Expect for allocation:** roles such as `INVOICE_PAYMENT`, `STATEMENT_PAYMENT`, `ORDER_PAYMENT`, `CUSTOMER_ADVANCE_RECEIPT`; targets `INVOICE`, `B2B_STATEMENT`, `ORDER`, `CUSTOMER`.
 
-- At least one default policy (e.g. `DEFAULT_OLDEST_DUE`) for allocation scenarios.
+### Cash drawer
 
-## Regression Checklist
+```sql
+SELECT
+  movement_type,
+  amount,
+  direction,
+  order_payment_id,
+  fin_voucher_id
+FROM org_cash_drawer_movements_dtl
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND order_id = '<ORDER_ID>'
+ORDER BY created_at;
+```
 
-- Amount Editor defaults to remaining balance when a method is selected.
-- Total Settled Now excludes returned cash change.
-- Cash change does not show as overpaid amount.
-- Non-cash excess is blocked unless method policy explicitly allows retained overpayment.
-- `PAYMENT_GATEWAY` works with provider-specific `gateway_code`.
-- Stored-value canonical codes match DB values.
-- EN/AR labels are present for Applied and Cash Tendered.
-- Gift card + cash with `NONE` policy submits when legs + gift cover sale total.
-- Credit note picker applies a note and caps leg amount to note balance.
-- Terminal-required methods block submit until terminal is selected.
-- Create order with price override sends override fields on line items.
-- Check due date past/invalid blocked client and server.
-- Multi-cash: unresolved overpayment when any cash leg disallows change.
-- Extra Receipt card appears for unresolved excess; adjust-legs clears block.
-- Save as advance/credit posts audit + stored-value (linked customer only).
-- Auto/manual allocation preview → confirm → submit embeds `allocationPreviewId`.
-- Open balance query prefers AR invoice over linked order.
-- Submit hook shows localized messages for infrastructure error codes.
-- Build and focused tests pass.
+### Credit applications (stored value)
 
-## Submit Error Code Quick Reference
+```sql
+SELECT
+  credit_type,
+  applied_amount,
+  credit_reference_id,
+  application_status
+FROM org_order_credit_apps_dtl
+WHERE tenant_org_id = '<TENANT_ID>'
+  AND order_id = '<ORDER_ID>'
+ORDER BY created_at;
+```
+
+---
+
+## Regression checklist
+
+Use after any payment/settlement change:
+
+- [ ] Scenarios 1–3 cash exact / change / blocked
+- [ ] Scenario 4 non-cash overpayment block
+- [ ] Scenario 7 stored-value caps + credit note picker
+- [ ] Scenario 8 multi-cash unresolved excess
+- [ ] Scenario 9 check date
+- [ ] Scenario 10 terminal required
+- [ ] Scenario 11 gift + NONE policy
+- [ ] Scenario 16–19 extra receipt + server validation
+- [ ] Scenario 20–22 allocation auto/manual + invoice priority
+- [ ] Scenario 24 walk-in
+- [ ] Scenario 26–27 later collection
+- [ ] Scenario 28 account receipt standalone
+- [ ] Scenario 31–32 collect modals
+- [ ] Scenario 33–34 `overpaid_amount` semantics
+- [ ] EN/AR labels on extra receipt + account receipt
+- [ ] Automated test suite + build green
+
+---
+
+## Submit error code reference
 
 | Server code | When |
 |-------------|------|
@@ -774,10 +834,29 @@ Expected:
 | `OVERPAYMENT_RESOLUTION_MISMATCH` | Line sum ≠ excess or preview amount mismatch |
 | `OVERPAYMENT_RESOLUTION_NOT_ALLOWED` | Resolution code blocked for context |
 | `RECEIPT_ALLOCATION_EXCESS_UNRESOLVED` | Allocation preview not fully allocated |
-| `RETURN_CHANGE_EXCEEDS_CAPACITY` | Change line exceeds leg/cash capacity |
-| `RETURN_CHANGE_LEG_INVALID` | Change resolution on invalid leg |
+| `RETURN_CHANGE_EXCEEDS_CAPACITY` | Change resolution exceeds cash capacity |
+| `RETURN_CHANGE_LEG_INVALID` | Invalid change leg reference |
 | `B2B_CREDIT_HOLD` / `B2B_CREDIT_EXCEEDED` | B2B credit limits |
 | `SPLIT_AMOUNT_MISMATCH` | Leg sum ≠ amount to charge |
 | `DEFERRED_LEG_NOT_ALONE` | Deferred method combined with other legs |
+| `GATEWAY_NOT_CONFIGURED` | Gateway leg without tenant gateway config |
 
-UI messages: `newOrder.payment.errors.*` (EN/AR). Check date Zod errors: `newOrder.payment.splitPayment.checkDate*`.
+**UI i18n:** `newOrder.payment.errors.*`, `newOrder.payment.extraReceipt.allocation.*`, `customers.accountReceipt.*`
+
+---
+
+## Test execution log
+
+Copy per test run:
+
+| # | Scenario | Tester | Date | Pass/Fail | Notes / order_id |
+|---|----------|--------|------|-----------|------------------|
+| 1 | Cash exact | | | | |
+| 2 | Cash change allowed | | | | |
+| … | | | | | |
+| 28 | Account receipt | | | | |
+| 35 | RBAC | | | | |
+
+---
+
+**Document maintenance:** Update this guide when new resolution codes, API routes, or UI entry points ship. Pending items (HQ flags, gateway integration) are tracked in [Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md).

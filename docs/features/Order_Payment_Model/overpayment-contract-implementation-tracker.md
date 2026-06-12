@@ -1,6 +1,6 @@
 # Overpayment Contract Implementation Tracker
 
-**Last updated:** 2026-06-11  
+**Last updated:** 2026-06-11 (test guide v2.0 — 35 scenarios)  
 **Plan status:** [Payment Settlement & Receipt Allocation](../Order_Fin/Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) — **Phases 0–6 complete** (Approved_By_Jh)  
 **Pending backlog:** [Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md)
 

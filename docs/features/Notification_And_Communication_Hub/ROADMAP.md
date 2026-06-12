@@ -2,8 +2,8 @@
 # Cross-Project Implementation Roadmap
 
 **Date:** 2026-06-12  
-**Next migration seq:** 0362  
-**Status:** PHASE 1 ✅ COMPLETE · PHASE 2 ✅ COMPLETE · PHASE 3 ✅ COMPLETE · DOCS ✅ COMPLETE — Awaiting approval to begin Phase 4
+**Next migration seq:** 0364  
+**Status:** PHASE 1 ✅ · PHASE 2 ✅ · PHASE 3 ✅ · PHASE 4 ✅ · DOCS ✅ — cleanmatex MVP complete; HQ phases (A/B/C) pending in cleanmatexsaas
 
 ---
 
@@ -622,7 +622,7 @@ At the end of Phase 1, these MUST work in the browser:
 | Phase 3 — WhatsApp + SMS + Push | ✅ COMPLETE | 2026-06-12 |
 | Frontend — Bell UI (Track A) | ✅ COMPLETE | 2026-06-12 |
 | Documentation Suite | ✅ COMPLETE | 2026-06-12 |
-| Phase 4 — Campaign Engine | 🔄 In Progress (Step 4.1 written, awaiting apply) | 2026-06-12 |
+| Phase 4 — Campaign Engine | ✅ COMPLETE | 2026-06-12 |
 | HQ Phase A — Template Mgmt | ⏳ Not started | — |
 | HQ Phase B — Provider Config API | ⏳ Not started | — |
 | HQ Phase C — Broadcast Center | ⏳ Not started | — |

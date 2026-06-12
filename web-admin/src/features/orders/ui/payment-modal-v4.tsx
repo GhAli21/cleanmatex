@@ -92,6 +92,7 @@ import {
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
   PAYMENT_MODAL_SECTION_IDS,
+  PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
 } from './payment-modal-v04-sections-definition';
 
 // Cmx component imports
@@ -1719,7 +1720,7 @@ export function PaymentModalV4({
       paymentLegs: settlementLegEntries.map(({ leg: l }) => ({ amount: l.amount })),
       legIndex: settlementLegEntries.findIndex(({ leg: l }) => l === leg),
       saleTotal,
-      giftCardAmount: giftCardAppliedAmount,
+      giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
       supportsOverpayment: option?.supports_overpayment === true,
     });
@@ -4539,24 +4540,26 @@ export function PaymentModalV4({
                               ) : null}
                             </div>
 
-                            <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
-                              <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                {t('rightRail.liveEffect')}
-                              </p>
-                              <SummaryRow
-                                label={t('rightRail.orderTotalAfterDiscounts')}
-                                value={`${currencyCode} ${formatAmount(saleTotal)}`}
-                              />
-                              <SummaryRow
-                                label={t('rightRail.creditsApplied')}
-                                value={`${currencyCode} ${formatAmount(customerCreditAmount + (appliedGiftCard?.amount || 0))}`}
-                              />
-                              <SummaryRow
-                                label={t('rightRail.remainingBalance')}
-                                value={`${currencyCode} ${formatAmount(remainingBalance)}`}
-                                negative={remainingBalance > moneyEpsilon}
-                              />
-                            </div>
+                            {PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT ? (
+                              <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+                                <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  {t('rightRail.liveEffect')}
+                                </p>
+                                <SummaryRow
+                                  label={t('rightRail.orderTotalAfterDiscounts')}
+                                  value={`${currencyCode} ${formatAmount(saleTotal)}`}
+                                />
+                                <SummaryRow
+                                  label={t('rightRail.creditsApplied')}
+                                  value={`${currencyCode} ${formatAmount(customerCreditAmount + (appliedGiftCard?.amount || 0))}`}
+                                />
+                                <SummaryRow
+                                  label={t('rightRail.remainingBalance')}
+                                  value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+                                  negative={remainingBalance > moneyEpsilon}
+                                />
+                              </div>
+                            ) : null}
                           </div>
                         </CmxCardContent>
                       </CmxCard>

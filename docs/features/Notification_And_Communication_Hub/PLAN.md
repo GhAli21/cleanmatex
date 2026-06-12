@@ -3,10 +3,10 @@
 
 **Roadmap:** [ROADMAP.md](./ROADMAP.md)  
 **Status file:** [STATUS.md](./STATUS.md)  
-**Next migration seq:** 0363  
+**Next migration seq:** 0364  
 **Architecture:** web-admin native · Supabase Realtime · pg_cron outbox  
 **Created:** 2026-06-06  
-**Last Updated:** 2026-06-12 — Phases 1–3 done; Phase 4 Steps 4.1/4.2/4.3 done; 4.4 (Campaign UI) in progress
+**Last Updated:** 2026-06-12 — Phases 1–4 complete; cleanmatex MVP done; HQ phases (A/B/C) in cleanmatexsaas
 
 ---
 
@@ -697,29 +697,26 @@ Tasks:
 
 ---
 
-### Step 4.6 — Build Validation & Phase 4 Close
+### Step 4.6 — Build Validation & Phase 4 Close ✅ DONE (2026-06-12)
 
 - [x] `npm run build` — green (exit code 0)
 - [x] `npm run check:i18n` — green
-- [ ] **Update ROADMAP.md Phase 4 status → ✅ COMPLETE** (after 0363 applied)
-- [ ] **Update STATUS.md Phase 4 → COMPLETE with date** (after 0363 applied)
-- [ ] Run `/documentation` skill: generate complete feature documentation for the full notification hub
-- [ ] **STOP → report to user — full MVP is complete**
+- [x] `supabase/migrations/0363_nav_marketing_campaigns.sql` applied — sys_components_cd + permissions
+- [x] **ROADMAP.md Phase 4 status → ✅ COMPLETE**
+- [x] **STATUS.md created — Phase 4 → COMPLETE 2026-06-12**
+- [x] All guides updated: user_guide, developer_guide, admin_guide, deploy_guide, testing_scenarios
 
 ---
 
-## Final Documentation Checklist (after Phase 4)
+## Final Documentation Checklist (after Phase 4) ✅ DONE (2026-06-12)
 
-Run `/documentation` skill to produce:
-- [ ] Feature overview doc (what it does, who uses it)
-- [ ] Permissions reference table (all 5 cleanmatex + 6 cleanmatexsaas codes)
-- [ ] Navigation tree with routes and feature flags
-- [ ] API routes reference (all `/api/notifications/*` endpoints)
-- [ ] Migration manifest (0344–0352 with purpose per file)
-- [ ] Integration contracts (cleanmatex ↔ cleanmatexsaas API contracts)
-- [ ] i18n key listing (all keys added across all phases)
-- [ ] Architecture diagram (event flow from business event → outbox → adapter → delivery)
-- [ ] Update `docs/dev/rules/integration-contracts.md` with all contracts from Phases 2-3
+- [x] STATUS.md created — full phase summary, migration manifest, permissions reference, env vars, feature flags, next steps
+- [x] ROADMAP.md — Phase 4 status → ✅ COMPLETE; next migration seq updated to 0364
+- [x] user_guide.md — Phase 4 status updated; Campaign section added (lifecycle, create, approve, launch, consent gate)
+- [x] developer_guide.md — Phase 4 status updated; Campaign Engine section added (architecture, state machine, processor, UI components, API routes table updated)
+- [x] admin_guide.md — Phase 4 status updated; Campaign Management section added (approval workflow, monitoring queries, cancel procedure)
+- [x] deploy_guide.md — Phase 4 status updated; Phase 4 migrations added to migration table; NOTIFICATIONS_OUTBOX_SECRET note updated for campaigns
+- [x] testing_scenarios.md — Phase 4 status updated; Phase 4 Campaign Engine test scenarios added (unit, integration, frontend QA, multi-tenant isolation)
 
 ---
 

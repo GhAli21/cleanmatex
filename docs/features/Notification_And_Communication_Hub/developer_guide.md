@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-06-12  
 **Audience:** Backend and full-stack developers working on CleanMateX  
-**Status:** Phases 1–3 + Frontend Track A complete | Next: Phase 4 Campaign Engine
+**Status:** Phases 1–4 complete (cleanmatex MVP) | Next: HQ phases in cleanmatexsaas
 
 ---
 
@@ -86,7 +86,12 @@ lib/notifications/orchestrator.ts
 | `/api/v1/notifications/settings` | GET, PUT | Tenant channel settings (admin) |
 | `/api/v1/notifications/settings/providers` | GET, POST, PUT, DELETE | Provider config (admin) |
 | `/api/v1/notifications/delivery-log` | GET | Delivery log (admin) |
-| `/api/notifications/process-outbox` | POST | Internal: called by pg_cron |
+| `/api/v1/notifications/campaigns` | GET, POST | List / create campaigns |
+| `/api/v1/notifications/campaigns/[id]` | GET | Campaign detail + stats |
+| `/api/v1/notifications/campaigns/[id]/status` | PATCH | State machine transitions |
+| `/api/v1/notifications/campaigns/[id]/test` | POST | Send test to self |
+| `/api/notifications/process-outbox` | POST | Internal: called by pg_cron (outbox) |
+| `/api/notifications/process-campaigns` | POST | Internal: called by pg_cron (campaigns) |
 | `/api/notifications/push-subscription` | POST, DELETE | Push subscription management |
 
 ### UI Components (`web-admin/src/features/notifications/ui/`)
@@ -239,10 +244,89 @@ notificationSettingsService.invalidateUserPrefs(tenantOrgId, userId)
 | `org_notif_user_prefs_dtl` | Per-user per-channel preferences and marketing consent |
 | `org_notif_push_subs_dtl` | Push subscription registry (VAPID/FCM/OneSignal) |
 | `org_ntf_channel_provider_cf` | Per-tenant active provider per channel |
+| `org_notification_campaigns_mst` | Campaign master: state machine, bilingual name, channel, template_code, progress counters |
+| `org_notif_campaign_targets_dtl` | One row per campaign recipient; status tracks consent check + dispatch result |
+| `org_notification_usage_daily` | Daily aggregated stats (tenant, channel, provider, date) |
+| `org_notification_audit_dtl` | Immutable INSERT-only event log (no UPDATE/DELETE policies) |
 
 ---
 
-## 7. Realtime Subscription (Bell UI)
+## 7. Campaign Engine (Phase 4)
+
+### Architecture
+
+The campaign engine uses the same pg_cron + pg_net SECURITY DEFINER pattern as the outbox processor.
+
+```
+pg_cron (every 1 min)
+  → ntf_trigger_campaign_proc() [SECURITY DEFINER]
+      → reads sys_ntf_runtime_cf (base_url + outbox_secret_key)
+      → POST /api/notifications/process-campaigns  [Bearer-authenticated]
+            │
+            ├── Phase A: Find APPROVED/SCHEDULED campaigns ready to run
+            │     → create org_notif_campaign_targets_dtl rows from target_segment.user_ids
+            │     → update campaign status: RUNNING
+            │
+            └── Phase B: Find PENDING targets for RUNNING campaigns
+                  → bulk consent check (org_ntf_user_prefs_dtl)
+                  → IN_APP → insert into org_ntf_inbox_mst directly
+                  → other channels → insert into org_ntf_outbox_dtl (outbox picks up from there)
+                  → update target status (SENT / SKIPPED)
+                  → if no PENDING remain → campaign → COMPLETED
+```
+
+### Campaign State Machine
+
+```
+DRAFT ──► PENDING_APPROVAL ──► APPROVED ──► RUNNING ──► COMPLETED
+                                    │            │
+                                    ▼            ▼
+                                SCHEDULED     FAILED
+                                    │
+                                    ▼
+                                  (auto-activates when scheduled_at <= NOW())
+
+Any non-terminal state → CANCELLED (manual)
+RUNNING → PAUSED (manual, not yet implemented in UI)
+```
+
+Valid transitions (from the status API):
+
+| From | To | Actor |
+|------|----|-------|
+| DRAFT | PENDING_APPROVAL | Creator (notifications:manage) |
+| PENDING_APPROVAL | APPROVED | Approver (notifications:manage) |
+| PENDING_APPROVAL | DRAFT | Approver (reject/revise) |
+| APPROVED | RUNNING | Admin (launch now) or pg_cron (scheduled) |
+| Any non-terminal | CANCELLED | Admin (notifications:manage) |
+
+### Adding a Campaign Target Segment
+
+Currently only `user_ids` arrays are supported in `target_segment`. The JSON shape:
+
+```json
+{
+  "user_ids": ["uuid1", "uuid2", "uuid3"]
+}
+```
+
+Future segment types (dynamic queries, customer tiers) will extend this field. The processor reads `target_segment->>'user_ids'` and splits on the JSON array.
+
+### Consent Gate (mandatory for campaigns)
+
+Campaigns are non-transactional by definition. Before dispatching any target, the processor checks `org_ntf_user_prefs_dtl` for `marketing_consent = true AND is_enabled = true` for the campaign's channel. Users without consent get status = SKIPPED, skip_reason = 'NO_MARKETING_CONSENT'.
+
+### Campaign UI Components
+
+| File | Purpose |
+|------|---------|
+| `campaign-list-page.tsx` | Paginated list with StatusBadge, ProgressBar, status filter tabs, create dialog |
+| `campaign-create-form.tsx` | RHF + Zod; channel select; target_user_ids textarea; optional scheduled_at |
+| `campaign-detail-page.tsx` | Stats grid, detail dl, failed_sample table, status transition buttons, test send |
+
+---
+
+## 8. Realtime Subscription (Bell UI)
 
 The notification bell subscribes to Supabase Realtime on `org_notifications_mst`:
 
@@ -272,7 +356,7 @@ RLS on `org_notifications_mst` ensures each user only receives their own notific
 
 ---
 
-## 8. Outbox Processor
+## 9. Outbox Processor
 
 `POST /api/notifications/process-outbox` — secured with `NOTIFICATIONS_OUTBOX_SECRET` bearer token.
 
@@ -289,7 +373,7 @@ RLS on `org_notifications_mst` ensures each user only receives their own notific
 
 ---
 
-## 9. Push Subscription Lifecycle
+## 10. Push Subscription Lifecycle
 
 1. **Register:** after user grants browser permission → `POST /api/notifications/push-subscription` with `{ deviceId, providerCode: 'VAPID', subscriptionData: {...} }`
 2. **Refresh:** same endpoint with `PUT` behavior (upsert on `device_id + provider_code`)
@@ -300,7 +384,7 @@ RLS on `org_notifications_mst` ensures each user only receives their own notific
 
 ---
 
-## 10. Idempotency Key Pattern
+## 11. Idempotency Key Pattern
 
 Every notification has a unique `idempotency_key` to prevent duplicate delivery from retried business logic:
 
@@ -313,7 +397,7 @@ The `timestamp_bucket` is typically the current hour rounded down — this allow
 
 ---
 
-## 11. Adding a New Provider
+## 12. Adding a New Provider
 
 1. Add a row to `sys_ntf_providers_cd` via migration (code, name, channel_code, api_endpoint)
 2. Create adapter file in `lib/notifications/adapters/` implementing `send(outboxRow): Promise<DeliveryResult>`
@@ -323,7 +407,7 @@ The `timestamp_bucket` is typically the current hour rounded down — this allow
 
 ---
 
-## 12. Permissions Reference
+## 13. Permissions Reference
 
 | Code | Grant to | Purpose |
 |------|----------|---------|
@@ -337,7 +421,7 @@ Seeded in migration `0349_ntf_permissions_and_nav.sql`.
 
 ---
 
-## 13. i18n Key Namespace
+## 14. i18n Key Namespace
 
 All notification UI keys live under the `notifications` namespace in `messages/en.json` and `messages/ar.json`.
 
@@ -379,4 +463,34 @@ notifications.deliveryLog.allChannels
 notifications.deliveryLog.allStatuses
 notifications.deliveryLog.refresh
 notifications.deliveryLog.loadFailed
+notifications.campaigns.title
+notifications.campaigns.create
+notifications.campaigns.createTitle
+notifications.campaigns.sent
+notifications.campaigns.empty
+notifications.campaigns.emptyDesc
+notifications.campaigns.filter.all
+notifications.campaigns.status.DRAFT
+notifications.campaigns.status.PENDING_APPROVAL
+notifications.campaigns.status.APPROVED
+notifications.campaigns.status.SCHEDULED
+notifications.campaigns.status.RUNNING
+notifications.campaigns.status.COMPLETED
+notifications.campaigns.status.PAUSED
+notifications.campaigns.status.FAILED
+notifications.campaigns.status.CANCELLED
+notifications.campaigns.form.name
+notifications.campaigns.form.channel
+notifications.campaigns.form.targetUserIds
+notifications.campaigns.form.scheduledAt
+notifications.campaigns.form.saveDraft
+notifications.campaigns.detail.total
+notifications.campaigns.detail.sent
+notifications.campaigns.detail.skipped
+notifications.campaigns.detail.failed
+notifications.campaigns.detail.sendTest
+notifications.campaigns.detail.submitApproval
+notifications.campaigns.detail.approve
+notifications.campaigns.detail.launch
+notifications.campaigns.detail.cancel
 ```

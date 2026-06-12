@@ -5528,6 +5528,7 @@
         "keypadHint": "Use the keypad for fast touch entry, or type directly into the amount field.",
         "addSplitHint": "Select an immediate method to start collecting payment.",
         "enter": "Enter",
+        "backspace": "Backspace",
         "activeTitle": "Payment Workspace",
         "activeDescription": "Use this area for the active payment step, details, and fixes without scrolling the right rail.",
         "fixAction": "Fix now",

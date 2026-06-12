@@ -5,6 +5,15 @@
  * future card moves do not require editing finance or submit-flow logic.
  */
 
+/**
+ * Section E "Live Effect" preview (discounts/credits impact on remaining balance).
+ *
+ * Hidden by default: Balance Result on the right rail already shows order total,
+ * total settled now, and remaining balance for the full payment workspace.
+ * Set to `true` only when operators need a local preview while editing Section E.
+ */
+export const PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT = false;
+
 export const PAYMENT_MODAL_SECTION_IDS = {
   BALANCE_SNAPSHOT: 'BALANCE_SNAPSHOT',
   AMOUNT_EDITOR: 'AMOUNT_EDITOR',
