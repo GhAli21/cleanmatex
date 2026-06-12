@@ -1,6 +1,8 @@
 # Customer Receipt Allocation — Technical Reference
 
-**Status:** Production (Approved_By_Jh, 2026-06-11)
+**Status:** Production (Approved_By_Jh, 2026-06-11)  
+**Catalogs:** [tech_settlement_catalogs.md](./tech_settlement_catalogs.md)  
+**Pending work:** [Pending_Payment_Settlement_Follow_Ups.md](../Pending_Payment_Settlement_Follow_Ups.md)
 
 ## Services
 
@@ -50,4 +52,4 @@
 - Removed silent `supports_overpayment` retention bypass in `settlement-overpayment.ts`
 - Unresolved excess = gross excess minus cash change capacity (not all-or-nothing)
 - Payment Modal V4 aligned with server metrics
-- `RETURN_CHANGE` (fallback dest) documented as distinct from `RETURN_CASH_CHANGE` (resolution)
+- `RETURN_CHANGE` (allocation fallback) documented as distinct from `RETURN_CASH_CHANGE` (overpayment resolution) — see settlement catalogs doc

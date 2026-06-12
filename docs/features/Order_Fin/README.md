@@ -89,9 +89,14 @@ docs/features/Order_Fin/
 ├── bvm_wiring_phase1a_implementation.md ← Phase 1A outcomes
 ├── bvm_wiring_phase1b_implementation.md ← Phase 1B outcomes (+ 2026-05-28 stabilization addendum)
 ├── BVM_PHASE_2_ENTRY_PLAN.md            ← next phase entry plan
+├── Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md  ← settlement program (complete)
+├── Pending_Payment_Settlement_Follow_Ups.md                          ← post-plan backlog
+├── HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md            ← cleanmatexsaas HQ catalog CRUD spec
 ├── technical_docs/
 │   ├── tech_api.md                      ← full API contract for all new routes
-│   └── tech_data_model.md               ← ER diagram, table descriptions, migration list
+│   ├── tech_data_model.md               ← ER diagram, table descriptions, migration list
+│   ├── tech_settlement_catalogs.md      ← overpayment + allocation catalogs
+│   └── tech_customer_receipt_allocation.md
 └── Order_Fin_Docs/
     ├── ORDER_FINANCIAL_PLATFORM.md
     ├── STORED_VALUE_GUIDE.md
@@ -108,6 +113,11 @@ Related ADRs in sibling features:
 
 ## Quick Links
 
+- [Payment Settlement Plan](Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) (complete)
+- [Pending Follow-Ups](Pending_Payment_Settlement_Follow_Ups.md)
+- [HQ sys_ Catalogs Guide](HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md) (implement in cleanmatexsaas)
+- [Settlement Catalogs (tech)](technical_docs/tech_settlement_catalogs.md)
+- [Customer Receipt Allocation (tech)](technical_docs/tech_customer_receipt_allocation.md)
 - [Developer Guide](developer_guide.md)
 - [API Reference](technical_docs/tech_api.md)
 - [Data Model](technical_docs/tech_data_model.md)

@@ -383,8 +383,8 @@ PRD acceptance criteria checklist; reconciliation warning codes; **update plan s
 | API routes accept `overpaymentResolution` | ✅ Done | `POST /api/v1/orders/[id]/payments`, `/collect-payment` |
 | Unit tests + test_guide scenarios 26–27 | ✅ Done | `settlement.service.test.ts`, `collection-overpayment.test.ts` |
 | Standalone Customer Account Receipt screen | ✅ Done | `/dashboard/customers/account-receipt` + nav 0359 |
-| cleanmatexsaas feature flags | ⬜ Deferred | `customer_receipt_allocation_v1` (HQ) |
-| Reconciliation reports | ⬜ Deferred | Unallocated excess = 0 check |
+| cleanmatexsaas feature flags | ⬜ Pending | → [Pending doc §1](./Pending_Payment_Settlement_Follow_Ups.md#1-hq-feature-flags-cleanmatexsaas) |
+| Reconciliation reports | ⬜ Pending | → [Pending doc §2](./Pending_Payment_Settlement_Follow_Ups.md#2-reconciliation--unallocated-excess--0) |
 | Later-collection UI (order detail) | ✅ Done | OrderCollectPaymentModal wired |
 | Payment Modal V4 → `useOverpaymentAllocation` | ✅ Done | Refactored 2026-06-11 |
 
@@ -396,12 +396,12 @@ PRD acceptance criteria checklist; reconciliation warning codes; **update plan s
 
 | Legacy item | Action |
 |-------------|--------|
-| Silent `overpaid_amount` retention paths | Remove code paths |
-| Duplicate TS aliases (`CUSTOMER_CREDIT` = `CREDIT_NOTE` in order-financial) | Document + narrow if safe |
-| ADR-047 `RETURN_CHANGE` constant | Remove after migration to `RETURN_CASH_CHANGE` |
-| Any deprecated gateway method rows | **ADR-048** (canonical model — done for data) + **ADR-049** (**deferred** — provider TBD) | No action until gateway vendor chosen |
+| Silent `overpaid_amount` retention paths | ✅ Removed (`settlement-overpayment.ts`, Phase 6) |
+| Duplicate TS aliases (`CUSTOMER_CREDIT` = `CREDIT_NOTE`) | ⬜ Pending optional cleanup → [Pending doc §3](./Pending_Payment_Settlement_Follow_Ups.md#3-optional-code-hygiene-cleanmatex) |
+| `RETURN_CHANGE` vs `RETURN_CASH_CHANGE` | ✅ Documented — distinct domains; see [tech_settlement_catalogs.md](./technical_docs/tech_settlement_catalogs.md) |
+| Deprecated gateway method rows | **ADR-048** done; **ADR-049** deferred → [Pending doc §4](./Pending_Payment_Settlement_Follow_Ups.md#4-online-payment-gateway-parked) |
 
-Migration: `035x_drop_legacy_overpayment_fields.sql` — **user-approved**, with dependency manifest.
+Migration `0360_order_fin_phase6_legacy_cleanup.sql` applied (disp table align + `overpaid_amount` backfill). No further Phase 6 migration required unless optional alias cleanup is approved.
 
 ---
 
@@ -496,35 +496,36 @@ Per user requirement — **repeat at end of every phase:**
 | 4 — Customer receipt allocation | ✅ Complete | Preview APIs, drawers, executor, test_guide 16–25 |
 | 5 — Later collection / HQ | ✅ Complete | Backend + collect modal + ready screen + account receipt screen |
 | 6 — Legacy cleanup | ✅ Complete | Silent retention removed; migration 0360 backfill |
-| Final documentation pass | ✅ Complete | Plan approved; tech docs in Order_Fin/technical_docs |
+| Final documentation pass | ✅ Complete | `tech_settlement_catalogs.md` + tracker refresh (2026-06-11) |
+| Post-plan backlog | 📋 Tracked | [Pending_Payment_Settlement_Follow_Ups.md](./Pending_Payment_Settlement_Follow_Ups.md) |
 
 ---
 
-## Decisions required from product (before Phase 1 migration)
+## Decisions (resolved at plan start)
 
-1. Approve abbreviated catalog table names vs forcing 30-char renames on reference schema.
-2. Keep `0354_order_overpay_disp_dtl` (Option A) or voucher-only audit (Option B).
-3. Confirm `CUSTOMER_CREDIT_RECEIPT` vs new `CUSTOMER_CREDIT_ISSUE` line role naming.
-4. Credit note as overpayment destination: allowed for all tenants or flag-gated?
-5. Default fallback: `CUSTOMER_ADVANCE` (recommended) — confirm.
+1. ✅ Abbreviated catalog table names (`sys_fin_overpay_res_cd`, etc.)
+2. ✅ Option A — keep `org_fin_overpay_disp_dtl` audit table
+3. ✅ `CUSTOMER_CREDIT_ISSUE` canonical; `CUSTOMER_CREDIT_RECEIPT` compat only
+4. Credit note destination — permission-gated (`orders:overpayment_to_credit_note`)
+5. ✅ Default fallback `CUSTOMER_ADVANCE`
 
 ---
 
-## Related files (implementation order)
+## Related files
 
 ```text
 docs/features/Order_Fin/
   Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md  ← this file
-  ADR/ADR-047-Overpayment-Disposition.md                            ← update after Phase 0
-  CleanMateX_Payment_Settlement_Catalogs_Upgrade_Reference_v1_1/    ← foundation spec
-  CleanMateX_Customer_Receipt_Auto_Allocation_Feature_Pack_v1_0/    ← feature spec
+  Pending_Payment_Settlement_Follow_Ups.md                          ← post-plan backlog
+  technical_docs/tech_settlement_catalogs.md
+  technical_docs/tech_customer_receipt_allocation.md
+  ADR/ADR-047 … ADR-049
 
-supabase/migrations/
-  0354_order_overpay_disposition.sql                                ← review/merge
-  0357_fin_settlement_catalogs_v1_1.sql                         ← created
+supabase/migrations/  0354, 0357, 0358, 0359, 0360  (applied)
 
 web-admin/lib/
-  constants/settlement-catalog.ts                                   ← to create
-  services/customer-receipt-*.ts                                    ← Phase 4
-  services/wiring/invoice-payment-wiring.handler.ts               ← Phase 4
+  constants/settlement-catalog.ts
+  services/customer-receipt-*.ts
+  services/wiring/invoice-payment-wiring.handler.ts
+  services/wiring/statement-payment-wiring.handler.ts
 ```

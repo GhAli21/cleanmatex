@@ -34,7 +34,7 @@ export const PHASE2_OVERPAYMENT_RESOLUTIONS = [
   OVERPAYMENT_RESOLUTIONS.RESTORE_STORED_VALUE,
 ] as const;
 
-/** Phase 4 — customer receipt allocation resolutions (not implemented until Phase 4). */
+/** Phase 4 — customer receipt allocation resolutions (ALLOCATE_* / AUTO_ALLOCATE_*). */
 export const PHASE4_ALLOCATION_RESOLUTIONS = [
   OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES,
   OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES,

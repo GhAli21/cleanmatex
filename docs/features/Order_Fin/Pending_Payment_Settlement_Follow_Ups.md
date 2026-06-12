@@ -113,9 +113,9 @@ Not blocking production. Safe to batch in a small PR.
 
 ## 7. HQ catalog administration (cleanmatexsaas)
 
-**Future:** HQ UI to view/edit global `sys_fin_*` catalog rows and tenant policy templates.
+**Implementation guide:** [HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md](./HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md) — you implement in cleanmatexsaas.
 
-**Not required** for tenant operations — catalogs seeded via migrations in cleanmatex.
+**Not required** for tenant go-live — catalogs already seeded via cleanmatex migrations.
 
 ---
 

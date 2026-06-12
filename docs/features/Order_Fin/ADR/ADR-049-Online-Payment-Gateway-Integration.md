@@ -21,6 +21,8 @@
 
 **To resume:** Pick provider → approve this ADR → start Phase 0 (code contract) then Phase 1+ for that adapter only.
 
+**Tracked in:** [Pending_Payment_Settlement_Follow_Ups.md](../Pending_Payment_Settlement_Follow_Ups.md) §4
+
 ---
 
 ## Executive summary

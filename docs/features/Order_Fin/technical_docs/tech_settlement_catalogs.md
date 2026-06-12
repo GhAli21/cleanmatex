@@ -126,6 +126,10 @@ Manual: [test_guide.md](../../Order_Payment_Model/test_guide.md) scenarios 16–
 
 ---
 
+## HQ catalog administration
+
+Global `sys_*` rows are edited in **cleanmatexsaas** (service role). See [HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md](../HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md).
+
 ## Pending follow-ups
 
 See [Pending_Payment_Settlement_Follow_Ups.md](../Pending_Payment_Settlement_Follow_Ups.md) (HQ flags, reconciliation, optional TS alias cleanup, gateway deferred).
