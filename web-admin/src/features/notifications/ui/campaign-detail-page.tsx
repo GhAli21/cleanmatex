@@ -138,7 +138,7 @@ export function CampaignDetailPage({ id }: Props) {
 
   if (fetchError || !campaign) {
     return (
-      <CmxSummaryMessage type="error" title={t('campaigns.detail.loadFailed')} />
+      <CmxSummaryMessage type="error" title={t('campaigns.detail.loadFailed')} items={[]} />
     )
   }
 
@@ -239,6 +239,7 @@ export function CampaignDetailPage({ id }: Props) {
         <CmxSummaryMessage
           type={feedback.type}
           title={feedback.msg}
+          items={[]}
           onDismiss={() => setFeedback(null)}
         />
       )}

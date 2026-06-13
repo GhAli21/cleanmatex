@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Plus, Send, Ban, Clock, CheckCircle, AlertCircle, Pause, XCircle } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -173,8 +173,9 @@ export function CampaignListPage() {
   const totalPages   = pagination?.totalPages ?? 1
 
   const tabs = STATUS_FILTERS.map(s => ({
-    id:    s,
-    label: s === 'ALL' ? t('campaigns.filter.all') : t(`campaigns.status.${s}`),
+    id:      s,
+    label:   s === 'ALL' ? t('campaigns.filter.all') : t(`campaigns.status.${s}`),
+    content: null as React.ReactNode,
   }))
 
   return (
@@ -192,14 +193,14 @@ export function CampaignListPage() {
       </div>
 
       {error && (
-        <CmxSummaryMessage type="error" title={error} onDismiss={() => setError(null)} />
+        <CmxSummaryMessage type="error" title={error} items={[]} onDismiss={() => setError(null)} />
       )}
 
       {/* Status filter tabs */}
       <CmxTabsPanel
         tabs={tabs}
-        activeTab={statusFilter}
-        onTabChange={v => { setStatusFilter(v as StatusFilter); setPage(1) }}
+        value={statusFilter}
+        onChange={v => { setStatusFilter(v as StatusFilter); setPage(1) }}
       />
 
       {/* Campaign list */}

@@ -92,7 +92,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
       {serverError && (
-        <CmxSummaryMessage type="error" title={serverError} onDismiss={() => setServerError(null)} />
+        <CmxSummaryMessage type="error" title={serverError} items={[]} onDismiss={() => setServerError(null)} />
       )}
 
       {/* Name EN */}
@@ -133,7 +133,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
           value={channelCode}
           onValueChange={v => setValue('channel_code', v as typeof channelCode)}
         >
-          <CmxSelectDropdownTrigger className="w-full" />
+          <CmxSelectDropdownTrigger className="w-full">{channelCode}</CmxSelectDropdownTrigger>
           <CmxSelectDropdownContent>
             {CHANNELS.map(ch => (
               <CmxSelectDropdownItem key={ch} value={ch}>
