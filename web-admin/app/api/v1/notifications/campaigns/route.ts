@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminSupabaseClient()
 
   let query = supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select(
       'id, name, name2, status, channel_code, scheduled_at, started_at, completed_at, ' +
       'total_targets, sent_count, failed_count, skip_count, created_at, updated_at',
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminSupabaseClient()
 
   const { data, error } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .insert({
       tenant_org_id:  tenantId,
       name,

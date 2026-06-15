@@ -188,7 +188,7 @@ Push subscriptions can accumulate stale entries as users change browsers or unin
 
 ```sql
 SELECT user_id, provider_code, platform, last_verified_at, failure_count, is_active
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE tenant_org_id = 'your-tenant-uuid'
   AND is_active = true
 ORDER BY last_verified_at DESC;
@@ -197,7 +197,7 @@ ORDER BY last_verified_at DESC;
 ### Force-Deactivate a Subscription (e.g., user complaint)
 
 ```sql
-UPDATE org_notif_push_subs_dtl
+UPDATE org_ntf_push_subs_dtl
 SET is_active = false, updated_at = NOW(), updated_by = 'admin-deactivate',
     rec_notes = 'Manually deactivated by admin on 2026-06-12'
 WHERE id = 'subscription-uuid';
@@ -302,7 +302,7 @@ Campaigns are bulk notification broadcasts targeted at specific customer segment
 ```sql
 -- View all RUNNING campaigns and their progress
 SELECT id, name, channel_code, total_targets_count, sent_count, skip_count, failed_count, started_at
-FROM org_notification_campaigns_mst
+FROM org_ntf_campaigns_mst
 WHERE tenant_org_id = 'your-tenant-uuid'
   AND status = 'RUNNING'
 ORDER BY started_at DESC;
@@ -313,7 +313,7 @@ ORDER BY started_at DESC;
 ```sql
 -- Campaign dispatch status breakdown
 SELECT status, skip_reason, COUNT(*) as count
-FROM org_notif_campaign_targets_dtl
+FROM org_ntf_camp_targets_dtl
 WHERE campaign_id = 'campaign-uuid'
 GROUP BY status, skip_reason
 ORDER BY status;
@@ -331,7 +331,7 @@ PATCH /api/v1/notifications/campaigns/<id>/status
 
 Or directly:
 ```sql
-UPDATE org_notification_campaigns_mst
+UPDATE org_ntf_campaigns_mst
 SET status = 'CANCELLED', cancelled_at = NOW(), updated_at = NOW(), updated_by = 'admin-override'
 WHERE id = 'campaign-uuid' AND tenant_org_id = 'your-tenant-uuid';
 ```

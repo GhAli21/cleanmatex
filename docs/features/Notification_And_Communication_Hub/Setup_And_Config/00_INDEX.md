@@ -68,7 +68,7 @@ If you only need email notifications to work:
 | Outbox processor endpoint | `POST /api/notifications/process-outbox` |
 | Auth header | `Authorization: Bearer {NOTIFICATIONS_OUTBOX_SECRET}` |
 | Settings cache TTL | 30 seconds (module-level Map in Node.js) |
-| Push subscriptions table | `org_notif_push_subs_dtl` |
+| Push subscriptions table | `org_ntf_push_subs_dtl` |
 | Channel provider config table | `org_ntf_channel_provider_cf` |
 | pg_cron job — outbox dispatch | `ntf-outbox-processor` (every minute) |
 | pg_cron job — retry | `ntf-outbox-retry` (every 5 minutes) |

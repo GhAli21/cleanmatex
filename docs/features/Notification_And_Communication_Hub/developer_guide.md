@@ -242,12 +242,12 @@ notificationSettingsService.invalidateUserPrefs(tenantOrgId, userId)
 | `org_notif_delivery_log_dtl` | Immutable delivery audit trail |
 | `org_notification_settings_cf` | Tenant channel settings (quiet hours, enabled flag) |
 | `org_notif_user_prefs_dtl` | Per-user per-channel preferences and marketing consent |
-| `org_notif_push_subs_dtl` | Push subscription registry (VAPID/FCM/OneSignal) |
+| `org_ntf_push_subs_dtl` | Push subscription registry (VAPID/FCM/OneSignal) |
 | `org_ntf_channel_provider_cf` | Per-tenant active provider per channel |
-| `org_notification_campaigns_mst` | Campaign master: state machine, bilingual name, channel, template_code, progress counters |
-| `org_notif_campaign_targets_dtl` | One row per campaign recipient; status tracks consent check + dispatch result |
-| `org_notification_usage_daily` | Daily aggregated stats (tenant, channel, provider, date) |
-| `org_notification_audit_dtl` | Immutable INSERT-only event log (no UPDATE/DELETE policies) |
+| `org_ntf_campaigns_mst` | Campaign master: state machine, bilingual name, channel, template_code, progress counters |
+| `org_ntf_camp_targets_dtl` | One row per campaign recipient; status tracks consent check + dispatch result |
+| `org_ntf_usage_daily` | Daily aggregated stats (tenant, channel, provider, date) |
+| `org_ntf_audit_dtl` | Immutable INSERT-only event log (no UPDATE/DELETE policies) |
 
 ---
 
@@ -264,7 +264,7 @@ pg_cron (every 1 min)
       → POST /api/notifications/process-campaigns  [Bearer-authenticated]
             │
             ├── Phase A: Find APPROVED/SCHEDULED campaigns ready to run
-            │     → create org_notif_campaign_targets_dtl rows from target_segment.user_ids
+            │     → create org_ntf_camp_targets_dtl rows from target_segment.user_ids
             │     → update campaign status: RUNNING
             │
             └── Phase B: Find PENDING targets for RUNNING campaigns

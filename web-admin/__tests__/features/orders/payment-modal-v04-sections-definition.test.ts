@@ -1,10 +1,12 @@
 import {
+  buildInitialWorkbenchSectionExpandedState,
   derivePaymentInspectorTabs,
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
   PAYMENT_MODAL_SECTION_IDS,
   PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL,
   PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
+  PAYMENT_MODAL_V04_SECTIONS,
   type PaymentModalSectionVisibilityContext,
 } from '@features/orders/ui/payment-modal-v04-sections-definition';
 
@@ -31,6 +33,20 @@ describe('payment-modal-v04 section definitions', () => {
 
   it('pins Final Order Total to the receipt rail above submit by default', () => {
     expect(PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL).toBe(true);
+  });
+
+  it('seeds expanded state from section defaults', () => {
+    const state = buildInitialWorkbenchSectionExpandedState();
+
+    expect(state[PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT]).toBe(true);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS]).toBe(false);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR]).toBe(false);
+  });
+
+  it('marks every center workbench section as collapsible', () => {
+    for (const section of PAYMENT_MODAL_V04_SECTIONS) {
+      expect(section.collapsible).toBe(true);
+    }
   });
 
   it('keeps the approved center workbench order', () => {

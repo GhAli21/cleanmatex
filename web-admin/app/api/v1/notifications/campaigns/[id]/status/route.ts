@@ -79,7 +79,7 @@ export async function PATCH(
 
   // Fetch current campaign state
   const { data: campaign, error: fetchError } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select('id, status, tenant_org_id')
     .eq('id', id)
     .eq('tenant_org_id', tenantId)
@@ -154,7 +154,7 @@ export async function PATCH(
   }
 
   const { data: updated, error: updateError } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .update(updatePayload)
     .eq('id', id)
     .eq('tenant_org_id', tenantId)
@@ -169,7 +169,7 @@ export async function PATCH(
   }
 
   // Write to audit log (fire-and-forget — non-blocking)
-  void supabase.from('org_notification_audit_dtl').insert({
+  void supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: tenantId,
     entity_type:   'CAMPAIGN',
     entity_id:     id,

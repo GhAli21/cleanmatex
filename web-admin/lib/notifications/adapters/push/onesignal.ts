@@ -7,7 +7,7 @@
  *   ONESIGNAL_APP_ID          — OneSignal App ID (UUID)
  *   ONESIGNAL_REST_API_KEY    — OneSignal REST API key (from Dashboard > Keys & IDs)
  *
- * subscription_data shape (from org_notif_push_subs_dtl):
+ * subscription_data shape (from org_ntf_push_subs_dtl):
  *   { "player_id": "..." }   — OneSignal player/subscription ID
  */
 

@@ -8,7 +8,7 @@
  *   VAPID_PRIVATE_KEY  — base64url-encoded P-256 private key
  *   VAPID_SUBJECT      — mailto: or https: contact URI (e.g. "mailto:admin@example.com")
  *
- * subscription_data shape (from org_notif_push_subs_dtl):
+ * subscription_data shape (from org_ntf_push_subs_dtl):
  *   { "endpoint": "https://fcm.googleapis.com/...", "keys": { "p256dh": "...", "auth": "..." } }
  */
 

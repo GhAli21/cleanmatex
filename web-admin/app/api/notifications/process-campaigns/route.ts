@@ -59,7 +59,7 @@ async function activateCampaign(
 
   if (userIds.length === 0) {
     await supabase
-      .from('org_notification_campaigns_mst')
+      .from('org_ntf_campaigns_mst')
       .update({
         status:     'FAILED',
         updated_at: now,
@@ -67,7 +67,7 @@ async function activateCampaign(
       .eq('id', campaign.id)
       .eq('tenant_org_id', campaign.tenant_org_id)
 
-    void supabase.from('org_notification_audit_dtl').insert({
+    void supabase.from('org_ntf_audit_dtl').insert({
       tenant_org_id: campaign.tenant_org_id,
       entity_type:   'CAMPAIGN',
       entity_id:     campaign.id,
@@ -95,7 +95,7 @@ async function activateCampaign(
   }))
 
   const { error: insertErr } = await supabase
-    .from('org_notif_campaign_targets_dtl')
+    .from('org_ntf_camp_targets_dtl')
     .insert(targetRows)
 
   if (insertErr) {
@@ -107,7 +107,7 @@ async function activateCampaign(
 
   // Transition campaign to RUNNING
   await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .update({
       status:        'RUNNING',
       started_at:    now,
@@ -117,7 +117,7 @@ async function activateCampaign(
     .eq('id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
 
-  void supabase.from('org_notification_audit_dtl').insert({
+  void supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: campaign.tenant_org_id,
     entity_type:   'CAMPAIGN',
     entity_id:     campaign.id,
@@ -151,7 +151,7 @@ async function dispatchTargets(
 ): Promise<{ queued: number; skipped: number; done: boolean }> {
   // Fetch a batch of PENDING targets for this campaign
   const { data: targets, error: fetchErr } = await supabase
-    .from('org_notif_campaign_targets_dtl')
+    .from('org_ntf_camp_targets_dtl')
     .select('id, tenant_org_id, campaign_id, recipient_user_id, recipient_address')
     .eq('campaign_id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
@@ -168,7 +168,7 @@ async function dispatchTargets(
   // No PENDING targets in this batch — campaign may be complete
   if (!targets?.length) {
     const { count } = await supabase
-      .from('org_notif_campaign_targets_dtl')
+      .from('org_ntf_camp_targets_dtl')
       .select('id', { count: 'exact', head: true })
       .eq('campaign_id', campaign.id)
       .eq('tenant_org_id', campaign.tenant_org_id)
@@ -207,7 +207,7 @@ async function dispatchTargets(
 
     if (!hasConsent) {
       await supabase
-        .from('org_notif_campaign_targets_dtl')
+        .from('org_ntf_camp_targets_dtl')
         .update({ status: 'SKIPPED', skip_reason: 'NO_MARKETING_CONSENT', processed_at: now, updated_at: now })
         .eq('id', target.id)
       skipped++
@@ -265,7 +265,7 @@ async function dispatchTargets(
       }
 
       await supabase
-        .from('org_notif_campaign_targets_dtl')
+        .from('org_ntf_camp_targets_dtl')
         .update({ status: 'QUEUED', outbox_id: outboxId, processed_at: now, updated_at: now })
         .eq('id', target.id)
 
@@ -276,7 +276,7 @@ async function dispatchTargets(
         targetId: target.id, campaignId: campaign.id, feature: 'notifications-campaigns',
       })
       await supabase
-        .from('org_notif_campaign_targets_dtl')
+        .from('org_ntf_camp_targets_dtl')
         .update({ status: 'FAILED', skip_reason: msg, processed_at: now, updated_at: now })
         .eq('id', target.id)
     }
@@ -285,7 +285,7 @@ async function dispatchTargets(
   // Update campaign counters
   if (queued > 0 || skipped > 0) {
     await supabase
-      .from('org_notification_campaigns_mst')
+      .from('org_ntf_campaigns_mst')
       .update({
         sent_count:  campaign.sent_count  + queued,
         skip_count:  campaign.skip_count  + skipped,
@@ -297,7 +297,7 @@ async function dispatchTargets(
 
   // Check if this was the last batch
   const { count: remaining } = await supabase
-    .from('org_notif_campaign_targets_dtl')
+    .from('org_ntf_camp_targets_dtl')
     .select('id', { count: 'exact', head: true })
     .eq('campaign_id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
@@ -315,12 +315,12 @@ async function completeCampaign(
   now: string
 ): Promise<void> {
   await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .update({ status: 'COMPLETED', completed_at: now, updated_at: now })
     .eq('id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
 
-  void supabase.from('org_notification_audit_dtl').insert({
+  void supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: campaign.tenant_org_id,
     entity_type:   'CAMPAIGN',
     entity_id:     campaign.id,
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   ].join(',')
 
   const { data: campaignsToActivate, error: activateErr } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select('id, tenant_org_id, name, description, channel_code, template_code, target_segment, skip_count, sent_count')
     .or(orFilter)
     .eq('is_active', true)
@@ -406,7 +406,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── Phase B: Dispatch PENDING targets for RUNNING campaigns ──────────────
 
   const { data: runningCampaigns, error: runningErr } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select('id, tenant_org_id, name, description, channel_code, template_code, target_segment, skip_count, sent_count')
     .eq('status', 'RUNNING')
     .eq('is_active', true)

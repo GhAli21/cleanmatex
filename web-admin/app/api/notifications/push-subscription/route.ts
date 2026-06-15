@@ -4,7 +4,7 @@
  * POST  /api/notifications/push-subscription  — register or refresh a subscription
  * DELETE /api/notifications/push-subscription  — deregister on logout / permission revoke
  *
- * Upserts into org_notif_push_subs_dtl keyed on (tenant_org_id, user_id, device_id, provider_code).
+ * Upserts into org_ntf_push_subs_dtl keyed on (tenant_org_id, user_id, device_id, provider_code).
  * Idempotent: re-registration refreshes subscription_data and resets failure_count.
  */
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Upsert: update subscription_data + reset failure state on re-registration
     const { error } = await supabase
-      .from('org_notif_push_subs_dtl')
+      .from('org_ntf_push_subs_dtl')
       .upsert(
         {
           tenant_org_id:    tenantId,
@@ -114,7 +114,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     // Soft deactivate — keeps the row for audit; sweep cron will clean up stale rows
     const { error } = await supabase
-      .from('org_notif_push_subs_dtl')
+      .from('org_ntf_push_subs_dtl')
       .update({
         is_active:  false,
         updated_at: new Date().toISOString(),

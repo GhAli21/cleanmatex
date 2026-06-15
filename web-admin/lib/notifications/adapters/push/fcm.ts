@@ -6,7 +6,7 @@
  *   FCM_SERVICE_ACCOUNT_JSON — full service account JSON (base64-encoded or raw JSON string)
  *   FCM_PROJECT_ID           — Firebase project ID (also in service account JSON)
  *
- * subscription_data shape (from org_notif_push_subs_dtl):
+ * subscription_data shape (from org_ntf_push_subs_dtl):
  *   { "token": "device-registration-token" }
  *
  * Authentication: OAuth2 access token obtained via JWT grant

@@ -6,7 +6,7 @@
  * provider-specific sub-adapter (VAPID / FCM / OneSignal).
  *
  * On per-subscription permanent failure (410, UNREGISTERED, invalid player_id):
- *   - Increments failure_count in org_notif_push_subs_dtl
+ *   - Increments failure_count in org_ntf_push_subs_dtl
  *   - Sets is_active=false when failure_count >= 3 OR provider signals permanent rejection
  *
  * Called by process-outbox for channel_code = 'PUSH'.
@@ -72,7 +72,7 @@ async function recordFailure(
   const deactivate = permanent || newCount >= 3
 
   await supabase
-    .from('org_notif_push_subs_dtl')
+    .from('org_ntf_push_subs_dtl')
     .update({
       failure_count: newCount,
       ...(deactivate ? { is_active: false } : {}),
@@ -86,7 +86,7 @@ async function recordSuccess(
   subscriptionId: string,
 ): Promise<void> {
   await supabase
-    .from('org_notif_push_subs_dtl')
+    .from('org_ntf_push_subs_dtl')
     .update({ last_verified_at: new Date().toISOString(), failure_count: 0, updated_at: new Date().toISOString() })
     .eq('id', subscriptionId)
 }
@@ -109,7 +109,7 @@ export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliver
 
   // Fetch all active subscriptions for this user + provider
   const { data: subscriptions, error: fetchError } = await supabase
-    .from('org_notif_push_subs_dtl')
+    .from('org_ntf_push_subs_dtl')
     .select('id, provider_code, platform, subscription_data, failure_count')
     .eq('tenant_org_id',    row.tenant_org_id)
     .eq('user_id',          row.recipient_user_id)

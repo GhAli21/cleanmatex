@@ -93,7 +93,7 @@ Run against local Supabase instance with all migrations applied.
 - [ ] sw.js served at `/sw.js`
 - [ ] Browser granted notification permission
 - [ ] User subscribed via `POST /api/notifications/push-subscription`
-- [ ] Verify `org_notif_push_subs_dtl` row created with `provider_code = 'VAPID', is_active = true`
+- [ ] Verify `org_ntf_push_subs_dtl` row created with `provider_code = 'VAPID', is_active = true`
 - [ ] Insert outbox row with `channel_code = 'PUSH', recipient_user_id = user.id`
 - [ ] Trigger processor
 - [ ] Verify browser push notification appears
@@ -230,12 +230,12 @@ SELECT * FROM org_notifications_mst WHERE tenant_org_id = 'tenant-b-uuid';
 
 ```sql
 -- 1. Simulate stale subscription (90+ days old)
-UPDATE org_notif_push_subs_dtl
+UPDATE org_ntf_push_subs_dtl
 SET last_verified_at = NOW() - INTERVAL '91 days'
 WHERE id = 'test-subscription-uuid';
 
 -- 2. Simulate high failure count
-UPDATE org_notif_push_subs_dtl
+UPDATE org_ntf_push_subs_dtl
 SET failure_count = 4
 WHERE id = 'test-subscription-uuid-2';
 
@@ -245,7 +245,7 @@ SELECT ntf_sweep_stale_push_subs();
 
 -- 4. Verify both are deactivated
 SELECT id, is_active, failure_count, last_verified_at
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE id IN ('test-subscription-uuid', 'test-subscription-uuid-2');
 -- Both should have is_active = false
 ```
@@ -310,7 +310,7 @@ Expected: Zero errors and zero warnings for all three commands.
 - [ ] Phase A: APPROVED campaign with no `scheduled_at` → activates immediately
 - [ ] Phase A: APPROVED campaign with `scheduled_at` in future → stays APPROVED (not activated)
 - [ ] Phase A: SCHEDULED campaign with `scheduled_at <= NOW()` → activates
-- [ ] Phase A: Creates `org_notif_campaign_targets_dtl` rows from `target_segment.user_ids`
+- [ ] Phase A: Creates `org_ntf_camp_targets_dtl` rows from `target_segment.user_ids`
 - [ ] Phase A: Campaign transitions to RUNNING status
 - [ ] Phase B: User with `marketing_consent = true` → target dispatched (SENT)
 - [ ] Phase B: User with `marketing_consent = false` → target skipped (SKIPPED + skip_reason)
@@ -327,7 +327,7 @@ Expected: Zero errors and zero warnings for all three commands.
 3. Approve via `PATCH .../status { "status": "APPROVED" }` → verify `approved_at` set
 4. Call `POST /api/notifications/process-campaigns` with valid Bearer secret → verify:
    - Campaign status = RUNNING
-   - Target rows created in `org_notif_campaign_targets_dtl`
+   - Target rows created in `org_ntf_camp_targets_dtl`
 5. Call processor again → verify:
    - Targets dispatched
    - Users with consent = SENT; users without = SKIPPED

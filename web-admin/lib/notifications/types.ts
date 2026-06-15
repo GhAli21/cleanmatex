@@ -1,7 +1,7 @@
 /**
  * Notification Hub — shared types.
  * Values mirror the DB CHECK constraints and lookup tables exactly.
- * DB-mirror rule: constants must match sys_notification_channel_cd codes and
+ * DB-mirror rule: constants must match sys_ntf_channel_cd codes and
  * org_ntf_outbox_dtl status CHECK values character-for-character.
  */
 

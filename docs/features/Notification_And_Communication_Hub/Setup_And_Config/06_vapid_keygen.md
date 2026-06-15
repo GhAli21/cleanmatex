@@ -190,7 +190,7 @@ function getDeviceId(): string {
 
 ```sql
 SELECT user_id, device_id, platform, is_active, last_verified_at, failure_count
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE provider_code = 'VAPID'
   AND is_active = true
 ORDER BY last_verified_at DESC
@@ -205,5 +205,5 @@ If you must regenerate VAPID keys (e.g. key compromise):
 1. Generate new pair with `npx web-push generate-vapid-keys`
 2. Update all 4 ENV vars
 3. Redeploy the app
-4. Run: `UPDATE org_notif_push_subs_dtl SET is_active = false WHERE provider_code = 'VAPID';` (all subscriptions are now invalid)
+4. Run: `UPDATE org_ntf_push_subs_dtl SET is_active = false WHERE provider_code = 'VAPID';` (all subscriptions are now invalid)
 5. Users will be re-prompted to subscribe on next visit (the browser's existing subscription will fail with 410 Gone, which the adapter handles automatically)

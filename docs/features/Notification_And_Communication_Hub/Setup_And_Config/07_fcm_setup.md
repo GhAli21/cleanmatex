@@ -18,7 +18,7 @@
 | iOS app push | FCM (via APNs gateway in FCM) |
 | Both browser + mobile from one provider | FCM |
 
-You can run both VAPID and FCM simultaneously — subscriptions in `org_notif_push_subs_dtl` are per `provider_code`, so a user can have both a VAPID browser subscription and an FCM mobile subscription. Only one provider can be **active** per channel at a time, so choose based on your primary use case.
+You can run both VAPID and FCM simultaneously — subscriptions in `org_ntf_push_subs_dtl` are per `provider_code`, so a user can have both a VAPID browser subscription and an FCM mobile subscription. Only one provider can be **active** per channel at a time, so choose based on your primary use case.
 
 ---
 

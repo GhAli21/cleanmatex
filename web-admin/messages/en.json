@@ -5570,7 +5570,9 @@
         "financialInspector": "Financial Inspector",
         "financialInspectorHelp": "Review order value, taxes, discounts, warnings, AR details, and notes without scrolling the receipt rail.",
         "balancePolicy": "Balance Policy",
-        "shortcuts": "Workbench Shortcuts"
+        "shortcuts": "Workbench Shortcuts",
+        "expandSection": "Expand section",
+        "collapseSection": "Collapse section"
       },
       "orderValue": {
         "grossValue": "Gross Value",

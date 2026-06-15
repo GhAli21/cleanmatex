@@ -41,7 +41,7 @@ Tasks:
 - [ ] Create `sys_notif_categories_cd` (27 categories: ORDER, PAYMENT, DELIVERY, SECURITY, SYSTEM, MARKETING, …)
 - [ ] Create `sys_notification_events_cd` (116 events: event_code, category_code, name, name2, default_channels[], priority, is_transactional, requires_consent, idempotency_key_pattern)
 - [ ] Create `sys_notif_event_channel_defaults` (event_code × channel_code mapping table)
-- [ ] Add WEB_SOCKET row to existing `sys_notification_channel_cd` (INSERT only, no DDL change to table)
+- [ ] Add WEB_SOCKET row to existing `sys_ntf_channel_cd` (INSERT only, no DDL change to table)
 - [ ] All bilingual fields present: `name TEXT`, `name2 TEXT`, `description TEXT`, `description2 TEXT`
 - [ ] All table names ≤ 30 chars (verified in ROADMAP §4)
 - [ ] Use `TEXT` not `VARCHAR` for all string columns
@@ -428,7 +428,7 @@ Tasks:
 **File:** `supabase/migrations/0351_notif_push_subscriptions.sql`
 
 Tasks:
-- [x] Create `org_notif_push_subs_dtl` (22 chars): `id UUID PK`, `tenant_org_id`, `user_id`, `device_id TEXT`, `provider_code TEXT CHECK (FCM|VAPID|ONESIGNAL)`, `platform TEXT CHECK (IOS|ANDROID|WEB|BROWSER)`, `subscription_data JSONB`, `app_version TEXT`, `last_verified_at TIMESTAMP`, `failure_count INT DEFAULT 0`, `is_active BOOLEAN DEFAULT true`, audit fields
+- [x] Create `org_ntf_push_subs_dtl` (22 chars): `id UUID PK`, `tenant_org_id`, `user_id`, `device_id TEXT`, `provider_code TEXT CHECK (FCM|VAPID|ONESIGNAL)`, `platform TEXT CHECK (IOS|ANDROID|WEB|BROWSER)`, `subscription_data JSONB`, `app_version TEXT`, `last_verified_at TIMESTAMP`, `failure_count INT DEFAULT 0`, `is_active BOOLEAN DEFAULT true`, audit fields
 - [x] UNIQUE index: `(tenant_org_id, user_id, device_id, provider_code)` — one subscription per device per provider
 - [x] Partial index on active subscriptions for push adapter query
 - [x] Stale-sweep index: `(tenant_org_id, is_active, last_verified_at)`
@@ -444,7 +444,7 @@ Tasks:
 **File:** `supabase/migrations/0352_notif_channel_provider_cf.sql`
 
 Tasks:
-- [x] Create `org_ntf_channel_provider_cf` (28 chars): `id UUID PK`, `tenant_org_id`, `channel_code TEXT REFERENCES sys_notification_channel_cd`, `provider_code TEXT`, `display_name TEXT`, `config JSONB` (non-secrets only), `is_active BOOLEAN DEFAULT false`, audit fields
+- [x] Create `org_ntf_channel_provider_cf` (28 chars): `id UUID PK`, `tenant_org_id`, `channel_code TEXT REFERENCES sys_ntf_channel_cd`, `provider_code TEXT`, `display_name TEXT`, `config JSONB` (non-secrets only), `is_active BOOLEAN DEFAULT false`, audit fields
 - [x] UNIQUE on `(tenant_org_id, channel_code, provider_code)` — no duplicate provider per channel
 - [x] Partial UNIQUE on `(tenant_org_id, channel_code) WHERE is_active=true` — exactly one active provider per channel
 - [x] RLS: `current_tenant_id()` policy
@@ -635,10 +635,10 @@ Tasks:
 **File:** `supabase/migrations/0361_ntf_campaign_engine_tables.sql`
 
 Tasks:
-- [x] Create `org_notification_campaigns_mst` — state machine, bilingual, scheduling, progress counters
-- [x] Create `org_notif_campaign_targets_dtl` — one row per recipient; consent checked by processor
-- [x] Create `org_notification_usage_daily` — daily aggregated stats; empty-string sentinel for provider_code
-- [x] Create `org_notification_audit_dtl` — immutable INSERT-only log; no UPDATE/DELETE RLS policies
+- [x] Create `org_ntf_campaigns_mst` — state machine, bilingual, scheduling, progress counters
+- [x] Create `org_ntf_camp_targets_dtl` — one row per recipient; consent checked by processor
+- [x] Create `org_ntf_usage_daily` — daily aggregated stats; empty-string sentinel for provider_code
+- [x] Create `org_ntf_audit_dtl` — immutable INSERT-only log; no UPDATE/DELETE RLS policies
 - [x] Two FK fixes applied before re-apply: `sys_ntf_templates_mst(template_code)`, `org_ntf_outbox_dtl(id)`
 - [x] **Migration 0361 applied 2026-06-12**
 

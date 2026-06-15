@@ -422,7 +422,7 @@ The complete SQL is included in `019_notification_schema.sql`. This document sum
 | org_notification_delivery_log | Provider attempts and results. |
 | org_notification_campaigns | Campaign master. |
 | org_notification_campaign_recipients | Campaign target tracking. |
-| org_notification_usage_daily | Usage and cost aggregation. |
+| org_ntf_usage_daily | Usage and cost aggregation. |
 | org_notification_audit | Admin changes and sensitive actions. |
 
 ### 11.3 Indexing Strategy

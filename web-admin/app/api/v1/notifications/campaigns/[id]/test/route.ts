@@ -30,7 +30,7 @@ export async function POST(
 
   // Fetch campaign — must belong to tenant and be in a testable state
   const { data: campaign, error: fetchError } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select('id, status, name, channel_code, template_code')
     .eq('id', id)
     .eq('tenant_org_id', tenantId)

@@ -179,7 +179,7 @@ Expected: WhatsApp message delivered within 10 seconds.
 ```sql
 -- First verify you have an active subscription for the test user
 SELECT id, provider_code, platform, last_verified_at, failure_count
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE tenant_org_id = '<tenant_id>'
   AND user_id = '<user_id>'
   AND is_active = true;
@@ -207,7 +207,7 @@ Expected:
 Check subscription failure tracking:
 ```sql
 SELECT id, provider_code, failure_count, is_active, last_verified_at
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE tenant_org_id = '<tenant_id>'
   AND user_id = '<user_id>'
 ORDER BY updated_at DESC;
@@ -244,7 +244,7 @@ SELECT ntf_sweep_stale_push_subs();
 -- Expected: (0) — no stale subscriptions on a fresh install
 
 -- Simulate a stale subscription to test sweep logic
-UPDATE org_notif_push_subs_dtl
+UPDATE org_ntf_push_subs_dtl
 SET last_verified_at = NOW() - INTERVAL '91 days'
 WHERE id = '<subscription_id>';
 
@@ -253,7 +253,7 @@ SELECT ntf_sweep_stale_push_subs();
 -- Expected: (1) — the simulated stale subscription is now deactivated
 
 -- Verify
-SELECT is_active, rec_notes FROM org_notif_push_subs_dtl WHERE id = '<subscription_id>';
+SELECT is_active, rec_notes FROM org_ntf_push_subs_dtl WHERE id = '<subscription_id>';
 -- is_active should be false
 ```
 

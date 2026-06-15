@@ -115,7 +115,7 @@ This immediately reverts. The cache invalidates and the outbox processor uses th
 
 When switching the PUSH channel provider (e.g. VAPID → FCM), note that:
 
-- Subscriptions in `org_notif_push_subs_dtl` are per `(user, device, provider_code)`
+- Subscriptions in `org_ntf_push_subs_dtl` are per `(user, device, provider_code)`
 - Users with VAPID subscriptions but no FCM subscriptions will receive 0 push notifications after the switch
 - The outbox processor fetches subscriptions matching the **active** provider only
 
@@ -127,7 +127,7 @@ When switching the PUSH channel provider (e.g. VAPID → FCM), note that:
    - The DB enforces only one `is_active` per channel — not per subscription
    - Workaround: temporarily fan out manually during migration by calling both adapters from a custom batch script
 4. After 90% of users have re-subscribed with FCM tokens, the old VAPID subscriptions will expire naturally via the weekly sweep
-5. Clean up: `UPDATE org_notif_push_subs_dtl SET is_active = false WHERE provider_code = 'VAPID'`
+5. Clean up: `UPDATE org_ntf_push_subs_dtl SET is_active = false WHERE provider_code = 'VAPID'`
 
 ---
 

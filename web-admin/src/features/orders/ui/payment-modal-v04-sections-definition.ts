@@ -58,8 +58,13 @@ export interface PaymentModalSectionDefinition {
   id: PaymentModalSectionId;
   labelKey: string;
   order: number;
+  /** Initial expanded state when the modal opens. */
   defaultExpanded: boolean;
+  /** When false the section header never shows a collapse control. */
+  collapsible: boolean;
 }
+
+export type PaymentModalSectionExpandedState = Record<PaymentModalSectionId, boolean>;
 
 /**
  * Visibility inputs intentionally use already-derived modal state.
@@ -91,44 +96,74 @@ export const PAYMENT_MODAL_V04_SECTIONS = [
     labelKey: 'sections.balanceSnapshot',
     order: 10,
     defaultExpanded: true,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR,
     labelKey: 'sections.amountEditor',
     order: 20,
     defaultExpanded: true,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE,
     labelKey: 'sections.paymentWorkspace',
     order: 30,
     defaultExpanded: true,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS,
     labelKey: 'sections.discountsCredits',
     order: 40,
-    defaultExpanded: true,
+    defaultExpanded: false,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER,
     labelKey: 'sections.cashDrawer',
     order: 50,
     defaultExpanded: true,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR,
     labelKey: 'sections.financialInspector',
     order: 60,
-    defaultExpanded: true,
+    defaultExpanded: false,
+    collapsible: true,
   },
   {
     id: PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY,
     labelKey: 'sections.balancePolicy',
     order: 70,
     defaultExpanded: true,
+    collapsible: true,
   },
 ] as const satisfies readonly PaymentModalSectionDefinition[];
+
+/**
+ * @param sections Section definitions used to seed expand/collapse UI state.
+ * @returns Expanded map keyed by section id.
+ */
+export function buildInitialWorkbenchSectionExpandedState(
+  sections: readonly PaymentModalSectionDefinition[] = PAYMENT_MODAL_V04_SECTIONS
+): PaymentModalSectionExpandedState {
+  return sections.reduce<PaymentModalSectionExpandedState>((state, section) => {
+    state[section.id] = section.defaultExpanded;
+    return state;
+  }, {} as PaymentModalSectionExpandedState);
+}
+
+/**
+ * @param sectionId Workbench section identifier.
+ * @returns Matching section definition when present.
+ */
+export function getPaymentModalSectionDefinition(
+  sectionId: PaymentModalSectionId
+): PaymentModalSectionDefinition | undefined {
+  return PAYMENT_MODAL_V04_SECTIONS.find((section) => section.id === sectionId);
+}
 
 /**
  * Derives visible center sections from UI state without recalculating money.

@@ -94,7 +94,10 @@ import {
   PAYMENT_MODAL_SECTION_IDS,
   PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL,
   PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
+  type PaymentModalSectionId,
 } from './payment-modal-v04-sections-definition';
+import { PaymentWorkbenchSection } from './payment-workbench-section';
+import { usePaymentWorkbenchSectionState } from './use-payment-workbench-section-state';
 
 // Cmx component imports
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
@@ -475,6 +478,19 @@ export function PaymentModalV4({
   const tCommon = useTranslations('common');
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
+  const {
+    isSectionExpanded,
+    isSectionCollapsible,
+    expandSection,
+    toggleSection,
+  } = usePaymentWorkbenchSectionState(open);
+  const workbenchSectionToggleLabels = useMemo(
+    () => ({
+      expandLabel: t('sections.expandSection'),
+      collapseLabel: t('sections.collapseSection'),
+    }),
+    [t]
+  );
   const isB2BCustomer = customerType === 'b2b';
   const defaultOutstandingPolicy: OutstandingPolicy = isRetailOnlyOrder
     ? 'NONE'
@@ -663,6 +679,7 @@ export function PaymentModalV4({
   const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerSelectorCardRef = useRef<HTMLDivElement | null>(null);
   const balanceSnapshotSectionRef = useRef<HTMLDivElement | null>(null);
+  const amountEditorSectionRef = useRef<HTMLDivElement | null>(null);
   const extraReceiptCardRef = useRef<HTMLDivElement | null>(null);
   const paymentWorkspaceSectionRef = useRef<HTMLDivElement | null>(null);
   const financialInspectorSectionRef = useRef<HTMLDivElement | null>(null);
@@ -1295,11 +1312,13 @@ export function PaymentModalV4({
   };
 
   const focusAmountEditor = useCallback(() => {
+    expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
     window.setTimeout(() => {
+      amountEditorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       amountInputRef.current?.focus();
       amountInputRef.current?.select();
     }, 50);
-  }, []);
+  }, [expandSection]);
 
   const removeLegAt = useCallback((idx: number) => {
     setIsDirtySinceOpen(true);
@@ -2943,10 +2962,13 @@ export function PaymentModalV4({
   );
 
   const scrollToWorkbenchSection = useCallback(
-    (sectionId: string) => {
+    (sectionId: PaymentModalSectionId) => {
+      expandSection(sectionId);
       const target =
         sectionId === PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT
           ? balanceSnapshotSectionRef.current
+          : sectionId === PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR
+            ? amountEditorSectionRef.current
           : sectionId === PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE
             ? paymentWorkspaceSectionRef.current
             : sectionId === PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS
@@ -2961,7 +2983,7 @@ export function PaymentModalV4({
 
       scrollAndFocusTarget(target);
     },
-    [scrollAndFocusTarget]
+    [expandSection, scrollAndFocusTarget]
   );
 
   const focusFirstBlockingIssue = useCallback(() => {
@@ -2981,12 +3003,18 @@ export function PaymentModalV4({
     }
 
     if (errors.amountDiscount?.message) {
-      scrollAndFocusTarget(amountDiscountInputRef.current, { selectText: true });
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS);
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountDiscountInputRef.current, { selectText: true });
+      }, 90);
       return;
     }
 
     if (errors.percentDiscount?.message) {
-      scrollAndFocusTarget(percentDiscountInputRef.current, { selectText: true });
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS);
+      window.setTimeout(() => {
+        scrollAndFocusTarget(percentDiscountInputRef.current, { selectText: true });
+      }, 90);
       return;
     }
 
@@ -2999,6 +3027,7 @@ export function PaymentModalV4({
     }
 
     if (overpaymentBlocksSubmit) {
+      expandSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT);
       scrollAndFocusTarget(extraReceiptCardRef.current);
       return;
     }
@@ -3013,6 +3042,7 @@ export function PaymentModalV4({
       if (refLegIndex >= 0) {
         setActiveLegIndex(refLegIndex);
       }
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       window.setTimeout(() => {
         scrollAndFocusTarget(amountInputRef.current, { selectText: true });
       }, 90);
@@ -3027,6 +3057,7 @@ export function PaymentModalV4({
         setActiveLegIndex(checkLegIndex);
         setValue('paymentMethod', PAYMENT_METHODS.CHECK, { shouldDirty: true });
       }
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       window.setTimeout(() => {
         scrollAndFocusTarget(checkNumberInputRef.current, { selectText: true });
       }, 90);
@@ -3044,6 +3075,7 @@ export function PaymentModalV4({
         setActiveLegIndex(checkLegIndex);
         setValue('paymentMethod', PAYMENT_METHODS.CHECK, { shouldDirty: true });
       }
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       window.setTimeout(() => {
         scrollAndFocusTarget(checkDateInputRef.current, { selectText: true });
       }, 90);
@@ -3052,6 +3084,7 @@ export function PaymentModalV4({
 
     if (terminalRequiredLegs.length > 0) {
       setActiveLegIndex(terminalRequiredLegs[0].index);
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       window.setTimeout(() => {
         scrollAndFocusTarget(amountInputRef.current);
       }, 90);
@@ -3060,6 +3093,7 @@ export function PaymentModalV4({
 
     if (creditNoteLegsMissingReference.length > 0) {
       setActiveLegIndex(creditNoteLegsMissingReference[0].index);
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       setPendingCreditNoteOption(
         customerCreditOptions.find((option) => option.payment_method_code === 'CREDIT_NOTE') ?? null
       );
@@ -3074,6 +3108,7 @@ export function PaymentModalV4({
       if (exceedLegIndex >= 0) {
         setActiveLegIndex(exceedLegIndex);
       }
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
       window.setTimeout(() => {
         scrollAndFocusTarget(amountInputRef.current, { selectText: true });
       }, 90);
@@ -3081,12 +3116,15 @@ export function PaymentModalV4({
     }
 
     if (cashDrawerBlockingMessage) {
-      scrollAndFocusTarget(cashDrawerCardRef.current);
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER);
       return;
     }
 
     if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
-      scrollAndFocusTarget(payOnCollectionPolicyButtonRef.current);
+      scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
+      window.setTimeout(() => {
+        scrollAndFocusTarget(payOnCollectionPolicyButtonRef.current);
+      }, 90);
       return;
     }
 
@@ -3126,6 +3164,7 @@ export function PaymentModalV4({
     terminalRequiredLegs,
     invalidImmediateAmount,
     overpaymentBlocksSubmit,
+    expandSection,
   ]);
 
   const handleBlockedSubmitAttempt = useCallback(() => {
@@ -3636,28 +3675,33 @@ export function PaymentModalV4({
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3 pt-3">
                 <div className="space-y-3">
-                  <div ref={balanceSnapshotSectionRef} tabIndex={-1} className="outline-none">
-                  <CmxCard className="overflow-hidden border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/60 shadow-sm">
-                    <CmxCardHeader className="border-b border-cyan-100 pb-3">
-                      <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                        <div>
-                          <CmxCardTitle className="text-sm text-cyan-900">
-                            {t('sections.sectionA')} · {t('sections.balanceSnapshot')}
-                          </CmxCardTitle>
-                          <p className="mt-1 text-xs text-slate-500">{t('sections.balanceSnapshotHelp')}</p>
-                        </div>
-                        <Badge variant="secondary" className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          unresolvedOverpaymentAmount > moneyEpsilon
-                            ? 'bg-rose-50 text-rose-700'
-                            : remainingBalance > moneyEpsilon
-                              ? 'bg-amber-50 text-amber-700'
-                              : 'bg-emerald-50 text-emerald-700'
-                        }`}>
-                          {allocationStatusLabel}
-                        </Badge>
-                      </div>
-                    </CmxCardHeader>
-                    <CmxCardContent className="pt-4">
+                  <PaymentWorkbenchSection
+                    sectionRef={balanceSnapshotSectionRef}
+                    sectionId={PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT}
+                    expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT)}
+                    collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT)}
+                    onToggle={toggleSection}
+                    cardClassName="border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/60"
+                    headerClassName="border-cyan-100"
+                    titleClassName="text-sm text-cyan-900"
+                    isRTL={isRTL}
+                    expandLabel={workbenchSectionToggleLabels.expandLabel}
+                    collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                    title={`${t('sections.sectionA')} · ${t('sections.balanceSnapshot')}`}
+                    description={t('sections.balanceSnapshotHelp')}
+                    headerAside={(
+                      <Badge variant="secondary" className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        unresolvedOverpaymentAmount > moneyEpsilon
+                          ? 'bg-rose-50 text-rose-700'
+                          : remainingBalance > moneyEpsilon
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                      }`}>
+                        {allocationStatusLabel}
+                      </Badge>
+                    )}
+                    contentClassName="pt-4"
+                  >
                       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                           <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
@@ -3680,9 +3724,7 @@ export function PaymentModalV4({
                           </p>
                         </div>
                       </div>
-                    </CmxCardContent>
-                  </CmxCard>
-                  </div>
+                  </PaymentWorkbenchSection>
 
                   {unresolvedOverpaymentAmount > moneyEpsilon ? (
                     <div ref={extraReceiptCardRef} tabIndex={-1} className="outline-none">
@@ -3719,27 +3761,33 @@ export function PaymentModalV4({
                   ) : (
                     <>
                       {showAmountEditorSection ? (
-                      <CmxCard className="overflow-hidden border-slate-200 bg-white shadow-sm">
-                        <CmxCardHeader className="border-b border-slate-100 pb-2">
-                          <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <CmxCardTitle className={`text-sm text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t('sections.sectionB')} · {t('sections.amountEditor')} · {activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : t('workspace.editingAmount')}
-                            </CmxCardTitle>
-                            {settlementLegEntries.length > 1 && (
-                              <CmxButton
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={cycleActiveLeg}
-                                className="rounded-xl border-slate-200 text-slate-700"
-                              >
-                                <ArrowRightLeft className="me-1 h-4 w-4" />
-                                {t('splitPayment.switchLeg')}
-                              </CmxButton>
-                            )}
-                          </div>
-                        </CmxCardHeader>
-                        <CmxCardContent className="grid gap-4 pt-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(360px,1.1fr)]">
+                      <PaymentWorkbenchSection
+                        sectionRef={amountEditorSectionRef}
+                        sectionId={PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR}
+                        expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR)}
+                        collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR)}
+                        onToggle={toggleSection}
+                        cardClassName="border-slate-200 bg-white"
+                        headerClassName="border-slate-100"
+                        titleClassName="text-sm text-slate-700"
+                        isRTL={isRTL}
+                        expandLabel={workbenchSectionToggleLabels.expandLabel}
+                        collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                        title={`${t('sections.sectionB')} · ${t('sections.amountEditor')} · ${activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : t('workspace.editingAmount')}`}
+                        headerAside={settlementLegEntries.length > 1 ? (
+                          <CmxButton
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={cycleActiveLeg}
+                            className="rounded-xl border-slate-200 text-slate-700"
+                          >
+                            <ArrowRightLeft className="me-1 h-4 w-4" />
+                            {t('splitPayment.switchLeg')}
+                          </CmxButton>
+                        ) : undefined}
+                        contentClassName="grid gap-4 pt-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(360px,1.1fr)]"
+                      >
                           <div className="space-y-3">
                             <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
                               <div className="flex min-w-[88px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-lg font-semibold text-cyan-700">
@@ -3871,29 +3919,34 @@ export function PaymentModalV4({
                               }}
                             />
                           </div>
-                        </CmxCardContent>
-                      </CmxCard>
+                        </PaymentWorkbenchSection>
                       ) : null}
 
-                      <div ref={paymentWorkspaceSectionRef} tabIndex={-1} className="outline-none">
-                      <CmxCard className="min-h-[360px] overflow-hidden border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/50 shadow-sm">
-                        <CmxCardHeader className="border-b border-cyan-100 pb-3">
-                          <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                            <div>
-                              <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                <Maximize2 className="h-4 w-4 text-cyan-700" />
-                                {t('sections.sectionC')} · {t('workspace.activeTitle')}
-                              </CmxCardTitle>
-                              <p className="mt-1 text-sm text-slate-600">{t('workspace.activeDescription')}</p>
-                            </div>
-                            {activeLeg ? (
-                              <Badge variant="secondary" className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700">
-                                {getOptionDisplayName(activeLegOption, activeLeg.method)}
-                              </Badge>
-                            ) : null}
-                          </div>
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-4 pt-4">
+                      <PaymentWorkbenchSection
+                        sectionRef={paymentWorkspaceSectionRef}
+                        sectionId={PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE}
+                        expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE)}
+                        collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE)}
+                        onToggle={toggleSection}
+                        cardClassName="min-h-[360px] border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/50"
+                        headerClassName="border-cyan-100"
+                        isRTL={isRTL}
+                        expandLabel={workbenchSectionToggleLabels.expandLabel}
+                        collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                        title={(
+                          <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Maximize2 className="h-4 w-4 text-cyan-700" />
+                            {t('sections.sectionC')} · {t('workspace.activeTitle')}
+                          </span>
+                        )}
+                        description={t('workspace.activeDescription')}
+                        headerAside={activeLeg ? (
+                          <Badge variant="secondary" className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700">
+                            {getOptionDisplayName(activeLegOption, activeLeg.method)}
+                          </Badge>
+                        ) : undefined}
+                        contentClassName="space-y-4 pt-4"
+                      >
                           {requiredActionCopy ? (
                             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
                               <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -4231,31 +4284,31 @@ export function PaymentModalV4({
                               </div>
                             </div>
                           )}
-                        </CmxCardContent>
-                      </CmxCard>
-                      </div>
+                      </PaymentWorkbenchSection>
                     </>
                   )}
 
                   {showDiscountsCreditsSection ? (
-                    <div ref={couponCardRef} tabIndex={-1} className="outline-none">
-                      <CmxCard className="overflow-hidden border-purple-100 bg-white/95 shadow-sm">
-                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-purple-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                          <div>
-                            <CmxCardTitle className="text-base text-slate-900">
-                              {t('sections.sectionE')} · {t('rightRail.adjustments')}
-                            </CmxCardTitle>
-                            <p className="mt-1 text-sm text-slate-600">
-                              {t('sections.discountsCreditsHelp')}
-                            </p>
-                          </div>
-                          {appliedBadgeCount > 0 ? (
-                            <Badge variant="secondary" className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
-                              {appliedBadgeCount}
-                            </Badge>
-                          ) : null}
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-5 pt-5">
+                    <PaymentWorkbenchSection
+                      sectionRef={couponCardRef}
+                      sectionId={PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS}
+                      expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS)}
+                      collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS)}
+                      onToggle={toggleSection}
+                      cardClassName="border-purple-100 bg-white/95"
+                      headerClassName="border-purple-100"
+                      isRTL={isRTL}
+                      expandLabel={workbenchSectionToggleLabels.expandLabel}
+                      collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                      title={`${t('sections.sectionE')} · ${t('rightRail.adjustments')}`}
+                      description={t('sections.discountsCreditsHelp')}
+                      headerAside={appliedBadgeCount > 0 ? (
+                        <Badge variant="secondary" className="rounded-full bg-purple-100 px-3 py-1 text-purple-700">
+                          {appliedBadgeCount}
+                        </Badge>
+                      ) : undefined}
+                      contentClassName="space-y-5 pt-5"
+                    >
                           <div className={`grid gap-4 ${showGiftCardWorkspace ? '' : 'xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]'}`}>
                             <div className="space-y-4">
                               <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -4572,41 +4625,45 @@ export function PaymentModalV4({
                               </div>
                             ) : null}
                           </div>
-                        </CmxCardContent>
-                      </CmxCard>
-                    </div>
+                    </PaymentWorkbenchSection>
                   ) : null}
 
                   {showCashDrawerWorkbenchSection ? (
-                    <div
-                      ref={(node) => {
+                    <PaymentWorkbenchSection
+                      sectionRef={(node) => {
                         cashDrawerCardRef.current = node;
                         cashDrawerSelectorCardRef.current = node;
                       }}
-                      tabIndex={-1}
-                      className="outline-none"
+                      sectionId={PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER}
+                      expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER)}
+                      collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER)}
+                      onToggle={toggleSection}
+                      cardClassName="border-cyan-200 bg-white/95"
+                      headerClassName="border-cyan-100"
+                      isRTL={isRTL}
+                      expandLabel={workbenchSectionToggleLabels.expandLabel}
+                      collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                      title={(
+                        <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <Banknote className="h-4 w-4 text-cyan-700" />
+                          {t('sections.sectionF')} · {t('sections.cashDrawer')}
+                        </span>
+                      )}
+                      description={t('cashDrawer.subtitle')}
+                      headerAside={(
+                        <Badge
+                          variant="secondary"
+                          className={`rounded-full px-3 py-1 ${
+                            selectedCashDrawerChoice
+                              ? 'bg-cyan-100 text-cyan-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
+                        </Badge>
+                      )}
+                      contentClassName="space-y-4 pt-5"
                     >
-                      <CmxCard className="overflow-hidden border-cyan-200 bg-white/95 shadow-sm">
-                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-cyan-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                          <div>
-                            <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              <Banknote className="h-4 w-4 text-cyan-700" />
-                              {t('sections.sectionF')} · {t('sections.cashDrawer')}
-                            </CmxCardTitle>
-                            <p className="mt-1 text-sm text-slate-600">{t('cashDrawer.subtitle')}</p>
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className={`rounded-full px-3 py-1 ${
-                              selectedCashDrawerChoice
-                                ? 'bg-cyan-100 text-cyan-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}
-                          >
-                            {selectedCashDrawerChoice ? t('cashDrawer.boundBadge') : t('cashDrawer.pendingBadge')}
-                          </Badge>
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-4 pt-5">
                           {cashDrawersLoading ? (
                             <div className="grid gap-3 md:grid-cols-2">
                               <CmxSkeleton className="h-20 w-full" />
@@ -4743,25 +4800,29 @@ export function PaymentModalV4({
                               </div>
                             </>
                           )}
-                        </CmxCardContent>
-                      </CmxCard>
-                    </div>
+                    </PaymentWorkbenchSection>
                   ) : null}
 
-                  <div ref={financialInspectorSectionRef} tabIndex={-1} className="outline-none">
-                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                      <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                        <div>
-                          <CmxCardTitle className="text-base text-slate-900">
-                            {t('sections.sectionG')} · {t('sections.financialInspector')}
-                          </CmxCardTitle>
-                          <p className="mt-1 text-sm text-slate-600">{t('sections.financialInspectorHelp')}</p>
-                        </div>
-                        <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-                          {inspectorTabIds.length}
-                        </Badge>
-                      </CmxCardHeader>
-                      <CmxCardContent className="pt-0">
+                  <PaymentWorkbenchSection
+                    sectionRef={financialInspectorSectionRef}
+                    sectionId={PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR}
+                    expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR)}
+                    collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR)}
+                    onToggle={toggleSection}
+                    cardClassName="border-slate-200 bg-white/95"
+                    headerClassName="border-slate-100"
+                    isRTL={isRTL}
+                    expandLabel={workbenchSectionToggleLabels.expandLabel}
+                    collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                    title={`${t('sections.sectionG')} · ${t('sections.financialInspector')}`}
+                    description={t('sections.financialInspectorHelp')}
+                    headerAside={(
+                      <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                        {inspectorTabIds.length}
+                      </Badge>
+                    )}
+                    contentClassName="pt-0"
+                  >
                         <CmxTabsPanel
                           tabs={[
                             {
@@ -4964,23 +5025,29 @@ export function PaymentModalV4({
                             },
                           ] satisfies CmxTabItem[]}
                         />
-                      </CmxCardContent>
-                    </CmxCard>
-                  </div>
+                  </PaymentWorkbenchSection>
 
                   {showBalancePolicySection ? (
-                    <div ref={balancePolicySectionRef} tabIndex={-1} className="outline-none">
-                      <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                        <CmxCardHeader className={`flex-row items-start justify-between gap-3 border-b border-slate-100 pb-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                          <div>
-                            <CmxCardTitle className={`flex items-center gap-2 text-base text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              {t('sections.sectionD')} · {t('rightRail.balancePolicy')}
-                              <Info className="h-4 w-4 text-slate-400" />
-                            </CmxCardTitle>
-                            <p className="mt-1 text-sm text-slate-600">{t('rightRail.balancePolicyHelp')}</p>
-                          </div>
-                        </CmxCardHeader>
-                        <CmxCardContent className="space-y-3 pt-5">
+                    <PaymentWorkbenchSection
+                      sectionRef={balancePolicySectionRef}
+                      sectionId={PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY}
+                      expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY)}
+                      collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY)}
+                      onToggle={toggleSection}
+                      cardClassName="border-slate-200 bg-white/95"
+                      headerClassName="border-slate-100"
+                      isRTL={isRTL}
+                      expandLabel={workbenchSectionToggleLabels.expandLabel}
+                      collapseLabel={workbenchSectionToggleLabels.collapseLabel}
+                      title={(
+                        <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          {t('sections.sectionD')} · {t('rightRail.balancePolicy')}
+                          <Info className="h-4 w-4 text-slate-400" />
+                        </span>
+                      )}
+                      description={t('rightRail.balancePolicyHelp')}
+                      contentClassName="space-y-3 pt-5"
+                    >
                           {([
                             {
                               policy: 'NONE' as OutstandingPolicy,
@@ -5016,9 +5083,7 @@ export function PaymentModalV4({
                               </div>
                             </CmxButton>
                           ))}
-                        </CmxCardContent>
-                      </CmxCard>
-                    </div>
+                    </PaymentWorkbenchSection>
                   ) : null}
                 </div>
                     </CmxCardContent>

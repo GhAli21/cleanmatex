@@ -134,7 +134,7 @@ await fetch('https://your-domain.com/api/notifications/push-subscription', {
 ```sql
 -- Check subscriptions registered
 SELECT user_id, device_id, platform, is_active, last_verified_at
-FROM org_notif_push_subs_dtl
+FROM org_ntf_push_subs_dtl
 WHERE provider_code = 'ONESIGNAL' AND is_active = true
 ORDER BY last_verified_at DESC;
 ```

@@ -53,8 +53,8 @@ Migration `0053_notifications_tables.sql` already provides:
 
 | Table | What's There | Action |
 |---|---|---|
-| `sys_notification_type_cd` | 12 notification types (ORDER_READY, PAYMENT_RECEIVED, etc.) | **Keep as-is.** The PRD's `sys_notification_events_cd` is additive and more granular — coexists. |
-| `sys_notification_channel_cd` | 5 channels seeded: EMAIL, SMS, WHATSAPP, PUSH, IN_APP | **Keep as-is.** New migration adds WEB_SOCKET channel via INSERT only (no schema change needed — same table). |
+| `sys_ntf_type_cd` | 12 notification types (ORDER_READY, PAYMENT_RECEIVED, etc.) | **Keep as-is.** The PRD's `sys_notification_events_cd` is additive and more granular — coexists. |
+| `sys_ntf_channel_cd` | 5 channels seeded: EMAIL, SMS, WHATSAPP, PUSH, IN_APP | **Keep as-is.** New migration adds WEB_SOCKET channel via INSERT only (no schema change needed — same table). |
 
 The new schema introduces a parallel, more granular event catalog (`sys_notification_events_cd`) alongside the existing type-based system. These coexist: the simple type codes are for legacy/simple lookups; the event catalog is for the hub's routing engine.
 
@@ -82,11 +82,11 @@ All new table names verified ≤ 30 characters. Abbreviation rule: `notification
 | `org_notifications_mst` | 21 | ✓ New in 0348 |
 | `org_notification_outbox_dtl` | 27 | ✓ New in 0348 |
 | `org_notif_delivery_log_dtl` | 26 | ✓ New in 0348 |
-| `org_notification_campaigns_mst` | 30 | ✓ New in 0349 |
-| `org_notif_campaign_targets_dtl` | 30 | ✓ New in 0349 |
-| `org_notification_usage_daily` | 28 | ✓ New in 0349 |
-| `org_notification_audit_dtl` | 26 | ✓ New in 0349 |
-| `org_notif_push_subs_dtl` | 23 | ✓ New in 0351 (Phase 3) — provider-agnostic |
+| `org_ntf_campaigns_mst` | 30 | ✓ New in 0349 |
+| `org_ntf_camp_targets_dtl` | 30 | ✓ New in 0349 |
+| `org_ntf_usage_daily` | 28 | ✓ New in 0349 |
+| `org_ntf_audit_dtl` | 26 | ✓ New in 0349 |
+| `org_ntf_push_subs_dtl` | 23 | ✓ New in 0351 (Phase 3) — provider-agnostic |
 | `org_ntf_channel_provider_cf` | 28 | ✓ New in 0352 (Phase 3) — provider config |
 
 ---
@@ -96,11 +96,11 @@ All new table names verified ≤ 30 characters. Abbreviation rule: `notification
 These bugs exist in the PRD's reference SQL (`019_notification_schema.sql`) and MUST be corrected in the actual migrations:
 
 ### Bug 1 — Invalid PK with COALESCE expression
-**Affected:** `org_notification_usage_daily`  
+**Affected:** `org_ntf_usage_daily`  
 **PRD (wrong):** `PRIMARY KEY (tenant_org_id, channel_code, usage_date, coalesce(provider_code,''))`  
 **Fix:**
 ```sql
-CREATE TABLE org_notification_usage_daily (
+CREATE TABLE org_ntf_usage_daily (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,  -- surrogate PK
   tenant_org_id UUID NOT NULL,
   channel_code TEXT NOT NULL,
@@ -117,7 +117,7 @@ Note: PostgreSQL does NOT allow expression columns in primary keys. Surrogate UU
 Fixed in Section 4 above. Using `notif` abbreviation consistently.
 
 ### Bug 3 — Push tokens table was FCM-only (resolved)
-The PRD had no push token table. Replaced FCM-only design with provider-agnostic `org_notif_push_subs_dtl`
+The PRD had no push token table. Replaced FCM-only design with provider-agnostic `org_ntf_push_subs_dtl`
 (migration 0351) + `org_ntf_channel_provider_cf` (migration 0352). Active provider selected per channel
 via config table; subscription_data JSONB shape varies by provider (VAPID/FCM/OneSignal).
 
@@ -140,14 +140,14 @@ branch_id UUID REFERENCES org_branches_mst(id) -- NULL = applies to all branches
 
 | Seq | File | Contents | Phase |
 |---|---|---|---|
-| 0344 | `notif_catalog_schema` | `sys_notif_categories_cd`, `sys_notification_events_cd`, event-channel default mappings table, WEB_SOCKET channel row in `sys_notification_channel_cd` | 1 |
+| 0344 | `notif_catalog_schema` | `sys_notif_categories_cd`, `sys_notification_events_cd`, event-channel default mappings table, WEB_SOCKET channel row in `sys_ntf_channel_cd` | 1 |
 | 0345 | `notif_catalog_seed` | All 27 categories + 116 events seeded. Keep separate for re-seedability. | 1 |
 | 0346 | `notif_templates_schema` | `sys_ntf_providers_cd`, `sys_notification_templates_mst`, `sys_notif_template_ver_dtl`, `sys_notif_template_chan_dtl`. No provider secrets in DB. | 1 |
 | 0347 | `notif_tenant_settings` | `org_notification_settings_cf`, `org_notif_user_prefs_dtl` (with `branch_id`). RLS on all org_* tables. | 1 |
 | 0348 | `notif_runtime_tables` | `org_notifications_mst`, `org_notification_outbox_dtl`, `org_notif_delivery_log_dtl`. RLS. Realtime enabled on `org_notifications_mst`. Indexes. | 1 |
 | 0349 | `notif_permissions_seed` | Permission codes for notification hub. All in one dedicated migration. | 1 |
 | 0350 | `notif_outbox_cron` | pg_cron + pg_net outbox processor job (every 1 min) + retry sweep (every 5 min). ✅ Applied. | 2 |
-| 0351 | `notif_push_subscriptions` | `org_notif_push_subs_dtl`: provider-agnostic push subscription registry (VAPID/FCM/OneSignal). RLS. | 3 |
+| 0351 | `notif_push_subscriptions` | `org_ntf_push_subs_dtl`: provider-agnostic push subscription registry (VAPID/FCM/OneSignal). RLS. | 3 |
 | 0352 | `notif_channel_provider_cf` | `org_ntf_channel_provider_cf`: per-tenant channel→provider mapping; exactly one active provider per channel. RLS. | 3 |
 | 0353+ | (future) | Campaign tables (Phase 4), nav dual-write cleanup, WhatsApp webhooks. | 4 |
 
@@ -442,7 +442,7 @@ web-admin server action / route handler
 #### Deliverables
 
 **DB:**
-- [ ] Migration 0351: `org_notif_push_subs_dtl` — provider-agnostic push subscription table (VAPID/FCM/OneSignal). RLS.
+- [ ] Migration 0351: `org_ntf_push_subs_dtl` — provider-agnostic push subscription table (VAPID/FCM/OneSignal). RLS.
 - [ ] Migration 0352: `org_ntf_channel_provider_cf` — per-tenant channel→provider config. Exactly one active provider per (tenant, channel). RLS.
 
 **Settings Service (source of truth):**
@@ -502,7 +502,7 @@ web-admin server action / route handler
 #### Deliverables
 
 **DB:**
-- [ ] Migration 0350: `org_notification_campaigns_mst`, `org_notif_campaign_targets_dtl`, `org_notification_usage_daily` (fixed PK: surrogate UUID + unique index), `org_notification_audit_dtl`. RLS on all.
+- [ ] Migration 0350: `org_ntf_campaigns_mst`, `org_ntf_camp_targets_dtl`, `org_ntf_usage_daily` (fixed PK: surrogate UUID + unique index), `org_ntf_audit_dtl`. RLS on all.
 - [ ] Campaign state machine: DRAFT → PENDING_APPROVAL → APPROVED → SCHEDULED → RUNNING → COMPLETED; PAUSED; FAILED; CANCELLED
 
 **API routes:**
@@ -590,7 +590,7 @@ These must be formally documented in `docs/dev/rules/integration-contracts.md` b
 | Supabase Realtime RLS not filtering correctly | MEDIUM | Test isolation: two different tenants must not see each other's notifications. Write isolation test before Phase 1 ships. |
 | FCM token expiry without silent failure logging | MEDIUM | Mark `is_active = false` + log failure. Weekly cleanup job. Never retry token with failure_count > 3. |
 | Provider secrets exposed in logs | HIGH | Adapters must never log full API keys. Use masked logging (`sk-****${last4}`). |
-| Outbox table grows unbounded | MEDIUM | Add pg_cron job: archive rows older than 90 days in SENT/DELIVERED status to `org_notification_audit_dtl`. |
+| Outbox table grows unbounded | MEDIUM | Add pg_cron job: archive rows older than 90 days in SENT/DELIVERED status to `org_ntf_audit_dtl`. |
 | URGENT/CRITICAL notifications delayed by quiet hours | HIGH | Quiet hours bypass is enforced before scheduling. Priority enum comparison: `CRITICAL > URGENT > HIGH > NORMAL > LOW`. |
 | Marketing consent missing for new customers | MEDIUM | Consent defaults to `false`. All marketing events check consent before writing outbox. |
 
@@ -626,6 +626,8 @@ At the end of Phase 1, these MUST work in the browser:
 | HQ Phase A — Template Mgmt | ⏳ Not started | — |
 | HQ Phase B — Provider Config API | ⏳ Not started | — |
 | HQ Phase C — Broadcast Center | ⏳ Not started | — |
+
+**HQ Phases Plan:** [HQ_PHASES_PLAN.md](./HQ_PHASES_PLAN.md) — detailed step-by-step plan for Phases A, B, C (cleanmatexsaas). Start with Phase B.
 
 ---
 

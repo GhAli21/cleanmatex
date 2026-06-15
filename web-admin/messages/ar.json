@@ -5570,7 +5570,9 @@
         "financialInspector": "مراجع التفاصيل المالية",
         "financialInspectorHelp": "راجع قيمة الطلب والضرائب والخصومات والتنبيهات وتفاصيل الذمم والملاحظات بدون تمرير لوحة الإيصال.",
         "balancePolicy": "سياسة الرصيد",
-        "shortcuts": "اختصارات مساحة العمل"
+        "shortcuts": "اختصارات مساحة العمل",
+        "expandSection": "توسيع القسم",
+        "collapseSection": "طي القسم"
       },
       "orderValue": {
         "grossValue": "القيمة الإجمالية",

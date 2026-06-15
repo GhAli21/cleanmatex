@@ -32,7 +32,7 @@ Apply migrations **in strict order**. Never skip a migration. Never apply out of
 | 0348 | `notif_runtime_tables.sql` | Inbox + outbox + delivery log + Realtime | 1 |
 | 0349 | `ntf_permissions_and_nav.sql` | Permissions seed + sys_components_cd nav | 1 |
 | 0350 | `ntf_outbox_cron.sql` | pg_cron + pg_net outbox processor + retry jobs | 2 |
-| 0351 | `notif_push_subscriptions.sql` | org_notif_push_subs_dtl + RLS | 3 |
+| 0351 | `notif_push_subscriptions.sql` | org_ntf_push_subs_dtl + RLS | 3 |
 | 0352 | `notif_channel_provider_cf.sql` | org_ntf_channel_provider_cf + provider seeds | 3 |
 | 0353 | `notif_push_sweep_cron.sql` | Weekly push subscription stale sweep | 3 |
 | 0355 | `ntf_config_table_cron_fix.sql` | sys_ntf_runtime_cf + cron GUC workaround | 3 |

@@ -219,28 +219,3 @@ TWILIO_AUTH_TOKEN=<Twilio auth token>
 4. HQ Phase C (cleanmatexsaas) — Broadcast Center
 5. Campaign quota enforcement — integrate cleanmatexsaas quota API in process-campaigns route
 6. Event wiring — wire remaining order/payment events from the event catalog (see PLAN.md Step 2.7)
-
----
-
-## 2026-06-15 — Table Naming Unification (migration 0364)
-
-**Status:** COMPLETE
-
-### What changed
-
-All 7 notification tables with inconsistent abbreviations renamed to the `_ntf_` standard:
-
-| Old name | New name |
-|---|---|
-| `org_notif_push_subs_dtl` | `org_ntf_push_subs_dtl` |
-| `org_notif_campaign_targets_dtl` | `org_ntf_camp_targets_dtl` |
-| `org_notification_campaigns_mst` | `org_ntf_campaigns_mst` |
-| `org_notification_audit_dtl` | `org_ntf_audit_dtl` |
-| `org_notification_usage_daily` | `org_ntf_usage_daily` |
-| `sys_notification_channel_cd` | `sys_ntf_channel_cd` |
-| `sys_notification_type_cd` | `sys_ntf_type_cd` |
-
-9 indexes and 1 RLS policy also renamed. Sweep function recreated.
-All TypeScript string literals updated. Prisma schema updated. Build green.
-
-**Next migration seq:** 0365

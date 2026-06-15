@@ -42,7 +42,7 @@ Run migrations in order. **Never skip, never re-apply an already-applied migrati
 
 Verify with:
 ```sql
-SELECT code FROM sys_notification_channel_cd ORDER BY code;
+SELECT code FROM sys_ntf_channel_cd ORDER BY code;
 -- Expected: EMAIL, IN_APP, PUSH, SMS, WEB_SOCKET, WHATSAPP
 
 SELECT code FROM sys_ntf_providers_cd ORDER BY display_order;
@@ -406,7 +406,7 @@ LIMIT 20;
 When the outbox processor dispatches a row:
 
 1. **SMS / WHATSAPP:** calls `notificationSettingsService.getActiveProvider(tenantOrgId, channel)` → reads `org_ntf_channel_provider_cf` (cached 30s) → dispatches to the active provider sub-adapter
-2. **PUSH:** reads active provider → fetches all active subscriptions from `org_notif_push_subs_dtl` where `provider_code = active.providerCode` → fans out to each subscription → records failure_count on errors
+2. **PUSH:** reads active provider → fetches all active subscriptions from `org_ntf_push_subs_dtl` where `provider_code = active.providerCode` → fans out to each subscription → records failure_count on errors
 3. **EMAIL:** always uses Resend (`RESEND_API_KEY`)
 4. **IN_APP:** written directly to `org_ntf_inbox_mst` by the orchestrator — not via outbox
 

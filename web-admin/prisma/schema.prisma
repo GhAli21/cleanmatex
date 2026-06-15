@@ -4271,7 +4271,7 @@ model sys_metric_type_cd {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model sys_notification_channel_cd {
+model sys_ntf_channel_cd {
   code                   String    @id @db.VarChar(50)
   name                   String    @db.VarChar(250)
   name2                  String?   @db.VarChar(250)
@@ -4302,13 +4302,13 @@ model sys_notification_channel_cd {
   rec_order              Int?
   rec_notes              String?
 
-  @@index([is_active, display_order], map: "idx_notification_channel_active")
-  @@index([channel_type, is_active], map: "idx_notification_channel_type")
+  @@index([is_active, display_order], map: "idx_ntf_channel_active")
+  @@index([channel_type, is_active], map: "idx_ntf_channel_type")
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model sys_notification_type_cd {
+model sys_ntf_type_cd {
   code                  String    @id @db.VarChar(50)
   name                  String    @db.VarChar(250)
   name2                 String?   @db.VarChar(250)
@@ -4338,9 +4338,9 @@ model sys_notification_type_cd {
   rec_order             Int?
   rec_notes             String?
 
-  @@index([is_active, display_order], map: "idx_notification_type_active")
-  @@index([notification_category, is_active], map: "idx_notification_type_category")
-  @@index([priority, is_active], map: "idx_notification_type_priority")
+  @@index([is_active, display_order], map: "idx_ntf_type_active")
+  @@index([notification_category, is_active], map: "idx_ntf_type_category")
+  @@index([priority, is_active], map: "idx_ntf_type_priority")
   @@schema("public")
 }
 

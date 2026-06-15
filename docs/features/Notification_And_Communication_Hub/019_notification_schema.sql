@@ -362,7 +362,7 @@ create table if not exists public.org_notification_campaign_recipients (
   constraint chk_campaign_recipient_status check (status in ('PENDING','QUEUED','SENT','OPENED','CLICKED','CONVERTED','FAILED','SKIPPED','UNSUBSCRIBED'))
 );
 
-create table if not exists public.org_notification_usage_daily (
+create table if not exists public.org_ntf_usage_daily (
   tenant_org_id uuid not null,
   usage_date date not null,
   channel_code text not null,
@@ -378,8 +378,8 @@ create table if not exists public.org_notification_usage_daily (
 );
 
 -- The primary key above with coalesce is not valid PostgreSQL syntax for PK. Use this unique index instead.
-alter table if exists public.org_notification_usage_daily drop constraint if exists org_notification_usage_daily_pkey;
-create unique index if not exists uq_org_notification_usage_daily on public.org_notification_usage_daily(tenant_org_id, usage_date, channel_code, coalesce(provider_code,''));
+alter table if exists public.org_ntf_usage_daily drop constraint if exists org_ntf_usage_daily_pkey;
+create unique index if not exists uq_org_ntf_usage_daily on public.org_ntf_usage_daily(tenant_org_id, usage_date, channel_code, coalesce(provider_code,''));
 
 create table if not exists public.org_notification_audit (
   audit_id uuid primary key default gen_random_uuid(),
@@ -409,7 +409,7 @@ alter table public.org_notification_outbox enable row level security;
 alter table public.org_notification_delivery_log enable row level security;
 alter table public.org_notification_campaigns enable row level security;
 alter table public.org_notification_campaign_recipients enable row level security;
-alter table public.org_notification_usage_daily enable row level security;
+alter table public.org_ntf_usage_daily enable row level security;
 alter table public.org_notification_audit enable row level security;
 
 -- Example RLS policy template:

@@ -214,7 +214,7 @@ SELECT fallback_destination FROM sys_fin_rcpt_fb_dest_cd WHERE is_active;
 
 ```sql
 SELECT id, branch_id, status, opened_at
-FROM org_cash_drawer_sessions_tr
+FROM org_cash_drawer_sessions_mst
 WHERE tenant_org_id = '<TENANT_ID>'
   AND status = 'OPEN'
 ORDER BY opened_at DESC

@@ -25,7 +25,7 @@ export async function GET(
 
   // Fetch campaign header
   const { data: campaign, error: campaignError } = await supabase
-    .from('org_notification_campaigns_mst')
+    .from('org_ntf_campaigns_mst')
     .select('*')
     .eq('id', id)
     .eq('tenant_org_id', tenantId)
@@ -44,7 +44,7 @@ export async function GET(
 
   // Fetch delivery stats breakdown (status counts for targets)
   const { data: targetStats } = await supabase
-    .from('org_notif_campaign_targets_dtl')
+    .from('org_ntf_camp_targets_dtl')
     .select('status')
     .eq('campaign_id', id)
     .eq('tenant_org_id', tenantId)
@@ -56,7 +56,7 @@ export async function GET(
 
   // Fetch a sample of recent failed/skipped targets for diagnostics (max 10)
   const { data: failedSample } = await supabase
-    .from('org_notif_campaign_targets_dtl')
+    .from('org_ntf_camp_targets_dtl')
     .select('id, recipient_address, status, skip_reason, processed_at')
     .eq('campaign_id', id)
     .eq('tenant_org_id', tenantId)
