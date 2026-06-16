@@ -92,10 +92,76 @@ async function recordSuccess(
 }
 
 // ---------------------------------------------------------------------------
+// HQ Dispatch Proxy path
+// ---------------------------------------------------------------------------
+
+async function deliverViaHqProxy(row: OutboxPushRow): Promise<PushDeliveryResult> {
+  const hqUrl = process.env.NTF_HQ_DISPATCH_URL ?? 'http://localhost:3002/api/hq/v1/notifications/dispatch'
+  const hqKey = process.env.NTF_HQ_SERVICE_ROLE_KEY ?? ''
+
+  if (!hqKey) {
+    logger.error('push-adapter: NTF_HQ_SERVICE_ROLE_KEY not set', undefined, {
+      outboxId: row.id, feature: 'notifications',
+    })
+    return { success: false, sentCount: 0, skippedCount: 0, errorMessage: 'NTF_HQ_SERVICE_ROLE_KEY not configured' }
+  }
+
+  if (!row.recipient_user_id) {
+    return { success: false, sentCount: 0, skippedCount: 0, errorMessage: 'No recipient_user_id for PUSH channel' }
+  }
+
+  const body = JSON.stringify({
+    idempotencyKey: row.id,
+    tenantOrgId:    row.tenant_org_id,
+    channel:        'PUSH',
+    recipient:      row.recipient_user_id,
+    payload:        {
+      title: row.rendered_subject ?? 'CleanMateX',
+      body:  row.rendered_body,
+      data:  { outbox_id: row.id, event_code: row.event_code ?? '' },
+    },
+    requestId: row.id,
+  })
+
+  try {
+    const res = await fetch(hqUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hqKey}` },
+      body,
+      signal: AbortSignal.timeout(30_000),
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      logger.warn('push-adapter: HQ proxy non-OK', { outboxId: row.id, status: res.status, feature: 'notifications' })
+      return { success: false, sentCount: 0, skippedCount: 1, errorMessage: `HQ proxy HTTP ${res.status}: ${text}` }
+    }
+
+    const data = await res.json().catch(() => ({})) as { status?: string; sentCount?: number; skippedCount?: number }
+    const wasFailed = data.status === 'PERMANENT_FAILURE' || data.status === 'FAILED'
+    return {
+      success: !wasFailed,
+      sentCount:    data.sentCount    ?? (wasFailed ? 0 : 1),
+      skippedCount: data.skippedCount ?? (wasFailed ? 1 : 0),
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    logger.error('push-adapter: HQ proxy fetch threw', err instanceof Error ? err : new Error(msg), {
+      outboxId: row.id, feature: 'notifications',
+    })
+    return { success: false, sentCount: 0, skippedCount: 1, errorMessage: msg }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main adapter
 // ---------------------------------------------------------------------------
 
 export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliveryResult> {
+  if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
+    return deliverViaHqProxy(row)
+  }
+
   if (!row.recipient_user_id) {
     return { success: false, sentCount: 0, skippedCount: 0, errorMessage: 'No recipient_user_id for PUSH channel' }
   }

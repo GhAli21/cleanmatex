@@ -41,6 +41,45 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllFeatureFlags: true,
         },
       },
+      payExtraAllocateOverpayment: {
+        label: 'Pay extra: auto / manual allocate excess',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+        notes: ['Payment Modal V4 → Validate payment → Extra Receipt dialog.'],
+      },
+      payExtraSaveToWallet: {
+        label: 'Pay extra: save excess to customer wallet',
+        requirement: {
+          permissions: ['orders:overpayment_to_wallet'],
+          requireAllPermissions: true,
+        },
+        notes: ['Requires linked customer on the order.'],
+      },
+      payExtraSaveAsAdvance: {
+        label: 'Pay extra: save excess as customer advance',
+        requirement: {
+          permissions: ['orders:overpayment_to_advance'],
+          requireAllPermissions: true,
+        },
+        notes: ['Also granted by orders:overpayment_dispose in the payment UI.'],
+      },
+      payExtraSaveAsCredit: {
+        label: 'Pay extra: save excess as customer credit',
+        requirement: {
+          permissions: ['orders:overpayment_to_credit'],
+          requireAllPermissions: true,
+        },
+        notes: ['Also granted by orders:overpayment_dispose or orders:overpayment_to_credit_note.'],
+      },
+      payExtraDisposeOverpayment: {
+        label: 'Pay extra: dispose excess (advance / credit umbrella)',
+        requirement: {
+          permissions: ['orders:overpayment_dispose'],
+          requireAllPermissions: true,
+        },
+      },
     },
     apiDependencies: [
       {
@@ -135,6 +174,24 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/products',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Preview auto receipt allocation',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/preview-auto',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Confirm receipt allocation',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/post',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: ORDER_NOTES,

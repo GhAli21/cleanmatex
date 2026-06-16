@@ -6,7 +6,7 @@
  * @module ui/navigation
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -20,6 +20,8 @@ import {
   type AccessRequirement,
 } from '@/lib/auth/access-contracts'
 import { getAllPageAccessContracts, getPageAccessContractByPath } from '@features/access/page-access-registry'
+import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog'
+import { CmxInput } from '@ui/primitives'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { NotificationBell } from '@features/notifications/ui/notification-bell'
@@ -162,8 +164,29 @@ export default function CmxTopBar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
-  const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api' | 'flags'>('ui')
+  const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api' | 'flags' | 'all'>('ui')
+  const [permissionSearchQuery, setPermissionSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const overpaymentPermissionCodes = useMemo(
+    () => Object.values(OVERPAYMENT_RESOLUTION_PERMISSIONS),
+    []
+  )
+
+  const normalizedPermissionSearch = permissionSearchQuery.trim().toLowerCase()
+
+  const filteredUserPermissions = useMemo(() => {
+    const sorted = [...(permissions ?? [])].sort()
+    if (!normalizedPermissionSearch) return sorted
+    return sorted.filter((code) => code.toLowerCase().includes(normalizedPermissionSearch))
+  }, [normalizedPermissionSearch, permissions])
+
+  const filteredOverpaymentPermissions = useMemo(() => {
+    if (!normalizedPermissionSearch) return overpaymentPermissionCodes
+    return overpaymentPermissionCodes.filter((code) =>
+      code.toLowerCase().includes(normalizedPermissionSearch)
+    )
+  }, [normalizedPermissionSearch, overpaymentPermissionCodes])
 
   const handleRefreshAll = async () => {
     setIsRefreshing(true)
@@ -258,6 +281,7 @@ export default function CmxTopBar() {
               type="button"
               onClick={() => {
                 setActiveInspectorTab('ui')
+                setPermissionSearchQuery('')
                 setShowPermsDialog(true)
               }}
               title="Debug: Show My Permissions"
@@ -357,7 +381,7 @@ export default function CmxTopBar() {
       </div>
 
       {showPermsDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPermsDialog(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setShowPermsDialog(false); setPermissionSearchQuery('') }}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
@@ -381,14 +405,25 @@ export default function CmxTopBar() {
               </div>
             </div>
 
+            <div className="border-b border-gray-200 px-5 py-3">
+              <CmxInput
+                type="search"
+                value={permissionSearchQuery}
+                onChange={(event) => setPermissionSearchQuery(event.target.value)}
+                placeholder={t('permissionsDialog.searchPlaceholder')}
+                aria-label={t('permissionsDialog.searchPlaceholder')}
+                className="h-9"
+              />
+            </div>
+
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-blue-600" />
-                    <h3 className="text-sm font-semibold text-gray-900">Current Page Access</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">{t('permissionsDialog.currentPageAccess')}</h3>
                   </div>
-                  <div className="inline-flex rounded-md border border-gray-200 bg-white p-1">
+                  <div className="inline-flex flex-wrap rounded-md border border-gray-200 bg-white p-1">
                     <button
                       type="button"
                       onClick={() => setActiveInspectorTab('ui')}
@@ -398,7 +433,7 @@ export default function CmxTopBar() {
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      UI Access
+                      {t('permissionsDialog.uiAccessTab')}
                     </button>
                     <button
                       type="button"
@@ -422,10 +457,78 @@ export default function CmxTopBar() {
                     >
                       {t('permissionsDialog.featureFlagsTab')}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveInspectorTab('all')}
+                      className={`rounded px-3 py-1 text-xs font-medium ${
+                        activeInspectorTab === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {t('permissionsDialog.allPermissionsTab')}
+                    </button>
                   </div>
                 </div>
 
-                {currentPageContract && pageEvaluation ? (
+                {activeInspectorTab === 'all' ? (
+                  <div className="space-y-4">
+                    <p className="text-xs text-gray-600">{t('permissionsDialog.allPermissionsHelp')}</p>
+
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        {t('permissionsDialog.overpaymentGroupTitle')}
+                      </h4>
+                      {filteredOverpaymentPermissions.length === 0 ? (
+                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                          {t('permissionsDialog.noSearchResults')}
+                        </p>
+                      ) : (
+                        filteredOverpaymentPermissions.map((permissionCode) => {
+                          const granted = (permissions ?? []).includes(permissionCode)
+                          return (
+                            <div
+                              key={permissionCode}
+                              className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2"
+                            >
+                              <p className="break-all text-xs font-mono text-gray-700">{permissionCode}</p>
+                              <RequirementBadge
+                                passed={granted}
+                                label={granted ? t('permissionsDialog.granted') : t('permissionsDialog.missing')}
+                              />
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    <div className="space-y-2 border-t border-gray-200 pt-4">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        {t('permissionsDialog.allGrantedTitle')}
+                      </h4>
+                      {(permissions ?? []).length === 0 ? (
+                        <p className="rounded-md bg-white px-3 py-2 text-xs text-red-600">
+                          {t('permissionsDialog.noPermissionsLoaded')}
+                        </p>
+                      ) : filteredUserPermissions.length === 0 ? (
+                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                          {t('permissionsDialog.noSearchResults')}
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {filteredUserPermissions.map((permissionCode) => (
+                            <span
+                              key={permissionCode}
+                              className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                            >
+                              {permissionCode}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : currentPageContract && pageEvaluation ? (
                   activeInspectorTab === 'ui' ? (
                     <div className="space-y-4">
                       <div className="space-y-1 text-sm text-gray-700">
@@ -453,7 +556,21 @@ export default function CmxTopBar() {
                           <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                             Actions
                           </h4>
-                          {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
+                          {Object.entries(currentPageContract.actions)
+                            .filter(([actionKey, action]) => {
+                              if (!normalizedPermissionSearch) return true
+                              const haystack = [
+                                actionKey,
+                                action.label,
+                                ...(action.requirement.permissions ?? []),
+                                ...(action.requirement.featureFlags ?? []),
+                                ...(action.notes ?? []),
+                              ]
+                                .join(' ')
+                                .toLowerCase()
+                              return haystack.includes(normalizedPermissionSearch)
+                            })
+                            .map(([actionKey, action]) => {
                             const actionEvaluation = evaluateAccessRequirement(action.requirement, {
                               userPermissions: permissions ?? [],
                               userWorkflowRoles: workflowRoles ?? [],
@@ -511,31 +628,55 @@ export default function CmxTopBar() {
                         </p>
                       </div>
 
-                      {currentPageContract.apiDependencies?.length ? (
-                        <div className="space-y-3">
-                          {currentPageContract.apiDependencies.map((dependency) => {
-                            const apiEvaluation = evaluateAccessRequirement(dependency.requirement, {
-                              userPermissions: permissions ?? [],
-                              userWorkflowRoles: workflowRoles ?? [],
-                              userTenantRole: currentTenant?.user_role ?? null,
-                              featureFlags,
-                            })
+                      {(() => {
+                        const filteredApiDependencies = (currentPageContract.apiDependencies ?? []).filter(
+                          (dependency) => {
+                            if (!normalizedPermissionSearch) return true
+                            const haystack = [
+                              dependency.label,
+                              dependency.method,
+                              dependency.path,
+                              ...(dependency.requirement?.permissions ?? []),
+                              ...(dependency.notes ?? []),
+                            ]
+                              .join(' ')
+                              .toLowerCase()
+                            return haystack.includes(normalizedPermissionSearch)
+                          }
+                        )
 
-                            return (
-                              <ApiDependencyCard
-                                key={`${dependency.method}:${dependency.path}`}
-                                dependency={dependency}
-                                passed={apiEvaluation.passed}
-                                details={apiEvaluation.details}
-                              />
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
-                          No API dependencies recorded for this page yet.
-                        </p>
-                      )}
+                        if (!filteredApiDependencies.length) {
+                          return (
+                            <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                              {normalizedPermissionSearch
+                                ? t('permissionsDialog.noSearchResults')
+                                : t('permissionsDialog.noApiDependencies')}
+                            </p>
+                          )
+                        }
+
+                        return (
+                          <div className="space-y-3">
+                            {filteredApiDependencies.map((dependency) => {
+                              const apiEvaluation = evaluateAccessRequirement(dependency.requirement, {
+                                userPermissions: permissions ?? [],
+                                userWorkflowRoles: workflowRoles ?? [],
+                                userTenantRole: currentTenant?.user_role ?? null,
+                                featureFlags,
+                              })
+
+                              return (
+                                <ApiDependencyCard
+                                  key={`${dependency.method}:${dependency.path}`}
+                                  dependency={dependency}
+                                  passed={apiEvaluation.passed}
+                                  details={apiEvaluation.details}
+                                />
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -548,28 +689,42 @@ export default function CmxTopBar() {
                         </p>
                       </div>
 
-                      {sortedFeatureFlags.length ? (
-                        <div className="space-y-3">
-                          {sortedFeatureFlags.map(([flagKey, enabled]) => (
-                            <div key={flagKey} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                                  {t('permissionsDialog.flagKeyLabel')}
-                                </p>
-                                <p className="break-all text-xs font-mono text-gray-700">{flagKey}</p>
+                      {(() => {
+                        const filteredFlags = sortedFeatureFlags.filter(([flagKey]) =>
+                          !normalizedPermissionSearch
+                            ? true
+                            : flagKey.toLowerCase().includes(normalizedPermissionSearch)
+                        )
+
+                        if (!filteredFlags.length) {
+                          return (
+                            <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                              {normalizedPermissionSearch
+                                ? t('permissionsDialog.noSearchResults')
+                                : t('permissionsDialog.noFeatureFlags')}
+                            </p>
+                          )
+                        }
+
+                        return (
+                          <div className="space-y-3">
+                            {filteredFlags.map(([flagKey, enabled]) => (
+                              <div key={flagKey} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                                    {t('permissionsDialog.flagKeyLabel')}
+                                  </p>
+                                  <p className="break-all text-xs font-mono text-gray-700">{flagKey}</p>
+                                </div>
+                                <RequirementBadge
+                                  passed={enabled}
+                                  label={enabled ? t('permissionsDialog.enabled') : t('permissionsDialog.disabled')}
+                                />
                               </div>
-                              <RequirementBadge
-                                passed={enabled}
-                                label={enabled ? t('permissionsDialog.enabled') : t('permissionsDialog.disabled')}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
-                          {t('permissionsDialog.noFeatureFlags')}
-                        </p>
-                      )}
+                            ))}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 ) : (
@@ -584,22 +739,12 @@ export default function CmxTopBar() {
                   </div>
                 )}
               </div>
-
-              {(permissions ?? []).length === 0 ? (
-                <p className="text-sm text-red-600 text-center py-8">No permissions found.</p>
-              ) : (
-                [...(permissions ?? [])].sort().map((permissionCode) => (
-                  <span key={permissionCode} className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                    {permissionCode}
-                  </span>
-                ))
-              )}
             </div>
 
             <div className="px-5 py-3 border-t border-gray-200 flex justify-end">
               <button
                 type="button"
-                onClick={() => setShowPermsDialog(false)}
+                onClick={() => { setShowPermsDialog(false); setPermissionSearchQuery('') }}
                 className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Close
