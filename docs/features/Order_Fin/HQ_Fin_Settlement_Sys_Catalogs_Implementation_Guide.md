@@ -27,9 +27,12 @@ HQ does **not**:
 
 ---
 
-## 2. Architecture pattern (cleanmatexsaas)
+## 2. Architecture pattern (cleanmatexsaas) this is just examples you follow exists project(cleanmatexsaas) standards and way :
 
-Reuse the existing **Catalog module** pattern:
+this is just examples you follow exists project standards and way :
+Better to Put then in the same location of payment settings e.g. for UI (/system-codes/payment-setup) , and follow same for APIs, services , Repository
+
+Example of Reuse the existing **Catalog module** pattern:
 
 | Layer | Reference in cleanmatexsaas |
 |-------|-----------------------------|

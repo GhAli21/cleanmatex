@@ -1,6 +1,6 @@
 ---
 version: v0.2.0
-last_updated: 2026-02-07
+last_updated: 2026-06-16
 author: CleanMateX AI Assistant
 ---
 
@@ -17,3 +17,4 @@ It does not yet represent every folder under `docs/features/`; until the full fe
 | Orders Workflow Migration | `docs/features/orders_workflow_migration/` | Migration of all order workflow screens to the new workflow system (screen contracts + transitions + gradual rollout flag). | v0.1.0 | 2026-01-15 |
 | Inventory Stock Management | `docs/features/inventory_stock_management/` | Inventory stock tracking for retail/consumable items (detergents, hangers, bags, packaging). CRUD, stock adjustments, transaction history, KPI dashboard. | v1.0.0 | 2026-02-07 |
 | B2B Feature | `docs/features/B2B_Feature/` | B2B corporate customers, contracts, credit limits, consolidated billing, statements, multi-contact, dunning. Gated by b2b_contracts. | v1.0.0 | 2026-03-13 |
+| Order Fin — Pay-extra (ADR-050) | `docs/features/Order_Fin/` | Global pay-extra intent, validate loop, wallet disposition. See `user_guide_pay_extra_overpayment.md`, `CHANGELOG_pay_extra.md`, `PAY_EXTRA_OVERPAYMENT_PROGRESS.md`, `ADR/ADR-050-Global-Pay-Extra-Intent.md`. | v1.0.0 | 2026-06-16 |

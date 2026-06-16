@@ -1,6 +1,6 @@
 # Payment Modal V4 Center Workbench Walkthrough
 
-Last updated: 2026-06-11
+Last updated: 2026-06-16
 
 ## Overview
 
@@ -14,7 +14,8 @@ The redesign separates the modal into three clear responsibilities:
 
 ## Center Workbench
 
-- **Section A — Balance Snapshot:** remaining, change, and total due visible at the top.
+- **Section A — Balance Snapshot:** remaining, change, total due, and **overpaid / unallocated** amount visible at the top.
+- **Pay-extra (ADR-050):** directly under Section A (when pay-now legs exist): **Customer is paying extra** toggle; when ON, **Validate payment** button appears below the toggle.
 - **Section B — Amount Editor:** active amount field and keypad when an active pay-now leg exists.
 - **Section C — Payment Workspace:** active leg details, validation fixes, method-specific fields (card brand, check number/date, bank reference, gateway refs, **payment terminal**, **credit note selection**), and required-action handling.
 - **Section E — Discounts & Credits:** manual discounts, promo code, gift-card code/PIN/apply/remove.
@@ -54,9 +55,26 @@ The right rail is compact and read-only except for jump/focus shortcuts:
 ### Submit flow
 
 1. Modal validates locally (references, check date, terminal, stored-value balance, credit note, overpayment).
-2. Hook builds create/edit payload; maps server `errorCode` to EN/AR messages.
-3. Orchestrator computes unpaid balance (including gift-card credit before NONE check).
-4. Planner validates settlement plan; voucher lines and cash drawer wiring persist applied amounts and change.
+2. **Pay-extra intent ON:** cashier must **Validate payment** and confirm Extra Receipt dialog before submit.
+3. Hook builds create/edit payload; maps server `errorCode` to EN/AR messages.
+4. Orchestrator computes unpaid balance (including gift-card credit before NONE check).
+5. Planner validates settlement plan; voucher lines and cash drawer wiring persist applied amounts and explicit change when `RETURN_CASH_CHANGE` is chosen.
+
+### Pay-extra validate loop (intent ON)
+
+```text
+Toggle ON → Validate payment → [no excess: submit OK]
+                         → [excess: Extra Receipt dialog]
+                              → pick one destination → Confirm → submit
+```
+
+**Intent OFF:** inline Extra Receipt card only (no Validate button). Cash change auto-resolves applied excess up to cash tender surplus.
+
+| UI control | Location (V4 center workbench) |
+|------------|--------------------------------|
+| Customer is paying extra | Below Section A Balance Snapshot grid |
+| Validate payment | Directly under toggle (visible only when toggle ON) |
+| Extra Receipt dialog | Opens from Validate when pooled excess > 0 |
 
 ### Checkout options
 
@@ -76,6 +94,9 @@ The right rail is compact and read-only except for jump/focus shortcuts:
 | Payload schema | `web-admin/lib/validations/new-order-payment-schemas.ts` |
 | Orchestrator | `web-admin/lib/services/order-submit-orchestrator.service.ts` |
 | Planner | `web-admin/lib/services/order-settlement-planner.service.ts` |
+| Pay-extra hook | `web-admin/src/features/orders/hooks/use-pay-extra-checkout.ts` |
+| Pay-extra UI kit | `web-admin/src/features/orders/ui/payment-modal/pay-extra/` |
+| Checkout excess metrics | `web-admin/lib/payments/checkout-excess-metrics.ts` |
 
 ### i18n
 

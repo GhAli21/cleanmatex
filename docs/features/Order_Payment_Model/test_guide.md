@@ -1,8 +1,8 @@
 # Payment Settlement & Receipt Allocation — Full Test Guide
 
-**Version:** 2.0  
-**Date:** 2026-06-11  
-**Scope:** Payment Modal V4, overpayment disposition (Phases 2–3), customer receipt allocation (Phase 4), later collection + account receipt (Phase 5), Phase 6 legacy cleanup  
+**Version:** 2.1  
+**Date:** 2026-06-16  
+**Scope:** Payment Modal V4, overpayment disposition (Phases 2–3), customer receipt allocation (Phase 4), later collection + account receipt (Phase 5), Phase 6 legacy cleanup, **ADR-050 pay-extra intent**  
 **Related:** [Implementation plan](../Order_Fin/Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) · [walkthrough.md](./walkthrough.md) · [tech_settlement_catalogs.md](../Order_Fin/technical_docs/tech_settlement_catalogs.md)
 
 ---
@@ -22,11 +22,12 @@
 11. [Manual scenarios — Later collection (26–27)](#manual-scenarios--later-collection-2627)
 12. [Manual scenarios — Account receipt & collect UI (28–32)](#manual-scenarios--account-receipt--collect-ui-2832)
 13. [Manual scenarios — Phase 6 & RBAC (33–35)](#manual-scenarios--phase-6--rbac-3335)
-14. [API reference (optional API-only testing)](#api-reference-optional-api-only-testing)
-15. [Post-submit verification SQL](#post-submit-verification-sql)
-16. [Regression checklist](#regression-checklist)
-17. [Submit error code reference](#submit-error-code-reference)
-18. [Test execution log](#test-execution-log)
+14. [Manual scenarios — Pay-extra intent ADR-050 (36–45)](#manual-scenarios--pay-extra-intent-adr-050-3645)
+15. [API reference (optional API-only testing)](#api-reference-optional-api-only-testing)
+16. [Post-submit verification SQL](#post-submit-verification-sql)
+17. [Regression checklist](#regression-checklist)
+18. [Submit error code reference](#submit-error-code-reference)
+19. [Test execution log](#test-execution-log)
 
 ---
 
@@ -63,6 +64,7 @@
 | `0358_permissions_customer_receipt_allocate.sql` | `customers:receipt_allocate` |
 | `0359_nav_customers_account_receipt.sql` | Nav + `sys_components_cd` |
 | `0360_order_fin_phase6_legacy_cleanup.sql` | Disp table align + `overpaid_amount` backfill |
+| `0368_fin_overpay_save_to_wallet.sql` | `SAVE_TO_CUSTOMER_WALLET` catalog row (ADR-050) |
 
 ### Runtime prerequisites
 
@@ -797,6 +799,38 @@ ORDER BY created_at;
 
 ---
 
+## Manual scenarios — Pay-extra intent ADR-050 (36–45)
+
+**Prerequisites:** Migration `0368` applied; demo user has `orders:overpayment_to_wallet`, `orders:overpayment_dispose`, `orders:overpayment_allocate`; linked customer with wallet enabled.
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 36 | Intent OFF unchanged | Overpay with cash (change allowed), toggle **OFF** | Inline Extra Receipt or auto change; **no** Validate button |
+| 37 | Toggle enable rule | Order with cash (change return) only | Toggle enabled |
+| 38 | Toggle disabled | Order with methods that disallow overpayment and non-cash cash | Toggle disabled + `disabledNoMethods` hint |
+| 39 | Validate no excess | Intent ON, legs match sale total exactly | Validate → submit allowed without dialog |
+| 40 | Validate opens dialog | Intent ON, card leg > remaining due (supports overpayment) | Validate → Extra Receipt dialog with pooled excess |
+| 41 | **Cash + card → wallet** | See walkthrough below | `SAVE_TO_CUSTOMER_WALLET` disposition row; wallet ledger credit |
+| 42 | Return cash change | Intent ON, cash tender surplus, pick **Return as cash change** | `RETURN_CASH_CHANGE` line; voucher change_returned_amount set |
+| 43 | RBAC wallet hidden | User without `orders:overpayment_to_wallet` | Wallet option hidden in dialog |
+| 44 | Collect modal parity | Later collection with intent ON + excess | Same toggle + Validate + dialog in Collect Payment modal |
+| 45 | Regression intent OFF | Repeat scenario 2 (cash change) with toggle OFF | Identical to pre-ADR-050 behavior |
+
+### Scenario 41 detail — Cash + card overpay → wallet (demo tenant)
+
+1. Login at [https://cmx.cleanmatex.com/](https://cmx.cleanmatex.com/) as tenant admin/cashier with wallet permission.
+2. **Orders → New order** — add items totaling **10.000 OMR** (example).
+3. Select a **linked customer** (required for wallet).
+4. Open **Payment** modal (V4).
+5. **Split payment:** add **Card** leg **6.000** and **Cash** leg **6.000** (total **12.000** → **2.000** pooled excess).
+6. Enable **Customer is paying extra** (center workbench, below balance snapshot).
+7. Click **Validate payment**.
+8. In Extra Receipt dialog, choose **Add to customer wallet** → **Confirm**.
+9. Submit order.
+10. Verify: `org_fin_overpay_disp_dtl` row with `SAVE_TO_CUSTOMER_WALLET`; customer wallet ledger shows **+2.000**; order financial snapshot `overpaid_amount = 0`.
+
+---
+
 ## Regression checklist
 
 Use after any payment/settlement change:
@@ -815,6 +849,7 @@ Use after any payment/settlement change:
 - [ ] Scenario 28 account receipt standalone
 - [ ] Scenario 31–32 collect modals
 - [ ] Scenario 33–34 `overpaid_amount` semantics
+- [ ] Scenarios 36–45 pay-extra intent (toggle, validate, wallet, collect parity)
 - [ ] EN/AR labels on extra receipt + account receipt
 - [ ] Automated test suite + build green
 
@@ -856,7 +891,8 @@ Copy per test run:
 | … | | | | | |
 | 28 | Account receipt | | | | |
 | 35 | RBAC | | | | |
+| 41 | Cash+card→wallet | | | | |
 
 ---
 
-**Document maintenance:** Update this guide when new resolution codes, API routes, or UI entry points ship. Pending items (HQ flags, gateway integration) are tracked in [Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md).
+**Document maintenance:** Update this guide when new resolution codes, API routes, or UI entry points ship. Pay-extra (ADR-050) tracked in [PAY_EXTRA_OVERPAYMENT_PROGRESS.md](../Order_Fin/PAY_EXTRA_OVERPAYMENT_PROGRESS.md). Pending items (HQ flags, gateway integration) are tracked in [Pending_Payment_Settlement_Follow_Ups.md](../Order_Fin/Pending_Payment_Settlement_Follow_Ups.md).

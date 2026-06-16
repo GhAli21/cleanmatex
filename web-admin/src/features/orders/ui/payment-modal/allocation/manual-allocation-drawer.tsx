@@ -123,6 +123,13 @@ export function ManualAllocationDrawer({
                 </div>
               ))}
             </div>
+            {remaining > 0.001 ? (
+              <p className={`text-sm font-medium text-amber-800 ${textAlign}`}>
+                {t('manualRemaining', {
+                  amount: `${currencyCode} ${formatAmount(remaining)}`,
+                })}
+              </p>
+            ) : null}
           </div>
         )}
 

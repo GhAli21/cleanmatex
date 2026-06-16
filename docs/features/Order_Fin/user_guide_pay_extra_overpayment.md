@@ -50,7 +50,28 @@ Without a linked customer, wallet/advance/credit/allocation options are hidden. 
 
 ---
 
+## Walkthrough — Cash + card overpay → wallet (demo)
+
+Use tenant [https://cmx.cleanmatex.com/](https://cmx.cleanmatex.com/) after migration `0368` is applied.
+
+| Step | Action |
+|------|--------|
+| 1 | **Dashboard → Orders → New order** — add line items (e.g. total **10.000 OMR**). |
+| 2 | Attach a **registered customer** (wallet option requires linked customer). |
+| 3 | Proceed to checkout → open **Payment** modal. |
+| 4 | Add **two pay-now legs**: Card **6.000**, Cash **6.000** (methods must allow retained overpayment or cash change). |
+| 5 | In **center workbench**, below the balance snapshot cards, turn on **Customer is paying extra**. |
+| 6 | Click **Validate payment** (appears directly under the toggle). |
+| 7 | Extra Receipt dialog → **Add to customer wallet** → **Confirm**. |
+| 8 | **Submit** order. |
+| 9 | Verify wallet balance increased by excess (**2.000** in example). |
+
+**Collect Payment modal:** same toggle + Validate under amount fields when collecting on an existing order.
+
+---
+
 ## Related docs
 
 - ADR-050: `docs/features/Order_Fin/ADR/ADR-050-Global-Pay-Extra-Intent.md`
 - Test scenarios 36–45: `docs/features/Order_Payment_Model/test_guide.md`
+- Walkthrough: `docs/features/Order_Payment_Model/walkthrough.md`

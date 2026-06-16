@@ -82,6 +82,14 @@ export function AutoAllocationPreviewDrawer({
             ) : (
               <p className="text-sm text-emerald-700">{t('fullyAllocated')}</p>
             )}
+            {preview.fallbackAllocation && preview.fallbackAllocation.allocationAmount > 0.001 ? (
+              <p className={`text-sm text-amber-800 ${textAlign}`}>
+                {t('autoFallbackHint', {
+                  amount: `${currencyCode} ${formatAmount(preview.fallbackAllocation.allocationAmount)}`,
+                  destination: preview.fallbackAllocation.targetType,
+                })}
+              </p>
+            ) : null}
             {preview.warnings.length > 0 ? (
               <ul className="list-disc space-y-1 ps-5 text-xs text-amber-800">
                 {preview.warnings.map((warning) => (

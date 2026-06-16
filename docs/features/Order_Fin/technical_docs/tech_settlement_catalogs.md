@@ -1,7 +1,7 @@
 # Settlement Catalogs — Technical Reference
 
-**Status:** Production (Approved_By_Jh, 2026-06-11)  
-**Migration:** `0357_fin_settlement_catalogs_v1_1.sql` (+ audit `0354`, cleanup `0360`)  
+**Status:** Production (Approved_By_Jh, 2026-06-16)  
+**Migration:** `0357_fin_settlement_catalogs_v1_1.sql` (+ audit `0354`, cleanup `0360`, wallet `0368`)  
 **TypeScript:** `web-admin/lib/constants/settlement-catalog.ts`  
 **Related:** [tech_customer_receipt_allocation.md](./tech_customer_receipt_allocation.md) · [ADR-047](../ADR/ADR-047-Overpayment-Disposition.md)
 
@@ -17,7 +17,7 @@ Settlement catalogs define **how checkout excess is resolved** (overpayment disp
 
 | Table | Purpose |
 |-------|---------|
-| `sys_fin_overpay_res_cd` | Overpayment resolution codes (`RETURN_CASH_CHANGE`, `SAVE_AS_CUSTOMER_ADVANCE`, …) |
+| `sys_fin_overpay_res_cd` | Overpayment resolution codes (`RETURN_CASH_CHANGE`, `SAVE_AS_CUSTOMER_ADVANCE`, `SAVE_TO_CUSTOMER_WALLET`, …) |
 | `sys_fin_vch_source_type_cd` | Voucher origin (`ORDER_PAYMENT_MODAL`, `CUSTOMER_RECEIPT`, `GATEWAY_CALLBACK`, …) |
 | `sys_fin_rcpt_alloc_mode_cd` | Auto-allocation algorithm (`AUTO_OLDEST_DUE`, `MANUAL_ONLY`, …) |
 | `sys_fin_rcpt_fb_dest_cd` | Fallback when allocation leaves remainder (`CUSTOMER_ADVANCE`, `RETURN_CHANGE`, …) |
@@ -73,8 +73,17 @@ Error codes `RETURN_CHANGE_EXCEEDS_CAPACITY` / `RETURN_CHANGE_LEG_INVALID` refer
 
 Phase groupings:
 
-- `PHASE2_OVERPAYMENT_RESOLUTIONS` — reduce, cash change, advance, credit, restore stored value
+- `PHASE2_OVERPAYMENT_RESOLUTIONS` — reduce, cash change, advance, **wallet**, credit, restore stored value
 - `PHASE4_ALLOCATION_RESOLUTIONS` — manual + auto allocate to customer balances
+
+### `SAVE_TO_CUSTOMER_WALLET` (migration `0368`)
+
+| Field | Value |
+|-------|-------|
+| `resolution_code` | `SAVE_TO_CUSTOMER_WALLET` |
+| Permission | `orders:overpayment_to_wallet` |
+| Creates | Wallet top-up via `topUpWalletTx` in submit/collect TX |
+| Distinct from | Allocation fallback `WALLET_TOPUP` line role (tenant policy remainder) |
 
 ---
 
@@ -98,7 +107,7 @@ Phase groupings:
 |------|---------|
 | `orders:overpayment_dispose` | Base excess handling |
 | `orders:overpayment_allocate` | Manual/auto allocation |
-| `orders:overpayment_to_wallet` | Wallet fallback |
+| `orders:overpayment_to_wallet` | Direct wallet disposition (`SAVE_TO_CUSTOMER_WALLET`, ADR-050) |
 | `orders:overpayment_to_advance` | Advance fallback |
 | `orders:overpayment_to_credit` | Customer credit issue |
 | `orders:overpayment_to_credit_note` | Credit note destination (gated) |
@@ -113,8 +122,7 @@ Phase groupings:
 3. `0358_permissions_customer_receipt_allocate.sql`
 4. `0359_nav_customers_account_receipt.sql`
 5. `0360_order_fin_phase6_legacy_cleanup.sql` (environments with legacy disp table name)
-
----
+6. `0368_fin_overpay_save_to_wallet.sql` — `SAVE_TO_CUSTOMER_WALLET` catalog row
 
 ## Tests
 

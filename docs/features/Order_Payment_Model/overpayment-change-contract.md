@@ -1,6 +1,6 @@
 # Order Payment Overpayment and Change Contract
 
-Last updated: 2026-06-11 (disposition section — ADR-047)
+Last updated: 2026-06-16 (ADR-050 pay-extra intent)
 
 ## Overview
 
@@ -105,6 +105,35 @@ Execution: `overpayment-disposition.service.ts` (planned) inside submit-order tr
 Audit: `org_order_overpay_disp_dtl` (migration `0354_order_overpay_disposition.sql`).
 
 See [ADR-047](../Order_Fin/ADR/ADR-047-Overpayment-Disposition.md).
+
+## Pay-extra intent (ADR-050)
+
+Global UI toggle **Customer is paying extra** (`payExtraIntent`) is **not** sent on the API payload. Client and server share `computeCheckoutExcessMetrics()` with the same inputs; the server enters pay-extra validation when the submitted `overpaymentResolution` includes stored-value or `RETURN_CASH_CHANGE` lines.
+
+| Mode | `unresolvedExcess` formula | Extra Receipt UI |
+|------|---------------------------|------------------|
+| Intent **OFF** (default) | `appliedExcess − min(appliedExcess, cashChangeCapacity)` | Inline card when excess remains |
+| Intent **ON** | `appliedExcess + tenderSurplus − explicitChangeResolved` | Hidden inline; **Validate payment** → dialog only |
+
+### Validate payment loop (intent ON)
+
+1. Cashier enables **Customer is paying extra**.
+2. Clicks **Validate payment** (center workbench, below toggle).
+3. If pooled excess > 0, **Extra Receipt** dialog opens — pick one destination for the **full** extra amount.
+4. Confirm dialog → `validationPhase = ready` → submit allowed when resolution payload is complete.
+
+Submit blocked with `validatePayment.requiredBeforeSubmit` until validate + confirm when intent ON and excess unresolved.
+
+### Direct wallet vs allocation wallet
+
+| Path | Resolution code | When |
+|------|-----------------|------|
+| **Direct wallet** | `SAVE_TO_CUSTOMER_WALLET` | Cashier picks **Add to customer wallet** in Extra Receipt |
+| **Allocation fallback wallet** | `WALLET_TOPUP` (line role) | Auto-allocate remainder per tenant `fallback_destination` |
+
+Migration `0368_fin_overpay_save_to_wallet.sql` seeds `SAVE_TO_CUSTOMER_WALLET` with permission `orders:overpayment_to_wallet`.
+
+See [ADR-050](../Order_Fin/ADR/ADR-050-Global-Pay-Extra-Intent.md) · [user_guide_pay_extra_overpayment.md](../Order_Fin/user_guide_pay_extra_overpayment.md).
 
 ## Examples
 
