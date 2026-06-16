@@ -66,4 +66,37 @@ describe('buildOverpaymentResolutionPayload', () => {
       )
     ).toBeUndefined();
   });
+
+  it('builds wallet resolution payload', () => {
+    expect(
+      buildOverpaymentResolutionPayload(OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET, 7.25)
+    ).toEqual({
+      excessAmount: 7.25,
+      lines: [{ resolutionCode: OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET, amount: 7.25 }],
+    });
+  });
+
+  it('builds return cash change payload when leg ref provided', () => {
+    const legRef = '00000000-0000-4000-8000-000000000030';
+    expect(
+      buildOverpaymentResolutionPayload(OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE, 4, {
+        cashLegRef: legRef,
+      })
+    ).toEqual({
+      excessAmount: 4,
+      lines: [
+        {
+          resolutionCode: OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE,
+          legRef,
+          amount: 4,
+        },
+      ],
+    });
+  });
+
+  it('returns undefined for return cash change without leg ref', () => {
+    expect(
+      buildOverpaymentResolutionPayload(OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE, 4)
+    ).toBeUndefined();
+  });
 });

@@ -35,9 +35,29 @@ export async function validateOverpaymentResolution(
   resolution: OverpaymentResolutionInput | undefined,
   context: OverpaymentResolutionValidationContext = {}
 ): Promise<void> {
-  const metrics = computeSettlementOverpaymentMetrics(plan);
-  const { unresolvedExcessAmount, cashChangeCapacity, canReturnChangeFromCash } = metrics;
   const eps = SETTLEMENT_MONEY_EPSILON;
+
+  const explicitChangeResolved =
+    resolution?.lines
+      .filter((line) => line.resolutionCode === OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE)
+      .reduce((sum, line) => sum + line.amount, 0) ?? 0;
+
+  const hasStoredValueDisposition = resolution?.lines.some(
+    (line) =>
+      line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_ADVANCE ||
+      line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET ||
+      line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_CREDIT ||
+      PHASE4_RESOLUTIONS.has(line.resolutionCode)
+  );
+
+  const payExtraIntent =
+    explicitChangeResolved > eps || hasStoredValueDisposition === true;
+
+  const metrics = computeSettlementOverpaymentMetrics(plan, eps, {
+    payExtraIntent,
+    explicitChangeResolved,
+  });
+  const { unresolvedExcessAmount, cashChangeCapacity, canReturnChangeFromCash } = metrics;
 
   if (unresolvedExcessAmount <= eps) {
     if (resolution && resolution.excessAmount > eps) {
@@ -92,6 +112,7 @@ export async function validateOverpaymentResolution(
 
     if (
       (line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_ADVANCE ||
+        line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET ||
         line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_CREDIT) &&
       !context.customerId
     ) {

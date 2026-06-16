@@ -5233,6 +5233,8 @@
         "unallocatedLabel": "Unallocated Amount",
         "adjustPayments": "Adjust payment amounts",
         "adjustPaymentsHelp": "Reduce one or more payment legs until the collected total matches the order total.",
+        "returnCashChange": "Return as cash change",
+        "returnCashChangeHelp": "Return {amount} as cash change to the customer.",
         "autoAllocate": "Auto allocate to open balances",
         "autoAllocateHelp": "Apply excess to oldest-due invoices and orders per tenant policy.",
         "autoAllocateConfirmed": "Allocation preview confirmed — submit to post with the order.",
@@ -5241,9 +5243,17 @@
         "manualAllocateConfirmed": "Manual allocation confirmed — submit to post with the order.",
         "saveAsAdvance": "Save as customer advance",
         "saveAsAdvanceHelp": "Credit the extra amount to the customer's advance balance for future orders.",
+        "saveToWallet": "Add to customer wallet",
+        "saveToWalletHelp": "Add {amount} to the customer's wallet for future payments.",
         "saveAsCredit": "Save as customer credit",
         "saveAsCreditHelp": "Issue an open credit note the customer can use on future orders.",
-        "walkInHint": "Link a customer to save excess as advance or credit. Otherwise reduce the payment amounts.",
+        "walkInHint": "Link a customer account to save extra as wallet, advance, or credit. Otherwise adjust payment amounts or return cash change.",
+        "walletVsAdvanceHint": "Wallet = spend on next order. Advance = prepaid deposit on account.",
+        "guidance": {
+          "title": "This payment is {amount} more than the order total",
+          "pickOne": "Choose one option below. Only one destination applies to the full extra amount.",
+          "walkInHint": "Link a customer account to save extra as wallet, advance, or credit. Otherwise adjust payment amounts or return cash change."
+        },
         "allocation": {
           "autoPreviewTitle": "Auto allocation preview",
           "manualTitle": "Manual allocation",
@@ -5258,11 +5268,25 @@
           "remainingUnallocated": "Remaining unallocated: {amount}",
           "fullyAllocated": "Fully allocated — confirm to continue.",
           "manualHint": "Allocate up to {excess}. Remaining: {remaining}",
+          "manualBlockedReturn": "Could not confirm allocation. Return to Extra Receipt and pick Save as advance, Add to wallet, or Auto allocate.",
+          "autoFallbackHint": "Remaining {amount} will go to {destination} based on your store's allocation policy.",
+          "manualRemaining": "Still to allocate: {amount}. Allocate the full extra or choose another option.",
           "cancel": "Cancel",
           "confirmAllocation": "Confirm allocation",
           "confirmedToast": "Allocation confirmed. You can submit the order now.",
           "remainingUnallocatedError": "Allocation must fully cover the excess amount."
         }
+      },
+      "payExtraIntent": {
+        "label": "Customer is paying extra",
+        "help": "Turn on to collect more than the order total across all payment methods. You will choose where the extra goes before submitting.",
+        "disabledNoMethods": "No payment method on this order allows retained overpayment."
+      },
+      "validatePayment": {
+        "button": "Validate payment",
+        "requiredBeforeSubmit": "Validate payment and choose what to do with the extra amount before submitting.",
+        "noExcess": "Payment amounts match the order total. You can submit now.",
+        "excessFound": "Extra amount to route: {amount}"
       },
       "errors": {
         "outstandingPolicyRequired": "The full order total must be covered before submitting with no outstanding balance.",
@@ -5504,6 +5528,7 @@
         "requiredAction": {
           "overpaymentTitle": "Resolve Overpayment",
           "overpaymentMessage": "Reduce the collected amount or return {amount} as change before submitting.",
+          "validatePayment": "Validate payment — extra amount needs a destination",
           "cashDrawerTitle": "Cash Drawer Required",
           "cashDrawerFallback": "Bind this cash payment to an open cash drawer session before submitting.",
           "creditLimitTitle": "Credit Limit Attention",

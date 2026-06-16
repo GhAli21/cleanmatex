@@ -119,47 +119,111 @@ export type Database = {
       hq_audit_logs: {
         Row: {
           action: string
+          action_category: string | null
+          actor_type: string | null
+          batch_id: string | null
+          change_reason: string | null
           created_at: string | null
           details: Json | null
+          duration_ms: number | null
           error_message: string | null
+          http_method: string | null
+          http_path: string | null
+          http_status_code: number | null
           id: string
           ip_address: unknown
+          is_sensitive: boolean
+          new_value: Json | null
+          old_value: Json | null
+          parent_audit_id: string | null
+          request_id: string | null
           resource_id: string | null
+          resource_label: string | null
           resource_type: string | null
+          session_id: string | null
+          severity: string | null
+          source_module: string | null
           success: boolean | null
+          tags: string[] | null
+          tenant_org_id: string | null
           user_agent: string | null
           user_email: string | null
           user_id: string | null
         }
         Insert: {
           action: string
+          action_category?: string | null
+          actor_type?: string | null
+          batch_id?: string | null
+          change_reason?: string | null
           created_at?: string | null
           details?: Json | null
+          duration_ms?: number | null
           error_message?: string | null
+          http_method?: string | null
+          http_path?: string | null
+          http_status_code?: number | null
           id?: string
           ip_address?: unknown
+          is_sensitive?: boolean
+          new_value?: Json | null
+          old_value?: Json | null
+          parent_audit_id?: string | null
+          request_id?: string | null
           resource_id?: string | null
+          resource_label?: string | null
           resource_type?: string | null
+          session_id?: string | null
+          severity?: string | null
+          source_module?: string | null
           success?: boolean | null
+          tags?: string[] | null
+          tenant_org_id?: string | null
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string
+          action_category?: string | null
+          actor_type?: string | null
+          batch_id?: string | null
+          change_reason?: string | null
           created_at?: string | null
           details?: Json | null
+          duration_ms?: number | null
           error_message?: string | null
+          http_method?: string | null
+          http_path?: string | null
+          http_status_code?: number | null
           id?: string
           ip_address?: unknown
+          is_sensitive?: boolean
+          new_value?: Json | null
+          old_value?: Json | null
+          parent_audit_id?: string | null
+          request_id?: string | null
           resource_id?: string | null
+          resource_label?: string | null
           resource_type?: string | null
+          session_id?: string | null
+          severity?: string | null
+          source_module?: string | null
           success?: boolean | null
+          tags?: string[] | null
+          tenant_org_id?: string | null
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hq_audit_logs_parent_audit_id_fkey"
+            columns: ["parent_audit_id"]
+            isOneToOne: false
+            referencedRelation: "hq_audit_logs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hq_audit_logs_user_id_fkey"
             columns: ["user_id"]
@@ -1178,6 +1242,72 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
           validation_rules?: Json | null
+        }
+        Relationships: []
+      }
+      hq_ntf_dispatch_log: {
+        Row: {
+          attempt_count: number
+          audit_id: string | null
+          channel_code: string
+          created_at: string
+          dispatch_mode: string
+          dispatched_at: string | null
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          provider_code: string
+          provider_message_id: string | null
+          recipient_hash: string | null
+          request_id: string | null
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          audit_id?: string | null
+          channel_code: string
+          created_at?: string
+          dispatch_mode: string
+          dispatched_at?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key: string
+          provider_code: string
+          provider_message_id?: string | null
+          recipient_hash?: string | null
+          request_id?: string | null
+          status?: string
+          tenant_org_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          audit_id?: string | null
+          channel_code?: string
+          created_at?: string
+          dispatch_mode?: string
+          dispatched_at?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          provider_code?: string
+          provider_message_id?: string | null
+          recipient_hash?: string | null
+          request_id?: string | null
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -13234,7 +13364,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_info: string | null
+          dispatch_mode: string
           display_name: string | null
+          encrypted_config: string | null
           id: string
           is_active: boolean
           is_enabled: boolean
@@ -13254,7 +13386,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          dispatch_mode?: string
           display_name?: string | null
+          encrypted_config?: string | null
           id?: string
           is_active?: boolean
           is_enabled?: boolean
@@ -13274,7 +13408,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          dispatch_mode?: string
           display_name?: string | null
+          encrypted_config?: string | null
           id?: string
           is_active?: boolean
           is_enabled?: boolean
@@ -13787,6 +13923,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_info: string | null
+          currency_code: string
           failed_count: number
           id: string
           is_active: boolean
@@ -13808,6 +13945,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
+          currency_code?: string
           failed_count?: number
           id?: string
           is_active?: boolean
@@ -13829,6 +13967,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
+          currency_code?: string
           failed_count?: number
           id?: string
           is_active?: boolean

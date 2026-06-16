@@ -7,7 +7,7 @@ import {
   OVERPAYMENT_RESOLUTION_ERROR_CODES,
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
-import { issueAdvanceTx, issueCreditNoteTx } from '@/lib/services/stored-value.service';
+import { issueAdvanceTx, issueCreditNoteTx, topUpWalletTx } from '@/lib/services/stored-value.service';
 import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-payment-schemas';
 
 type PrismaTransactionClient = Prisma.TransactionClient;
@@ -110,6 +110,20 @@ export async function executeOverpaymentDispositionTx(
         idempotencyKey: `${lineIdempotencyKey}_cn`,
       });
       targetRef = creditNote.id;
+    } else if (line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET) {
+      if (!customerId) {
+        throw new Error(OVERPAYMENT_RESOLUTION_ERROR_CODES.NOT_ALLOWED);
+      }
+      const walletTxn = await topUpWalletTx(tx, {
+        tenantId,
+        customerId,
+        amount: line.amount,
+        orderId,
+        notes: `Checkout overpayment → customer wallet (order ${orderId})`,
+        performedBy: userId,
+        currencyCode,
+      });
+      targetRef = walletTxn.id;
     } else if (line.resolutionCode === OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE) {
       // Cash change is posted on ORDER_PAYMENT voucher lines; audit only.
       targetRef = null;

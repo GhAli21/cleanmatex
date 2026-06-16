@@ -1,5 +1,9 @@
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
+import {
+  computeCheckoutExcessMetrics,
+  type CheckoutExcessLegInput,
+} from '@/lib/payments/checkout-excess-metrics';
 import { computeSettlementOverpaymentMetrics } from '@/lib/payments/settlement-overpayment';
 import type { RealPaymentLeg } from '@/lib/types/settlement-plan';
 
@@ -21,6 +25,12 @@ export interface CollectionLegInput {
 
 export type CollectionOverpaymentMetrics = ReturnType<typeof computeSettlementOverpaymentMetrics>;
 
+export interface CollectionOverpaymentOptions {
+  payExtraIntent?: boolean;
+  explicitChangeResolved?: number;
+  epsilon?: number;
+}
+
 /**
  * Later-collection excess metrics — reuses checkout planner semantics with
  * order outstanding as the due total and collected leg sum as settlement total.
@@ -28,9 +38,39 @@ export type CollectionOverpaymentMetrics = ReturnType<typeof computeSettlementOv
 export function computeCollectionOverpaymentMetrics(
   orderOutstanding: number,
   legs: CollectionLegInput[],
-  epsilon = SETTLEMENT_MONEY_EPSILON
+  options: CollectionOverpaymentOptions = {}
 ): CollectionOverpaymentMetrics {
+  const epsilon = options.epsilon ?? SETTLEMENT_MONEY_EPSILON;
   const totalCollected = legs.reduce((sum, leg) => sum + leg.amount, 0);
+
+  if (options.payExtraIntent) {
+    const checkoutLegs: CheckoutExcessLegInput[] = legs.map((leg) => ({
+      paymentMethodCode: leg.paymentMethodCode,
+      amount: leg.amount,
+      tenderedAmount: leg.cashTendered,
+      supportsChangeReturn: leg.supportsChangeReturn,
+    }));
+    const checkout = computeCheckoutExcessMetrics({
+      saleTotal: orderOutstanding,
+      immediateSettlementAmount: totalCollected,
+      legs: checkoutLegs,
+      payExtraIntent: true,
+      explicitChangeResolved: options.explicitChangeResolved ?? 0,
+      epsilon,
+    });
+    return {
+      excessAmount: checkout.appliedExcessAmount,
+      cashChangeCapacity: checkout.cashChangeCapacity,
+      canReturnChangeFromCash: checkout.canReturnChangeFromCash,
+      hasAllowedRetainedOverpayment: legs.some(
+        (leg) =>
+          leg.supportsOverpayment ||
+          (leg.paymentMethodCode === PAYMENT_METHODS.CASH && leg.supportsChangeReturn)
+      ),
+      unresolvedExcessAmount: checkout.unresolvedExcessAmount,
+    };
+  }
+
   const realPaymentLegs = legs.map(
     (leg) =>
       ({

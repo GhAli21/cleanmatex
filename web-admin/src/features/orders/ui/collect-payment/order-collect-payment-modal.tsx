@@ -8,7 +8,10 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { computeCollectionOverpaymentMetrics } from '@/lib/payments/collection-overpayment';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
-import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
+import {
+  OVERPAYMENT_RESOLUTION_PERMISSIONS,
+  SETTLEMENT_MONEY_EPSILON,
+} from '@/lib/constants/settlement-catalog';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput, Label } from '@ui/primitives';
 import { LoadingButton } from '@ui/primitives';
@@ -21,11 +24,15 @@ import {
 } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { showErrorToast, showSuccessToast } from '@ui/components/cmx-toast';
-import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
+import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
 import { ExtraReceiptHandlingCard } from '@features/orders/ui/payment-modal/allocation/extra-receipt-handling-card';
 import { AutoAllocationPreviewDrawer } from '@features/orders/ui/payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from '@features/orders/ui/payment-modal/allocation/manual-allocation-drawer';
 import { buildOverpaymentResolutionPayload } from '@features/orders/ui/payment-modal/allocation/build-overpayment-resolution';
+import { PayExtraIntentToggle } from '@features/orders/ui/payment-modal/pay-extra/pay-extra-intent-toggle';
+import { PaymentValidateButton } from '@features/orders/ui/payment-modal/pay-extra/payment-validate-button';
+import { PaymentExtraReceiptDialog } from '@features/orders/ui/payment-modal/pay-extra/payment-extra-receipt-dialog';
+import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 
 interface CheckoutMethodOption {
   id: string;
@@ -60,13 +67,15 @@ export function OrderCollectPaymentModal({
   onCollected,
 }: OrderCollectPaymentModalProps) {
   const t = useTranslations('orders.collectPayment');
+  const tPayment = useTranslations('newOrder.payment');
   const tExtra = useTranslations('newOrder.payment.extraReceipt');
   const isRTL = useRTL();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { token: csrfToken } = useCSRFToken();
   const canCollect = useHasPermission('orders:collect_payment');
-  const canAllocate = useHasPermission('orders:overpayment_allocate');
-  const canDispose = useHasPermission('orders:overpayment_dispose');
+  const canAllocate = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
+  const canDispose = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE);
+  const canWallet = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET);
 
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(false);
@@ -83,9 +92,9 @@ export function OrderCollectPaymentModal({
     [currencyCode, formatMoneyWithCode]
   );
 
-  const overpaymentMetrics = useMemo(() => {
+  const legacyOverpaymentMetrics = useMemo(() => {
     if (!selectedMethod) {
-      return { unresolvedExcessAmount: 0, excessAmount: 0 };
+      return { unresolvedExcessAmount: 0, excessAmount: 0, canReturnChangeFromCash: false };
     }
     return computeCollectionOverpaymentMetrics(outstandingAmount, [
       {
@@ -101,38 +110,98 @@ export function OrderCollectPaymentModal({
     ]);
   }, [amount, cashTendered, isCash, outstandingAmount, selectedMethod]);
 
-  const allocation = useOverpaymentAllocation({
+  const canEnablePayExtra = useMemo(() => {
+    if (!selectedMethod) return false;
+    return (
+      selectedMethod.supports_overpayment ||
+      (selectedMethod.payment_method_code === PAYMENT_METHODS.CASH &&
+        selectedMethod.supports_change_return)
+    );
+  }, [selectedMethod]);
+
+  const checkoutLegs = useMemo(() => {
+    if (!selectedMethod) return [];
+    return [
+      {
+        paymentMethodCode: selectedMethod.payment_method_code,
+        amount,
+        tenderedAmount: isCash ? (cashTendered ?? amount) : undefined,
+        supportsChangeReturn: selectedMethod.supports_change_return,
+      },
+    ];
+  }, [amount, cashTendered, isCash, selectedMethod]);
+
+  const payExtra = usePayExtraCheckout({
     customerId,
     branchId,
     currencyCode,
-    excessAmount: overpaymentMetrics.unresolvedExcessAmount,
+    excessAmount: legacyOverpaymentMetrics.unresolvedExcessAmount,
+    legacyUnresolvedExcess: legacyOverpaymentMetrics.unresolvedExcessAmount,
+    saleTotal: outstandingAmount,
+    immediateSettlementAmount: amount,
+    legs: checkoutLegs,
     receiptAmount: amount,
     currentOrderAllocationAmount: Math.min(amount, outstandingAmount),
     sourceType: 'LATER_COLLECTION',
     sourceOrderId: orderId,
     paymentMethodCode: selectedMethod?.payment_method_code ?? PAYMENT_METHODS.CASH,
     confirmedToastMessage: tExtra('allocation.confirmedToast'),
+    remainingUnallocatedErrorMessage: tExtra('allocation.remainingUnallocatedError'),
+    resetDeps: [amount, cashTendered, selectedMethodId],
   });
+
+  const allocation = payExtra;
+  const {
+    payExtraIntent,
+    setPayExtraIntent,
+    extraReceiptDialogOpen,
+    setExtraReceiptDialogOpen,
+    runValidatePayment,
+    confirmExtraReceiptSelection,
+    validationPhase,
+  } = payExtra;
+
+  const overpaymentMetrics = useMemo(() => {
+    if (!selectedMethod) {
+      return { unresolvedExcessAmount: 0, excessAmount: 0, canReturnChangeFromCash: false };
+    }
+    return computeCollectionOverpaymentMetrics(
+      outstandingAmount,
+      [
+        {
+          legIndex: 0,
+          orgPaymentMethodId: selectedMethod.id,
+          paymentMethodCode: selectedMethod.payment_method_code,
+          amount,
+          cashTendered: isCash ? (cashTendered ?? amount) : undefined,
+          supportsChangeReturn: selectedMethod.supports_change_return,
+          supportsOverpayment: selectedMethod.supports_overpayment,
+          requiresCashDrawer: selectedMethod.requires_cash_drawer,
+        },
+      ],
+      { payExtraIntent }
+    );
+  }, [amount, cashTendered, isCash, outstandingAmount, payExtraIntent, selectedMethod]);
+
+  const unresolvedExcess = payExtraIntent
+    ? payExtra.unresolvedExcessAmount
+    : overpaymentMetrics.unresolvedExcessAmount;
 
   const overpaymentResolution = useMemo(
     () =>
-      buildOverpaymentResolutionPayload(
-        allocation.extraReceiptMode,
-        overpaymentMetrics.unresolvedExcessAmount,
-        { allocationPreviewId: allocation.allocationPreviewId }
-      ),
-    [allocation.allocationPreviewId, allocation.extraReceiptMode, overpaymentMetrics.unresolvedExcessAmount]
+      buildOverpaymentResolutionPayload(allocation.extraReceiptMode, unresolvedExcess, {
+        allocationPreviewId: allocation.allocationPreviewId,
+      }),
+    [allocation.allocationPreviewId, allocation.extraReceiptMode, unresolvedExcess]
   );
 
-  const needsResolution =
-    overpaymentMetrics.unresolvedExcessAmount > SETTLEMENT_MONEY_EPSILON && !overpaymentResolution;
+  const needsResolution = payExtra.overpaymentBlocksSubmit;
 
   useEffect(() => {
     if (!open) return;
     setAmount(outstandingAmount);
     setCashTendered(undefined);
-    allocation.resetAllocationState();
-    allocation.setExtraReceiptMode('adjust_legs');
+    payExtra.resetPayExtraState();
   }, [open, outstandingAmount]);
 
   useEffect(() => {
@@ -165,11 +234,32 @@ export function OrderCollectPaymentModal({
   const handleSubmit = async () => {
     if (!selectedMethod || amount <= 0) return;
     if (needsResolution) {
-      showErrorToast(t('resolutionRequired'));
+      showErrorToast(
+        payExtraIntent && validationPhase !== 'ready'
+          ? tPayment('validatePayment.requiredBeforeSubmit')
+          : t('resolutionRequired')
+      );
       return;
     }
     setSubmitting(true);
     try {
+      const legsWithRefs = ensurePaymentLegRefs([
+        {
+          method: selectedMethod.payment_method_code as 'CASH',
+          amount,
+          ...(isCash && cashTendered != null ? { cashTendered } : {}),
+        },
+      ]);
+      const cashLegRef = legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef;
+      const submitResolution = buildOverpaymentResolutionPayload(
+        allocation.extraReceiptMode,
+        unresolvedExcess,
+        {
+          allocationPreviewId: allocation.allocationPreviewId,
+          cashLegRef,
+        }
+      );
+
       const res = await fetch(`/api/v1/orders/${orderId}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfToken) },
@@ -182,13 +272,20 @@ export function OrderCollectPaymentModal({
             },
           ],
           customerId: customerId ?? undefined,
-          ...(overpaymentResolution ? { overpaymentResolution } : {}),
+          ...(submitResolution ? { overpaymentResolution: submitResolution } : {}),
           idempotencyKey: `collect_${orderId}_${Date.now()}`,
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error ?? t('submitError'));
+        const errorCode = typeof json.errorCode === 'string' ? json.errorCode : '';
+        const mapped =
+          errorCode === 'OVERPAYMENT_RESOLUTION_REQUIRED'
+            ? tPayment('validatePayment.requiredBeforeSubmit')
+            : errorCode === 'OVERPAYMENT_RESOLUTION_NOT_ALLOWED'
+              ? tPayment('extraReceipt.allocation.manualBlockedReturn')
+              : null;
+        throw new Error(mapped ?? json.error ?? t('submitError'));
       }
       showSuccessToast(t('success'));
       onOpenChange(false);
@@ -263,21 +360,42 @@ export function OrderCollectPaymentModal({
                   </div>
                 ) : null}
 
-                <ExtraReceiptHandlingCard
-                  excessAmount={overpaymentMetrics.unresolvedExcessAmount}
-                  currencyCode={currencyCode}
-                  formatAmount={formatAmount}
-                  hasLinkedCustomer={!!customerId?.trim()}
-                  selectedMode={allocation.extraReceiptMode}
-                  onModeChange={allocation.setExtraReceiptMode}
-                  onOpenAutoAllocate={canAllocate ? allocation.handleOpenAutoAllocate : undefined}
-                  onOpenManualAllocate={canAllocate ? allocation.handleOpenManualAllocate : undefined}
-                  allocationConfirmed={!!allocation.allocationPreviewId}
+                <PayExtraIntentToggle
+                  checked={payExtraIntent}
+                  onCheckedChange={setPayExtraIntent}
+                  disabled={!canEnablePayExtra}
+                  disabledReason={
+                    !canEnablePayExtra ? tPayment('payExtraIntent.disabledNoMethods') : undefined
+                  }
                   isRTL={isRTL}
-                  canAllocate={canAllocate}
-                  canSaveAdvance={canDispose}
-                  canSaveCredit={canDispose}
                 />
+
+                {payExtraIntent ? (
+                  <PaymentValidateButton
+                    onClick={runValidatePayment}
+                    disabled={!canEnablePayExtra}
+                  />
+                ) : null}
+
+                {unresolvedExcess > SETTLEMENT_MONEY_EPSILON && !payExtraIntent ? (
+                  <ExtraReceiptHandlingCard
+                    excessAmount={unresolvedExcess}
+                    currencyCode={currencyCode}
+                    formatAmount={formatAmount}
+                    hasLinkedCustomer={!!customerId?.trim()}
+                    selectedMode={allocation.extraReceiptMode}
+                    onModeChange={allocation.setExtraReceiptMode}
+                    onOpenAutoAllocate={canAllocate ? allocation.handleOpenAutoAllocate : undefined}
+                    onOpenManualAllocate={canAllocate ? allocation.handleOpenManualAllocate : undefined}
+                    allocationConfirmed={!!allocation.allocationPreviewId}
+                    isRTL={isRTL}
+                    canAllocate={canAllocate}
+                    canSaveAdvance={canDispose}
+                    canSaveCredit={canDispose}
+                    canSaveWallet={canWallet}
+                    canReturnCashChange={overpaymentMetrics.canReturnChangeFromCash}
+                  />
+                ) : null}
               </>
             )}
           </div>
@@ -315,10 +433,37 @@ export function OrderCollectPaymentModal({
         targets={allocation.openBalanceTargets}
         loading={allocation.openBalancesLoading}
         submitting={allocation.confirmLoading}
-        excessAmount={overpaymentMetrics.unresolvedExcessAmount}
+        excessAmount={unresolvedExcess}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
         onSubmit={allocation.handleSubmitManualAllocation}
+        isRTL={isRTL}
+      />
+
+      <PaymentExtraReceiptDialog
+        open={extraReceiptDialogOpen}
+        onOpenChange={setExtraReceiptDialogOpen}
+        excessAmount={unresolvedExcess}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        hasLinkedCustomer={!!customerId?.trim()}
+        selectedMode={allocation.extraReceiptMode}
+        onModeChange={allocation.setExtraReceiptMode}
+        onOpenAutoAllocate={canAllocate ? allocation.handleOpenAutoAllocate : undefined}
+        onOpenManualAllocate={canAllocate ? allocation.handleOpenManualAllocate : undefined}
+        allocationConfirmed={!!allocation.allocationPreviewId}
+        canReturnCashChange={overpaymentMetrics.canReturnChangeFromCash}
+        canAllocate={canAllocate}
+        canSaveAdvance={canDispose}
+        canSaveCredit={canDispose}
+        canSaveWallet={canWallet}
+        onConfirm={() => {
+          if (!confirmExtraReceiptSelection()) {
+            showErrorToast(tPayment('validatePayment.requiredBeforeSubmit'));
+          }
+        }}
+        onBack={() => setExtraReceiptDialogOpen(false)}
+        confirmDisabled={!overpaymentResolution}
         isRTL={isRTL}
       />
     </>

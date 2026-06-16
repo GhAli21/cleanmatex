@@ -187,6 +187,10 @@ const overpaymentResolutionLineSchema = z.discriminatedUnion('resolutionCode', [
     amount: z.number().positive(),
   }),
   z.object({
+    resolutionCode: z.literal(OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET),
+    amount: z.number().positive(),
+  }),
+  z.object({
     resolutionCode: z.literal(OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_CREDIT),
     amount: z.number().positive(),
     noteReason: z.string().max(500).optional(),

@@ -265,8 +265,125 @@ For the full 200+ checkpoint list: `.claude/docs/Dev/CROSS_PROJECT_FEATURE_CHECK
 
 ---
 
+## 14. Notification HQ Service Auth (Phase B0)
+
+### Service-to-Service Authentication
+
+Internal calls from `cleanmatex` platform-api to `cleanmatexsaas` platform-api (e.g. dispatch proxy) use a **shared Bearer secret**, not a user JWT:
+
+```
+Authorization: Bearer <HQ_SERVICE_ROLE_KEY>
+```
+
+- `HQ_SERVICE_ROLE_KEY` lives only in `cleanmatexsaas` platform-api env and in `cleanmatex` env (as a caller credential). It is **never** in the database, never in `platform-web`, and never logged.
+- Guard: `ServiceRoleGuard` (timing-safe via SHA-256 hash comparison). Fail-closed: returns 503 if the key is not configured rather than allowing open access.
+- HQ admin UI calls (JwtAuthGuard) and tenant-runtime calls (TenantRuntimeJwtGuard) are distinct — `ServiceRoleGuard` never accepts JWTs.
+
+### Encryption Key
+
+- `HQ_ENCRYPTION_MASTER_KEY`: base64-encoded 32-byte AES-256-GCM master key. Lives in `cleanmatexsaas` platform-api env only. Used by `EncryptionService` for BYO provider creds stored in `org_ntf_channel_provider_cf.config`. Never stored in DB; never transmitted to `cleanmatex`.
+- Envelope format: `{v:1, iv, tag, ct}` (base64-wrapped JSON). The `v` version field enables key rotation without breaking existing ciphertext.
+
+### Audit Logging
+
+All HQ notification operations write to `hq_audit_logs` via `AuditService`:
+- `log(entry)` — caller guarantees no secrets in metadata.
+- `logSecure(entry)` — strips known secret field names (`apiKey`, `secret`, `password`, `config`, `token`, etc.) before insert. Use for any operation that may have credentials in scope.
+- `hq_audit_logs` is HQ-only; no RLS; service-role access only.
+
+### Required Env Vars (cleanmatexsaas platform-api)
+
+| Variable | Purpose |
+|---|---|
+| `HQ_SERVICE_ROLE_KEY` | Shared secret for S2S auth (ServiceRoleGuard) |
+| `HQ_ENCRYPTION_MASTER_KEY` | 32-byte base64 AES key for BYO cred encryption |
+| `HQ_RESEND_API_KEY` | Platform Resend API key (PLATFORM dispatch mode — email) |
+| `HQ_RESEND_FROM_EMAIL` | Platform sender address for Resend |
+
+### Required Env Vars (cleanmatex — caller side)
+
+| Variable | Purpose |
+|---|---|
+| `NTF_DISPATCH_VIA_HQ` | `true` to route email sends through HQ dispatch proxy (kill-switch) |
+| `NTF_HQ_SERVICE_ROLE_KEY` | Bearer secret for calling HQ dispatch endpoint |
+| `NTF_HQ_DISPATCH_URL` | Full URL of HQ dispatch endpoint (default: `http://localhost:3002/api/hq/v1/notifications/dispatch`) |
+
+### Dispatch Proxy Contract (B1)
+
+**Endpoint:** `POST /api/hq/v1/notifications/dispatch`
+**Guard:** `ServiceRoleGuard` (Bearer `HQ_SERVICE_ROLE_KEY`)
+**Rate limit:** 300 req/min
+
+**Request body:**
+```json
+{
+  "idempotencyKey": "<uuid>",
+  "tenantOrgId":   "<uuid>",
+  "channel":       "EMAIL",
+  "recipient":     "user@example.com",
+  "payload":       { "subject": "...", "html": "..." },
+  "requestId":     "<optional-uuid>"
+}
+```
+
+**Response (200):**
+```json
+{
+  "idempotencyKey": "<uuid>",
+  "tenantOrgId":   "<uuid>",
+  "channel":       "EMAIL",
+  "providerCode":  "RESEND",
+  "status":        "SENT",
+  "providerMessageId": "...",
+  "durationMs":    42,
+  "cached":        false
+}
+```
+
+- `cached: true` → idempotency cache hit; no second send was attempted.
+- `status` values: `SENT | FAILED | PERMANENT_FAILURE | PENDING`
+- **SECURITY:** Response never contains `encrypted_config`, API keys, or any credential.
+- Duplicate `idempotencyKey` within 24 h returns cached result without re-sending.
+
+### Governance Endpoints Contract (B1)
+
+**Base:** `/api/hq/v1/notifications/governance`
+**Guard:** `JwtAuthGuard` (HQ admin JWT)
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/providers` | List all providers |
+| GET | `/providers/:code` | Get single provider |
+| PATCH | `/providers/:code` | Update provider (is_active, name2) |
+| GET | `/channels` | List all channels |
+| GET | `/channels/:code` | Get single channel |
+| PATCH | `/channels/:code` | Update channel (is_active, name2, description) |
+| GET | `/tenant-config` | List all tenant channel configs (read-only) |
+| GET | `/tenant-config/:id` | Get single tenant config (read-only) |
+
+- **SECURITY:** `encrypted_config` is never returned by any governance endpoint. The `GovernanceRepository` excludes it from all SELECT queries; `GovernanceService._stripSecrets()` provides double safety.
+
+### Schema Changes (B1 — applied via migrations 0366 + 0367)
+
+**`org_ntf_channel_provider_cf`** (in cleanmatex schema):
+- `dispatch_mode TEXT NOT NULL DEFAULT 'PLATFORM' CHECK (dispatch_mode IN ('PLATFORM','BYO'))`
+- `encrypted_config TEXT` — AES-256-GCM envelope for BYO provider creds; NULL for PLATFORM rows
+
+**`org_ntf_usage_daily`** (in cleanmatex schema):
+- `currency_code TEXT NOT NULL DEFAULT 'USD'`
+- Natural-key index rebuilt to include `currency_code`
+
+**`hq_ntf_dispatch_log`** (HQ-only, no RLS):
+- Idempotency/dedupe table; `idempotency_key TEXT UNIQUE`
+- Status lifecycle: `PENDING → SENT | FAILED | PERMANENT_FAILURE`
+- `recipient_hash TEXT` — SHA-256 only; plaintext recipient never stored
+
+---
+
 ## Update Log
 
 | Date | Change | Author |
 |---|---|---|
 | 13-05-2026 | Initial creation — migrated cross-project protocol from both CLAUDE.md files to Option B structure | Jh |
+| 16-06-2026 | §14 added — Notification HQ Service Auth contracts (B0: ServiceRoleGuard, EncryptionService, AuditService, hq_audit_logs) | Claude |
+| 16-06-2026 | §14 extended — B1 dispatch proxy + governance contracts, schema changes (0366+0367), env var table updated | Claude |

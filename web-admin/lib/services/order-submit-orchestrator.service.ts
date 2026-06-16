@@ -22,6 +22,7 @@ import { settleOrderTx } from '@/lib/services/order-settlement.service';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
+import { resolveVoucherCashChangeReturned } from '@/lib/payments/resolve-voucher-cash-change';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
 import { validateOverpaymentResolution } from '@/lib/services/overpayment-resolution-validator.service';
@@ -784,6 +785,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       // created above rolls back with it instead of leaving a user-visible order
       // without finance facts.
       let voucherPostResult: PostAndWireResult | null = null;
+      const overpaymentResolution =
+        input.overpaymentResolution ?? input.overpaymentDisposition;
 
       if (plan.shouldCreateReceiptVoucher) {
         const voucher = await createBizVoucher(
@@ -811,6 +814,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
         // 5.1 Real-payment lines (cash, card, gateway, check, bank transfer)
         for (const leg of plan.realPaymentLegs) {
+          const changeReturned = resolveVoucherCashChangeReturned(
+            leg,
+            paymentLegs,
+            overpaymentResolution ?? undefined
+          );
           await addVoucherLine(
             tenantId,
             voucher.id,
@@ -830,6 +838,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               currency_code:          leg.currencyCode,
               cash_drawer_session_id: leg.cashDrawerSessionId,
               tendered_amount:        leg.tenderedAmount,
+              ...(changeReturned !== undefined && { change_returned_amount: changeReturned }),
               gateway_code:           leg.gatewayCode,
               gateway_transaction_id: leg.gatewayTransactionId,
               gateway_reference:      leg.gatewayReference,
@@ -909,8 +918,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         );
       }
 
-      const overpaymentResolution =
-        input.overpaymentResolution ?? input.overpaymentDisposition;
       if (overpaymentResolution && overpaymentResolution.excessAmount > TOLERANCE) {
         const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)
           ? getDispositionLinesExcludingAllocation(overpaymentResolution)

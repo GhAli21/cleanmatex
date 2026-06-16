@@ -250,8 +250,9 @@ export async function validateSettlementPlan(
     if (excessIntroducedByLeg > TOLERANCE) {
       const canRetainExcess =
         !leg.isCreditApplication &&
-        leg.paymentMethodCode !== 'CASH' &&
-        leg.supportsOverpayment;
+        (leg.paymentMethodCode !== 'CASH'
+          ? leg.supportsOverpayment
+          : leg.supportsOverpayment);
       if (!canRetainExcess) {
         throw new Error('METHOD_OVERPAYMENT_NOT_ALLOWED');
       }

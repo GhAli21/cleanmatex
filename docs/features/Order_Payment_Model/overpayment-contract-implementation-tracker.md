@@ -6,6 +6,22 @@
 
 ---
 
+## ADR-050 Pay-Extra Intent (2026-06-16)
+
+| Item | Status |
+|------|--------|
+| ADR-050 | ✅ |
+| Migration `0368_fin_overpay_save_to_wallet` | ✅ file ready — user apply |
+| `checkout-excess-metrics.ts` + tests | ✅ |
+| `SAVE_TO_CUSTOMER_WALLET` executor + validator | ✅ |
+| Pay-extra UI kit + V4 + Collect parity | ✅ |
+| EN/AR guidance + `check:i18n` | ✅ |
+| Docs: user guide, CHANGELOG, progress | ✅ |
+
+See: [PAY_EXTRA_OVERPAYMENT_PROGRESS.md](../Order_Fin/PAY_EXTRA_OVERPAYMENT_PROGRESS.md)
+
+---
+
 ## Program completion summary
 
 | Phase | Status | Key deliverables |

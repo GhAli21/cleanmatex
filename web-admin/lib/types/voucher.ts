@@ -190,6 +190,8 @@ export interface CreateVoucherLineInput {
   currency_ex_rate?: number;
   direction?: VoucherDirection;
   tendered_amount?: number;
+  /** When set (including 0), overrides auto-derived cash change. */
+  change_returned_amount?: number;
   card_brand_code?: string;
   card_last4?: string;
   auth_code?: string;

@@ -77,7 +77,13 @@ import { buildOverpaymentResolutionPayload } from './payment-modal/allocation/bu
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
-import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
+import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
+import { PayExtraIntentToggle } from './payment-modal/pay-extra/pay-extra-intent-toggle';
+import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
+import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
+import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
+import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
@@ -1352,7 +1358,10 @@ export function PaymentModalV4({
           giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
           walletBalance: getLegStoredValueCap(target),
-          supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment:
+            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+              ? true
+              : !policy.isCash && policy.supportsOverpayment,
         });
         const cashTendered = policy.isCash
           ? deriveCashTenderedAmount(value, appliedAmount, policy.supportsChangeReturn, decimalPlaces)
@@ -1399,7 +1408,10 @@ export function PaymentModalV4({
             amount: defaultAmount,
             ...(existingIndex >= 0 ? prev[existingIndex] : {}),
           }),
-          supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment:
+            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+              ? true
+              : !policy.isCash && policy.supportsOverpayment,
         });
         const nextLeg: PaymentLeg = {
           legRef: existingIndex >= 0 ? prev[existingIndex].legRef ?? crypto.randomUUID() : crypto.randomUUID(),
@@ -1762,21 +1774,69 @@ export function PaymentModalV4({
     );
     return sum + Math.max(0, tendered - applied);
   }, 0);
-  const unresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
+  const legacyUnresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
     changeAmount,
     cashChangeCapacity,
     canReturnChangeFromCash,
     moneyEpsilon
   );
-  const overpaymentNeedsResolution = unresolvedOverpaymentAmount > moneyEpsilon;
   const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
-  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
 
-  const allocation = useOverpaymentAllocation({
+  const canAllocateOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
+  const canDisposeOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE);
+  const canWalletOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET);
+
+  const checkoutExcessLegs = useMemo(
+    () =>
+      settlementLegEntries.map(({ leg }) => {
+        const option = getMethodOption(leg.method, leg.gateway_code);
+        return {
+          paymentMethodCode: leg.method,
+          amount: leg.amount ?? 0,
+          tenderedAmount:
+            leg.method === PAYMENT_METHODS.CASH ? (leg.cashTendered ?? leg.amount) : undefined,
+          supportsChangeReturn: option?.supports_change_return === true,
+        };
+      }),
+    [getMethodOption, settlementLegEntries]
+  );
+
+  const canEnablePayExtra = useMemo(
+    () =>
+      realPaymentEntries.some(({ leg }) => {
+        const option = getMethodOption(leg.method, leg.gateway_code);
+        if (!option) return false;
+        return (
+          option.supports_overpayment === true ||
+          (leg.method === PAYMENT_METHODS.CASH && option.supports_change_return === true)
+        );
+      }),
+    [getMethodOption, realPaymentEntries]
+  );
+
+  const primaryCashLegRef = useMemo(() => {
+    const cashEntry = settlementLegEntries.find(({ leg }) => leg.method === PAYMENT_METHODS.CASH);
+    return cashEntry?.leg.legRef ?? null;
+  }, [settlementLegEntries]);
+
+  const payExtraResetFingerprint = useMemo(
+    () =>
+      settlementLegEntries
+        .map(({ leg }) => `${leg.method}:${leg.amount}:${leg.cashTendered ?? ''}`)
+        .join('|'),
+    [settlementLegEntries]
+  );
+
+  const payExtra = usePayExtraCheckout({
     customerId,
     branchId,
     currencyCode,
-    excessAmount: unresolvedOverpaymentAmount,
+    excessAmount: legacyUnresolvedOverpaymentAmount,
+    legacyUnresolvedExcess: legacyUnresolvedOverpaymentAmount,
+    saleTotal,
+    immediateSettlementAmount: totalSettledNowAmount,
+    legs: checkoutExcessLegs,
+    primaryCashLegRef,
     receiptAmount: totalSettledNowAmount,
     currentOrderAllocationAmount: amountAppliedToOrder,
     sourceType: 'ORDER_PAYMENT_MODAL',
@@ -1784,25 +1844,33 @@ export function PaymentModalV4({
     moneyEpsilon,
     confirmedToastMessage: t('extraReceipt.allocation.confirmedToast'),
     remainingUnallocatedErrorMessage: t('extraReceipt.allocation.remainingUnallocatedError'),
+    resetDeps: [payExtraResetFingerprint, totalSettledNowAmount],
   });
+
+  const allocation = payExtra;
+  const {
+    payExtraIntent,
+    setPayExtraIntent,
+    validationPhase,
+    extraReceiptDialogOpen,
+    setExtraReceiptDialogOpen,
+    runValidatePayment,
+    confirmExtraReceiptSelection,
+  } = payExtra;
+
+  const unresolvedOverpaymentAmount = payExtra.unresolvedExcessAmount;
+  const overpaymentNeedsResolution = payExtra.overpaymentNeedsResolution;
+  const overpaymentResolutionPayload = payExtra.overpaymentResolutionPayload;
+  const overpaymentBlocksSubmit = payExtra.overpaymentBlocksSubmit;
+  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
 
   useEffect(() => {
     if (!open) return;
-    allocation.resetAllocationState();
-    allocation.setExtraReceiptMode('adjust_legs');
+    payExtra.resetPayExtraState();
     allocation.setAutoDrawerOpen(false);
     allocation.setManualDrawerOpen(false);
   }, [open]);
 
-  const overpaymentResolutionPayload = useMemo(
-    () =>
-      buildOverpaymentResolutionPayload(allocation.extraReceiptMode, unresolvedOverpaymentAmount, {
-        allocationPreviewId: allocation.allocationPreviewId,
-      }),
-    [allocation.allocationPreviewId, allocation.extraReceiptMode, unresolvedOverpaymentAmount]
-  );
-  const overpaymentBlocksSubmit =
-    overpaymentNeedsResolution && !overpaymentResolutionPayload;
   const netCashRetainedAmount = getNetCashRetainedAmount(
     cashTenderedAmount,
     cashChangeAmount,
@@ -2186,9 +2254,13 @@ export function PaymentModalV4({
     }
 
     if (overpaymentBlocksSubmit) {
-      cmxMessage.error(t('rightRail.requiredAction.overpaymentMessage', {
-        amount: `${currencyCode} ${formatAmount(changeAmount)}`,
-      }));
+      cmxMessage.error(
+        payExtraIntent && validationPhase !== 'ready'
+          ? t('validatePayment.requiredBeforeSubmit')
+          : t('rightRail.requiredAction.overpaymentMessage', {
+              amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
+            })
+      );
       return;
     }
 
@@ -2231,6 +2303,18 @@ export function PaymentModalV4({
         : paymentLegs
     );
 
+    const submitCashLegRef =
+      legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef ?? null;
+
+    const submitOverpaymentResolution = buildOverpaymentResolutionPayload(
+      allocation.extraReceiptMode,
+      unresolvedOverpaymentAmount,
+      {
+        allocationPreviewId: allocation.allocationPreviewId,
+        cashLegRef: submitCashLegRef,
+      }
+    );
+
     const payload = {
       amountToCharge: settledNowAmount,
       totals: {
@@ -2262,8 +2346,8 @@ export function PaymentModalV4({
       ...(settlementLegEntries.length > 0 && {
         paymentLegs: legsWithRefs,
       }),
-      ...(overpaymentResolutionPayload && {
-        overpaymentResolution: overpaymentResolutionPayload,
+      ...(submitOverpaymentResolution && {
+        overpaymentResolution: submitOverpaymentResolution,
       }),
     };
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
@@ -3271,7 +3355,10 @@ export function PaymentModalV4({
       giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
       walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-      supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+      supportsOverpayment:
+        payExtraIntent && policy.isCash && policy.supportsChangeReturn
+          ? true
+          : !policy.isCash && policy.supportsOverpayment,
     });
     setActiveAmountDraft(
       nextAmount > cappedAmount && !(policy.isCash && policy.supportsChangeReturn)
@@ -3726,7 +3813,7 @@ export function PaymentModalV4({
                       </div>
                   </PaymentWorkbenchSection>
 
-                  {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                  {unresolvedOverpaymentAmount > moneyEpsilon && !payExtraIntent ? (
                     <div ref={extraReceiptCardRef} tabIndex={-1} className="outline-none">
                       <ExtraReceiptHandlingCard
                         excessAmount={unresolvedOverpaymentAmount}
@@ -3743,9 +3830,48 @@ export function PaymentModalV4({
                             allocation.resetAllocationState();
                           }
                         }}
-                        onOpenAutoAllocate={() => void allocation.handleOpenAutoAllocate()}
-                        onOpenManualAllocate={() => void allocation.handleOpenManualAllocate()}
+                        onOpenAutoAllocate={
+                          canAllocateOverpayment
+                            ? () => void allocation.handleOpenAutoAllocate()
+                            : undefined
+                        }
+                        onOpenManualAllocate={
+                          canAllocateOverpayment
+                            ? () => void allocation.handleOpenManualAllocate()
+                            : undefined
+                        }
                         allocationConfirmed={Boolean(allocation.allocationPreviewId)}
+                        isRTL={isRTL}
+                        canAllocate={canAllocateOverpayment}
+                        canSaveAdvance={canDisposeOverpayment}
+                        canSaveCredit={canDisposeOverpayment}
+                        canSaveWallet={canWalletOverpayment}
+                        canReturnCashChange={canReturnChangeFromCash}
+                      />
+                    </div>
+                  ) : null}
+
+                  <PayExtraIntentToggle
+                    checked={payExtraIntent}
+                    onCheckedChange={setPayExtraIntent}
+                    disabled={!canEnablePayExtra}
+                    disabledReason={
+                      !canEnablePayExtra ? t('payExtraIntent.disabledNoMethods') : undefined
+                    }
+                    isRTL={isRTL}
+                  />
+
+                  {payExtraIntent ? (
+                    <div className="space-y-3">
+                      <PaymentValidateButton
+                        onClick={runValidatePayment}
+                        disabled={!canEnablePayExtra}
+                      />
+                      <PayExtraWorkbenchHint
+                        visible={
+                          allocation.extraReceiptMode === 'adjust_legs' &&
+                          validationPhase !== 'ready'
+                        }
                         isRTL={isRTL}
                       />
                     </div>
@@ -3823,7 +3949,10 @@ export function PaymentModalV4({
                                       giftCardAmount: giftCardSettlementAmount,
                                       decimalPlaces,
                                       walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-                                      supportsOverpayment: !policy.isCash && policy.supportsOverpayment,
+                                      supportsOverpayment:
+            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+              ? true
+              : !policy.isCash && policy.supportsOverpayment,
                                     });
                                     notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
                                     updateLeg(activeLegIndex, 'amount', value);
@@ -5609,6 +5738,45 @@ export function PaymentModalV4({
         loading={allocation.openBalancesLoading}
         submitting={allocation.confirmLoading}
         onSubmit={(lines) => void allocation.handleSubmitManualAllocation(lines)}
+        isRTL={isRTL}
+      />
+
+      <PaymentExtraReceiptDialog
+        open={extraReceiptDialogOpen}
+        onOpenChange={setExtraReceiptDialogOpen}
+        excessAmount={unresolvedOverpaymentAmount}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        hasLinkedCustomer={Boolean(customerId?.trim())}
+        selectedMode={allocation.extraReceiptMode}
+        onModeChange={(mode) => {
+          allocation.setExtraReceiptMode(mode);
+          if (
+            mode !== OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES &&
+            mode !== OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES
+          ) {
+            allocation.resetAllocationState();
+          }
+        }}
+        onOpenAutoAllocate={
+          canAllocateOverpayment ? () => void allocation.handleOpenAutoAllocate() : undefined
+        }
+        onOpenManualAllocate={
+          canAllocateOverpayment ? () => void allocation.handleOpenManualAllocate() : undefined
+        }
+        allocationConfirmed={Boolean(allocation.allocationPreviewId)}
+        canReturnCashChange={canReturnChangeFromCash}
+        canAllocate={canAllocateOverpayment}
+        canSaveAdvance={canDisposeOverpayment}
+        canSaveCredit={canDisposeOverpayment}
+        canSaveWallet={canWalletOverpayment}
+        onConfirm={() => {
+          if (!confirmExtraReceiptSelection()) {
+            cmxMessage.error(t('validatePayment.requiredBeforeSubmit'));
+          }
+        }}
+        onBack={() => setExtraReceiptDialogOpen(false)}
+        confirmDisabled={!overpaymentResolutionPayload}
         isRTL={isRTL}
       />
     </>

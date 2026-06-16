@@ -116,10 +116,14 @@ async function addVoucherLineInTx(
 
   const line_no = await getNextLineNoTx(tx, tenantOrgId, voucherId);
 
-  // Auto-derive change for cash payments
+  // Auto-derive change for cash payments unless explicitly provided
   let changeReturned: number | null = null;
   if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined) {
-    changeReturned = Math.max(0, input.tendered_amount - input.amount);
+    if (input.change_returned_amount !== undefined) {
+      changeReturned = input.change_returned_amount > 0 ? input.change_returned_amount : null;
+    } else {
+      changeReturned = Math.max(0, input.tendered_amount - input.amount);
+    }
   }
 
   const created = await tx.org_fin_voucher_trx_lines_dtl.create({
