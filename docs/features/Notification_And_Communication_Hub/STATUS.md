@@ -17,9 +17,14 @@
 | Phase 3 — WhatsApp + SMS + Push | ✅ COMPLETE | 2026-06-12 | Migs 0351–0356; all channel adapters wired |
 | Frontend — Bell UI (Track A) | ✅ COMPLETE | 2026-06-12 | Bell, drawer, center page, prefs page |
 | Phase 4 — Campaign Engine | ✅ COMPLETE | 2026-06-12 | Migs 0361–0363; campaign CRUD + UI + scheduler |
-| HQ Phase A — Template Mgmt | ⏳ Not started | — | cleanmatexsaas project |
-| HQ Phase B — Provider Config API | ⏳ Not started | — | cleanmatexsaas project |
-| HQ Phase C — Broadcast Center | ⏳ Not started | — | cleanmatexsaas project |
+| HQ Phase B0 — Guards, Encryption, Audit | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: JwtAuthGuard, AES-256-GCM, AuditService |
+| HQ Phase B1 — EMAIL Dispatch Proxy | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: GovernanceService, EMAIL provider send |
+| HQ Phase B2 — Quota & Pricing | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: QuotaService, PricingService, MeteringService |
+| HQ Phase B3 — SMS / WA / Push + Workers | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: BullMQ workers, all 4 channel providers |
+| HQ Phase BYO — Encrypted BYO Credentials | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: AES-GCM per-tenant cred encryption |
+| HQ Phase A — Template Library UI | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: DRAFT→APPROVED→RETIRED state machine |
+| HQ Phase C — Observability + Broadcast | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: dashboards, campaign CRUD |
+| HQ Phase X — Hardening | ✅ COMPLETE | 2026-06-16 | cleanmatexsaas: throttle, _stripSecrets, ADR-002 |
 
 ---
 
@@ -170,6 +175,14 @@
 | 0361 | ntf_campaign_engine_tables | 4 |
 | 0362 | ntf_campaign_scheduler_cron | 4 |
 | 0363 | nav_marketing_campaigns | 4 |
+| 0364 | ntf_table_naming_unification | HQ-prep |
+| 0365 | hq_audit_logs_improve | HQ-B0 |
+| 0366 | ntf_dispatch_mode_currency | HQ-B0 |
+| 0367 | hq_ntf_dispatch_log | HQ-B1 |
+| 0369 | sys_ntf_quota_plan_cf | HQ-B2 |
+| 0370 | org_ntf_quota_override_cf | HQ-B2 |
+| 0371 | sys_ntf_pricing_cf | HQ-B2 |
+| 0373 | hq_ntf_webhook_events | HQ-B3 |
 
 ---
 
@@ -214,11 +227,38 @@ TWILIO_AUTH_TOKEN=<Twilio auth token>
 ## Next Steps
 
 1. META WhatsApp template approval — update template IDs above when received
-2. HQ Phase A (cleanmatexsaas) — Template Library UI
-3. HQ Phase B (cleanmatexsaas) — Provider Config API
-4. HQ Phase C (cleanmatexsaas) — Broadcast Center
-5. Campaign quota enforcement — integrate cleanmatexsaas quota API in process-campaigns route
-6. Event wiring — wire remaining order/payment events from the event catalog (see PLAN.md Step 2.7)
+2. Campaign quota enforcement — integrate cleanmatexsaas quota API in `process-campaigns` route (HQ-B2 gate endpoint ready)
+3. Event wiring — wire remaining order/payment events from the event catalog (see PLAN.md Step 2.7)
+4. Run `scripts/dev/update-types.ps1` in cleanmatexsaas to regenerate types for 0366 columns
+
+---
+
+## HQ Phases (cleanmatexsaas) — ALL COMPLETE as of 2026-06-16
+
+All HQ phases were implemented in `F:\jhapp\cleanmatexsaas`. The architecture decision was revised from "management UI only" to a **single-egress HQ dispatch proxy** (ADR-002): all external sends (EMAIL/SMS/WA/PUSH) route through `platform-api`; cleanmatex holds zero provider secrets.
+
+| HQ Phase | Scope | Status | Date |
+|----------|-------|--------|------|
+| B0 | JwtAuthGuard, AES-256-GCM encryption, AuditService | ✅ COMPLETE | 2026-06-16 |
+| B1 | EMAIL dispatch proxy, GovernanceService, provider credential UI | ✅ COMPLETE | 2026-06-16 |
+| B2 | QuotaService, PricingService, MeteringService, dispatch gate | ✅ COMPLETE | 2026-06-16 |
+| B3 | SMS/WA/Push providers, BullMQ workers, webhook ingestion | ✅ COMPLETE | 2026-06-16 |
+| BYO | Encrypted bring-your-own credentials (AES-GCM, per-tenant) | ✅ COMPLETE | 2026-06-16 |
+| A | Template library: DRAFT→APPROVED→RETIRED UI in platform-web | ✅ COMPLETE | 2026-06-16 |
+| C | Observability dashboard + Broadcast Center UI | ✅ COMPLETE | 2026-06-16 |
+| X | Throttle on webhooks, `_stripSecrets` pattern, ADR-002 | ✅ COMPLETE | 2026-06-16 |
+
+**HQ env vars required** (in `platform-api/.env`):
+```
+HQ_ENCRYPTION_MASTER_KEY=<32-byte hex>
+NTF_DISPATCH_VIA_HQ=true
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+META_WHATSAPP_TOKEN=...
+FCM_SERVICE_ACCOUNT_JSON=...
+```
+
+**See:** `F:\jhapp\cleanmatexsaas\docs\dev\features_notification_hub_hq\` for full HQ documentation.
 
 ---
 

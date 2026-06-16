@@ -623,23 +623,19 @@ At the end of Phase 1, these MUST work in the browser:
 | Frontend — Bell UI (Track A) | ✅ COMPLETE | 2026-06-12 |
 | Documentation Suite | ✅ COMPLETE | 2026-06-12 |
 | Phase 4 — Campaign Engine | ✅ COMPLETE | 2026-06-12 |
-| HQ Phase A — Template Mgmt | ⏳ Not started | — |
-| HQ Phase B — Provider Config API | ⏳ Not started | — |
-| HQ Phase C — Broadcast Center | ⏳ Not started | — |
+| HQ Phase B0 — Guards/Encryption/Audit | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B1 — EMAIL Dispatch Proxy | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B2 — Quota & Pricing | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B3 — SMS/WA/Push Workers | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase BYO — Encrypted Creds | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase A — Template Library UI | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase C — Observability + Broadcasts | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase X — Hardening + ADR-002 | ✅ COMPLETE | 2026-06-16 |
 
-**HQ Phases Plan:** [HQ_PHASES_PLAN.md](./HQ_PHASES_PLAN.md) — detailed step-by-step plan for Phases A, B, C (cleanmatexsaas). Start with Phase B.
-
----
-
-## GATE — Approval Required
-
-**This roadmap is complete. No code or migrations will be written until explicit approval.**
-
-To approve, confirm:
-1. Phase 1 plan is approved → begin migration writing (0344-0349 + 0352)
-2. Any adjustments needed before starting?
-3. cleanmatexsaas Phase B (provider config API) must start in parallel — confirm who owns it
+**HQ Phases Plan:** [HQ_PHASES_PLAN.md](./HQ_PHASES_PLAN.md) — all HQ phases complete as of 2026-06-16.  
+**HQ Documentation:** `F:\jhapp\cleanmatexsaas\docs\dev\features_notification_hub_hq\`  
+**ADR-002:** `.claude/docs/Dev/ADR-002-ntf-single-egress-dispatch.md` — Single-Egress HQ Dispatch Proxy
 
 ---
 
-*Generated: 2026-06-06 | Roadmap version: 1.0 | Next migration: 0344*
+*Generated: 2026-06-06 | Roadmap version: 2.0 | Last updated: 2026-06-16 | Next migration: 0374*

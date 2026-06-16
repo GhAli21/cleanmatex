@@ -10,27 +10,40 @@
 
 ---
 
-## Architecture Decision (Locked)
+## Architecture Decision (REVISED — ADR-002)
 
-**cleanmatex owns ALL runtime logic.** It reads its own `sys_*` tables and env vars directly at dispatch time — no cross-project HTTP call at runtime.
+> **⚠️ Original plan below was superseded.** The actual implementation uses a **Single-Egress HQ Dispatch Proxy** (ADR-002), not "management UI only."  
+> See: `cleanmatexsaas/.claude/docs/Dev/ADR-002-ntf-single-egress-dispatch.md`
 
-**cleanmatexsaas HQ is a management console only.** Its job is to fill and maintain the `sys_*` catalog tables in cleanmatex DB via service-role Supabase client. No new runtime APIs needed in cleanmatexsaas.
+**ACTUAL IMPLEMENTATION:**
+
+All external sends (EMAIL/SMS/WHATSAPP/PUSH) route through `POST /api/hq/v1/notifications/dispatch` in `cleanmatexsaas/platform-api`. cleanmatex holds **zero** provider secrets.
 
 ```
-Runtime (cleanmatex):
-  orchestrator → reads sys_ntf_providers_cd   (which provider is active)
-              → reads sys_ntf_runtime_cf      (non-secret config, base URLs)
-              → reads env vars                (API secrets — never in DB)
-              → reads sys_notification_templates_mst  (template content)
-
-Management (cleanmatexsaas HQ UI):
-  Admin fills sys_ntf_providers_cd            → cleanmatex uses it immediately
-  Admin manages sys_notification_templates_mst → cleanmatex renders from it
-  Admin views org_ntf_usage_daily    → read-only quota dashboard
-  Admin sends broadcast → calls cleanmatex    POST /api/v1/notifications/broadcasts
+cleanmatex orchestrator (order event fires)
+        │
+        ├── IN_APP: direct insert to org_notifications_mst  (unchanged)
+        │
+        └── EMAIL/SMS/WA/PUSH → POST /api/hq/v1/notifications/dispatch
+                                        │   (cleanmatexsaas platform-api)
+                                        ├── JwtAuthGuard + quota gate
+                                        ├── MeteringService (usage log)
+                                        ├── Decrypts BYO creds (AES-256-GCM)
+                                        │
+                                        ├── EMAIL  → GovernanceService → Resend/SendGrid
+                                        ├── SMS    → BullMQ worker → Twilio
+                                        ├── WA     → BullMQ worker → Meta/Twilio BSP
+                                        └── PUSH   → BullMQ worker → VAPID/FCM/OneSignal
 ```
 
-**Provider secrets** (SENDGRID_API_KEY, TWILIO_AUTH_TOKEN, etc.) stay in cleanmatex `.env.local`. HQ never sees or manages them — that's deployment-level config, not app-level.
+**Management UI (cleanmatexsaas platform-web):**
+- Template Library: CRUD for `sys_notification_templates_mst` (DRAFT→APPROVED→RETIRED)
+- Provider Governance: activate/configure providers in `org_ntf_channel_provider_cf`
+- Quota dashboard: view `org_ntf_usage_daily` and plan limits
+- Observability: delivery log aggregates, failure rates
+- Broadcast Center: `org_ntf_campaigns_mst` CRUD with approve/cancel/dry-run
+
+**Provider secrets** live in `cleanmatexsaas/platform-api/.env` only. cleanmatex holds only a service-role JWT for calling HQ dispatch. Kill-switch: `NTF_DISPATCH_VIA_HQ=false` restores legacy in-process dispatch in cleanmatex.
 
 ---
 
@@ -397,11 +410,15 @@ Provider secrets (SENDGRID_API_KEY, TWILIO_*, META_*, VAPID_*, FCM_*) stay in cl
 
 | Phase | Status | Last Updated |
 |---|---|---|
-| Phase A — Provider & Runtime Config UI | ⏳ Not started | — |
-| Phase B — Template Library UI | ⏳ Not started | — |
-| Phase C — Operations Center | ⏳ Not started | — |
-| Campaign Quota Limits | ⏳ Not started | — |
-| cleanmatex broadcast route | ⏳ Not started | — |
+| HQ Phase B0 — Guards, Encryption, Audit | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B1 — EMAIL Dispatch Proxy | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B2 — Quota Catalog + Pricing | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase B3 — SMS / WA / Push + BullMQ | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase BYO — Encrypted BYO Creds | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase A — Template Library UI | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase C — Observability + Broadcast Center | ✅ COMPLETE | 2026-06-16 |
+| HQ Phase X — Throttle + ADR-002 + Hardening | ✅ COMPLETE | 2026-06-16 |
+| Campaign Quota Limits | ⏳ Pending | Wire in cleanmatex process-campaigns |
 
 ---
 
@@ -418,4 +435,4 @@ Provider secrets (SENDGRID_API_KEY, TWILIO_*, META_*, VAPID_*, FCM_*) stay in cl
 
 ---
 
-*Plan version: 2.0 (revised 2026-06-13) | Architecture: HQ = management UI only; cleanmatex = full runtime | Start with Phase A*
+*Plan version: 3.0 (revised 2026-06-16) | Architecture: HQ = dispatch proxy + management UI (ADR-002) | ALL PHASES COMPLETE*

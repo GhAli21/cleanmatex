@@ -40,7 +40,15 @@ import {
 } from 'lucide-react'
 
 /** `none` = placeholder sections with no role gate (permissions-only). */
-export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manager' | 'operator' | 'cashier' | 'viewer' | 'none'
+export type UserRole =
+  // System roles (seeded in 0035 + admin)
+  | 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manager' | 'operator'
+  // Operational roles (seeded in 0374)
+  | 'accountant' | 'b2b_customer' | 'cashier' | 'driver' | 'finance_manager'
+  | 'it_support' | 'laundry_worker' | 'presser' | 'qa_inspector' | 'receptionist'
+  | 'route_supervisor' | 'store_keeper' | 'supervisor'
+  // Read-only / placeholder
+  | 'viewer' | 'none'
 
 export interface NavigationSection {
   key: string

@@ -1,8 +1,8 @@
 # CMX-PRD-019 — Notification Hub: Developer Guide
 
-**Last Updated:** 2026-06-12  
+**Last Updated:** 2026-06-16  
 **Audience:** Backend and full-stack developers working on CleanMateX  
-**Status:** Phases 1–4 complete (cleanmatex MVP) | Next: HQ phases in cleanmatexsaas
+**Status:** Phases 1–4 complete (cleanmatex MVP) | HQ phases B0→X ALL COMPLETE in cleanmatexsaas (2026-06-16)
 
 ---
 
@@ -494,3 +494,79 @@ notifications.campaigns.detail.approve
 notifications.campaigns.detail.launch
 notifications.campaigns.detail.cancel
 ```
+
+---
+
+## 15. HQ Dispatch Proxy (ADR-002)
+
+**Added:** 2026-06-16 | **See also:** `cleanmatexsaas/.claude/docs/Dev/ADR-002-ntf-single-egress-dispatch.md`
+
+All external sends (EMAIL/SMS/WHATSAPP/PUSH) are routed through the HQ dispatch proxy in `cleanmatexsaas/platform-api`. cleanmatex holds zero provider secrets.
+
+### How cleanmatex triggers HQ dispatch
+
+```typescript
+// lib/notifications/adapters/outbox-processor.ts
+// When channel_code is EMAIL/SMS/WHATSAPP/PUSH:
+
+if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
+  const response = await fetch(`${process.env.HQ_API_URL}/api/hq/v1/notifications/dispatch`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.HQ_DISPATCH_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      tenantOrgId: outboxRow.tenant_org_id,
+      channelCode: outboxRow.channel_code,
+      recipientUserId: outboxRow.recipient_user_id,
+      templateCode: outboxRow.template_code,
+      variables: outboxRow.variables,
+      idempotencyKey: outboxRow.idempotency_key,
+    }),
+  })
+  // HQ returns { status: 'sent' | 'queued' | 'quota_exceeded' | 'failed' }
+}
+```
+
+### Kill-switch
+
+Set `NTF_DISPATCH_VIA_HQ=false` in cleanmatex `.env.local` to restore legacy in-process dispatch (no HQ call). Useful for local dev without HQ running.
+
+### BYO Credentials
+
+Tenants with bring-your-own credentials have them stored AES-256-GCM encrypted in `org_ntf_channel_provider_cf.encrypted_config`. The master key lives only in `cleanmatexsaas/platform-api/.env` (`HQ_ENCRYPTION_MASTER_KEY`). cleanmatex never decrypts or reads these — HQ workers decrypt on-use.
+
+### Environment Variables Required
+
+**cleanmatex** (for proxy hand-off):
+```
+NTF_DISPATCH_VIA_HQ=true
+HQ_API_URL=http://localhost:3002
+HQ_DISPATCH_API_KEY=<shared service key>
+```
+
+**cleanmatexsaas** (for provider dispatch):
+```
+HQ_ENCRYPTION_MASTER_KEY=<32-byte hex>
+RESEND_API_KEY=...
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+META_WHATSAPP_TOKEN=...
+FCM_SERVICE_ACCOUNT_JSON=...
+```
+
+### HQ Modules (cleanmatexsaas/platform-api/src/modules/notifications-hq/)
+
+| Module | Purpose |
+|--------|---------|
+| `dispatch/` | DispatchService, DispatchModule, BullMQ queue definition |
+| `dispatch/providers/` | EmailProvider, SmsProvider, WhatsAppProvider, PushProvider |
+| `dispatch/metering.service.ts` | Usage metering (writes org_ntf_usage_daily) |
+| `governance/` | GovernanceService — provider catalog + channel config CRUD |
+| `quota/` | QuotaService + QuotaController — per-tenant quota checking |
+| `pricing/` | PricingService + PricingController — plan pricing config |
+| `webhooks/` | WebhooksController — ingest delivery callbacks from providers |
+| `templates/` | Template CRUD API (sys_notification_templates_mst) |
+| `observability/` | ObservabilityService — aggregate usage + delivery stats |
+| `broadcast/` | BroadcastService — org_ntf_campaigns_mst CRUD |
