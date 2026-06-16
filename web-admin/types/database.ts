@@ -13842,6 +13842,69 @@ export type Database = {
         }
         Relationships: []
       }
+      org_ntf_quota_override_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          hard_cap: number | null
+          id: string
+          included_qty: number | null
+          is_active: boolean
+          metric: string
+          overage_allowed: boolean | null
+          period_type: string
+          reason: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          hard_cap?: number | null
+          id?: string
+          included_qty?: number | null
+          is_active?: boolean
+          metric: string
+          overage_allowed?: boolean | null
+          period_type: string
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          hard_cap?: number | null
+          id?: string
+          included_qty?: number | null
+          is_active?: boolean
+          metric?: string
+          overage_allowed?: boolean | null
+          period_type?: string
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       org_ntf_settings_cf: {
         Row: {
           channel_code: string
@@ -28544,6 +28607,75 @@ export type Database = {
           },
         ]
       }
+      sys_ntf_pricing_cf: {
+        Row: {
+          channel_code: string
+          cost_per_unit: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          name: string | null
+          name2: string | null
+          provider_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sell_per_unit: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          cost_per_unit?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          name2?: string | null
+          provider_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sell_per_unit?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          cost_per_unit?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          name2?: string | null
+          provider_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sell_per_unit?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       sys_ntf_providers_cd: {
         Row: {
           api_endpoint: string | null
@@ -28626,6 +28758,72 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      sys_ntf_quota_plan_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          hard_cap: number | null
+          id: string
+          included_qty: number
+          is_active: boolean
+          metric: string
+          name: string | null
+          name2: string | null
+          overage_allowed: boolean
+          period_type: string
+          plan_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          hard_cap?: number | null
+          id?: string
+          included_qty?: number
+          is_active?: boolean
+          metric: string
+          name?: string | null
+          name2?: string | null
+          overage_allowed?: boolean
+          period_type: string
+          plan_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          hard_cap?: number | null
+          id?: string
+          included_qty?: number
+          is_active?: boolean
+          metric?: string
+          name?: string | null
+          name2?: string | null
+          overage_allowed?: boolean
+          period_type?: string
+          plan_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
       }
       sys_ntf_runtime_cf: {
         Row: {

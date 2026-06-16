@@ -632,6 +632,8 @@ export function PaymentModalV4({
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
+  /** Latest pay-extra intent for leg upsert/update callbacks defined before usePayExtraCheckout. */
+  const payExtraIntentRef = useRef(false);
   /** Normalized tax line used to render cashier-facing totals consistently across preview sources. */
   type TaxBreakdownLine = {
     taxType: 'VAT' | 'GST' | 'CUSTOM';
@@ -1359,7 +1361,7 @@ export function PaymentModalV4({
           decimalPlaces,
           walletBalance: getLegStoredValueCap(target),
           supportsOverpayment:
-            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
               ? true
               : !policy.isCash && policy.supportsOverpayment,
         });
@@ -1409,7 +1411,7 @@ export function PaymentModalV4({
             ...(existingIndex >= 0 ? prev[existingIndex] : {}),
           }),
           supportsOverpayment:
-            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
               ? true
               : !policy.isCash && policy.supportsOverpayment,
         });
@@ -1434,9 +1436,13 @@ export function PaymentModalV4({
           return updated;
         }
 
-        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
+        const legEpsilon = Math.pow(10, -(decimalPlaces + 1));
+        const allPlaceholdersZero =
+          prev.length > 0 && prev.every((leg) => (leg.amount ?? 0) <= legEpsilon);
+
+        if (allPlaceholdersZero || (prev.length === 1 && (prev[0].amount ?? 0) <= legEpsilon)) {
           setActiveLegIndex(0);
-          return [{ ...prev[0], ...nextLeg }];
+          return [nextLeg];
         }
 
         setActiveLegIndex(prev.length);
@@ -1444,7 +1450,14 @@ export function PaymentModalV4({
       });
       focusAmountEditor();
     },
-    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, getLegStoredValueCap, giftCardSettlementAmount, saleTotal]
+    [
+      GATEWAY_METHOD_CODES,
+      decimalPlaces,
+      focusAmountEditor,
+      getLegStoredValueCap,
+      giftCardSettlementAmount,
+      saleTotal,
+    ]
   );
 
   const handleCreditNoteSelect = useCallback(
@@ -1636,12 +1649,6 @@ export function PaymentModalV4({
         .filter(({ leg }) => (leg.amount ?? 0) > 0),
     [paymentLegs]
   );
-
-  const editableLegEntries = useMemo(() => {
-    const entries = paymentLegs.map((leg, index) => ({ leg, index }));
-    const nonZero = entries.filter(({ leg }) => (leg.amount ?? 0) > 0);
-    return nonZero.length > 0 ? nonZero : entries;
-  }, [paymentLegs]);
 
   const realPaymentEntries = useMemo(
     () =>
@@ -1856,11 +1863,22 @@ export function PaymentModalV4({
     runValidatePayment,
     confirmExtraReceiptSelection,
   } = payExtra;
+  payExtraIntentRef.current = payExtraIntent;
 
   const unresolvedOverpaymentAmount = payExtra.unresolvedExcessAmount;
   const overpaymentNeedsResolution = payExtra.overpaymentNeedsResolution;
   const overpaymentResolutionPayload = payExtra.overpaymentResolutionPayload;
   const overpaymentBlocksSubmit = payExtra.overpaymentBlocksSubmit;
+
+  const editableLegEntries = useMemo(() => {
+    const entries = paymentLegs.map((leg, index) => ({ leg, index }));
+    if (payExtraIntent) {
+      return entries;
+    }
+    const nonZero = entries.filter(({ leg }) => (leg.amount ?? 0) > 0);
+    return nonZero.length > 0 ? nonZero : entries;
+  }, [paymentLegs, payExtraIntent]);
+
   const legacyDisplayChangeAmount = getDisplayChangeAmount(
     cashChangeAmount,
     canReturnChangeFromCash,
@@ -3997,7 +4015,7 @@ export function PaymentModalV4({
                                       decimalPlaces,
                                       walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
                                       supportsOverpayment:
-            payExtraIntent && policy.isCash && policy.supportsChangeReturn
+            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
               ? true
               : !policy.isCash && policy.supportsOverpayment,
                                     });
