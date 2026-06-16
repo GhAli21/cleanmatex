@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { assertVoucherIsMutable, validateVoucherLine } from './voucher-validation.service';
 import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } from '../types/voucher';
-import { TARGET_TYPE } from '../constants/voucher';
+import { TARGET_TYPE, normalizeVoucherLinePaymentStatus } from '../constants/voucher';
 
 /** Prisma transaction client type — accepted by addVoucherLine when the caller
  *  composes header + lines + redemptions in a single submit-order tx. */
@@ -142,7 +142,7 @@ async function addVoucherLineInTx(
       branch_id:              input.branch_id ?? null,
       cash_drawer_session_id: input.cash_drawer_session_id ?? null,
       payment_method_code:    input.payment_method_code ?? null,
-      payment_status:         input.payment_status ?? null,
+      payment_status:         normalizeVoucherLinePaymentStatus(input.payment_status),
       // B5 fix: these three were dropped by the original create payload, leaving
       // org_payment_method_id NULL on every voucher line and breaking the wiring
       // handler's link from voucher line -> org_order_payments_dtl.org_payment_method_id.
@@ -241,7 +241,9 @@ export async function updateVoucherLine(
         ...(input.order_id               !== undefined && { order_id: input.order_id }),
         ...(input.customer_id            !== undefined && { customer_id: input.customer_id }),
         ...(input.payment_method_code    !== undefined && { payment_method_code: input.payment_method_code }),
-        ...(input.payment_status         !== undefined && { payment_status: input.payment_status }),
+        ...(input.payment_status         !== undefined && {
+          payment_status: normalizeVoucherLinePaymentStatus(input.payment_status),
+        }),
         ...(input.amount                 !== undefined && { amount: input.amount }),
         ...(input.currency_code          !== undefined && { currency_code: input.currency_code }),
         ...(input.direction              !== undefined && { direction: input.direction }),

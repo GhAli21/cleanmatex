@@ -179,6 +179,45 @@ export const WIRING_STATUS = {
 
 export type WiringStatus = (typeof WIRING_STATUS)[keyof typeof WIRING_STATUS];
 
+/**
+ * Values allowed on org_fin_voucher_trx_lines_dtl.payment_status
+ * (chk_vch_trx_ln_pay_status). Mirrors migration 0301; extended in 0370.
+ */
+export const VOUCHER_LINE_PAYMENT_STATUS = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+  PARTIALLY_REFUNDED: 'PARTIALLY_REFUNDED',
+  PROCESSING: 'PROCESSING',
+  CAPTURE_PENDING: 'CAPTURE_PENDING',
+} as const;
+
+export type VoucherLinePaymentStatus =
+  (typeof VOUCHER_LINE_PAYMENT_STATUS)[keyof typeof VOUCHER_LINE_PAYMENT_STATUS];
+
+const VOUCHER_LINE_PAYMENT_STATUS_ALLOWED = new Set<string>(
+  Object.values(VOUCHER_LINE_PAYMENT_STATUS)
+);
+
+/**
+ * Maps planner/order-payment statuses to voucher-line payment_status values.
+ * PROCESSING/CAPTURE_PENDING are async gateway states — stored as PENDING on
+ * voucher lines until migration 0370 is applied; after 0370 they may persist.
+ */
+export function normalizeVoucherLinePaymentStatus(
+  status: string | null | undefined
+): string | null {
+  if (status == null || String(status).trim() === '') return null;
+  const upper = String(status).trim().toUpperCase();
+  if (upper === VOUCHER_LINE_PAYMENT_STATUS.PROCESSING
+    || upper === VOUCHER_LINE_PAYMENT_STATUS.CAPTURE_PENDING) {
+    return VOUCHER_LINE_PAYMENT_STATUS.PENDING;
+  }
+  if (VOUCHER_LINE_PAYMENT_STATUS_ALLOWED.has(upper)) return upper;
+  return VOUCHER_LINE_PAYMENT_STATUS.PENDING;
+}
+
 export const PARTY_TYPE = {
   CUSTOMER: 'CUSTOMER',
   SUPPLIER: 'SUPPLIER',
