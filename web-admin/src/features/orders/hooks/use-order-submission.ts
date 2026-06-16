@@ -534,7 +534,9 @@ export function useOrderSubmission() {
                                 amount: '',
                                 default: 'Extra receipt amount must be resolved before submitting.',
                             }),
-                            OVERPAYMENT_RESOLUTION_MISMATCH: t('payment.messages.validationErrors'),
+                            OVERPAYMENT_RESOLUTION_MISMATCH: t('payment.validatePayment.requiredBeforeSubmit', {
+                              default: 'Validate payment and choose what to do with the extra amount before submitting.',
+                            }),
                             OVERPAYMENT_RESOLUTION_NOT_ALLOWED: t('payment.extraReceipt.allocation.manualBlockedReturn'),
                             RETURN_CHANGE_EXCEEDS_CAPACITY: t('payment.messages.validationErrors'),
                             RETURN_CHANGE_LEG_INVALID: t('payment.messages.validationErrors'),

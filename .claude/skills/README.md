@@ -46,6 +46,7 @@ Each skill is organized in its own directory with:
 | **codebase-visualizer** | Task | Generate interactive codebase tree |
 | **navigation** | Reference | Navigation tree management |
 | **storybook** | Task | Storybook story generation — Cmx components, RTL, a11y, interaction stories |
+| **update-rbac-role** | Task | Create or refresh RBAC roles with intelligent permission mapping — generates migration SQL and navigation.ts UserRole update |
 
 ## How to Use Skills
 

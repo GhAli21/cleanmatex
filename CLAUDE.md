@@ -10,6 +10,7 @@
 | API route / service / backend | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
 | New feature | `/implementation` |
+| RBAC role create / update | `/update-rbac-role` |
 
 **If the skill is not loaded — do not write. Load it, then write.**
 
@@ -78,6 +79,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
 | Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
+| Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
 
 **How to enforce:**
 - Plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -204,6 +206,7 @@ npm run build                      # Build (run after changes)
 - `/explain-code` — Code explanations with diagrams
 - `/codebase-visualizer` — Interactive codebase tree
 - `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
+- `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
 
 ---
 

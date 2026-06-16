@@ -192,13 +192,11 @@ export function OrderCollectPaymentModal({
     ? payExtra.unresolvedExcessAmount
     : overpaymentMetrics.unresolvedExcessAmount;
 
-  const overpaymentResolution = useMemo(
-    () =>
-      buildOverpaymentResolutionPayload(allocation.extraReceiptMode, unresolvedExcess, {
-        allocationPreviewId: allocation.allocationPreviewId,
-      }),
-    [allocation.allocationPreviewId, allocation.extraReceiptMode, unresolvedExcess]
-  );
+  const allocationExcessAmount = payExtraIntent
+    ? payExtra.extraReceiptDialogExcessAmount
+    : unresolvedExcess;
+
+  const overpaymentResolution = payExtra.overpaymentResolutionPayload;
 
   const needsResolution = payExtra.overpaymentBlocksSubmit;
 
@@ -256,14 +254,16 @@ export function OrderCollectPaymentModal({
         },
       ]);
       const cashLegRef = legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef;
-      const submitResolution = buildOverpaymentResolutionPayload(
-        allocation.extraReceiptMode,
-        unresolvedExcess,
-        {
-          allocationPreviewId: allocation.allocationPreviewId,
-          cashLegRef,
-        }
-      );
+      const submitResolution =
+        payExtra.overpaymentResolutionPayload ??
+        buildOverpaymentResolutionPayload(
+          allocation.extraReceiptMode,
+          unresolvedExcess,
+          {
+            allocationPreviewId: allocation.allocationPreviewId,
+            cashLegRef,
+          }
+        );
 
       const res = await fetch(`/api/v1/orders/${orderId}/payments`, {
         method: 'POST',
@@ -438,7 +438,7 @@ export function OrderCollectPaymentModal({
         targets={allocation.openBalanceTargets}
         loading={allocation.openBalancesLoading}
         submitting={allocation.confirmLoading}
-        excessAmount={unresolvedExcess}
+        excessAmount={allocationExcessAmount}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
         onSubmit={allocation.handleSubmitManualAllocation}
@@ -448,7 +448,7 @@ export function OrderCollectPaymentModal({
       <PaymentExtraReceiptDialog
         open={extraReceiptDialogOpen}
         onOpenChange={setExtraReceiptDialogOpen}
-        excessAmount={unresolvedExcess}
+        excessAmount={allocationExcessAmount}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
         hasLinkedCustomer={!!customerId?.trim()}

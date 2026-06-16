@@ -74,6 +74,7 @@ import {
   ExtraReceiptHandlingCard,
 } from './payment-modal/allocation/extra-receipt-handling-card';
 import { buildOverpaymentResolutionPayload } from './payment-modal/allocation/build-overpayment-resolution';
+import { getExtraReceiptResolutionSummary } from './payment-modal/allocation/extra-receipt-resolution-summary';
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
@@ -1884,6 +1885,7 @@ export function PaymentModalV4({
   payExtraIntentRef.current = payExtraIntent;
 
   const unresolvedOverpaymentAmount = payExtra.unresolvedExcessAmount;
+  const extraReceiptDialogExcessAmount = payExtra.extraReceiptDialogExcessAmount;
   const overpaymentNeedsResolution = payExtra.overpaymentNeedsResolution;
   const overpaymentResolutionPayload = payExtra.overpaymentResolutionPayload;
   const overpaymentBlocksSubmit = payExtra.overpaymentBlocksSubmit;
@@ -2350,14 +2352,16 @@ export function PaymentModalV4({
     const submitCashLegRef =
       legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef ?? null;
 
-    const submitOverpaymentResolution = buildOverpaymentResolutionPayload(
-      allocation.extraReceiptMode,
-      unresolvedOverpaymentAmount,
-      {
-        allocationPreviewId: allocation.allocationPreviewId,
-        cashLegRef: submitCashLegRef,
-      }
-    );
+    const submitOverpaymentResolution =
+      overpaymentResolutionPayload ??
+      buildOverpaymentResolutionPayload(
+        allocation.extraReceiptMode,
+        unresolvedOverpaymentAmount,
+        {
+          allocationPreviewId: allocation.allocationPreviewId,
+          cashLegRef: submitCashLegRef,
+        }
+      );
 
     const payload = {
       amountToCharge: settledNowAmount,
@@ -3334,7 +3338,8 @@ export function PaymentModalV4({
 
   const handleBlockedSubmitAttempt = useCallback(() => {
     focusFirstBlockingIssue();
-    cmxMessage.error(validationItems[0] ?? t('messages.validationErrors'));
+    const firstIssue = validationItems.find((item) => item.trim().length > 0);
+    cmxMessage.error(firstIssue ?? t('messages.validationErrors'));
   }, [focusFirstBlockingIssue, t, validationItems]);
 
   const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
@@ -3346,13 +3351,19 @@ export function PaymentModalV4({
       return;
     }
 
+    const firstValidationIssue = validationItems.find((item) => item.trim().length > 0);
+    if (firstValidationIssue) {
+      cmxMessage.error(firstValidationIssue);
+      return;
+    }
+
     if (paymentMethod === PAYMENT_METHODS.CHECK) {
       cmxMessage.error(t('checkNumber.required'));
       return;
     }
 
     cmxMessage.error(t('messages.validationErrors'));
-  }, [focusFirstBlockingIssue, paymentMethod, t]);
+  }, [focusFirstBlockingIssue, paymentMethod, t, validationItems]);
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -5730,7 +5741,18 @@ export function PaymentModalV4({
                     value={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
                   />
                 ) : null}
-                {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                {overpaymentResolutionPayload ? (
+                  <SummaryRow
+                    label={t('submitConfirm.extraRouting')}
+                    value={getExtraReceiptResolutionSummary(
+                      allocation.extraReceiptMode,
+                      overpaymentResolutionPayload.excessAmount,
+                      currencyCode,
+                      formatAmount,
+                      t
+                    )}
+                  />
+                ) : unresolvedOverpaymentAmount > moneyEpsilon ? (
                   <SummaryRow
                     label={t('rightRail.overpaidAmount')}
                     value={`${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`}
@@ -5822,7 +5844,7 @@ export function PaymentModalV4({
       <PaymentExtraReceiptDialog
         open={extraReceiptDialogOpen}
         onOpenChange={setExtraReceiptDialogOpen}
-        excessAmount={unresolvedOverpaymentAmount}
+        excessAmount={extraReceiptDialogExcessAmount}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
         hasLinkedCustomer={Boolean(customerId?.trim())}

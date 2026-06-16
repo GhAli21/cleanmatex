@@ -1311,6 +1311,54 @@ export type Database = {
         }
         Relationships: []
       }
+      hq_ntf_webhook_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dispatch_log_id: string | null
+          event_type: string | null
+          id: string
+          idempotency_key: string
+          payload: Json | null
+          processed_at: string | null
+          processing_error: string | null
+          provider_code: string
+          rec_status: number
+          signature_valid: boolean
+          tenant_org_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dispatch_log_id?: string | null
+          event_type?: string | null
+          id?: string
+          idempotency_key: string
+          payload?: Json | null
+          processed_at?: string | null
+          processing_error?: string | null
+          provider_code: string
+          rec_status?: number
+          signature_valid?: boolean
+          tenant_org_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dispatch_log_id?: string | null
+          event_type?: string | null
+          id?: string
+          idempotency_key?: string
+          payload?: Json | null
+          processed_at?: string | null
+          processing_error?: string | null
+          provider_code?: string
+          rec_status?: number
+          signature_valid?: boolean
+          tenant_org_id?: string | null
+        }
+        Relationships: []
+      }
       hq_roles: {
         Row: {
           created_at: string | null
@@ -20027,137 +20075,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_stng_settings_cd"
             referencedColumns: ["setting_code"]
-          },
-        ]
-      }
-      org_subscriptions_mst: {
-        Row: {
-          auto_renew: boolean | null
-          branch_limit: number | null
-          cancellation_date: string | null
-          cancellation_reason: string | null
-          created_at: string | null
-          created_by: string | null
-          created_info: string | null
-          end_date: string
-          id: string
-          is_active: boolean | null
-          is_enabled: boolean | null
-          last_invoice_date: string | null
-          last_invoice_number: string | null
-          last_payment_amount: number | null
-          last_payment_date: string | null
-          last_payment_method_code: string | null
-          orders_limit: number | null
-          orders_used: number | null
-          payment_notes: string | null
-          payment_reference: string | null
-          plan: string | null
-          rec_notes: string | null
-          rec_status: number | null
-          start_date: string | null
-          status: string | null
-          tenant_org_id: string
-          trial_ends: string | null
-          updated_at: string | null
-          updated_by: string | null
-          updated_info: string | null
-          user_limit: number | null
-        }
-        Insert: {
-          auto_renew?: boolean | null
-          branch_limit?: number | null
-          cancellation_date?: string | null
-          cancellation_reason?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          end_date: string
-          id?: string
-          is_active?: boolean | null
-          is_enabled?: boolean | null
-          last_invoice_date?: string | null
-          last_invoice_number?: string | null
-          last_payment_amount?: number | null
-          last_payment_date?: string | null
-          last_payment_method_code?: string | null
-          orders_limit?: number | null
-          orders_used?: number | null
-          payment_notes?: string | null
-          payment_reference?: string | null
-          plan?: string | null
-          rec_notes?: string | null
-          rec_status?: number | null
-          start_date?: string | null
-          status?: string | null
-          tenant_org_id: string
-          trial_ends?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          user_limit?: number | null
-        }
-        Update: {
-          auto_renew?: boolean | null
-          branch_limit?: number | null
-          cancellation_date?: string | null
-          cancellation_reason?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          end_date?: string
-          id?: string
-          is_active?: boolean | null
-          is_enabled?: boolean | null
-          last_invoice_date?: string | null
-          last_invoice_number?: string | null
-          last_payment_amount?: number | null
-          last_payment_date?: string | null
-          last_payment_method_code?: string | null
-          orders_limit?: number | null
-          orders_used?: number | null
-          payment_notes?: string | null
-          payment_reference?: string | null
-          plan?: string | null
-          rec_notes?: string | null
-          rec_status?: number | null
-          start_date?: string | null
-          status?: string | null
-          tenant_org_id?: string
-          trial_ends?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          user_limit?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_org_subs_payment_method"
-            columns: ["last_payment_method_code"]
-            isOneToOne: false
-            referencedRelation: "sys_payment_method_cd"
-            referencedColumns: ["payment_method_code"]
-          },
-          {
-            foreignKeyName: "fk_org_subs_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_tenants_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_org_subs_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_missing_required_usage"
-            referencedColumns: ["tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_org_subs_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_tenant_readiness"
-            referencedColumns: ["tenant_org_id"]
           },
         ]
       }

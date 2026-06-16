@@ -115,16 +115,19 @@ export function usePayExtraCheckout({
   );
 
   const unresolvedExcessAmount = useMemo(() => {
+    if (overpaymentResolutionPayload) return 0;
     if (!payExtraIntent) return legacyUnresolvedExcess;
-    if (validationPhase === 'ready' && overpaymentResolutionPayload) return 0;
     return checkoutMetrics.unresolvedExcessAmount;
   }, [
     checkoutMetrics.unresolvedExcessAmount,
     legacyUnresolvedExcess,
     overpaymentResolutionPayload,
     payExtraIntent,
-    validationPhase,
   ]);
+
+  const extraReceiptDialogExcessAmount = payExtraIntent
+    ? baseCheckoutMetrics.unresolvedExcessAmount
+    : legacyUnresolvedExcess;
 
   useEffect(() => {
     setValidationPhase('editing');
@@ -187,6 +190,7 @@ export function usePayExtraCheckout({
     setExtraReceiptDialogOpen,
     checkoutMetrics,
     unresolvedExcessAmount,
+    extraReceiptDialogExcessAmount,
     overpaymentNeedsResolution,
     overpaymentResolutionPayload,
     overpaymentBlocksSubmit,
