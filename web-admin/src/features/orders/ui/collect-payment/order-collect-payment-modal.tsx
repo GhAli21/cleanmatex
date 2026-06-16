@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { computeCollectionOverpaymentMetrics } from '@/lib/payments/collection-overpayment';
@@ -72,10 +72,15 @@ export function OrderCollectPaymentModal({
   const isRTL = useRTL();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { token: csrfToken } = useCSRFToken();
-  const canCollect = useHasPermission('orders:collect_payment');
-  const canAllocate = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
-  const canDispose = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE);
-  const canWallet = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET);
+  const canCollect = useHasPermissionCode('orders:collect_payment');
+  const canAllocate = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
+  const canDispose = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE);
+  const canWallet = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET);
+  const canAdvance = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_ADVANCE);
+  const canCredit = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT);
+  const canCreditNote = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT_NOTE);
+  const canSaveAdvance = canDispose || canAdvance;
+  const canSaveCredit = canDispose || canCredit || canCreditNote;
 
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(false);
@@ -390,8 +395,8 @@ export function OrderCollectPaymentModal({
                     allocationConfirmed={!!allocation.allocationPreviewId}
                     isRTL={isRTL}
                     canAllocate={canAllocate}
-                    canSaveAdvance={canDispose}
-                    canSaveCredit={canDispose}
+                    canSaveAdvance={canSaveAdvance}
+                    canSaveCredit={canSaveCredit}
                     canSaveWallet={canWallet}
                     canReturnCashChange={overpaymentMetrics.canReturnChangeFromCash}
                   />
@@ -454,8 +459,8 @@ export function OrderCollectPaymentModal({
         allocationConfirmed={!!allocation.allocationPreviewId}
         canReturnCashChange={overpaymentMetrics.canReturnChangeFromCash}
         canAllocate={canAllocate}
-        canSaveAdvance={canDispose}
-        canSaveCredit={canDispose}
+        canSaveAdvance={canSaveAdvance}
+        canSaveCredit={canSaveCredit}
         canSaveWallet={canWallet}
         onConfirm={() => {
           if (!confirmExtraReceiptSelection()) {

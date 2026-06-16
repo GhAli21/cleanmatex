@@ -59,7 +59,7 @@ status: Active - Grandfathered Objects
 | Current Name | Feature | Would Become | Status | Notes |
 |-------------|---------|--------------|--------|-------|
 | `org_tenants_mst` | `tnt` | `org_tnt_tenants_mst` | Grandfathered | Tenant organizations |
-| `org_subscriptions_mst` | `pln` | `org_pln_subscriptions_mst` | Grandfathered | Tenant subscriptions |
+| `org_subscriptions_mst` | `pln` | `org_pln_subscriptions_mst` | **Dropped** (migration 0372) | Obsolete — use `org_pln_subscriptions_mst` |
 | `org_branches_mst` | `brn` | `org_brn_branches_mst` | Grandfathered | Tenant branches |
 
 #### Authentication & Users

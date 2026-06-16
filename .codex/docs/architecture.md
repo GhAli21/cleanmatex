@@ -147,7 +147,7 @@ const orders = await prisma.org_orders_mst.findMany()
 │  • org_branches_mst       - Multiple branches       │
 │  • org_invoice_mst        - Invoices                │
 │  • org_payments_dtl_tr    - Payment transactions    │
-│  • org_subscriptions_mst     - Subscription management │
+│  • org_pln_subscriptions_mst  - Subscription management │
 └───────────────────────────────────────────────────────┘
 ```
 

@@ -126,7 +126,7 @@ export async function getSubscriptionOld(tenantId: string): Promise<Subscription
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .select('*')
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true)
@@ -139,7 +139,7 @@ export async function getSubscriptionOld(tenantId: string): Promise<Subscription
       message: error.message,
       details: error.details,
       hint: error.hint,
-      tenantId, 
+      tenantId,
     });
     throw new Error(`Subscription not found: ${error.message}`);
   }
@@ -276,20 +276,13 @@ export async function upgradeSubscription(
 
   // Step 6: Update subscription
   const { data: updatedSubscription, error: subscriptionError } = await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .update({
-      plan: newPlan.plan_code,
+      plan_code: newPlan.plan_code,
       status: 'active',
-      orders_limit: newPlan.orders_limit,
-      branch_limit: newPlan.branches_limit,
-      user_limit: newPlan.users_limit,
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-      trial_ends: null, // Clear trial end date
-      last_payment_date: new Date().toISOString(),
-      last_payment_amount: proratedAmount,
-      last_payment_method: 'card', // TODO: Get from payment gateway
-      auto_renew: true,
+      current_period_start: startDate.toISOString(),
+      current_period_end: endDate.toISOString(),
+      trial_end: null,
       updated_at: new Date().toISOString(),
     })
     .eq('tenant_org_id', tenantId)
@@ -340,11 +333,10 @@ export async function cancelSubscription(
 
   // Update subscription to mark for cancellation
   const { data, error } = await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .update({
-      status: 'canceling',
-      auto_renew: false,
-      cancellation_date: new Date().toISOString(),
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
       cancellation_reason: `${request.reason}${request.feedback ? ` - ${request.feedback}` : ''}`,
       updated_at: new Date().toISOString(),
     })
@@ -374,10 +366,10 @@ export async function processTrialExpirations(): Promise<void> {
 
   // Find all subscriptions with expired trials
   const { data: expiredTrials, error } = await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .select('*, org_tenants_mst(*)')
     .eq('status', 'trial')
-    .lte('trial_ends', now);
+    .lte('trial_end', now);
 
   if (error) {
     console.error('Error fetching expired trials:', error);
@@ -396,14 +388,11 @@ export async function processTrialExpirations(): Promise<void> {
     try {
       // Update subscription to free plan
       await supabase
-        .from('org_subscriptions_mst')
+        .from('org_pln_subscriptions_mst')
         .update({
-          plan: 'FREE_TRIAL',
+          plan_code: 'FREE_TRIAL',
           status: 'active',
-          orders_limit: freePlan.orders_limit,
-          branch_limit: freePlan.branches_limit,
-          user_limit: freePlan.users_limit,
-          trial_ends: null,
+          trial_end: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', subscription.id);
@@ -448,12 +437,11 @@ export async function processSubscriptionRenewals(): Promise<void> {
 
   // Find subscriptions ending tomorrow with auto-renew enabled
   const { data: renewals, error } = await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .select('*, org_tenants_mst(*)')
-    .eq('auto_renew', true)
     .eq('status', 'active')
-    .gte('end_date', now.toISOString())
-    .lte('end_date', tomorrow.toISOString());
+    .gte('current_period_end', now.toISOString())
+    .lte('current_period_end', tomorrow.toISOString());
 
   if (error) {
     console.error('Error fetching renewals:', error);
@@ -476,13 +464,10 @@ export async function processSubscriptionRenewals(): Promise<void> {
       newEndDate.setMonth(newEndDate.getMonth() + 1); // Assuming monthly billing
 
       await supabase
-        .from('org_subscriptions_mst')
+        .from('org_pln_subscriptions_mst')
         .update({
-          start_date: subscription.end_date,
-          end_date: newEndDate.toISOString(),
-          last_payment_date: new Date().toISOString(),
-          last_payment_amount: plan.price_monthly,
-          orders_used: 0, // Reset monthly usage
+          current_period_start: subscription.current_period_end,
+          current_period_end: newEndDate.toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', subscription.id);
@@ -497,7 +482,7 @@ export async function processSubscriptionRenewals(): Promise<void> {
 
       // Mark subscription as past_due if payment fails
       await supabase
-        .from('org_subscriptions_mst')
+        .from('org_pln_subscriptions_mst')
         .update({ status: 'past_due' })
         .eq('id', subscription.id);
     }

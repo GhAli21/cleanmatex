@@ -82,7 +82,7 @@ import { PayExtraIntentToggle } from './payment-modal/pay-extra/pay-extra-intent
 import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
-import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
@@ -1789,9 +1789,27 @@ export function PaymentModalV4({
   );
   const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
 
-  const canAllocateOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
-  const canDisposeOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE);
-  const canWalletOverpayment = useHasPermission(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET);
+  const canAllocateOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE
+  );
+  const canDisposeOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE
+  );
+  const canWalletOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET
+  );
+  const canAdvanceOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_ADVANCE
+  );
+  const canCreditOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT
+  );
+  const canCreditNoteOverpayment = useHasPermissionCode(
+    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT_NOTE
+  );
+  const canSaveAdvanceOverpayment = canDisposeOverpayment || canAdvanceOverpayment;
+  const canSaveCreditOverpayment =
+    canDisposeOverpayment || canCreditOverpayment || canCreditNoteOverpayment;
 
   const checkoutExcessLegs = useMemo(
     () =>
@@ -3906,8 +3924,8 @@ export function PaymentModalV4({
                         allocationConfirmed={Boolean(allocation.allocationPreviewId)}
                         isRTL={isRTL}
                         canAllocate={canAllocateOverpayment}
-                        canSaveAdvance={canDisposeOverpayment}
-                        canSaveCredit={canDisposeOverpayment}
+                        canSaveAdvance={canSaveAdvanceOverpayment}
+                        canSaveCredit={canSaveCreditOverpayment}
                         canSaveWallet={canWalletOverpayment}
                         canReturnCashChange={canReturnChangeFromCash}
                       />
@@ -5827,8 +5845,8 @@ export function PaymentModalV4({
         allocationConfirmed={Boolean(allocation.allocationPreviewId)}
         canReturnCashChange={canReturnChangeFromCash}
         canAllocate={canAllocateOverpayment}
-        canSaveAdvance={canDisposeOverpayment}
-        canSaveCredit={canDisposeOverpayment}
+        canSaveAdvance={canSaveAdvanceOverpayment}
+        canSaveCredit={canSaveCreditOverpayment}
         canSaveWallet={canWalletOverpayment}
         onConfirm={() => {
           if (!confirmExtraReceiptSelection()) {

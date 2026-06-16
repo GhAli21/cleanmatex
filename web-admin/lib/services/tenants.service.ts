@@ -226,19 +226,15 @@ export async function registerTenant(
     endDate.setDate(endDate.getDate() + 30); // 30 days initial period
 
     const { data: subscription, error: subscriptionError } = await supabase
-      .from('org_subscriptions_mst')
+      .from('org_pln_subscriptions_mst')
       .insert({
         tenant_org_id: tenant.id,
-        plan: 'free',
+        plan_code: 'free',
         status: 'trial',
-        orders_limit: 20,
-        orders_used: 0,
-        branch_limit: 1,
-        user_limit: 2,
-        start_date: new Date().toISOString(),
-        end_date: endDate.toISOString(),
-        trial_ends: trialEnds.toISOString(),
-        auto_renew: true,
+        base_price: 0,
+        current_period_start: new Date().toISOString(),
+        current_period_end: endDate.toISOString(),
+        trial_end: trialEnds.toISOString(),
       })
       .select()
       .single();
@@ -267,7 +263,7 @@ export async function registerTenant(
       console.error('Error creating admin user:', authError);
       // Rollback: Delete subscription and tenant
       await supabase
-        .from('org_subscriptions_mst')
+        .from('org_pln_subscriptions_mst')
         .delete()
         .eq('id', subscription.id);
       await supabase.from('org_tenants_mst').delete().eq('id', tenant.id);
@@ -458,10 +454,10 @@ export async function deactivateTenant(
 
   // Also cancel subscription
   await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .update({
-      status: 'canceled',
-      cancellation_date: new Date().toISOString(),
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
       cancellation_reason: reason || 'Tenant deactivated',
     })
     .eq('tenant_org_id', tenantId);

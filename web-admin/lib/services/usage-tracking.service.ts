@@ -352,8 +352,8 @@ export async function incrementOrderCount(tenantId: string): Promise<void> {
   const supabase = await createClient();
 
   const { data: row, error: fetchError } = await supabase
-    .from('org_subscriptions_mst')
-    .select('id, orders_used')
+    .from('org_pln_subscriptions_mst')
+    .select('id')
     .eq('tenant_org_id', tenantId)
     .maybeSingle();
 
@@ -362,9 +362,8 @@ export async function incrementOrderCount(tenantId: string): Promise<void> {
   }
 
   await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .update({
-      orders_used: (row.orders_used ?? 0) + 1,
       updated_at: new Date().toISOString(),
     })
     .eq('id', row.id);
@@ -381,9 +380,8 @@ export async function resetMonthlyUsage(tenantId: string): Promise<void> {
   const supabase = await createClient();
 
   await supabase
-    .from('org_subscriptions_mst')
+    .from('org_pln_subscriptions_mst')
     .update({
-      orders_used: 0,
       updated_at: new Date().toISOString(),
     })
     .eq('tenant_org_id', tenantId);

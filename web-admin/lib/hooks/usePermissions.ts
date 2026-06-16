@@ -18,6 +18,29 @@ export function usePermissions(): string[] {
 }
 
 /**
+ * Check if user has a permission by full code (e.g. orders:overpayment_allocate).
+ * Use this when the action segment contains underscores or multiple colons are not used.
+ */
+export function useHasPermissionCode(permissionCode: string): boolean {
+  const { permissions } = useAuth()
+
+  return useMemo(() => {
+    if (!permissions || permissions.length === 0) return false
+
+    if (permissions.includes(permissionCode)) return true
+    if (permissions.includes('*:*')) return true
+
+    const sep = permissionCode.indexOf(':')
+    if (sep > 0) {
+      const resource = permissionCode.slice(0, sep)
+      if (permissions.includes(`${resource}:*`)) return true
+    }
+
+    return false
+  }, [permissions, permissionCode])
+}
+
+/**
  * Check if user has specific permission
  * @param resource - Resource name (e.g., 'orders')
  * @param action - Action name (e.g., 'create')
