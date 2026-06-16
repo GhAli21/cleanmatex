@@ -40,53 +40,91 @@ export function usePayExtraCheckout({
   moneyEpsilon = 0.001,
   ...allocationParams
 }: UsePayExtraCheckoutParams) {
-  const allocation = useOverpaymentAllocation({
-    ...allocationParams,
-    excessAmount: _allocationExcess,
-    moneyEpsilon,
-  });
-
   const [payExtraIntent, setPayExtraIntent] = useState(false);
   const [validationPhase, setValidationPhase] = useState<PayExtraValidationPhase>('editing');
   const [extraReceiptDialogOpen, setExtraReceiptDialogOpen] = useState(false);
 
+  const baseCheckoutMetrics = useMemo(
+    () =>
+      computeCheckoutExcessMetrics({
+        saleTotal,
+        immediateSettlementAmount,
+        legs,
+        payExtraIntent,
+        explicitChangeResolved: 0,
+        epsilon: moneyEpsilon,
+      }),
+    [immediateSettlementAmount, legs, moneyEpsilon, payExtraIntent, saleTotal]
+  );
+
+  const allocationExcessAmount = payExtraIntent
+    ? baseCheckoutMetrics.unresolvedExcessAmount
+    : _allocationExcess;
+
+  const allocation = useOverpaymentAllocation({
+    ...allocationParams,
+    excessAmount: allocationExcessAmount,
+    moneyEpsilon,
+  });
+
   const checkoutMetrics = useMemo(() => {
-    const draftResolution = buildOverpaymentResolutionPayload(
-      allocation.extraReceiptMode,
-      legacyUnresolvedExcess,
-      {
-        allocationPreviewId: allocation.allocationPreviewId,
-        cashLegRef: primaryCashLegRef,
-      }
-    );
     const explicitChangeResolved =
-      draftResolution?.lines
-        .filter((line) => line.resolutionCode === OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE)
-        .reduce((sum, line) => sum + line.amount, 0) ?? 0;
+      payExtraIntent &&
+      validationPhase === 'ready' &&
+      allocation.extraReceiptMode === OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE
+        ? baseCheckoutMetrics.unresolvedExcessAmount
+        : 0;
 
     return computeCheckoutExcessMetrics({
       saleTotal,
       immediateSettlementAmount,
       legs,
       payExtraIntent,
-      explicitChangeResolved: payExtraIntent ? explicitChangeResolved : 0,
+      explicitChangeResolved,
       epsilon: moneyEpsilon,
     });
   }, [
-    allocation.allocationPreviewId,
     allocation.extraReceiptMode,
+    baseCheckoutMetrics.unresolvedExcessAmount,
     immediateSettlementAmount,
-    legacyUnresolvedExcess,
     legs,
     moneyEpsilon,
     payExtraIntent,
-    primaryCashLegRef,
     saleTotal,
+    validationPhase,
   ]);
 
-  const unresolvedExcessAmount = payExtraIntent
-    ? checkoutMetrics.unresolvedExcessAmount
-    : legacyUnresolvedExcess;
+  const overpaymentResolutionPayload = useMemo(
+    () =>
+      buildOverpaymentResolutionPayload(
+        allocation.extraReceiptMode,
+        payExtraIntent ? baseCheckoutMetrics.unresolvedExcessAmount : legacyUnresolvedExcess,
+        {
+          allocationPreviewId: allocation.allocationPreviewId,
+          cashLegRef: primaryCashLegRef,
+        }
+      ),
+    [
+      allocation.allocationPreviewId,
+      allocation.extraReceiptMode,
+      baseCheckoutMetrics.unresolvedExcessAmount,
+      legacyUnresolvedExcess,
+      payExtraIntent,
+      primaryCashLegRef,
+    ]
+  );
+
+  const unresolvedExcessAmount = useMemo(() => {
+    if (!payExtraIntent) return legacyUnresolvedExcess;
+    if (validationPhase === 'ready' && overpaymentResolutionPayload) return 0;
+    return checkoutMetrics.unresolvedExcessAmount;
+  }, [
+    checkoutMetrics.unresolvedExcessAmount,
+    legacyUnresolvedExcess,
+    overpaymentResolutionPayload,
+    payExtraIntent,
+    validationPhase,
+  ]);
 
   useEffect(() => {
     setValidationPhase('editing');
@@ -96,21 +134,9 @@ export function usePayExtraCheckout({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- resetDeps is caller-controlled fingerprint
   }, [payExtraIntent, ...resetDeps]);
 
-  const overpaymentResolutionPayload = useMemo(
-    () =>
-      buildOverpaymentResolutionPayload(allocation.extraReceiptMode, unresolvedExcessAmount, {
-        allocationPreviewId: allocation.allocationPreviewId,
-        cashLegRef: primaryCashLegRef,
-      }),
-    [
-      allocation.allocationPreviewId,
-      allocation.extraReceiptMode,
-      primaryCashLegRef,
-      unresolvedExcessAmount,
-    ]
-  );
-
-  const overpaymentNeedsResolution = unresolvedExcessAmount > moneyEpsilon;
+  const overpaymentNeedsResolution =
+    (payExtraIntent ? baseCheckoutMetrics.unresolvedExcessAmount : legacyUnresolvedExcess) >
+    moneyEpsilon;
 
   const overpaymentBlocksSubmit = useMemo(() => {
     if (!overpaymentNeedsResolution) return false;

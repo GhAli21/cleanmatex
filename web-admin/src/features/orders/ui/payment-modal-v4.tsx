@@ -1803,15 +1803,14 @@ export function PaymentModalV4({
 
   const canEnablePayExtra = useMemo(
     () =>
-      realPaymentEntries.some(({ leg }) => {
-        const option = getMethodOption(leg.method, leg.gateway_code);
-        if (!option) return false;
-        return (
+      !checkoutMethodsLoading &&
+      checkoutMethods.some(
+        (option) =>
           option.supports_overpayment === true ||
-          (leg.method === PAYMENT_METHODS.CASH && option.supports_change_return === true)
-        );
-      }),
-    [getMethodOption, realPaymentEntries]
+          (option.payment_method_code === PAYMENT_METHODS.CASH &&
+            option.supports_change_return === true)
+      ),
+    [checkoutMethods, checkoutMethodsLoading]
   );
 
   const primaryCashLegRef = useMemo(() => {
@@ -1862,7 +1861,14 @@ export function PaymentModalV4({
   const overpaymentNeedsResolution = payExtra.overpaymentNeedsResolution;
   const overpaymentResolutionPayload = payExtra.overpaymentResolutionPayload;
   const overpaymentBlocksSubmit = payExtra.overpaymentBlocksSubmit;
-  const displayChangeAmount = getDisplayChangeAmount(cashChangeAmount, canReturnChangeFromCash, moneyEpsilon);
+  const legacyDisplayChangeAmount = getDisplayChangeAmount(
+    cashChangeAmount,
+    canReturnChangeFromCash,
+    moneyEpsilon
+  );
+  const displayChangeAmount = payExtraIntent
+    ? payExtra.checkoutMetrics.changeResolvedAmount
+    : legacyDisplayChangeAmount;
 
   useEffect(() => {
     if (!open) return;
@@ -1871,12 +1877,14 @@ export function PaymentModalV4({
     allocation.setManualDrawerOpen(false);
   }, [open]);
 
-  const netCashRetainedAmount = getNetCashRetainedAmount(
-    cashTenderedAmount,
-    cashChangeAmount,
-    canReturnChangeFromCash,
-    moneyEpsilon
-  );
+  const netCashRetainedAmount = payExtraIntent
+    ? Math.max(0, cashTenderedAmount - displayChangeAmount)
+    : getNetCashRetainedAmount(
+        cashTenderedAmount,
+        cashChangeAmount,
+        canReturnChangeFromCash,
+        moneyEpsilon
+      );
   const primaryMethodOption = getMethodOption(paymentMethod);
   const cashDrawerRequired = useMemo(() => {
     const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
@@ -2533,6 +2541,24 @@ export function PaymentModalV4({
   const activeLegOption = activeLeg
     ? getMethodOption(activeLeg.method, activeLeg.gateway_code)
     : undefined;
+  const activeLegChangeReturned = useMemo(() => {
+    if (!activeLeg || activeLeg.method !== PAYMENT_METHODS.CASH) return 0;
+    if (payExtraIntent) {
+      return displayChangeAmount;
+    }
+    return deriveChangeReturnedAmount(
+      activeLeg.cashTendered ?? activeLeg.amount ?? 0,
+      activeLeg.amount ?? 0,
+      activeLegOption?.supports_change_return === true,
+      moneyEpsilon
+    );
+  }, [
+    activeLeg,
+    activeLegOption?.supports_change_return,
+    displayChangeAmount,
+    moneyEpsilon,
+    payExtraIntent,
+  ]);
   const summaryMethodLabel = activeLeg
     ? getOptionDisplayName(activeLegOption, activeLeg.method)
     : getPaymentLabel(paymentMethod || defaultPaymentMethod);
@@ -2637,9 +2663,13 @@ export function PaymentModalV4({
       items.push(t('giftCard.checking'));
     }
     if (overpaymentBlocksSubmit) {
-      items.push(t('rightRail.requiredAction.overpaymentMessage', {
-        amount: `${currencyCode} ${formatAmount(changeAmount)}`,
-      }));
+      if (payExtraIntent && validationPhase !== 'ready') {
+        items.push(t('validatePayment.requiredBeforeSubmit'));
+      } else {
+        items.push(t('rightRail.requiredAction.overpaymentMessage', {
+          amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
+        }));
+      }
     }
     if (errors.checkNumber?.message) {
       items.push(String(errors.checkNumber.message));
@@ -2745,6 +2775,9 @@ export function PaymentModalV4({
     pinRequired,
     promoCodeValidating,
     overpaymentBlocksSubmit,
+    payExtraIntent,
+    validationPhase,
+    unresolvedOverpaymentAmount,
     remainingBalance,
     serverTotals?.creditLimit?.mode,
     serverTotals?.creditLimit?.wouldExceed,
@@ -2759,7 +2792,7 @@ export function PaymentModalV4({
     () =>
       derivePaymentModalRightRailState({
         hasBlockingIssues: submitHasBlockingIssues,
-        changeAmount,
+        changeAmount: payExtraIntent ? displayChangeAmount : changeAmount,
         remainingBalance,
         effectiveOutstandingPolicy,
         epsilon: moneyEpsilon,
@@ -2777,6 +2810,8 @@ export function PaymentModalV4({
       }),
     [
       submitHasBlockingIssues,
+      payExtraIntent,
+      displayChangeAmount,
       changeAmount,
       remainingBalance,
       effectiveOutstandingPolicy,
@@ -2810,12 +2845,19 @@ export function PaymentModalV4({
     }
   }, [rightRailState.balanceStatus, t]);
   const requiredActionCopy = useMemo(() => {
+    if (overpaymentBlocksSubmit && payExtraIntent && validationPhase !== 'ready') {
+      return {
+        title: t('validatePayment.button'),
+        message: t('validatePayment.requiredBeforeSubmit'),
+      };
+    }
+
     switch (rightRailState.requiredAction) {
       case RIGHT_RAIL_REQUIRED_ACTION.OVERPAYMENT:
         return {
           title: t('rightRail.requiredAction.overpaymentTitle'),
           message: t('rightRail.requiredAction.overpaymentMessage', {
-            amount: `${currencyCode} ${formatAmount(changeAmount)}`,
+            amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
           }),
         };
       case RIGHT_RAIL_REQUIRED_ACTION.CASH_DRAWER:
@@ -2866,11 +2908,14 @@ export function PaymentModalV4({
         return null;
     }
   }, [
+    overpaymentBlocksSubmit,
+    payExtraIntent,
+    validationPhase,
     rightRailState.requiredAction,
     t,
     currencyCode,
     formatAmount,
-    changeAmount,
+    unresolvedOverpaymentAmount,
     cashDrawerBlockingMessage,
     serverTotals?.creditLimit?.mode,
     liveWalletBalanceDisplay,
@@ -3856,7 +3901,9 @@ export function PaymentModalV4({
                     onCheckedChange={setPayExtraIntent}
                     disabled={!canEnablePayExtra}
                     disabledReason={
-                      !canEnablePayExtra ? t('payExtraIntent.disabledNoMethods') : undefined
+                      !checkoutMethodsLoading && !canEnablePayExtra
+                        ? t('payExtraIntent.disabledNoMethods')
+                        : undefined
                     }
                     isRTL={isRTL}
                   />
@@ -3987,12 +4034,7 @@ export function PaymentModalV4({
                                   {t('rightRail.cashTendered')}: {currencyCode} {formatAmount(activeLeg.cashTendered ?? activeLeg.amount ?? 0)}
                                 </span>
                                 <span>
-                                  {t('rightRail.changeReturned')}: {currencyCode} {formatAmount(deriveChangeReturnedAmount(
-                                    activeLeg.cashTendered ?? activeLeg.amount ?? 0,
-                                    activeLeg.amount ?? 0,
-                                    activeLegOption?.supports_change_return === true,
-                                    moneyEpsilon
-                                  ))}
+                                  {t('rightRail.changeReturned')}: {currencyCode} {formatAmount(activeLegChangeReturned)}
                                 </span>
                               </div>
                             ) : null}
