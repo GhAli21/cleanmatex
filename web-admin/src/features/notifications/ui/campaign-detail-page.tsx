@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
+import { CmxAuditInfoCard } from '@ui/data-display'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 
@@ -285,13 +286,11 @@ export function CampaignDetailPage({ id }: Props) {
               <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.completedAt')}</dt>
               <dd className="mt-0.5">{formatDate(campaign.completed_at)}</dd>
             </div>
-            <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.createdAt')}</dt>
-              <dd className="mt-0.5">{formatDate(campaign.created_at)}</dd>
-            </div>
           </dl>
         </CmxCardContent>
       </CmxCard>
+
+      <CmxAuditInfoCard createdAt={campaign.created_at} />
 
       {/* Failed / Skipped sample */}
       {campaign.failed_sample && campaign.failed_sample.length > 0 && (

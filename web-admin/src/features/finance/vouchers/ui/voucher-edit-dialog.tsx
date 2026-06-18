@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import { CmxAuditInfoCard } from '@ui/data-display';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxSpinner } from '@ui/primitives/cmx-spinner';
@@ -397,6 +398,40 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                     <p className="mt-0.5 font-mono text-blue-700">{detail.voucher_no}</p>
                   </div>
                 </div>
+
+                <CmxAuditInfoCard
+                  title={t('audit')}
+                  createdAt={detail.created_at}
+                  createdBy={detail.created_by}
+                  updatedAt={detail.updated_at}
+                  updatedBy={detail.updated_by}
+                  extras={[
+                    {
+                      key: 'postedAt',
+                      label: t('postedAt'),
+                      value: detail.posted_at,
+                      hideWhenEmpty: true,
+                    },
+                    {
+                      key: 'postedBy',
+                      label: t('postedBy'),
+                      value: detail.posted_by,
+                      hideWhenEmpty: true,
+                    },
+                    {
+                      key: 'reversedAt',
+                      label: t('reversedAt'),
+                      value: detail.reversed_at,
+                      hideWhenEmpty: true,
+                    },
+                    {
+                      key: 'reversalReason',
+                      label: t('reversalReason'),
+                      value: detail.reversal_reason,
+                      hideWhenEmpty: true,
+                    },
+                  ]}
+                />
 
                 {/* ── Header edit / view ── */}
                 <CmxCard>

@@ -2,6 +2,8 @@
 name: backend
 description: Backend development standards for NestJS, API routes, Supabase server-side patterns, service architecture. Use when creating API endpoints, services, or backend business logic.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # Backend Standards

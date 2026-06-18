@@ -2,6 +2,8 @@
 name: implementation
 description: PRD implementation rules, coding standards, and feature development workflow. Use when implementing new features or understanding coding conventions.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # Feature Implementation Workflow

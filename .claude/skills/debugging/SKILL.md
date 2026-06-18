@@ -1,283 +1,59 @@
 ---
 name: debugging
-description: Common issues, debugging techniques, error handling patterns, build fixes. Use when encountering errors, build failures, or debugging issues.
+description: debugging workflow for CleanMateX Tenant App. Use only when explicitly working on debugging-related tasks.
 user-invocable: true
+version: 1.1.0
+deprecated: false
+effort: medium
+references:
+  - @.claude/skills/debugging/reference-original.md
+  - CLAUDE.md
+agents:
 ---
 
-# Debugging Guide - Quick Fixes
+# Debugging Skill
 
-## Build Errors
+## Purpose
 
-### `g.$use is not a function` (Prisma Middleware)
+Use this skill only when the task explicitly matches **debugging**. Keep the active prompt small; read `reference-original.md` only when deeper examples or edge cases are required.
 
-Prisma middleware issue during webpack bundling.
+## Operating Rules
 
-**Fix in `lib/db/prisma.ts`:**
-```typescript
-// Apply middleware with safety check
-if (typeof (prismaClient as any).$use === 'function') {
-  applyTenantMiddleware(prismaClient);
-}
+- Do not use subagents unless explicitly requested.
+- Do not scan the whole repo.
+- Search only relevant folders/files.
+- Read only required files, functions, or line ranges.
+- Before editing, list exact files to touch.
+- Modify only files required by the task.
+- Preserve CleanMateX Tenant App rules from `CLAUDE.md`.
+- Keep output concise.
+
+## Workflow
+
+```text
+1. Confirm scope and affected domain.
+2. Read the minimum required files.
+3. Apply this skill's domain rules.
+4. Make scoped changes only.
+5. Run relevant validation.
+6. Report files changed, validation results, and risks.
 ```
 
-### `Cannot find module`
+## Detailed Reference
 
-```bash
-# Remove node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+Original full skill content is preserved in:
+
+```text
+reference-original.md
 ```
 
-### `next-intl Config Missing`
+Read it only when the task requires detailed examples/templates.
 
-Add to `next.config.ts`:
-```typescript
-import createNextIntlPlugin from 'next-intl/plugin';
+## Final Response Contract
 
-const withNextIntl = createNextIntlPlugin('./i18n.ts');
-
-const nextConfig: NextConfig = {
-  // Your config...
-};
-
-export default withNextIntl(nextConfig);
+```text
+- Summary
+- Files changed
+- Validation result
+- Risks / follow-ups
 ```
-
-## Database Issues
-
-### RLS Blocking Query
-
-**Symptom:** Query returns empty or permission error
-
-**Diagnosis:**
-```sql
--- Check RLS policies
-SELECT * FROM pg_policies WHERE tablename = 'org_orders_mst';
-
--- Test with tenant context
-SET LOCAL request.jwt.claim.tenant_org_id TO 'tenant-uuid';
-SELECT * FROM org_orders_mst;
-```
-
-**Fix:** Use service role for admin operations or ensure JWT contains `tenant_org_id`
-
-### Cross-Tenant Data Leak
-
-**Symptom:** Can see other tenant's data
-
-**Problem:** Missing tenant filter
-
-```typescript
-// WRONG - Missing tenant filter
-const { data } = await supabase
-  .from('org_orders_mst')
-  .select('*')
-  .eq('id', orderId);
-
-// CORRECT - With tenant filter
-const { data } = await supabase
-  .from('org_orders_mst')
-  .select('*')
-  .eq('tenant_org_id', tenantId)  // REQUIRED
-  .eq('id', orderId);
-```
-
-### Migration Fails
-
-**Common errors:**
-- `relation does not exist` → Check table creation order
-- `foreign key violation` → Check FK dependencies
-- `syntax error` → Check SQL syntax
-
-**Fix:**
-```bash
-# Test specific migration
-psql -h localhost -p 54322 -U postgres -d postgres -f supabase/migrations/XXX.sql
-
-# Check migration order
-ls -la supabase/migrations/
-```
-
-### N+1 Query Problem
-
-**Symptom:** Slow page load, many queries
-
-```typescript
-// WRONG - Creates N+1 queries
-const orders = await supabase.from('org_orders_mst').select('*');
-for (const order of orders) {
-  const customer = await supabase
-    .from('org_customers_mst')
-    .select('*')
-    .eq('id', order.customer_id)
-    .single();
-}
-
-// CORRECT - Single query with joins
-const { data } = await supabase
-  .from('org_orders_mst')
-  .select(`
-    *,
-    customer:org_customers_mst(*),
-    items:org_order_items_dtl(*),
-    branch:org_branches_mst(*)
-  `)
-  .eq('tenant_org_id', tenantId);
-```
-
-### TypeScript Type Errors
-
-**After database changes:**
-```bash
-# Regenerate types from database
-supabase gen types typescript --local > web-admin/types/database.ts
-
-# Restart TypeScript server in VS Code
-# Cmd+Shift+P → "TypeScript: Restart TS Server"
-```
-
-### Prisma Unknown Field Error
-
-**Symptom:** `Invalid prisma.<model>.update() invocation` with `~~~` under a field name in the error
-
-**Root Cause:** Using the API-layer/frontend field name in a Prisma write instead of the actual schema field name.
-
-**Field Translation Table — orders (DB Schema ↔ API/Frontend):**
-| Prisma Write — DB Schema ✅ | API Output / Frontend ❌ (never use in writes) |
-|-----------------------------|------------------------------------------------|
-| `customer_mobile_number`    | `customer_mobile`                              |
-| `internal_notes`            | `notes`                                        |
-| `priority` (string)         | `is_express` (boolean)                         |
-| `ready_by` / `ready_by_at_new` | `ready_by_at`                               |
-
-**Translation lives in:** `web-admin/app/api/v1/orders/[id]/route.ts` lines 71–85
-
-**Rule:** In ALL Prisma `.create()` / `.update()` / `.upsert()` calls, use schema field names ONLY.
-
-```typescript
-// ❌ WRONG — frontend/API name used in Prisma write
-updateData.customer_mobile = value;
-
-// ✅ CORRECT — schema field name
-updateData.customer_mobile_number = value;
-```
-
-**How to verify:** Open `prisma/schema.prisma`, find the model, confirm exact field name. Never trust the API response field name or frontend variable name.
-
-## Authentication Issues
-
-### Missing Tenant Context
-
-```typescript
-// Add tenant_org_id during signup
-const { data, error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      tenant_org_id: tenantId,  // CRITICAL
-      role: 'staff',
-    },
-  },
-});
-```
-
-### Session Expired
-
-```typescript
-// Refresh session
-const { data: { session } } = await supabase.auth.refreshSession();
-
-// Auto-refresh setup
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'TOKEN_REFRESHED') {
-    console.log('Token refreshed');
-  }
-});
-```
-
-## Performance Issues
-
-### Slow Queries
-
-```sql
--- Analyze query performance
-EXPLAIN ANALYZE
-SELECT * FROM org_orders_mst
-WHERE tenant_org_id = 'uuid'
-AND status = 'PENDING';
-
--- Check for missing indexes
-SELECT schemaname, tablename, indexname
-FROM pg_indexes
-WHERE tablename = 'org_orders_mst';
-```
-
-**Add missing indexes:**
-```sql
-CREATE INDEX idx_orders_tenant_status
-ON org_orders_mst(tenant_org_id, status);
-
-CREATE INDEX idx_orders_created
-ON org_orders_mst(tenant_org_id, created_at DESC);
-```
-
-## RTL Display Issues
-
-### Arabic Text Displays Incorrectly
-
-**Fix HTML direction:**
-```tsx
-<html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-```
-
-**Fix Tailwind RTL:**
-```tsx
-<div className="text-left rtl:text-right">
-<div className="ml-4 rtl:ml-0 rtl:mr-4">
-<ChevronRight className="rtl:rotate-180" />
-```
-
-**Fix font:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic');
-body[dir='rtl'] {
-  font-family: 'Noto Sans Arabic', sans-serif;
-}
-```
-
-## Debugging Tools
-
-### Supabase Studio
-```bash
-open http://localhost:54323
-```
-
-### Network Debugging
-```typescript
-const supabase = createClient(url, key, {
-  global: {
-    fetch: (url, options) => {
-      console.log('Request:', url, options);
-      return fetch(url, options);
-    },
-  },
-});
-```
-
-### Logging (Use Centralized Logger)
-
-```typescript
-import { logger } from '@/lib/utils/logger';
-
-// NEVER use console.log directly
-logger.info('Order created', { orderId, tenantId });
-logger.error('Order creation failed', error, { context });
-```
-
-## Additional Resources
-
-- [common-issues.md](./common-issues.md) - Comprehensive debugging guide with all issues
-- [error-handling.md](./error-handling.md) - Error handling patterns
-- [logging.md](./logging.md) - Centralized logging standards

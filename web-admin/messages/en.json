@@ -78,7 +78,23 @@
     "warningCount": "{count, plural, one {# Warning} other {# Warnings}}",
     "copied": "Copied",
     "pieces": "Pieces",
-    "currency": "Currency"
+    "currency": "Currency",
+    "auditCard": {
+      "title": "Audit Information",
+      "actionLabel": "Audit",
+      "createdAt": "Created at",
+      "createdBy": "Created by",
+      "updatedAt": "Updated at",
+      "updatedBy": "Updated by",
+      "createdInfo": "Created info",
+      "updatedInfo": "Updated info",
+      "recordStatus": "Record status",
+      "recordOrder": "Record order",
+      "recordNotes": "Record notes",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "notAvailable": "—"
+    }
   },
   "amountMismatch": {
     "title": "Amount Mismatch Detected",

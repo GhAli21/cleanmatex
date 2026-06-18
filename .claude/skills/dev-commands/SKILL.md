@@ -2,6 +2,8 @@
 name: dev-commands
 description: Development commands for Supabase, Next.js, NestJS, Prisma, and project scripts. Use when you need to run or recommend commands.
 user-invocable: true
+effort: low
+agents:
 ---
 
 # Development Commands

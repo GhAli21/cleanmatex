@@ -14,15 +14,45 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ReactNode, useMemo, useState } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ReactNode, useCallback, useMemo, useState } from 'react'
+import { ArrowUpDown, ArrowUp, ArrowDown, FileText } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardFooter } from '../primitives/cmx-card'
 import { CmxEmptyState } from './cmx-empty-state'
+import { CmxAuditInfoCard } from './cmx-audit-info-card'
 import { CmxPagination } from '../navigation/cmx-pagination'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '../overlays/cmx-dialog'
 import { cn } from '@/lib/utils'
 
 const ROW_NUM_COL_ID = '__cmx_row_no'
+const AUDIT_COL_ID = '__cmx_audit_action'
+const AUDIT_KEYS = [
+  'created_at',
+  'createdAt',
+  'created_by',
+  'createdBy',
+  'updated_at',
+  'updatedAt',
+  'updated_by',
+  'updatedBy',
+  'created_info',
+  'createdInfo',
+  'updated_info',
+  'updatedInfo',
+  'rec_status',
+  'recStatus',
+  'rec_order',
+  'recOrder',
+  'rec_notes',
+  'recNotes',
+] as const
 
 /**
  * Lightweight column descriptor used by feature screens.
@@ -47,7 +77,25 @@ type AnyColumn<TData> =
  */
 export type CmxDataTablePaginationFooter = 'auto' | 'always' | 'never'
 
-interface CmxDataTableProps<TData> {
+export interface CmxDataTableAuditConfig<TData> {
+  /**
+   * `auto` enables the action when row objects expose known audit keys.
+   * `true` forces the column on and uses either `getRecord` or the raw row.
+   */
+  enabled?: boolean | 'auto'
+  /** Override row-to-record mapping when audit values live under nested fields. */
+  getRecord?: (row: TData) => Record<string, unknown> | null
+  /** Optional dialog title per row (for example "Voucher Audit"). */
+  getTitle?: (row: TData) => string | undefined
+  /** Optional row gate when some rows should not expose audit metadata. */
+  isEnabled?: (row: TData) => boolean
+  /** Override the button label shown in the audit action column. */
+  actionLabel?: string
+  /** Override the column header label for the audit action. */
+  columnHeader?: ReactNode
+}
+
+export interface CmxDataTableProps<TData> {
   columns: AnyColumn<TData>[]
   data: TData[]
   /** Preferred name. `isLoading` is accepted as an alias for ergonomics. */
@@ -99,6 +147,24 @@ interface CmxDataTableProps<TData> {
   paginationFooter?: CmxDataTablePaginationFooter
   /** Optional class(es) applied to each `<tr>`. Return undefined to apply no extra class. */
   getRowClassName?: (row: TData, index: number) => string | undefined
+  /** Built-in audit action column that opens the shared audit metadata dialog. */
+  auditConfig?: boolean | CmxDataTableAuditConfig<TData>
+}
+
+function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function hasAuditFields(record: Record<string, unknown> | null): boolean {
+  if (!record) {
+    return false
+  }
+
+  return AUDIT_KEYS.some((key) => Object.prototype.hasOwnProperty.call(record, key))
+}
+
+function getDefaultAuditRecord<TData>(row: TData): Record<string, unknown> | null {
+  return isRecordLike(row) ? row : null
 }
 
 function isSimpleColumn<TData>(
@@ -222,7 +288,9 @@ export function CmxDataTable<TData>({
   rowNumberOffset: rowNumberOffsetProp,
   paginationFooter = 'auto',
   getRowClassName,
+  auditConfig,
 }: CmxDataTableProps<TData>) {
+  const tCommon = useTranslations('common')
   const effectiveLoading = loading ?? isLoading ?? false
   const effectiveTotal = total ?? totalCount ?? 0
   // `currentPage` is 1-based (UI convention); TanStack expects 0-based.
@@ -231,6 +299,49 @@ export function CmxDataTable<TData>({
     rowNumberOffsetProp ?? effectivePageIndex * pageSize
 
   const [internalSorting, setInternalSorting] = useState<SortingState>(sorting ?? [])
+  const [auditRow, setAuditRow] = useState<TData | null>(null)
+
+  const resolvedAuditConfig = useMemo<CmxDataTableAuditConfig<TData> | null>(() => {
+    if (auditConfig === false) {
+      return null
+    }
+
+    if (auditConfig === true) {
+      return { enabled: true }
+    }
+
+    return {
+      enabled: 'auto',
+      ...(auditConfig ?? {}),
+    }
+  }, [auditConfig])
+
+  const resolveAuditRecord = useCallback((row: TData): Record<string, unknown> | null => {
+    const record = resolvedAuditConfig?.getRecord?.(row) ?? getDefaultAuditRecord(row)
+    return isRecordLike(record) ? record : null
+  }, [resolvedAuditConfig])
+
+  const canShowAuditForRow = useCallback((row: TData): boolean => {
+    if (!resolvedAuditConfig) {
+      return false
+    }
+
+    if (resolvedAuditConfig.isEnabled && !resolvedAuditConfig.isEnabled(row)) {
+      return false
+    }
+
+    const record = resolveAuditRecord(row)
+    if (resolvedAuditConfig.enabled === true) {
+      return record !== null
+    }
+
+    return hasAuditFields(record)
+  }, [resolveAuditRecord, resolvedAuditConfig])
+
+  const showAuditColumn = useMemo(
+    () => !!resolvedAuditConfig && data.some((row) => canShowAuditForRow(row)),
+    [canShowAuditForRow, data, resolvedAuditConfig],
+  )
 
   const tanstackColumns = useMemo<ColumnDef<TData, unknown>[]>(() => {
     const mapped = columns.map((col) => {
@@ -272,6 +383,44 @@ export function CmxDataTable<TData>({
       return withSortableColumnHeader(col as ColumnDef<TData, unknown>)
     })
 
+    if (showAuditColumn) {
+      mapped.push({
+        id: AUDIT_COL_ID,
+        enableSorting: false,
+        header: () => (
+          <span className="sr-only">
+            {resolvedAuditConfig?.columnHeader ?? tCommon('auditCard.actionLabel')}
+          </span>
+        ),
+        cell: ({ row }) => {
+          const originalRow = row.original
+          const rowCanShowAudit = canShowAuditForRow(originalRow)
+
+          if (!rowCanShowAudit) {
+            return null
+          }
+
+          const actionLabel = resolvedAuditConfig?.actionLabel ?? tCommon('auditCard.actionLabel')
+
+          return (
+            <div className="flex justify-end">
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                title={actionLabel}
+                aria-label={actionLabel}
+                className="h-8 w-8 px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+                onClick={() => setAuditRow(originalRow)}
+              >
+                <FileText className="h-4 w-4" aria-hidden />
+              </CmxButton>
+            </div>
+          )
+        },
+      } as ColumnDef<TData, unknown>)
+    }
+
     if (!showRowNumbers) return mapped
 
     const rowNoCol: ColumnDef<TData, unknown> = {
@@ -288,7 +437,17 @@ export function CmxDataTable<TData>({
       ),
     }
     return [rowNoCol, ...mapped]
-  }, [columns, showRowNumbers, rowNumberHeader, resolvedRowNumberOffset])
+  }, [
+    columns,
+    showRowNumbers,
+    rowNumberHeader,
+    resolvedRowNumberOffset,
+    showAuditColumn,
+    canShowAuditForRow,
+    resolvedAuditConfig?.actionLabel,
+    resolvedAuditConfig?.columnHeader,
+    tCommon,
+  ])
 
   // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
   // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
@@ -339,133 +498,168 @@ export function CmxDataTable<TData>({
     (paginationFooter === 'always' || effectiveTotal > pageSize)
 
   const noopPageSize = () => {}
+  const selectedAuditRecord = auditRow ? resolveAuditRecord(auditRow) : null
+  const auditDialogTitle =
+    auditRow && resolvedAuditConfig?.getTitle
+      ? resolvedAuditConfig.getTitle(auditRow)
+      : undefined
 
   return (
-    <CmxCard className={className}>
-      <CmxCardContent className="p-0">
-        <div className={scrollWrapperClass}>
-          <table className="min-w-full text-sm">
-            <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      scope="col"
-                      className={cn(
-                        'px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right',
-                        header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {effectiveLoading ? (
-                Array.from({ length: skeletonRows }).map((_, rowIndex) => (
-                  <tr
-                    key={rowIndex}
-                    className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
-                  >
-                    {tanstackColumns.map((_, cellIndex) => (
-                      <td key={cellIndex} className="px-4 py-4">
-                        <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
-                      </td>
+    <>
+      <CmxCard className={className}>
+        <CmxCardContent className="p-0">
+          <div className={scrollWrapperClass}>
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        scope="col"
+                        className={cn(
+                          'px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right',
+                          header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
+                          header.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                        )}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </th>
                     ))}
                   </tr>
-                ))
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
-                      enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
-                      getRowClassName?.(row.original, index),
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const simpleCol = columns.find(
-                        (col) => isSimpleColumn(col) && col.key === cell.column.id,
-                      ) as CmxDataTableSimpleColumn<TData> | undefined
-                      const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
-                      return (
-                        <td
-                          key={cell.id}
-                          className={cn(
-                            'px-4 py-4 align-middle',
-                            alignClass,
-                            cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
-                          )}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                ))}
+              </thead>
+              <tbody>
+                {effectiveLoading ? (
+                  Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
+                    >
+                      {tanstackColumns.map((_, cellIndex) => (
+                        <td key={cellIndex} className="px-4 py-4">
+                          <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
                         </td>
-                      )
-                    })}
+                      ))}
+                    </tr>
+                  ))
+                ) : table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map((row, index) => (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                        enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+                        getRowClassName?.(row.original, index),
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const simpleCol = columns.find(
+                          (col) => isSimpleColumn(col) && col.key === cell.column.id,
+                        ) as CmxDataTableSimpleColumn<TData> | undefined
+                        const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
+                        return (
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              'px-4 py-4 align-middle',
+                              alignClass,
+                              cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
+                              cell.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))
+                ) : emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction ? (
+                  <tr>
+                    <td colSpan={tanstackColumns.length} className="p-0">
+                      <CmxEmptyState
+                        icon={emptyStateIcon}
+                        title={emptyStateTitle ?? 'No data found'}
+                        description={emptyStateDescription}
+                        action={emptyStateAction}
+                      />
+                    </td>
                   </tr>
-                ))
-              ) : emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction ? (
-                <tr>
-                  <td colSpan={tanstackColumns.length} className="p-0">
-                    <CmxEmptyState
-                      icon={emptyStateIcon}
-                      title={emptyStateTitle ?? 'No data found'}
-                      description={emptyStateDescription}
-                      action={emptyStateAction}
-                    />
-                  </td>
-                </tr>
-              ) : (
-                <tr>
-                  <td
-                    colSpan={tanstackColumns.length}
-                    className="px-4 py-12 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
-                  >
-                    {emptyMessage ?? 'No data to display.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CmxCardContent>
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={tanstackColumns.length}
+                      className="px-4 py-12 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+                    >
+                      {emptyMessage ?? 'No data to display.'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CmxCardContent>
 
-      {showPaginationBlock && (
-        <CmxCardFooter className="flex flex-col gap-3 border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-            {effectiveTotal > 0 ? (
-              <>
-                Showing {(effectivePageIndex * pageSize) + 1} -{' '}
-                {Math.min((effectivePageIndex + 1) * pageSize, effectiveTotal)} of {effectiveTotal}
-              </>
-            ) : (
-              'No rows'
-            )}
-          </div>
-          <div className="min-w-0 flex-1 sm:flex sm:justify-end">
-            <CmxPagination
-              currentPage={effectivePageIndex + 1}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              totalItems={effectiveTotal}
-              onPageChange={(p) => {
-                if (currentPage != null) onPageChange?.(p)
-                else onPageChange?.(p - 1)
-              }}
-              onPageSizeChange={onPageSizeChange ?? noopPageSize}
-              showWhenSinglePage={paginationFooter === 'always'}
-            />
-          </div>
-        </CmxCardFooter>
+        {showPaginationBlock && (
+          <CmxCardFooter className="flex flex-col gap-3 border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+              {effectiveTotal > 0 ? (
+                <>
+                  Showing {(effectivePageIndex * pageSize) + 1} -{' '}
+                  {Math.min((effectivePageIndex + 1) * pageSize, effectiveTotal)} of {effectiveTotal}
+                </>
+              ) : (
+                'No rows'
+              )}
+            </div>
+            <div className="min-w-0 flex-1 sm:flex sm:justify-end">
+              <CmxPagination
+                currentPage={effectivePageIndex + 1}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={effectiveTotal}
+                onPageChange={(p) => {
+                  if (currentPage != null) onPageChange?.(p)
+                  else onPageChange?.(p - 1)
+                }}
+                onPageSizeChange={onPageSizeChange ?? noopPageSize}
+                showWhenSinglePage={paginationFooter === 'always'}
+              />
+            </div>
+          </CmxCardFooter>
+        )}
+      </CmxCard>
+
+      {auditRow && selectedAuditRecord && (
+        <CmxDialog open onOpenChange={(open) => !open && setAuditRow(null)}>
+          <CmxDialogContent className="max-w-2xl">
+            <CmxDialogHeader>
+              <CmxDialogTitle>
+                {auditDialogTitle ?? tCommon('auditCard.actionLabel')}
+              </CmxDialogTitle>
+            </CmxDialogHeader>
+            <div className="py-4">
+              <CmxAuditInfoCard
+                title={tCommon('auditCard.title')}
+                record={selectedAuditRecord}
+                defaultExpanded
+                collapsibleExtras={false}
+                className="shadow-none"
+              />
+            </div>
+            <CmxDialogFooter>
+              <CmxButton variant="outline" onClick={() => setAuditRow(null)}>
+                {tCommon('close')}
+              </CmxButton>
+            </CmxDialogFooter>
+          </CmxDialogContent>
+        </CmxDialog>
       )}
-    </CmxCard>
+    </>
   )
 }

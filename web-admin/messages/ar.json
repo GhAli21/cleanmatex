@@ -78,7 +78,23 @@
     "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}",
     "copied": "تم النسخ",
     "pieces": "قطع",
-    "currency": "العملة"
+    "currency": "العملة",
+    "auditCard": {
+      "title": "معلومات التدقيق",
+      "actionLabel": "التدقيق",
+      "createdAt": "تاريخ الإنشاء",
+      "createdBy": "أُنشئ بواسطة",
+      "updatedAt": "تاريخ التحديث",
+      "updatedBy": "حُدّث بواسطة",
+      "createdInfo": "معلومات الإنشاء",
+      "updatedInfo": "معلومات التحديث",
+      "recordStatus": "حالة السجل",
+      "recordOrder": "ترتيب السجل",
+      "recordNotes": "ملاحظات السجل",
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
+      "notAvailable": "—"
+    }
   },
   "amountMismatch": {
     "title": "تم اكتشاف عدم تطابق في المبالغ",

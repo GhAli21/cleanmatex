@@ -2,6 +2,8 @@
 name: multitenancy
 description: Multi-tenancy enforcement, RLS policies, and tenant isolation patterns. Use when writing any tenant-scoped data access or schema changes.
 user-invocable: true
+effort: low
+agents:
 ---
 
 # Multi-Tenancy Enforcement

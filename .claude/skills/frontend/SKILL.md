@@ -2,6 +2,8 @@
 name: frontend
 description: Frontend development standards for Next.js 15, React 19, TypeScript, Tailwind CSS, Cmx Design System. Use when creating components, pages, forms, or frontend code.
 user-invocable: true
+effort: low
+agents:
 ---
 
 # CleanMateX Frontend Standards
