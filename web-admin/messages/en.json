@@ -93,7 +93,8 @@
       "recordNotes": "Record notes",
       "showMore": "Show more",
       "showLess": "Show less",
-      "notAvailable": "—"
+      "notAvailable": "—",
+      "missingActor": "NO_Data_For_this_user_id, Contact Admin"
     }
   },
   "amountMismatch": {

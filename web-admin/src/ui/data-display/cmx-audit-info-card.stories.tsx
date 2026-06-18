@@ -36,10 +36,8 @@ export const RawRecord: Story = {
   args: {
     record: {
       created_at: '2026-06-17T09:00:00.000Z',
-      created_by: {
-        display_name: 'Salim Al-Harthi',
-        email: 'salim@cleanmatex.test',
-      },
+      created_by: '370466e6-8b45-4e7d-b377-f0f9421deb59',
+      created_by_name: 'Salim Al-Harthi',
       updated_at: '2026-06-18T08:45:00.000Z',
       updated_by: 'user_48291',
       rec_status: 'ACTIVE',

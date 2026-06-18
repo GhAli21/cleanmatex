@@ -93,7 +93,8 @@
       "recordNotes": "ملاحظات السجل",
       "showMore": "عرض المزيد",
       "showLess": "عرض أقل",
-      "notAvailable": "—"
+      "notAvailable": "—",
+      "missingActor": "لا توجد بيانات لهذا المستخدم، يرجى التواصل مع المسؤول"
     }
   },
   "amountMismatch": {

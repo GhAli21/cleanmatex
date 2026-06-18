@@ -83,6 +83,36 @@ describe('CmxAuditInfoCard', () => {
     expect(screen.getByText('ops@cleanmatex.test')).toBeInTheDocument()
   })
 
+  it('renders actor display name above the stable id when both are available', () => {
+    renderCard({
+      createdBy: {
+        displayName: 'Aisha Rahman',
+        email: 'aisha@cleanmatex.test',
+        phone: '+968 9000 1111',
+        id: '370466e6-8b45-4e7d-b377-f0f9421deb59',
+      },
+    })
+
+    expect(screen.getByText('Aisha Rahman')).toBeInTheDocument()
+    expect(screen.getByText('aisha@cleanmatex.test • +968 9000 1111')).toBeInTheDocument()
+    expect(screen.getByText('370466e6-8b45-4e7d-b377-f0f9421deb59')).toBeInTheDocument()
+  })
+
+  it('normalizes actor companion fields from raw records', () => {
+    renderCard({
+      record: {
+        created_by: '370466e6-8b45-4e7d-b377-f0f9421deb59',
+        created_by_name: 'Audit Owner',
+        created_by_email: 'audit.owner@cleanmatex.test',
+        created_by_phone: '+968 9111 2222',
+      },
+    })
+
+    expect(screen.getByText('Audit Owner')).toBeInTheDocument()
+    expect(screen.getByText('audit.owner@cleanmatex.test • +968 9111 2222')).toBeInTheDocument()
+    expect(screen.getByText('370466e6-8b45-4e7d-b377-f0f9421deb59')).toBeInTheDocument()
+  })
+
   it('omits absent core rows when raw record keys are not present', () => {
     renderCard({
       record: {

@@ -7,7 +7,7 @@
  * shared place to render row metadata consistently across EN/AR layouts.
  */
 
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { CmxButton } from '@ui/primitives/cmx-button'
@@ -30,6 +30,7 @@ export type AuditActor =
       id?: string | null
       displayName?: string | null
       email?: string | null
+      phone?: string | null
       label?: string | null
     }
 
@@ -142,24 +143,81 @@ function normalizeActor(value: unknown): AuditActor | null {
           ? actor.display_name
           : null,
     email: typeof actor.email === 'string' ? actor.email : null,
+    phone: typeof actor.phone === 'string' ? actor.phone : null,
+  }
+}
+
+function normalizeActorFromRecord(
+  record: Record<string, unknown> | undefined,
+  actorKeys: string[],
+  labelKeys: string[],
+  displayNameKeys: string[],
+  emailKeys: string[],
+  phoneKeys: string[],
+): NormalizedField<AuditActor | null> {
+  const actorField = readKnownField<unknown>(record, actorKeys)
+
+  if (!actorField.present) {
+    return { present: false, value: null }
+  }
+
+  const normalizedActor = normalizeActor(actorField.value)
+  const labelField = readKnownField<string>(record, labelKeys)
+  const displayNameField = readKnownField<string>(record, displayNameKeys)
+  const emailField = readKnownField<string>(record, emailKeys)
+  const phoneField = readKnownField<string>(record, phoneKeys)
+
+  if (normalizedActor == null || typeof normalizedActor === 'string') {
+    const fallbackId =
+      normalizedActor == null ? null : normalizedActor
+
+    return {
+      present: true,
+      value: {
+        id: fallbackId,
+        label: labelField.value,
+        displayName: displayNameField.value,
+        email: emailField.value,
+        phone: phoneField.value,
+      },
+    }
+  }
+
+  return {
+    present: true,
+    value: {
+      id: normalizedActor.id,
+      label: normalizedActor.label ?? labelField.value,
+      displayName: normalizedActor.displayName ?? displayNameField.value,
+      email: normalizedActor.email ?? emailField.value,
+      phone: normalizedActor.phone ?? phoneField.value,
+    },
   }
 }
 
 function normalizeAuditRecord(record?: Record<string, unknown>): NormalizedAuditRecord {
-  const createdBy = readKnownField<unknown>(record, ['createdBy', 'created_by'])
-  const updatedBy = readKnownField<unknown>(record, ['updatedBy', 'updated_by'])
+  const createdBy = normalizeActorFromRecord(
+    record,
+    ['createdBy', 'created_by'],
+    ['createdByLabel', 'created_by_label'],
+    ['createdByName', 'created_by_name', 'createdByDisplayName', 'created_by_display_name'],
+    ['createdByEmail', 'created_by_email'],
+    ['createdByPhone', 'created_by_phone'],
+  )
+  const updatedBy = normalizeActorFromRecord(
+    record,
+    ['updatedBy', 'updated_by'],
+    ['updatedByLabel', 'updated_by_label'],
+    ['updatedByName', 'updated_by_name', 'updatedByDisplayName', 'updated_by_display_name'],
+    ['updatedByEmail', 'updated_by_email'],
+    ['updatedByPhone', 'updated_by_phone'],
+  )
 
   return {
     createdAt: readKnownField<string | Date>(record, ['createdAt', 'created_at']),
-    createdBy: {
-      present: createdBy.present,
-      value: normalizeActor(createdBy.value),
-    },
+    createdBy,
     updatedAt: readKnownField<string | Date>(record, ['updatedAt', 'updated_at']),
-    updatedBy: {
-      present: updatedBy.present,
-      value: normalizeActor(updatedBy.value),
-    },
+    updatedBy,
     createdInfo: readKnownField<ReactNode>(record, ['createdInfo', 'created_info']),
     updatedInfo: readKnownField<ReactNode>(record, ['updatedInfo', 'updated_info']),
     recStatus: readKnownField<ReactNode>(record, ['recStatus', 'rec_status']),
@@ -196,6 +254,36 @@ function resolveActorLabel(actor: AuditActor | null | undefined): string | null 
   return actor.label?.trim() || actor.displayName?.trim() || actor.email?.trim() || actor.id?.trim() || null
 }
 
+function resolveActorMeta(actor: AuditActor | null | undefined): {
+  primary: string | null
+  secondary: string | null
+  tertiary: string | null
+} {
+  if (actor == null) {
+    return { primary: null, secondary: null, tertiary: null }
+  }
+
+  if (typeof actor === 'string') {
+    const raw = actor.trim() || null
+    return { primary: raw, secondary: null, tertiary: null }
+  }
+
+  const primary = resolveActorLabel(actor)
+  const email = actor.email?.trim() || null
+  const phone = actor.phone?.trim() || null
+  const id = actor.id?.trim() || null
+
+  if (!primary) {
+    return { primary: null, secondary: null, tertiary: null }
+  }
+
+  const contactParts = [email, phone].filter((part) => !!part && part !== primary)
+  const secondary = contactParts.length > 0 ? contactParts.join(' • ') : null
+  const tertiary = id && id !== primary && id !== secondary ? id : null
+
+  return { primary, secondary, tertiary }
+}
+
 function renderRowValue(
   value: ReactNode | Date | null | undefined,
   kind: AuditRowKind,
@@ -203,7 +291,27 @@ function renderRowValue(
   notAvailableLabel: string,
 ): ReactNode {
   if (kind === 'actor') {
-    return resolveActorLabel(value as AuditActor | null | undefined) ?? notAvailableLabel
+    const actorMeta = resolveActorMeta(value as AuditActor | null | undefined)
+
+    if (!actorMeta.primary) {
+      return notAvailableLabel
+    }
+
+    return (
+      <Fragment>
+        <span className="block">{actorMeta.primary}</span>
+        {actorMeta.secondary ? (
+          <span className="mt-1 block text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            {actorMeta.secondary}
+          </span>
+        ) : null}
+        {actorMeta.tertiary ? (
+          <span className="mt-1 block text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            {actorMeta.tertiary}
+          </span>
+        ) : null}
+      </Fragment>
+    )
   }
 
   if (kind === 'datetime') {

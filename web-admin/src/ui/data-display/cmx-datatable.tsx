@@ -14,7 +14,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ReactNode, useCallback, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import { ArrowUpDown, ArrowUp, ArrowDown, FileText } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { CmxButton } from '../primitives/cmx-button'
@@ -30,6 +30,7 @@ import {
   CmxDialogTitle,
 } from '../overlays/cmx-dialog'
 import { cn } from '@/lib/utils'
+import type { AuditActor } from './cmx-audit-info-card'
 
 const ROW_NUM_COL_ID = '__cmx_row_no'
 const AUDIT_COL_ID = '__cmx_audit_action'
@@ -151,6 +152,12 @@ export interface CmxDataTableProps<TData> {
   auditConfig?: boolean | CmxDataTableAuditConfig<TData>
 }
 
+interface AuditDialogState<TData> {
+  row: TData
+  record: Record<string, unknown>
+  title?: string
+}
+
 function isRecordLike(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -165,6 +172,113 @@ function hasAuditFields(record: Record<string, unknown> | null): boolean {
 
 function getDefaultAuditRecord<TData>(row: TData): Record<string, unknown> | null {
   return isRecordLike(row) ? row : null
+}
+
+function isAuditActorObject(value: unknown): value is Exclude<AuditActor, string> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeActorValue(value: unknown): AuditActor | null {
+  if (value == null) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  if (!isAuditActorObject(value)) {
+    return null
+  }
+
+  const actor = value as Record<string, unknown>
+  return {
+    id: typeof actor.id === 'string' ? actor.id : null,
+    label: typeof actor.label === 'string' ? actor.label : null,
+    displayName:
+      typeof actor.displayName === 'string'
+        ? actor.displayName
+        : typeof actor.display_name === 'string'
+          ? actor.display_name
+          : null,
+    email: typeof actor.email === 'string' ? actor.email : null,
+    phone: typeof actor.phone === 'string' ? actor.phone : null,
+  }
+}
+
+function collectAuditActorIds(record: Record<string, unknown>): string[] {
+  const candidates = [record.created_by, record.createdBy, record.updated_by, record.updatedBy]
+
+  return candidates.flatMap((candidate) => {
+    const actor = normalizeActorValue(candidate)
+    if (actor == null) {
+      return []
+    }
+
+    if (typeof actor === 'string') {
+      return [actor]
+    }
+
+    const hasResolvedIdentity =
+      typeof actor.label === 'string' ||
+      typeof actor.displayName === 'string' ||
+      typeof actor.email === 'string'
+
+    if (hasResolvedIdentity || !actor.id) {
+      return []
+    }
+
+    return [actor.id]
+  })
+}
+
+function withResolvedActorDetails(
+  record: Record<string, unknown>,
+  actorsById: Map<string, { displayName: string | null; email: string | null; phone: string | null }>,
+): Record<string, unknown> {
+  const nextRecord = { ...record }
+
+  for (const key of ['created_by', 'createdBy', 'updated_by', 'updatedBy'] as const) {
+    const actor = normalizeActorValue(nextRecord[key])
+
+    if (actor == null) {
+      continue
+    }
+
+    if (typeof actor === 'string') {
+      const resolvedActor = actorsById.get(actor)
+      if (!resolvedActor) {
+        continue
+      }
+
+      nextRecord[key] = {
+        id: actor,
+        displayName: resolvedActor.displayName,
+        email: resolvedActor.email,
+        phone: resolvedActor.phone,
+      } satisfies Exclude<AuditActor, string>
+      continue
+    }
+
+    if (!actor.id || actor.displayName || actor.label || actor.email) {
+      continue
+    }
+
+    const resolvedActor = actorsById.get(actor.id)
+    if (!resolvedActor) {
+      continue
+    }
+
+    nextRecord[key] = {
+      ...actor,
+      displayName: actor.displayName ?? resolvedActor.displayName,
+      email: actor.email ?? resolvedActor.email,
+      phone: actor.phone ?? resolvedActor.phone,
+    } satisfies Exclude<AuditActor, string>
+  }
+
+  return nextRecord
 }
 
 function isSimpleColumn<TData>(
@@ -299,7 +413,9 @@ export function CmxDataTable<TData>({
     rowNumberOffsetProp ?? effectivePageIndex * pageSize
 
   const [internalSorting, setInternalSorting] = useState<SortingState>(sorting ?? [])
-  const [auditRow, setAuditRow] = useState<TData | null>(null)
+  const [auditDialog, setAuditDialog] = useState<AuditDialogState<TData> | null>(null)
+  const [, startAuditActorsTransition] = useTransition()
+  const auditLookupRequestRef = useRef(0)
 
   const resolvedAuditConfig = useMemo<CmxDataTableAuditConfig<TData> | null>(() => {
     if (auditConfig === false) {
@@ -320,6 +436,89 @@ export function CmxDataTable<TData>({
     const record = resolvedAuditConfig?.getRecord?.(row) ?? getDefaultAuditRecord(row)
     return isRecordLike(record) ? record : null
   }, [resolvedAuditConfig])
+
+  const resolveAuditTitle = useCallback((row: TData): string | undefined => {
+    return resolvedAuditConfig?.getTitle?.(row)
+  }, [resolvedAuditConfig])
+
+  const handleAuditOpen = useCallback((row: TData) => {
+    const record = resolveAuditRecord(row)
+    if (!record) {
+      return
+    }
+
+    const title = resolveAuditTitle(row)
+    setAuditDialog({ row, record, title })
+
+    const actorIds = collectAuditActorIds(record)
+    if (actorIds.length === 0) {
+      return
+    }
+
+    const requestId = auditLookupRequestRef.current + 1
+    auditLookupRequestRef.current = requestId
+
+    startAuditActorsTransition(async () => {
+      try {
+        const params = new URLSearchParams()
+        actorIds.forEach((actorId) => params.append('id', actorId))
+
+        const response = await fetch(`/api/v1/audit/actors?${params.toString()}`)
+        if (!response.ok) {
+          return
+        }
+
+        const payload = (await response.json()) as {
+          success?: boolean
+          data?: Array<{ id: string; displayName: string | null; email: string | null; phone: string | null }>
+        }
+
+        if (!payload.success || !payload.data || auditLookupRequestRef.current !== requestId) {
+          return
+        }
+
+        const actorsById = new Map(
+          payload.data
+            .filter((actor) => typeof actor.id === 'string')
+            .map((actor) => [
+              actor.id,
+              {
+                displayName: actor.displayName ?? null,
+                email: actor.email ?? null,
+                phone: actor.phone ?? null,
+              },
+            ]),
+        )
+
+        for (const actorId of actorIds) {
+          if (!actorsById.has(actorId)) {
+            actorsById.set(actorId, {
+              displayName: tCommon('auditCard.missingActor'),
+              email: null,
+              phone: null,
+            })
+          }
+        }
+
+        if (actorsById.size === 0) {
+          return
+        }
+
+        setAuditDialog((previous) => {
+          if (!previous || previous.row !== row) {
+            return previous
+          }
+
+          return {
+            ...previous,
+            record: withResolvedActorDetails(previous.record, actorsById),
+          }
+        })
+      } catch {
+        // Audit actor name resolution is progressive enhancement only.
+      }
+    })
+  }, [resolveAuditRecord, resolveAuditTitle, tCommon])
 
   const canShowAuditForRow = useCallback((row: TData): boolean => {
     if (!resolvedAuditConfig) {
@@ -355,7 +554,7 @@ export function CmxDataTable<TData>({
             }
             const sorted = column.getIsSorted()
             return (
-              <CmxButton
+                <CmxButton
                 type="button"
                 variant="ghost"
                 size="sm"
@@ -411,7 +610,7 @@ export function CmxDataTable<TData>({
                 title={actionLabel}
                 aria-label={actionLabel}
                 className="h-8 w-8 px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
-                onClick={() => setAuditRow(originalRow)}
+                onClick={() => handleAuditOpen(originalRow)}
               >
                 <FileText className="h-4 w-4" aria-hidden />
               </CmxButton>
@@ -498,11 +697,8 @@ export function CmxDataTable<TData>({
     (paginationFooter === 'always' || effectiveTotal > pageSize)
 
   const noopPageSize = () => {}
-  const selectedAuditRecord = auditRow ? resolveAuditRecord(auditRow) : null
-  const auditDialogTitle =
-    auditRow && resolvedAuditConfig?.getTitle
-      ? resolvedAuditConfig.getTitle(auditRow)
-      : undefined
+  const selectedAuditRecord = auditDialog?.record ?? null
+  const auditDialogTitle = auditDialog?.title
 
   return (
     <>
@@ -635,8 +831,16 @@ export function CmxDataTable<TData>({
         )}
       </CmxCard>
 
-      {auditRow && selectedAuditRecord && (
-        <CmxDialog open onOpenChange={(open) => !open && setAuditRow(null)}>
+      {auditDialog && selectedAuditRecord && (
+        <CmxDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              auditLookupRequestRef.current += 1
+              setAuditDialog(null)
+            }
+          }}
+        >
           <CmxDialogContent className="max-w-2xl">
             <CmxDialogHeader>
               <CmxDialogTitle>
@@ -653,7 +857,13 @@ export function CmxDataTable<TData>({
               />
             </div>
             <CmxDialogFooter>
-              <CmxButton variant="outline" onClick={() => setAuditRow(null)}>
+              <CmxButton
+                variant="outline"
+                onClick={() => {
+                  auditLookupRequestRef.current += 1
+                  setAuditDialog(null)
+                }}
+              >
                 {tCommon('close')}
               </CmxButton>
             </CmxDialogFooter>
