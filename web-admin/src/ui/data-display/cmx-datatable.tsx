@@ -15,7 +15,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { ReactNode, useCallback, useMemo, useRef, useState, useTransition } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown, FileText } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, UserRound } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardFooter } from '../primitives/cmx-card'
@@ -616,10 +616,10 @@ export function CmxDataTable<TData>({
                 size="sm"
                 title={actionLabel}
                 aria-label={actionLabel}
-                className="h-8 w-8 px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+                className="h-10 w-10 rounded-full px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]"
                 onClick={() => handleAuditOpen(originalRow)}
               >
-                <FileText className="h-4 w-4" aria-hidden />
+                <UserRound className="h-5 w-5" aria-hidden />
               </CmxButton>
             </div>
           )
