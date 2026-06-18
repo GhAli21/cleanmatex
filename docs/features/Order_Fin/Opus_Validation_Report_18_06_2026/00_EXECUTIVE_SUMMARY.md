@@ -45,6 +45,6 @@ Of the 25 production-ready criteria the brief lists, the implementation **meets 
 
 ## The call
 
-Ship-blockers: **none open.** Before GA, close F-01 (one small RLS migration), F-02 (allocation idempotency hardening), and decide scope on F-03/F-05. Add the missing DB-level + wiring tests so the next drift can't ship silently. **Estimated to GA-ready: small, well-bounded.** A second validation pass after these fixes is recommended (mostly to confirm F-02 hardening and the RLS migration).
+Ship-blockers: **none open.** GA gate finalized in [23 — Decisions Addendum](./23_DECISIONS_ADDENDUM.md): **this batch** closes F-01 (RLS), F-02+F-04 (B2B idempotency+detail), F-10 (collect key); **own decided phases** cover F-T5 (DB harness), F-05 (e-invoicing foundation, now in launch scope), and D-09 (reconciliation reports). **F-03 (feature flags) is removed from the gate** — deferred for V1, features always-on, RBAC controls access (D-01). A focused re-validation after Phase 1 is required (D-11).
 
 → Detailed path in [16](./16_RECOMMENDED_IMPLEMENTATION_PLAN.md) and [21](./21_FINAL_RECOMMENDATION.md).

@@ -13,8 +13,8 @@
 
 ## What can wait (with explicit risk acceptance)
 
-- **F-03 (feature flags unwired)** — permission gating already protects access; the missing piece is a rollout kill-switch. Decide: wire or retire. Not balance-affecting.
-- **F-05 (tax-category decomposition / e-invoicing)** — defer **only if** launch scope is single-rate VAT without e-invoicing. If a GCC tax authority / ZATCA-style mandate is in scope, this becomes a Phase-1 blocker.
+- **F-03 (feature flags)** — ✅ **DECIDED (D-01):** deferred for V1; features always-on; RBAC + business validation control access. **Removed from the GA gate** — not balance-affecting.
+- **F-05 (tax-category decomposition / e-invoicing)** — ✅ **DECIDED (D-02):** e-invoicing foundation is **IN launch scope → F-05 is a GA gate**, delivered as its **own phase** (tenant flag + activation + status/audit scaffolding now; tax decomposition is a tracked follow-up that must land before F-05 is marked complete).
 - **F-07 (cash-out change idempotency), F-08/F-09 (naming/audit cols)** — low risk; bundle into DB hardening.
 - **F-06 (ADR-047 drift)** — doc-only; update alongside the fixes.
 
@@ -49,5 +49,5 @@
 
 - **Verdict:** 🟡 PARTIALLY VALID.
 - **Open critical blockers:** 0.
-- **GA gate:** F-01 (RLS), F-02 (**B2B-only** idempotency), F-10 (collect key) (+ T-1/T-2/T-6).
+- **GA gate (per [23](./23_DECISIONS_ADDENDUM.md)):** this batch — F-01 (RLS), F-02+F-04 (B2B idempotency+detail), F-10 (collect key); own phases — F-T5 (DB harness), F-05 (e-invoicing foundation), D-09 (reconciliation reports). F-03 removed (decided-deferred).
 - **Confidence:** High on the core financial correctness **and AR allocation idempotency** (both verified first-hand against live DB); Medium on **B2B** allocation robustness (the one idempotency gap); items marked ❓ are genuinely unverified, not assumed-good.

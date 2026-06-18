@@ -36,8 +36,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const channelCode = searchParams.get('channel_code')
 
-  //jhfgf
-
   const supabase = createAdminSupabaseClient()
 
   let query = supabase

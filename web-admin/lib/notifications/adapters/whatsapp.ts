@@ -79,13 +79,30 @@ async function sendViaTwilio(
 ): Promise<WhatsAppDeliveryResult> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken  = process.env.TWILIO_AUTH_TOKEN
-  const from       = process.env.TWILIO_WHATSAPP_FROM   // e.g. whatsapp:+14155238886
+  const fromConfig = providerConfig?.from_number
+  const from       =
+    process.env.TWILIO_WHATSAPP_FROM ??
+    (typeof fromConfig === 'string' && fromConfig.length > 0 ? fromConfig : undefined)
 
   if (!accountSid || !authToken || !from) {
-    return { success: false, errorMessage: 'Twilio WhatsApp credentials not configured', permanent: false }
+    return {
+      success: false,
+      errorMessage: 'Twilio WhatsApp credentials not configured (set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN on the server; set TWILIO_WHATSAPP_FROM or provider config from_number)',
+      permanent: true,
+    }
   }
   if (!row.recipient_address) {
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }
+  }
+
+  const useSandbox = shouldUseSandboxTemplate(providerConfig)
+  const contentSid = resolveSandboxContentSid(providerConfig)
+  if (useSandbox && !contentSid) {
+    return {
+      success: false,
+      errorMessage: 'Twilio WhatsApp sandbox template enabled but TWILIO_WHATSAPP_SANDBOX_CONTENT_SID (or provider config sandbox_content_sid) is missing',
+      permanent: true,
+    }
   }
 
   const fromAddr = from.startsWith('whatsapp:') ? from : `whatsapp:${from}`
@@ -93,9 +110,6 @@ async function sendViaTwilio(
 
   try {
     const client = twilio(accountSid, authToken)
-
-    const useSandbox = shouldUseSandboxTemplate(providerConfig)
-    const contentSid = resolveSandboxContentSid(providerConfig)
 
     let message
     if (useSandbox && contentSid) {
