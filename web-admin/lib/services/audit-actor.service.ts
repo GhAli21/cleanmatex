@@ -7,6 +7,9 @@
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 
+/**
+ *
+ */
 export interface AuditActorLookupResult {
   id: string
   displayName: string | null

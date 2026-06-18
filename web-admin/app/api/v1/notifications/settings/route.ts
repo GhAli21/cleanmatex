@@ -25,7 +25,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const configs = await notificationSettingsService.getAllChannelConfigs(tenantId)
-    return NextResponse.json({ success: true, data: configs })
+    // HTTP contract uses snake_case (matches org_ntf_settings_cf and notification UI).
+    const data = configs.map((c) => ({
+      channel_code:        c.channelCode,
+      is_enabled:          c.isEnabled,
+      quiet_hours_enabled: c.quietHoursEnabled,
+      quiet_hours_start:   c.quietHoursStart,
+      quiet_hours_end:     c.quietHoursEnd,
+      quiet_hours_tz:      c.quietHoursTz,
+      daily_limit:         c.dailyLimit,
+      active_provider:     c.activeProvider
+        ? { provider_code: c.activeProvider.providerCode, config: c.activeProvider.config }
+        : null,
+    }))
+    return NextResponse.json({ success: true, data })
   } catch (error) {
     logger.error('GET /api/v1/notifications/settings failed', error as Error, { tenantId, feature: 'notifications' })
     return NextResponse.json({ success: false, error: 'Failed to fetch settings' }, { status: 500 })

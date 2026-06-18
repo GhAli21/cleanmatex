@@ -7,6 +7,7 @@ const MAX_AUDIT_ACTOR_IDS = 10
 /**
  * GET /api/v1/audit/actors
  * Resolve a small set of tenant-scoped audit actor ids into display names.
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

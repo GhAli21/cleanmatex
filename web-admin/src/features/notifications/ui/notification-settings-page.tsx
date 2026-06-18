@@ -103,20 +103,27 @@ export function NotificationSettingsPage() {
   const updateChannelSetting = useCallback(async (channelCode: ChannelCode, field: string, value: boolean | string | null) => {
     setSaving(`admin-${channelCode}-${field}`)
     try {
-      await fetch('/api/v1/notifications/settings', {
+      const res = await fetch('/api/v1/notifications/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel_code: channelCode, [field]: value }),
       })
+      const j = await res.json() as { success?: boolean; error?: string }
+      if (!res.ok || !j.success) {
+        setError(j.error ?? t('settings.saveFailed'))
+        return
+      }
       setSettings((prev) => {
         const existing = prev.find((s) => s.channel_code === channelCode)
         if (existing) return prev.map((s) => s.channel_code === channelCode ? { ...s, [field]: value } : s)
         return [...prev, { channel_code: channelCode, is_enabled: false, quiet_hours_enabled: false, quiet_hours_start: null, quiet_hours_end: null, quiet_hours_tz: null, [field]: value }]
       })
+    } catch {
+      setError(t('settings.saveFailed'))
     } finally {
       setSaving(null)
     }
-  }, [])
+  }, [t])
 
   const getPref = (channelCode: ChannelCode) =>
     prefs.find((p) => p.channel_code === channelCode && p.event_code === null)

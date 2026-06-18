@@ -78,6 +78,9 @@ type AnyColumn<TData> =
  */
 export type CmxDataTablePaginationFooter = 'auto' | 'always' | 'never'
 
+/**
+ *
+ */
 export interface CmxDataTableAuditConfig<TData> {
   /**
    * `auto` enables the action when row objects expose known audit keys.
@@ -96,6 +99,9 @@ export interface CmxDataTableAuditConfig<TData> {
   columnHeader?: ReactNode
 }
 
+/**
+ *
+ */
 export interface CmxDataTableProps<TData> {
   columns: AnyColumn<TData>[]
   data: TData[]
@@ -371,6 +377,7 @@ function withSortableColumnHeader<TData>(
  * @param root0.rowNumberOffset
  * @param root0.paginationFooter
  * @param root0.getRowClassName
+ * @param root0.auditConfig
  */
 export function CmxDataTable<TData>({
   columns,

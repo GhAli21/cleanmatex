@@ -92,7 +92,10 @@ Status: ✅ met · 🟡 partial · 🔴 not met · ❓ not verified. "Required a
 
 ## GA gate (minimum)
 
-**Must close:** F-01 (RLS), F-02 (**B2B-only** allocation idempotency), F-10 (collect-payment key) + tests T-1/T-2/T-6.
-**Scope decision:** F-03 (flags) and F-05 (tax decomposition) — close or formally accept/defer.
-**Recommended:** verify remaining ❓ (AR reverse/void accounting, allocation drawers, refund-create idempotency). i18n parity ✅ done.
-**Note:** AR allocation is already idempotent (central `org_idempotency_keys`) — **no AR migration/index required.**
+> Updated per [23 — Decisions Addendum](./23_DECISIONS_ADDENDUM.md).
+
+**Must close — this batch (tight Phase 1):** F-01 (RLS), F-02 + F-04 (B2B idempotency + detail table), F-10 (collect-payment key).
+**Must close — own phases (decided):** F-T5 (DB harness, D-10), F-05 (e-invoicing foundation, D-02), D-09 (minimum reconciliation reports).
+**Accepted launch decision — NOT a gate:** F-03 feature flags deferred; features always-on in V1; RBAC + business validation control access (D-01).
+**Third pass before GA (D-12):** AR reverse/void, refund-create idempotency, `voucher-reversal`, cash-drawer close/Z-report, promotion/loyalty, gateway callbacks, allocation drawers, mobile/offline.
+**Note:** AR allocation already idempotent (`org_idempotency_keys`) — **no AR migration/index.** i18n parity ✅ done.

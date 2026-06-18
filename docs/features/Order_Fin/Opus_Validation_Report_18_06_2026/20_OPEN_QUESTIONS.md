@@ -1,23 +1,26 @@
-# 20 — Open Questions (need product / architecture / accounting decision)
+# 20 — Open Questions → ✅ DECIDED
+
+**All questions below are now DECIDED.** Binding decisions in [23_DECISIONS_ADDENDUM.md](./23_DECISIONS_ADDENDUM.md). This file is retained for traceability.
 
 ## Product / scope
-1. **Feature flags (F-03):** Wire `overpayment_disposition_v1` / `customer_receipt_allocation_v1` as real kill-switches, or retire them and update ADR-047 to "permission-gated only"? (They are currently dead seed data.)
-2. **Tax compliance scope (F-05):** Is GCC e-invoicing / multi-category tax (exempt/zero-rated/out-of-scope) in the **launch** scope? If yes, F-05 becomes a Phase-1 blocker; if no, it can be accepted/deferred with a documented risk.
-3. **Credit-note disposition at checkout:** `VOID_OR_REFUND_EXCESS` and `RESTORE_STORED_VALUE` are catalog codes the validator currently rejects at submit (`NOT_ALLOWED`). Intended permanent scope, or to be wired? (Card/gateway over-capture refund path.)
+1. **Feature flags (F-03):** ✅ **DECIDED (D-01)** — deferred for V1; features always enabled; RBAC + business validation control access. F-03 removed from GA gate.
+2. **Tax compliance scope (F-05):** ✅ **DECIDED (D-02)** — e-invoicing foundation **in launch scope**; F-05 is a GA gate. Country adapters are per-jurisdiction, GA-blocking only for launch jurisdictions.
+3. **Credit-note / VOID_OR_REFUND_EXCESS / RESTORE_STORED_VALUE at checkout:** ✅ **DECIDED (D-03)** — stay deferred; validator keeps rejecting; not in UI.
 
 ## Accounting / finance
-4. **B2B statement audit model (F-04):** Is the BVM voucher line an acceptable canonical audit for statement payments, or is a dedicated `org_b2b_statement_payments_dtl` required for AR/B2B symmetry and granular reversal?
-5. **Collect-payment idempotency (F-10):** Should a per-collection-event idempotency key be **required** (client-generated), matching submit-order? Confirm the accounting intent for repeated partial collections by the same cashier.
-6. **Refund-create idempotency:** Should refund creation be idempotent (dedupe duplicate refund requests), beyond the existing over-refund cap? (Not verified.)
-7. **Multi-currency:** base-currency mirrors are persisted; is there a defined revaluation / FX-gain-loss policy for AR aging across currencies, or is point-in-time `currency_ex_rate` sufficient for launch?
+4. **B2B statement audit model (F-04):** ✅ **DECIDED (D-04)** — dedicated `org_b2b_statement_payments_dtl` detail table.
+5. **Collect-payment idempotency (F-10):** ✅ **DECIDED (D-05)** — per-event key required; UI generates a stable per-attempt key; server UUID fallback (non-breaking).
+6. **Refund-create idempotency:** ✅ **DECIDED (D-06)** — required before GA; third-pass item (D-12).
+7. **Multi-currency / FX:** ✅ **DECIDED (D-07)** — point-in-time snapshot sufficient for launch; revaluation deferred.
 
 ## Security / ops
-8. **`org_tax_doc_seq_counters` RLS (F-01):** Confirm the server connection role for the sequence service so the new RLS policies (tenant_isolation + service_role) don't block legitimate server writes.
-9. **Reconciliation reporting:** The plan backlog lists an "unallocated excess > 0" report and statement reconciliation — are these launch-required or post-launch?
+8. **`org_tax_doc_seq_counters` RLS (F-01):** ✅ **DECIDED (D-08)** — tenant isolation + service_role policy.
+9. **Reconciliation reporting:** ✅ **DECIDED (D-09)** — minimum reports launch-required (unallocated excess, B2B statement, overpayment disposition, cash drawer).
 
 ## Testing / release
-10. **DB-level test harness (F-T5):** Approve standing up a real test DB (migrations applied) for the finance suite? This is the highest-leverage reliability investment (it would have caught the wallet blocker).
-11. **Re-validation:** After Phase-1 fixes, run a focused re-validation (RLS live, B2B idempotency replay, the still-❓ areas in [22](./22_FOLLOWUP_DEEP_DIVE.md): reverse/void, cash-drawer close, promotions/loyalty, gateway callbacks, allocation drawers, mobile/offline)?
+10. **DB-level test harness (F-T5):** ✅ **DECIDED (D-10)** — approved + required; own phase.
+11. **Re-validation:** ✅ **DECIDED (D-11)** — focused re-validation required after Phase 1.
+12. **Third pass for remaining ❓:** ✅ **DECIDED (D-12)** — required before GA (refund-create idempotency, AR reverse/void, `voucher-reversal.service`, cash-drawer close/Z-report, promotion/loyalty engines, gateway capture/callback, allocation drawer UX, mobile/offline POS).
 
-## Still-unverified areas requiring a decision on depth
-12. Do you want a **third pass** to close the remaining ❓ ([22 §Still not verified](./22_FOLLOWUP_DEEP_DIVE.md): refund-create idempotency, AR reverse accounting, `voucher-reversal.service`, cash-drawer Z-report, promotion/loyalty engines, gateway capture/callback, allocation drawer UX, mobile/offline POS)? These are not assumed-good — they are simply not yet inspected.
+## New open implementation decisions (surfaced during decision-application)
+- **E-invoice tenant-flag placement** (dedicated columns vs existing `org_tenants_mst.feature_flags` jsonb vs HQ-managed setting) — to decide before the e-invoicing phase. Cross-project. See [23 §Open implementation decisions](./23_DECISIONS_ADDENDUM.md).

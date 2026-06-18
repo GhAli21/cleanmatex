@@ -388,6 +388,7 @@ function AuditInfoRow({
  * Provides a single audit metadata presentation for row-level detail surfaces
  * so pages can reuse the same UX instead of hand-rolling audit grids.
  *
+ * @param props
  * @example
  * <CmxAuditInfoCard createdAt="2026-06-18T10:00:00.000Z" createdBy="user_123" />
  */

@@ -26,12 +26,16 @@ No discovered defect currently forces "must not release" on its own. The one pri
 
 ## Items to resolve before GA (HIGH — not hard blockers, but release-gating)
 
-These are detailed in [05](./05_GAPS_AND_BUGS.md); summarized here as the GA gate:
+These are detailed in [05](./05_GAPS_AND_BUGS.md); GA gate finalized in [23 — Decisions Addendum](./23_DECISIONS_ADDENDUM.md):
 
-| ID | Why it gates GA | Smallest safe fix |
-|----|-----------------|-------------------|
-| **F-01** RLS on `org_tax_doc_seq_counters` | Multi-tenant isolation on a fiscal-numbering table; violates project rule | 1 additive migration (enable RLS + 2 policies) |
-| **F-02** B2B statement allocation idempotency *(AR already guarded via `org_idempotency_keys`)* | Retry can double-reduce a **B2B statement** balance | reuse `withIdempotency` in `b2b-statement-payment.service` — **service edit, no migration** (no AR change) |
-| **F-05** Tax-base decomposition | Required only if GCC e-invoicing / multi-category tax is in launch scope | scoped decision; multi-phase if in scope |
+| ID | Phase | Why it gates GA | Smallest safe fix |
+|----|-------|-----------------|-------------------|
+| **F-01** RLS on `org_tax_doc_seq_counters` | 1A (this batch) | Multi-tenant isolation on a fiscal-numbering table; violates project rule | 1 additive migration (enable RLS + 2 policies) |
+| **F-02** B2B statement allocation idempotency *(AR already guarded via `org_idempotency_keys`)* | 1B (this batch) | Retry can double-reduce a **B2B statement** balance | reuse `withIdempotency` in `b2b-statement-payment.service` — **service edit; no AR change** |
+| **F-04** B2B statement payment detail/audit table | 1B (this batch) | No granular statement-payment audit/reversal | new `org_b2b_statement_payments_dtl` (D-04) |
+| **F-10** collect-payment per-event idempotency key | 1C (this batch) | Stable default key collides across distinct collections | per-event key + server UUID fallback (D-05) |
+| **F-T5** DB-level finance test harness | own phase (D-10) | CI can't see CHECK/FK/RLS truth — root cause of F-00 | real migration/DB test harness |
+| **F-05** e-invoicing foundation + tax decomposition | own phase (D-02) | Launch scope includes e-invoicing | tenant flag + activation + decomposition (multi-step) |
+| **D-09** minimum reconciliation reports | own phase | Ops must reconcile at launch | 4 reports (excess, B2B, disposition, drawer) |
 
-**If launch scope is single-rate VAT + no e-invoicing yet,** F-05 can be deferred with an explicit risk acceptance, leaving **F-01 + F-02** as the GA gate.
+**Removed from GA gate by decision (D-01):** **F-03** feature flags — deferred for V1; features always-on; RBAC controls access. Not a blocker.
