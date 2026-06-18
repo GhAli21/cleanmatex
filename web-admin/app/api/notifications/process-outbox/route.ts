@@ -14,6 +14,7 @@ import { deliverEmailOutbox    } from '@lib/notifications/adapters/email';
 import { deliverSmsOutbox      } from '@lib/notifications/adapters/sms';
 import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
 import { deliverPushOutbox     } from '@lib/notifications/adapters/push';
+import { enqueueEmailFallbackFromWhatsApp } from '@lib/notifications/adapters/outbox';
 
 const BATCH_SIZE       = 50;
 const RETRY_BATCH_SIZE = 25;
@@ -45,6 +46,9 @@ type OutboxRow = {
   retry_count:        number
   max_retries:        number
   status:             string
+  source_entity_type: string | null
+  source_entity_id:   string | null
+  metadata:           Record<string, unknown> | null
 };
 
 
@@ -94,7 +98,10 @@ async function processRow(
       result = await deliverSmsOutbox(row);
       break;
     case 'WHATSAPP':
-      result = await deliverWhatsAppOutbox(row);
+      result = await deliverWhatsAppOutbox({
+        ...row,
+        metadata: row.metadata,
+      });
       break;
     case 'PUSH': {
       const pushResult = await deliverPushOutbox(row);
@@ -155,6 +162,25 @@ async function processRow(
     errorMessage
   );
 
+  if (
+    row.channel_code === 'WHATSAPP' &&
+    finalStatus === OUTBOX_STATUS.FAILED_PERMANENT
+  ) {
+    await enqueueEmailFallbackFromWhatsApp(
+      {
+        tenant_org_id:      row.tenant_org_id,
+        recipient_user_id:  row.recipient_user_id,
+        event_code:         row.event_code,
+        source_entity_type: row.source_entity_type,
+        source_entity_id:   row.source_entity_id,
+        rendered_subject:   row.rendered_subject,
+        rendered_body:      row.rendered_body,
+        metadata:           row.metadata,
+      },
+      errorMessage ?? 'whatsapp_delivery_failed',
+    );
+  }
+
   logger.info('process-outbox: row processed', {
     outboxId:    row.id,
     channel:     row.channel_code,
@@ -179,7 +205,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Fetch QUEUED rows due for dispatch
   const { data: queued, error: queuedErr } = await supabase
     .from('org_ntf_outbox_dtl')
-    .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status')
+    .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status, source_entity_type, source_entity_id, metadata')
     .eq('status', OUTBOX_STATUS.QUEUED)
     .lte('scheduled_at', now)
     .limit(BATCH_SIZE);
@@ -192,7 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Fetch FAILED_TEMPORARY rows eligible for retry
   const { data: retryable, error: retryErr } = await supabase
     .from('org_ntf_outbox_dtl')
-    .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status')
+    .select('id, tenant_org_id, channel_code, recipient_address, recipient_user_id, rendered_subject, rendered_body, event_code, retry_count, max_retries, status, source_entity_type, source_entity_id, metadata')
     .eq('status', OUTBOX_STATUS.FAILED_TEMPORARY)
     .lte('next_retry_at', now)
     .limit(RETRY_BATCH_SIZE);

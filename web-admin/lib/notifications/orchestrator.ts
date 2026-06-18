@@ -15,6 +15,7 @@ import { NOTIFICATION_CHANNEL, NOTIFICATION_PRIORITY, SKIP_REASON } from '@lib/n
 import { renderInAppTemplate } from '@lib/notifications/template-renderer';
 import { deliverInApp } from '@lib/notifications/adapters/in-app';
 import { enqueueOutbox } from '@lib/notifications/adapters/outbox';
+import { isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
 import { notificationSettingsService, type ChannelConfig } from '@lib/notifications/settings-service';
 
 interface OrchestratorResult {
@@ -160,13 +161,41 @@ export async function orchestrateNotification(
 
   for (const channel of eventChannels) {
     if (channel === NOTIFICATION_CHANNEL.IN_APP || channel === NOTIFICATION_CHANNEL.WEB_SOCKET) continue;
-    result.channelsAttempted.push(channel);
 
-    // Source of truth: NotificationSettingsService (cached 30 s)
-    const channelConfig = await notificationSettingsService.getChannelConfig(event.tenantOrgId, channel);
+    let deliveryChannel = channel;
+    let whatsappEmailFallback = false;
+
+    if (channel === NOTIFICATION_CHANNEL.WHATSAPP) {
+      const waProvider = await notificationSettingsService.getActiveProvider(
+        event.tenantOrgId,
+        NOTIFICATION_CHANNEL.WHATSAPP,
+      );
+      if (!waProvider && isWhatsappEmailFallbackEnabled()) {
+        const emailEnabled = await notificationSettingsService.isChannelEnabled(
+          event.tenantOrgId,
+          NOTIFICATION_CHANNEL.EMAIL,
+        );
+        if (emailEnabled) {
+          deliveryChannel = NOTIFICATION_CHANNEL.EMAIL;
+          whatsappEmailFallback = true;
+          logger.info('orchestrator: WHATSAPP→EMAIL fallback (no active provider)', {
+            eventCode: event.code, tenantOrgId: event.tenantOrgId, feature: 'notifications',
+          });
+        }
+      }
+    }
+
+    result.channelsAttempted.push(
+      whatsappEmailFallback ? `${channel}→${deliveryChannel}` : channel,
+    );
+
+    const channelConfig = await notificationSettingsService.getChannelConfig(
+      event.tenantOrgId,
+      deliveryChannel,
+    );
     if (!channelConfig?.isEnabled) {
       logger.info('orchestrator: external channel disabled — skipping', {
-        channel, eventCode: event.code, tenantOrgId: event.tenantOrgId,
+        channel: deliveryChannel, eventCode: event.code, tenantOrgId: event.tenantOrgId,
         reason: SKIP_REASON.CHANNEL_DISABLED, feature: 'notifications',
       });
       continue;
@@ -178,13 +207,17 @@ export async function orchestrateNotification(
     for (const userId of event.recipientUserIds) {
       if (!isTransactional) {
         const consent = await notificationSettingsService.hasMarketingConsent(
-          event.tenantOrgId, userId, channel
+          event.tenantOrgId, userId, deliveryChannel,
         );
         if (!consent) {
           await enqueueOutbox(
             { ...event, recipientUserIds: [userId] },
-            channel,
-            { skipReason: SKIP_REASON.NO_MARKETING_CONSENT, scheduledAt }
+            deliveryChannel,
+            {
+              skipReason: SKIP_REASON.NO_MARKETING_CONSENT,
+              scheduledAt,
+              idempotencySuffix: whatsappEmailFallback ? 'wa_fb' : undefined,
+            },
           );
           continue;
         }
@@ -193,7 +226,14 @@ export async function orchestrateNotification(
     }
 
     if (eligible.length > 0) {
-      await enqueueOutbox({ ...event, recipientUserIds: eligible }, channel, { scheduledAt });
+      await enqueueOutbox(
+        { ...event, recipientUserIds: eligible },
+        deliveryChannel,
+        {
+          scheduledAt,
+          idempotencySuffix: whatsappEmailFallback ? 'wa_fb' : undefined,
+        },
+      );
     }
   }
 

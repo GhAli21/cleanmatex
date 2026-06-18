@@ -46,6 +46,9 @@ Shares `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` with SMS. Only needs one add
 | Variable | Required | Format | Where to get it |
 |----------|----------|--------|-----------------|
 | `TWILIO_WHATSAPP_FROM` | ✅ | E.164 phone number | Twilio Console → Messaging → WhatsApp |
+| `TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE` | ⏸ Test | `true` | Use Twilio Content API sandbox template instead of free-form body |
+| `TWILIO_WHATSAPP_SANDBOX_CONTENT_SID` | ⏸ Test | `HX...` | Content SID for sandbox template `Your {1} code is {2}` |
+| `NTF_WHATSAPP_FALLBACK_EMAIL` | ⏸ Test | `true` / `false` | When `true`, route WHATSAPP to customer EMAIL if WA unavailable or fails (defaults `true` outside production) |
 
 ```env
 # Reuses TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN from SMS section above

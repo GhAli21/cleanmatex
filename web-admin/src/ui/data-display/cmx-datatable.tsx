@@ -590,12 +590,14 @@ export function CmxDataTable<TData>({
     })
 
     if (showAuditColumn) {
+      const auditHeaderLabel = resolvedAuditConfig?.columnHeader ?? tCommon('auditCard.actionLabel')
+
       mapped.push({
         id: AUDIT_COL_ID,
         enableSorting: false,
         header: () => (
-          <span className="sr-only">
-            {resolvedAuditConfig?.columnHeader ?? tCommon('auditCard.actionLabel')}
+          <span className="inline-flex w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.04em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            {auditHeaderLabel}
           </span>
         ),
         cell: ({ row }) => {
@@ -609,14 +611,14 @@ export function CmxDataTable<TData>({
           const actionLabel = resolvedAuditConfig?.actionLabel ?? tCommon('auditCard.actionLabel')
 
           return (
-            <div className="flex justify-end">
+            <div className="flex justify-center">
               <CmxButton
                 type="button"
                 variant="ghost"
                 size="sm"
                 title={actionLabel}
                 aria-label={actionLabel}
-                className="h-10 w-10 rounded-full px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]"
+                className="h-10 w-10 rounded-full border border-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.12)] px-0 text-[rgb(var(--cmx-primary-rgb,37_99_235))] shadow-sm transition-colors hover:bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] hover:text-[rgb(var(--cmx-primary-rgb,37_99_235))]"
                 onClick={() => handleAuditOpen(originalRow)}
               >
                 <UserRound className="h-5 w-5" aria-hidden />
