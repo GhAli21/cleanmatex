@@ -34,6 +34,11 @@ function PeriodStatusBadge({ status }: { status: ErpLitePeriodRow['status_code']
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ErpLitePeriodsScreen({ rows }: ErpLitePeriodsScreenProps) {
   const t = useTranslations('erpLite.periods')
   const router = useRouter()

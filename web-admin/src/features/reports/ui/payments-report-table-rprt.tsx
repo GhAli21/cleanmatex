@@ -20,6 +20,13 @@ const STATUS_BADGE: Record<string, string> = {
   refunded: 'bg-purple-100 text-purple-800',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.payments
+ * @param root0.pagination
+ * @param root0.basePath
+ */
 export default function PaymentsReportTable({
   payments,
   pagination,

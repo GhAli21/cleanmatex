@@ -16,6 +16,9 @@ import {
   X,
 } from 'lucide-react';
 
+/**
+ *
+ */
 export interface CmxSummaryMessageProps {
   type: 'success' | 'warning' | 'info' | 'error';
   title: string;
@@ -64,6 +67,17 @@ const colorMap = {
   },
 } as const;
 
+/**
+ *
+ * @param root0
+ * @param root0.type
+ * @param root0.title
+ * @param root0.items
+ * @param root0.onDismiss
+ * @param root0.className
+ * @param root0.autoHide
+ * @param root0.autoHideDuration
+ */
 export function CmxSummaryMessage({
   type,
   title,

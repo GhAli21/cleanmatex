@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { registerTenant } from '@/lib/services/tenants.service';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const body: TenantRegistrationRequest = await request.json();

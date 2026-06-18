@@ -43,6 +43,11 @@ function mapRowToStatement(row: Record<string, unknown>): B2BStatement {
   };
 }
 
+/**
+ *
+ * @param filters
+ * @param filters.customerId
+ */
 export async function listStatements(filters?: {
   customerId?: string;
 }): Promise<B2BStatement[]> {
@@ -87,6 +92,10 @@ async function generateStatementNo(tenantId: string): Promise<string> {
   return `STMT-${yyyy}${mm}-${String(seq).padStart(4, '0')}`;
 }
 
+/**
+ *
+ * @param request
+ */
 export async function generateStatement(
   request: GenerateStatementRequest
 ): Promise<B2BStatement> {
@@ -194,6 +203,9 @@ export async function generateStatement(
   return mapRowToStatement(stmt as Record<string, unknown>);
 }
 
+/**
+ *
+ */
 export interface StatementForPrint {
   statement: B2BStatement;
   customer: { name: string; companyName?: string; phone?: string; email?: string };
@@ -209,6 +221,10 @@ export interface StatementForPrint {
   }>;
 }
 
+/**
+ *
+ * @param id
+ */
 export async function getStatementForPrint(id: string): Promise<StatementForPrint | null> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
@@ -294,6 +310,10 @@ export async function getStatementForPrint(id: string): Promise<StatementForPrin
   };
 }
 
+/**
+ *
+ * @param id
+ */
 export async function getStatementById(id: string): Promise<B2BStatement | null> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
@@ -311,6 +331,11 @@ export async function getStatementById(id: string): Promise<B2BStatement | null>
   return mapRowToStatement(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ * @param statusCd
+ */
 export async function updateStatementStatus(
   id: string,
   statusCd: string

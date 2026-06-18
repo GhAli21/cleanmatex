@@ -10,6 +10,9 @@ import { createClient } from '@/lib/supabase/server';
 import { validateJWTWithTenant, type JWTValidationContext } from './jwt-tenant-validator';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface TenantValidationContext extends JWTValidationContext {
   tenantActive: boolean;
   tenantName?: string;
@@ -144,6 +147,7 @@ export async function validateTenantFromRequest(
  * Middleware wrapper that validates tenant context
  * Use this in API routes before processing requests
  * 
+ * @param handler
  * @example
  * ```typescript
  * export async function GET(request: NextRequest) {

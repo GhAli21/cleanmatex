@@ -27,4 +27,7 @@ export const voucherHeaderSchema = z.object({
   idempotency_key:  z.string().optional(),
 });
 
+/**
+ *
+ */
 export type VoucherHeaderFormValues = z.infer<typeof voucherHeaderSchema>;

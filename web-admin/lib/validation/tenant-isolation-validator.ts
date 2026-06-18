@@ -8,6 +8,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface TenantIsolationCheck {
   table: string;
   tenantId: string;

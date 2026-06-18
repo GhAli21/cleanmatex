@@ -75,7 +75,14 @@ interface CashReconciliationInsertRow {
 const EXPENSE_USAGE_CODE = 'EXPENSE_GENERAL';
 const PETTY_CASH_USAGE_CODE = 'PETTY_CASH_MAIN';
 
+/**
+ *
+ */
 export class ErpLiteExpensesService {
+  /**
+   *
+   * @param locale
+   */
   static async getDashboardSnapshot(
     locale: 'en' | 'ar'
   ): Promise<ErpLiteExpensesDashboardSnapshot> {
@@ -117,6 +124,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createExpense(
     input: CreateErpLiteExpenseInput
   ): Promise<ErpLiteExpenseMutationResult> {
@@ -257,6 +268,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createCashbox(input: CreateErpLiteCashboxInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -307,6 +322,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createCashTransaction(
     input: CreateErpLiteCashTxnInput
   ): Promise<ErpLiteExpenseMutationResult> {
@@ -415,6 +434,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createApprovalRequest(input: CreateErpLiteApprovalRequestInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -463,6 +486,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async processApproval(input: ProcessErpLiteApprovalInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -497,6 +524,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createCashReconciliation(
     input: CreateErpLiteCashReconciliationInput
   ): Promise<void> {
@@ -554,6 +585,10 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async addCashReconciliationException(
     input: CreateErpLiteCashReconciliationExceptionInput
   ): Promise<void> {
@@ -596,6 +631,11 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param cashReconId
+   * @param closedBy
+   */
   static async closeCashReconciliation(cashReconId: string, closedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -616,6 +656,11 @@ export class ErpLiteExpensesService {
     });
   }
 
+  /**
+   *
+   * @param cashReconId
+   * @param lockedBy
+   */
   static async lockCashReconciliation(cashReconId: string, lockedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 

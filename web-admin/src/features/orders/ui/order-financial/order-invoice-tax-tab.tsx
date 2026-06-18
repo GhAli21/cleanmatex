@@ -12,6 +12,11 @@ interface OrderInvoiceTaxTabProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderInvoiceTaxTab({ viewModel }: OrderInvoiceTaxTabProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

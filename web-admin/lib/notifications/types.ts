@@ -13,6 +13,9 @@ export const NOTIFICATION_CHANNEL = {
   PUSH:       'PUSH',
   WEB_SOCKET: 'WEB_SOCKET',
 } as const;
+/**
+ *
+ */
 export type NotificationChannel = (typeof NOTIFICATION_CHANNEL)[keyof typeof NOTIFICATION_CHANNEL];
 
 export const NOTIFICATION_PRIORITY = {
@@ -22,6 +25,9 @@ export const NOTIFICATION_PRIORITY = {
   URGENT:   'URGENT',
   CRITICAL: 'CRITICAL',
 } as const;
+/**
+ *
+ */
 export type NotificationPriority = (typeof NOTIFICATION_PRIORITY)[keyof typeof NOTIFICATION_PRIORITY];
 
 export const OUTBOX_STATUS = {
@@ -35,6 +41,9 @@ export const OUTBOX_STATUS = {
   SKIPPED:          'SKIPPED',
   CANCELLED:        'CANCELLED',
 } as const;
+/**
+ *
+ */
 export type OutboxStatus = (typeof OUTBOX_STATUS)[keyof typeof OUTBOX_STATUS];
 
 export const SKIP_REASON = {
@@ -44,6 +53,9 @@ export const SKIP_REASON = {
   FEATURE_FLAG_OFF:     'FEATURE_FLAG_OFF',
   QUIET_HOURS_CANCELLED:'QUIET_HOURS_CANCELLED',
 } as const;
+/**
+ *
+ */
 export type SkipReason = (typeof SKIP_REASON)[keyof typeof SKIP_REASON];
 
 /** The payload that business modules pass to emitNotificationEvent(). */

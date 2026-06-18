@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface BranchPublicProfile {
   id: string;
   name: string;
@@ -11,6 +14,9 @@ export interface BranchPublicProfile {
   city: string | null;
 }
 
+/**
+ *
+ */
 export interface TenantPublicProfile {
   tenantOrgId: string;
   name: string;
@@ -20,6 +26,10 @@ export interface TenantPublicProfile {
   branches?: BranchPublicProfile[];
 }
 
+/**
+ *
+ * @param slug
+ */
 export async function resolveTenantBySlug(
   slug: string,
 ): Promise<TenantPublicProfile | null> {

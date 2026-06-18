@@ -6,7 +6,14 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import type { ErpLitePostActionAuditRow } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLiteFinanceAuditService {
+  /**
+   *
+   * @param limit
+   */
   static async listPostActions(limit = 200): Promise<ErpLitePostActionAuditRow[]> {
     const tenantId = await this.requireTenantId();
     const take = Math.min(Math.max(1, limit), 500);

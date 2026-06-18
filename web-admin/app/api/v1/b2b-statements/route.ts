@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { listStatements } from '@/lib/services/b2b-statements.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_statements:view')(request);

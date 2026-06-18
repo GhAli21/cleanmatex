@@ -6,6 +6,9 @@ import { useTranslations } from 'next-intl'
 import ProductForm, { type ProductFormValues } from '@features/catalog/ui/product-form'
 import { CmxCard } from '@ui/primitives/cmx-card'
 
+/**
+ *
+ */
 export default function EditProductPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()

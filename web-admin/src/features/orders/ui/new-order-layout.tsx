@@ -17,6 +17,8 @@ interface NewOrderLayoutProps {
 
 /**
  * New Order Layout Component
+ * @param root0
+ * @param root0.children
  */
 export function NewOrderLayout({ children }: NewOrderLayoutProps) {
     const isRTL = useRTL();

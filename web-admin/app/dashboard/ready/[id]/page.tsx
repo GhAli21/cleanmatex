@@ -28,6 +28,9 @@ import {
   type ReadyOrderStateResponse,
 } from '@features/orders/model/ready-order-types';
 
+/**
+ *
+ */
 export default function ReadyDetailPage() {
   const router = useRouter();
   const params = useParams();

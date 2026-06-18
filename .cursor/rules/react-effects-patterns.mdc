@@ -1,0 +1,27 @@
+---
+description: React 19 effect/state and Next.js link ESLint patterns that block web-admin CI
+globs: web-admin/**/*.ts,web-admin/**/*.tsx
+alwaysApply: false
+---
+
+# React effects & ESLint errors (portable)
+
+**Canonical:** `docs/dev/rules/react-effects-patterns.md`  
+**Also read:** `docs/dev/rules/react-rhf-and-table-lint.md` · `docs/dev/rules/react-lint-verification-checklist.md`
+
+**React:** https://react.dev/learn · https://react.dev/learn/you-might-not-need-an-effect
+
+Before adding `useEffect` + `setState`, read the canonical doc. CI blockers (`npx eslint . --quiet`):
+
+| Rule | Fix |
+|------|-----|
+| `@next/next/no-html-link-for-pages` | Internal routes → `Link` from `next/link`, not `<a href>` |
+| `react-hooks/set-state-in-effect` | Reset/adjust state **during render** when props change; use `stateResetKey` for child hooks |
+| `react-hooks/use-memo` | `useMemo` deps must be a literal array — no `[a, ...spread]` |
+| `react-hooks/preserve-manual-memoization` | Include `setState` setters used inside `useCallback` in the deps array |
+
+**RHF / table / a11y:** see `react-rhf-and-table-lint.mdc`.
+
+**Before done:** `cd web-admin && npx eslint . --quiet`
+
+**Copy to other projects:** adjust `globs` in this file to your app path.

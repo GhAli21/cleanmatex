@@ -22,6 +22,15 @@ interface AmountMismatchDialogProps {
 }
 
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onRefresh
+ * @param root0.message
+ * @param root0.differences
+ */
 export function AmountMismatchDialog({
   open,
   onClose,

@@ -5,6 +5,12 @@ import { listVoucherLines, addVoucherLine } from '@/lib/services/voucher-line.se
 import { createVoucherLineSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { CreateVoucherLineInput } from '@/lib/types/voucher';
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ voucherId: string }> }
@@ -22,6 +28,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string }> }

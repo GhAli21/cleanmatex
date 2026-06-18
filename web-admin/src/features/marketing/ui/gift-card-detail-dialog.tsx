@@ -13,7 +13,7 @@
 
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AlertTriangle } from 'lucide-react';
@@ -85,6 +85,13 @@ interface GiftCardDetailDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param root0
+ * @param root0.card
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetailDialogProps) {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
@@ -110,8 +117,8 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
     defaultValues: { adjustment_type: 'credit', amount: 0, notes: '' },
   });
 
-  const watchType   = form.watch('adjustment_type');
-  const watchAmount = form.watch('amount') ?? 0;
+  const watchType = useWatch({ control: form.control, name: 'adjustment_type' });
+  const watchAmount = useWatch({ control: form.control, name: 'amount' }) ?? 0;
 
   const newBalancePreview =
     watchType === 'credit'

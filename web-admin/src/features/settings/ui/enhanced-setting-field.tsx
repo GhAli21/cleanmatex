@@ -30,6 +30,23 @@ interface EnhancedSettingFieldProps {
   userId?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.settingCode
+ * @param root0.label
+ * @param root0.description
+ * @param root0.value
+ * @param root0.source
+ * @param root0.sourceName
+ * @param root0.isOverridable
+ * @param root0.isLocked
+ * @param root0.children
+ * @param root0.onReset
+ * @param root0.tenantId
+ * @param root0.branchId
+ * @param root0.userId
+ */
 export function EnhancedSettingField({
   settingCode,
   label,

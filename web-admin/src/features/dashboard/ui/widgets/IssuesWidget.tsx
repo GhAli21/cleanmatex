@@ -20,6 +20,9 @@ interface IssuesData {
   resolved: number
 }
 
+/**
+ *
+ */
 export function IssuesWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

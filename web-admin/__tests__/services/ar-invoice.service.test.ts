@@ -193,6 +193,7 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
 
   /**
    * Default CREDIT_INVOICE order shape used by happy-path tests.
+   * @param overrides
    */
   function defaultOrder(overrides: Record<string, unknown> = {}) {
     const totalAmount = Number(overrides.total_amount ?? overrides.total ?? 50);
@@ -222,6 +223,7 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
   /**
    * Default invoice-mst create return shape. `status` overridable so tests can
    * assert OPEN vs DRAFT behavior under issueImmediately on/off.
+   * @param status
    */
   function setupInvoiceCreate(status: string = AR_INVOICE_STATUSES.OPEN) {
     mockInvoiceCreate.mockResolvedValue({

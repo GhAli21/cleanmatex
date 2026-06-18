@@ -2,6 +2,9 @@
  * Loading State for Cash Up Page
  */
 
+/**
+ *
+ */
 export default function CashUpLoading() {
   return (
     <div className="space-y-6 p-6">

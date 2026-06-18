@@ -15,6 +15,9 @@ import { validateTenantFromRequest, type TenantValidationContext } from './tenan
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface TenantGuardContext extends TenantValidationContext {
   hasPermission: boolean;
 }

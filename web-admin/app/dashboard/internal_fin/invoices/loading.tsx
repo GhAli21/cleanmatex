@@ -3,6 +3,9 @@
  * Reuses the same centered-spinner pattern as preparation/delivery list pages.
  */
 
+/**
+ *
+ */
 export default function InvoicesLoading() {
   return (
     <div className="flex h-96 items-center justify-center">

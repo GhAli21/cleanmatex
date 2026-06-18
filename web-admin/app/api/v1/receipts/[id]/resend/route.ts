@@ -9,6 +9,13 @@ import { ReceiptService } from '@/lib/services/receipt-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ * @param root0.params.id
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

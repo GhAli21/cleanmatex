@@ -16,6 +16,12 @@ interface PageProps {
   searchParams: Promise<{ from?: string; invoiceId?: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ * @param root0.searchParams
+ */
 export default async function PaymentDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { from, invoiceId } = await searchParams;

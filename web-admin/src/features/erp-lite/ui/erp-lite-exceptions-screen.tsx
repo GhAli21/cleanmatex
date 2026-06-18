@@ -30,6 +30,11 @@ function ExcStatusBadge({ status }: { status: ErpLiteOpenExceptionRow['status_co
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) {
   const t = useTranslations('erpLite.exceptions')
 

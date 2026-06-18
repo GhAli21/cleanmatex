@@ -12,6 +12,10 @@ import { SETTING_CODES } from '@/lib/services/tenant-settings.service';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 
+/**
+ *
+ * @param _request
+ */
 export async function GET(_request: NextRequest) {
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {

@@ -39,6 +39,12 @@ const ACTION_ICONS: Record<string, any> = {
   AR_INVOICE_ISSUED: Receipt,
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.currentStatus
+ */
 export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   const t = useTranslations('orders.timeline');
   const tCommon = useTranslations('common');

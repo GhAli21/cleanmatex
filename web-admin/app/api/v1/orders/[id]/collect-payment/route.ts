@@ -19,6 +19,12 @@ const schema = z.object({
   idempotencyKey:      z.string().min(1).max(200).optional(),
 });
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

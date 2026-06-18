@@ -16,6 +16,9 @@ import {
 } from '../allocation/extra-receipt-handling-card';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 
+/**
+ *
+ */
 export type PaymentExtraReceiptDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +42,30 @@ export type PaymentExtraReceiptDialogProps = {
   isRTL?: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.excessAmount
+ * @param root0.currencyCode
+ * @param root0.formatAmount
+ * @param root0.hasLinkedCustomer
+ * @param root0.selectedMode
+ * @param root0.onModeChange
+ * @param root0.onOpenAutoAllocate
+ * @param root0.onOpenManualAllocate
+ * @param root0.allocationConfirmed
+ * @param root0.canReturnCashChange
+ * @param root0.canAllocate
+ * @param root0.canSaveAdvance
+ * @param root0.canSaveCredit
+ * @param root0.canSaveWallet
+ * @param root0.onConfirm
+ * @param root0.onBack
+ * @param root0.confirmDisabled
+ * @param root0.isRTL
+ */
 export function PaymentExtraReceiptDialog({
   open,
   onOpenChange,

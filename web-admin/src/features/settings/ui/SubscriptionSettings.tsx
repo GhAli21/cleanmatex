@@ -16,6 +16,11 @@ interface SubscriptionSettingsProps {
   tenant: Tenant;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenant
+ */
 export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
   const router = useRouter();
 

@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+/**
+ *
+ * @param searchParams
+ */
 export function parseSearchParams(searchParams: URLSearchParams): Record<string, string> {
   return Object.fromEntries(searchParams.entries());
 }
 
+/**
+ *
+ * @param error
+ */
 export function jsonValidationError(error: z.ZodError) {
   return NextResponse.json(
     {
@@ -20,6 +28,11 @@ export function jsonValidationError(error: z.ZodError) {
   );
 }
 
+/**
+ *
+ * @param error
+ * @param fallbackMessage
+ */
 export function jsonApiError(error: unknown, fallbackMessage: string) {
   if (error instanceof z.ZodError) {
     return jsonValidationError(error);

@@ -11,22 +11,34 @@ import { supabase } from '@/lib/supabase/client';
 // Types
 // ========================
 
+/**
+ *
+ */
 export interface Permission {
   permission_code: string;
   resource_type: string | null;
   resource_id: string | null;
 }
 
+/**
+ *
+ */
 export interface UserRole {
   role_id: string;
   role_code: string;
   role_name: string;
 }
 
+/**
+ *
+ */
 export interface WorkflowRole {
   workflow_role: string;
 }
 
+/**
+ *
+ */
 export interface PermissionCheckOptions {
   resourceType?: string;
   resourceId?: string;

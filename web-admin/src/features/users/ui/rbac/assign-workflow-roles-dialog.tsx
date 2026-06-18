@@ -88,6 +88,15 @@ const WORKFLOW_ROLE_OPTIONS: WorkflowRoleOption[] = [
   },
 ]
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.userId
+ * @param root0.userName
+ * @param root0.onSuccess
+ */
 export function AssignWorkflowRolesDialog({
   open,
   onOpenChange,
@@ -112,7 +121,7 @@ export function AssignWorkflowRolesDialog({
   // Re-sync selection when dialog opens
   useMemo(() => {
     setSelected(new Set(assignedCodes))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [open])
 
   const toggle = (code: string) => {

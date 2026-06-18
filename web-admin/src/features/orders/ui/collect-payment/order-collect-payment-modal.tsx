@@ -45,6 +45,9 @@ interface CheckoutMethodOption {
   allowed_for_pay_on_collection?: boolean;
 }
 
+/**
+ *
+ */
 export interface OrderCollectPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,6 +59,18 @@ export interface OrderCollectPaymentModalProps {
   onCollected?: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.orderId
+ * @param root0.customerId
+ * @param root0.branchId
+ * @param root0.outstandingAmount
+ * @param root0.currencyCode
+ * @param root0.onCollected
+ */
 export function OrderCollectPaymentModal({
   open,
   onOpenChange,

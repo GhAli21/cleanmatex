@@ -17,6 +17,9 @@ interface UserContext {
   session: any;
 }
 
+/**
+ *
+ */
 export default function UserContextViewer() {
   const [context, setContext] = useState<UserContext | null>(null);
   const [loading, setLoading] = useState(true);

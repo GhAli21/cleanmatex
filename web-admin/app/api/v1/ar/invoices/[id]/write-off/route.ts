@@ -4,6 +4,12 @@ import { writeOffArInvoice } from '@/lib/services/ar-invoice.service';
 import { writeOffArInvoiceSchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

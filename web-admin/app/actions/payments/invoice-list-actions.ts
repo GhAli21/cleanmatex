@@ -17,6 +17,15 @@ import type { InvoiceStatus } from '@/lib/types/payment';
 /**
  * List all invoices with filtering and pagination
  *
+ * @param params
+ * @param params.page
+ * @param params.limit
+ * @param params.status
+ * @param params.fromDate
+ * @param params.toDate
+ * @param params.search
+ * @param params.sortBy
+ * @param params.sortOrder
  * @deprecated Prefer canonical AR list APIs for new work.
  */
 export async function listInvoicesAction(params: {

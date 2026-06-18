@@ -69,7 +69,7 @@ function mapAutoPostPolicyRow(row: AutoPostPolicyRow): ErpLiteAutoPostPolicy {
   };
 }
 
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Phase 5 governed auto-post adapter.
  *

@@ -54,6 +54,9 @@ const PLANS: Plan[] = [
   }
 ]
 
+/**
+ *
+ */
 export default function SubscriptionSettingsPage() {
   const t = useTranslations('settings')
   const [currentPlan] = useState('growth')

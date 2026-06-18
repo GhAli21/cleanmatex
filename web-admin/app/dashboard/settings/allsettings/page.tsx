@@ -27,6 +27,9 @@ import { PlanLimitsSettings } from '@features/settings/ui/PlanLimitsSettings';
 import { ProfileInfoCard } from '@features/settings/ui/profile-info-card';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
 
+/**
+ *
+ */
 export default function AllSettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);

@@ -15,6 +15,11 @@ const STATUS_STYLE: Record<string, string> = {
   [WIRING_STATUS.REVERSED]:        'bg-slate-100 text-slate-700',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.status
+ */
 export function WiringStatusBadge({ status }: WiringStatusBadgeProps) {
   const t = useTranslations('finance.vouchers.wiringStatusLabels');
 

@@ -22,6 +22,12 @@ type PieceHistRow = {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ pieceId: string }> }
@@ -48,7 +54,7 @@ export async function GET(
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table pending in generated Database types
+     
     const { data: hist, error: histErr } = await (supabase as any)
       .from('org_order_piece_hist_tr')
       .select('id, action_code, from_value, to_value, done_by, done_at, notes')

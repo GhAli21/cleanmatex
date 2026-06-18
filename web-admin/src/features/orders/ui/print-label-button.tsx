@@ -25,6 +25,11 @@ interface PrintLabelButtonProps {
   order: PrintLabelOrderInput;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ */
 export function PrintLabelButton({ order }: PrintLabelButtonProps) {
   const t = useTranslations('orders.printLabel');
   const isRTL = useRTL();

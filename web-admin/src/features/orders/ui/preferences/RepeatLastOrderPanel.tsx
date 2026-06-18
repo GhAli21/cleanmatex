@@ -24,6 +24,12 @@ interface RepeatLastOrderPanelProps {
   branchId?: string | null;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.repeatLastOrderEnabled
+ * @param root0.branchId
+ */
 export function RepeatLastOrderPanel({
   repeatLastOrderEnabled = true,
   branchId,

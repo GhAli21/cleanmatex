@@ -30,6 +30,9 @@ import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantRole } from '@/lib/api/roles'
 import { SETTINGS_ROLES_ACCESS } from '@features/settings/access/settings-access'
 
+/**
+ *
+ */
 export default function RolesManagementPage() {
   const t = useTranslations('settings')
   const { currentTenant, permissions, session } = useAuth()
@@ -59,7 +62,7 @@ export default function RolesManagementPage() {
     if (accessToken) {
       loadRoles()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [accessToken])
 
   const loadRoles = async () => {

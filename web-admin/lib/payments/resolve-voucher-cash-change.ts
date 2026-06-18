@@ -8,6 +8,9 @@ const TOLERANCE = 0.001;
 /**
  * Resolves explicit cash change for voucher lines when overpayment resolution
  * is present (pay-extra intent). Returns undefined to let voucher-line auto-derive (legacy).
+ * @param leg
+ * @param paymentLegs
+ * @param resolution
  */
 export function resolveVoucherCashChangeReturned(
   leg: RealPaymentLeg,

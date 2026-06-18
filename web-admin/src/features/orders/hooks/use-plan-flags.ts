@@ -24,6 +24,9 @@ async function fetchPlanFlags(): Promise<PlanFlags> {
   };
 }
 
+/**
+ *
+ */
 export function usePlanFlags() {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';

@@ -20,6 +20,10 @@ const CreateContractSchema = z.object({
   pricingTerms: z.record(z.string(), z.unknown()).optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_contracts:view')(request);
@@ -39,6 +43,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_contracts:create')(request);

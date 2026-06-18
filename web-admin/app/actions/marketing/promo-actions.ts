@@ -59,6 +59,11 @@ type PromoFormInput = z.infer<typeof promoFormSchema>;
 
 /**
  * List promo codes for the current tenant with pagination and optional search.
+ * @param params
+ * @param params.page
+ * @param params.limit
+ * @param params.search
+ * @param params.status
  */
 export async function listPromoCodes(params: {
   page?: number;
@@ -158,6 +163,7 @@ export async function listPromoCodes(params: {
 
 /**
  * Create a new promo code for the current tenant.
+ * @param input
  */
 export async function createPromoCode(
   input: PromoFormInput
@@ -258,6 +264,8 @@ export async function createPromoCode(
 
 /**
  * Update an existing promo code. Verifies ownership by tenant_org_id.
+ * @param id
+ * @param input
  */
 export async function updatePromoCode(
   id: string,
@@ -345,6 +353,7 @@ export async function updatePromoCode(
 
 /**
  * Soft-delete (archive) a promo code by setting is_active = false.
+ * @param id
  */
 export async function archivePromoCode(
   id: string
@@ -385,6 +394,7 @@ export async function archivePromoCode(
 
 /**
  * Get usage log for a promo code. Verifies ownership by tenant_org_id.
+ * @param promoCodeId
  */
 export async function getPromoCodeUsageAction(
   promoCodeId: string

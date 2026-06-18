@@ -16,6 +16,9 @@ import { prisma } from '@/lib/db/prisma';
 /** Prisma transaction client type for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+/**
+ *
+ */
 export interface OrderNumberResult {
   orderNumber: string;
   date: string;
@@ -63,6 +66,8 @@ export async function generateOrderNumber(tenantOrgId: string): Promise<string> 
 /**
  * Generate order number within a Prisma transaction.
  * Use when order creation must be atomic with other operations.
+ * @param tx
+ * @param tenantOrgId
  */
 export async function generateOrderNumberWithTx(
   tx: PrismaTx,

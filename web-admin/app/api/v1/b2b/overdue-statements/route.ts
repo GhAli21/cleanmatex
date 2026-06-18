@@ -28,6 +28,10 @@ function parseDunningLevels(value: unknown): DunningLevel[] {
   });
 }
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_statements:view')(request);

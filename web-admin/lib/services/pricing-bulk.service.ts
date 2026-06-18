@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/client';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { PriceListItem } from '@/lib/types/catalog';
 
+/**
+ *
+ */
 export interface BulkImportRow {
   product_code?: string;
   product_id?: string;
@@ -17,6 +20,9 @@ export interface BulkImportRow {
   max_quantity?: number | null;
 }
 
+/**
+ *
+ */
 export interface BulkImportResult {
   success: boolean;
   totalRows: number;
@@ -28,6 +34,9 @@ export interface BulkImportResult {
   }>;
 }
 
+/**
+ *
+ */
 export interface BulkExportOptions {
   priceListId?: string;
   priceListType?: string;
@@ -35,6 +44,9 @@ export interface BulkExportOptions {
   format?: 'csv' | 'excel';
 }
 
+/**
+ *
+ */
 export class PricingBulkService {
   private supabase = createClient();
 

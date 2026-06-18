@@ -66,6 +66,9 @@ function generateSecurePassword(length = 24): string {
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
 }
 
+/**
+ *
+ */
 export default function UsersSettingsPage() {
   const t = useTranslations('settings')
   const tCommon = useTranslations('common')

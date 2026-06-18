@@ -9,6 +9,12 @@ const schema = z.object({
   notes:  z.string().optional(),
 });
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ issueId: string }> }

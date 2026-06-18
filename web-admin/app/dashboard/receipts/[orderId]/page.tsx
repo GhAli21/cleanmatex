@@ -13,6 +13,9 @@ import { ReceiptPreview } from '@/src/features/receipts/ui/receipt-preview';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { ArrowLeft, Receipt } from 'lucide-react';
 
+/**
+ *
+ */
 export default function ReceiptPage() {
   const params = useParams();
   const router = useRouter();

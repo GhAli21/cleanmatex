@@ -10,6 +10,7 @@ import { listTenantCardBrands } from '@/lib/services/payment-card-brand.service'
 
 /**
  * Lists tenant-visible card brand configuration rows for payment setup.
+ * @param _request
  */
 export async function GET(_request: NextRequest) {
   const auth = await requirePermission('payment_config:view')(_request);

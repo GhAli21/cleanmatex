@@ -25,6 +25,9 @@ import {
   type MoneyLocale,
 } from '@/lib/money/format-money'
 
+/**
+ *
+ */
 export interface TenantCurrencyContextValue {
   currencyCode: string
   decimalPlaces: number
@@ -44,6 +47,11 @@ function toMoneyLocale(locale: string): MoneyLocale {
   return locale === 'ar' ? 'ar' : 'en'
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   const { currentTenant, user, isLoading } = useAuth()
   const intlLocale = useLocale()
@@ -147,6 +155,9 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ *
+ */
 export function useTenantCurrency(): TenantCurrencyContextValue {
   const ctx = useContext(TenantCurrencyContext)
   if (!ctx) {

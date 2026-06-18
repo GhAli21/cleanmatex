@@ -13,6 +13,9 @@ import { CmxButton } from '@ui/primitives';
 import { Clock, User } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils/rtl';
 
+/**
+ *
+ */
 export interface PieceHistoryEntry {
   id: string;
   action: string;
@@ -23,11 +26,20 @@ export interface PieceHistoryEntry {
   notes?: string;
 }
 
+/**
+ *
+ */
 export interface PieceHistoryProps {
   pieceId: string;
   tenantId: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.pieceId
+ * @param root0.tenantId
+ */
 export function PieceHistory({ pieceId, tenantId: _tenantId }: PieceHistoryProps) {
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');

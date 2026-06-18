@@ -36,6 +36,9 @@ const DEFAULTS: BrandingSettings = {
 
 const HEX = /^#[0-9A-Fa-f]{6}$/
 
+/**
+ *
+ */
 export default function BrandingSettingsPage() {
   const t = useTranslations('settings')
   const { token: csrfToken } = useCSRFToken()
@@ -207,7 +210,7 @@ export default function BrandingSettingsPage() {
         <div className="flex items-start gap-6">
           <div className="flex-shrink-0 relative">
             {displayedLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img
                 src={displayedLogo}
                 alt="Logo"

@@ -8,6 +8,9 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ *
+ */
 export interface CmxProgressIndicatorProps
   extends React.HTMLAttributes<HTMLDivElement> {
   value: number; // 0-100
@@ -34,6 +37,19 @@ const variantStyles = {
   info: 'bg-indigo-500',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.max
+ * @param root0.showLabel
+ * @param root0.label
+ * @param root0.size
+ * @param root0.variant
+ * @param root0.animated
+ * @param root0.showPercentage
+ * @param root0.className
+ */
 export function CmxProgressIndicator({
   value,
   max = 100,

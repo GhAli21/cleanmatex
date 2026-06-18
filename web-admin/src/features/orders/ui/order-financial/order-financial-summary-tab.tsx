@@ -11,6 +11,11 @@ interface OrderFinancialSummaryTabProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderFinancialSummaryTab({ viewModel }: OrderFinancialSummaryTabProps) {
   return (
     <div className="space-y-4">

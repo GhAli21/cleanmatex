@@ -7,6 +7,9 @@ import {
 import { computeSettlementOverpaymentMetrics } from '@/lib/payments/settlement-overpayment';
 import type { RealPaymentLeg } from '@/lib/types/settlement-plan';
 
+/**
+ *
+ */
 export interface CollectionLegInput {
   paymentMethodCode: string;
   amount: number;
@@ -23,8 +26,14 @@ export interface CollectionLegInput {
   checkDate?: string;
 }
 
+/**
+ *
+ */
 export type CollectionOverpaymentMetrics = ReturnType<typeof computeSettlementOverpaymentMetrics>;
 
+/**
+ *
+ */
 export interface CollectionOverpaymentOptions {
   payExtraIntent?: boolean;
   explicitChangeResolved?: number;
@@ -34,6 +43,9 @@ export interface CollectionOverpaymentOptions {
 /**
  * Later-collection excess metrics — reuses checkout planner semantics with
  * order outstanding as the due total and collected leg sum as settlement total.
+ * @param orderOutstanding
+ * @param legs
+ * @param options
  */
 export function computeCollectionOverpaymentMetrics(
   orderOutstanding: number,
@@ -101,6 +113,14 @@ export function computeCollectionOverpaymentMetrics(
   );
 }
 
+/**
+ *
+ * @param appliedBeforeLeg
+ * @param legAmount
+ * @param orderOutstanding
+ * @param methodCode
+ * @param supportsOverpayment
+ */
 export function collectionLegIntroducesUnresolvedExcess(
   appliedBeforeLeg: number,
   legAmount: number,

@@ -28,6 +28,9 @@ import type { OrderPieceServicePref } from '@/lib/types/service-preferences';
 import { PREFERENCE_SOURCES, type ServicePreferenceCode } from '@/lib/constants/service-preferences';
 import type { ServicePreference } from '@/lib/types/service-preferences';
 
+/**
+ *
+ */
 export interface PiecePreferencesEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,6 +55,17 @@ function extraPriceForCode(code: string, catalog: ServicePreference[]): number {
   return Number(row?.default_extra_price ?? 0);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.orderId
+ * @param root0.orderItemId
+ * @param root0.piece
+ * @param root0.branchId
+ * @param root0.onSaved
+ */
 export function PiecePreferencesEditorDialog({
   open,
   onOpenChange,

@@ -6,6 +6,9 @@
  * source of truth.
  */
 
+/**
+ *
+ */
 export interface AccessRequirement {
   permissions?: string[]
   permissionPrefixes?: string[]
@@ -18,12 +21,18 @@ export interface AccessRequirement {
   requireAllTenantRoles?: boolean
 }
 
+/**
+ *
+ */
 export interface AccessActionContract {
   label: string
   requirement: AccessRequirement
   notes?: string[]
 }
 
+/**
+ *
+ */
 export interface ApiAccessDependency {
   label: string
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
@@ -32,6 +41,9 @@ export interface ApiAccessDependency {
   notes?: string[]
 }
 
+/**
+ *
+ */
 export interface PageAccessContract {
   routePattern: string
   label: string
@@ -41,6 +53,9 @@ export interface PageAccessContract {
   notes?: string[]
 }
 
+/**
+ *
+ */
 export interface AccessEvaluationContext {
   userPermissions: string[]
   userWorkflowRoles: string[]
@@ -48,12 +63,18 @@ export interface AccessEvaluationContext {
   featureFlags: Record<string, boolean>
 }
 
+/**
+ *
+ */
 export interface AccessEvaluationDetail {
   kind: 'permission' | 'permission_prefix' | 'feature_flag' | 'workflow_role' | 'tenant_role'
   value: string
   passed: boolean
 }
 
+/**
+ *
+ */
 export interface AccessEvaluationResult {
   passed: boolean
   details: AccessEvaluationDetail[]
@@ -70,6 +91,11 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/**
+ *
+ * @param routePattern
+ * @param pathname
+ */
 export function matchesRoutePattern(routePattern: string, pathname: string): boolean {
   const normalizedPattern = normalizePath(routePattern)
   const normalizedPathname = normalizePath(pathname)
@@ -86,6 +112,11 @@ export function matchesRoutePattern(routePattern: string, pathname: string): boo
   return routeRegex.test(normalizedPathname)
 }
 
+/**
+ *
+ * @param requiredPermission
+ * @param userPermissions
+ */
 export function matchesPermissionCode(
   requiredPermission: string,
   userPermissions: string[]
@@ -169,6 +200,11 @@ function reduceDetailGroup(
     : details.some((detail) => detail.passed)
 }
 
+/**
+ *
+ * @param requirement
+ * @param context
+ */
 export function evaluateAccessRequirement(
   requirement: AccessRequirement | undefined,
   context: AccessEvaluationContext
@@ -216,6 +252,10 @@ export function evaluateAccessRequirement(
   }
 }
 
+/**
+ *
+ * @param requirement
+ */
 export function hasExplicitPermissionGate(requirement: AccessRequirement | undefined): boolean {
   const nextRequirement = requirement ?? {}
 

@@ -21,6 +21,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArCreditsPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.v2.credits');
   const auth = await getAuthContext();

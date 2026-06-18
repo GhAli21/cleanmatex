@@ -12,6 +12,9 @@ interface PreviewState {
   sampleCustomers: string[];
 }
 
+/**
+ *
+ */
 export function ArStatementCyclePanel() {
   const t = useTranslations('invoices.ar.v2.cycles');
   const [isPending, startTransition] = useTransition();

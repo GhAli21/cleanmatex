@@ -71,6 +71,12 @@ interface ApiResponse {
     error?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenantId
+ * @param root0.orderNo
+ */
 export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTrackingPageProps) {
     const isRTL = useRTL();
     const locale = useLocale();

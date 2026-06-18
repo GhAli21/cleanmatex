@@ -147,19 +147,43 @@ export const ERP_LITE_ERROR_CODES = {
   SYSTEM_ERROR: 'SYSTEM_ERROR',
 } as const;
 
+/**
+ *
+ */
 export type ErpLiteErrorCode = (typeof ERP_LITE_ERROR_CODES)[keyof typeof ERP_LITE_ERROR_CODES];
 
+/**
+ *
+ */
 export type ErpLiteAmountSource =
   (typeof ERP_LITE_AMOUNT_SOURCES)[keyof typeof ERP_LITE_AMOUNT_SOURCES];
+/**
+ *
+ */
 export type ErpLiteAttemptStatus =
   (typeof ERP_LITE_ATTEMPT_STATUSES)[keyof typeof ERP_LITE_ATTEMPT_STATUSES];
+/**
+ *
+ */
 export type ErpLiteLogStatus =
   (typeof ERP_LITE_LOG_STATUSES)[keyof typeof ERP_LITE_LOG_STATUSES];
+/**
+ *
+ */
 export type ErpLiteExceptionType =
   (typeof ERP_LITE_EXCEPTION_TYPES)[keyof typeof ERP_LITE_EXCEPTION_TYPES];
+/**
+ *
+ */
 export type ErpLitePostingMode =
   (typeof ERP_LITE_POSTING_MODES)[keyof typeof ERP_LITE_POSTING_MODES];
+/**
+ *
+ */
 export type ErpLiteTxnEventCode =
   (typeof ERP_LITE_TXN_EVENT_CODES)[keyof typeof ERP_LITE_TXN_EVENT_CODES];
+/**
+ *
+ */
 export type ErpLiteBlockingMode =
   (typeof ERP_LITE_BLOCKING_MODES)[keyof typeof ERP_LITE_BLOCKING_MODES];

@@ -32,6 +32,9 @@ const DEFAULT_WORKFLOW_CONFIG = {
   is_active: true,
 };
 
+/**
+ *
+ */
 export default function NewWorkflowPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

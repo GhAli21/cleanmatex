@@ -18,6 +18,14 @@ interface PackingPreferenceSelectorProps {
   disabled?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.availablePrefs
+ * @param root0.onChange
+ * @param root0.disabled
+ */
 export function PackingPreferenceSelector({
   value,
   availablePrefs,

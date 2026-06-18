@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { getDeviceId } from './device-id';
 import { subscribeVapid, unsubscribeVapid } from './vapid-subscribe';
 
+/**
+ *
+ */
 export function useVapidPush() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);

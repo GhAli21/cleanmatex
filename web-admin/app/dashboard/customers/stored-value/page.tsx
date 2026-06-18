@@ -10,6 +10,9 @@ import { StoredValueHubClient } from '@/src/features/customers/ui/stored-value-h
 
 export const metadata = { title: 'Stored Value — CleanMateX' };
 
+/**
+ *
+ */
 export default function StoredValueHubPage() {
   return (
     <div className="container mx-auto py-6">

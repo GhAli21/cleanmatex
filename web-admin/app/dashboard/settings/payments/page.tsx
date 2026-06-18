@@ -9,6 +9,9 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { PaymentSettingsPage } from '@features/payment-config/ui/payment-settings-page';
 
+/**
+ *
+ */
 export default async function PaymentSettingsRoutePage() {
   const tCommon = await getTranslations('common');
 

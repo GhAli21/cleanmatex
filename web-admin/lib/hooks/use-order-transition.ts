@@ -1,5 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+/**
+ *
+ */
 export interface TransitionInput {
   screen: string;
   to_status?: string;
@@ -9,6 +12,9 @@ export interface TransitionInput {
   [key: string]: any;
 }
 
+/**
+ *
+ */
 export interface TransitionResult {
   success: boolean;
   ok?: boolean;

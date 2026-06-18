@@ -15,6 +15,13 @@ interface CustomerTypeBadgeProps {
   showIcon?: boolean
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.type
+ * @param root0.size
+ * @param root0.showIcon
+ */
 export default function CustomerTypeBadge({
   type,
   size = 'md',

@@ -16,6 +16,10 @@ const GenerateStatementSchema = z.object({
   dueDate: z.string().optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_statements:create')(request);

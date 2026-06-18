@@ -35,6 +35,14 @@ interface CustomerCreateModalProps {
   tenantId?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ * @param root0.tenantId
+ */
 export function CustomerCreateModal({
   open,
   onClose,

@@ -35,6 +35,19 @@ const COUNTRY_CODES: CountryCode[] = [
   { code: '+961', label: 'Lebanon', flag: '🇱🇧' },
 ]
 
+/**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.onChange
+ * @param root0.label
+ * @param root0.required
+ * @param root0.error
+ * @param root0.disabled
+ * @param root0.placeholder
+ * @param root0.id
+ * @param root0.name
+ */
 export default function PhoneInput({
   value,
   onChange,

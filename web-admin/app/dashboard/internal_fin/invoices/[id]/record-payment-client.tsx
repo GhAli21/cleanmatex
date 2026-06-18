@@ -71,6 +71,30 @@ interface RecordPaymentClientProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenantOrgId
+ * @param root0.userId
+ * @param root0.invoiceId
+ * @param root0.orderId
+ * @param root0.customerId
+ * @param root0.paymentKind
+ * @param root0.paymentTypeCode
+ * @param root0.currencyCode
+ * @param root0.currencyExRate
+ * @param root0.branchId
+ * @param root0.subtotal
+ * @param root0.discountAmount
+ * @param root0.vatRate
+ * @param root0.vatAmount
+ * @param root0.taxAmount
+ * @param root0.saleTotal
+ * @param root0.remainingBalance
+ * @param root0.distributeAcrossInvoices
+ * @param root0.processPaymentAction
+ * @param root0.t
+ */
 export function RecordPaymentClient({
   tenantOrgId,
   userId,

@@ -44,6 +44,9 @@ interface PreparationOrder {
   current_status: string;
 }
 
+/**
+ *
+ */
 export default function PreparationPage() {
   const t = useTranslations('workflow');
   const tCommon = useTranslations('common');

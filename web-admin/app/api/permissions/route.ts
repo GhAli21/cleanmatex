@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ *
+ */
 export interface Permission {
   permission_id: string;
   code: string;
@@ -21,6 +24,7 @@ export interface Permission {
 /**
  * GET /api/permissions
  * Get all active permissions grouped by category
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

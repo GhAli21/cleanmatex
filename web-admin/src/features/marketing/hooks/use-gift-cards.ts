@@ -18,6 +18,7 @@ interface UseGiftCardsParams {
 
 /**
  * Hook to list and paginate gift cards for the current tenant.
+ * @param params
  */
 export function useGiftCards(params: UseGiftCardsParams = {}) {
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
@@ -67,6 +68,7 @@ interface UseGiftCardTransactionLogParams {
 
 /**
  * Hook for the tenant-wide gift card transaction log with pagination and filters.
+ * @param params
  */
 export function useGiftCardTransactionLog(params: UseGiftCardTransactionLogParams = {}) {
   const [rows, setRows] = useState<GiftCardTransactionLogRow[]>([]);
@@ -99,7 +101,7 @@ export function useGiftCardTransactionLog(params: UseGiftCardTransactionLogParam
     });
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [params.page, params.pageSize, params.cardNumber, params.transactionType, params.dateFrom, params.dateTo]);
 
   return { rows, total, isLoading, error };
@@ -107,6 +109,7 @@ export function useGiftCardTransactionLog(params: UseGiftCardTransactionLogParam
 
 /**
  * Hook to fetch transaction history for a specific gift card.
+ * @param giftCardId
  */
 export function useGiftCardTransactions(giftCardId: string) {
   const [transactions, setTransactions] = useState<GiftCardTransaction[]>([]);

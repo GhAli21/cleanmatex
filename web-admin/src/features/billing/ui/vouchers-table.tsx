@@ -24,6 +24,14 @@ interface VouchersTableProps {
   sortOrder: 'asc' | 'desc';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.vouchers
+ * @param root0.pagination
+ * @param root0.sortBy
+ * @param root0.sortOrder
+ */
 export default function VouchersTable({
   vouchers,
   pagination,

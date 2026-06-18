@@ -29,6 +29,8 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 /**
  * Assert that a voucher status transition is valid.
  * Throws if the transition is not permitted.
+ * @param current
+ * @param next
  */
 export function validateStatusTransition(current: VoucherStatus, next: VoucherStatus): void {
   const allowed = ALLOWED_TRANSITIONS[current] ?? [];
@@ -42,6 +44,8 @@ export function validateStatusTransition(current: VoucherStatus, next: VoucherSt
 /**
  * Assert that a voucher in current status can be mutated (DRAFT only).
  * Throws for any other status.
+ * @param voucherStatus
+ * @param context
  */
 export function assertVoucherIsMutable(voucherStatus: VoucherStatus, context = 'edit'): void {
   if (voucherStatus !== VOUCHER_STATUS.DRAFT) {
@@ -54,6 +58,9 @@ export function assertVoucherIsMutable(voucherStatus: VoucherStatus, context = '
 /**
  * Validate that the user's role permits the requested voucher_type + line_role combination.
  * Throws a PermissionError if the cashier attempts a disallowed combination.
+ * @param userRole
+ * @param voucherType
+ * @param lineRole
  */
 export function validateRoleForVoucher(
   userRole: string,
@@ -82,6 +89,8 @@ export function validateRoleForVoucher(
 /**
  * Validate a single voucher line input against business rules.
  * Checks required fields per line_role, payment method references, and amount sign.
+ * @param input
+ * @param userRole
  */
 export function validateVoucherLine(input: CreateVoucherLineInput, userRole?: string): void {
   if (input.amount < 0) {
@@ -138,6 +147,8 @@ export function validateVoucherLine(input: CreateVoucherLineInput, userRole?: st
  * Validate a voucher is ready for posting.
  * Checks: has at least one active DRAFT line; if a declared total_amount > 0,
  * the sum of active DRAFT lines must match within 0.005 (half a cent).
+ * @param voucherTotalAmount
+ * @param lines
  */
 export function validateVoucherForPosting(
   voucherTotalAmount: number,

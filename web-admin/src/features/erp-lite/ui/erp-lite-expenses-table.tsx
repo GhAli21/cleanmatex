@@ -11,6 +11,12 @@ interface ErpLiteExpensesTableProps {
   displayConfig: ErpLiteDisplayConfig
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.items
+ * @param root0.displayConfig
+ */
 export function ErpLiteExpensesTable({ items, displayConfig }: ErpLiteExpensesTableProps) {
   const t = useTranslations('erpLite.expenses')
 

@@ -18,6 +18,11 @@ interface PageProps {
   searchParams?: Promise<Record<string, string>>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function VouchersPage({ searchParams }: PageProps) {
   const t = await getTranslations('finance.vouchers');
   const tCommon = await getTranslations('common');

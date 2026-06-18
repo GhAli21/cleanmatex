@@ -25,6 +25,11 @@ function todayYYYYMMDD(): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function CashUpPage({ searchParams }: PageProps) {
   const t = await getTranslations('cashup');
   const tCommon = await getTranslations('common');

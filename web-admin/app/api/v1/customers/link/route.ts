@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { linkCustomerToTenant } from '@/lib/services/customers.service';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

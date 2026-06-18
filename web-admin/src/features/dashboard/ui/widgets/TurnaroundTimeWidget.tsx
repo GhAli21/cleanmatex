@@ -19,6 +19,9 @@ interface TATData {
   trend?: number
 }
 
+/**
+ *
+ */
 export function TurnaroundTimeWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

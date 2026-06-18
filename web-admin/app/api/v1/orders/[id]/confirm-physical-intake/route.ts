@@ -16,6 +16,9 @@ const bodySchema = z.object({
  * POST /api/v1/orders/[id]/confirm-physical-intake
  * Confirms remote booking garments arrived at branch (draft → intake, intake flags, received_at).
  * Reuses {@link WorkflowService.changeStatus}; requires {@link orders:transition}.
+ * @param request
+ * @param ctx
+ * @param ctx.params
  */
 export async function POST(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requirePermission('orders:transition')(request);

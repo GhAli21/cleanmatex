@@ -10,6 +10,9 @@ const SwaggerUI = dynamic<{ spec: any }>(
   { ssr: false }
 );
 
+/**
+ *
+ */
 export default function ApiDocsPage() {
   const [spec, setSpec] = useState<any>(null);
   const [loading, setLoading] = useState(true);

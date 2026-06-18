@@ -139,8 +139,24 @@ Same idea for **`decimalPlaces`** when mixing literals with `number`.
 After substantive web-admin edits:
 
 1. **`cd web-admin && npx tsc --noEmit`**
-2. **`npm run build`** (per project policy; note Next may skip typecheck if configured — `tsc` is the gate).
+2. **`npx eslint . --quiet`** (CI lint errors only)
+3. **`npm run build`** (per project policy; note Next may skip typecheck if configured — `tsc` is the gate).
 
 ---
 
-**Related:** `.cursor/rules/web-admin-ui-imports.mdc`, `.cursor/rules/frontendstandards.mdc` (Forms & Cmx), `web-admin/.clauderc` (`ui_components`).
+## 16. React effects & ESLint (`react-hooks/set-state-in-effect`, Next `Link`)
+
+- **Effects / Link / memo:** `docs/dev/rules/react-effects-patterns.md`
+- **RHF / TanStack / a11y / exports:** `docs/dev/rules/react-rhf-and-table-lint.md`
+- **Pre-submit checklist:** `docs/dev/rules/react-lint-verification-checklist.md`
+- **React:** https://react.dev/learn · https://react.dev/learn/you-might-not-need-an-effect
+- **Do not** use `form.watch()` — use `useWatch` (see RHF doc).
+- **Do not** reset UI with synchronous `setState` inside `useEffect` when props change.
+- **Internal links:** `Link` from `next/link`, not `<a href="/dashboard/...">`.
+- **Gate:** `cd web-admin && npx eslint . --quiet` before PR.
+
+**Cursor rules:** `.cursor/rules/react-effects-patterns.mdc`, `.cursor/rules/react-rhf-and-table-lint.mdc`
+
+---
+
+**Related:** `.cursor/rules/web-admin-ui-imports.mdc`, `.cursor/rules/react-effects-patterns.mdc`, `.cursor/rules/react-rhf-and-table-lint.mdc`, `.cursor/rules/frontendstandards.mdc`, `web-admin/.clauderc`.

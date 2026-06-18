@@ -25,6 +25,10 @@ function redirectCoa(notice?: string, error?: string) {
   redirect(`/dashboard/erp-lite/coa${suffix ? `?${suffix}` : ''}`);
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function createErpLiteAccountAction(formData: FormData) {
   try {
     await ErpLiteCoaService.createAccount({

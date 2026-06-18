@@ -19,6 +19,7 @@ interface UsePromoCodesParams {
 
 /**
  * Hook to list and paginate promo codes for the current tenant.
+ * @param params
  */
 export function usePromoCodes(params: UsePromoCodesParams = {}) {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
@@ -58,6 +59,7 @@ export function usePromoCodes(params: UsePromoCodesParams = {}) {
 
 /**
  * Hook to fetch usage history for a specific promo code.
+ * @param promoCodeId
  */
 export function usePromoUsage(promoCodeId: string) {
   const [usage, setUsage] = useState<PromoCodeUsage[]>([]);

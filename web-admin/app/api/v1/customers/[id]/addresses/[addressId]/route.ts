@@ -72,6 +72,9 @@ async function getAuthContext() {
  *   data: CustomerAddress,
  *   message: 'Address updated successfully'
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -166,6 +169,9 @@ export async function PATCH(
  *   success: true,
  *   message: 'Address deleted successfully'
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

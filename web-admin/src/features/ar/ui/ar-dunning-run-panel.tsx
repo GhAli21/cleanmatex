@@ -6,6 +6,9 @@ import { useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
+/**
+ *
+ */
 export function ArDunningRunPanel() {
   const t = useTranslations('invoices.ar.v2.dunning');
   const router = useRouter();

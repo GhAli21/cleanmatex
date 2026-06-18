@@ -7,6 +7,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
 import { useRTL } from '@/lib/hooks/useRTL'
 
+/**
+ *
+ */
 export function RecentOrdersList() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

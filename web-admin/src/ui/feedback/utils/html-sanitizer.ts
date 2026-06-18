@@ -81,6 +81,7 @@ export async function sanitizeHtml(html: string): Promise<string> {
 /**
  * Synchronous version (for backward compatibility)
  * Uses cached DOMPurify if available, otherwise returns unsanitized HTML
+ * @param html
  */
 export function sanitizeHtmlSync(html: string): string {
   if (typeof window === 'undefined') {
@@ -107,6 +108,7 @@ export function sanitizeHtmlSync(html: string): string {
 
 /**
  * Check if a string contains HTML tags
+ * @param str
  */
 export function containsHtml(str: string): boolean {
   return /<[a-z][\s\S]*>/i.test(str);

@@ -19,6 +19,13 @@ const BADGE_CLASSES: Record<string, string> = {
   GIFT_CARD:     'bg-purple-100 text-purple-700',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.lines
+ * @param root0.isLoading
+ * @param root0.locale
+ */
 export function OrderDiscountBreakdown({ lines, isLoading, locale }: Props) {
   const t = useTranslations('orders.detail');
   const isRTL = useRTL();

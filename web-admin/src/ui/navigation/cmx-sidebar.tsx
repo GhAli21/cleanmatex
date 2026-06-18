@@ -1,5 +1,5 @@
 'use client'
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
 /**
  * CmxSidebar - Sidebar navigation component

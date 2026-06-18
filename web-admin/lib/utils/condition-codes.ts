@@ -31,17 +31,26 @@ for (const [ui, cat] of Object.entries(UI_TO_CATALOG)) {
   CATALOG_TO_UI[cat] = ui;
 }
 
-/** Convert UI code (e.g. coffee) to catalog code (e.g. COFFEE) for DB storage */
+/**
+ * Convert UI code (e.g. coffee) to catalog code (e.g. COFFEE) for DB storage
+ * @param uiCode
+ */
 export function toCatalogCode(uiCode: string): string {
   return UI_TO_CATALOG[uiCode.toLowerCase()] ?? uiCode.toUpperCase();
 }
 
-/** Convert catalog code (e.g. COFFEE) to UI code (e.g. coffee) for display */
+/**
+ * Convert catalog code (e.g. COFFEE) to UI code (e.g. coffee) for display
+ * @param catalogCode
+ */
 export function toUICode(catalogCode: string): string {
   return CATALOG_TO_UI[catalogCode.toUpperCase()] ?? catalogCode.toLowerCase();
 }
 
-/** Get preference_code and preference_sys_kind for a condition code */
+/**
+ * Get preference_code and preference_sys_kind for a condition code
+ * @param code
+ */
 export function getConditionPrefKind(
   code: string
 ): {

@@ -38,6 +38,21 @@ interface OrderSummaryBottomSheetProps {
   children: React.ReactNode;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.itemCount
+ * @param root0.total
+ * @param root0.currencyCode
+ * @param root0.isOpen
+ * @param root0.onOpen
+ * @param root0.onClose
+ * @param root0.onPrimaryAction
+ * @param root0.primaryDisabled
+ * @param root0.primaryLabel
+ * @param root0.loading
+ * @param root0.children
+ */
 export function OrderSummaryBottomSheet({
   itemCount,
   total,

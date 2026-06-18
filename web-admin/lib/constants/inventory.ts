@@ -14,6 +14,9 @@ export const ITEM_CATEGORIES = {
   OTHER: 'OTHER',
 } as const;
 
+/**
+ *
+ */
 export type ItemCategory = (typeof ITEM_CATEGORIES)[keyof typeof ITEM_CATEGORIES];
 
 // Units of measure
@@ -28,6 +31,9 @@ export const UNITS_OF_MEASURE = {
   ROLL: 'roll',
 } as const;
 
+/**
+ *
+ */
 export type UnitOfMeasure = (typeof UNITS_OF_MEASURE)[keyof typeof UNITS_OF_MEASURE];
 
 // Stock transaction types
@@ -37,6 +43,9 @@ export const TRANSACTION_TYPES = {
   ADJUSTMENT: 'ADJUSTMENT',
 } as const;
 
+/**
+ *
+ */
 export type TransactionType = (typeof TRANSACTION_TYPES)[keyof typeof TRANSACTION_TYPES];
 
 // Computed stock status (not stored in DB)
@@ -48,6 +57,9 @@ export const STOCK_STATUS = {
   NEGATIVE_STOCK: 'negative_stock',
 } as const;
 
+/**
+ *
+ */
 export type StockStatus = (typeof STOCK_STATUS)[keyof typeof STOCK_STATUS];
 
 // Reference types for stock transactions
@@ -57,6 +69,9 @@ export const REFERENCE_TYPES = {
   MANUAL: 'MANUAL',
 } as const;
 
+/**
+ *
+ */
 export type ReferenceType = (typeof REFERENCE_TYPES)[keyof typeof REFERENCE_TYPES];
 
 // Adjustment action types (UI-level, mapped to transaction types)
@@ -66,10 +81,16 @@ export const ADJUSTMENT_ACTIONS = {
   SET: 'set',
 } as const;
 
+/**
+ *
+ */
 export type AdjustmentAction = (typeof ADJUSTMENT_ACTIONS)[keyof typeof ADJUSTMENT_ACTIONS];
 
 /**
  * Compute stock status from quantity and thresholds
+ * @param qtyOnHand
+ * @param reorderPoint
+ * @param maxStockLevel
  */
 export function getStockStatus(
   qtyOnHand: number,

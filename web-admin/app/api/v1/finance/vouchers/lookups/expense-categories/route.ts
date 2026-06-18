@@ -3,6 +3,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('fin_vouchers:view')(request);
   if (auth instanceof NextResponse) return auth;

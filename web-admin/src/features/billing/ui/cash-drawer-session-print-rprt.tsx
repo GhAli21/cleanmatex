@@ -64,6 +64,14 @@ function formatDate(iso: string | null, locale: string): string {
   });
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.session
+ * @param root0.movements
+ * @param root0.payments
+ * @param root0.totals
+ */
 export function CashDrawerSessionPrintRprt({
   session,
   movements,

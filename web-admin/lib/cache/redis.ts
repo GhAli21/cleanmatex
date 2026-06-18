@@ -72,6 +72,7 @@ export async function closeRedis(): Promise<void> {
 export const cache = {
   /**
    * Get value from cache
+   * @param key
    */
   async get<T>(key: string): Promise<T | null> {
     try {
@@ -95,6 +96,9 @@ export const cache = {
 
   /**
    * Set value in cache with TTL
+   * @param key
+   * @param value
+   * @param ttlSeconds
    */
   async set<T>(key: string, value: T, ttlSeconds: number = 900): Promise<boolean> {
     try {
@@ -113,6 +117,7 @@ export const cache = {
 
   /**
    * Delete value from cache
+   * @param key
    */
   async del(key: string): Promise<boolean> {
     try {
@@ -131,6 +136,7 @@ export const cache = {
 
   /**
    * Delete multiple keys matching pattern
+   * @param pattern
    */
   async delPattern(pattern: string): Promise<number> {
     try {
@@ -155,6 +161,7 @@ export const cache = {
 
   /**
    * Check if key exists
+   * @param key
    */
   async exists(key: string): Promise<boolean> {
     try {
@@ -173,6 +180,7 @@ export const cache = {
 
   /**
    * Get TTL for a key
+   * @param key
    */
   async ttl(key: string): Promise<number> {
     try {

@@ -30,6 +30,9 @@ interface ServiceData {
   count?: number
 }
 
+/**
+ *
+ */
 export function TopServicesWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

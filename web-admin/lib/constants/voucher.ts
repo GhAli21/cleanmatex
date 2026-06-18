@@ -18,6 +18,9 @@ export const VOUCHER_CATEGORY = {
   NON_CASH: 'NON_CASH',
 } as const;
 
+/**
+ *
+ */
 export type VoucherCategory = (typeof VOUCHER_CATEGORY)[keyof typeof VOUCHER_CATEGORY];
 
 /** @deprecated Use VOUCHER_TYPE (BVM values) for new code. */
@@ -43,6 +46,9 @@ export const VOUCHER_SUBTYPE = {
   PENALTY_FEE:      'PENALTY_FEE',
 } as const;
 
+/**
+ *
+ */
 export type VoucherSubtype = (typeof VOUCHER_SUBTYPE)[keyof typeof VOUCHER_SUBTYPE];
 
 // ── BVM constants — values mirror DB CHECK constraints exactly ────────────────
@@ -56,6 +62,9 @@ export const VOUCHER_TYPE = {
   TRANSFER:   'TRANSFER_VOUCHER',
 } as const;
 
+/**
+ *
+ */
 export type VoucherType = (typeof VOUCHER_TYPE)[keyof typeof VOUCHER_TYPE];
 
 /** Business lifecycle status on org_fin_vouchers_mst.voucher_status. Set by BVM only. */
@@ -67,6 +76,9 @@ export const VOUCHER_STATUS = {
   PARTIALLY_REVERSED:  'PARTIALLY_REVERSED',
 } as const;
 
+/**
+ *
+ */
 export type VoucherStatus = (typeof VOUCHER_STATUS)[keyof typeof VOUCHER_STATUS];
 
 /** Accounting/GL posting status on org_fin_vouchers_mst.posting_status. Set by future GL service only. */
@@ -76,6 +88,9 @@ export const GL_POSTING_STATUS = {
   POSTING_FAILED: 'POSTING_FAILED',
 } as const;
 
+/**
+ *
+ */
 export type GlPostingStatus = (typeof GL_POSTING_STATUS)[keyof typeof GL_POSTING_STATUS];
 
 export const VOUCHER_DIRECTION = {
@@ -84,6 +99,9 @@ export const VOUCHER_DIRECTION = {
   NEUTRAL: 'NEUTRAL',
 } as const;
 
+/**
+ *
+ */
 export type VoucherDirection = (typeof VOUCHER_DIRECTION)[keyof typeof VOUCHER_DIRECTION];
 
 export const LINE_TYPE = {
@@ -99,6 +117,9 @@ export const LINE_TYPE = {
   CREDIT_APPLICATION:  'CREDIT_APPLICATION',
 } as const;
 
+/**
+ *
+ */
 export type LineType = (typeof LINE_TYPE)[keyof typeof LINE_TYPE];
 
 export const LINE_ROLE = {
@@ -129,9 +150,15 @@ export const LINE_ROLE = {
   ORDER_CREDIT_APPLICATION:     'ORDER_CREDIT_APPLICATION',
 } as const;
 
+/**
+ *
+ */
 export type LineRole = (typeof LINE_ROLE)[keyof typeof LINE_ROLE];
 
-/** Maps legacy line roles to canonical codes (DB accepts both during transition). */
+/**
+ * Maps legacy line roles to canonical codes (DB accepts both during transition).
+ * @param role
+ */
 export function normalizeVoucherLineRole(role: string): LineRole {
   const upper = role.toUpperCase();
   if (upper === LINE_ROLE.CUSTOMER_CREDIT_RECEIPT) {
@@ -158,6 +185,9 @@ export const TARGET_TYPE = {
   OTHER:        'OTHER',
 } as const;
 
+/**
+ *
+ */
 export type TargetType = (typeof TARGET_TYPE)[keyof typeof TARGET_TYPE];
 
 export const LINE_STATUS = {
@@ -167,6 +197,9 @@ export const LINE_STATUS = {
   VOIDED:   'VOIDED',
 } as const;
 
+/**
+ *
+ */
 export type LineStatus = (typeof LINE_STATUS)[keyof typeof LINE_STATUS];
 
 export const WIRING_STATUS = {
@@ -177,6 +210,9 @@ export const WIRING_STATUS = {
   REVERSED:         'REVERSED',
 } as const;
 
+/**
+ *
+ */
 export type WiringStatus = (typeof WIRING_STATUS)[keyof typeof WIRING_STATUS];
 
 /**
@@ -193,6 +229,9 @@ export const VOUCHER_LINE_PAYMENT_STATUS = {
   CAPTURE_PENDING: 'CAPTURE_PENDING',
 } as const;
 
+/**
+ *
+ */
 export type VoucherLinePaymentStatus =
   (typeof VOUCHER_LINE_PAYMENT_STATUS)[keyof typeof VOUCHER_LINE_PAYMENT_STATUS];
 
@@ -204,6 +243,7 @@ const VOUCHER_LINE_PAYMENT_STATUS_ALLOWED = new Set<string>(
  * Maps planner/order-payment statuses to voucher-line payment_status values.
  * PROCESSING/CAPTURE_PENDING are async gateway states — stored as PENDING on
  * voucher lines until migration 0370 is applied; after 0370 they may persist.
+ * @param status
  */
 export function normalizeVoucherLinePaymentStatus(
   status: string | null | undefined
@@ -225,6 +265,9 @@ export const PARTY_TYPE = {
   OTHER:    'OTHER',
 } as const;
 
+/**
+ *
+ */
 export type PartyType = (typeof PARTY_TYPE)[keyof typeof PARTY_TYPE];
 
 /**

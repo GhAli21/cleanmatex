@@ -18,7 +18,11 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
-/** List all refunds for the tenant (billing-level, not per-order). */
+/**
+ * List all refunds for the tenant (billing-level, not per-order).
+ * @param page
+ * @param pageSize
+ */
 export async function getAllRefunds(page = 1, pageSize = 20) {
   try {
     const auth = await getAuthContext();
@@ -80,7 +84,10 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
   }
 }
 
-/** Get refunds for a specific order. */
+/**
+ * Get refunds for a specific order.
+ * @param orderId
+ */
 export async function getOrderRefundsAction(orderId: string) {
   try {
     const auth = await getAuthContext();
@@ -109,7 +116,10 @@ export async function getOrderRefundsAction(orderId: string) {
   }
 }
 
-/** Initiate a new refund (creates PENDING_APPROVAL record). */
+/**
+ * Initiate a new refund (creates PENDING_APPROVAL record).
+ * @param params
+ */
 export async function initiateOrderRefund(
   params: Omit<InitiateRefundParams, 'requestedBy'>
 ) {

@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc */
 // ============================================================
 // ERP-Lite Operational Screens — Shared Type Definitions
 // Covers: Finance Readiness, Usage Maps, Exceptions,

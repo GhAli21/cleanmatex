@@ -3,6 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { CmxSummaryMessage } from '@ui/feedback';
 
+/**
+ *
+ */
 export type ExtraReceiptGuidanceBannerProps = {
   excessAmount: number;
   currencyCode: string;
@@ -11,6 +14,15 @@ export type ExtraReceiptGuidanceBannerProps = {
   isRTL?: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.excessAmount
+ * @param root0.currencyCode
+ * @param root0.formatAmount
+ * @param root0.hasLinkedCustomer
+ * @param root0.isRTL
+ */
 export function ExtraReceiptGuidanceBanner({
   excessAmount,
   currencyCode,

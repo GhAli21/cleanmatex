@@ -32,6 +32,9 @@ export const ORDER_STATUSES = {
 /** Status for retail-only orders at creation (skip workflow, POS completed) */
 export const RETAIL_TERMINAL_STATUS = 'closed' as const;
 
+/**
+ *
+ */
 export type OrderStatus = typeof ORDER_STATUSES[keyof typeof ORDER_STATUSES];
 
 /**
@@ -43,6 +46,9 @@ export const ORDER_TYPE_IDS = {
   PHONE: 'PHONE',
 } as const;
 
+/**
+ *
+ */
 export type OrderTypeId = typeof ORDER_TYPE_IDS[keyof typeof ORDER_TYPE_IDS];
 
 /**
@@ -54,6 +60,9 @@ export const PRIORITY_LEVELS = {
   URGENT: 'urgent',
 } as const;
 
+/**
+ *
+ */
 export type PriorityLevel = typeof PRIORITY_LEVELS[keyof typeof PRIORITY_LEVELS];
 
 /**
@@ -65,5 +74,8 @@ export const PRODUCT_UNITS = {
   ITEM: 'item',
 } as const;
 
+/**
+ *
+ */
 export type ProductUnit = typeof PRODUCT_UNITS[keyof typeof PRODUCT_UNITS];
 

@@ -19,6 +19,9 @@ import { VOUCHER_TYPE, VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import type { PostCustomerReceiptRequest } from '@/lib/validations/customer-receipt-allocation-schema';
 
+/**
+ *
+ */
 export interface PostCustomerReceiptResult {
   voucherId: string;
   voucherNo: string;
@@ -29,6 +32,9 @@ export interface PostCustomerReceiptResult {
 /**
  * Posts a standalone customer account receipt: creates audit voucher, applies
  * confirmed allocation preview, and records cash drawer ingress when applicable.
+ * @param tenantId
+ * @param userId
+ * @param input
  */
 export async function postCustomerAccountReceipt(
   tenantId: string,

@@ -23,6 +23,7 @@ Use this skill when starting work in an unfamiliar or complex repository.
    - foldering
    - component reuse patterns
    - state/data-fetching patterns
+   - **React lint (portable):** `docs/dev/rules/react-lint-verification-checklist.md`, `react-effects-patterns.md`, `react-rhf-and-table-lint.md`
 7. Return:
    - architecture summary
    - key entry points

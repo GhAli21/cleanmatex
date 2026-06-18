@@ -1,8 +1,14 @@
+/**
+ *
+ */
 export interface ErpLiteCoaOptionItem {
   id: string;
   label: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCoaAccountListItem {
   id: string;
   account_code: string;
@@ -23,6 +29,9 @@ export interface ErpLiteCoaAccountListItem {
   is_active: boolean;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCoaAccountListPage {
   rows: ErpLiteCoaAccountListItem[];
   total: number;
@@ -30,6 +39,9 @@ export interface ErpLiteCoaAccountListPage {
   pageSize: number;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCoaDashboardSnapshot {
   account_type_options: ErpLiteCoaOptionItem[];
   account_group_options: ErpLiteCoaOptionItem[];
@@ -37,6 +49,9 @@ export interface ErpLiteCoaDashboardSnapshot {
   branch_options: ErpLiteCoaOptionItem[];
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteAccountInput {
   account_code: string;
   name: string;

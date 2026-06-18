@@ -18,6 +18,9 @@ import {
   type ResolvedSetting,
 } from '@/lib/api/settings-client';
 
+/**
+ *
+ */
 export function TenantSettings() {
   const t = useTranslations('settings');
   const [rows, setRows] = React.useState<SettingsTableRow[]>([]);

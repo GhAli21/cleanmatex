@@ -9,6 +9,12 @@ import { prisma } from '@/lib/db/prisma';
 /** Prisma transaction client (matches order-service transaction typing). */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+/**
+ *
+ * @param supabase
+ * @param tenantOrgId
+ * @param codes
+ */
 export async function fetchOrgPackingExtraPriceByCodesSupabase(
   supabase: SupabaseClient,
   tenantOrgId: string,
@@ -32,6 +38,12 @@ export async function fetchOrgPackingExtraPriceByCodesSupabase(
   return m;
 }
 
+/**
+ *
+ * @param tx
+ * @param tenantOrgId
+ * @param codes
+ */
 export async function fetchOrgPackingExtraPriceByCodesPrismaTx(
   tx: PrismaTx,
   tenantOrgId: string,

@@ -13,6 +13,14 @@ interface CmxEmptyStateProps {
   action?: ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.icon
+ * @param root0.title
+ * @param root0.description
+ * @param root0.action
+ */
 export function CmxEmptyState({
   icon,
   title,

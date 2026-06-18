@@ -11,6 +11,7 @@ import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment
  * Canonical Batch 0 preview endpoint.
  * Keeps the older /preview-payment route working while documenting the
  * long-term Order Fin contract explicitly.
+ * @param request
  */
 export async function POST(request: NextRequest) {
   const csrfResponse = await validateCSRF(request);

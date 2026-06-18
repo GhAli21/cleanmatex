@@ -6,6 +6,9 @@ import { RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
 
+/**
+ *
+ */
 export function OrdersRefreshButton() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

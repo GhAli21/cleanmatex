@@ -21,6 +21,15 @@ interface VouchersTableProps {
   onPageChange: (page: number) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.items
+ * @param root0.total
+ * @param root0.page
+ * @param root0.pageSize
+ * @param root0.onPageChange
+ */
 export function VouchersTable({ items, total, page, pageSize, onPageChange }: VouchersTableProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');

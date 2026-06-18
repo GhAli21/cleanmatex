@@ -10,6 +10,13 @@ interface CancelPaymentDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.paymentId
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function CancelPaymentDialog({
   paymentId,
   onClose,

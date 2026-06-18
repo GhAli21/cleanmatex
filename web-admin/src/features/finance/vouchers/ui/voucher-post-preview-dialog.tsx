@@ -37,6 +37,15 @@ function deriveExpectedEffect(line: VoucherLineData): string {
   return 'No wiring (skipped)';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ * @param root0.voucherId
+ * @param root0.lines
+ */
 export function VoucherPostPreviewDialog({
   open,
   onClose,

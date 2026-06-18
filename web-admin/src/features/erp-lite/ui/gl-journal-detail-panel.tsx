@@ -19,6 +19,9 @@ interface GlJournalDetailPanelProps {
 /**
  * Slide-over detail panel for a single GL journal.
  * Rendered server-side; close button navigates back via search params.
+ * @param root0
+ * @param root0.journal
+ * @param root0.displayConfig
  */
 export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetailPanelProps) {
   const t = useTranslations('erpLite.reports')

@@ -314,6 +314,12 @@ async function OrderDetailContent({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ * @param root0.searchParams
+ */
 export default async function OrderDetailPage({ params, searchParams }: OrderDetailPageProps) {
   const { id } = await params;
   const search = await searchParams;

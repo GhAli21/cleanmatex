@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * RTL (Right-to-Left) Utility Functions
  *
@@ -43,7 +43,10 @@ export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
 
 /**
  * Format currency for current locale.
- * @param decimalPlaces — tenant fraction digits; defaults to {@link ORDER_DEFAULTS.PRICE.DECIMAL_PLACES}
+ * @param amount - Monetary amount
+ * @param currency - ISO currency code
+ * @param locale - Optional locale override
+ * @param decimalPlaces - Tenant fraction digits; defaults to ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
  */
 export function formatCurrency(
   amount: number,

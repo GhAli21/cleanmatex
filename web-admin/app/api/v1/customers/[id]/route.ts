@@ -31,6 +31,9 @@ import type { CustomerUpdateRequest } from '@/lib/types/customer';
  *     addresses: [...],
  *   }
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -108,6 +111,9 @@ export async function GET(
  * }
  *
  * Response: { success: true, data: Customer }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -193,6 +199,9 @@ export async function PATCH(
  * Deactivate customer (soft delete)
  *
  * Response: { success: true, message: 'Customer deactivated successfully' }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

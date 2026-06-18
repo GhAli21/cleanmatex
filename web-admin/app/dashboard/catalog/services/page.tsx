@@ -33,6 +33,9 @@ interface Pagination {
   totalPages: number
 }
 
+/**
+ *
+ */
 export default function ServicesPage() {
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')
@@ -82,7 +85,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentTenant, pagination.page, pagination.limit])
 
   function onSearchSubmit(e: React.FormEvent) {

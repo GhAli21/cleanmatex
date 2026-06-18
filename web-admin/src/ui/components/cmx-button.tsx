@@ -5,6 +5,9 @@ import { Button, type ButtonProps } from '@ui/primitives/button'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+/**
+ *
+ */
 export interface CmxButtonProps extends ButtonProps {
   loading?: boolean
   leftIcon?: React.ReactNode

@@ -35,6 +35,17 @@ interface LineChartProps {
   formatter?: (value: number) => string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.lines
+ * @param root0.xAxisKey
+ * @param root0.height
+ * @param root0.showGrid
+ * @param root0.showLegend
+ * @param root0.formatter
+ */
 export function LineChart({
   data,
   lines,

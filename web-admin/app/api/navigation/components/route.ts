@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Helper function to check if user has admin access or navigation management permissions
+ * @param supabase
  */
 async function checkNavigationAccess(supabase: SupabaseClient) {
   // Get user's tenants
@@ -84,6 +85,7 @@ export async function GET() {
 /**
  * POST /api/navigation/components
  * Create a new navigation component (admin only)
+ * @param request
  */
 export async function POST(request: Request) {
   try {

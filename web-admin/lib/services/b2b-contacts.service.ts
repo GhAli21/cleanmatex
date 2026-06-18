@@ -32,6 +32,10 @@ function mapRowToContact(row: Record<string, unknown>): B2BContact {
   };
 }
 
+/**
+ *
+ * @param customerId
+ */
 export async function listContactsByCustomer(
   customerId: string
 ): Promise<B2BContact[]> {
@@ -58,6 +62,10 @@ export async function listContactsByCustomer(
   return (data ?? []).map(mapRowToContact);
 }
 
+/**
+ *
+ * @param request
+ */
 export async function createContact(
   request: CreateB2BContactRequest
 ): Promise<B2BContact> {
@@ -93,6 +101,11 @@ export async function createContact(
   return mapRowToContact(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ * @param request
+ */
 export async function updateContact(
   id: string,
   request: UpdateB2BContactRequest
@@ -128,6 +141,10 @@ export async function updateContact(
   return mapRowToContact(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ */
 export async function deleteContact(id: string): Promise<void> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();

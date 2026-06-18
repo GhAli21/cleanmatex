@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * PRD-003: Customer Address Management Service
  * Handle customer addresses with multi-tenant isolation

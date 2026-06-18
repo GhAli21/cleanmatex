@@ -72,6 +72,14 @@ interface DiscountRuleFormDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.rule
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: DiscountRuleFormDialogProps) {
   const t = useTranslations('marketing.discountRules');
   const tCond = useTranslations('marketing.discountRules.conditions');
@@ -80,7 +88,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
   const [serverError, setServerError] = useState<string | null>(null);
   const isEdit = !!rule;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const getConditions = (r?: DiscountRule): any => {
     if (!r) return {};
     const c = r.conditions as Record<string, unknown> | undefined;

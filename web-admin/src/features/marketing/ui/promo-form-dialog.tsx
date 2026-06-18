@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 
 /**
  * Promo Code Create / Edit Dialog
@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, Controller, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -67,6 +67,14 @@ interface PromoFormDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.promo
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDialogProps) {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');
@@ -89,7 +97,14 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
     },
   });
 
-  const discountType = form.watch('discount_type');
+  const discountType = useWatch({ control: form.control, name: 'discount_type' });
+
+  const promoSignature = promo?.id ?? 'create';
+  const [prevPromoSignature, setPrevPromoSignature] = useState(promoSignature);
+  if (prevPromoSignature !== promoSignature) {
+    setPrevPromoSignature(promoSignature);
+    setServerError(null);
+  }
 
   // Reset form when editing different promo.
   useEffect(() => {
@@ -121,7 +136,6 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         is_enabled: true,
       });
     }
-    setServerError(null);
   }, [promo, form]);
 
   const onSubmit = async (values: FormValues) => {

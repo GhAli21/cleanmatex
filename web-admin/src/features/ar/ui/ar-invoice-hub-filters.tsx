@@ -28,6 +28,9 @@ const STATUS_OPTIONS = [
   'DISPUTED',
 ] as const;
 
+/**
+ *
+ */
 export function ArInvoiceHubFilters() {
   const t = useTranslations('invoices.ar.hub');
   const tCommon = useTranslations('common');

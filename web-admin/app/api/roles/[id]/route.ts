@@ -14,6 +14,9 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * GET /api/roles/[id]
  * Get role details including permissions
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -53,6 +56,9 @@ export async function GET(
 /**
  * PATCH /api/roles/[id]
  * Update custom role
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -100,6 +106,9 @@ export async function PATCH(
 /**
  * DELETE /api/roles/[id]
  * Delete custom role
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

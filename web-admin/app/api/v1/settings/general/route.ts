@@ -74,6 +74,10 @@ const generalInputSchema = z.object({
 // GET
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('settings:read')(request);
@@ -99,6 +103,10 @@ export async function GET(request: NextRequest) {
 // PUT
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   try {
     const csrfResponse = await validateCSRF(request);

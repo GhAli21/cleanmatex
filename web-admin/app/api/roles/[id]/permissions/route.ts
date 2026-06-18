@@ -15,6 +15,9 @@ export const dynamic = 'force-dynamic';
 /**
  * PUT /api/roles/[id]/permissions
  * Update permissions for a role
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PUT(
   request: NextRequest,

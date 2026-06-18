@@ -52,7 +52,19 @@ export const refundPaymentSchema = z.object({
     .max(500, 'Reason cannot exceed 500 characters'),
 });
 
+/**
+ *
+ */
 export type UpdatePaymentNotesInput = z.infer<typeof updatePaymentNotesSchema>;
+/**
+ *
+ */
 export type CancelPaymentInput = z.infer<typeof cancelPaymentSchema>;
+/**
+ *
+ */
 export type CreateStandalonePaymentFormInput = z.infer<typeof createStandalonePaymentSchema>;
+/**
+ *
+ */
 export type RefundPaymentFormInput = z.infer<typeof refundPaymentSchema>;

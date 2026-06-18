@@ -15,6 +15,9 @@ import { getLoyaltyConfig } from '@/lib/services/loyalty.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ */
 export async function getLoyaltyConfigAction() {
   try {
     const auth = await getAuthContext();
@@ -28,6 +31,9 @@ export async function getLoyaltyConfigAction() {
   }
 }
 
+/**
+ *
+ */
 export interface SaveLoyaltyConfigInput {
   earnRatePerUnit:      number;
   redeemRatePerPoint:   number;
@@ -37,6 +43,10 @@ export interface SaveLoyaltyConfigInput {
   programName?:         string;
 }
 
+/**
+ *
+ * @param input
+ */
 export async function saveLoyaltyConfigAction(input: SaveLoyaltyConfigInput) {
   try {
     const auth = await getAuthContext();
@@ -96,6 +106,9 @@ export async function saveLoyaltyConfigAction(input: SaveLoyaltyConfigInput) {
   }
 }
 
+/**
+ *
+ */
 export interface SaveTierInput {
   id?:             string;
   programId:       string;
@@ -106,6 +119,10 @@ export interface SaveTierInput {
   sortOrder?:      number;
 }
 
+/**
+ *
+ * @param input
+ */
 export async function saveTierAction(input: SaveTierInput) {
   try {
     const auth = await getAuthContext();
@@ -154,6 +171,10 @@ export async function saveTierAction(input: SaveTierInput) {
   }
 }
 
+/**
+ *
+ * @param tierId
+ */
 export async function deleteTierAction(tierId: string) {
   try {
     const auth = await getAuthContext();

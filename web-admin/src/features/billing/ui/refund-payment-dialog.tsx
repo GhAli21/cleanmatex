@@ -14,6 +14,15 @@ interface RefundPaymentDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.paymentId
+ * @param root0.maxAmount
+ * @param root0.currencyCode
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function RefundPaymentDialog({
   paymentId,
   maxAmount,

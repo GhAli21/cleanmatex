@@ -5,6 +5,9 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 import { CmxButton } from '@ui/primitives';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
+/**
+ *
+ */
 export type CreditNotePickerOption = {
   id: string;
   remaining_balance: number;
@@ -20,6 +23,16 @@ type PaymentModalV4CreditNotePickerProps = {
   isRTL: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.notes
+ * @param root0.selectedNoteId
+ * @param root0.onSelect
+ * @param root0.isRTL
+ */
 export function PaymentModalV4CreditNotePicker({
   open,
   onClose,

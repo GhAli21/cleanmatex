@@ -26,6 +26,9 @@ function readDone(): Record<string, boolean> {
   }
 }
 
+/**
+ *
+ */
 export function ErpLiteSetupWizardScreen() {
   const t = useTranslations('erpLite.setup')
   const [done, setDone] = React.useState<Record<string, boolean>>({})

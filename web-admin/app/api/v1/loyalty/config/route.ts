@@ -6,6 +6,10 @@ import { getLoyaltyConfig } from '@/lib/services/loyalty.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('loyalty:view_config')(request);
   if (auth instanceof NextResponse) return auth;
@@ -28,6 +32,10 @@ const updateSchema = z.object({
   expiryDays:      z.number().int().min(0).optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function PATCH(request: NextRequest) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;

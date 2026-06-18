@@ -38,6 +38,9 @@ import type {
 // useUserRoleAssignments
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface UseUserRoleAssignmentsResult {
   /** Tenant-level role assignments */
   tenantRoles: UserRole[]
@@ -67,6 +70,10 @@ export interface UseUserRoleAssignmentsResult {
   refetch: () => void
 }
 
+/**
+ *
+ * @param userId
+ */
 export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsResult {
   const { session, currentTenant } = useAuth()
   const accessToken = session?.access_token ?? ''
@@ -167,6 +174,9 @@ export function useUserRoleAssignments(userId: string): UseUserRoleAssignmentsRe
 // useUserPermissionOverrides
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface UseUserPermissionOverridesResult {
   globalOverrides: UserPermissionOverride[]
   resourceOverrides: UserResourcePermissionOverride[]
@@ -192,6 +202,10 @@ export interface UseUserPermissionOverridesResult {
   refetch: () => void
 }
 
+/**
+ *
+ * @param userId
+ */
 export function useUserPermissionOverrides(userId: string): UseUserPermissionOverridesResult {
   const { session, currentTenant } = useAuth()
   const accessToken = session?.access_token ?? ''
@@ -259,12 +273,19 @@ export function useUserPermissionOverrides(userId: string): UseUserPermissionOve
 // useEffectivePermissions
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface UseEffectivePermissionsResult {
   permissions: string[]
   loading: boolean
   error: string | null
 }
 
+/**
+ *
+ * @param userId
+ */
 export function useEffectivePermissions(userId: string): UseEffectivePermissionsResult {
   const { session, currentTenant } = useAuth()
   const accessToken = session?.access_token ?? ''

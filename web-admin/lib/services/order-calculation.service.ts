@@ -22,6 +22,9 @@ import { TAX_TYPES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
 import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
 
+/**
+ *
+ */
 export interface OrderCalculationParams {
   tenantId: string;
   branchId?: string;
@@ -56,6 +59,9 @@ export interface OrderCalculationParams {
   userId?: string;
 }
 
+/**
+ *
+ */
 export interface OrderCalculationResult {
   subtotal: number;
   manualDiscount: number;
@@ -88,6 +94,7 @@ function round(value: number, decimals: number): number {
  * Calculate order totals server-side.
  * Fetches prices from catalog, applies pricing discounts and tax, while keeping
  * stored-value settlement amounts separate from sale-total math.
+ * @param params
  */
 export async function calculateOrderTotals(
   params: OrderCalculationParams
@@ -393,6 +400,10 @@ export async function calculateOrderTotals(
  * used by order-settlement.service.ts and the Financial tab on order detail pages.
  *
  * creditApplicationsTotal = sum of credit apps already validated (wallet, advance, CN, loyalty, GC).
+ * @param result
+ * @param taxLines
+ * @param chargesTotal
+ * @param creditApplicationsTotal
  */
 export function toFinancialBreakdownSnapshot(
   result:                  OrderCalculationResult,

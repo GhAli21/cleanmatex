@@ -43,6 +43,9 @@ interface Tab {
   icon: string
 }
 
+/**
+ *
+ */
 export default function CustomerDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -502,6 +505,9 @@ export default function CustomerDetailPage() {
 
 /**
  * Profile Tab - Customer information with inline editing
+ * @param root0
+ * @param root0.customer
+ * @param root0.onUpdate
  */
 function ProfileTab({
   customer,
@@ -655,6 +661,9 @@ function ProfileTab({
 
 /**
  * Loyalty Tab - Loyalty points and rewards
+ * @param root0
+ * @param root0.customerId
+ * @param root0.loyaltyPoints
  */
 function LoyaltyTab({
   customerId,

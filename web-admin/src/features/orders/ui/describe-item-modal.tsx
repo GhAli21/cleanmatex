@@ -27,6 +27,14 @@ interface DescribeItemModalProps {
   categories?: Array<{ code: string; name: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSubmit
+ * @param root0.categories
+ */
 export function DescribeItemModal({
   open,
   onClose,

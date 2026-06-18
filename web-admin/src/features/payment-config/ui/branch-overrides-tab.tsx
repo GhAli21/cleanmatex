@@ -45,6 +45,12 @@ type MergedRow = {
   rec_status: number;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.branches
+ * @param root0.isLoading
+ */
 export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabProps) {
   const t = useTranslations('paymentConfig');
   const [, startTransition] = useTransition();
@@ -69,7 +75,7 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
 
   useEffect(() => {
     if (selectedBranchId) loadRows(selectedBranchId);
-  }, [selectedBranchId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedBranchId]);  
 
   const handleRemoveOverride = (row: MergedRow) => {
     if (!row.id) return;

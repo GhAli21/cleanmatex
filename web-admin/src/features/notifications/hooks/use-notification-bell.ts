@@ -32,6 +32,9 @@ async function fetchRecentNotifications(): Promise<NotificationRow[]> {
   return json.data ?? [];
 }
 
+/**
+ *
+ */
 export function useNotificationBell() {
   const { currentTenant, user } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';

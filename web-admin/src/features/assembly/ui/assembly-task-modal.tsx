@@ -22,6 +22,14 @@ interface AssemblyTaskModalProps {
   onComplete?: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.taskId
+ * @param root0.onClose
+ * @param root0.onComplete
+ */
 export function AssemblyTaskModal({
   orderId,
   taskId,

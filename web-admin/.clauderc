@@ -195,6 +195,23 @@ ui_components:
   # ── Toast (imperative) ───────────────────────────────────────────
   toast: "import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'"
 
+# React hooks & ESLint (portable — copy docs/dev/rules/*.md with this block)
+react_hooks:
+  checklist: "docs/dev/rules/react-lint-verification-checklist.md"
+  effects_doc: "docs/dev/rules/react-effects-patterns.md"
+  rhf_table_doc: "docs/dev/rules/react-rhf-and-table-lint.md"
+  react_learn: "https://react.dev/learn"
+  avoid_effects: "https://react.dev/learn/you-might-not-need-an-effect"
+  verify: "cd web-admin && npx eslint . --quiet"
+  rules:
+    - "react-hooks/set-state-in-effect — reset UI during render when props change, not in useEffect"
+    - "@next/next/no-html-link-for-pages — use Link from next/link for internal app routes"
+    - "react-hooks/incompatible-library — use useWatch not form.watch; eslint-disable-next-line on useReactTable only"
+    - "import/no-anonymous-default-export — named const before export default"
+    - "jsx-a11y/role-supports-aria-props — combobox role when using aria-expanded on input"
+    - "react-hooks/preserve-manual-memoization — include setState setters in useCallback deps"
+    - "react-hooks/use-memo — dependency array must be literal (no spread)"
+
 # Best Practices 
 best_practices:
   - "Use TypeScript for all files"

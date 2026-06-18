@@ -74,6 +74,9 @@ async function getAuthContext() {
  *   data: Customer,
  *   message: 'Customer profile upgraded to full successfully'
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(
   request: NextRequest,

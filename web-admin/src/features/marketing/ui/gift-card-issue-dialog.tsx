@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Info, Copy, CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
@@ -91,6 +91,13 @@ interface GiftCardIssueDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueDialogProps) {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
@@ -129,7 +136,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
     if (tenantCurrency) form.setValue('currency_code', tenantCurrency);
   }, [tenantCurrency, form]);
 
-  const currencyCode = form.watch('currency_code');
+  const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
 
   const { formState: { isSubmitting } } = form;
 

@@ -10,6 +10,9 @@ export interface CheckoutExcessLegInput {
   supportsChangeReturn: boolean;
 }
 
+/**
+ *
+ */
 export interface CheckoutExcessMetricsInput {
   saleTotal: number;
   immediateSettlementAmount: number;
@@ -43,6 +46,7 @@ function fromRealPaymentLegs(legs: RealPaymentLeg[]): CheckoutExcessLegInput[] {
 
 /**
  * Computes pooled checkout excess for legacy (intent OFF) and pay-extra (intent ON) modes.
+ * @param input
  */
 export function computeCheckoutExcessMetrics(
   input: CheckoutExcessMetricsInput
@@ -105,7 +109,17 @@ export function computeCheckoutExcessMetrics(
   };
 }
 
-/** Adapter: settlement plan → checkout metrics (server default intent OFF). */
+/**
+ * Adapter: settlement plan → checkout metrics (server default intent OFF).
+ * @param plan
+ * @param plan.totalAmount
+ * @param plan.immediateSettlementAmount
+ * @param plan.realPaymentLegs
+ * @param options
+ * @param options.payExtraIntent
+ * @param options.explicitChangeResolved
+ * @param options.epsilon
+ */
 export function computeCheckoutExcessFromPlan(
   plan: {
     totalAmount: number;
@@ -128,7 +142,10 @@ export function computeCheckoutExcessFromPlan(
   });
 }
 
-/** @deprecated Use computeCheckoutExcessFromPlan — legacy shape for settlement-overpayment.ts */
+/**
+ * @param metrics
+ * @deprecated Use computeCheckoutExcessFromPlan — legacy shape for settlement-overpayment.ts
+ */
 export function toSettlementOverpaymentMetrics(metrics: CheckoutExcessMetrics) {
   return {
     excessAmount: metrics.appliedExcessAmount,

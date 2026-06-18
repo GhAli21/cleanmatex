@@ -14,6 +14,9 @@ import { log } from '@/lib/utils/logger';
  * POST /api/v1/orders/:id/items/:itemId/pieces/sync
  * Sync quantity_ready for an order item
  * Requires: orders:update permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(
   request: NextRequest,

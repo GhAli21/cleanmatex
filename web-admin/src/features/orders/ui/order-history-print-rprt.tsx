@@ -4,6 +4,9 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 
+/**
+ *
+ */
 export interface OrderHistoryEntryRprt {
   id?: string;
   action_type: string;
@@ -15,6 +18,9 @@ export interface OrderHistoryEntryRprt {
   created_at?: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderHistoryPrintRprtData {
   order: {
     id: string;
@@ -40,6 +46,11 @@ function formatDate(dateStr: string | undefined | null, locale: string): string 
   });
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ */
 export function OrderHistoryPrintRprt({ data }: OrderHistoryPrintRprtProps) {
   const tOrders = useTranslations('orders');
   const tCommon = useTranslations('common');

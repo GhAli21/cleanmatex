@@ -22,6 +22,12 @@ interface CarePackageBundlesProps {
   branchId?: string | null;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.bundlesEnabled
+ * @param root0.branchId
+ */
 export function CarePackageBundles({
   bundlesEnabled = true,
   branchId,

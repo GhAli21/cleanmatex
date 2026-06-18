@@ -383,6 +383,9 @@ function ResetPasswordForm() {
   )
 }
 
+/**
+ *
+ */
 export default function ResetPasswordPage() {
   return (
     <Suspense

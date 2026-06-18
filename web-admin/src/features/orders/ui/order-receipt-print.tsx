@@ -10,6 +10,9 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 
+/**
+ *
+ */
 export type PrintLayout = 'thermal' | 'a4';
 
 interface OrderReceiptPrintProps {
@@ -18,6 +21,13 @@ interface OrderReceiptPrintProps {
   discountLines?: OrderDiscountLine[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.layout
+ * @param root0.discountLines
+ */
 export function OrderReceiptPrint({ order, layout, discountLines = [] }: OrderReceiptPrintProps) {
   const tOrders = useTranslations('orders');
   const tOrderDetail = useTranslations('orders.detail');

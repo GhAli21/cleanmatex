@@ -16,22 +16,35 @@ import {
 
 const DEFAULT_VAT_RATE = 0.05; // 5%
 
+/**
+ *
+ */
 export interface TaxServiceOptions {
   /** Optional TenantSettingsService instance (e.g. server client). Defaults to client singleton. */
   tenantSettings?: TenantSettingsService;
 }
 
+/**
+ *
+ */
 export class TaxService {
   private readonly tenantSettings: TenantSettingsService;
   private readonly taxRateCache = new Map<string, { rate: number; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  /**
+   *
+   * @param options
+   */
   constructor(options: TaxServiceOptions = {}) {
     this.tenantSettings = options.tenantSettings ?? tenantSettingsService;
   }
 
   /**
    * Build cache key for tenant/branch/user context.
+   * @param tenantId
+   * @param branchId
+   * @param userId
    */
   private cacheKey(tenantId: string, branchId?: string | null, userId?: string | null): string {
     return `${tenantId}|${branchId ?? ''}|${userId ?? ''}`;
@@ -114,6 +127,7 @@ export class TaxService {
   /**
    * Clear cache for a tenant (call after tax rate update in Finance Settings).
    * Clears all cached rates for that tenant (any branch/user combo).
+   * @param tenantId
    */
   clearCache(tenantId: string): void {
     const prefix = `${tenantId}|`;

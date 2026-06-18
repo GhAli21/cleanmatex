@@ -31,6 +31,11 @@ interface BranchSettingsProps {
   externalBranchId?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.externalBranchId
+ */
 export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
   const t = useTranslations('settings');
   const [branches, setBranches] = React.useState<BranchOption[]>([]);

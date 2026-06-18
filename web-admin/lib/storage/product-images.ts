@@ -12,6 +12,9 @@ const BUCKET = 'product-images'
 /**
  * Upload (or replace) a product image in Supabase Storage.
  * Returns the public URL of the stored image.
+ * @param productId
+ * @param tenantId
+ * @param file
  */
 export async function uploadProductImage(
   productId: string,
@@ -38,6 +41,9 @@ export async function uploadProductImage(
 /**
  * Remove a product image from Supabase Storage.
  * Errors are non-fatal — if the file is already gone, that is fine.
+ * @param productId
+ * @param tenantId
+ * @param ext
  */
 export async function removeProductImage(
   productId: string,

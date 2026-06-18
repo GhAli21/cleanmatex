@@ -11,14 +11,23 @@ import type {
   ResolveExceptionInput,
 } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLiteExceptionsService {
   // -------------------------------------------------------
   // List open (non-terminal) exceptions for the current tenant
   // -------------------------------------------------------
+  /**
+   *
+   */
   static async listOpenExceptions(): Promise<ErpLiteOpenExceptionRow[]> {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = Omit<
         ErpLiteOpenExceptionRow,
         'created_at' | 'resolved_at'
@@ -55,6 +64,10 @@ export class ErpLiteExceptionsService {
   // -------------------------------------------------------
   // Resolve / ignore / close an exception
   // -------------------------------------------------------
+  /**
+   *
+   * @param input
+   */
   static async resolveException(input: ResolveExceptionInput): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();

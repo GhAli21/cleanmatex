@@ -3,6 +3,9 @@ import { logger } from '@/lib/utils/logger';
 import { normalizePhone } from './customers.service';
 import { verifyVerificationToken } from './otp.service';
 
+/**
+ *
+ */
 export interface CustomerMobileSession {
   customerId: string;
   displayName: string | null;
@@ -29,6 +32,12 @@ function buildPhoneLookupCandidates(inputPhone: string) {
   );
 }
 
+/**
+ *
+ * @param params
+ * @param params.tenantId
+ * @param params.verificationToken
+ */
 export async function resolveCustomerMobileSession(params: {
   tenantId: string;
   verificationToken: string;

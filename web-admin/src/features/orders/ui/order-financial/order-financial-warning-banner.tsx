@@ -8,6 +8,11 @@ interface OrderFinancialWarningBannerProps {
   warnings: FinancialWarning[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.warnings
+ */
 export function OrderFinancialWarningBanner({ warnings }: OrderFinancialWarningBannerProps) {
   const t = useTranslations('orders.detail.financial');
 

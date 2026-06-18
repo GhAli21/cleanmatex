@@ -23,6 +23,14 @@ interface OrdersInvoicesTabRprtProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.invoices
+ * @param root0.orderId
+ * @param root0.orderBasePath
+ * @param root0.translations
+ */
 export function OrdersInvoicesTabRprt({
   invoices,
   orderId,

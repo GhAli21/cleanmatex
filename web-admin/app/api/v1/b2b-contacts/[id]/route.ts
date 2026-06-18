@@ -24,6 +24,12 @@ const UpdateContactSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,6 +87,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -117,6 +129,12 @@ export async function PATCH(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

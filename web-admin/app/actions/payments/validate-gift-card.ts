@@ -89,6 +89,11 @@ export async function checkGiftCardBalance(giftCardCode: string) {
  * Apply gift card to order payment (standalone, opens its own transaction).
  *
  * @param params - Gift card apply params
+ * @param params.gift_card_code
+ * @param params.amount
+ * @param params.order_id
+ * @param params.invoice_id
+ * @param params.processed_by
  * @returns Success with new balance or error
  * @deprecated Prefer redeemGiftCardTx inside a shared Prisma transaction for atomic order creation.
  */

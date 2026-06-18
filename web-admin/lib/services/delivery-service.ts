@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * DeliveryService
  * Core business logic for Delivery Management & POD operations

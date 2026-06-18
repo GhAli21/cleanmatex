@@ -20,6 +20,9 @@ interface PricingModes {
   extra_price_pricing_mode: ExtraPricePricingMode;
 }
 
+/**
+ *
+ */
 export function TenantSettingsScreen() {
   const t = useTranslations('settings');
   const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING);

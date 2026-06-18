@@ -13,6 +13,10 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { notificationSettingsService } from '@/lib/notifications/settings-service'
 import { logger } from '@/lib/utils/logger'
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -28,6 +32,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck

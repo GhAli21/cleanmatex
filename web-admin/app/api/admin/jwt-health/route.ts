@@ -13,6 +13,7 @@ import { logger } from '@/lib/utils/logger';
  * GET /api/admin/jwt-health
  * Get JWT health metrics
  * Requires: admin permission
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

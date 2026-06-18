@@ -28,6 +28,7 @@ async function fetchCategories(): Promise<ServiceCategory[]> {
 
 /**
  * Fetch products for a category
+ * @param category
  */
 async function fetchProducts(
     category: string
@@ -74,6 +75,7 @@ export function useCategories() {
 
 /**
  * Hook to fetch products for selected category
+ * @param category
  */
 export function useProducts(category: string | null) {
     const dispatch = useNewOrderDispatch();

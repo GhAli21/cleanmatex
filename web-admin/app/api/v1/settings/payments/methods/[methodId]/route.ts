@@ -16,6 +16,12 @@ const schema = z.object({
   recOrder:        z.number().int().min(0).optional(),
 });
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ methodId: string }> }

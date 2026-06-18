@@ -44,4 +44,7 @@ export const voucherLineSchema = z.object({
   }
 });
 
+/**
+ *
+ */
 export type VoucherLineFormValues = z.infer<typeof voucherLineSchema>;

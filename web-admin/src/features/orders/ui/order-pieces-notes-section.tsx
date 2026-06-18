@@ -25,6 +25,13 @@ interface ItemGroup {
   pieces: PreSubmissionPiece[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onCopyPieceToAll
+ * @param root0.focusItemId
+ * @param root0.onFocusItemHandled
+ */
 export function OrderPiecesNotesSection({
   onCopyPieceToAll,
   focusItemId,
@@ -48,7 +55,7 @@ export function OrderPiecesNotesSection({
       if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'start' });
       onFocusItemHandled?.();
     }, 100);
-  }, [focusItemId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusItemId]);  
 
   const itemGroups = useMemo((): ItemGroup[] => {
     return state.items

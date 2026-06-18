@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Dashboard Service
  *
@@ -160,8 +160,7 @@ export class DashboardService {
   /**
    * Get KPI overview data
    * @param tenantId - Tenant organization ID
-   * @param branchId - Optional branch filter
-   * @param dateRange - Optional date range
+   * @param options - Optional branch and date range filters
    */
   async getKPIOverview(
     tenantId: string,

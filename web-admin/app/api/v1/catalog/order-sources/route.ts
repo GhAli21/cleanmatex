@@ -17,6 +17,7 @@ const putSchema = z.object({
 /**
  * GET /api/v1/catalog/order-sources
  * Active global sources plus per-tenant allow flags (empty CF table = all allowed).
+ * @param request
  */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('config:preferences_manage')(request);
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
 /**
  * PUT /api/v1/catalog/order-sources
  * Replaces tenant org_tenant_order_sources_cf rows with the submitted snapshot (may be empty to clear).
+ * @param request
  */
 export async function PUT(request: NextRequest) {
   const auth = await requirePermission('config:preferences_manage')(request);

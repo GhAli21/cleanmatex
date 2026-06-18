@@ -8,6 +8,9 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { NewVoucherClient } from '@features/finance/vouchers/ui/new-voucher-client';
 
+/**
+ *
+ */
 export default async function CreateVoucherPage() {
   const t = await getTranslations('finance.vouchers');
   const tCommon = await getTranslations('common');

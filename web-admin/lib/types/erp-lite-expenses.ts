@@ -1,8 +1,14 @@
+/**
+ *
+ */
 export interface ErpLiteOptionItem {
   id: string;
   label: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteExpenseListItem {
   id: string;
   expense_no: string;
@@ -15,6 +21,9 @@ export interface ErpLiteExpenseListItem {
   payee_name: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCashboxListItem {
   id: string;
   cashbox_code: string;
@@ -27,6 +36,9 @@ export interface ErpLiteCashboxListItem {
   account_name: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCashTxnListItem {
   id: string;
   txn_no: string;
@@ -40,6 +52,9 @@ export interface ErpLiteCashTxnListItem {
   description: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteApprovalListItem {
   id: string;
   source_doc_type: 'EXPENSE' | 'CASH_TXN';
@@ -50,6 +65,9 @@ export interface ErpLiteApprovalListItem {
   action_note: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCashReconciliationListItem {
   id: string;
   recon_no: string;
@@ -61,6 +79,9 @@ export interface ErpLiteCashReconciliationListItem {
   status_code: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteExpensesDashboardSnapshot {
   expense_list: ErpLiteExpenseListItem[];
   cashbox_list: ErpLiteCashboxListItem[];
@@ -74,6 +95,9 @@ export interface ErpLiteExpensesDashboardSnapshot {
   cash_txn_options: ErpLiteOptionItem[];
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteExpenseInput {
   branch_id?: string | null;
   expense_date: string;
@@ -86,6 +110,9 @@ export interface CreateErpLiteExpenseInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCashboxInput {
   branch_id?: string | null;
   account_id: string;
@@ -97,6 +124,9 @@ export interface CreateErpLiteCashboxInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCashTxnInput {
   cashbox_id: string;
   txn_type_code: 'TOPUP' | 'SPEND';
@@ -107,12 +137,18 @@ export interface CreateErpLiteCashTxnInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteExpenseMutationResult {
   posting_status: 'executed' | 'skipped';
   posting_success?: boolean;
   skip_reason?: 'POLICY_NOT_FOUND' | 'POLICY_DISABLED' | 'FEATURE_NOT_ENABLED';
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteApprovalRequestInput {
   source_doc_type: 'EXPENSE' | 'CASH_TXN';
   source_doc_id: string;
@@ -120,6 +156,9 @@ export interface CreateErpLiteApprovalRequestInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ProcessErpLiteApprovalInput {
   approval_id: string;
   decision: 'APPROVED' | 'REJECTED';
@@ -127,6 +166,9 @@ export interface ProcessErpLiteApprovalInput {
   acted_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCashReconciliationInput {
   cashbox_id: string;
   recon_date: string;
@@ -135,6 +177,9 @@ export interface CreateErpLiteCashReconciliationInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCashReconciliationExceptionInput {
   cash_recon_id: string;
   reason_code: string;

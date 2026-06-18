@@ -23,6 +23,9 @@ interface QAOrder {
   current_status: string;
 }
 
+/**
+ *
+ */
 export default function QAPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();

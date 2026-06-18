@@ -15,6 +15,8 @@
  *   '.5'      → '0.5'
  *   '1..23'   → '1.23'
  *   '1.23456' → '1.234'
+ * @param raw
+ * @param decimalPlaces
  */
 export function sanitizeMoneyDraft(raw: string, decimalPlaces: number): string {
   let value = raw.replace(/[^\d.]/g, '')
@@ -35,7 +37,10 @@ export function sanitizeMoneyDraft(raw: string, decimalPlaces: number): string {
   return value
 }
 
-/** Parse a draft string to a canonical number. Returns 0 for incomplete drafts like ".". */
+/**
+ * Parse a draft string to a canonical number. Returns 0 for incomplete drafts like ".".
+ * @param value
+ */
 export function parseMoneyDraft(value: string): number {
   if (!value || value === '.') return 0
   const parsed = Number.parseFloat(value)
@@ -46,6 +51,9 @@ export function parseMoneyDraft(value: string): number {
  * Format a canonical number back to a display string.
  * Keeps full fixed-point precision — no trailing zero stripping.
  * "10.500 KWD" not "10.5 KWD".
+ * @param value
+ * @param decimalPlaces
+ * @param showZero
  */
 export function formatMoneyDraft(
   value: number | null | undefined,
@@ -60,6 +68,9 @@ export function formatMoneyDraft(
 /**
  * Apply a single keypad key press to the current draft string.
  * Quick-add keys must match /^\+\d+$/ (e.g. "+10", "+50").
+ * @param currentDraft
+ * @param key
+ * @param decimalPlaces
  */
 export function applyKeypadInput(
   currentDraft: string,

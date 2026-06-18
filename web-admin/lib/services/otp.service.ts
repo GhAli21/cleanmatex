@@ -51,6 +51,7 @@ export function generateVerificationToken(phone: string): string {
 
 /**
  * Verify and decode verification token
+ * @param token
  */
 export function verifyVerificationToken(token: string): { phone: string } | null {
   try {
@@ -72,6 +73,7 @@ export function verifyVerificationToken(token: string): { phone: string } | null
 
 /**
  * Send OTP code to phone number
+ * @param request
  */
 export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse> {
   const supabase = createAdminSupabaseClient();
@@ -132,6 +134,7 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
 
 /**
  * Verify OTP code
+ * @param request
  */
 export async function verifyOTP(
   request: VerifyOTPRequest
@@ -221,6 +224,8 @@ export async function cleanupExpiredOTPs(): Promise<number> {
 
 /**
  * Check if phone has verified OTP recently (for customer creation)
+ * @param phone
+ * @param purpose
  */
 export async function hasRecentVerifiedOTP(
   phone: string,
@@ -251,6 +256,7 @@ export async function hasRecentVerifiedOTP(
 
 /**
  * Invalidate all OTPs for a phone number (after successful registration)
+ * @param phone
  */
 export async function invalidatePhoneOTPs(phone: string): Promise<void> {
   const supabase = createAdminSupabaseClient();

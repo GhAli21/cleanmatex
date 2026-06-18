@@ -17,6 +17,12 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
   );
 }
 
+/**
+ *
+ * @param open
+ * @param options
+ * @param options.returnFocus
+ */
 export function useFocusTrap(open: boolean, options?: { returnFocus?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);

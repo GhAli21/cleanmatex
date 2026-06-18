@@ -13,12 +13,18 @@ import type { SettingDefinition, ResolvedSetting } from '@/lib/api/settings-clie
 
 type EditMode = 'inline';
 
+/**
+ *
+ */
 export interface SettingsTableContext {
   scope: 'TENANT' | 'BRANCH' | 'USER';
   branchId?: string;
   userId?: string;
 }
 
+/**
+ *
+ */
 export interface SettingsTableRow {
   definition: SettingDefinition;
   resolved?: ResolvedSetting;
@@ -39,6 +45,18 @@ interface SettingsTableProps {
   onResetOverride?: (row: SettingsTableRow) => Promise<void> | void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.title
+ * @param root0.description
+ * @param root0.rows
+ * @param root0.context
+ * @param root0.isLoading
+ * @param root0.editMode
+ * @param root0.onSaveOverride
+ * @param root0.onResetOverride
+ */
 export function SettingsTable({
   title,
   description,

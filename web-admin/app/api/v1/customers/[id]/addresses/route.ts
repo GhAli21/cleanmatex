@@ -53,6 +53,9 @@ async function getAuthContext() {
  *   success: true,
  *   data: CustomerAddress[]
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -131,6 +134,9 @@ export async function GET(
  *   data: CustomerAddress,
  *   message: 'Address created successfully'
  * }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(
   request: NextRequest,

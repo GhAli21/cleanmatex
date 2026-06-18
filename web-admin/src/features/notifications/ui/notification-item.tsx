@@ -26,6 +26,9 @@ function getRelativeTime(isoString: string, locale: string, justNow: string): st
   return rtf.format(-Math.floor(hrs / 24), 'day')
 }
 
+/**
+ *
+ */
 export interface NotificationItemProps {
   notification: NotificationRow
   onMarkRead?: (id: string) => void
@@ -33,6 +36,14 @@ export interface NotificationItemProps {
   className?: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.notification
+ * @param root0.onMarkRead
+ * @param root0.compact
+ * @param root0.className
+ */
 export function NotificationItem({ notification, onMarkRead, compact = false, className }: NotificationItemProps) {
   const locale = useLocale()
   const isAr = locale === 'ar'

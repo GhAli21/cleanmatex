@@ -7,6 +7,9 @@ import type { PaymentTransaction } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
+/**
+ *
+ */
 export interface OrderPaymentsPrintRprtData {
   order: {
     id: string;
@@ -33,6 +36,11 @@ function formatDate(dateStr: string | undefined, locale: string): string {
   });
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ */
 export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
   const tOrders = useTranslations('orders');
   const tInvoices = useTranslations('invoices');

@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { validateTenantIsolation } from '../validation/tenant-isolation-validator';
 
+/**
+ *
+ */
 export interface IsolationViolation {
   id: string;
   table: string;

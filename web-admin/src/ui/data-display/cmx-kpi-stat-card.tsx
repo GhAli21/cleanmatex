@@ -17,6 +17,15 @@ interface CmxKpiStatCardProps {
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.title
+ * @param root0.value
+ * @param root0.subtitle
+ * @param root0.icon
+ * @param root0.trend
+ */
 export function CmxKpiStatCard({
   title,
   value,

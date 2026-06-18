@@ -25,6 +25,7 @@ import type { VerifyOTPRequest } from '@/lib/types/customer';
  *   token?: string (temporary verification token, valid 15 minutes),
  *   message?: string
  * }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

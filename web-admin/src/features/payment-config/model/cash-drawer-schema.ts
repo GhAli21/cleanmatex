@@ -34,7 +34,19 @@ export const closeDrawerSessionSchema = z.object({
   close_notes: z.string().max(500).optional(),
 });
 
+/**
+ *
+ */
 export type CreateCashDrawerFormValues = z.infer<typeof createCashDrawerSchema>;
+/**
+ *
+ */
 export type UpdateCashDrawerFormValues = z.infer<typeof updateCashDrawerSchema>;
+/**
+ *
+ */
 export type OpenDrawerSessionFormValues = z.infer<typeof openDrawerSessionSchema>;
+/**
+ *
+ */
 export type CloseDrawerSessionFormValues = z.infer<typeof closeDrawerSessionSchema>;

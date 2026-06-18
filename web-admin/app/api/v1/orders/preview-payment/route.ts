@@ -15,6 +15,7 @@ import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment
 /**
  * POST /api/v1/orders/preview-payment
  * Returns server-calculated totals for items + discounts + promo + gift card.
+ * @param request
  */
 export async function POST(request: NextRequest) {
   const csrfResponse = await validateCSRF(request);

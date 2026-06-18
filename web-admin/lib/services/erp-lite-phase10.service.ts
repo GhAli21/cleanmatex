@@ -48,7 +48,14 @@ interface CostSummaryResult {
   latest_run_no: string | null;
 }
 
+/**
+ *
+ */
 export class ErpLitePhase10Service {
+  /**
+   *
+   * @param locale
+   */
   static async getDashboardSnapshot(
     locale: ErpLiteReportLocale
   ): Promise<ErpLitePhase10DashboardSnapshot> {
@@ -144,6 +151,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createAllocationRule(input: CreateErpLiteAllocationRuleInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -184,6 +195,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createAllocationRun(input: CreateErpLiteAllocationRunInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -221,6 +236,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async addAllocationRunLine(input: CreateErpLiteAllocationRunLineInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -273,6 +292,11 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param allocRunId
+   * @param postedBy
+   */
   static async postAllocationRun(allocRunId: string, postedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -304,6 +328,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createCostComponent(input: CreateErpLiteCostComponentInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -342,6 +370,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createCostRun(input: CreateErpLiteCostRunInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -377,6 +409,10 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async addCostRunDetail(input: CreateErpLiteCostRunDetailInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -435,6 +471,11 @@ export class ErpLitePhase10Service {
     });
   }
 
+  /**
+   *
+   * @param costRunId
+   * @param postedBy
+   */
   static async postCostRun(costRunId: string, postedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 

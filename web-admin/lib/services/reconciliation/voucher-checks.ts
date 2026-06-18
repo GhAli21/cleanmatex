@@ -327,6 +327,8 @@ export async function checkCashMovementAmountEqualsRetained(
  * Why a helper: the orchestrator needs the same projection the voucher-scoped
  * service uses. Centralising the fetch keeps both consumers aligned on the
  * `VoucherHeader` shape.
+ * @param tenantOrgId
+ * @param window
  */
 export async function getPostedVouchersInWindow(
   tenantOrgId: string,

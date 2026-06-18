@@ -37,6 +37,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 /**
  * Auth Provider Component
+ * @param root0
+ * @param root0.children
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -728,7 +730,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ) {
       refreshTenants()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, isLoading, availableTenants.length]) // refreshTenants intentionally omitted to prevent loops
 
   /**
@@ -764,7 +766,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     refreshPermissions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, currentTenant, isLoading]) // refreshPermissions intentionally omitted — accessed via ref to avoid loops
 
   const value: AuthContextType = {

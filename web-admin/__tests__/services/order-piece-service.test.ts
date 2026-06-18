@@ -48,7 +48,11 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
 
-/** Matches Supabase chain: .select(..., { count, head }).eq().eq().eq().eq() → Promise<{ count, error }> */
+/**
+ * Matches Supabase chain: .select(..., { count, head }).eq().eq().eq().eq() → Promise<{ count, error }>
+ * @param count
+ * @param error
+ */
 function mockHeadCountChain(count: number | null, error: { message: string } | null) {
   const terminal = Promise.resolve({ count, error });
   return {

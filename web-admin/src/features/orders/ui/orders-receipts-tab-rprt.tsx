@@ -21,6 +21,12 @@ interface OrdersReceiptsTabRprtProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.receipts
+ * @param root0.translations
+ */
 export function OrdersReceiptsTabRprt({
   receipts,
   translations: t,

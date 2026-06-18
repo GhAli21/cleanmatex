@@ -22,6 +22,9 @@ import {
 } from '@/lib/services/navigation-management.service'
 import { NavigationItemForm } from './NavigationItemForm'
 
+/**
+ *
+ */
 export function NavigationManagement() {
   const [components, setComponents] = useState<NavigationComponent[]>([])
   const [isLoading, setIsLoading] = useState(true)

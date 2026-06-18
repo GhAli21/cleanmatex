@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 /**
  * GET /api/navigation/components/[id]
  * Get a single navigation component (admin only)
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: Request,
@@ -54,6 +57,9 @@ export async function GET(
 /**
  * PUT /api/navigation/components/[id]
  * Update a navigation component (admin only)
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PUT(
   request: Request,
@@ -166,6 +172,9 @@ export async function PUT(
 /**
  * DELETE /api/navigation/components/[id]
  * Delete a navigation component (admin only)
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: Request,

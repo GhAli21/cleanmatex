@@ -14,6 +14,11 @@ interface ProcessingStatsCardsProps {
   stats: ProcessingStats;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ */
 export function ProcessingStatsCards({ stats }: ProcessingStatsCardsProps) {
   const t = useTranslations('processing.stats');
   const { formatMoneyWithCode } = useTenantCurrency();

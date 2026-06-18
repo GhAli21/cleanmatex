@@ -11,6 +11,9 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { deleteOrderInputSchema } from '@/lib/validations/new-order-payment-schemas';
 
+/**
+ *
+ */
 export interface DeleteOrderResult {
   success: boolean;
   error?: string;
@@ -19,6 +22,8 @@ export interface DeleteOrderResult {
 /**
  * Delete an order and its dependents (rollback for new-order payment flow).
  * Enforces tenant context; only deletes orders for the given tenant.
+ * @param tenantOrgId
+ * @param orderId
  */
 export async function deleteOrderAction(
   tenantOrgId: string,

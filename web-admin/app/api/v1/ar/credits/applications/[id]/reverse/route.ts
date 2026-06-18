@@ -8,6 +8,11 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+/**
+ *
+ * @param request
+ * @param context
+ */
 export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await requirePermission('ar_credits:reverse')(request);
   if (auth instanceof NextResponse) return auth;

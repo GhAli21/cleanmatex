@@ -30,7 +30,11 @@ function humanizePreferenceCode(code: string): string {
     .join(' ');
 }
 
-/** Match catalog keys case-insensitively (DB/API often uses upper snake_case; static lists may differ). */
+/**
+ * Match catalog keys case-insensitively (DB/API often uses upper snake_case; static lists may differ).
+ * @param lookup
+ * @param code
+ */
 function resolveCatalogLabel(lookup: Record<string, string>, code: string): string | undefined {
   if (!code) return undefined;
   const direct = lookup[code]?.trim();
@@ -53,7 +57,11 @@ function resolveExtraByCode(lookup: Record<string, number>, code: string): numbe
   return 0;
 }
 
-/** When catalog has no row: optional match to legacy `STAIN_CONDITIONS` (POS seed list — not authoritative vs DB). */
+/**
+ * When catalog has no row: optional match to legacy `STAIN_CONDITIONS` (POS seed list — not authoritative vs DB).
+ * @param code
+ * @param getBilingual
+ */
 function legacyStaticConditionLabel(
   code: string,
   getBilingual: (a: string | null | undefined, b: string | null | undefined) => string

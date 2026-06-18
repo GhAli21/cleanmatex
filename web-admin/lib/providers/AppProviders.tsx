@@ -28,6 +28,12 @@ function getInitialClientLocale(initialLocale: Locale): Locale {
   return getLocaleFromLocalStorage()
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ * @param root0.initialLocale
+ */
 export function AppProviders({
   children,
   initialLocale = 'en'

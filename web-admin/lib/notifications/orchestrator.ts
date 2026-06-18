@@ -99,6 +99,7 @@ function computeScheduledAt(config: ChannelConfig, priority: NotificationPriorit
 /**
  * Main orchestration function.
  * Call this from event-emitter.ts — do not call adapters directly.
+ * @param event
  */
 export async function orchestrateNotification(
   event: NotificationEvent

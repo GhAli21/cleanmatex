@@ -26,6 +26,7 @@ import type { ReconciliationHistoryItem } from '@/lib/services/cashup-service';
 
 /**
  * Get cash-up data for a date: expected amounts by method, existing reconciliation, payment methods.
+ * @param date
  */
 export async function getCashUpData(date: string): Promise<
   | { success: true; data: CashUpDayData }
@@ -67,6 +68,7 @@ export async function getCashUpData(date: string): Promise<
 
 /**
  * Submit cash-up reconciliation for a date.
+ * @param input
  */
 export async function submitCashUp(
   input: CashUpSubmitInput
@@ -120,6 +122,10 @@ export async function submitCashUp(
 
 /**
  * Get reconciliation history (optional).
+ * @param filters
+ * @param filters.startDate
+ * @param filters.endDate
+ * @param filters.limit
  */
 export async function getCashUpHistory(filters?: {
   startDate?: string;

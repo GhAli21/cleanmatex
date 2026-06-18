@@ -17,6 +17,10 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

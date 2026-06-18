@@ -11,6 +11,12 @@ import { prisma } from '@/lib/db/prisma';
 /** Prisma transaction client (matches order-service / order-piece-service). */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+/**
+ *
+ * @param supabase
+ * @param tenantOrgId
+ * @param codes
+ */
 export async function fetchOrgServicePreferenceCfIdsByCodesSupabase(
   supabase: SupabaseClient,
   tenantOrgId: string,
@@ -35,7 +41,12 @@ export async function fetchOrgServicePreferenceCfIdsByCodesSupabase(
   return m;
 }
 
-/** `org_service_preference_cf` is not on the Prisma client; raw SQL keeps the txn atomic. */
+/**
+ * `org_service_preference_cf` is not on the Prisma client; raw SQL keeps the txn atomic.
+ * @param tx
+ * @param tenantOrgId
+ * @param codes
+ */
 export async function fetchOrgServicePreferenceCfIdsByCodesPrismaTx(
   tx: PrismaTx,
   tenantOrgId: string,

@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
@@ -47,6 +47,17 @@ interface BranchOverrideDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.branchId
+ * @param root0.orgPaymentMethodId
+ * @param root0.methodName
+ * @param root0.existing
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function BranchOverrideDialog({
   branchId,
   orgPaymentMethodId,
@@ -91,8 +102,11 @@ export function BranchOverrideDialog({
     });
   };
 
+  const cashDrawerRequired = useWatch({ control: form.control, name: 'cash_drawer_required' });
+  const terminalRequired = useWatch({ control: form.control, name: 'terminal_required' });
+
   const BoolSwitch = ({ field }: { field: keyof FormValues }) => {
-    const val = form.watch(field);
+    const val = useWatch({ control: form.control, name: field });
     return (
       <CmxSwitch
         checked={val === true}
@@ -155,7 +169,7 @@ export function BranchOverrideDialog({
             <div className="flex items-center justify-between">
               <span className="text-sm">{t('branches.cashDrawerRequired')}</span>
               <CmxSwitch
-                checked={!!form.watch('cash_drawer_required')}
+                checked={!!cashDrawerRequired}
                 onCheckedChange={(v) => form.setValue('cash_drawer_required', v)}
                 disabled={isPending}
               />
@@ -163,7 +177,7 @@ export function BranchOverrideDialog({
             <div className="flex items-center justify-between">
               <span className="text-sm">{t('branches.terminalRequired')}</span>
               <CmxSwitch
-                checked={!!form.watch('terminal_required')}
+                checked={!!terminalRequired}
                 onCheckedChange={(v) => form.setValue('terminal_required', v)}
                 disabled={isPending}
               />

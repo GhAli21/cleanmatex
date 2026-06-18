@@ -50,6 +50,9 @@ async function getAuthContext() {
  * Get a single price list by ID with items
  *
  * Response: { success: true, data: PriceListWithItems }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -97,6 +100,9 @@ export async function GET(
  * Request Body: PriceListUpdateRequest (partial)
  *
  * Response: { success: true, data: PriceList, message: string }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -186,6 +192,9 @@ export async function PATCH(
  * Delete a price list (hard delete)
  *
  * Response: { success: true, message: string }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

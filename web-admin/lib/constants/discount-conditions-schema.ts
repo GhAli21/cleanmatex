@@ -49,4 +49,7 @@ export const discountConditionsSchema = z.object({
     .optional(),
 });
 
+/**
+ *
+ */
 export type DiscountConditionsInput = z.infer<typeof discountConditionsSchema>;

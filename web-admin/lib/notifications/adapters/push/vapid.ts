@@ -15,6 +15,9 @@
 import webpush from 'web-push'
 import { logger } from '@lib/utils/logger'
 
+/**
+ *
+ */
 export interface VapidSubscriptionData {
   endpoint: string
   keys: {
@@ -23,6 +26,9 @@ export interface VapidSubscriptionData {
   }
 }
 
+/**
+ *
+ */
 export interface VapidSendResult {
   success: boolean
   subscriptionId: string
@@ -46,6 +52,12 @@ function ensureVapidConfigured() {
   return true
 }
 
+/**
+ *
+ * @param subscriptionId
+ * @param subscriptionData
+ * @param payload
+ */
 export async function sendVapidPush(
   subscriptionId: string,
   subscriptionData: VapidSubscriptionData,

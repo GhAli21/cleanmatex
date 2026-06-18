@@ -23,6 +23,14 @@ interface TerminalsTabProps {
   onRefresh: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.terminals
+ * @param root0.branches
+ * @param root0.isLoading
+ * @param root0.onRefresh
+ */
 export function TerminalsTab({ terminals, branches, isLoading, onRefresh }: TerminalsTabProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();

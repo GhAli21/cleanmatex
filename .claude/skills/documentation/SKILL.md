@@ -8,13 +8,27 @@ user-invocable: true
 
 ## Documentation Structure
 
-**ALL new documentation goes into `docs/features/{feature_name}/`** — no exceptions.
+**ALL features documentations goes into `docs/features/{feature_name}/`** — no exceptions.
+
 Do NOT create new files under `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level docs subfolder.
 Those folders are legacy; they receive no new content.
 
+For each feature/task, create or update scoped docs under `docs/features/[feature_name folder]/`.
+
+Feature docs should cover:
+
+```text
+progress status, developer guide, user guide, test guide, permissions, APIs, feature flags, settings, validations, risks, and rollout notes
+```
+
+Do not create duplicate docs.
+
+Follow this structure:
+
+The documentations folders and files structure:
 ```
 docs/
-  features/                         # ← THE ONLY TARGET for new docs
+  features/                         # ← Refresh or update if exists or Create if not exists 
     orders/
       README.md
       development_plan.md
@@ -25,7 +39,7 @@ docs/
       user_guide.md
       user_guide_mermaid.md
       deploy_guide.md
-      testing_scenarios.md
+      testing_guide_and_scenarios.md
       CHANGELOG.md
       version.txt
       technical_docs/               # API specs, data models, architecture diagrams

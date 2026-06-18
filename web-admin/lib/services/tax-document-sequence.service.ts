@@ -16,6 +16,10 @@ type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>
  * a transaction is a programming error and will throw.
  *
  * Sequence numbers start at 1. 0 is reserved for legacy backfill rows.
+ * @param tx
+ * @param tenantId
+ * @param documentType
+ * @param fiscalYear
  */
 export async function allocateTaxDocumentSequence(
   tx: PrismaTransactionClient,
@@ -73,6 +77,9 @@ export async function allocateTaxDocumentSequence(
  *   SIM-2026-000042
  *   CN-2026-000003
  *   DN-2026-000001
+ * @param documentType
+ * @param fiscalYear
+ * @param sequenceNumber
  */
 export function formatTaxDocumentNo(
   documentType: TaxDocumentType,

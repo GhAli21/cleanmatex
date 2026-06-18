@@ -11,6 +11,9 @@ import {
   SETTING_CODES,
 } from '@/lib/services/tenant-settings.service';
 
+/**
+ *
+ */
 export interface TenantPreferenceSettings {
   autoApplyCustomerPrefs: boolean;
 }
@@ -22,6 +25,10 @@ interface UseTenantPreferenceSettingsOptions {
   enabled?: boolean;
 }
 
+/**
+ *
+ * @param options
+ */
 export function useTenantPreferenceSettings(options: UseTenantPreferenceSettingsOptions) {
   const { tenantId, branchId, userId, enabled = true } = options;
 

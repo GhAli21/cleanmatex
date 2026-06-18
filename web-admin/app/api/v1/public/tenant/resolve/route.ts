@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveTenantBySlug } from '@/lib/services/tenant-resolve.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const slug = request.nextUrl.searchParams.get('slug')?.trim().toLowerCase();

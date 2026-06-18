@@ -15,6 +15,9 @@ import twilio from 'twilio'
 import { logger } from '@lib/utils/logger'
 import { notificationSettingsService } from '@lib/notifications/settings-service'
 
+/**
+ *
+ */
 export interface OutboxWhatsAppRow {
   id: string
   tenant_org_id: string
@@ -25,6 +28,9 @@ export interface OutboxWhatsAppRow {
   retry_count: number
 }
 
+/**
+ *
+ */
 export interface WhatsAppDeliveryResult {
   success: boolean
   errorMessage?: string
@@ -184,6 +190,10 @@ async function deliverViaHqProxy(row: OutboxWhatsAppRow): Promise<WhatsAppDelive
   }
 }
 
+/**
+ *
+ * @param row
+ */
 export async function deliverWhatsAppOutbox(row: OutboxWhatsAppRow): Promise<WhatsAppDeliveryResult> {
   if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
     return deliverViaHqProxy(row)

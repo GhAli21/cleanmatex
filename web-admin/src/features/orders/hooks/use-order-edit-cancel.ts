@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 
 /**
  * Hook to cancel order editing: release lock and navigate to order detail
+ * @param orderId
  */
 export function useOrderEditCancel(orderId: string | null) {
   const router = useRouter();

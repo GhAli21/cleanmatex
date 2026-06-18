@@ -30,6 +30,10 @@ const createCampaignSchema = z.object({
 // GET — campaign list, paginated
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:manage')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -84,6 +88,10 @@ export async function GET(request: NextRequest) {
 // POST — create campaign (status = DRAFT)
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const authCheck = await requirePermission('notifications:manage')(request)
   if (authCheck instanceof NextResponse) return authCheck

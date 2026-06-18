@@ -13,6 +13,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
 import { StatCard } from '../Widget'
 
+/**
+ *
+ */
 export function OrdersTodayWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

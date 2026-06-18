@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Customer Category Service
  * Manages org_customer_category_cf (tenant customer categories)

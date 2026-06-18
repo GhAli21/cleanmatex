@@ -21,6 +21,13 @@ interface CmxLineChartProps {
   yKey: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.xKey
+ * @param root0.yKey
+ */
 export function CmxLineChart({ data, xKey, yKey }: CmxLineChartProps) {
   return (
     <div className="h-64 w-full">

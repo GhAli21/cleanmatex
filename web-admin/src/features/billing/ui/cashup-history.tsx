@@ -25,6 +25,11 @@ function formatDate(isoDate: string): string {
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.currencyCode
+ */
 export default function CashUpHistory({
   currencyCode: currencyCodeProp = ORDER_DEFAULTS.CURRENCY,
 }: CashUpHistoryProps) {

@@ -25,6 +25,13 @@ interface PaymentDetailClientProps {
   returnToInvoiceId?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.payment
+ * @param root0.auditEntries
+ * @param root0.returnToInvoiceId
+ */
 export default function PaymentDetailClient({
   payment,
   auditEntries = [],

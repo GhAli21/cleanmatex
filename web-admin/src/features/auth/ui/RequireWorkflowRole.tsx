@@ -22,6 +22,9 @@ import {
   type WorkflowRole,
 } from '@/lib/hooks/use-has-workflow-role'
 
+/**
+ *
+ */
 export interface RequireWorkflowRoleProps {
   /** Workflow role code (e.g., 'RECEPTION', 'QA', 'DELIVERY') */
   role: WorkflowRole
@@ -33,6 +36,10 @@ export interface RequireWorkflowRoleProps {
 
 /**
  * Render children only if user has the specified workflow role
+ * @param root0
+ * @param root0.role
+ * @param root0.children
+ * @param root0.fallback
  */
 export function RequireWorkflowRole({
   role,
@@ -67,6 +74,13 @@ export interface RequireAnyWorkflowRoleProps {
   fallback?: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.roles
+ * @param root0.children
+ * @param root0.fallback
+ */
 export function RequireAnyWorkflowRole({
   roles,
   children,
@@ -101,6 +115,13 @@ export interface RequireAllWorkflowRolesProps {
   fallback?: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.roles
+ * @param root0.children
+ * @param root0.fallback
+ */
 export function RequireAllWorkflowRoles({
   roles,
   children,

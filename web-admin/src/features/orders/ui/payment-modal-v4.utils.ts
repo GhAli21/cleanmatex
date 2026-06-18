@@ -10,6 +10,9 @@ export { sanitizeDecimalDraft, parseDecimalDraft, applyKeypadInput };
 
 // PaymentKeypadKey moved to cmx-keypad-presets.ts (Phase 3a).
 // Re-exported here for backward compatibility until payment-modal-v4.tsx is updated in Phase 5.
+/**
+ *
+ */
 export type PaymentKeypadKey =
   | '0'
   | '1'
@@ -30,10 +33,21 @@ export type PaymentKeypadKey =
 
 // Backward-compat wrapper — strips trailing zeros as the old implementation did.
 // New code should import formatMoneyDraft from '@/lib/money/money-draft' directly.
+/**
+ *
+ * @param value
+ * @param decimalPlaces
+ */
 export function formatDecimalDraft(value: number, decimalPlaces: number): string {
   return formatMoneyDraft(value, decimalPlaces, false).replace(/\.?0+$/, '');
 }
 
+/**
+ *
+ * @param subtotal
+ * @param percent
+ * @param decimalPlaces
+ */
 export function syncDiscountFromPercent(
   subtotal: number,
   percent: number,
@@ -44,11 +58,22 @@ export function syncDiscountFromPercent(
   return Number.parseFloat(((subtotal * clampedPercent) / 100).toFixed(decimalPlaces));
 }
 
+/**
+ *
+ * @param subtotal
+ * @param amount
+ */
 export function syncDiscountPercentFromAmount(subtotal: number, amount: number): number {
   if (!Number.isFinite(amount) || amount <= 0 || subtotal <= 0) return 0;
   return Math.max(0, Math.min(100, (amount / subtotal) * 100));
 }
 
+/**
+ *
+ * @param amountToCharge
+ * @param saleTotal
+ * @param preferred
+ */
 export function deriveOutstandingPolicy(
   amountToCharge: number,
   saleTotal: number,
@@ -58,6 +83,11 @@ export function deriveOutstandingPolicy(
   return preferred;
 }
 
+/**
+ *
+ * @param saleTotal
+ * @param totalSettledNowAmount
+ */
 export function deriveAmountAppliedToOrder(
   saleTotal: number,
   totalSettledNowAmount: number
@@ -67,6 +97,13 @@ export function deriveAmountAppliedToOrder(
 
 export const getAmountAppliedToOrder = deriveAmountAppliedToOrder;
 
+/**
+ *
+ * @param cashTenderedAmount
+ * @param cashAppliedAmount
+ * @param canReturnChangeFromCash
+ * @param epsilon
+ */
 export function deriveChangeReturnedAmount(
   cashTenderedAmount: number,
   cashAppliedAmount: number,
@@ -77,6 +114,12 @@ export function deriveChangeReturnedAmount(
   return canReturnChangeFromCash && changeAmount > epsilon ? changeAmount : 0;
 }
 
+/**
+ *
+ * @param changeAmount
+ * @param canReturnChangeFromCash
+ * @param epsilon
+ */
 export function getDisplayChangeAmount(
   changeAmount: number,
   canReturnChangeFromCash: boolean,
@@ -85,6 +128,13 @@ export function getDisplayChangeAmount(
   return canReturnChangeFromCash && changeAmount > epsilon ? changeAmount : 0;
 }
 
+/**
+ *
+ * @param excessAmount
+ * @param cashChangeCapacity
+ * @param canReturnChangeFromCash
+ * @param epsilon
+ */
 export function deriveUnresolvedOverpaymentAmount(
   excessAmount: number,
   cashChangeCapacity: number,
@@ -100,6 +150,13 @@ export function deriveUnresolvedOverpaymentAmount(
 
 export const getUnresolvedOverpaymentAmount = deriveUnresolvedOverpaymentAmount;
 
+/**
+ *
+ * @param cashLegAmount
+ * @param changeAmount
+ * @param canReturnChangeFromCash
+ * @param epsilon
+ */
 export function getNetCashRetainedAmount(
   cashLegAmount: number,
   changeAmount: number,
@@ -112,6 +169,13 @@ export function getNetCashRetainedAmount(
   return Math.max(0, cashLegAmount - changeAmount);
 }
 
+/**
+ *
+ * @param rawTenderedAmount
+ * @param appliedAmount
+ * @param canReturnChangeFromCash
+ * @param decimalPlaces
+ */
 export function deriveCashTenderedAmount(
   rawTenderedAmount: number,
   appliedAmount: number,
@@ -124,6 +188,18 @@ export function deriveCashTenderedAmount(
   return Number.parseFloat(tenderedAmount.toFixed(decimalPlaces));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rawAmount
+ * @param root0.paymentLegs
+ * @param root0.legIndex
+ * @param root0.saleTotal
+ * @param root0.giftCardAmount
+ * @param root0.decimalPlaces
+ * @param root0.walletBalance
+ * @param root0.supportsOverpayment
+ */
 export function deriveLegAppliedAmount({
   rawAmount,
   paymentLegs,
@@ -158,7 +234,11 @@ export function deriveLegAppliedAmount({
   );
 }
 
-/** Sum of payment-leg amounts, optionally excluding one leg index. */
+/**
+ * Sum of payment-leg amounts, optionally excluding one leg index.
+ * @param paymentLegs
+ * @param excludeLegIndex
+ */
 export function getTotalLegSettled(
   paymentLegs: Array<{ amount?: number }>,
   excludeLegIndex?: number
@@ -172,6 +252,11 @@ export function getTotalLegSettled(
 /**
  * Remaining order balance still available to allocate across payment legs,
  * after gift-card credits and other legs (optionally excluding one leg).
+ * @param saleTotal
+ * @param paymentLegs
+ * @param giftCardAmount
+ * @param excludeLegIndex
+ * @param decimalPlaces
  */
 export function getRemainingToAllocate(
   saleTotal: number,
@@ -185,7 +270,13 @@ export function getRemainingToAllocate(
   return Number.parseFloat(Math.max(0, remaining).toFixed(decimalPlaces));
 }
 
-/** Max amount a single leg may hold without exceeding sale total minus gift card and other legs. */
+/**
+ * Max amount a single leg may hold without exceeding sale total minus gift card and other legs.
+ * @param paymentLegs
+ * @param idx
+ * @param saleTotal
+ * @param giftCardAmount
+ */
 export function getLegOrderCap(
   paymentLegs: Array<{ amount?: number }>,
   idx: number,
@@ -195,7 +286,14 @@ export function getLegOrderCap(
   return getRemainingToAllocate(saleTotal, paymentLegs, giftCardAmount, idx);
 }
 
-/** Default amount when selecting or re-selecting a payment method leg. */
+/**
+ * Default amount when selecting or re-selecting a payment method leg.
+ * @param paymentLegs
+ * @param legIndex
+ * @param saleTotal
+ * @param giftCardAmount
+ * @param decimalPlaces
+ */
 export function getSuggestedDefaultLegAmount(
   paymentLegs: Array<{ amount?: number }>,
   legIndex: number | undefined,
@@ -212,6 +310,15 @@ export function getSuggestedDefaultLegAmount(
   );
 }
 
+/**
+ *
+ * @param availableBalance
+ * @param paymentLegs
+ * @param saleTotal
+ * @param giftCardAmount
+ * @param decimalPlaces
+ * @param excludeLegIndex
+ */
 export function getSuggestedStoredValueAmount(
   availableBalance: number,
   paymentLegs: Array<{ amount?: number }>,
@@ -232,6 +339,16 @@ export function getSuggestedStoredValueAmount(
   );
 }
 
+/**
+ *
+ * @param rawAmount
+ * @param paymentLegs
+ * @param idx
+ * @param saleTotal
+ * @param giftCardAmount
+ * @param decimalPlaces
+ * @param walletBalance
+ */
 export function capPaymentLegAmount(
   rawAmount: number,
   paymentLegs: Array<{ amount?: number }>,
@@ -253,6 +370,10 @@ export function capPaymentLegAmount(
 /**
  * Caps each leg when checkout totals or gift-card credits change so allocations
  * never exceed the canonical sale total.
+ * @param paymentLegs
+ * @param saleTotal
+ * @param giftCardAmount
+ * @param decimalPlaces
  */
 export function reconcilePaymentLegAmounts<T extends { amount?: number }>(
   paymentLegs: T[],
@@ -274,7 +395,10 @@ export function reconcilePaymentLegAmounts<T extends { amount?: number }>(
   return next;
 }
 
-/** Drops zero-amount placeholder legs while preserving at least one leg when provided. */
+/**
+ * Drops zero-amount placeholder legs while preserving at least one leg when provided.
+ * @param paymentLegs
+ */
 export function pruneZeroAmountLegs<T extends { amount?: number }>(
   paymentLegs: T[]
 ): T[] {
@@ -282,6 +406,15 @@ export function pruneZeroAmountLegs<T extends { amount?: number }>(
   return nonZero.length > 0 ? nonZero : paymentLegs;
 }
 
+/**
+ *
+ * @param walletBalance
+ * @param paymentLegs
+ * @param idx
+ * @param saleTotal
+ * @param decimalPlaces
+ * @param giftCardAmount
+ */
 export function getWalletLegMaxAmount(
   walletBalance: number,
   paymentLegs: Array<{ amount?: number }>,
@@ -301,6 +434,12 @@ export function getWalletLegMaxAmount(
   );
 }
 
+/**
+ *
+ * @param appliedAmount
+ * @param availableBalance
+ * @param epsilon
+ */
 export function walletLegExceedsBalance(
   appliedAmount: number,
   availableBalance: number,
@@ -319,6 +458,11 @@ export type PaymentLegReferenceFields = {
   auth_code?: string;
 };
 
+/**
+ *
+ * @param leg
+ * @param requiresReference
+ */
 export function legHasRequiredPaymentReference(
   leg: PaymentLegReferenceFields,
   requiresReference: boolean
@@ -337,6 +481,9 @@ export function legHasRequiredPaymentReference(
   );
 }
 
+/**
+ *
+ */
 export type StoredValueCapContext = {
   walletBalance?: number;
   advanceBalance?: number;
@@ -344,7 +491,11 @@ export type StoredValueCapContext = {
   loyaltyBalance?: number;
 };
 
-/** Live balance cap for customer-credit payment legs, when applicable. */
+/**
+ * Live balance cap for customer-credit payment legs, when applicable.
+ * @param method
+ * @param caps
+ */
 export function getStoredValueCapForLeg(
   method: string,
   caps: StoredValueCapContext
@@ -363,14 +514,22 @@ export function getStoredValueCapForLeg(
   }
 }
 
-/** All cash legs must allow change for aggregate change-return UX to match server rules. */
+/**
+ * All cash legs must allow change for aggregate change-return UX to match server rules.
+ * @param cashLegs
+ */
 export function canReturnChangeFromAllCashLegs(
   cashLegs: Array<{ supportsChangeReturn: boolean }>
 ): boolean {
   return cashLegs.length > 0 && cashLegs.every((leg) => leg.supportsChangeReturn);
 }
 
-/** True when a leg amount was capped because allocation cannot exceed remaining due. */
+/**
+ * True when a leg amount was capped because allocation cannot exceed remaining due.
+ * @param rawAmount
+ * @param cappedAmount
+ * @param epsilon
+ */
 export function wasPaymentLegAmountCapped(
   rawAmount: number,
   cappedAmount: number,
@@ -495,6 +654,7 @@ export function buildGatewayReturnState(state: Record<string, unknown>): string 
  * is the right call here — partial state is worse than a clean reload
  * because the operator can re-enter values, but cannot diagnose half a
  * form populated with stale gateway-flow data.
+ * @param raw
  */
 export function parseGatewayReturnState(raw: string | null | undefined): Record<string, unknown> | null {
   if (!raw) return null;

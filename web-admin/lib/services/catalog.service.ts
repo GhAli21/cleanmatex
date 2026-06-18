@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * PRD-007: Catalog Service Management
  * Core business logic for catalog, products, and pricing management

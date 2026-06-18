@@ -11,6 +11,8 @@ type BaseContextInput = {
  *
  * Keeps request metadata aligned across endpoints so logs are easier to filter
  * in Vercel/runtime log aggregators.
+ * @param request
+ * @param input
  */
 export function buildPublicApiLogContext(
   request: NextRequest,

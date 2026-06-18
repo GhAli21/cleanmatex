@@ -30,6 +30,9 @@ const FALLBACK_ROLE_OPTIONS = [
   { value: 'branch_manager', label: 'Branch Manager' },
 ] as const
 
+/**
+ *
+ */
 export default function CreateUserScreen() {
   const t = useTranslations('users.create')
   const tModal = useTranslations('users.modal')

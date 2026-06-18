@@ -31,6 +31,9 @@ const COUNTRY_CODES = [
   { code: '+961', label: 'Lebanon', flag: '🇱🇧' },
 ];
 
+/**
+ *
+ */
 export default function B2BCustomerCreatePage() {
   const router = useRouter();
   const t = useTranslations('customers');

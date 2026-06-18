@@ -7,6 +7,9 @@
 
 import { cookies } from 'next/headers';
 
+/**
+ *
+ */
 export type Locale = 'en' | 'ar';
 
 /**

@@ -15,6 +15,9 @@ import { createOrder } from '@/app/actions/orders/create-order';
 import { fetchCustomers } from '@/lib/api/customers';
 import type { CustomerListItem } from '@/lib/types/customer';
 
+/**
+ *
+ */
 export function QuickDropForm() {
   const router = useRouter();
   const t = useTranslations('orders.quickDrop');
@@ -95,6 +98,8 @@ export function QuickDropForm() {
           <input
             ref={customerInputRef}
             type="text"
+            role="combobox"
+            aria-controls="quick-drop-customer-listbox"
             value={customerQuery}
             onChange={(e) => {
               setCustomerQuery(e.target.value);
@@ -109,7 +114,11 @@ export function QuickDropForm() {
             aria-expanded={customerDropdownOpen}
           />
           {customerDropdownOpen && customerResults.length > 0 && (
-            <ul className={`absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg ${isRTL ? 'text-right' : 'text-left'}`}>
+            <ul
+              id="quick-drop-customer-listbox"
+              role="listbox"
+              className={`absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg ${isRTL ? 'text-right' : 'text-left'}`}
+            >
               {customerResults.map((c) => (
                 <li key={c.id}>
                   <button

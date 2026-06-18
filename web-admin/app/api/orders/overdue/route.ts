@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user

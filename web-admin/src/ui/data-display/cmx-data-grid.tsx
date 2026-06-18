@@ -69,6 +69,8 @@ const GLOBAL_SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Tracks whether horizontal overflow exists on each inline edge; RTL uses signed `scrollLeft` per HTML spec.
+ * @param scrollRef
+ * @param dir
  */
 function useScrollOverflowHints(
   scrollRef: React.RefObject<HTMLElement | null>,
@@ -122,7 +124,12 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-/** Case-insensitive substring match on stringified cell value. */
+/**
+ * Case-insensitive substring match on stringified cell value.
+ * @param row
+ * @param columnId
+ * @param filterValue
+ */
 const cmxIncludesStringFilter: FilterFn<unknown> = (row, columnId, filterValue) => {
   const q = String(filterValue ?? '').trim().toLowerCase();
   if (!q) return true;
@@ -132,6 +139,9 @@ const cmxIncludesStringFilter: FilterFn<unknown> = (row, columnId, filterValue) 
 };
 cmxIncludesStringFilter.autoRemove = (v) => !v || String(v).trim() === '';
 
+/**
+ *
+ */
 export type CmxDataGridColumnMeta = {
   disableFilter?: boolean;
   /** Hide column below breakpoint (`md` = hidden until `md`, i.e. `hidden md:table-cell`). */
@@ -150,6 +160,9 @@ function hideBelowClass(hideBelow?: 'sm' | 'md' | 'lg'): string {
   return 'hidden lg:table-cell';
 }
 
+/**
+ *
+ */
 export type CmxDataGridLabels = {
   resetFilters: string;
   rowsPerPage: string;
@@ -254,6 +267,10 @@ function densityFilterInputClass(d: CmxDataGridDensity): string {
 
 /**
  * Wraps cell content with a hover-revealed copy control so row-level clicks stay unambiguous (`stopPropagation`).
+ * @param root0
+ * @param root0.copyText
+ * @param root0.copyButtonLabel
+ * @param root0.children
  */
 function GridCopyableShell({
   copyText,
@@ -420,6 +437,9 @@ function buildCsvFromTable<TData>(table: Table<TData>): string {
   return [header, ...lines].join('\n');
 }
 
+/**
+ *
+ */
 export interface CmxDataGridProps<TData> {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
@@ -641,6 +661,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     return () => window.clearTimeout(tmr);
   }, [columnVisibility, columnVisibilityStorageKey]);
 
+  // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
   const table = useReactTable({
     data: dataAfterGlobalSearch,
     columns,

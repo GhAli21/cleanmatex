@@ -7,6 +7,9 @@ import type {
   ContactRoleCd,
 } from '@/lib/constants/b2b';
 
+/**
+ *
+ */
 export interface B2BContact {
   id: string;
   tenantOrgId: string;
@@ -25,6 +28,9 @@ export interface B2BContact {
   updatedBy: string | null;
 }
 
+/**
+ *
+ */
 export interface B2BContract {
   id: string;
   tenantOrgId: string;
@@ -41,6 +47,9 @@ export interface B2BContract {
   updatedBy: string | null;
 }
 
+/**
+ *
+ */
 export interface B2BStatement {
   id: string;
   tenantOrgId: string;
@@ -63,6 +72,9 @@ export interface B2BStatement {
   updatedBy: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateB2BContactRequest {
   customerId: string;
   contactName?: string;
@@ -73,6 +85,9 @@ export interface CreateB2BContactRequest {
   isPrimary?: boolean;
 }
 
+/**
+ *
+ */
 export interface UpdateB2BContactRequest {
   contactName?: string;
   contactName2?: string;
@@ -82,6 +97,9 @@ export interface UpdateB2BContactRequest {
   isPrimary?: boolean;
 }
 
+/**
+ *
+ */
 export interface CreateB2BContractRequest {
   customerId: string;
   contractNo: string;
@@ -90,6 +108,9 @@ export interface CreateB2BContractRequest {
   pricingTerms?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface UpdateB2BContractRequest {
   contractNo?: string;
   effectiveFrom?: string;
@@ -97,6 +118,9 @@ export interface UpdateB2BContractRequest {
   pricingTerms?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface GenerateStatementRequest {
   customerId: string;
   contractId?: string;

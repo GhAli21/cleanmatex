@@ -12,6 +12,9 @@ const minioClient = new Client({
 const BUCKET_NAME = process.env.MINIO_BUCKET || 'cleanmatex-uploads';
 
 // Ensure bucket exists
+/**
+ *
+ */
 export async function ensureBucket() {
   try {
     const exists = await minioClient.bucketExists(BUCKET_NAME);
@@ -40,6 +43,13 @@ export async function ensureBucket() {
 }
 
 // Upload file to MinIO
+/**
+ *
+ * @param file
+ * @param fileName
+ * @param contentType
+ * @param metadata
+ */
 export async function uploadFile(
   file: Buffer,
   fileName: string,
@@ -65,6 +75,10 @@ export async function uploadFile(
 }
 
 // Get file URL
+/**
+ *
+ * @param fileName
+ */
 export async function getFileUrl(fileName: string): Promise<string> {
   try {
     // For production with public bucket, construct direct URL
@@ -81,6 +95,10 @@ export async function getFileUrl(fileName: string): Promise<string> {
 }
 
 // Delete file from MinIO
+/**
+ *
+ * @param fileName
+ */
 export async function deleteFile(fileName: string): Promise<void> {
   try {
     await minioClient.removeObject(BUCKET_NAME, fileName);
@@ -91,6 +109,13 @@ export async function deleteFile(fileName: string): Promise<void> {
 }
 
 // Upload order photo
+/**
+ *
+ * @param orderId
+ * @param file
+ * @param originalName
+ * @param tenantId
+ */
 export async function uploadOrderPhoto(
   orderId: string,
   file: Buffer,
@@ -118,6 +143,11 @@ export async function uploadOrderPhoto(
 }
 
 // List files in order folder
+/**
+ *
+ * @param orderId
+ * @param tenantId
+ */
 export async function listOrderPhotos(
   orderId: string,
   tenantId: string

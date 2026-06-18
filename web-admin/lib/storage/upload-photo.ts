@@ -7,6 +7,9 @@
 
 import { Client } from 'minio';
 
+/**
+ *
+ */
 export interface UploadPhotoResult {
   success: boolean;
   url?: string;

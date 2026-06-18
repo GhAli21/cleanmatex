@@ -6,6 +6,12 @@ import { togglePromotionActive } from '@/lib/services/promotion-engine.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ promoId: string }> }
@@ -39,6 +45,12 @@ const patchSchema = z.object({
   usageLimitPerCustomer: z.number().int().positive().optional(),
 });
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ promoId: string }> }
@@ -81,6 +93,12 @@ export async function PATCH(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ promoId: string }> }

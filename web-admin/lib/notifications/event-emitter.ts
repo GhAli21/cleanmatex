@@ -13,6 +13,7 @@ import { orchestrateNotification } from '@lib/notifications/orchestrator';
  * Fire-and-forget safe: errors are logged but never thrown to the caller,
  * so a notification failure cannot break the business operation that triggered it.
  *
+ * @param event
  * @example
  * await emitNotificationEvent({
  *   code: 'order.created',

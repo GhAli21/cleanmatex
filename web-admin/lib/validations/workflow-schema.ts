@@ -76,8 +76,17 @@ export const TransitionResponseSchema = z.object({
   error: z.string().optional(),
 });
 
+/**
+ *
+ */
 export type OrderStatus = z.infer<typeof OrderStatusEnum>;
+/**
+ *
+ */
 export type WorkflowSettings = z.infer<typeof WorkflowSettingsSchema>;
+/**
+ *
+ */
 export type StatusHistoryEntry = z.infer<typeof StatusHistoryEntrySchema>;
 
 // PRD-010: Additional Workflow Schemas
@@ -261,15 +270,48 @@ export const RecordStepRequestSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ *
+ */
 export type WorkflowTemplate = z.infer<typeof WorkflowTemplateSchema>;
+/**
+ *
+ */
 export type WorkflowStage = z.infer<typeof WorkflowStageSchema>;
+/**
+ *
+ */
 export type TenantWorkflowSettings = z.infer<typeof TenantWorkflowSettingsSchema>;
+/**
+ *
+ */
 export type OrderIssue = z.infer<typeof OrderIssueSchema>;
+/**
+ *
+ */
 export type ProcessingStep = z.infer<typeof ProcessingStepSchema>;
+/**
+ *
+ */
 export type OrderHistoryEntry = z.infer<typeof OrderHistoryEntrySchema>;
+/**
+ *
+ */
 export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;
+/**
+ *
+ */
 export type TransitionOrderRequest = z.infer<typeof TransitionOrderRequestSchema>;
+/**
+ *
+ */
 export type SplitOrderRequest = z.infer<typeof SplitOrderRequestSchema>;
+/**
+ *
+ */
 export type CreateIssueRequest = z.infer<typeof CreateIssueRequestSchema>;
+/**
+ *
+ */
 export type RecordStepRequest = z.infer<typeof RecordStepRequestSchema>;
 

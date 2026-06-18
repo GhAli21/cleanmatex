@@ -34,6 +34,15 @@ const FALLBACK_ROLE_OPTIONS = [
   { value: 'branch_manager', labelKey: 'branch_manager', descKey: 'branch_managerDesc' },
 ] as const
 
+/**
+ *
+ * @param root0
+ * @param root0.user
+ * @param root0.onClose
+ * @param root0.onSaved
+ * @param root0.accessToken
+ * @param root0.availableRoles
+ */
 export default function UserModal({ user, onClose, onSaved, accessToken, availableRoles }: UserModalProps) {
   const t = useTranslations('users.modal')
   const tValidation = useTranslations('users.validation')

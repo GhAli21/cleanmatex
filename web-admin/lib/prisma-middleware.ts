@@ -147,6 +147,7 @@ export function applyTenantMiddleware(prisma: PrismaClient) {
 }
 
 /**
+ * @param _tenantId
  * @deprecated DO NOT USE - This function created a new PrismaClient per call,
  * exhausting the connection pool. Use withTenantContext() from '@/lib/db/tenant-context'
  * with the shared prisma singleton from '@/lib/db/prisma' instead.

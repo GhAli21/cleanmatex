@@ -14,6 +14,9 @@ async function getAuthContext() {
 /**
  * GET /api/v1/orders/[id]/history
  * PRD-010: Get comprehensive order history timeline
+ * @param _request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

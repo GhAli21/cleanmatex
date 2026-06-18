@@ -35,6 +35,13 @@ function formatDateTime(value: Date | string | null | undefined, locale: string)
   }).format(new Date(value));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.lines
+ * @param root0.voucherStatus
+ * @param root0.onDeleteLine
+ */
 export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: VoucherLineTableProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');

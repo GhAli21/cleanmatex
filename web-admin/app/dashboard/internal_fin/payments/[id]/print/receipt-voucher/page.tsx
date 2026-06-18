@@ -14,6 +14,9 @@ import { getOrderFinancialForReceiptAction } from '@/app/actions/orders/get-orde
 import { BillingReceiptVoucherPrintRprt } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
 import type { BillingReceiptVoucherPrintRprtData } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
 
+/**
+ *
+ */
 export default function ReceiptVoucherPrintPage() {
   const params = useParams<{ id: string }>();
   const tCommon = useTranslations('common');

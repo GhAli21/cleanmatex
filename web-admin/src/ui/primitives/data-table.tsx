@@ -1,5 +1,5 @@
 "use client"
-/* eslint-disable jsdoc/require-jsdoc, react-hooks/incompatible-library */
+/* eslint-disable jsdoc/require-jsdoc */
 
 import * as React from "react"
 import {
@@ -220,6 +220,8 @@ export function DataTable<TData, TValue>({
     defaultColumnSizes || {}
   )
 
+  // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
   const table = useReactTable({
     data,
     columns,

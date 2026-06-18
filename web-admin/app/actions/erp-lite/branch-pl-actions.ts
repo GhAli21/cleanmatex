@@ -45,6 +45,10 @@ function redirectBranchPl(notice?: string, error?: string) {
   redirect(`/dashboard/erp-lite/branch-pl${suffix ? `?${suffix}` : ''}`);
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function createErpLiteAllocationRuleAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.createAllocationRule({
@@ -67,6 +71,10 @@ export async function createErpLiteAllocationRuleAction(formData: FormData) {
   redirectBranchPl('allocation-rule-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function createErpLiteAllocationRunAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.createAllocationRun({
@@ -80,6 +88,10 @@ export async function createErpLiteAllocationRunAction(formData: FormData) {
   redirectBranchPl('allocation-run-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function addErpLiteAllocationRunLineAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.addAllocationRunLine({
@@ -98,6 +110,10 @@ export async function addErpLiteAllocationRunLineAction(formData: FormData) {
   redirectBranchPl('allocation-line-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function postErpLiteAllocationRunAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.postAllocationRun(getRequiredString(formData, 'alloc_run_id'));
@@ -109,6 +125,10 @@ export async function postErpLiteAllocationRunAction(formData: FormData) {
   redirectBranchPl('allocation-run-posted');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function createErpLiteCostComponentAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.createCostComponent({
@@ -131,6 +151,10 @@ export async function createErpLiteCostComponentAction(formData: FormData) {
   redirectBranchPl('cost-component-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function createErpLiteCostRunAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.createCostRun({
@@ -144,6 +168,10 @@ export async function createErpLiteCostRunAction(formData: FormData) {
   redirectBranchPl('cost-run-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function addErpLiteCostRunDetailAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.addCostRunDetail({
@@ -163,6 +191,10 @@ export async function addErpLiteCostRunDetailAction(formData: FormData) {
   redirectBranchPl('cost-run-detail-created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function postErpLiteCostRunAction(formData: FormData) {
   try {
     await ErpLitePhase10Service.postCostRun(getRequiredString(formData, 'cost_run_id'));

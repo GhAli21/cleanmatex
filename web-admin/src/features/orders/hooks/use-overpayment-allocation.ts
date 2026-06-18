@@ -10,11 +10,17 @@ import type {
 } from '@/lib/types/customer-receipt-allocation';
 import type { ExtraReceiptHandlingMode } from '@features/orders/ui/payment-modal/allocation/extra-receipt-handling-card';
 
+/**
+ *
+ */
 export type OverpaymentAllocationSourceType =
   | 'ORDER_PAYMENT_MODAL'
   | 'LATER_COLLECTION'
   | 'CUSTOMER_RECEIPT';
 
+/**
+ *
+ */
 export interface UseOverpaymentAllocationParams {
   customerId?: string | null;
   branchId?: string | null;
@@ -28,8 +34,27 @@ export interface UseOverpaymentAllocationParams {
   moneyEpsilon?: number;
   confirmedToastMessage?: string;
   remainingUnallocatedErrorMessage?: string;
+  /** When this value changes, allocation mode and preview state reset to defaults. */
+  stateResetKey?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ * @param root0.branchId
+ * @param root0.currencyCode
+ * @param root0.excessAmount
+ * @param root0.receiptAmount
+ * @param root0.currentOrderAllocationAmount
+ * @param root0.sourceType
+ * @param root0.sourceOrderId
+ * @param root0.paymentMethodCode
+ * @param root0.moneyEpsilon
+ * @param root0.confirmedToastMessage
+ * @param root0.remainingUnallocatedErrorMessage
+ * @param root0.stateResetKey
+ */
 export function useOverpaymentAllocation({
   customerId,
   branchId,
@@ -43,6 +68,7 @@ export function useOverpaymentAllocation({
   moneyEpsilon = 0.001,
   confirmedToastMessage = 'Allocation confirmed',
   remainingUnallocatedErrorMessage = 'Remaining unallocated amount must be zero',
+  stateResetKey,
 }: UseOverpaymentAllocationParams) {
   const { token: csrfToken } = useCSRFToken();
   const [extraReceiptMode, setExtraReceiptMode] = useState<ExtraReceiptHandlingMode>('adjust_legs');
@@ -54,6 +80,16 @@ export function useOverpaymentAllocation({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [openBalancesLoading, setOpenBalancesLoading] = useState(false);
+  const [prevStateResetKey, setPrevStateResetKey] = useState<string | undefined>(undefined);
+
+  if (stateResetKey !== undefined && prevStateResetKey !== stateResetKey) {
+    if (prevStateResetKey !== undefined) {
+      setExtraReceiptMode('adjust_legs');
+      setAllocationPreviewId(null);
+      setAllocationPreview(null);
+    }
+    setPrevStateResetKey(stateResetKey);
+  }
 
   const resetAllocationState = useCallback(() => {
     setAllocationPreviewId(null);

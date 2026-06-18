@@ -43,7 +43,11 @@ const FIELD_LABELS: Record<string, string> = {
   productId: 'Product',
 };
 
-/** Format API validation error into a readable message for the user */
+/**
+ * Format API validation error into a readable message for the user
+ * @param json
+ * @param status
+ */
 function formatValidationErrorMessage(
   json: Record<string, unknown>,
   status?: number

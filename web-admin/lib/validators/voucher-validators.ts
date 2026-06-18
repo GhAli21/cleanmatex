@@ -10,6 +10,7 @@ import { z, ZodError } from 'zod';
  * Formats a caught error for an API response.
  * Returns a human-readable message and the appropriate HTTP status code.
  * ZodErrors become 400; all others become 500.
+ * @param err
  */
 export function formatApiError(err: unknown): { message: string; status: number } {
   if (err instanceof ZodError) {

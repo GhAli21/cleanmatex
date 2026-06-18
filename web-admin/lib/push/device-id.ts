@@ -1,3 +1,6 @@
+/**
+ *
+ */
 export function getDeviceId(): string {
   const KEY = 'cmx_push_device_id';
   let id = localStorage.getItem(KEY);

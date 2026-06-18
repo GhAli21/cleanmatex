@@ -35,6 +35,12 @@ interface PriceHistoryTimelineProps {
   productId?: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.priceListId
+ * @param root0.productId
+ */
 export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTimelineProps) {
   const t = useTranslations('catalog')
   const isRTL = useRTL()

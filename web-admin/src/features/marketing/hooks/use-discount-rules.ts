@@ -16,6 +16,7 @@ interface UseDiscountRulesParams {
 
 /**
  * Hook to list and paginate discount rules for the current tenant.
+ * @param params
  */
 export function useDiscountRules(params: UseDiscountRulesParams = {}) {
   const [rules, setRules] = useState<DiscountRule[]>([]);

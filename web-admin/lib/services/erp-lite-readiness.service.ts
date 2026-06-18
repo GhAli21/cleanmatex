@@ -9,14 +9,23 @@ import type {
   ErpLiteMissingUsageRow,
 } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLiteReadinessService {
   // -------------------------------------------------------
   // Readiness snapshot for the current tenant
   // -------------------------------------------------------
+  /**
+   *
+   */
   static async getReadiness(): Promise<ErpLiteTenantReadiness | null> {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = {
         tenant_org_id: string;
         missing_required_mappings: string;
@@ -70,6 +79,10 @@ export class ErpLiteReadinessService {
   // -------------------------------------------------------
   // Missing-mapping details (required usage codes with issues)
   // -------------------------------------------------------
+  /**
+   *
+   * @param locale
+   */
   static async getMissingUsage(locale: 'en' | 'ar' = 'en'): Promise<ErpLiteMissingUsageRow[]> {
     const tenantId = await this.requireTenantId();
     const nameSql =
@@ -78,6 +91,9 @@ export class ErpLiteReadinessService {
         : Prisma.sql`v.usage_code_name`;
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = {
         tenant_org_id: string;
         usage_code_id: string;

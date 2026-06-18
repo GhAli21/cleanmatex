@@ -8,6 +8,9 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { logger } from '@/lib/utils/logger';
 import { AR_INVOICE_STATUSES } from '@/lib/constants/ar-invoice';
 
+/**
+ *
+ */
 export interface CreditLimitResult {
   allowed: boolean;
   currentBalance: number;
@@ -19,6 +22,11 @@ export interface CreditLimitResult {
   isCreditHold?: boolean;
 }
 
+/**
+ *
+ * @param customerId
+ * @param additionalAmount
+ */
 export async function checkCreditLimit(
   customerId: string,
   additionalAmount: number

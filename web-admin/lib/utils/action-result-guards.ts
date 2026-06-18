@@ -1,6 +1,7 @@
 /**
  * Narrowing helpers for server-action style results `{ success: true, ... } | { success: false, error }`.
  * Use when TypeScript does not narrow inside async `.then()` callbacks.
+ * @param result
  */
 export function getActionErrorMessage<T extends { success: true }>(
   result: T | { success: false; error: string }
@@ -9,7 +10,10 @@ export function getActionErrorMessage<T extends { success: true }>(
   return (result as { success: false; error: string }).error;
 }
 
-/** After `getActionErrorMessage(result) === null`, narrows `result` to the success branch. */
+/**
+ * After `getActionErrorMessage(result) === null`, narrows `result` to the success branch.
+ * @param result
+ */
 export function assertActionSuccess<T extends { success: true }>(
   result: T | { success: false; error: string }
 ): asserts result is T {

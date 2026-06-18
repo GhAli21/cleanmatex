@@ -337,29 +337,107 @@ export const previewArStatementCycleSchema = z.object({
   as_of_date: z.string().date().optional(),
 });
 
+/**
+ *
+ */
 export type CreateArInvoiceInput = z.infer<typeof createArInvoiceSchema>;
+/**
+ *
+ */
 export type CreateArInvoiceFromOrdersInput = z.infer<typeof createArInvoiceFromOrdersSchema>;
+/**
+ *
+ */
 export type UpdateArInvoiceInput = z.infer<typeof updateArInvoiceSchema>;
+/**
+ *
+ */
 export type IssueArInvoiceInput = z.infer<typeof issueArInvoiceSchema>;
+/**
+ *
+ */
 export type ApproveSensitiveArInvoiceInput = z.infer<typeof approveSensitiveArInvoiceSchema>;
+/**
+ *
+ */
 export type VoidArInvoiceInput = z.infer<typeof voidArInvoiceSchema>;
+/**
+ *
+ */
 export type AllocateArPaymentInput = z.infer<typeof allocateArPaymentSchema>;
+/**
+ *
+ */
 export type ReverseArPaymentAllocationInput = z.infer<typeof reverseArPaymentAllocationSchema>;
+/**
+ *
+ */
 export type CreateCreditNoteInput = z.infer<typeof createCreditNoteSchema>;
+/**
+ *
+ */
 export type CreateDebitNoteInput = z.infer<typeof createDebitNoteSchema>;
+/**
+ *
+ */
 export type WriteOffArInvoiceInput = z.infer<typeof writeOffArInvoiceSchema>;
+/**
+ *
+ */
 export type ArInvoiceListQuery = z.infer<typeof arInvoiceListQuerySchema>;
+/**
+ *
+ */
 export type ArLedgerQuery = z.infer<typeof arLedgerQuerySchema>;
+/**
+ *
+ */
 export type ArStatementQuery = z.infer<typeof arStatementQuerySchema>;
+/**
+ *
+ */
 export type ArAgingQuery = z.infer<typeof arAgingQuerySchema>;
+/**
+ *
+ */
 export type ArCreditsQuery = z.infer<typeof arCreditsQuerySchema>;
+/**
+ *
+ */
 export type ApplyArCreditInput = z.infer<typeof applyArCreditSchema>;
+/**
+ *
+ */
 export type ReverseArCreditApplicationInput = z.infer<typeof reverseArCreditApplicationSchema>;
+/**
+ *
+ */
 export type ArDisputesQuery = z.infer<typeof arDisputesQuerySchema>;
+/**
+ *
+ */
 export type CreateArDisputeInput = z.infer<typeof createArDisputeSchema>;
+/**
+ *
+ */
 export type ResolveArDisputeInput = z.infer<typeof resolveArDisputeSchema>;
+/**
+ *
+ */
 export type ArDunningQuery = z.infer<typeof arDunningQuerySchema>;
+/**
+ *
+ */
 export type RunArDunningInput = z.infer<typeof runArDunningSchema>;
+/**
+ *
+ */
 export type ArStatementCyclesQuery = z.infer<typeof arStatementCyclesQuerySchema>;
+/**
+ *
+ */
 export type CreateArStatementCycleInput = z.infer<typeof createArStatementCycleSchema>;
+/**
+ *
+ */
 export type PreviewArStatementCycleInput = z.infer<typeof previewArStatementCycleSchema>;

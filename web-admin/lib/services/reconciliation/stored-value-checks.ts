@@ -103,7 +103,13 @@ export async function checkWalletBalanceMatchesLedger(
  * may legitimately have no voucher backlink if they were created by an admin
  * top-up action that does not write through a Business Voucher.
  *
- * @internal — call via the named wrappers below for type-safety on table names.
+ * @param tenantOrgId
+ * @param window
+ * @param checkName
+ * @param entityType
+ * @param findOrphanedDebits - Query strategy for orphan debit rows in the target ledger table
+ * @internal
+ * Call via the named wrappers below for type-safety on table names.
  */
 async function runLedgerLinkExistsCheck(
   tenantOrgId: string,
@@ -127,7 +133,11 @@ async function runLedgerLinkExistsCheck(
   }));
 }
 
-/** WALLET_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`. */
+/**
+ * WALLET_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`.
+ * @param tenantOrgId
+ * @param window
+ */
 export async function checkWalletLedgerLink(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -159,7 +169,11 @@ export async function checkWalletLedgerLink(
   );
 }
 
-/** ADVANCE_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`. */
+/**
+ * ADVANCE_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`.
+ * @param tenantOrgId
+ * @param window
+ */
 export async function checkAdvanceLedgerLink(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -187,7 +201,11 @@ export async function checkAdvanceLedgerLink(
   );
 }
 
-/** GIFT_CARD_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`. */
+/**
+ * GIFT_CARD_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`.
+ * @param tenantOrgId
+ * @param window
+ */
 export async function checkGiftCardLedgerLink(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -216,7 +234,11 @@ export async function checkGiftCardLedgerLink(
   );
 }
 
-/** CREDIT_NOTE_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`. */
+/**
+ * CREDIT_NOTE_LEDGER_LINK_EXISTS — see `runLedgerLinkExistsCheck`.
+ * @param tenantOrgId
+ * @param window
+ */
 export async function checkCreditNoteLedgerLink(
   tenantOrgId: string,
   window: PeriodWindow,
@@ -250,6 +272,8 @@ export async function checkCreditNoteLedgerLink(
  * the loyalty backlink columns specifically so this check is possible.
  *
  * Loyalty ledger stores points, not money; `actualValue` reports raw points.
+ * @param tenantOrgId
+ * @param window
  */
 export async function checkLoyaltyLedgerLink(
   tenantOrgId: string,

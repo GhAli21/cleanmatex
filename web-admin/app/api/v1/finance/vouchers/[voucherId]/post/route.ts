@@ -5,6 +5,12 @@ import {
   recalcOrderSnapshotIfLinked,
 } from '@/lib/services/voucher-wiring.service';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string }> }

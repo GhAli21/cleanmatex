@@ -18,6 +18,9 @@ export const OUTSTANDING_POLICIES = {
   CREDIT_INVOICE: 'CREDIT_INVOICE',
 } as const;
 
+/**
+ *
+ */
 export type OutstandingPolicy =
   (typeof OUTSTANDING_POLICIES)[keyof typeof OUTSTANDING_POLICIES];
 
@@ -170,6 +173,9 @@ export const paymentLegSchema = z
     }
   });
 
+/**
+ *
+ */
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;
 
 // ---------------------------------------------------------------------------
@@ -238,7 +244,13 @@ export const overpaymentResolutionSchema = z
 /** @deprecated Use overpaymentResolutionSchema — alias for Phase 1 compat. */
 export const overpaymentDispositionSchema = overpaymentResolutionSchema;
 
+/**
+ *
+ */
 export type OverpaymentResolutionInput = z.infer<typeof overpaymentResolutionSchema>;
+/**
+ *
+ */
 export type OverpaymentResolutionLineInput = z.infer<typeof overpaymentResolutionLineSchema>;
 /** @deprecated Use OverpaymentResolutionInput */
 export type OverpaymentDispositionInput = OverpaymentResolutionInput;
@@ -295,7 +307,13 @@ export const newOrderPaymentPayloadSchema = z
     { message: 'Payment leg sum must equal amount to charge', path: ['paymentLegs'] }
   );
 
+/**
+ *
+ */
 export type NewOrderPaymentTotals = z.infer<typeof newOrderPaymentTotalsSchema>;
+/**
+ *
+ */
 export type NewOrderPaymentPayload = z.infer<typeof newOrderPaymentPayloadSchema>;
 
 // ---------------------------------------------------------------------------
@@ -334,6 +352,9 @@ export const previewPaymentRequestSchema = z.object({
   giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
 });
 
+/**
+ *
+ */
 export type PreviewPaymentRequest = z.infer<typeof previewPaymentRequestSchema>;
 
 // ---------------------------------------------------------------------------
@@ -465,7 +486,13 @@ export const createWithPaymentRequestSchema = z.object({
   paymentLegs: z.array(paymentLegSchema).min(1).optional(),
 });
 
+/**
+ *
+ */
 export type CreateWithPaymentRequest = z.infer<typeof createWithPaymentRequestSchema>;
+/**
+ *
+ */
 export type ClientTotals = z.infer<typeof clientTotalsSchema>;
 
 // ---------------------------------------------------------------------------
@@ -545,6 +572,9 @@ export const createInvoiceInputSchema = z.object({
   rec_notes: z.string().optional(),
 });
 
+/**
+ *
+ */
 export type CreateInvoiceInputValidated = z.infer<typeof createInvoiceInputSchema>;
 
 // ---------------------------------------------------------------------------
@@ -608,6 +638,9 @@ export const processPaymentActionInputSchema = z
     }
   );
 
+/**
+ *
+ */
 export type ProcessPaymentActionInputValidated = z.infer<
   typeof processPaymentActionInputSchema
 >;
@@ -621,4 +654,7 @@ export const deleteOrderInputSchema = z.object({
   tenantOrgId: z.string().uuid(),
 });
 
+/**
+ *
+ */
 export type DeleteOrderInput = z.infer<typeof deleteOrderInputSchema>;

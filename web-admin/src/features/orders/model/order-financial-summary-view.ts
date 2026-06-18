@@ -10,8 +10,14 @@ import type {
   OrderTaxRow,
 } from '@/app/actions/orders/get-order-financial';
 
+/**
+ *
+ */
 export type FinancialWarningSeverity = 'info' | 'warning' | 'error';
 
+/**
+ *
+ */
 export interface FinancialWarning {
   code: string;
   severity: FinancialWarningSeverity;
@@ -19,6 +25,9 @@ export interface FinancialWarning {
   messageParams?: Record<string, string | number>;
 }
 
+/**
+ *
+ */
 export interface OrderArInvoiceView {
   id: string;
   invoiceNo: string;
@@ -29,6 +38,9 @@ export interface OrderArInvoiceView {
   outstandingAmount?: number;
 }
 
+/**
+ *
+ */
 export interface OrderTaxDocumentView {
   id?: string;
   documentNo?: string;
@@ -49,6 +61,9 @@ export interface OrderTaxDocumentView {
   supersedesId?: string;
 }
 
+/**
+ *
+ */
 export interface OrderFinancialSummaryViewModel {
   orderId: string;
   orderNo: string;
@@ -140,6 +155,9 @@ export interface OrderFinancialSummaryViewModel {
   };
 }
 
+/**
+ *
+ */
 export interface MapOrderFinancialSummaryInput {
   snapshot: OrderFinancialSnapshot;
   charges: OrderChargeRow[];

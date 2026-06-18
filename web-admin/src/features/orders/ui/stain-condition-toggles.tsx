@@ -32,6 +32,17 @@ interface StainConditionTogglesProps {
   damageCatalog?: CatalogEntry[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.selectedConditions
+ * @param root0.onConditionToggle
+ * @param root0.disabled
+ * @param root0.defaultFilter
+ * @param root0.hideFilterBar
+ * @param root0.stainCatalog
+ * @param root0.damageCatalog
+ */
 export function StainConditionToggles({
   selectedConditions,
   onConditionToggle,

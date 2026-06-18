@@ -42,8 +42,14 @@ export const PREFERENCE_MAIN_TYPES = {
   NOTES:       'notes',
 } as const;
 
+/**
+ *
+ */
 export type PreferenceMainType = (typeof PREFERENCE_MAIN_TYPES)[keyof typeof PREFERENCE_MAIN_TYPES];
 
+/**
+ *
+ */
 export interface PreferenceKind {
   kind_code:            string;
   name:                 string | null;
@@ -61,6 +67,9 @@ export interface PreferenceKind {
 // Catalog Entities
 // ============================================================================
 
+/**
+ *
+ */
 export interface ServicePreference {
   code: ServicePreferenceCode;
   name: string;
@@ -87,6 +96,9 @@ export interface ServicePreference {
   preference_cf_id?: string | null;
 }
 
+/**
+ *
+ */
 export interface PackingPreference {
   code: PackingPreferenceCode;
   name: string;
@@ -106,6 +118,9 @@ export interface PackingPreference {
 // Tenant Config
 // ============================================================================
 
+/**
+ *
+ */
 export interface OrgServicePreferenceCf {
   id: string;
   tenant_org_id: string;
@@ -119,6 +134,9 @@ export interface OrgServicePreferenceCf {
   display_order?: number | null;
 }
 
+/**
+ *
+ */
 export interface OrgPackingPreferenceCf {
   id: string;
   tenant_org_id: string;
@@ -131,6 +149,9 @@ export interface OrgPackingPreferenceCf {
   display_order?: number | null;
 }
 
+/**
+ *
+ */
 export interface PreferenceBundle {
   id: string;
   tenant_org_id: string;
@@ -147,6 +168,9 @@ export interface PreferenceBundle {
 // Order Item / Piece Prefs
 // ============================================================================
 
+/**
+ *
+ */
 export interface OrderItemServicePref {
   id?: string;
   order_item_id: string;
@@ -157,6 +181,9 @@ export interface OrderItemServicePref {
   branch_id?: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderPieceServicePref {
   id?: string;
   order_item_piece_id: string;
@@ -171,6 +198,9 @@ export interface OrderPieceServicePref {
 // Customer Standing Prefs
 // ============================================================================
 
+/**
+ *
+ */
 export interface CustomerServicePref {
   id?: string;
   tenant_org_id: string;
@@ -184,6 +214,9 @@ export interface CustomerServicePref {
 // Resolution / API
 // ============================================================================
 
+/**
+ *
+ */
 export interface ResolvedPreferences {
   servicePrefs: Array<{ code: ServicePreferenceCode; source: PreferenceSource }>;
   packingPref?: PackingPreferenceCode;

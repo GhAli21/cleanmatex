@@ -19,6 +19,16 @@ interface EditOrderBarProps {
   isSaving?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderNo
+ * @param root0.onCancelEdit
+ * @param root0.onSave
+ * @param root0.isDirty
+ * @param root0.isCancelling
+ * @param root0.isSaving
+ */
 export function EditOrderBar({
   orderNo,
   onCancelEdit,

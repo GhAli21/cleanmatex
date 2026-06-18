@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * Piece Utilities
  * Helper functions for working with order item pieces

@@ -23,6 +23,13 @@ interface CustomerCreateModalProps {
   hideB2B?: boolean
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onClose
+ * @param root0.onSuccess
+ * @param root0.hideB2B
+ */
 export default function CustomerCreateModal({
   onClose,
   onSuccess,

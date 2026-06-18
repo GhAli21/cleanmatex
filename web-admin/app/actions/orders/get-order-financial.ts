@@ -28,6 +28,9 @@ export type {
   TaxDocumentSummaryRow,
 };
 
+/**
+ *
+ */
 export interface OrderFinancialData {
   snapshot: OrderFinancialSnapshot;
   charges: OrderChargeRow[];
@@ -42,6 +45,11 @@ export interface OrderFinancialData {
   taxDocuments: TaxDocumentSummaryRow[];
 }
 
+/**
+ *
+ * @param tenantId
+ * @param orderId
+ */
 export async function getOrderFinancialAction(
   tenantId: string,
   orderId: string
@@ -59,7 +67,10 @@ export async function getOrderFinancialAction(
   }
 }
 
-/** Client-callable variant — resolves tenantId from session internally. */
+/**
+ * Client-callable variant — resolves tenantId from session internally.
+ * @param orderId
+ */
 export async function getOrderFinancialForReceiptAction(
   orderId: string
 ): Promise<{ success: boolean; data?: OrderFinancialData; error?: string }> {

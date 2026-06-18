@@ -18,6 +18,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArCustomersPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.customers');
   const auth = await getAuthContext();

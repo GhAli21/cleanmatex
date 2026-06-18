@@ -17,6 +17,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { getAllPermissionsList } from '@/lib/api/permissions'
 import type { TenantPermission } from '@/lib/api/permissions'
 
+/**
+ *
+ */
 export interface UseTenantPermissionsResult {
   /** Flat list of all permissions */
   permissions: TenantPermission[]
@@ -24,6 +27,9 @@ export interface UseTenantPermissionsResult {
   error: string | null
 }
 
+/**
+ *
+ */
 export function useTenantPermissions(): UseTenantPermissionsResult {
   const { session } = useAuth()
   const accessToken = session?.access_token ?? ''

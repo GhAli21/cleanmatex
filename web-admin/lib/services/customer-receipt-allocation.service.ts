@@ -21,6 +21,9 @@ import {
 } from '@/lib/types/customer-receipt-allocation';
 import type { ManualAllocationLineInput } from '@/lib/validations/customer-receipt-allocation-schema';
 
+/**
+ *
+ */
 export interface AutoAllocateParams {
   tenantId: string;
   customerId: string;
@@ -75,6 +78,13 @@ function targetToAllocationLine(
   };
 }
 
+/**
+ *
+ * @param excessAmount
+ * @param targets
+ * @param policy
+ * @param customerId
+ */
 export function runAutoAllocationAlgorithm(
   excessAmount: number,
   targets: OpenBalanceTarget[],
@@ -171,6 +181,10 @@ export function runAutoAllocationAlgorithm(
   };
 }
 
+/**
+ *
+ * @param params
+ */
 export async function autoAllocateCustomerReceipt(
   params: AutoAllocateParams
 ): Promise<Omit<ReceiptAllocationPreviewResult, 'previewId' | 'previewStatus'>> {
@@ -220,6 +234,18 @@ export async function autoAllocateCustomerReceipt(
   };
 }
 
+/**
+ *
+ * @param params
+ * @param params.tenantId
+ * @param params.customerId
+ * @param params.branchId
+ * @param params.currencyCode
+ * @param params.excessAmount
+ * @param params.receiptAmount
+ * @param params.allocations
+ * @param params.sourceOrderId
+ */
 export async function manualAllocateCustomerReceipt(params: {
   tenantId: string;
   customerId: string;

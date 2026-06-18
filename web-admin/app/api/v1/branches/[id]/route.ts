@@ -11,6 +11,12 @@ import { TAX_PRICING_MODES, EXTRA_PRICE_PRICING_MODES } from '@/lib/constants/or
 const VALID_TAX_MODES = new Set<string>(Object.values(TAX_PRICING_MODES));
 const VALID_EXTRA_MODES = new Set<string>(Object.values(EXTRA_PRICE_PRICING_MODES));
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -44,6 +50,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

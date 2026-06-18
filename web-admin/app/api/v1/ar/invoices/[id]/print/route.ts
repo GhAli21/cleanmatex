@@ -3,6 +3,12 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { getArInvoiceDetail } from '@/lib/services/ar-invoice.service';
 import { jsonApiError } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

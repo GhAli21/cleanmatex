@@ -44,6 +44,15 @@ function buildSourceLink(voucher: VoucherData): string | null {
   return null;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.vouchers
+ * @param root0.orderId
+ * @param root0.orderBasePath
+ * @param root0.filterByInvoiceId
+ * @param root0.translations
+ */
 export function OrdersVouchersTabRprt({
   vouchers,
   orderId,

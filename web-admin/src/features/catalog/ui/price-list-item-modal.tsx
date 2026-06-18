@@ -29,6 +29,15 @@ interface Product {
   product_name2: string | null
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.priceListId
+ * @param root0.item
+ * @param root0.onSuccess
+ */
 export function PriceListItemModal({
   open,
   onClose,

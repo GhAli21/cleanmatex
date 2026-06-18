@@ -46,6 +46,11 @@ function buildIdempotencyKey(action: string, invoiceId: string) {
   return `${action}:${invoiceId}:${Date.now()}`;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.detail
+ */
 export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) {
   const t = useTranslations('invoices.ar.detailActions');
   const tCommon = useTranslations('common');

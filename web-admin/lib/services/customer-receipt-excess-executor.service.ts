@@ -22,6 +22,9 @@ import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-pay
 
 type PrismaTransactionClient = Prisma.TransactionClient;
 
+/**
+ *
+ */
 export interface ExecuteAllocationPreviewParams {
   tx: PrismaTransactionClient;
   tenantId: string;
@@ -52,6 +55,10 @@ function findAllocationPreviewId(resolution: OverpaymentResolutionInput): string
   return null;
 }
 
+/**
+ *
+ * @param resolution
+ */
 export function extractAllocationPreviewId(
   resolution: OverpaymentResolutionInput
 ): string | null {
@@ -270,6 +277,7 @@ async function applyAllocationLineTx(
 
 /**
  * Executes a confirmed allocation preview inside submit-order transaction.
+ * @param params
  */
 export async function executeAllocationPreviewTx(
   params: ExecuteAllocationPreviewParams
@@ -315,6 +323,10 @@ export async function executeAllocationPreviewTx(
   await markAllocationPreviewPosted(params.tx, params.tenantId, params.previewId, params.userId);
 }
 
+/**
+ *
+ * @param resolution
+ */
 export function resolutionIncludesAllocation(resolution: OverpaymentResolutionInput): boolean {
   return resolution.lines.some(
     (line) =>
@@ -323,6 +335,10 @@ export function resolutionIncludesAllocation(resolution: OverpaymentResolutionIn
   );
 }
 
+/**
+ *
+ * @param resolution
+ */
 export function getDispositionLinesExcludingAllocation(
   resolution: OverpaymentResolutionInput
 ): OverpaymentResolutionInput {

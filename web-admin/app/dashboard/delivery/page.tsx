@@ -38,6 +38,9 @@ interface DeliveryRoute {
   created_at: string;
 }
 
+/**
+ *
+ */
 export default function DeliveryPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();

@@ -156,10 +156,31 @@ export const paymentAdjustmentSchema = z.object({
  * Type exports
  */
 export type UpdateOrderInput = z.infer<typeof updateOrderInputSchema>;
+/**
+ *
+ */
 export type UpdateOrderRequest = z.infer<typeof updateOrderRequestSchema>;
+/**
+ *
+ */
 export type UpdateOrderItem = z.infer<typeof updateOrderItemSchema>;
+/**
+ *
+ */
 export type UpdateOrderPiece = z.infer<typeof updateOrderPieceSchema>;
+/**
+ *
+ */
 export type LockOrderInput = z.infer<typeof lockOrderInputSchema>;
+/**
+ *
+ */
 export type UnlockOrderInput = z.infer<typeof unlockOrderInputSchema>;
+/**
+ *
+ */
 export type CheckOrderLockInput = z.infer<typeof checkOrderLockInputSchema>;
+/**
+ *
+ */
 export type PaymentAdjustmentInput = z.infer<typeof paymentAdjustmentSchema>;

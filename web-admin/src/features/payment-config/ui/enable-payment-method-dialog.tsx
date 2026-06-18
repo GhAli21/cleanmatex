@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -22,6 +22,13 @@ interface EnablePaymentMethodDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePaymentMethodDialogProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
@@ -58,6 +65,9 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
     });
   };
 
+  const paymentMethodCode = useWatch({ control: form.control, name: 'payment_method_code' });
+  const paymentNature = useWatch({ control: form.control, name: 'payment_nature' });
+
   return (
     <CmxDialog open={open} onOpenChange={(v) => !v && onClose()}>
       <CmxDialogContent className="max-w-md">
@@ -68,7 +78,7 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
           <div>
             <label className="text-sm font-medium">{t('methods.paymentMethod')}</label>
             <CmxSelectDropdown
-              value={form.watch('payment_method_code')}
+              value={paymentMethodCode}
               onValueChange={(v) => {
                 form.setValue('payment_method_code', v);
                 const method = availableMethods.find((m) => m.payment_method_code === v);
@@ -114,7 +124,7 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
           <div>
             <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
             <CmxSelectDropdown
-              value={form.watch('payment_nature')}
+              value={paymentNature}
               onValueChange={(v) => form.setValue('payment_nature', v as never)}
             >
               <CmxSelectDropdownTrigger>

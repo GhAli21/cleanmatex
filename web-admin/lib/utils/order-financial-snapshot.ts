@@ -8,6 +8,9 @@
  * services, and pages while 0335 remains pending.
  */
 
+/**
+ *
+ */
 export interface CanonicalOrderFinancialRowLike {
   subtotal_amount?: unknown;
   total_discount_amount?: unknown;
@@ -44,6 +47,7 @@ function preferredNumber(
  * canonical snapshot columns and the old mirror columns. Consumers should
  * consistently read canonical values first and only use legacy fields as an
  * explicit fallback until 0335 removes them.
+ * @param row
  */
 export function readCanonicalOrderFinancialSnapshot(
   row: CanonicalOrderFinancialRowLike,

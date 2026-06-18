@@ -14,6 +14,10 @@ interface CashUpContentProps {
 /**
  * Client wrapper that coordinates form and history. When reconciliation is
  * saved successfully, the history list is refreshed by remounting it.
+ * @param root0
+ * @param root0.data
+ * @param root0.selectedDate
+ * @param root0.currencyCode
  */
 export default function CashUpContent({
   data,

@@ -27,6 +27,18 @@ interface CustomerTableProps {
   onRefresh: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customers
+ * @param root0.loading
+ * @param root0.pagination
+ * @param root0.selectedCustomers
+ * @param root0.onSelectCustomer
+ * @param root0.onSelectAll
+ * @param root0.onPageChange
+ * @param root0.onRefresh
+ */
 export default function CustomerTable({
   customers = [],
   loading = false,

@@ -19,6 +19,9 @@ import { reversePromoUsageTx } from './discount-service';
 import { refundGiftCardTx } from './gift-card-service';
 import { voidDiscountLinesTx } from '@/lib/db/order-discounts';
 
+/**
+ *
+ */
 export interface CancelOrderInput {
   orderId: string;
   tenantId: string;
@@ -27,6 +30,9 @@ export interface CancelOrderInput {
   cancellation_reason_code?: string;
 }
 
+/**
+ *
+ */
 export interface CancelOrderResult {
   success: boolean;
   error?: string;
@@ -45,6 +51,7 @@ export interface CancelOrderResult {
  *
  * The supabase RPC `cmx_ord_canceling_transition` already handled the order
  * status flip outside Prisma, so this is a follow-up best-effort reversal.
+ * @param input
  */
 async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
   warnings: string[];
@@ -149,6 +156,7 @@ async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
  * Cancel order and handle linked payments.
  * Call cmx_ord_canceling_transition RPC, then cancel each completed payment,
  * then reverse promo usage + gift card debits in a single Prisma transaction.
+ * @param input
  */
 export async function cancelOrder(input: CancelOrderInput): Promise<CancelOrderResult> {
   const supabase = await createClient();

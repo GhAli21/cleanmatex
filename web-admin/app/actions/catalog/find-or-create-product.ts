@@ -29,6 +29,7 @@ interface FindOrCreateProductResult {
 /**
  * Find or create a product by name
  * Tenant ID is retrieved from the session automatically
+ * @param params
  */
 export async function findOrCreateProduct(
   params: FindOrCreateProductParams

@@ -8,6 +8,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface JWTValidationResult {
   isValid: boolean;
   tenantId: string | null;
@@ -18,6 +21,7 @@ export interface JWTValidationResult {
 /**
  * Get tenant ID from user's active tenant in org_users_mst
  * Falls back to most recently accessed tenant
+ * @param userId
  */
 async function getUserActiveTenant(userId: string): Promise<string | null> {
   try {

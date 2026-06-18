@@ -89,6 +89,11 @@ async function getNextLineNoTx(
 /**
  * Internal core. Runs against the supplied tx client and assumes the caller
  * already established tenant context.
+ * @param tx
+ * @param tenantOrgId
+ * @param voucherId
+ * @param input
+ * @param userId
  */
 async function addVoucherLineInTx(
   tx: PrismaTransactionClient,
@@ -187,6 +192,12 @@ async function addVoucherLineInTx(
  * When `tx` is supplied, runs on the caller's transaction without nesting —
  * used by the submit-order orchestrator so a single tx covers header + lines
  * + stored-value redemptions + post-and-wire. Existing callers can omit `tx`.
+ * @param tenantOrgId
+ * @param voucherId
+ * @param input
+ * @param userId
+ * @param userRole
+ * @param tx
  */
 export async function addVoucherLine(
   tenantOrgId: string,
@@ -208,6 +219,10 @@ export async function addVoucherLine(
 
 /**
  * Update fields on a DRAFT voucher line.
+ * @param tenantOrgId
+ * @param lineId
+ * @param input
+ * @param userId
  */
 export async function updateVoucherLine(
   tenantOrgId: string,
@@ -263,6 +278,8 @@ export async function updateVoucherLine(
 
 /**
  * Permanently delete a DRAFT line from a voucher.
+ * @param tenantOrgId
+ * @param lineId
  */
 export async function deleteDraftVoucherLine(
   tenantOrgId: string,
@@ -287,6 +304,8 @@ export async function deleteDraftVoucherLine(
 
 /**
  * List all lines for a voucher, ordered by line_no.
+ * @param tenantOrgId
+ * @param voucherId
  */
 export async function listVoucherLines(
   tenantOrgId: string,

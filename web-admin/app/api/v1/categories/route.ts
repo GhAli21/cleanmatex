@@ -100,6 +100,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10; // Vercel timeout limit
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   
@@ -158,6 +162,7 @@ export async function GET(request: NextRequest) {
 // ==================================================================
 
 /**
+ * @param request
  * @swagger
  * /api/v1/categories:
  *   post:

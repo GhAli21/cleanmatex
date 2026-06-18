@@ -12,6 +12,9 @@
 import { sendEmail } from '@lib/notifications/email-sender';
 import { logger } from '@lib/utils/logger';
 
+/**
+ *
+ */
 export interface OutboxEmailRow {
   id: string;
   tenant_org_id: string;
@@ -23,6 +26,9 @@ export interface OutboxEmailRow {
   retry_count: number;
 }
 
+/**
+ *
+ */
 export interface EmailDeliveryResult {
   success: boolean;
   errorMessage?: string;
@@ -97,6 +103,10 @@ async function deliverViaHqProxy(row: OutboxEmailRow, subject: string): Promise<
 // Main entry point
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param row
+ */
 export async function deliverEmailOutbox(row: OutboxEmailRow): Promise<EmailDeliveryResult> {
   if (!row.recipient_address) {
     logger.warn('email adapter: no recipient_address on outbox row — skipping', {

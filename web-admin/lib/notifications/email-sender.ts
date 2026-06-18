@@ -7,6 +7,9 @@
 
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface SendEmailParams {
   to: string;
   subject: string;

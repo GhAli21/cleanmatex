@@ -71,6 +71,9 @@ const INITIAL_SETTINGS: GeneralSettings = {
   businessHours: DEFAULT_HOURS,
 }
 
+/**
+ *
+ */
 export default function GeneralSettingsPage() {
   const t = useTranslations('settings')
   const { token: csrfToken } = useCSRFToken()

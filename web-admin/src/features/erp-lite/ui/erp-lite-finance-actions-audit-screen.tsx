@@ -10,6 +10,11 @@ interface ErpLiteFinanceActionsAuditScreenProps {
   rows: ErpLitePostActionAuditRow[]
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ErpLiteFinanceActionsAuditScreen({ rows }: ErpLiteFinanceActionsAuditScreenProps) {
   const t = useTranslations('erpLite.financeActions')
 

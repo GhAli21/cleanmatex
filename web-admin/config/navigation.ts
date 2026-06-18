@@ -50,6 +50,9 @@ export type UserRole =
   // Read-only / placeholder
   | 'viewer' | 'none'
 
+/**
+ *
+ */
 export interface NavigationSection {
   key: string
   label: string
@@ -64,6 +67,9 @@ export interface NavigationSection {
   children?: NavigationItem[]
 }
 
+/**
+ *
+ */
 export interface NavigationItem {
   key: string
   label: string

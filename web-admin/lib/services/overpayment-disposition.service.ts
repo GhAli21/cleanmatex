@@ -12,6 +12,9 @@ import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-pay
 
 type PrismaTransactionClient = Prisma.TransactionClient;
 
+/**
+ *
+ */
 export interface ExecuteOverpaymentDispositionParams {
   tx: PrismaTransactionClient;
   tenantId: string;
@@ -25,6 +28,9 @@ export interface ExecuteOverpaymentDispositionParams {
   idempotencyKey: string;
 }
 
+/**
+ *
+ */
 export interface OverpaymentDispositionAuditRow {
   id: string;
   resolutionCode: string;
@@ -35,6 +41,7 @@ export interface OverpaymentDispositionAuditRow {
 /**
  * Executes ADR-047 disposition lines inside the submit-order transaction.
  * Audit rows land in org_fin_overpay_disp_dtl; stored-value ledgers are authoritative balances.
+ * @param params
  */
 export async function executeOverpaymentDispositionTx(
   params: ExecuteOverpaymentDispositionParams

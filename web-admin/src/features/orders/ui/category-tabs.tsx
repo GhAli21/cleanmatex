@@ -38,6 +38,7 @@ interface CategoryTabsProps {
 
 /**
  * Map icon name string to Lucide icon component
+ * @param iconName
  */
 function getIconComponent(iconName?: string): LucideIcon | null {
   if (!iconName) return null;

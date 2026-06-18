@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * GET /api/v1/workflows/screens/[screen]/contract
  * Returns screen contract configuration (pre-conditions, permissions)
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,

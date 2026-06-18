@@ -39,6 +39,15 @@ function formatDate(value: string | undefined, locale: string) {
   }).format(new Date(value));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.invoices
+ * @param root0.page
+ * @param root0.limit
+ * @param root0.total
+ * @param root0.sorting
+ */
 export function ArInvoicesHubTable({
   invoices,
   page,

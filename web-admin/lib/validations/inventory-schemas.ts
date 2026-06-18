@@ -34,6 +34,9 @@ export const stockAdjustmentSchema = z
     // SET allows negative (to set stock to negative value)
   });
 
+/**
+ *
+ */
 export type StockAdjustmentFormData = z.infer<typeof stockAdjustmentSchema>;
 
 /** Schema for update branch stock request */
@@ -48,4 +51,7 @@ export const updateBranchStockSchema = z.object({
   id_sku: z.string().max(50).nullable().optional(),
 });
 
+/**
+ *
+ */
 export type UpdateBranchStockFormData = z.infer<typeof updateBranchStockSchema>;

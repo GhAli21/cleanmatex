@@ -30,6 +30,7 @@ function normalizeUpper(value: string | null | undefined): string {
 /**
  * Maps Order Fin read model into the Order Details financial summary view model
  * with derived amounts, receivable rules, and consistency warnings.
+ * @param input
  */
 export function mapOrderFinancialSummaryView(
   input: MapOrderFinancialSummaryInput

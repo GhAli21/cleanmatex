@@ -52,6 +52,9 @@ const LANGUAGES = [
   { value: 'ar', label: 'Arabic (العربية)' },
 ];
 
+/**
+ *
+ */
 export default function TenantRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);

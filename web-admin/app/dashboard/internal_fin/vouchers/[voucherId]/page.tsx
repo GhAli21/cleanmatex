@@ -13,6 +13,11 @@ interface PageProps {
   params: Promise<{ voucherId: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function VoucherDetailPage({ params }: PageProps) {
   const { voucherId } = await params;
   const t = await getTranslations('finance.vouchers');

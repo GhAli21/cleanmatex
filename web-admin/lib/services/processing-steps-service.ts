@@ -6,6 +6,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ *
+ */
 export interface ProcessingStepConfig {
   step_code: string;
   step_seq: number;
@@ -17,17 +20,26 @@ export interface ProcessingStepConfig {
   display_order: number;
 }
 
+/**
+ *
+ */
 export interface GetProcessingStepsParams {
   tenantId: string;
   serviceCategoryCode: string;
 }
 
+/**
+ *
+ */
 export interface GetProcessingStepsResult {
   success: boolean;
   steps?: ProcessingStepConfig[];
   error?: string;
 }
 
+/**
+ *
+ */
 export class ProcessingStepsService {
   /**
    * Get processing steps for a service category
@@ -127,8 +139,10 @@ export class ProcessingStepsService {
 
   /**
    * Validate if a step code is valid for a service category
-   * 
-   * @param params - Tenant ID, service category code, and step code to validate
+   *
+   * @param tenantId - Tenant organization ID
+   * @param serviceCategoryCode - Service category code
+   * @param stepCode - Processing step code to validate
    * @returns True if step is valid for the category
    */
   static async isValidStepForCategory(

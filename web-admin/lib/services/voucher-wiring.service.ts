@@ -90,6 +90,11 @@ const LINE_SELECT = {
 /**
  * Internal core. Runs against the supplied tx client; assumes the caller
  * established tenant context.
+ * @param tx
+ * @param tenantOrgId
+ * @param voucherId
+ * @param userId
+ * @param idempotencyKey
  */
 async function postAndWireBizVoucherInTx(
   tx: PrismaTransactionClient,
@@ -321,6 +326,11 @@ async function postAndWireBizVoucherInTx(
  * `$transaction`, no nested `withTenantContext`) so submit-order can cover
  * header create + lines + stored-value debits + post-and-wire atomically.
  * Existing callers can omit `tx` and the function opens its own.
+ * @param tenantOrgId
+ * @param voucherId
+ * @param userId
+ * @param idempotencyKey
+ * @param tx
  */
 export async function postAndWireBizVoucher(
   tenantOrgId: string,
@@ -356,6 +366,8 @@ export async function postAndWireBizVoucher(
  * Reads voucher.source_module + voucher.order_id, and only runs recalc if
  * source_module === 'ORDERS' and order_id is set. Returns the new snapshot or
  * null (non-order voucher → no recalc).
+ * @param tenantOrgId
+ * @param voucherId
  */
 export async function recalcOrderSnapshotIfLinked(
   tenantOrgId: string,
@@ -394,6 +406,8 @@ export async function recalcOrderSnapshotIfLinked(
 /**
  * Fetch all operational effects linked to a voucher (read path for UI).
  * Returns three grouped arrays: orderPayments, cashDrawerMovements, creditApplications.
+ * @param tenantOrgId
+ * @param voucherId
  */
 export async function getVoucherLinkedEffects(
   tenantOrgId: string,
@@ -464,6 +478,8 @@ export async function getVoucherLinkedEffects(
 
 /**
  * Fetch all operational effects linked to a single voucher line.
+ * @param tenantOrgId
+ * @param lineId
  */
 export async function getLineLinkedEffect(
   tenantOrgId: string,

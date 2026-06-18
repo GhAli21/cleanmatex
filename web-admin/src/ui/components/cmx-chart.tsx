@@ -10,6 +10,9 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+/**
+ *
+ */
 export interface CmxChartProps<TData extends Record<string, unknown> = Record<string, unknown>> {
   data: TData[]
   xKey: string

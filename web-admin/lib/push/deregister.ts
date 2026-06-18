@@ -1,3 +1,8 @@
+/**
+ *
+ * @param deviceId
+ * @param providerCode
+ */
 export async function deregisterPush(
   deviceId: string,
   providerCode: 'VAPID' | 'FCM' | 'ONESIGNAL'

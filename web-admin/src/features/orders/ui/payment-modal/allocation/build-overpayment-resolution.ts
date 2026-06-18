@@ -2,6 +2,9 @@ import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-payment-schemas';
 import type { ExtraReceiptHandlingMode } from './extra-receipt-handling-card';
 
+/**
+ *
+ */
 export type BuildOverpaymentResolutionOptions = {
   allocationPreviewId?: string | null;
   noteReason?: string;
@@ -12,6 +15,9 @@ export type BuildOverpaymentResolutionOptions = {
 /**
  * Builds submit-order overpaymentResolution when cashier chose stored-value routing.
  * Returns undefined when user must adjust leg amounts instead.
+ * @param mode
+ * @param excessAmount
+ * @param options
  */
 export function buildOverpaymentResolutionPayload(
   mode: ExtraReceiptHandlingMode,

@@ -9,6 +9,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 
+/**
+ *
+ */
 export interface CurrencyConfigResult {
   currencyCode: string;
   decimalPlaces: number;

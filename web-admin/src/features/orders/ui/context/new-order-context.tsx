@@ -32,6 +32,8 @@ interface NewOrderProviderProps {
 /**
  * New Order Provider
  * Wraps the new order feature with context
+ * @param root0
+ * @param root0.children
  */
 export function NewOrderProvider({ children }: NewOrderProviderProps) {
   const [state, dispatch] = useReducer(newOrderReducer, initialState);

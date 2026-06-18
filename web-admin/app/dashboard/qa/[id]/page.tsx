@@ -39,6 +39,9 @@ interface QAOrder {
   items: QAItem[];
 }
 
+/**
+ *
+ */
 export default function QADetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -127,7 +130,7 @@ export default function QADetailPage() {
 
   useEffect(() => {
     loadOrder();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [orderId, currentTenant]);
 
   const handleAccept = async () => {

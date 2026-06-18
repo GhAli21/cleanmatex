@@ -20,6 +20,9 @@ const PHASE4_RESOLUTIONS = new Set<string>([
   OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES,
 ]);
 
+/**
+ *
+ */
 export interface OverpaymentResolutionValidationContext {
   paymentLegs?: PaymentLeg[];
   customerId?: string | null;
@@ -29,6 +32,9 @@ export interface OverpaymentResolutionValidationContext {
 /**
  * Validates checkout excess routing against ADR-047.
  * Call after buildSettlementPlan + validateSettlementPlan infrastructure checks.
+ * @param plan
+ * @param resolution
+ * @param context
  */
 export async function validateOverpaymentResolution(
   plan: SettlementPlan,

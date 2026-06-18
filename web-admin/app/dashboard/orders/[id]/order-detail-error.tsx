@@ -13,6 +13,9 @@ import Link from 'next/link';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 
+/**
+ *
+ */
 export interface OrderDetailErrorDebug {
   /** Error message from getOrder or server */
   serverError?: string;
@@ -35,6 +38,17 @@ interface OrderDetailErrorProps {
   debug?: OrderDetailErrorDebug;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.title
+ * @param root0.description
+ * @param root0.backToOrders
+ * @param root0.returnUrl
+ * @param root0.returnLabel
+ * @param root0.debug
+ */
 export function OrderDetailError({
   orderId,
   title,

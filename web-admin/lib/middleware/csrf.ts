@@ -24,6 +24,7 @@ const CSRF_EXEMPT_ROUTES = [
 
 /**
  * Check if route is exempt from CSRF protection
+ * @param pathname
  */
 function isExemptRoute(pathname: string): boolean {
   return CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route));
@@ -32,6 +33,7 @@ function isExemptRoute(pathname: string): boolean {
 /**
  * CSRF validation middleware
  * Should be applied to API routes that handle state-changing operations
+ * @param request
  */
 export async function validateCSRF(request: NextRequest): Promise<NextResponse | null> {
   const method = request.method;
@@ -102,6 +104,7 @@ export async function validateCSRF(request: NextRequest): Promise<NextResponse |
 
 /**
  * Higher-order function to wrap API route handlers with CSRF protection
+ * @param handler
  */
 export function withCSRF<T extends any[]>(
   handler: (request: NextRequest, ...args: T) => Promise<Response>

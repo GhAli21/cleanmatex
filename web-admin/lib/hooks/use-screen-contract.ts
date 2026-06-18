@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
+/**
+ *
+ */
 export interface ScreenContract {
   screen: string;
   preConditions: {

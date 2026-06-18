@@ -19,6 +19,13 @@ interface UpgradeProfileModalProps {
 
 type Step = 'confirm' | 'otp' | 'details'
 
+/**
+ *
+ * @param root0
+ * @param root0.customer
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function UpgradeProfileModal({
   customer,
   onClose,

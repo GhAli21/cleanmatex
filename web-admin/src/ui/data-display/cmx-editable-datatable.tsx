@@ -37,6 +37,32 @@ import {
 import { useRowValidation } from './cmx-editable-datatable.hooks'
 import { cn } from '@/lib/utils'
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.columns
+ * @param root0.getRowId
+ * @param root0.onSave
+ * @param root0.onBulkSave
+ * @param root0.onDelete
+ * @param root0.onSoftRemove
+ * @param root0.validationSchema
+ * @param root0.cellValidators
+ * @param root0.asyncRowValidator
+ * @param root0.onError
+ * @param root0.enableInlineAdd
+ * @param root0.enableBulkSave
+ * @param root0.enableSoftDelete
+ * @param root0.showActionsColumn
+ * @param root0.newRowPosition
+ * @param root0.loading
+ * @param root0.page
+ * @param root0.pageSize
+ * @param root0.total
+ * @param root0.onPageChange
+ * @param root0.onPageSizeChange
+ */
 export function CmxEditableDataTable<
   TData extends Record<string, any> = Record<string, any>
 >({
@@ -599,6 +625,8 @@ export function CmxEditableDataTable<
   }, [currentData, rowsState, getRowId])
 
   // TanStack Table setup
+  // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
   const table = useReactTable({
     data: visibleData,
     columns: tableColumns,

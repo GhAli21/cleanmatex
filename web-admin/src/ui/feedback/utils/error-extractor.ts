@@ -25,6 +25,10 @@ const DEFAULT_EXTRACTION_PATHS = [
 /**
  * Extract error message from various error types
  * Supports: Error, AxiosError, Supabase errors, fetch Response, plain objects
+ * @param error
+ * @param options
+ * @param options.fallback
+ * @param options.extractFrom
  */
 export function extractErrorMessage(
   error: unknown,
@@ -129,6 +133,8 @@ export function extractErrorMessage(
 
 /**
  * Get nested value from object using dot notation path
+ * @param obj
+ * @param path
  */
 function getNestedValue(obj: Record<string, any>, path: string): unknown {
   const keys = path.split('.');
@@ -146,6 +152,7 @@ function getNestedValue(obj: Record<string, any>, path: string): unknown {
 
 /**
  * Extract error code if available
+ * @param error
  */
 export function extractErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== 'object') {
@@ -173,6 +180,7 @@ export function extractErrorCode(error: unknown): string | undefined {
 
 /**
  * Extract error details/metadata
+ * @param error
  */
 export function extractErrorDetails(error: unknown): Record<string, unknown> {
   if (!error || typeof error !== 'object') {
@@ -215,6 +223,7 @@ export function extractErrorDetails(error: unknown): Record<string, unknown> {
 
 /**
  * Check if error is a network error
+ * @param error
  */
 export function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -251,6 +260,7 @@ export function isNetworkError(error: unknown): boolean {
 
 /**
  * Check if error is a client error (4xx)
+ * @param error
  */
 export function isClientError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -268,6 +278,7 @@ export function isClientError(error: unknown): boolean {
 
 /**
  * Check if error is a server error (5xx)
+ * @param error
  */
 export function isServerError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {

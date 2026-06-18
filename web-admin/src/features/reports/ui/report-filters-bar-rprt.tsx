@@ -34,6 +34,15 @@ function getPresetDates(preset: DatePreset): { startDate: string; endDate: strin
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.basePath
+ * @param root0.showStatusFilter
+ * @param root0.statusOptions
+ * @param root0.showOrderTypeFilter
+ * @param root0.showPaymentMethodFilter
+ */
 export default function ReportFiltersBar({
   basePath,
   showStatusFilter = false,

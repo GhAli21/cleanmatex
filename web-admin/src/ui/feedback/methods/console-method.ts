@@ -8,6 +8,9 @@ import { getMessageConfig } from '../message-config';
 
 /**
  * Display a message using console logging
+ * @param type
+ * @param message
+ * @param options
  */
 export function showConsoleMessage(
   type: MessageType,
@@ -55,6 +58,12 @@ export function showConsoleMessage(
 
 /**
  * Show a promise-based console log
+ * @param promise
+ * @param messages
+ * @param messages.loading
+ * @param messages.success
+ * @param messages.error
+ * @param options
  */
 export async function showConsolePromise<T>(
   promise: Promise<T>,

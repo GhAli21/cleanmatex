@@ -109,7 +109,7 @@ function UsersPage() {
     if (accessToken) {
       loadUsers()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentTenant, filters, pagination.page, accessToken])
 
   // Load stats and roles on mount
@@ -118,7 +118,7 @@ function UsersPage() {
       loadStats()
       loadRoles()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentTenant, accessToken])
 
   // Handlers

@@ -6,6 +6,9 @@
 
 'use client'
 
+/**
+ *
+ */
 export interface NavigationComponent {
   comp_id: string
   parent_comp_id: string | null
@@ -27,6 +30,9 @@ export interface NavigationComponent {
   badge: string | null
 }
 
+/**
+ *
+ */
 export interface CreateComponentData {
   comp_code: string
   parent_comp_code?: string | null
@@ -44,6 +50,9 @@ export interface CreateComponentData {
   badge?: string | null
 }
 
+/**
+ *
+ */
 export interface UpdateComponentData {
   parent_comp_code?: string | null
   label?: string
@@ -76,6 +85,7 @@ export async function getAllComponents(): Promise<NavigationComponent[]> {
 
 /**
  * Get a single component by ID
+ * @param id
  */
 export async function getComponentById(id: string): Promise<NavigationComponent> {
   const response = await fetch(`/api/navigation/components/${id}`)
@@ -88,6 +98,7 @@ export async function getComponentById(id: string): Promise<NavigationComponent>
 
 /**
  * Create a new component
+ * @param data
  */
 export async function createComponent(
   data: CreateComponentData
@@ -111,6 +122,8 @@ export async function createComponent(
 
 /**
  * Update a component
+ * @param id
+ * @param data
  */
 export async function updateComponent(
   id: string,
@@ -135,6 +148,7 @@ export async function updateComponent(
 
 /**
  * Delete a component
+ * @param id
  */
 export async function deleteComponent(id: string): Promise<void> {
   const response = await fetch(`/api/navigation/components/${id}`, {
@@ -149,6 +163,7 @@ export async function deleteComponent(id: string): Promise<void> {
 
 /**
  * Build a tree structure from flat component list
+ * @param components
  */
 export function buildComponentTree(
   components: NavigationComponent[]

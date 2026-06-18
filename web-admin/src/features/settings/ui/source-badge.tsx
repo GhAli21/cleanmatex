@@ -10,6 +10,9 @@
 import React from 'react';
 import { Badge } from '@ui/primitives';
 
+/**
+ *
+ */
 export type SettingSource =
   | 'SYSTEM_DEFAULT'
   | 'SYSTEM_PROFILE'
@@ -70,6 +73,13 @@ const SOURCE_CONFIG: Record<
   },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.source
+ * @param root0.sourceName
+ * @param root0.className
+ */
 export function SourceBadge({ source, sourceName, className }: SourceBadgeProps) {
   const config = SOURCE_CONFIG[source];
 
@@ -90,6 +100,9 @@ export function SourceBadge({ source, sourceName, className }: SourceBadgeProps)
 
 /**
  * Mini Source Badge - Compact version for inline use
+ * @param root0
+ * @param root0.source
+ * @param root0.className
  */
 export function MiniSourceBadge({ source, className }: Pick<SourceBadgeProps, 'source' | 'className'>) {
   const config = SOURCE_CONFIG[source];

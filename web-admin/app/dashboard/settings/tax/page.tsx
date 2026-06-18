@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { TaxSetupClient } from '@features/settings/tax/ui/tax-setup-client';
 
+/**
+ *
+ */
 export default async function TaxSetupPage() {
   const t = await getTranslations('taxSetup');
   const { tenantId } = await getAuthContext();

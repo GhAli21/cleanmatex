@@ -46,6 +46,7 @@ async function fetchPreferenceKinds(tenantId: string, quickBarOnly = false): Pro
 /**
  * Piece wizard / quick-bar: tenant + HQ visibility only.
  * `is_used_by_system` is true for normal HQ catalog rows (system-managed vs custom); it must not hide the whole catalog.
+ * @param p
  */
 function preferenceVisibleInOrderQuickBar(p: ServicePreference): boolean {
   if (p.is_show_in_quick_bar === false) return false;
@@ -53,6 +54,12 @@ function preferenceVisibleInOrderQuickBar(p: ServicePreference): boolean {
   return true;
 }
 
+/**
+ *
+ * @param branchId
+ * @param quickBarOnlyKinds
+ * @param orderQuickBarPrefs
+ */
 export function usePreferenceCatalog(
   branchId?: string | null,
   quickBarOnlyKinds = false,

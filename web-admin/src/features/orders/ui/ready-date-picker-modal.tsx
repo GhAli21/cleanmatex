@@ -22,6 +22,10 @@ interface ReadyDatePickerModalProps {
   allowNow?: boolean;
 }
 
+/**
+ *
+ * @param props
+ */
 export function ReadyDatePickerModal(props: ReadyDatePickerModalProps) {
   const { open, ...rest } = props;
   if (!open) return null;

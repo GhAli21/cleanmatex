@@ -8,6 +8,9 @@ import { CmxButton, CmxInput } from '@ui/primitives';
 import { Printer, ScanBarcode } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface SortingPieceCardProps {
   piece: OrderItemPiece;
   onBarcodeScan?: (pieceId: string, barcode: string) => void;
@@ -15,6 +18,14 @@ export interface SortingPieceCardProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.onBarcodeScan
+ * @param root0.onPrintTag
+ * @param root0.readOnly
+ */
 export function SortingPieceCard({
   piece,
   onBarcodeScan,

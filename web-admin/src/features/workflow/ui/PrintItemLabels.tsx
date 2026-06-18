@@ -8,6 +8,12 @@ interface PrintItemLabelsProps {
   items: OrderItem[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderNo
+ * @param root0.items
+ */
 export function PrintItemLabels({ orderNo, items }: PrintItemLabelsProps) {
   const [printing, setPrinting] = useState(false);
 

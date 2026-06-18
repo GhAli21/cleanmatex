@@ -38,6 +38,14 @@ interface PreferencesPanelProps {
   enforcePrefCompatibility?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.selectedPieceId
+ * @param root0.selectedConditions
+ * @param root0.onConditionToggle
+ * @param root0.enforcePrefCompatibility
+ */
 export function PreferencesPanel({
   selectedPieceId,
   selectedConditions,

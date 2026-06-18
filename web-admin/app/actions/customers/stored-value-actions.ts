@@ -19,6 +19,9 @@ import {
   issueCreditNote,
 } from '@/lib/services/stored-value.service';
 
+/**
+ *
+ */
 export interface StoredValueSummaryRow {
   customerId:         string;
   customerName:       string;
@@ -147,7 +150,12 @@ export async function getAllStoredValueSummaries(): Promise<{
   }
 }
 
-/** Top up a customer's wallet. Creates the wallet if it does not yet exist. */
+/**
+ * Top up a customer's wallet. Creates the wallet if it does not yet exist.
+ * @param customerId
+ * @param amount
+ * @param notes
+ */
 export async function topUpWallet(
   customerId: string,
   amount: number,
@@ -175,7 +183,12 @@ export async function topUpWallet(
   }
 }
 
-/** Issue / top up a customer advance balance. */
+/**
+ * Issue / top up a customer advance balance.
+ * @param customerId
+ * @param amount
+ * @param notes
+ */
 export async function issueAdvance(
   customerId: string,
   amount: number,
@@ -203,7 +216,13 @@ export async function issueAdvance(
   }
 }
 
-/** Issue a new credit note for a customer. */
+/**
+ * Issue a new credit note for a customer.
+ * @param customerId
+ * @param amount
+ * @param reason
+ * @param currencyCode
+ */
 export async function issueCreditNoteAction(
   customerId: string,
   amount: number,
@@ -230,7 +249,10 @@ export async function issueCreditNoteAction(
   }
 }
 
-/** Fetch stored value detail for a single customer. */
+/**
+ * Fetch stored value detail for a single customer.
+ * @param customerId
+ */
 export async function getCustomerStoredValueDetail(customerId: string): Promise<{
   success: true;
   data: {

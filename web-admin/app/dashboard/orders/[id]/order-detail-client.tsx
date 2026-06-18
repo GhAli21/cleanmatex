@@ -97,6 +97,27 @@ interface OrderDetailClientProps {
   returnLabel?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.financialData
+ * @param root0.orderPreferences
+ * @param root0.orderPreferenceDtlColumnLabels
+ * @param root0.unappliedPayments
+ * @param root0.orderInvoices
+ * @param root0.vouchers
+ * @param root0.editHistory
+ * @param root0.tenantOrgId
+ * @param root0.userId
+ * @param root0.canViewFinancialDebug
+ * @param root0.processPaymentAction
+ * @param root0.applyPaymentToInvoiceAction
+ * @param root0.translations
+ * @param root0.locale
+ * @param root0.returnUrl
+ * @param root0.returnLabel
+ */
 export function OrderDetailClient({
   order,
   financialData,

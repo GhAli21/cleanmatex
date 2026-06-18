@@ -127,6 +127,16 @@ const CATEGORY_CARD_STYLES: Record<
   },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.selectedPrefs
+ * @param root0.availablePrefs
+ * @param root0.onChange
+ * @param root0.disabled
+ * @param root0.maxPrefs
+ * @param root0.enforceCompatibility
+ */
 export function ServicePreferenceSelector({
   selectedPrefs,
   availablePrefs,

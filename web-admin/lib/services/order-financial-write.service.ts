@@ -44,6 +44,9 @@ type PaymentFactRow = {
   change_returned_amount: Decimal | null;
 };
 
+/**
+ *
+ */
 export type RefundFactRow = {
   refund_amount: Decimal;
   refund_status: string | null;
@@ -149,6 +152,10 @@ function sumCreditApplicationStatusAmount(
   }, 0);
 }
 
+/**
+ *
+ * @param refunds
+ */
 export function classifyRefunds(refunds: RefundFactRow[]): {
   refundedAmount: number;
   realPaymentRefundedAmount: number;
@@ -251,6 +258,8 @@ export function classifyRefunds(refunds: RefundFactRow[]): {
  * are not yet available (e.g. in unit tests or new-order scaffolding).
  *
  * Formula: taxAmount = inclusiveAmount − (inclusiveAmount / (1 + rate))
+ * @param inclusiveAmount
+ * @param taxRate
  */
 export function extractTaxFromInclusive(
   inclusiveAmount: number,
@@ -317,6 +326,29 @@ function resolveCanonicalTotalAmount(input: {
   };
 }
 
+/**
+ *
+ * @param input
+ * @param input.usedHeaderTotalFallback
+ * @param input.orderTotalAmount
+ * @param input.recomputedTotalAmount
+ * @param input.orderDiscountAmount
+ * @param input.recomputedDiscountAmount
+ * @param input.orderTaxAmount
+ * @param input.recomputedTaxAmount
+ * @param input.orderOutstandingAmount
+ * @param input.recomputedOutstandingAmount
+ * @param input.pendingPaymentAmount
+ * @param input.authorizedPaymentAmount
+ * @param input.giftCardAppliedAmount
+ * @param input.totalCreditAppliedAmount
+ * @param input.hasCreditApplicationDiscountRows
+ * @param input.arInvoiceOutstandingAmount
+ * @param input.arReceivableAmount
+ * @param input.hasTaxDocumentAmountMismatch
+ * @param input.hasUnclassifiedRefundSource
+ * @param input.hasAmbiguousHistoricalPaymentRow
+ */
 export function buildWarningCodes(input: {
   usedHeaderTotalFallback: boolean;
   orderTotalAmount: number;
@@ -475,6 +507,7 @@ function buildFinancialCalculationHash(snapshot: OrderFinancialCalculationSnapsh
  * @param tx current transaction client so all reads and writes remain atomic
  * @param tenantId authenticated tenant identifier
  * @param orderId order header identifier
+ * @param options
  * @returns normalized totals written back to the order header
  */
 export async function recalculateOrderFinancialSnapshotTx(
@@ -985,6 +1018,8 @@ async function resolveTenantBaseCurrencyCode(tenantId: string): Promise<string |
  * transaction. They still need the same canonical snapshot refresh before the
  * caller returns, so this wrapper reuses the tx-safe recalculator instead of
  * forking the math.
+ * @param tenantId
+ * @param orderId
  */
 export async function recalculateOrderFinancialSnapshot(
   tenantId: string,

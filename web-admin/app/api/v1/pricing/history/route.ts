@@ -17,6 +17,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTenantIdFromSession } from '@/lib/db/tenant-context'
 import { prisma } from '@/lib/db/prisma'
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
     try {
         const tenantId = await getTenantIdFromSession()

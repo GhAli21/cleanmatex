@@ -48,6 +48,11 @@ function paymentStatusVariant(
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTablesProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

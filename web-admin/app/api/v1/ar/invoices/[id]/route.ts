@@ -7,6 +7,12 @@ import {
 import { updateArInvoiceSchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,6 +29,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

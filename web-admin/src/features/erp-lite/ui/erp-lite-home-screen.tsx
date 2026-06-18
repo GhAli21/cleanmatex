@@ -20,6 +20,9 @@ import type { ErpLiteTenantReadiness } from '@/lib/types/erp-lite-ops'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export interface ErpLiteHomeVisibility {
   readiness: boolean
   usageMaps: boolean
@@ -82,6 +85,14 @@ function ShortcutCard({
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.readiness
+ * @param root0.openPeriodCode
+ * @param root0.visibility
+ * @param root0.loadError
+ */
 export function ErpLiteHomeScreen({
   readiness,
   openPeriodCode,

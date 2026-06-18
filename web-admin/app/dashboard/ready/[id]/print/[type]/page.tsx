@@ -27,6 +27,9 @@ type PrintLayout = 'thermal' | 'a4';
 
 const RPRT_TYPES: PrintType[] = ['invoices-payments-rprt', 'payments-rprt', 'history-rprt'];
 
+/**
+ *
+ */
 export default function ReadyPrintPage() {
   const params = useParams<{ id: string; type: string }>();
   const searchParams = useSearchParams();
@@ -163,7 +166,7 @@ export default function ReadyPrintPage() {
     <div className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0">
       {/* Customizable print styles: edit variables below to change header, footer, fonts, spacing */}
       <style 
-        // eslint-disable-next-line react/no-danger
+         
         dangerouslySetInnerHTML={{
           __html: `
             :root {

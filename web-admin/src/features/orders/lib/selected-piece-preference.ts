@@ -11,6 +11,9 @@ import type { OrderItemServicePref, PreSubmissionPiece } from '../model/new-orde
 /** Default source for new-order UI before server assigns ORDER_CREATE / ORDER_EDIT */
 export const DEFAULT_PREFS_SOURCE_UI = 'ORDER_CREATE';
 
+/**
+ *
+ */
 export interface SelectedPreference {
   /** Stable key for React lists and remove/copy */
   id: string;
@@ -34,6 +37,10 @@ function newPrefId(pieceId: string, prefsNo: number, kind: string, code: string)
 /**
  * Derive chip list from a pre-submit piece. prefs_no is sequential within the piece
  * (conditions, then service prefs, then packing, then color).
+ * @param piece
+ * @param options
+ * @param options.prefsSource
+ * @param options.packingExtraByCode
  */
 export function pieceToSelectedPreferences(
   piece: PreSubmissionPiece,
@@ -126,6 +133,8 @@ export function pieceToSelectedPreferences(
 
 /**
  * Merge chip selections back into a piece; preserves id, itemId, pieceSeq, notes, brand, etc.
+ * @param base
+ * @param preferences
  */
 export function applySelectedPreferencesToPiece(
   base: PreSubmissionPiece,
@@ -179,6 +188,8 @@ export function applySelectedPreferencesToPiece(
 
 /**
  * Replace preferences for one piece in a flat list (all pieces), renumbering prefs_no for that piece.
+ * @param allPrefs
+ * @param pieceId
  */
 export function renumberPreferencesForPiece(
   allPrefs: SelectedPreference[],

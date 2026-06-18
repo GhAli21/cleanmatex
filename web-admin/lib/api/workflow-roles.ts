@@ -4,12 +4,18 @@
  * Client-safe wrapper for workflow role management API calls
  */
 
+/**
+ *
+ */
 export interface User {
   id: string;
   email: string;
   display_name: string | null;
 }
 
+/**
+ *
+ */
 export interface WorkflowRoleAssignment {
   id: string;
   user_id: string;
@@ -17,10 +23,16 @@ export interface WorkflowRoleAssignment {
   is_active: boolean;
 }
 
+/**
+ *
+ */
 export interface UserWithWorkflowRoles extends User {
   workflow_roles: WorkflowRoleAssignment[];
 }
 
+/**
+ *
+ */
 export interface AssignWorkflowRoleRequest {
   user_id: string;
   workflow_role: string;
@@ -48,6 +60,7 @@ export async function getUsersWithWorkflowRoles(): Promise<UserWithWorkflowRoles
 
 /**
  * Get workflow role assignments for a specific user
+ * @param userId
  */
 export async function getUserWorkflowRoleAssignments(
   userId: string
@@ -70,6 +83,7 @@ export async function getUserWorkflowRoleAssignments(
 
 /**
  * Assign workflow role to user
+ * @param data
  */
 export async function assignWorkflowRoleToUser(
   data: AssignWorkflowRoleRequest
@@ -93,6 +107,7 @@ export async function assignWorkflowRoleToUser(
 
 /**
  * Remove workflow role from user
+ * @param assignmentId
  */
 export async function removeWorkflowRoleFromUser(
   assignmentId: string

@@ -26,6 +26,7 @@ import { prisma } from '@/lib/db/prisma';
  * - undefined values are dropped (matches JSON.stringify default)
  * - Dates → ISO string
  * - Strings, numbers, booleans pass through
+ * @param value
  */
 export function canonicalize(value: unknown): string {
   const canon = canonicalizeValue(value);
@@ -54,7 +55,10 @@ function canonicalizeValue(value: unknown): unknown {
   return value;
 }
 
-/** SHA-256 hex digest of the canonicalized payload. Stable across retries. */
+/**
+ * SHA-256 hex digest of the canonicalized payload. Stable across retries.
+ * @param payload
+ */
 export function hashPayload(payload: unknown): string {
   return createHash('sha256').update(canonicalize(payload)).digest('hex');
 }
@@ -67,6 +71,9 @@ const DEFAULT_TTL_DAYS = 7;
  *
  * The hash lives in response_cache.payload_hash (JSON field) — no schema change
  * needed because org_idempotency_keys already exposes response_cache: Json?.
+ * @param tenantId
+ * @param key
+ * @param resourceType
  */
 export async function findIdempotencyHash(
   tenantId: string,
@@ -106,6 +113,9 @@ export async function findIdempotencyHash(
  * be reusable.
  *
  * Idempotent: missing row is treated as success.
+ * @param tenantId
+ * @param key
+ * @param resourceType
  */
 export async function deleteIdempotencyHash(
   tenantId: string,
@@ -117,6 +127,15 @@ export async function deleteIdempotencyHash(
   });
 }
 
+/**
+ *
+ * @param tenantId
+ * @param key
+ * @param resourceType
+ * @param payloadHash
+ * @param resourceId
+ * @param ttlDays
+ */
 export async function storeIdempotencyHash(
   tenantId: string,
   key: string,

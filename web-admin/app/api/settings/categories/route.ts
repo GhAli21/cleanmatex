@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

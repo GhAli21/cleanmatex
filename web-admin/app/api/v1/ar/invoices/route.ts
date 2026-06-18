@@ -10,6 +10,10 @@ import {
 } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError, parseSearchParams } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('invoices:read')(request);
   if (auth instanceof NextResponse) return auth;
@@ -27,6 +31,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requirePermission('invoices:create')(request);
   if (auth instanceof NextResponse) return auth;

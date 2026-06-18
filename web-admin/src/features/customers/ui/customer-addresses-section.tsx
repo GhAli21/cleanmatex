@@ -20,6 +20,13 @@ interface CustomerAddressesSectionProps {
   onAddressesChange?: () => void | Promise<void>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ * @param root0.addresses
+ * @param root0.onAddressesChange
+ */
 export function CustomerAddressesSection({
   customerId,
   addresses,

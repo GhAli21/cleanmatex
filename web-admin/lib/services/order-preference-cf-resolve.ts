@@ -6,15 +6,29 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Prisma } from '@prisma/client';
 
+/**
+ *
+ */
 export type ServicePrefLookupPair = {
   preference_code: string;
   preference_sys_kind: string;
 };
 
+/**
+ *
+ * @param preference_code
+ * @param preference_sys_kind
+ */
 export function servicePrefCfMapKey(preference_code: string, preference_sys_kind: string): string {
   return `${String(preference_code).toUpperCase()}|${preference_sys_kind}`;
 }
 
+/**
+ *
+ * @param supabase
+ * @param tenantId
+ * @param pairs
+ */
 export async function resolveServicePreferenceCfIdMapSupabase(
   supabase: SupabaseClient,
   tenantId: string,
@@ -41,6 +55,12 @@ export async function resolveServicePreferenceCfIdMapSupabase(
   return map;
 }
 
+/**
+ *
+ * @param tx
+ * @param tenantId
+ * @param pairs
+ */
 export async function resolveServicePreferenceCfIdMapPrismaTx(
   tx: Prisma.TransactionClient,
   tenantId: string,

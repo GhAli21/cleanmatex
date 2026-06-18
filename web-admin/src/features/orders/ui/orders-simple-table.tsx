@@ -34,6 +34,12 @@ interface OrdersSimpleTableProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orders
+ * @param root0.pagination
+ */
 export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps) {
   const router = useRouter();
   const pathname = usePathname();

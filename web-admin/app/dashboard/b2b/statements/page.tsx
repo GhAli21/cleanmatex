@@ -14,6 +14,9 @@ import { Button } from '@ui/primitives/button';
 import { createClient } from '@/lib/supabase/client';
 import { AlertCircle } from 'lucide-react';
 
+/**
+ *
+ */
 export default function B2BStatementsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();

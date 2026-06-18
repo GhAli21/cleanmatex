@@ -41,6 +41,9 @@ function isSoftDeleted(p: TaxProfile) {
   return p.rec_status === 0;
 }
 
+/**
+ *
+ */
 export function TaxProfilesTab() {
   const t = useTranslations('settings.tax');
   const [isPending, startTransition] = useTransition();
@@ -75,7 +78,7 @@ export function TaxProfilesTab() {
 
   useEffect(() => {
     loadProfiles();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   const resetForm = () => {
     setFormName('');

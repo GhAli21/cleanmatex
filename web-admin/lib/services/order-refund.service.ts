@@ -21,6 +21,9 @@ export const REFUND_SCOPES = {
   MANUAL_EXCEPTION: 'MANUAL_EXCEPTION',
 } as const;
 
+/**
+ *
+ */
 export type RefundScope = (typeof REFUND_SCOPES)[keyof typeof REFUND_SCOPES];
 
 interface RefundMetadata {
@@ -128,6 +131,8 @@ export interface InitiateRefundParams {
 /**
  * Initiate a refund for an order. Creates a refund record that must be
  * approved or processed according to the operational policy.
+ * @param tenantId
+ * @param params
  */
 export async function initiateRefund(
   tenantId: string,
@@ -319,6 +324,9 @@ export async function initiateRefund(
 
 /**
  * Manager approval gate. Moves refund from PENDING_APPROVAL to APPROVED.
+ * @param tenantId
+ * @param refundId
+ * @param approverId
  */
 export async function approveRefund(
   tenantId: string,
@@ -369,6 +377,9 @@ export async function approveRefund(
 /**
  * Process an approved refund. Performs the actual reversal where needed,
  * recalculates the financial snapshot, and emits the final outbox event.
+ * @param tenantId
+ * @param refundId
+ * @param processedBy
  */
 export async function processRefund(
   tenantId: string,
@@ -455,6 +466,11 @@ export async function processRefund(
   });
 }
 
+/**
+ *
+ * @param tenantId
+ * @param orderId
+ */
 export async function getOrderRefunds(tenantId: string, orderId: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_order_refunds_dtl.findMany({

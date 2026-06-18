@@ -12,6 +12,7 @@ const CREDIT_LIMITS_FLAG = 'credit_limits';
 /**
  * Get the maximum credit limit allowed for B2B customers based on tenant's plan.
  * Returns null if no cap is configured (e.g. flag not enabled for plan).
+ * @param tenantId
  */
 export async function getCreditLimitPlanCap(
   tenantId: string
@@ -49,6 +50,8 @@ export async function getCreditLimitPlanCap(
 /**
  * Cap credit limit to plan maximum. Returns the value to use.
  * If planCap is null, returns requested as-is.
+ * @param requested
+ * @param planCap
  */
 export function capCreditLimitToPlan(
   requested: number,

@@ -37,6 +37,9 @@ interface Pagination {
   totalPages: number;
 }
 
+/**
+ *
+ */
 export default function StockPage() {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');

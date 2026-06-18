@@ -34,6 +34,14 @@ const STATUS_COLORS: Record<string, string> = {
   draft: '#9CA3AF',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.revenueByDay
+ * @param root0.ordersByStatus
+ * @param root0.ordersByType
+ * @param root0.currencyCode
+ */
 export default function OrdersReportCharts({
   revenueByDay,
   ordersByStatus,

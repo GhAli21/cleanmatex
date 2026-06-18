@@ -17,6 +17,13 @@ interface BrandingSettingsProps {
   effectiveSettings?: ResolvedSetting[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenant
+ * @param root0.onUpdate
+ * @param root0.effectiveSettings
+ */
 export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: BrandingSettingsProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState(tenant.logo_url || '');

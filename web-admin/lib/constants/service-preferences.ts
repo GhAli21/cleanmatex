@@ -17,6 +17,9 @@ export const SERVICE_PREFERENCE_CODES = {
   ECO_WASH: 'ECO_WASH',
 } as const;
 
+/**
+ *
+ */
 export type ServicePreferenceCode =
   (typeof SERVICE_PREFERENCE_CODES)[keyof typeof SERVICE_PREFERENCE_CODES];
 
@@ -31,6 +34,9 @@ export const PACKING_PREFERENCE_CODES = {
   ROLL: 'ROLL',
 } as const;
 
+/**
+ *
+ */
 export type PackingPreferenceCode =
   (typeof PACKING_PREFERENCE_CODES)[keyof typeof PACKING_PREFERENCE_CODES];
 
@@ -41,6 +47,9 @@ export const PREFERENCE_CATEGORIES = {
   FINISHING: 'finishing',
 } as const;
 
+/**
+ *
+ */
 export type PreferenceCategory =
   (typeof PREFERENCE_CATEGORIES)[keyof typeof PREFERENCE_CATEGORIES];
 
@@ -67,6 +76,9 @@ export const PREFERENCE_SOURCES = {
   BUNDLE: 'bundle',
 } as const;
 
+/**
+ *
+ */
 export type PreferenceSource =
   (typeof PREFERENCE_SOURCES)[keyof typeof PREFERENCE_SOURCES];
 

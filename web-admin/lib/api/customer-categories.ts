@@ -3,6 +3,9 @@
  * Tenant org_customer_category_cf CRUD and check-code
  */
 
+/**
+ *
+ */
 export interface CustomerCategoryItem {
   id: string;
   code: string;
@@ -20,6 +23,13 @@ export interface CustomerCategoryItem {
 
 const API_BASE = '/api/v1/customer-categories';
 
+/**
+ *
+ * @param options
+ * @param options.is_b2b
+ * @param options.active_only
+ * @param options.system_type
+ */
 export async function fetchCustomerCategories(options?: {
   is_b2b?: boolean;
   active_only?: boolean;
@@ -43,6 +53,10 @@ export async function fetchCustomerCategories(options?: {
   return json.data ?? [];
 }
 
+/**
+ *
+ * @param code
+ */
 export async function fetchCustomerCategoryByCode(code: string): Promise<CustomerCategoryItem | null> {
   const res = await fetch(`${API_BASE}/${encodeURIComponent(code)}`, { credentials: 'include' });
 
@@ -56,6 +70,11 @@ export async function fetchCustomerCategoryByCode(code: string): Promise<Custome
   return json.data ?? null;
 }
 
+/**
+ *
+ * @param code
+ * @param excludeId
+ */
 export async function checkCodeAvailable(
   code: string,
   excludeId?: string
@@ -74,6 +93,18 @@ export async function checkCodeAvailable(
   return json.available === true;
 }
 
+/**
+ *
+ * @param data
+ * @param data.code
+ * @param data.name
+ * @param data.name2
+ * @param data.system_type
+ * @param data.is_b2b
+ * @param data.is_individual
+ * @param data.display_order
+ * @param data.is_active
+ */
 export async function createCustomerCategory(data: {
   code: string;
   name: string;
@@ -100,6 +131,11 @@ export async function createCustomerCategory(data: {
   return json.data;
 }
 
+/**
+ *
+ * @param code
+ * @param data
+ */
 export async function updateCustomerCategory(
   code: string,
   data: Partial<{
@@ -128,6 +164,10 @@ export async function updateCustomerCategory(
   return json.data;
 }
 
+/**
+ *
+ * @param code
+ */
 export async function deleteCustomerCategory(code: string): Promise<void> {
   const res = await fetch(`${API_BASE}/${encodeURIComponent(code)}`, {
     method: 'DELETE',

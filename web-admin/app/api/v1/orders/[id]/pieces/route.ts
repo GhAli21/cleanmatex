@@ -16,6 +16,9 @@ import { log } from '@/lib/utils/logger';
  * Get all pieces for all items in an order
  * Returns pieces grouped by order_item_id for efficient client-side lookup
  * Requires: orders:read permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
     request: NextRequest,

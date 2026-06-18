@@ -47,6 +47,9 @@ interface CheckoutMethodOption {
   requires_cash_drawer: boolean;
 }
 
+/**
+ *
+ */
 export function CustomerAccountReceiptClient() {
   const t = useTranslations('customers.accountReceipt');
   const isRTL = useRTL();

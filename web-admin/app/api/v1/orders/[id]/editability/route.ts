@@ -9,6 +9,12 @@ import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { isOrderEditable } from '@/lib/utils/order-editability';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

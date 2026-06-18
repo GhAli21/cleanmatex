@@ -56,6 +56,7 @@ export interface OrderPieceDbModel {
 /**
  * Convert database model to domain type
  * Handles date string to Date conversion and type assertions
+ * @param dbPiece
  */
 export function mapOrderPieceFromDb(dbPiece: OrderPieceDbModel): OrderItemPiece {
   return {
@@ -71,6 +72,7 @@ export function mapOrderPieceFromDb(dbPiece: OrderPieceDbModel): OrderItemPiece 
 
 /**
  * Convert array of database models to domain types
+ * @param dbPieces
  */
 export function mapOrderPiecesFromDb(dbPieces: OrderPieceDbModel[]): OrderItemPiece[] {
   return dbPieces.map(mapOrderPieceFromDb);
@@ -79,6 +81,7 @@ export function mapOrderPiecesFromDb(dbPieces: OrderPieceDbModel[]): OrderItemPi
 /**
  * Convert domain type to database update payload
  * Converts Date objects to ISO strings for Supabase
+ * @param piece
  */
 export function mapOrderPieceToDbUpdate(
   piece: Partial<OrderItemPiece>

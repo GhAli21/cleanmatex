@@ -2,12 +2,19 @@
  * Resolve catalog color codes (+ optional tenant CF ids) for piece persistence.
  */
 
+/**
+ *
+ */
 export type PieceColorInputLike = {
   color?: string;
   colorCodes?: string[];
   colorCfIds?: (string | null | undefined)[];
 };
 
+/**
+ *
+ * @param piece
+ */
 export function effectivePieceColorsForPersist(
   piece: PieceColorInputLike | undefined
 ): { codes: string[]; cfIds: (string | null | undefined)[] } {

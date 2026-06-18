@@ -30,6 +30,9 @@ import {
 } from '@ui/overlays';
 import { Alert, AlertDescription } from '@ui/primitives';
 
+/**
+ *
+ */
 export interface FixOrderDataStepResult {
   step_id: string;
   status: 'success' | 'error' | 'skipped';
@@ -50,6 +53,9 @@ export interface FixOrderDataStepResult {
   error_message: string | null;
 }
 
+/**
+ *
+ */
 export interface FixOrderDataResult {
   overall: 'success' | 'partial' | 'error';
   steps: FixOrderDataStepResult[];
@@ -79,6 +85,14 @@ const INITIAL_SECTION: SectionState = {
   apiError: null,
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.onSuccess
+ */
 export function FixOrderDataModal({
   orderId,
   open,

@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Preference Resolution Service
  * Calls DB functions: resolve_item_preferences, get_last_order_preferences, suggest_preferences_from_history

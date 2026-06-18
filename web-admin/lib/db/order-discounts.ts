@@ -16,6 +16,9 @@ type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 // Types
 // ============================================================================
 
+/**
+ *
+ */
 export interface DiscountLineInput {
   sourceType: DiscountSourceType;
   sourceId?: string;
@@ -30,7 +33,7 @@ export interface DiscountLineInput {
 // Helpers
 // ============================================================================
 
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * Build discount lines from stored order fields.
  * Used by OrderService.createOrder (traditional path) and payment-service (quick-drop path).

@@ -15,6 +15,20 @@ import { CmxMoneyKeypad } from '@ui/utilities'
 /**
  * Controlled wrapper that owns the numeric value so keypad presses update the
  * field in real time during story interaction.
+ * @param root0
+ * @param root0.initialValue
+ * @param root0.currencyCode
+ * @param root0.decimalPlaces
+ * @param root0.label
+ * @param root0.placeholder
+ * @param root0.error
+ * @param root0.disabled
+ * @param root0.showQuickAdd
+ * @param root0.quickAddKeys
+ * @param root0.headerSlot
+ * @param root0.min
+ * @param root0.max
+ * @param root0.rtl
  */
 function KeypadStory({
   initialValue = null,

@@ -24,6 +24,18 @@ interface ItemListProps {
   disabled?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.tenantOrgId
+ * @param root0.branchId
+ * @param root0.items
+ * @param root0.defaultExpandAllPieces
+ * @param root0.onItemsChange
+ * @param root0.onPiecesOrPrefsChange
+ * @param root0.disabled
+ */
 export function ItemList({
   orderId,
   tenantOrgId,

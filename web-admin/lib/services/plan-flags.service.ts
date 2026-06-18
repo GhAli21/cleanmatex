@@ -24,6 +24,9 @@ function parseJsonbToBoolean(value: unknown): boolean {
 
 /**
  * Get effective value for a single plan flag
+ * @param tenantId
+ * @param flagKey
+ * @param supabase
  */
 export async function checkPlanFlag(
   tenantId: string,
@@ -51,6 +54,8 @@ export async function checkPlanFlag(
 
 /**
  * Get all plan flags for a tenant (bundles, repeat last order, smart suggestions)
+ * @param tenantId
+ * @param supabase
  */
 export async function getPlanFlags(
   tenantId: string,

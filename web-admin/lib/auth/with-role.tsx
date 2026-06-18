@@ -23,6 +23,8 @@ interface WithRoleOptions {
 /**
  * HOC to protect pages based on user role
  *
+ * @param Component
+ * @param options
  * @example
  * ```tsx
  * // Single role
@@ -136,6 +138,8 @@ export function withRole<P extends object>(
 /**
  * Convenience wrapper for admin-only pages
  *
+ * @param Component
+ * @param fallbackComponent
  * @example
  * ```tsx
  * const AdminPage = withAdminRole(MyAdminPage)
@@ -155,6 +159,8 @@ export function withAdminRole<P extends object>(
 /**
  * Convenience wrapper for operator pages (admin or operator)
  *
+ * @param Component
+ * @param fallbackComponent
  * @example
  * ```tsx
  * const OperatorPage = withOperatorRole(MyOperatorPage)

@@ -21,6 +21,9 @@ import { Search, X, Filter } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import type { ProcessingStep } from '@/types/order';
 
+/**
+ *
+ */
 export interface ProcessingModalFiltersState {
   search: string;
   step: ProcessingStep | 'all';
@@ -44,6 +47,15 @@ const PROCESSING_STEPS: ProcessingStep[] = [
   'finishing',
 ];
 
+/**
+ *
+ * @param root0
+ * @param root0.showRejectedOnTop
+ * @param root0.onToggleRejectedOnTop
+ * @param root0.filters
+ * @param root0.onFiltersChange
+ * @param root0.rejectEnabled
+ */
 export function ProcessingModalFilters({
   showRejectedOnTop,
   onToggleRejectedOnTop,

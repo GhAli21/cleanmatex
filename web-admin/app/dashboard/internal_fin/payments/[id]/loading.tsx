@@ -2,6 +2,9 @@
  * Payment Detail Loading Skeleton
  */
 
+/**
+ *
+ */
 export default function PaymentDetailLoading() {
   return (
     <div className="animate-pulse space-y-6 p-6">

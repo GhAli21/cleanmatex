@@ -14,11 +14,17 @@ import { logger } from '@/lib/utils/logger'
 // Types
 // ========================
 
+/**
+ *
+ */
 export interface PermissionCheckOptions {
   resourceType?: string
   resourceId?: string
 }
 
+/**
+ *
+ */
 export interface AuthContext {
   user: any
   tenantId: string

@@ -37,6 +37,18 @@ interface ProductCardProps {
   onDecrement: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.product
+ * @param root0.quantity
+ * @param root0.price
+ * @param root0.express
+ * @param root0.currencyCode
+ * @param root0.onAdd
+ * @param root0.onIncrement
+ * @param root0.onDecrement
+ */
 export function ProductCard({
   product,
   quantity,

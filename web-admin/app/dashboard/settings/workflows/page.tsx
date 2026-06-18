@@ -11,6 +11,9 @@ interface WorkflowConfig {
   created_at: string;
 }
 
+/**
+ *
+ */
 export default function WorkflowsPage() {
   const [data, setData] = useState<WorkflowConfig[]>([]);
   const [loading, setLoading] = useState(true);

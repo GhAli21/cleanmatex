@@ -51,6 +51,12 @@ interface CustomItemModalProps {
 
 /**
  * Custom Item Modal Component
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onAdd
+ * @param root0.trackByPiece
+ * @param root0.serviceCategoryCode
  */
 export function CustomItemModal({
   open,

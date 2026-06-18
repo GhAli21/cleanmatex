@@ -5,6 +5,9 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { TAX_PRICING_MODES } from '@/lib/constants/order-financial';
 import { OrderFinancialMoneyValue } from './order-financial-money-value';
 
+/**
+ *
+ */
 export interface TaxBaseBucketsAmounts {
   taxableAmount: number;
   nonTaxableAmount: number;
@@ -44,6 +47,10 @@ function BucketRow({
  * tax pricing mode label (Phase 5). Shown as a sub-section inside
  * order-value-breakdown; extracted here so it can be independently storied
  * and tested.
+ * @param root0
+ * @param root0.amounts
+ * @param root0.currencyCode
+ * @param root0.pricingMode
  */
 export function OrderTaxBaseBuckets({ amounts, currencyCode, pricingMode }: OrderTaxBaseBucketsProps) {
   const t = useTranslations('orders.detail.financial');

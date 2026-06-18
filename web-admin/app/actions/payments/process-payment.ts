@@ -217,6 +217,7 @@ export async function getPaymentMethods() {
 
 /**
  * Get payment status for an order
+ * @param orderId
  */
 export async function getPaymentStatus(orderId: string) {
   try {
@@ -240,6 +241,7 @@ export async function getPaymentStatus(orderId: string) {
 
 /**
  * Get payment history for an invoice
+ * @param invoiceId
  */
 export async function getPaymentHistory(invoiceId: string) {
   try {
@@ -263,6 +265,7 @@ export async function getPaymentHistory(invoiceId: string) {
 
 /**
  * Get payments for an order (including unapplied deposits/pos)
+ * @param orderId
  */
 export async function getPaymentsForOrder(orderId: string) {
   try {
@@ -282,6 +285,7 @@ export async function getPaymentsForOrder(orderId: string) {
 
 /**
  * Get payments for a customer (e.g. advance balance)
+ * @param customerId
  */
 export async function getPaymentsForCustomer(customerId: string) {
   try {
@@ -301,6 +305,10 @@ export async function getPaymentsForCustomer(customerId: string) {
 
 /**
  * Apply an unapplied payment (deposit/advance/pos) to an invoice
+ * @param paymentId
+ * @param invoiceId
+ * @param userId
+ * @param orderId
  */
 export async function applyPaymentToInvoice(
   paymentId: string,

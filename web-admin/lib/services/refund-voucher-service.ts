@@ -26,6 +26,8 @@ const SEQ_LEN = 5;
 
 /**
  * Generate next refund voucher_no for a tenant (REF-YYYY-NNNNN).
+ * @param tenantId
+ * @param tx
  */
 export async function generateRefundVoucherNo(
   tenantId: string,
@@ -65,6 +67,8 @@ export async function generateRefundVoucherNo(
  * Create a refund voucher for a payment (CASH_OUT, REFUND).
  * Returns voucher_id and voucher_no for attaching to refund payment row.
  * When tx is provided, all operations run inside that transaction.
+ * @param input
+ * @param tx
  */
 export async function createRefundVoucherForPayment(
   input: CreateRefundVoucherForPaymentInput,

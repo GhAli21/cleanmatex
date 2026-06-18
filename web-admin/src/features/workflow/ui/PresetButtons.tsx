@@ -5,6 +5,12 @@ interface PresetButtonsProps {
   onAddPreset: (items: Array<{ productId: string; serviceCategoryCode: string; quantity: number }>) => Promise<void> | void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.productCatalog
+ * @param root0.onAddPreset
+ */
 export function PresetButtons({ productCatalog, onAddPreset }: PresetButtonsProps) {
   // naive: pick first matching products for demo presets
   const shirt = productCatalog.find((p) => /shirt/i.test(p.name)) || productCatalog[0];

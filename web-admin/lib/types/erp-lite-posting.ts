@@ -7,6 +7,9 @@ import type {
   ErpLitePostingMode,
 } from '@/lib/constants/erp-lite-posting';
 
+/**
+ *
+ */
 export interface ErpLitePostingAmounts {
   net_amount: number;
   tax_amount: number;
@@ -16,6 +19,9 @@ export interface ErpLitePostingAmounts {
   rounding_amount?: number;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingDimensions {
   branch_id?: string | null;
   cost_center_id?: string | null;
@@ -26,6 +32,9 @@ export interface ErpLitePostingDimensions {
   tax_rate?: number | null;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingMeta {
   created_by?: string | null;
   payment_method_code?: PaymentMethodCode | 'WALLET' | null;
@@ -37,6 +46,9 @@ export interface ErpLitePostingMeta {
   invoice_id?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingRequest {
   tenant_org_id?: string;
   branch_id?: string | null;
@@ -54,6 +66,9 @@ export interface ErpLitePostingRequest {
   meta?: ErpLitePostingMeta;
 }
 
+/**
+ *
+ */
 export interface ErpLiteNormalizedPostingRequest {
   tenant_org_id: string;
   branch_id: string | null;
@@ -71,6 +86,9 @@ export interface ErpLiteNormalizedPostingRequest {
   meta: ErpLitePostingMeta;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingPreviewLine {
   line_no: number;
   entry_side: 'DEBIT' | 'CREDIT';
@@ -84,6 +102,9 @@ export interface ErpLitePostingPreviewLine {
   line_type_code: string;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingPreviewResult {
   success: boolean;
   mode: ErpLitePostingMode;
@@ -102,6 +123,9 @@ export interface ErpLitePostingPreviewResult {
   error_message?: string;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingExecuteResult extends ErpLitePostingPreviewResult {
   journal_id?: string;
   journal_no?: string;
@@ -111,14 +135,23 @@ export interface ErpLitePostingExecuteResult extends ErpLitePostingPreviewResult
   exception_type_code?: ErpLiteExceptionType;
 }
 
+/**
+ *
+ */
 export interface ErpLiteRetryParams {
   posting_log_id: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteRepostParams {
   posting_log_id: string;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingRequestEnvelope {
   request: ErpLiteNormalizedPostingRequest;
   mode: ErpLitePostingMode;
@@ -128,6 +161,9 @@ export interface ErpLitePostingRequestEnvelope {
   repost_of_log_id?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLitePostingLogPayload {
   request_payload_json: Json;
   resolved_payload_json?: Json;

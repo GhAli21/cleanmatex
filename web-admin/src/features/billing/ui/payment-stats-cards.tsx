@@ -8,6 +8,11 @@ interface PaymentStatsCardsProps {
   stats: PaymentStats | null;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ */
 export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
   const t = useTranslations('payments.stats');
   const { formatMoneyWithCode } = useTenantCurrency();

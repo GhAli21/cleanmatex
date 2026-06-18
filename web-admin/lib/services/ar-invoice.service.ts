@@ -346,6 +346,23 @@ async function withIdempotency<T>(
  * Ensures legacy order-driven invoice creation flows also produce the canonical
  * AR child records required by v1+ reports, audit tabs, and later V2
  * operations. This keeps older callers working while we consolidate writes.
+ * @param tx
+ * @param input
+ * @param input.tenantId
+ * @param input.invoiceId
+ * @param input.orderId
+ * @param input.customerId
+ * @param input.branchId
+ * @param input.invoiceNo
+ * @param input.currencyCode
+ * @param input.currencyExRate
+ * @param input.invoiceDate
+ * @param input.dueDate
+ * @param input.status
+ * @param input.totalAmount
+ * @param input.paidAmount
+ * @param input.outstandingAmount
+ * @param input.userId
  */
 export async function ensureCanonicalArInvoiceArtifactsTx(
   tx: PrismaTx,
@@ -529,6 +546,13 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
   }
 }
 
+/**
+ *
+ * @param tx
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function allocateArPaymentTx(
   tx: PrismaTx,
   invoiceId: string,
@@ -680,6 +704,14 @@ export async function allocateArPaymentTx(
   });
 }
 
+/**
+ *
+ * @param tx
+ * @param invoiceId
+ * @param allocationId
+ * @param input
+ * @param actor
+ */
 export async function reverseArPaymentAllocationTx(
   tx: PrismaTx,
   invoiceId: string,
@@ -1079,6 +1111,11 @@ function mapInvoiceHeader(row: org_invoice_mst & {
   };
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function listArInvoices(query: ArInvoiceListQuery, actor: ArActorContext = {}) {
   const tenantId = await resolveTenantId(actor.tenantId);
   const page = query.page;
@@ -1140,6 +1177,10 @@ export async function listArInvoices(query: ArInvoiceListQuery, actor: ArActorCo
   });
 }
 
+/**
+ *
+ * @param actor
+ */
 export async function getArInvoiceHubStats(actor: ArActorContext = {}): Promise<ArInvoiceHubStats> {
   const tenantId = await resolveTenantId(actor.tenantId);
 
@@ -1197,6 +1238,11 @@ export async function getArInvoiceHubStats(actor: ArActorContext = {}): Promise<
   });
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function exportArInvoicesCsv(
   query: Omit<ArInvoiceListQuery, 'page' | 'limit'> & { limit?: number },
   actor: ArActorContext = {}
@@ -1254,6 +1300,11 @@ export async function exportArInvoicesCsv(
   return [headers.map(escapeCsvCell).join(','), ...rows].join('\n');
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param actor
+ */
 export async function getArInvoiceDetail(invoiceId: string, actor: ArActorContext = {}): Promise<ArInvoiceDetail> {
   const tenantId = await resolveTenantId(actor.tenantId);
 
@@ -1296,6 +1347,11 @@ async function getArInvoiceDetailWithReader(
   };
 }
 
+/**
+ *
+ * @param input
+ * @param actor
+ */
 export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActorContext = {}) {
   const tenantId = await resolveTenantId(actor.tenantId);
   const userId = actor.userId ?? null;
@@ -1433,6 +1489,10 @@ export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActo
  * accept an optional caller-supplied `tx` (Phase 3 BVM Wiring — submit-order
  * threads its own tx through so the AR invoice commits atomically with the
  * order header and voucher).
+ * @param tx
+ * @param input
+ * @param tenantId
+ * @param userId
  */
 async function createArInvoiceFromOrdersInTx(
   tx: PrismaTx,
@@ -1762,6 +1822,12 @@ export async function createArInvoiceFromOrders(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function updateArInvoice(
   invoiceId: string,
   input: UpdateArInvoiceInput,
@@ -1805,6 +1871,12 @@ export async function updateArInvoice(
   });
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function issueArInvoice(
   invoiceId: string,
   input: IssueArInvoiceInput,
@@ -1897,6 +1969,12 @@ export async function issueArInvoice(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function approveSensitiveArInvoice(
   invoiceId: string,
   input: ApproveSensitiveArInvoiceInput,
@@ -2064,6 +2142,12 @@ export async function approveSensitiveArInvoice(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function voidArInvoice(
   invoiceId: string,
   input: VoidArInvoiceInput,
@@ -2142,6 +2226,12 @@ export async function voidArInvoice(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function allocateArPayment(
   invoiceId: string,
   input: AllocateArPaymentInput,
@@ -2294,6 +2384,13 @@ export async function allocateArPayment(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param allocationId
+ * @param input
+ * @param actor
+ */
 export async function reverseArPaymentAllocation(
   invoiceId: string,
   allocationId: string,
@@ -2589,6 +2686,12 @@ async function createArAdjustment(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function createArCreditNote(
   invoiceId: string,
   input: CreateCreditNoteInput,
@@ -2606,6 +2709,12 @@ export async function createArCreditNote(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function createArDebitNote(
   invoiceId: string,
   input: CreateDebitNoteInput,
@@ -2623,6 +2732,12 @@ export async function createArDebitNote(
   );
 }
 
+/**
+ *
+ * @param invoiceId
+ * @param input
+ * @param actor
+ */
 export async function writeOffArInvoice(
   invoiceId: string,
   input: WriteOffArInvoiceInput,
@@ -2642,6 +2757,11 @@ export async function writeOffArInvoice(
   );
 }
 
+/**
+ *
+ * @param customerId
+ * @param actor
+ */
 export async function getArCustomerBalance(customerId: string, actor: ArActorContext = {}): Promise<ArCustomerBalance> {
   const tenantId = await resolveTenantId(actor.tenantId);
 
@@ -2705,6 +2825,14 @@ export async function getArCustomerBalance(customerId: string, actor: ArActorCon
   });
 }
 
+/**
+ *
+ * @param input
+ * @param input.page
+ * @param input.limit
+ * @param input.search
+ * @param actor
+ */
 export async function listArCustomerBalances(
   input: {
     page: number;
@@ -2826,6 +2954,12 @@ export async function listArCustomerBalances(
   });
 }
 
+/**
+ *
+ * @param customerId
+ * @param query
+ * @param actor
+ */
 export async function getArCustomerLedger(
   customerId: string,
   query: ArLedgerQuery,
@@ -2867,6 +3001,12 @@ export async function getArCustomerLedger(
   });
 }
 
+/**
+ *
+ * @param customerId
+ * @param query
+ * @param actor
+ */
 export async function getArCustomerStatement(
   customerId: string,
   query: ArStatementQuery,
@@ -2940,6 +3080,11 @@ export async function getArCustomerStatement(
   });
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function getArAgingReport(
   query: ArAgingQuery,
   actor: ArActorContext = {}

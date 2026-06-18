@@ -9,6 +9,10 @@ import {
   postAllocationRequestSchema,
 } from '@/lib/validations/customer-receipt-allocation-schema';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requireAnyPermission([
     'orders:overpayment_allocate',

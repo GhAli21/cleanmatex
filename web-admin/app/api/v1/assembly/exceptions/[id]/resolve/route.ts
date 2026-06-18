@@ -8,6 +8,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ * @param root0.params.id
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

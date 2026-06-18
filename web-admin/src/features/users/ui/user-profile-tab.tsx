@@ -23,6 +23,13 @@ interface UserProfileTabProps {
   accessToken: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.user
+ * @param root0.onUpdated
+ * @param root0.accessToken
+ */
 export function UserProfileTab({ user, onUpdated, accessToken }: UserProfileTabProps) {
   const t = useTranslations('users.detail')
   const tCommon = useTranslations('common')

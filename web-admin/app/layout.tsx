@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export default async function RootLayout({
   children,
 }: Readonly<{

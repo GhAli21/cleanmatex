@@ -97,11 +97,29 @@ export const postCustomerReceiptRequestSchema = z.object({
   idempotencyKey: z.string().min(1).max(200),
 });
 
+/**
+ *
+ */
 export type PreviewAutoAllocationRequest = z.infer<typeof previewAutoAllocationRequestSchema>;
+/**
+ *
+ */
 export type PreviewManualAllocationRequest = z.infer<typeof previewManualAllocationRequestSchema>;
+/**
+ *
+ */
 export type ConfirmAllocationPreviewRequest = z.infer<typeof confirmAllocationPreviewRequestSchema>;
+/**
+ *
+ */
 export type PostAllocationRequest = z.infer<typeof postAllocationRequestSchema>;
+/**
+ *
+ */
 export type PostCustomerReceiptRequest = z.infer<typeof postCustomerReceiptRequestSchema>;
+/**
+ *
+ */
 export type ManualAllocationLineInput = z.infer<typeof allocationLineSchema>;
 
 export { allocationLineSchema };

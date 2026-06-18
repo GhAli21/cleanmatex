@@ -7,6 +7,11 @@
 // CSV Export
 // ============================================================================
 
+/**
+ *
+ * @param headers
+ * @param rows
+ */
 export function generateCSV(headers: string[], rows: string[][]): string {
   const escape = (val: string) => {
     if (val.includes(',') || val.includes('"') || val.includes('\n')) {
@@ -20,6 +25,11 @@ export function generateCSV(headers: string[], rows: string[][]): string {
   return [headerRow, ...dataRows].join('\n');
 }
 
+/**
+ *
+ * @param content
+ * @param filename
+ */
 export function downloadCSV(content: string, filename: string): void {
   const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   downloadFile(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
@@ -29,6 +39,10 @@ export function downloadCSV(content: string, filename: string): void {
 // Excel Export
 // ============================================================================
 
+/**
+ *
+ * @param sheets
+ */
 export async function generateExcelWorkbook(
   sheets: { name: string; headers: string[]; rows: (string | number)[][] }[]
 ): Promise<Blob> {
@@ -56,6 +70,11 @@ export async function generateExcelWorkbook(
   return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
+/**
+ *
+ * @param blob
+ * @param filename
+ */
 export function downloadExcel(blob: Blob, filename: string): void {
   downloadFile(blob, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
 }
@@ -64,6 +83,15 @@ export function downloadExcel(blob: Blob, filename: string): void {
 // PDF Export
 // ============================================================================
 
+/**
+ *
+ * @param config
+ * @param config.title
+ * @param config.tenantName
+ * @param config.dateRange
+ * @param config.kpis
+ * @param config.tables
+ */
 export async function generatePDFReport(config: {
   title: string;
   tenantName?: string;
@@ -142,6 +170,11 @@ export async function generatePDFReport(config: {
   return doc.output('blob');
 }
 
+/**
+ *
+ * @param blob
+ * @param filename
+ */
 export function downloadPDF(blob: Blob, filename: string): void {
   downloadFile(blob, filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
 }

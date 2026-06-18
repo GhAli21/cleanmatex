@@ -12,6 +12,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { validateEmail } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
 
+/**
+ *
+ */
 export default function ForgotPasswordPage() {
   const { resetPassword, isLoading } = useAuth()
 

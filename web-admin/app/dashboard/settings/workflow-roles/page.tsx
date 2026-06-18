@@ -32,6 +32,9 @@ const WORKFLOW_ROLES = [
   { code: 'ROLE_ADMIN', name: 'Workflow Admin', name2: 'مدير سير العمل', description: 'Full workflow access' },
 ]
 
+/**
+ *
+ */
 export default function WorkflowRolesPage() {
   const t = useTranslations('settings')
   const { currentTenant } = useAuth()

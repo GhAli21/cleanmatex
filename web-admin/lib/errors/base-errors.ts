@@ -5,7 +5,17 @@
  * @last_updated 2025-01-20
  */
 
+/**
+ *
+ */
 export class AppError extends Error {
+  /**
+   *
+   * @param message
+   * @param code
+   * @param statusCode
+   * @param details
+   */
   constructor(
     message: string,
     public code: string,
@@ -18,7 +28,15 @@ export class AppError extends Error {
   }
 }
 
+/**
+ *
+ */
 export class NotFoundError extends AppError {
+  /**
+   *
+   * @param resource
+   * @param id
+   */
   constructor(resource: string, id: string) {
     super(
       `${resource} with ID ${id} not found`,
@@ -29,25 +47,55 @@ export class NotFoundError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class ValidationError extends AppError {
+  /**
+   *
+   * @param message
+   * @param fields
+   */
   constructor(message: string, public fields: Record<string, string[]>) {
     super(message, 'VALIDATION_ERROR', 422, { fields });
   }
 }
 
+/**
+ *
+ */
 export class UnauthorizedError extends AppError {
+  /**
+   *
+   * @param message
+   */
   constructor(message: string = 'Unauthorized access') {
     super(message, 'UNAUTHORIZED', 401);
   }
 }
 
+/**
+ *
+ */
 export class ForbiddenError extends AppError {
+  /**
+   *
+   * @param message
+   */
   constructor(message: string = 'Insufficient permissions') {
     super(message, 'FORBIDDEN', 403);
   }
 }
 
+/**
+ *
+ */
 export class ConflictError extends AppError {
+  /**
+   *
+   * @param message
+   * @param details
+   */
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'CONFLICT', 409, details);
   }

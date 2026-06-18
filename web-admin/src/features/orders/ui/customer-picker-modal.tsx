@@ -106,6 +106,14 @@ interface CustomerPickerModalProps {
   tenantId?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSelectCustomer
+ * @param root0.tenantId
+ */
 export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId }: CustomerPickerModalProps) {
   const t = useTranslations('newOrder.customerPicker');
   const tCommon = useTranslations('common');

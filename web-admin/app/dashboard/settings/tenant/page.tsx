@@ -10,6 +10,9 @@
 
 import { TenantSettingsScreen } from '@features/settings/ui/tenant-settings-screen';
 
+/**
+ *
+ */
 export default function TenantSettingsPage() {
   return <TenantSettingsScreen />;
 }

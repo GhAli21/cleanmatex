@@ -22,6 +22,12 @@ interface PromoUsageTableProps {
   onClose: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.promoCodeId
+ * @param root0.onClose
+ */
 export function PromoUsageTable({ promoCodeId, onClose }: PromoUsageTableProps) {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');

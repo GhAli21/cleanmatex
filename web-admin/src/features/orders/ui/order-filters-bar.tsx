@@ -15,6 +15,11 @@ interface OrderFiltersBarProps {
   currentFilters: Record<string, string | undefined>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.currentFilters
+ */
 export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
   const router = useRouter();
   const pathname = usePathname();

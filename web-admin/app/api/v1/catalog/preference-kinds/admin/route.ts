@@ -16,6 +16,10 @@ import { preferenceKindAdminPutSchema } from '@/lib/validations/preference-kind-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('config:preferences_manage')(request);
@@ -42,6 +46,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   try {
     const authCheck = await requirePermission('config:preferences_manage')(request);

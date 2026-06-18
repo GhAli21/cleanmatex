@@ -28,6 +28,9 @@ function resolveStatementStatusAfterPayment(balance: number, total: number): str
   return STATEMENT_STATUSES.ISSUED;
 }
 
+/**
+ *
+ */
 export interface AllocateB2bStatementPaymentParams {
   tenantId: string;
   userId: string;
@@ -40,6 +43,9 @@ export interface AllocateB2bStatementPaymentParams {
 /**
  * Applies a customer receipt allocation payment to a B2B statement balance.
  * Updates paid_amount / balance_amount / status_cd atomically inside caller TX.
+ * @param tx
+ * @param statementId
+ * @param params
  */
 export async function allocateB2bStatementPaymentTx(
   tx: PrismaTransactionClient,

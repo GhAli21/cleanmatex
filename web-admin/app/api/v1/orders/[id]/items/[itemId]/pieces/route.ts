@@ -14,6 +14,9 @@ import { log } from '@/lib/utils/logger';
  * GET /api/v1/orders/:id/items/:itemId/pieces
  * List all pieces for an order item
  * Requires: orders:read permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -78,6 +81,9 @@ export async function GET(
  * POST /api/v1/orders/:id/items/:itemId/pieces
  * Create pieces for an order item (bulk creation)
  * Requires: orders:create permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(
   request: NextRequest,
@@ -173,6 +179,9 @@ export async function POST(
  * PATCH /api/v1/orders/:id/items/:itemId/pieces
  * Batch update multiple pieces
  * Requires: orders:update permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,

@@ -57,6 +57,9 @@ export const createOrderSchema = z.object({
   createdBy: z.string().uuid('Invalid createdBy format').optional(),
 });
 
+/**
+ *
+ */
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
 // ==================================================================
@@ -99,6 +102,9 @@ export const addOrderItemsSchema = z.object({
   isExpressService: z.boolean().default(false),
 });
 
+/**
+ *
+ */
 export type AddOrderItemsInput = z.infer<typeof addOrderItemsSchema>;
 
 // ==================================================================
@@ -113,6 +119,9 @@ export const completePreparationSchema = z.object({
   internalNotes: z.string().max(1000, 'Internal notes too long').optional(),
 });
 
+/**
+ *
+ */
 export type CompletePreparationInput = z.infer<typeof completePreparationSchema>;
 
 /**
@@ -123,6 +132,9 @@ export const updateOrderStatusSchema = z.object({
   notes: z.string().max(500, 'Notes too long').optional(),
 });
 
+/**
+ *
+ */
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 
 /**
@@ -160,6 +172,9 @@ export const orderFiltersSchema = z.object({
   physicalIntakeStatus: z.string().max(120).optional(),
 });
 
+/**
+ *
+ */
 export type OrderFiltersInput = z.infer<typeof orderFiltersSchema>;
 
 /**
@@ -225,6 +240,8 @@ export const bulkCancelOrdersSchema = z.object({
 
 /**
  * Validate and parse data against a schema
+ * @param schema
+ * @param data
  */
 export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; errors: z.ZodError } {
   const result = schema.safeParse(data);
@@ -238,6 +255,7 @@ export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): { succes
 
 /**
  * Format Zod validation errors for display
+ * @param error
  */
 export function formatValidationErrors(error: z.ZodError): Record<string, string[]> {
   const errors: Record<string, string[]> = {};
@@ -255,6 +273,7 @@ export function formatValidationErrors(error: z.ZodError): Record<string, string
 
 /**
  * Get first validation error message
+ * @param error
  */
 export function getFirstValidationError(error: z.ZodError): string {
   return error.issues[0]?.message || 'Validation failed - Order Schema';

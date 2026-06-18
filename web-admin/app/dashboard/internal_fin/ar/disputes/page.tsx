@@ -23,6 +23,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArDisputesPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.v2.disputes');
   const auth = await getAuthContext();

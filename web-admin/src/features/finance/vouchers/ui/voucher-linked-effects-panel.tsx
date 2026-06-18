@@ -22,6 +22,11 @@ function formatAmount(amount: { toString(): string }, locale: string) {
   }).format(Number(amount));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.effects
+ */
 export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanelProps) {
   const t = useTranslations('finance.vouchers.linkedEffects');
   const locale = useLocale();

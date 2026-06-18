@@ -54,6 +54,15 @@ interface OrderStatusBadgeProps {
   variant?: 'default' | 'outline';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.status
+ * @param root0.locale
+ * @param root0.showIcon
+ * @param root0.size
+ * @param root0.variant
+ */
 export function OrderStatusBadge({
   status,
   locale = 'en',
@@ -149,6 +158,8 @@ export function OrderStatusBadge({
 
 /**
  * Compact status indicator (dot only)
+ * @param root0
+ * @param root0.status
  */
 export function OrderStatusDot({ status }: { status: OrderStatus }) {
   const meta = STATUS_META[status];

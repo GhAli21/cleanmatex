@@ -48,6 +48,9 @@ function getBasicNavigationForSuperAdmin(): NavigationSection[] {
   ] as any
 }
 
+/**
+ *
+ */
 export interface NavigationItemDB {
   comp_id: string
   parent_comp_id: string | null
@@ -209,6 +212,9 @@ function transformToNavigationSections(
 
 /**
  * Transform a single database item to NavigationSection
+ * @param item
+ * @param childrenMap
+ * @param itemMap
  */
 function transformItemToSection(
   item: NavigationItemDB,
@@ -248,6 +254,7 @@ function transformItemToSection(
 
 /**
  * Transform a database item to NavigationItem (child)
+ * @param item
  */
 function transformItemToNavigationItem(
   item: NavigationItemDB
@@ -272,6 +279,7 @@ function transformItemToNavigationItem(
 /**
  * Get icon name from LucideIcon component
  * Reverse lookup to convert component to name string for JSON serialization
+ * @param iconComponent
  */
 function getIconName(iconComponent: any): string {
   if (!iconComponent || typeof iconComponent !== 'function') {
@@ -353,6 +361,9 @@ export function getSystemNavigationFallback(
 /**
  * Filter navigation by additional rules (roles, feature flags)
  * This is handled by the database function, but kept for compatibility
+ * @param items
+ * @param userRole
+ * @param featureFlags
  */
 export function filterByAdditionalRules(
   items: NavigationSection[],

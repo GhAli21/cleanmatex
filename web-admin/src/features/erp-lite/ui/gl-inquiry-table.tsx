@@ -16,6 +16,10 @@ interface GlInquiryTableProps {
 /**
  * Clickable GL inquiry table.
  * Selecting a row sets ?journalId= in the URL to open the detail panel.
+ * @param root0
+ * @param root0.rows
+ * @param root0.selectedJournalId
+ * @param root0.displayConfig
  */
 export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInquiryTableProps) {
   const t = useTranslations('erpLite.reports')

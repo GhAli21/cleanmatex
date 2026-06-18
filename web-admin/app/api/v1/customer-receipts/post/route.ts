@@ -3,6 +3,10 @@ import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { postCustomerAccountReceipt } from '@/lib/services/customer-receipt-posting.service';
 import { postCustomerReceiptRequestSchema } from '@/lib/validations/customer-receipt-allocation-schema';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requireAnyPermission([
     'customers:receipt_allocate',

@@ -39,6 +39,11 @@ interface CustomerPreferencesTabProps {
   customerId: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ */
 export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabProps) {
   const t = useTranslations('customers');
   const isRTL = useRTL();

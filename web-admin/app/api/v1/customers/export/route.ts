@@ -40,6 +40,7 @@ async function getAuthContext() {
 
 /**
  * Convert customers to CSV format
+ * @param customers
  */
 function convertToCSV(customers: any[]): string {
   // CSV Headers
@@ -114,6 +115,7 @@ function convertToCSV(customers: any[]): string {
  * - endDate: ISO date string (created before)
  *
  * Response: CSV file download
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

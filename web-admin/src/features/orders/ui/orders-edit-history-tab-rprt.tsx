@@ -29,6 +29,9 @@ import type { ChangeSet, FieldChange, ItemChange } from '@/lib/services/order-au
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+/**
+ *
+ */
 export interface OrderEditHistoryEntry {
   id: string;
   orderId: string;
@@ -45,6 +48,9 @@ export interface OrderEditHistoryEntry {
   paymentAdjustmentType: string | null;
 }
 
+/**
+ *
+ */
 export interface EditHistoryTranslations {
   emptyEditHistory: string;
   editHistoryTitle: string;
@@ -472,6 +478,13 @@ function EditEntryRow({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
+/**
+ *
+ * @param root0
+ * @param root0.entries
+ * @param root0.currencyCode
+ * @param root0.translations
+ */
 export function OrdersEditHistoryTabRprt({
   entries,
   currencyCode,

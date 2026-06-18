@@ -12,7 +12,10 @@ function expandShortHex(hex3: string): string {
   return `#${body[0]}${body[0]}${body[1]}${body[1]}${body[2]}${body[2]}`.toUpperCase();
 }
 
-/** Parses #RGB or #RRGGBB; returns uppercase #RRGGBB or null if invalid / empty */
+/**
+ * Parses #RGB or #RRGGBB; returns uppercase #RRGGBB or null if invalid / empty
+ * @param input
+ */
 export function parseCssHexToFull(input: string | undefined | null): string | null {
   const t = input?.trim() ?? '';
   if (!t) return null;
@@ -23,12 +26,17 @@ export function parseCssHexToFull(input: string | undefined | null): string | nu
 
 /**
  * Hex value for bridging to `<input type="color">`. Invalid / empty drafts use `fallback`.
+ * @param hexDraft
+ * @param fallback
  */
 export function bridgeHexForNativePicker(hexDraft: string, fallback = COLOR_HEX_PICKER_FALLBACK): string {
   return parseCssHexToFull(hexDraft) ?? fallback;
 }
 
-/** Value to send to API: null clears override; rejects invalid partial strings */
+/**
+ * Value to send to API: null clears override; rejects invalid partial strings
+ * @param hexDraft
+ */
 export function normalizeHexDraftForApi(hexDraft: string): string | null | 'invalid' {
   const trimmed = hexDraft.trim();
   if (!trimmed) return null;

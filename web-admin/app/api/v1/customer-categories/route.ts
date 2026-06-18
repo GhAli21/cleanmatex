@@ -14,6 +14,10 @@ import { log } from '@/lib/utils/logger';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('customers:read')(request);
@@ -45,6 +49,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const authCheck = await requirePermission('config:preferences_manage')(request);

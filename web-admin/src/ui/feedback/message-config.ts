@@ -37,6 +37,7 @@ export function getMessageConfig(): MessageConfig {
 
 /**
  * Update message configuration
+ * @param config
  */
 export function setMessageConfig(config: Partial<MessageConfig>): void {
   currentConfig = {

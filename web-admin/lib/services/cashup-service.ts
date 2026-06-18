@@ -37,6 +37,8 @@ function endOfDayUTC(date: Date): Date {
 /**
  * Get expected payment totals by method for a given date.
  * Only includes rows with status = 'completed'.
+ * @param tenantOrgId
+ * @param date
  */
 export async function getExpectedAmountsByDate(
   tenantOrgId: string,
@@ -76,6 +78,8 @@ export async function getExpectedAmountsByDate(
 
 /**
  * Get reconciliation entries for a given date.
+ * @param tenantOrgId
+ * @param date
  */
 export async function getReconciliationForDate(
   tenantOrgId: string,
@@ -119,6 +123,10 @@ export async function getReconciliationForDate(
 /**
  * Save or update reconciliation for a date. One row per payment method.
  * Status: variance_noted if variance !== 0, else reconciled.
+ * @param tenantOrgId
+ * @param date
+ * @param entries
+ * @param reconciledBy
  */
 export async function saveReconciliation(
   tenantOrgId: string,
@@ -182,12 +190,18 @@ export async function saveReconciliation(
 // Reconciliation history (optional)
 // ============================================================================
 
+/**
+ *
+ */
 export interface ReconciliationHistoryFilters {
   startDate?: Date;
   endDate?: Date;
   limit?: number;
 }
 
+/**
+ *
+ */
 export interface ReconciliationHistoryItem {
   id: string;
   reconciliation_date: string;
@@ -203,6 +217,8 @@ export interface ReconciliationHistoryItem {
 
 /**
  * List reconciliation history for the tenant, ordered by date desc.
+ * @param tenantOrgId
+ * @param filters
  */
 export async function listReconciliationHistory(
   tenantOrgId: string,

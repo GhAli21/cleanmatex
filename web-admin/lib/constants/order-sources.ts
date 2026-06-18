@@ -15,6 +15,9 @@ export const ORDER_SOURCE_CODES = [
   'api_partner',
 ] as const;
 
+/**
+ *
+ */
 export type OrderSourceCode = (typeof ORDER_SOURCE_CODES)[number];
 
 export const DEFAULT_ORDER_SOURCE_CODE = 'legacy_unknown';

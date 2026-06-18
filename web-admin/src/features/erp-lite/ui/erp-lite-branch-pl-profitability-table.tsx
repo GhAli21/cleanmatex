@@ -11,6 +11,12 @@ interface ErpLiteBranchPlProfitabilityTableProps {
   displayConfig: ErpLiteDisplayConfig
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.displayConfig
+ */
 export function ErpLiteBranchPlProfitabilityTable({
   rows,
   displayConfig,

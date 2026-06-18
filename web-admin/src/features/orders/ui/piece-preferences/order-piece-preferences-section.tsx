@@ -21,6 +21,9 @@ interface ConditionCatalog {
   colors: ServicePreference[];
 }
 
+/**
+ *
+ */
 export interface OrderPiecePreferencesSectionProps {
   preferenceKinds: PreferenceKind[];
   prefsByKind: Map<string, ServicePreference[]>;
@@ -32,6 +35,18 @@ export interface OrderPiecePreferencesSectionProps {
   enforcePrefCompatibility?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.preferenceKinds
+ * @param root0.prefsByKind
+ * @param root0.packingPrefs
+ * @param root0.servicePrefsFallback
+ * @param root0.conditionCatalog
+ * @param root0.kindsLoading
+ * @param root0.currencyCode
+ * @param root0.enforcePrefCompatibility
+ */
 export function OrderPiecePreferencesSection({
   preferenceKinds,
   prefsByKind,

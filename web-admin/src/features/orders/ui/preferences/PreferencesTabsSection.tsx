@@ -29,6 +29,17 @@ interface PreferencesTabsSectionProps {
   hasServicePrefs: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.trackByPiece
+ * @param root0.packingPerPieceEnabled
+ * @param root0.bundlesEnabled
+ * @param root0.repeatLastOrderEnabled
+ * @param root0.smartSuggestionsEnabled
+ * @param root0.enforcePrefCompatibility
+ * @param root0.hasServicePrefs
+ */
 export function PreferencesTabsSection({
   trackByPiece,
   packingPerPieceEnabled = true,

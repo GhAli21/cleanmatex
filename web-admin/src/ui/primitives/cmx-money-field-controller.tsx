@@ -12,6 +12,9 @@ import { Controller, type Control, type FieldPath, type FieldValues } from 'reac
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { CmxMoneyField, type CmxMoneyFieldProps } from './cmx-money-field'
 
+/**
+ *
+ */
 export interface CmxMoneyFieldControllerProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
@@ -22,6 +25,13 @@ export interface CmxMoneyFieldControllerProps<
   decimalPlaces?: number
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.name
+ * @param root0.control
+ * @param root0.decimalPlaces
+ */
 export function CmxMoneyFieldController<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,

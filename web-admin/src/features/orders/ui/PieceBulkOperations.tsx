@@ -19,6 +19,9 @@ import {
 import { CheckSquare, XSquare, MapPin, FileDown } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface PieceBulkOperationsProps {
   pieces: OrderItemPiece[];
   selectedPieces: Set<string>;
@@ -29,6 +32,17 @@ export interface PieceBulkOperationsProps {
   onExport?: (pieceIds: string[]) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.pieces
+ * @param root0.selectedPieces
+ * @param root0.onSelectionChange
+ * @param root0.onBulkUpdate
+ * @param root0.onBulkStatusChange
+ * @param root0.onBulkRackLocation
+ * @param root0.onExport
+ */
 export function PieceBulkOperations({
   pieces,
   selectedPieces,

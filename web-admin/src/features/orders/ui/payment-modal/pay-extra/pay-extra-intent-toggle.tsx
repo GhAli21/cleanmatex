@@ -4,6 +4,9 @@ import { useTranslations } from 'next-intl';
 import { CmxSwitch } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 
+/**
+ *
+ */
 export type PayExtraIntentToggleProps = {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -12,6 +15,15 @@ export type PayExtraIntentToggleProps = {
   isRTL?: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.checked
+ * @param root0.onCheckedChange
+ * @param root0.disabled
+ * @param root0.disabledReason
+ * @param root0.isRTL
+ */
 export function PayExtraIntentToggle({
   checked,
   onCheckedChange,

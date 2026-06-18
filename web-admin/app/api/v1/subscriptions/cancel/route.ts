@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/server';
 import { cancelSubscription } from '@/lib/services/subscriptions.service';
 import type { SubscriptionCancelRequest } from '@/lib/types/tenant';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // Get tenant ID from session

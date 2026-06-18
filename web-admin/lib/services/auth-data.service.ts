@@ -10,6 +10,9 @@
 import { supabase } from '@/lib/supabase/client'
 import type { UserTenant } from '@/types/auth'
 
+/**
+ *
+ */
 export interface AuthData {
   tenants: UserTenant[]
   permissions: string[]
@@ -40,6 +43,8 @@ async function fetchTenantsWithRetry(maxAttempts = 2) {
  * Fetch all authentication data in parallel.
  * Pass `prefetchedTenants` to skip the get_user_tenants RPC (e.g. when the login
  * API already returned tenant data in the same response).
+ * @param options
+ * @param options.prefetchedTenants
  */
 export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[] }): Promise<AuthData> {
   const skipTenants = (options?.prefetchedTenants?.length ?? 0) > 0

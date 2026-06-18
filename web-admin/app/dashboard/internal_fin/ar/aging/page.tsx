@@ -19,6 +19,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArAgingPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.aging');
   const auth = await getAuthContext();

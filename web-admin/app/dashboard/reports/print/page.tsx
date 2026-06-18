@@ -19,6 +19,9 @@ import type {
 
 type ReportData = OrdersReportData | PaymentsReportData | InvoicesReportData | CustomerReportData;
 
+/**
+ *
+ */
 export default function ReportPrintPage() {
   const searchParams = useSearchParams();
   const t = useTranslations('reports');

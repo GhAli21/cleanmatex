@@ -32,6 +32,14 @@ const PAYMENT_BADGE_COLORS: Record<string, string> = {
   pending: 'bg-gray-100 text-gray-800',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.orders
+ * @param root0.pagination
+ * @param root0.currencyCode
+ * @param root0.basePath
+ */
 export default function OrdersReportTable({
   orders,
   pagination,

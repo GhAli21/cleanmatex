@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle } from 'lucide-react';
 import type { ProcessingStep, ProcessingStepConfig } from '@/types/order';
 
+/**
+ *
+ */
 export interface ProcessingStepTimelineProps {
   currentStep?: ProcessingStep | null;
   completedSteps?: Set<ProcessingStep>;
@@ -40,6 +43,18 @@ const DEFAULT_STEP_LABELS: Record<ProcessingStep, { en: string; ar: string }> = 
   finishing: { en: 'Finishing', ar: 'الإنهاء' },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.currentStep
+ * @param root0.completedSteps
+ * @param root0.onStepClick
+ * @param root0.className
+ * @param root0.orientation
+ * @param root0.showLabels
+ * @param root0.size
+ * @param root0.processingSteps
+ */
 export function CmxProcessingStepTimeline({
   currentStep,
   completedSteps = new Set(),

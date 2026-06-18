@@ -21,4 +21,7 @@ export const GiftCardMetadataSchema = z.object({
   notes:            z.string().optional(),
 }).catchall(z.unknown());
 
+/**
+ *
+ */
 export type GiftCardMetadata = z.infer<typeof GiftCardMetadataSchema>;

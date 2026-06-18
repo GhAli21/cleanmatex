@@ -188,6 +188,8 @@ export async function consumeOrderHistoryBatch(
  *
  * Tenant resolved from the AsyncLocalStorage context for the helper
  * lookups; RLS scopes them automatically.
+ * @param tenantOrgId
+ * @param event
  */
 async function mapEventToHistoryRow(
   tenantOrgId: string,
@@ -298,6 +300,8 @@ async function mapEventToHistoryRow(
  * Pull a string `to_value` from the event payload. Returns null when
  * the requested key is missing or non-string — the history row column
  * is nullable so it's fine to leave blank.
+ * @param payload
+ * @param key
  */
 function extractToValue(payload: Record<string, unknown>, key: string): string | null {
   const raw = payload[key];
@@ -309,6 +313,8 @@ function extractToValue(payload: Record<string, unknown>, key: string): string |
  * payload keys (`posted_by`, `issued_by`, generic `actor_id`). Returns
  * null when the event has no actor — the trigger-emitted ORDER_CREATED
  * uses auth.uid() but worker-processed events run outside any session.
+ * @param payload
+ * @param primaryKey
  */
 function extractActor(payload: Record<string, unknown>, primaryKey?: string): string | null {
   const candidates = [primaryKey, 'posted_by', 'issued_by', 'actor_id', 'user_id'].filter(
@@ -325,6 +331,8 @@ function extractActor(payload: Record<string, unknown>, primaryKey?: string): st
  * Wrap the raw outbox payload alongside identifying metadata so the
  * timeline UI can render a richer expandable detail block without
  * extra DB calls.
+ * @param event
+ * @param payload
  */
 function serialisePayload(
   event: OutboxEventForHistory,

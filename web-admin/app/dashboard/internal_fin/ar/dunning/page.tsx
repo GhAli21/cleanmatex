@@ -22,6 +22,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArDunningPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.v2.dunning');
   const auth = await getAuthContext();

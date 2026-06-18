@@ -19,11 +19,16 @@ import type {
     PriceSource,
 } from '@/lib/types/pricing';
 
+/**
+ *
+ */
 export class PricingService {
     /**
      * Determine price list type based on order context
+     * @param tenantId
      * @param isExpress - Is this an express order?
      * @param customerId - Customer ID (optional)
+     * @param supabase
      * @returns Promise<PriceListType> - Price list type to use
      */
     private async determinePriceListType(
@@ -245,6 +250,12 @@ export class PricingService {
      * @param tenantId - Tenant organization ID
      * @param items - Array of order items with pricing
      * @param options - Optional: customerId, isExpress, orderDiscountPercent, orderDiscountAmount
+     * @param options.customerId
+     * @param options.isExpress
+     * @param options.orderDiscountPercent
+     * @param options.orderDiscountAmount
+     * @param options.branchId
+     * @param options.userId
      * @returns Promise<OrderTotals> - Order-level totals
      */
     async calculateOrderTotals(

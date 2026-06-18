@@ -11,6 +11,9 @@ import {
 } from '@/lib/types/customer-receipt-allocation';
 import type { ReceiptAllocationPolicyRow } from '@/lib/services/customer-receipt-allocation-policy.service';
 
+/**
+ *
+ */
 export interface ValidateAllocationPreviewParams {
   tenantId: string;
   customerId: string;
@@ -23,6 +26,7 @@ export interface ValidateAllocationPreviewParams {
 
 /**
  * Centralizes feature-pack allocation validation (15 rules) for preview confirm and TX post.
+ * @param params
  */
 export function validateAllocationPreview(params: ValidateAllocationPreviewParams): void {
   const { customerId, currencyCode, preview, policy, requireConfirmed = true } = params;

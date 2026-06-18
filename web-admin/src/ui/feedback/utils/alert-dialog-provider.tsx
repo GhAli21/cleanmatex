@@ -27,6 +27,8 @@ const AlertDialogContext = createContext<AlertDialogContextValue | null>(null);
 /**
  * Alert Dialog Provider Component
  * Must be rendered at the app root to enable programmatic dialogs
+ * @param root0
+ * @param root0.children
  */
 export function AlertDialogProvider({ children }: { children: React.ReactNode }) {
   const [dialogState, setDialogState] = useState<AlertDialogState>({

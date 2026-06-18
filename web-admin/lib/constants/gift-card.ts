@@ -21,6 +21,9 @@ export const GIFT_CARD_STATUS = {
   SUSPENDED:          'SUSPENDED',
 } as const;
 
+/**
+ *
+ */
 export type GiftCardStatus = (typeof GIFT_CARD_STATUS)[keyof typeof GIFT_CARD_STATUS];
 
 export const GIFT_CARD_TXN_TYPE = {
@@ -36,6 +39,9 @@ export const GIFT_CARD_TXN_TYPE = {
   BONUS_REDEEM: 'BONUS_REDEEM',
 } as const;
 
+/**
+ *
+ */
 export type GiftCardTxnType = (typeof GIFT_CARD_TXN_TYPE)[keyof typeof GIFT_CARD_TXN_TYPE];
 
 export const GIFT_CARD_TYPE = {
@@ -44,6 +50,9 @@ export const GIFT_CARD_TYPE = {
   CORPORATE:    'CORPORATE',
 } as const;
 
+/**
+ *
+ */
 export type GiftCardType = (typeof GIFT_CARD_TYPE)[keyof typeof GIFT_CARD_TYPE];
 
 export const GIFT_CARD_ISSUE_TYPE = {
@@ -55,6 +64,9 @@ export const GIFT_CARD_ISSUE_TYPE = {
   REPLACEMENT: 'REPLACEMENT',
 } as const;
 
+/**
+ *
+ */
 export type GiftCardIssueType = (typeof GIFT_CARD_ISSUE_TYPE)[keyof typeof GIFT_CARD_ISSUE_TYPE];
 
 /** Statuses in which a gift card can be used for redemption at checkout. */

@@ -77,6 +77,17 @@ function fmtMoney(n: number | null | undefined, currency: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+/**
+ *
+ * @param root0
+ * @param root0.drawerId
+ * @param root0.drawerName
+ * @param root0.drawerType
+ * @param root0.currencyCode
+ * @param root0.openSession
+ * @param root0.movements
+ * @param root0.closedSessions
+ */
 export default function CashDrawerDetailClient({
   drawerId,
   drawerName,

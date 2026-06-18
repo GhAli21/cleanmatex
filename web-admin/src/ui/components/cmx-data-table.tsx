@@ -16,15 +16,26 @@ import {
   TableRow,
 } from '@ui/primitives/table'
 
+/**
+ *
+ */
 export interface CmxDataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[]
   data: TData[]
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.columns
+ * @param root0.data
+ */
 export function CmxDataTable<TData>({
   columns,
   data,
 }: CmxDataTableProps<TData>) {
+  // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
   const table = useReactTable({
     data,
     columns,

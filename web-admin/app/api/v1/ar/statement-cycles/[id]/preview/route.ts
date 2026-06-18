@@ -8,6 +8,11 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+/**
+ *
+ * @param request
+ * @param context
+ */
 export async function GET(request: NextRequest, context: RouteContext) {
   const auth = await requirePermission('ar_stmt_cycles:view')(request);
   if (auth instanceof NextResponse) return auth;

@@ -4,6 +4,10 @@ import { listArCredits } from '@/lib/services/ar-credit.service';
 import { arCreditsQuerySchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError, parseSearchParams } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('ar_credits:view')(request);
   if (auth instanceof NextResponse) return auth;

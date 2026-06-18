@@ -58,6 +58,11 @@ function formatJson(value: Record<string, unknown> | undefined) {
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.detail
+ */
 export function ArInvoiceDetailTabs({ detail }: ArInvoiceDetailTabsProps) {
   const t = useTranslations('invoices.ar.detailTabs');
   const locale = useLocale();

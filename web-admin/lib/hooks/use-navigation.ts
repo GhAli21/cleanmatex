@@ -19,6 +19,9 @@ import {
 } from '@/lib/cache/permission-cache-client'
 import { getIcon } from '@/lib/utils/icon-registry'
 
+/**
+ *
+ */
 export function useNavigation() {
   const { permissions, currentTenant, isLoading: authLoading, isAuthenticated } = useAuth()
   const [navigation, setNavigation] = useState<NavigationSection[]>([])
@@ -176,6 +179,7 @@ export function useNavigation() {
 
 /**
  * Transform navigation sections: convert icon strings to LucideIcon components
+ * @param sections
  */
 function transformNavigationIcons(sections: any[]): NavigationSection[] {
   if (!sections || !Array.isArray(sections)) {

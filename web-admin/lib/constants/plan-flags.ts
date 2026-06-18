@@ -9,8 +9,14 @@ export const PLAN_FLAG_KEYS = [
   'smart_suggestions',
 ] as const;
 
+/**
+ *
+ */
 export type PlanFlagKey = (typeof PLAN_FLAG_KEYS)[number];
 
+/**
+ *
+ */
 export interface PlanFlags {
   bundlesEnabled: boolean;
   repeatLastOrderEnabled: boolean;

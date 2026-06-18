@@ -94,6 +94,7 @@ const PRISMA_CALL_RE = /\borg_orders_mst\s*\.\s*\w+\s*\(/g;
 /**
  * Find every Prisma org_orders_mst call in `content`, extract the balanced
  * `{...}` options block, and return each as { blockContent, callLine }.
+ * @param content
  */
 function extractOrgOrdersBlocks(content) {
   const blocks = [];

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { listCustomerOpenBalancesForApi } from '@/lib/services/customer-open-balance-query.service';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

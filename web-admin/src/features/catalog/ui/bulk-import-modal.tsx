@@ -19,6 +19,14 @@ interface BulkImportModalProps {
   onSuccess: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.priceListId
+ * @param root0.onSuccess
+ */
 export function BulkImportModal({
   open,
   onClose,

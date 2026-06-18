@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useScreenContract, type ScreenContract } from './use-screen-contract';
 
+/**
+ *
+ */
 export interface OrdersPagination {
   page: number;
   limit: number;
@@ -9,6 +12,9 @@ export interface OrdersPagination {
   totalPages: number;
 }
 
+/**
+ *
+ */
 export interface OrdersListResponse<TOrder = any> {
   success: boolean;
   data?: {
@@ -19,6 +25,9 @@ export interface OrdersListResponse<TOrder = any> {
   message?: string;
 }
 
+/**
+ *
+ */
 export interface NormalizedCustomer {
   name: string;
   phone: string;
@@ -52,6 +61,9 @@ function normalizeCustomerFromOrder(order: any): NormalizedCustomer {
   };
 }
 
+/**
+ *
+ */
 export interface UseScreenOrdersOptions {
   page?: number;
   limit?: number;
@@ -85,6 +97,8 @@ export interface UseScreenOrdersOptions {
 /**
  * Hook to get orders filtered by screen contract pre-conditions.
  * It fetches the screen contract and then uses its status list to query `/api/v1/orders`.
+ * @param screen
+ * @param options
  */
 export function useScreenOrders<TOrder = any>(
   screen: string,

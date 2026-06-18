@@ -24,6 +24,8 @@ const ENTRY_SIDES = ['DEBIT', 'CREDIT'] as const
 /**
  * URL-driven filter bar for the GL Inquiry screen.
  * All state lives in search params so the server page can re-fetch on navigation.
+ * @param root0
+ * @param root0.eventCodes
  */
 export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
   const t = useTranslations('erpLite.reports')

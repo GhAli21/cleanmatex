@@ -40,6 +40,9 @@ export type {
 
 // ── Legacy types (billing/vouchers receipt-only flow) ─────────────────────────
 
+/**
+ *
+ */
 export interface CreateVoucherInput {
   tenant_org_id: string;
   branch_id?: string;
@@ -58,6 +61,9 @@ export interface CreateVoucherInput {
   created_by?: string;
 }
 
+/**
+ *
+ */
 export interface VoucherData {
   id: string;
   tenant_org_id: string;
@@ -105,6 +111,9 @@ export interface VoucherData {
   updated_by: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateReceiptVoucherForPaymentInput {
   tenant_org_id: string;
   branch_id?: string;
@@ -119,6 +128,9 @@ export interface CreateReceiptVoucherForPaymentInput {
   metadata?: Prisma.InputJsonValue;
 }
 
+/**
+ *
+ */
 export interface CreateRefundVoucherForPaymentInput {
   tenant_org_id: string;
   branch_id?: string;
@@ -134,6 +146,9 @@ export interface CreateRefundVoucherForPaymentInput {
 
 // ── BVM types ─────────────────────────────────────────────────────────────────
 
+/**
+ *
+ */
 export interface CreateBizVoucherInput {
   branch_id?: string;
   voucher_type: VoucherType;
@@ -158,6 +173,9 @@ export interface CreateBizVoucherInput {
   idempotency_key?: string;
 }
 
+/**
+ *
+ */
 export interface UpdateBizVoucherInput {
   branch_id?: string;
   voucher_date?: string;
@@ -172,6 +190,9 @@ export interface UpdateBizVoucherInput {
   notes?: string;
 }
 
+/**
+ *
+ */
 export interface CreateVoucherLineInput {
   line_type: LineType;
   line_role: LineRole;
@@ -214,8 +235,14 @@ export interface CreateVoucherLineInput {
   payment_terminal_id?: string;
 }
 
+/**
+ *
+ */
 export type UpdateVoucherLineInput = Partial<Omit<CreateVoucherLineInput, 'idempotency_key'>>;
 
+/**
+ *
+ */
 export interface VoucherLineData {
   id: string;
   tenant_org_id: string;
@@ -263,6 +290,9 @@ export interface VoucherLineData {
   branch_id: string | null;
 }
 
+/**
+ *
+ */
 export interface BizVoucherDetailData {
   id: string;
   tenant_org_id: string;
@@ -307,6 +337,9 @@ export interface BizVoucherDetailData {
   lines: VoucherLineData[];
 }
 
+/**
+ *
+ */
 export interface VoucherListItem {
   id: string;
   voucher_no: string;
@@ -320,6 +353,9 @@ export interface VoucherListItem {
   created_at: Date;
 }
 
+/**
+ *
+ */
 export interface VoucherListFilters {
   voucher_type?: VoucherType;
   voucher_status?: VoucherStatus;
@@ -333,14 +369,23 @@ export interface VoucherListFilters {
   search?: string;
 }
 
+/**
+ *
+ */
 export interface PostVoucherInput {
   idempotency_key?: string;
 }
 
+/**
+ *
+ */
 export interface ReverseVoucherInput {
   reason: string;
 }
 
+/**
+ *
+ */
 export interface VoucherReportFilters {
   date_from: string;
   date_to: string;

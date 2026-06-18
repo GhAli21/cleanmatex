@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * OrderPieceService
  * Core business logic for order item pieces operations
@@ -154,10 +154,16 @@ export class OrderPieceService {
   /**
    * Create pieces for an order item
    * Auto-creates pieces 1..quantity for order items (pieces are always used)
-   * @param piecesData - Optional array of piece-level data. If provided, must match quantity.
-   *                     If not provided, uses baseData for all pieces uniformly.
-   * @param branchId - Optional branch scope for preferences.
-   * @param supabaseClient - Optional service-role client when caller has no staff JWT (public booking).
+   * @param tenantId - Tenant organization ID
+   * @param orderId - Parent order ID
+   * @param orderItemId - Order line item ID
+   * @param quantity - Number of pieces to create
+   * @param baseData - Default field values applied to each piece
+   * @param piecesData - Optional per-piece overrides; length must match quantity when provided
+   * @param branchId - Optional branch scope for preferences
+   * @param supabaseClient - Optional service-role client when caller has no staff JWT
+   * @param packingExtraByCode - Optional packing surcharge lookup
+   * @param preferencesSourceDefault - Preference source stamped on new piece rows
    */
   static async createPiecesForItem(
     tenantId: string,

@@ -36,6 +36,13 @@ interface CustomerOrdersSectionProps {
   returnToCustomerLabel?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ * @param root0.returnToCustomerUrl
+ * @param root0.returnToCustomerLabel
+ */
 export function CustomerOrdersSection({
   customerId,
   returnToCustomerUrl,

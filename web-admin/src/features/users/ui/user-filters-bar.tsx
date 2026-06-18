@@ -44,6 +44,16 @@ interface UserFiltersBarProps {
   availableRoles?: { code: string; name: string }[]
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.filters
+ * @param root0.onFilterChange
+ * @param root0.selectedCount
+ * @param root0.selectedUserIds
+ * @param root0.onBulkActionComplete
+ * @param root0.availableRoles
+ */
 export default function UserFiltersBar({
   filters,
   onFilterChange,

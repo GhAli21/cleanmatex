@@ -33,6 +33,15 @@ interface PriceOverrideModalProps {
     hasPermission: boolean
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.item
+ * @param root0.onSave
+ * @param root0.hasPermission
+ */
 export function PriceOverrideModal({
     open,
     onClose,

@@ -134,6 +134,11 @@ async function getAvailableSourceCreditAmountTx(
   return toNumber(rows[0]?.available_amount);
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function listArCredits(
   query: ArCreditsQuery,
   actor: ActorContext = {}
@@ -259,6 +264,11 @@ export async function listArCredits(
   });
 }
 
+/**
+ *
+ * @param input
+ * @param actor
+ */
 export async function applyArCredit(
   input: ApplyArCreditInput,
   actor: ActorContext = {}
@@ -398,6 +408,12 @@ export async function applyArCredit(
   );
 }
 
+/**
+ *
+ * @param applicationId
+ * @param input
+ * @param actor
+ */
 export async function reverseArCreditApplication(
   applicationId: string,
   input: ReverseArCreditApplicationInput,

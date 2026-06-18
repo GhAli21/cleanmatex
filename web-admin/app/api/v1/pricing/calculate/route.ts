@@ -9,6 +9,10 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { pricingService } from '@/lib/services/pricing.service';
 import type { PriceLookupParams } from '@/lib/types/pricing';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const { user, tenantId } = await getAuthContext();

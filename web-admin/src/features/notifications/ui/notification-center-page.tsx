@@ -39,6 +39,9 @@ function NotificationListSkeleton() {
   )
 }
 
+/**
+ *
+ */
 export function NotificationCenterPage() {
   const locale = useLocale()
   const t = useTranslations('notifications')

@@ -10,6 +10,9 @@ import { useRouter } from 'next/navigation';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton, Alert } from '@ui/primitives';
 
+/**
+ *
+ */
 export default function RegistrationSuccessPage() {
   const router = useRouter();
 

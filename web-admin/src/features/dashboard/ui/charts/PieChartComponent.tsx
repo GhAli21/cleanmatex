@@ -32,6 +32,17 @@ interface PieChartProps {
   formatter?: (value: number) => string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.height
+ * @param root0.showLegend
+ * @param root0.showLabels
+ * @param root0.innerRadius
+ * @param root0.outerRadius
+ * @param root0.formatter
+ */
 export function PieChartComponent({
   data,
   height = 300,

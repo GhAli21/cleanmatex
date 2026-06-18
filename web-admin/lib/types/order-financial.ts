@@ -47,6 +47,9 @@ export type {
 };
 
 // ── Tax breakdown per line ────────────────────────────────────────────────────
+/**
+ *
+ */
 export type TaxLineItem = {
   taxType:    TaxType;
   label:      string;
@@ -60,6 +63,9 @@ export type TaxLineItem = {
 };
 
 // ── Charge line ───────────────────────────────────────────────────────────────
+/**
+ *
+ */
 export type ChargeLineItem = {
   chargeType: ChargeType;
   label:      string;
@@ -69,6 +75,9 @@ export type ChargeLineItem = {
 };
 
 // ── Credit application input ──────────────────────────────────────────────────
+/**
+ *
+ */
 export type CreditApplicationInput = {
   type:        CreditApplicationType;
   referenceId: string;
@@ -76,6 +85,9 @@ export type CreditApplicationInput = {
 };
 
 // ── Payment leg input ─────────────────────────────────────────────────────────
+/**
+ *
+ */
 export type PaymentLegInput = {
   paymentMethodId: string;
   kind:            string;
@@ -86,6 +98,9 @@ export type PaymentLegInput = {
 };
 
 // ── Full financial snapshot returned by order-calculation.service.ts ──────────
+/**
+ *
+ */
 export type FinancialBreakdownSnapshot = {
   subtotal:                number;
   chargesTotal:            number;
@@ -254,6 +269,9 @@ export type SettlementOption = {
 };
 
 // ── Grouped checkout settlement options ───────────────────────────────────────
+/**
+ *
+ */
 export type CheckoutSettlementOptions = {
   paymentMethods:     SettlementOption[];
   creditApplications: SettlementOption[];
@@ -262,6 +280,9 @@ export type CheckoutSettlementOptions = {
 };
 
 // ── Resolved settlement leg (enriched SettlementOption + user input) ──────────
+/**
+ *
+ */
 export type ResolvedSettlementLeg = {
   settlementOption:  SettlementOption;
   amount:            number;
@@ -280,6 +301,9 @@ export type ResolvedSettlementLeg = {
 };
 
 // ── Reconciliation issue ──────────────────────────────────────────────────────
+/**
+ *
+ */
 export type ReconciliationIssue = {
   id:                  string;
   checkName:           ReconciliationCheckName;
@@ -328,6 +352,9 @@ export type TaxDocumentLineInput = {
 };
 
 // ── Discount line input ───────────────────────────────────────────────────────
+/**
+ *
+ */
 export type DiscountLineInput = {
   sourceType:     string;
   sourceId:       string | null;

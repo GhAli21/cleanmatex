@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authContext = await getAuthContext();

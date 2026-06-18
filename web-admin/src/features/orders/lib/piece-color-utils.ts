@@ -4,13 +4,20 @@
 
 import type { PreSubmissionPiece } from '../model/new-order-types';
 
+/**
+ *
+ * @param piece
+ */
 export function pieceColorCodesForDisplay(piece: Pick<PreSubmissionPiece, 'color' | 'colorCodes'>): string[] {
   if (piece.colorCodes?.length) return [...piece.colorCodes];
   if (piece.color != null && piece.color !== '') return [piece.color];
   return [];
 }
 
-/** Map org_order_item_pieces_dtl.color JSON/string from API/edit load into UI fields. */
+/**
+ * Map org_order_item_pieces_dtl.color JSON/string from API/edit load into UI fields.
+ * @param raw
+ */
 export function normalizePieceColorsFromDb(raw: unknown): Pick<PreSubmissionPiece, 'color' | 'colorCodes'> {
   if (raw == null) return {};
   if (typeof raw === 'string') {
@@ -30,6 +37,10 @@ export function normalizePieceColorsFromDb(raw: unknown): Pick<PreSubmissionPiec
   return {};
 }
 
+/**
+ *
+ * @param pb
+ */
 export function extractColorCodesFromApiPiece(pb: Record<string, unknown>): string[] {
   const { color, colorCodes } = normalizePieceColorsFromDb(pb.color);
   if (colorCodes?.length) return colorCodes;

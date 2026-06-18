@@ -9,6 +9,9 @@ export const AR_INVOICE_DOC_TYPES = {
   AR_INV: 'AR_INV',
 } as const;
 
+/**
+ *
+ */
 export type ArInvoiceDocType = (typeof AR_INVOICE_DOC_TYPES)[keyof typeof AR_INVOICE_DOC_TYPES];
 
 export const AR_INVOICE_STATUSES = {
@@ -25,6 +28,9 @@ export const AR_INVOICE_STATUSES = {
   DISPUTED: 'DISPUTED',
 } as const;
 
+/**
+ *
+ */
 export type ArInvoiceStatus =
   (typeof AR_INVOICE_STATUSES)[keyof typeof AR_INVOICE_STATUSES];
 
@@ -39,6 +45,9 @@ export const LEGACY_INVOICE_STATUSES = {
   VOIDED: 'voided',
 } as const;
 
+/**
+ *
+ */
 export type LegacyInvoiceStatus =
   (typeof LEGACY_INVOICE_STATUSES)[keyof typeof LEGACY_INVOICE_STATUSES];
 
@@ -52,6 +61,9 @@ export const AR_INVOICE_TYPES = {
   PROFORMA: 'PROFORMA',
 } as const;
 
+/**
+ *
+ */
 export type ArInvoiceType =
   (typeof AR_INVOICE_TYPES)[keyof typeof AR_INVOICE_TYPES];
 
@@ -62,6 +74,9 @@ export const AR_ALLOCATION_OUTCOMES = {
   REVERSED: 'REVERSED',
 } as const;
 
+/**
+ *
+ */
 export type ArAllocationOutcome =
   (typeof AR_ALLOCATION_OUTCOMES)[keyof typeof AR_ALLOCATION_OUTCOMES];
 
@@ -72,6 +87,9 @@ export const AR_SENSITIVE_APPROVAL_ACTIONS = {
   APPROVE_VOID: 'APPROVE_VOID',
 } as const;
 
+/**
+ *
+ */
 export type ArSensitiveApprovalAction =
   (typeof AR_SENSITIVE_APPROVAL_ACTIONS)[keyof typeof AR_SENSITIVE_APPROVAL_ACTIONS];
 
@@ -85,6 +103,9 @@ export const AR_ADJUSTMENT_TYPES = {
   DEBIT_ADJUSTMENT: 'DEBIT_ADJUSTMENT',
 } as const;
 
+/**
+ *
+ */
 export type ArAdjustmentType =
   (typeof AR_ADJUSTMENT_TYPES)[keyof typeof AR_ADJUSTMENT_TYPES];
 
@@ -94,6 +115,9 @@ export const AR_ADJUSTMENT_STATUSES = {
   VOID: 'VOID',
 } as const;
 
+/**
+ *
+ */
 export type ArAdjustmentStatus =
   (typeof AR_ADJUSTMENT_STATUSES)[keyof typeof AR_ADJUSTMENT_STATUSES];
 
@@ -109,6 +133,9 @@ export const AR_LEDGER_MOVEMENTS = {
   VOID: 'VOID',
 } as const;
 
+/**
+ *
+ */
 export type ArLedgerMovement =
   (typeof AR_LEDGER_MOVEMENTS)[keyof typeof AR_LEDGER_MOVEMENTS];
 
@@ -117,6 +144,9 @@ export const AR_LEDGER_ENTRY_SIDES = {
   CREDIT: 'CREDIT',
 } as const;
 
+/**
+ *
+ */
 export type ArLedgerEntrySide =
   (typeof AR_LEDGER_ENTRY_SIDES)[keyof typeof AR_LEDGER_ENTRY_SIDES];
 
@@ -128,6 +158,9 @@ export const AR_DUE_DATE_SOURCES = {
   INVOICE_DATE: 'INVOICE_DATE',
 } as const;
 
+/**
+ *
+ */
 export type ArDueDateSource =
   (typeof AR_DUE_DATE_SOURCES)[keyof typeof AR_DUE_DATE_SOURCES];
 
@@ -136,6 +169,9 @@ export const AR_CREDIT_ALLOCATION_STATUSES = {
   REVERSED: 'REVERSED',
 } as const;
 
+/**
+ *
+ */
 export type ArCreditAllocationStatus =
   (typeof AR_CREDIT_ALLOCATION_STATUSES)[keyof typeof AR_CREDIT_ALLOCATION_STATUSES];
 
@@ -147,6 +183,9 @@ export const AR_DISPUTE_STATUSES = {
   CANCELLED: 'CANCELLED',
 } as const;
 
+/**
+ *
+ */
 export type ArDisputeStatus =
   (typeof AR_DISPUTE_STATUSES)[keyof typeof AR_DISPUTE_STATUSES];
 
@@ -157,6 +196,9 @@ export const AR_DUNNING_STAGES = {
   CREDIT_HOLD: 'CREDIT_HOLD',
 } as const;
 
+/**
+ *
+ */
 export type ArDunningStage =
   (typeof AR_DUNNING_STAGES)[keyof typeof AR_DUNNING_STAGES];
 
@@ -167,6 +209,9 @@ export const AR_DUNNING_ACTIONS = {
   NOTE: 'NOTE',
 } as const;
 
+/**
+ *
+ */
 export type ArDunningAction =
   (typeof AR_DUNNING_ACTIONS)[keyof typeof AR_DUNNING_ACTIONS];
 
@@ -177,6 +222,9 @@ export const AR_DUNNING_RUN_STATUSES = {
   FAILED: 'FAILED',
 } as const;
 
+/**
+ *
+ */
 export type ArDunningRunStatus =
   (typeof AR_DUNNING_RUN_STATUSES)[keyof typeof AR_DUNNING_RUN_STATUSES];
 
@@ -187,6 +235,9 @@ export const AR_STATEMENT_CADENCES = {
   CUSTOM: 'CUSTOM',
 } as const;
 
+/**
+ *
+ */
 export type ArStatementCadence =
   (typeof AR_STATEMENT_CADENCES)[keyof typeof AR_STATEMENT_CADENCES];
 
@@ -195,6 +246,9 @@ export const AR_STATEMENT_CUSTOMER_SCOPES = {
   CUSTOM_LIST: 'CUSTOM_LIST',
 } as const;
 
+/**
+ *
+ */
 export type ArStatementCustomerScope =
   (typeof AR_STATEMENT_CUSTOMER_SCOPES)[keyof typeof AR_STATEMENT_CUSTOMER_SCOPES];
 
@@ -244,6 +298,10 @@ export const AR_STATUS_BADGE_TONES: Record<ArInvoiceStatus, string> = {
   DISPUTED: 'bg-amber-100 text-amber-900',
 };
 
+/**
+ *
+ * @param value
+ */
 export function normalizeArInvoiceStatus(value?: string | null): ArInvoiceStatus {
   const normalized = value?.trim();
   if (!normalized) {
@@ -258,10 +316,18 @@ export function normalizeArInvoiceStatus(value?: string | null): ArInvoiceStatus
   return legacy ?? AR_INVOICE_STATUSES.OPEN;
 }
 
+/**
+ *
+ * @param value
+ */
 export function getArInvoiceStatusTranslationKey(value?: string | null): string {
   return AR_STATUS_TRANSLATION_KEYS[normalizeArInvoiceStatus(value)];
 }
 
+/**
+ *
+ * @param value
+ */
 export function isArInvoiceSettledStatus(value?: string | null): boolean {
   const status = normalizeArInvoiceStatus(value);
   return (
@@ -272,6 +338,10 @@ export function isArInvoiceSettledStatus(value?: string | null): boolean {
   );
 }
 
+/**
+ *
+ * @param value
+ */
 export function isArInvoiceOpenBalanceStatus(value?: string | null): boolean {
   const status = normalizeArInvoiceStatus(value);
   return (
@@ -282,6 +352,14 @@ export function isArInvoiceOpenBalanceStatus(value?: string | null): boolean {
   );
 }
 
+/**
+ *
+ * @param params
+ * @param params.currentStatus
+ * @param params.totalAmount
+ * @param params.paidAmount
+ * @param params.dueDate
+ */
 export function deriveArInvoiceStatus(params: {
   currentStatus?: string | null;
   totalAmount?: number | null;

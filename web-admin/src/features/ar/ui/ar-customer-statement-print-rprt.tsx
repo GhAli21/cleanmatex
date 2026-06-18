@@ -24,6 +24,11 @@ function formatDate(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.statement
+ */
 export function ArCustomerStatementPrintRprt({ statement }: ArCustomerStatementPrintRprtProps) {
   const t = useTranslations('invoices.ar.statementPrint');
   const locale = useLocale();

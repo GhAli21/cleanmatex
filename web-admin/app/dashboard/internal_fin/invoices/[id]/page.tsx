@@ -29,6 +29,11 @@ function formatCurrency(amount: number, currencyCode: string) {
   }).format(amount);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function ArInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
   const t = await getTranslations('invoices');

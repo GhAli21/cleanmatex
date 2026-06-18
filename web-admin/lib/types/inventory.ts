@@ -266,6 +266,9 @@ export interface StockAdjustmentRequest {
 // SEARCH / PAGINATION
 // ==================================================================
 
+/**
+ *
+ */
 export interface InventorySearchParams {
   page?: number;
   limit?: number;
@@ -279,6 +282,9 @@ export interface InventorySearchParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ *
+ */
 export interface InventorySearchResponse {
   items: InventoryItemListItem[];
   total: number;
@@ -287,6 +293,9 @@ export interface InventorySearchResponse {
   totalPages: number;
 }
 
+/**
+ *
+ */
 export interface StockTransactionSearchParams {
   product_id: string;
   page?: number;
@@ -295,6 +304,9 @@ export interface StockTransactionSearchParams {
   branch_id?: string;
 }
 
+/**
+ *
+ */
 export interface StockTransactionSearchResponse {
   transactions: StockTransaction[];
   total: number;
@@ -307,6 +319,9 @@ export interface StockTransactionSearchResponse {
 // STATISTICS
 // ==================================================================
 
+/**
+ *
+ */
 export interface InventoryStatistics {
   totalItems: number;
   lowStockCount: number;

@@ -16,6 +16,14 @@ interface NavigationItemFormProps {
   onCancel: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.component
+ * @param root0.parentOptions
+ * @param root0.onSave
+ * @param root0.onCancel
+ */
 export function NavigationItemForm({
   component,
   parentOptions,

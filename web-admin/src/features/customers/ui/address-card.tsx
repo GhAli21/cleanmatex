@@ -18,6 +18,14 @@ interface AddressCardProps {
   onSetDefault?: (addressId: string) => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.address
+ * @param root0.onEdit
+ * @param root0.onDelete
+ * @param root0.onSetDefault
+ */
 export default function AddressCard({
   address,
   onEdit,

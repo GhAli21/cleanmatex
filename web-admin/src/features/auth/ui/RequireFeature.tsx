@@ -31,6 +31,11 @@ interface RequireFeatureProps {
 /**
  * Render children only if feature flag is enabled
  *
+ * @param root0
+ * @param root0.feature
+ * @param root0.fallback
+ * @param root0.requireAll
+ * @param root0.children
  * @example
  * <RequireFeature feature={FEATURE_FLAG_KEYS.PDF_INVOICES}>
  *   <DownloadPDFButton />
@@ -135,6 +140,9 @@ export function RequireFeature({
 /**
  * Render upgrade prompt for disabled feature
  *
+ * @param root0
+ * @param root0.feature
+ * @param root0.message
  * @example
  * <RequireFeature feature="advanced_analytics" fallback={<UpgradePrompt feature="advanced_analytics" />}>
  *   <AnalyticsDashboard />
@@ -217,6 +225,7 @@ export function UpgradePrompt({
 /**
  * Hook to check feature availability (returns true when no flag specified)
  *
+ * @param feature
  * @example
  * const canShow = useFeatureOptional(featureFlag) // true when featureFlag undefined
  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
@@ -257,6 +266,7 @@ export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean
 /**
  * Hook to check feature availability
  *
+ * @param feature
  * @example
  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
  * if (canExportPDF) {

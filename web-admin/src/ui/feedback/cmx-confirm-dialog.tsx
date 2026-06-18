@@ -8,6 +8,9 @@
 import { useState } from 'react'
 import { CmxButton } from '../primitives/cmx-button'
 
+/**
+ *
+ */
 export interface CmxConfirmDialogProps {
   title: string
   description?: string
@@ -22,6 +25,18 @@ export interface CmxConfirmDialogProps {
   onCancel?: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.title
+ * @param root0.description
+ * @param root0.confirmLabel
+ * @param root0.cancelLabel
+ * @param root0.onConfirm
+ * @param root0.trigger
+ * @param root0.open
+ * @param root0.onCancel
+ */
 export function CmxConfirmDialog({
   title,
   description,

@@ -13,10 +13,16 @@
 
 import { logger } from '@lib/utils/logger'
 
+/**
+ *
+ */
 export interface OneSignalSubscriptionData {
   player_id: string
 }
 
+/**
+ *
+ */
 export interface OneSignalSendResult {
   success: boolean
   subscriptionId: string
@@ -24,6 +30,12 @@ export interface OneSignalSendResult {
   permanent?: boolean
 }
 
+/**
+ *
+ * @param subscriptionId
+ * @param subscriptionData
+ * @param payload
+ */
 export async function sendOneSignalPush(
   subscriptionId: string,
   subscriptionData: OneSignalSubscriptionData,

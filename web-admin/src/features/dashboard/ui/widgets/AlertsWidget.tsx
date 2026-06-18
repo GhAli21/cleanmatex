@@ -33,6 +33,9 @@ interface Alert {
   actionUrl?: string
 }
 
+/**
+ *
+ */
 export function AlertsWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

@@ -8,6 +8,10 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('finance_reports:view')(request);
   if (auth instanceof NextResponse) return auth;

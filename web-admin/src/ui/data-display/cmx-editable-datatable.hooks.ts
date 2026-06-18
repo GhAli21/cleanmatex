@@ -13,6 +13,9 @@ import { validateRow, validateCell } from './cmx-editable-datatable.utils'
 
 /**
  * Hook for row-level validation (orchestrates all three layers)
+ * @param schema
+ * @param cellValidators
+ * @param asyncValidator
  */
 export function useRowValidation<TData extends Record<string, any>>(
   schema?: SchemaValidator<TData>,
@@ -31,6 +34,7 @@ export function useRowValidation<TData extends Record<string, any>>(
 
 /**
  * Hook for cell-level validation (Layer 2)
+ * @param cellValidators
  */
 export function useCellValidation<TData extends Record<string, any>>(
   cellValidators?: Record<string, CellValidator<TData>>
@@ -52,6 +56,7 @@ export function useCellValidation<TData extends Record<string, any>>(
 
 /**
  * Hook for async/server validation (Layer 3)
+ * @param asyncValidator
  */
 export function useAsyncValidation<TData extends Record<string, any>>(
   asyncValidator?: AsyncRowValidator<TData>

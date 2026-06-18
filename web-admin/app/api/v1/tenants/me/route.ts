@@ -13,6 +13,7 @@ import type { TenantUpdateRequest } from '@/lib/types/tenant';
 /**
  * GET /api/v1/tenants/me
  * Returns current tenant details with subscription and usage info
+ * @param _request
  */
 export async function GET(_request: NextRequest) {
   try {
@@ -71,6 +72,7 @@ export async function GET(_request: NextRequest) {
 /**
  * PATCH /api/v1/tenants/me
  * Updates tenant profile (name, contact, branding, business hours)
+ * @param request
  */
 export async function PATCH(request: NextRequest) {
   try {

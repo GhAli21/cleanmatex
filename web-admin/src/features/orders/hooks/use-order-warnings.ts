@@ -38,6 +38,8 @@ export interface OrderWarning {
  * - Missing customer selection
  * - No items in order
  * 
+ * @param options
+ * @param options.hasBranches
  * @returns Object containing:
  *   - warnings: Array of all warnings and errors
  *   - hasWarnings: Whether any warnings exist

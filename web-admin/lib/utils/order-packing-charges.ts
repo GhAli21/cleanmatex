@@ -5,13 +5,21 @@
 import type { PackingPreference } from '@/lib/types/service-preferences';
 import type { OrderItem } from '@features/orders/model/new-order-types';
 
+/**
+ *
+ * @param prefs
+ */
 export function packingPreferencePriceMap(
   prefs: Pick<PackingPreference, 'code' | 'default_extra_price'>[]
 ): Map<string, number> {
   return new Map(prefs.map((p) => [p.code, p.default_extra_price ?? 0]));
 }
 
-/** Sum packing surcharges per line: per-piece code (falling back to item code) when pieces exist; else item-level packing. */
+/**
+ * Sum packing surcharges per line: per-piece code (falling back to item code) when pieces exist; else item-level packing.
+ * @param item
+ * @param priceByCode
+ */
 export function orderItemLinePackingCharge(
   item: Pick<OrderItem, 'packingPrefCode' | 'pieces'>,
   priceByCode: Map<string, number>

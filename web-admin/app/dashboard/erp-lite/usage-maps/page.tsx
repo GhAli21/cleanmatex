@@ -6,6 +6,9 @@ import { ErpLiteUsageMapsScreen } from '@features/erp-lite/ui/erp-lite-usage-map
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteUsageMapsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'

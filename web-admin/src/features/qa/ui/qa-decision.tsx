@@ -18,6 +18,12 @@ interface QADecisionProps {
   onDecisionComplete?: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.taskId
+ * @param root0.onDecisionComplete
+ */
 export function QADecision({ taskId, onDecisionComplete }: QADecisionProps) {
   const [decision, setDecision] = useState<'PASS' | 'FAIL' | null>(null);
   const [qaNote, setQaNote] = useState('');

@@ -5,6 +5,9 @@ import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primit
 import { CmxButton } from '@ui/primitives';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 
+/**
+ *
+ */
 export type ExtraReceiptHandlingMode =
   | 'adjust_legs'
   | typeof OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE
@@ -14,6 +17,9 @@ export type ExtraReceiptHandlingMode =
   | typeof OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES
   | typeof OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES;
 
+/**
+ *
+ */
 export type ExtraReceiptHandlingCardProps = {
   excessAmount: number;
   currencyCode: string;
@@ -38,6 +44,23 @@ export type ExtraReceiptHandlingCardProps = {
 /**
  * Cashier-facing panel for routing checkout excess (ADR-047 Phase 2–3).
  * Labels use "Extra Receipt" / "Unallocated" — not "Change" unless change path applies elsewhere.
+ * @param root0
+ * @param root0.excessAmount
+ * @param root0.currencyCode
+ * @param root0.formatAmount
+ * @param root0.hasLinkedCustomer
+ * @param root0.selectedMode
+ * @param root0.onModeChange
+ * @param root0.onOpenAutoAllocate
+ * @param root0.onOpenManualAllocate
+ * @param root0.allocationConfirmed
+ * @param root0.isRTL
+ * @param root0.embedded
+ * @param root0.canAllocate
+ * @param root0.canSaveAdvance
+ * @param root0.canSaveCredit
+ * @param root0.canSaveWallet
+ * @param root0.canReturnCashChange
  */
 export function ExtraReceiptHandlingCard({
   excessAmount,

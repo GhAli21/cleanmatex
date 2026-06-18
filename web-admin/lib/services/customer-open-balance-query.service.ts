@@ -13,6 +13,9 @@ import {
 import { STATEMENT_STATUSES } from '@/lib/constants/b2b';
 import type { ReceiptAllocationPolicyRow } from '@/lib/services/customer-receipt-allocation-policy.service';
 
+/**
+ *
+ */
 export interface LoadOpenBalanceTargetsParams {
   tenantId: string;
   customerId: string;
@@ -34,6 +37,7 @@ function toNumber(value: unknown): number {
 /**
  * Loads eligible open-balance targets for customer receipt allocation.
  * AR invoice wins over linked order per feature pack §3.
+ * @param params
  */
 export async function loadCustomerOpenBalanceTargets(
   params: LoadOpenBalanceTargetsParams
@@ -235,6 +239,15 @@ export async function loadCustomerOpenBalanceTargets(
   return targets;
 }
 
+/**
+ *
+ * @param tenantId
+ * @param customerId
+ * @param options
+ * @param options.branchId
+ * @param options.currencyCode
+ * @param options.excludeOrderId
+ */
 export async function listCustomerOpenBalancesForApi(
   tenantId: string,
   customerId: string,

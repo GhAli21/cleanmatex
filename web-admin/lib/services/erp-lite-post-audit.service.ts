@@ -6,6 +6,9 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import type { ErpLitePostLogRow, PostAuditListResult } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export interface PostAuditFilters {
   page?: number;
   pageSize?: number;
@@ -16,10 +19,17 @@ export interface PostAuditFilters {
   dateTo?: string;
 }
 
+/**
+ *
+ */
 export class ErpLitePostAuditService {
   // -------------------------------------------------------
   // Paginated posting log with optional filters
   // -------------------------------------------------------
+  /**
+   *
+   * @param filters
+   */
   static async listPostLogs(filters: PostAuditFilters = {}): Promise<PostAuditListResult> {
     const tenantId = await this.requireTenantId();
     const page = Math.max(1, filters.page ?? 1);
@@ -43,6 +53,9 @@ export class ErpLitePostAuditService {
       : Prisma.sql``;
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = {
         id: string;
         tenant_org_id: string;

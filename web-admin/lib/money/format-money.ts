@@ -5,8 +5,14 @@
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
+/**
+ *
+ */
 export type MoneyLocale = 'en' | 'ar';
 
+/**
+ *
+ */
 export interface FormatMoneyOptions {
   currencyCode: string;
   decimalPlaces: number;
@@ -14,7 +20,10 @@ export interface FormatMoneyOptions {
   locale?: MoneyLocale;
 }
 
-/** BCP 47 locale for Intl when UI is EN vs AR (GCC-style). */
+/**
+ * BCP 47 locale for Intl when UI is EN vs AR (GCC-style).
+ * @param locale
+ */
 export function resolveMoneyIntlLocale(locale?: MoneyLocale): string {
   return locale === 'ar' ? 'ar-OM' : 'en-OM';
 }
@@ -28,6 +37,8 @@ function clampDecimalPlaces(decimalPlaces: number): number {
 
 /**
  * Round a monetary amount to tenant decimal places (half-up via Number.toFixed).
+ * @param amount
+ * @param decimalPlaces
  */
 export function roundMoneyAmount(amount: number, decimalPlaces: number): number {
   const dp = clampDecimalPlaces(decimalPlaces);
@@ -36,6 +47,8 @@ export function roundMoneyAmount(amount: number, decimalPlaces: number): number 
 
 /**
  * Format a monetary amount with Intl (currency style). Falls back to `CODE amount` if Intl rejects the code.
+ * @param amount
+ * @param options
  */
 export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): string {
   const cc = (options.currencyCode || ORDER_DEFAULTS.CURRENCY).trim() || ORDER_DEFAULTS.CURRENCY;
@@ -56,6 +69,8 @@ export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): 
 /**
  * Format amount with currency code suffix (no Intl symbol), e.g. `12.500 OMR`.
  * Use for compact tables or when Intl currency symbol is undesired.
+ * @param amount
+ * @param options
  */
 export function formatMoneyAmountWithCode(
   amount: number,

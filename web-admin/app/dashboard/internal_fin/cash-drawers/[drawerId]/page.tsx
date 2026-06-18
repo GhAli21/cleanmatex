@@ -20,6 +20,11 @@ interface PageProps {
   params: Promise<{ drawerId: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function CashDrawerDetailPage({ params }: PageProps) {
   const { drawerId } = await params;
 

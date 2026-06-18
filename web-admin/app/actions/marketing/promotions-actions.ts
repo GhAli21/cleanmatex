@@ -20,6 +20,11 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import type { PromoType } from '@/lib/constants/order-financial';
 
+/**
+ *
+ * @param page
+ * @param pageSize
+ */
 export async function listPromotionsAction(page = 1, pageSize = 20) {
   try {
     const auth = await getAuthContext();
@@ -33,6 +38,9 @@ export async function listPromotionsAction(page = 1, pageSize = 20) {
   }
 }
 
+/**
+ *
+ */
 export interface CreatePromotionInput {
   name:                string;
   name2?:              string;
@@ -47,6 +55,10 @@ export interface CreatePromotionInput {
   maxUsesPerCustomer?: number;
 }
 
+/**
+ *
+ * @param input
+ */
 export async function createPromotionAction(input: CreatePromotionInput) {
   try {
     const auth = await getAuthContext();
@@ -74,10 +86,17 @@ export async function createPromotionAction(input: CreatePromotionInput) {
   }
 }
 
+/**
+ *
+ */
 export interface UpdatePromotionInput extends Partial<CreatePromotionInput> {
   id: string;
 }
 
+/**
+ *
+ * @param input
+ */
 export async function updatePromotionAction(input: UpdatePromotionInput) {
   try {
     const auth = await getAuthContext();
@@ -114,6 +133,11 @@ export async function updatePromotionAction(input: UpdatePromotionInput) {
   }
 }
 
+/**
+ *
+ * @param promoId
+ * @param isActive
+ */
 export async function togglePromotionAction(promoId: string, isActive: boolean) {
   try {
     const auth = await getAuthContext();

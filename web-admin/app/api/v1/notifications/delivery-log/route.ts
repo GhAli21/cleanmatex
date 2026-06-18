@@ -11,6 +11,10 @@ import { logger } from '@/lib/utils/logger';
 
 const PAGE_SIZE_MAX = 50;
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:view_log')(request);
   if (authCheck instanceof NextResponse) return authCheck;

@@ -13,6 +13,11 @@ interface CustomerStatsCardsProps {
   stats: CustomerStatistics
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ */
 export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
   const t = useTranslations('customers')
   const isRTL = useRTL()

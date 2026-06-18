@@ -27,6 +27,9 @@ import {
   type ResourceType,
 } from '@/lib/hooks/use-has-resource-permission'
 
+/**
+ *
+ */
 export interface RequireResourcePermissionProps {
   /** Resource name (e.g., 'orders', 'customers') */
   resource: string
@@ -46,6 +49,14 @@ export interface RequireResourcePermissionProps {
 
 /**
  * Render children only if user has permission for the specific resource
+ * @param root0
+ * @param root0.resource
+ * @param root0.action
+ * @param root0.resourceType
+ * @param root0.resourceId
+ * @param root0.children
+ * @param root0.fallback
+ * @param root0.loading
  */
 export function RequireResourcePermission({
   resource,
@@ -99,6 +110,13 @@ export interface RequireAnyResourcePermissionProps {
   fallback?: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.checks
+ * @param root0.children
+ * @param root0.fallback
+ */
 export function RequireAnyResourcePermission({
   checks,
   children,
@@ -138,6 +156,13 @@ export interface RequireAllResourcePermissionsProps {
   fallback?: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.checks
+ * @param root0.children
+ * @param root0.fallback
+ */
 export function RequireAllResourcePermissions({
   checks,
   children,

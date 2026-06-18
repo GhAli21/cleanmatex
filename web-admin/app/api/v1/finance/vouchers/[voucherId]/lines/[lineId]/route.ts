@@ -4,6 +4,12 @@ import { updateVoucherLine, deleteDraftVoucherLine } from '@/lib/services/vouche
 import { updateVoucherLineSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { UpdateVoucherLineInput } from '@/lib/types/voucher';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string; lineId: string }> }
@@ -24,6 +30,12 @@ export async function PATCH(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string; lineId: string }> }

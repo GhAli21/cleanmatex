@@ -29,6 +29,15 @@ interface EditItemModalProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.item
+ * @param root0.branchId
+ * @param root0.branchName
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function EditItemModal({
   item,
   branchId,

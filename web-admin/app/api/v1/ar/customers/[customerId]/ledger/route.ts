@@ -4,6 +4,12 @@ import { getArCustomerLedger } from '@/lib/services/ar-invoice.service';
 import { arLedgerQuerySchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError, parseSearchParams } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ customerId: string }> }

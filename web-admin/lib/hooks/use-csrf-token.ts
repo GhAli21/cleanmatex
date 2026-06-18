@@ -7,6 +7,9 @@
 import { useEffect, useState } from 'react';
 import { getCSRFToken } from '@/lib/utils/csrf-token';
 
+/**
+ *
+ */
 export function useCSRFToken() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +47,7 @@ export function useCSRFToken() {
 
 /**
  * Get CSRF token header for fetch requests
+ * @param token
  */
 export function getCSRFHeader(token: string | null = null): Record<string, string> {
   if (!token) {

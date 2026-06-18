@@ -24,6 +24,9 @@ interface EditOrderScreenProps {
 /**
  * Edit Order Screen Component
  * Loads order data into form and renders in edit mode
+ * @param root0
+ * @param root0.orderId
+ * @param root0.initialOrderData
  */
 export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenProps) {
   const dispatch = useNewOrderDispatch();

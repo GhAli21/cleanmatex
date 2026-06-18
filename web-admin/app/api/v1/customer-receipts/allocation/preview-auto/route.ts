@@ -3,6 +3,10 @@ import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { createAutoAllocationPreview } from '@/lib/services/customer-receipt-allocation-preview.service';
 import { previewAutoAllocationRequestSchema } from '@/lib/validations/customer-receipt-allocation-schema';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requireAnyPermission([
     'orders:overpayment_allocate',

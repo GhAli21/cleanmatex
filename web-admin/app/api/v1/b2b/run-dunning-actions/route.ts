@@ -27,6 +27,10 @@ function parseDunningLevels(value: unknown): DunningLevel[] {
   });
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // Allow cron with CRON_SECRET + x-tenant-id, or require b2b_statements:create (session)

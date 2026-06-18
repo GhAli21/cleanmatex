@@ -18,6 +18,9 @@ async function fetchPreferenceBundles(tenantId: string): Promise<PreferenceBundl
   return json.success && json.data ? json.data : [];
 }
 
+/**
+ *
+ */
 export function usePreferenceBundles() {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';

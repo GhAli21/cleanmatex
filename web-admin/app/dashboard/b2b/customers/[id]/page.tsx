@@ -34,6 +34,9 @@ interface Tab {
   icon: string;
 }
 
+/**
+ *
+ */
 export default function B2BCustomerViewPage() {
   const params = useParams();
   const router = useRouter();

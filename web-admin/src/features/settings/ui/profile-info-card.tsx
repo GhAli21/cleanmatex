@@ -17,6 +17,12 @@ interface ProfileInfoCardProps {
   onRecompute?: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenantId
+ * @param root0.onRecompute
+ */
 export function ProfileInfoCard({ tenantId, onRecompute }: ProfileInfoCardProps) {
   const [profileInfo, setProfileInfo] = useState<TenantProfileInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);

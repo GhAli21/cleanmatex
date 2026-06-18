@@ -20,6 +20,9 @@ interface DeliveryData {
   failedDeliveries: number
 }
 
+/**
+ *
+ */
 export function DeliveryRateWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

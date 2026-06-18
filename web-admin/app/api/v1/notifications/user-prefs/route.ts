@@ -9,6 +9,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:manage')(request);
   if (authCheck instanceof NextResponse) return authCheck;
@@ -32,6 +36,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ success: true, data: data ?? [] });
 }
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   const authCheck = await requirePermission('notifications:manage')(request);
   if (authCheck instanceof NextResponse) return authCheck;

@@ -15,6 +15,12 @@ interface ProcessingHeaderProps {
   isRefreshing?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onRefresh
+ * @param root0.isRefreshing
+ */
 export function ProcessingHeader({ onRefresh, isRefreshing = false }: ProcessingHeaderProps) {
   const t = useTranslations('processing');
   const tOrders = useTranslations('orders');

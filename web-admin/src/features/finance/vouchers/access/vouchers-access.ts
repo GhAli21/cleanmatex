@@ -5,11 +5,19 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts';
 import { CASHIER_ALLOWED_VOUCHER_TYPES, CASHIER_ALLOWED_LINE_ROLES } from '@/lib/constants/voucher';
 
+/**
+ *
+ * @param userRole
+ */
 export function getAllowedVoucherTypes(userRole: string): string[] {
   if (userRole === 'cashier') return [...CASHIER_ALLOWED_VOUCHER_TYPES];
   return ['RECEIPT_VOUCHER', 'PAYMENT_VOUCHER', 'REFUND_VOUCHER', 'ADJUSTMENT_VOUCHER', 'TRANSFER_VOUCHER'];
 }
 
+/**
+ *
+ * @param userRole
+ */
 export function getAllowedLineRoles(userRole: string): string[] {
   if (userRole === 'cashier') return [...CASHIER_ALLOWED_LINE_ROLES];
   return [
@@ -21,6 +29,11 @@ export function getAllowedLineRoles(userRole: string): string[] {
   ];
 }
 
+/**
+ *
+ * @param userRole
+ * @param permission
+ */
 export function hasVoucherPermission(userRole: string, permission: string): boolean {
   const rolePermissions: Record<string, string[]> = {
     cashier:        ['fin_vouchers:view', 'fin_vouchers:create', 'fin_vouchers:post', 'fin_vouchers:print', 'fin_voucher_lines:create'],

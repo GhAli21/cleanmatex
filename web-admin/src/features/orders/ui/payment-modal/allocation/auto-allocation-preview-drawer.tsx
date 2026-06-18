@@ -6,6 +6,9 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 import { LoadingButton } from '@ui/primitives';
 import type { ReceiptAllocationPreviewResult } from '@/lib/types/customer-receipt-allocation';
 
+/**
+ *
+ */
 export type AutoAllocationPreviewDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -18,6 +21,19 @@ export type AutoAllocationPreviewDrawerProps = {
   isRTL?: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.preview
+ * @param root0.loading
+ * @param root0.confirming
+ * @param root0.currencyCode
+ * @param root0.formatAmount
+ * @param root0.onConfirm
+ * @param root0.isRTL
+ */
 export function AutoAllocationPreviewDrawer({
   open,
   onOpenChange,

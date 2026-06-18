@@ -33,6 +33,12 @@ interface UserRolesTabProps {
   userName: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.userId
+ * @param root0.userName
+ */
 export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
   const t = useTranslations('users.rbac')
   const tCommon = useTranslations('common')

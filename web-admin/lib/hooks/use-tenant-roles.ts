@@ -17,6 +17,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { getAllRoles } from '@/lib/api/roles'
 import type { TenantRole } from '@/lib/api/roles'
 
+/**
+ *
+ */
 export interface UseTenantRolesResult {
   /** All roles (system + custom) */
   roles: TenantRole[]
@@ -29,6 +32,9 @@ export interface UseTenantRolesResult {
   refetch: () => void
 }
 
+/**
+ *
+ */
 export function useTenantRoles(): UseTenantRolesResult {
   const { session } = useAuth()
   const accessToken = session?.access_token ?? ''

@@ -71,6 +71,7 @@ const DB_TO_UI_KEY: Record<keyof DbBusinessHours, keyof UiBusinessHours> = {
  * Convert UI hours to the DB JSONB shape. Closed days collapse to `null`
  * (matching the seed in 0006_tenant_enhancements). Open/close times are kept
  * verbatim — caller is expected to validate HH:mm format.
+ * @param hours
  */
 export function toDbHours(hours: UiBusinessHours): DbBusinessHours {
   const out: DbBusinessHours = {};
@@ -86,6 +87,7 @@ export function toDbHours(hours: UiBusinessHours): DbBusinessHours {
  * Convert DB hours to the UI shape. Missing or `null` day entries are
  * surfaced as `closed: true` with neutral open/close times so the editor
  * has something to render when the user toggles the day back on.
+ * @param hours
  */
 export function fromDbHours(hours: DbBusinessHours | null | undefined): UiBusinessHours {
   if (!hours) return DEFAULT_UI_HOURS;
@@ -189,6 +191,9 @@ async function tenantHasOrders(tenantOrgId: string): Promise<boolean> {
 // Profile updates
 // =============================================================================
 
+/**
+ *
+ */
 export interface AuditMeta {
   userId: string;
   userInfo?: string; // optional ip/user-agent stamp
@@ -200,6 +205,11 @@ export interface AuditMeta {
  * raw Postgres error codes.
  */
 export class TenantProfileError extends Error {
+  /**
+   *
+   * @param code
+   * @param message
+   */
   constructor(
     public readonly code:
       | 'EMAIL_TAKEN'
@@ -214,6 +224,12 @@ export class TenantProfileError extends Error {
   }
 }
 
+/**
+ *
+ * @param tenantOrgId
+ * @param input
+ * @param audit
+ */
 export async function updateTenantGeneral(
   tenantOrgId: string,
   input: GeneralSettingsInput,
@@ -291,6 +307,9 @@ export async function updateTenantGeneral(
   return general;
 }
 
+/**
+ *
+ */
 export interface UpdateBrandingResult {
   branding: BrandingSettingsDto;
   /**
@@ -302,6 +321,12 @@ export interface UpdateBrandingResult {
   previousLogoUrl: string | null;
 }
 
+/**
+ *
+ * @param tenantOrgId
+ * @param input
+ * @param audit
+ */
 export async function updateTenantBranding(
   tenantOrgId: string,
   input: BrandingSettingsInput,

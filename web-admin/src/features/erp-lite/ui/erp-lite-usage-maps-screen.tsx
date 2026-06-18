@@ -48,6 +48,11 @@ function IssueBadge({ issue }: { issue: ErpLiteUsageMapRow['mapping_issue'] }) {
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
   const t = useTranslations('erpLite.usageMaps')
   const [mode, setMode] = React.useState<FilterMode>('all')

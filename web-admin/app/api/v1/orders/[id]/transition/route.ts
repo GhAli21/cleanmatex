@@ -25,6 +25,9 @@ const ORDER_STATUS_EVENT: Record<string, string> = {
  * PRD-010: Transition order with permission validation
  * Supports USE_OLD_WF_CODE_OR_NEW parameter for gradual migration
  * Requires: orders:transition permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

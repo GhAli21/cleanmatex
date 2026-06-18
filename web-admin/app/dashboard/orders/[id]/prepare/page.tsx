@@ -97,6 +97,11 @@ async function PreparationContent({ orderId }: { orderId: string }) {
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function PreparationPage({ params }: PreparationPageProps) {
   const { id } = await params;
   return (

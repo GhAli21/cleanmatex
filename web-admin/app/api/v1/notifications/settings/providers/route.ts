@@ -24,6 +24,10 @@ import type { Json } from '@/types/database'
 // GET — list all provider configs for the tenant
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -58,6 +62,10 @@ export async function GET(request: NextRequest) {
 // POST — add a new provider config for a channel
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -117,6 +125,10 @@ export async function POST(request: NextRequest) {
 // enforces the invariant at DB level.
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -189,6 +201,10 @@ export async function PUT(request: NextRequest) {
 // Query params: channel_code, provider_code
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function DELETE(request: NextRequest) {
   const authCheck = await requirePermission('notifications:configure')(request)
   if (authCheck instanceof NextResponse) return authCheck

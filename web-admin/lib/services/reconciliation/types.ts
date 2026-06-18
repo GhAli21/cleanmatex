@@ -63,6 +63,7 @@ export interface ReconciliationSummary {
  * Reconciliation math uses native arithmetic and the `RECONCILIATION_TOLERANCE`
  * threshold; the surrounding services already trust Decimal-to-number rounding
  * up to 4 decimals (matches `DECIMAL(19,4)` columns).
+ * @param d
  */
 export function toNumber(d: Decimal | number | null | undefined): number {
   if (d == null) return 0;

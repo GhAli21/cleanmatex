@@ -43,6 +43,11 @@ function Row({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderValueBreakdown({ viewModel }: OrderValueBreakdownProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

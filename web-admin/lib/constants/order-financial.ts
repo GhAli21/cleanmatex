@@ -503,6 +503,7 @@ export type OrderFinancialWarningCode =
  * Why:
  * Services should not duplicate inline string checks when the approved set is
  * intentionally narrow and locked by the final rollout plan.
+ * @param paymentTypeCode
  */
 export function isArReceivablePaymentTypeCode(
   paymentTypeCode: string | null | undefined,

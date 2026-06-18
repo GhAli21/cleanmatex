@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Shield, User, Building2, RefreshCw, CheckCircle, XCircle, Clock, Code, Zap, AlertCircle } from 'lucide-react';
 
+/**
+ *
+ */
 export default function AuthContextViewer() {
   const authContext = useAuth();
   const [showMethods, setShowMethods] = useState(false);

@@ -23,6 +23,9 @@ import { sendOneSignalPush, type OneSignalSubscriptionData } from './push/onesig
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface OutboxPushRow {
   id:               string
   tenant_org_id:    string
@@ -33,6 +36,9 @@ export interface OutboxPushRow {
   retry_count:      number
 }
 
+/**
+ *
+ */
 export interface PushDeliveryResult {
   success: boolean
   sentCount: number
@@ -157,6 +163,10 @@ async function deliverViaHqProxy(row: OutboxPushRow): Promise<PushDeliveryResult
 // Main adapter
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param row
+ */
 export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliveryResult> {
   if (process.env.NTF_DISPATCH_VIA_HQ === 'true') {
     return deliverViaHqProxy(row)

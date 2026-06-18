@@ -136,13 +136,37 @@ export const resolvePreferencesQuerySchema = z.object({
   service_category_code: z.string().optional(),
 });
 
+/**
+ *
+ */
 export type AddServicePrefInput = z.infer<typeof addServicePrefSchema>;
+/**
+ *
+ */
 export type AddPieceServicePrefInput = z.infer<typeof addPieceServicePrefSchema>;
+/**
+ *
+ */
 export type UpdatePackingPrefInput = z.infer<typeof updatePackingPrefSchema>;
+/**
+ *
+ */
 export type AddCustomerServicePrefInput = z.infer<
   typeof addCustomerServicePrefSchema
 >;
+/**
+ *
+ */
 export type ApplyBundleInput = z.infer<typeof applyBundleSchema>;
+/**
+ *
+ */
 export type ResolvePreferencesQuery = z.infer<typeof resolvePreferencesQuerySchema>;
+/**
+ *
+ */
 export type CreateCustomServicePreferenceCfInput = z.infer<typeof createCustomServicePreferenceCfSchema>;
+/**
+ *
+ */
 export type CreateCustomPackingPreferenceCfInput = z.infer<typeof createCustomPackingPreferenceCfSchema>;

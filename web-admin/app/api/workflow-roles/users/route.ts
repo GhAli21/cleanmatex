@@ -8,12 +8,18 @@ import { NextResponse } from 'next/server';
 import { getUserWorkflowRoleAssignments } from '@/lib/services/role-service';
 import { createClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 
+/**
+ *
+ */
 export interface User {
   id: string;
   email: string;
   display_name: string | null;
 }
 
+/**
+ *
+ */
 export interface UserWithWorkflowRoles extends User {
   workflow_roles: {
     id: string;

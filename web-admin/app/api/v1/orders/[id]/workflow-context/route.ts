@@ -5,6 +5,9 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 /**
  * GET /api/v1/orders/[id]/workflow-context
  * Returns workflow flags and live metrics for an order
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,

@@ -28,6 +28,9 @@ export interface UiBusinessHours {
   sunday: UiDayHours;
 }
 
+/**
+ *
+ */
 export interface UiDayHours {
   open: string; // HH:mm
   close: string; // HH:mm
@@ -49,6 +52,9 @@ export interface DbBusinessHours {
   sun?: DbDayHours | null;
 }
 
+/**
+ *
+ */
 export interface DbDayHours {
   open: string; // HH:mm
   close: string; // HH:mm
@@ -56,6 +62,9 @@ export interface DbDayHours {
 
 // ---------- General settings DTO ----------
 
+/**
+ *
+ */
 export interface GeneralSettingsDto {
   businessName: string;
   businessNameAr: string;
@@ -80,6 +89,9 @@ export interface GeneralSettingsDto {
   };
 }
 
+/**
+ *
+ */
 export interface GeneralSettingsInput {
   businessName: string;
   businessNameAr?: string;
@@ -96,6 +108,9 @@ export interface GeneralSettingsInput {
 
 // ---------- Branding settings DTO ----------
 
+/**
+ *
+ */
 export interface BrandingSettingsDto {
   logo: string; // URL or '' when no logo set
   primaryColor: string; // #RRGGBB
@@ -103,6 +118,9 @@ export interface BrandingSettingsDto {
   accentColor: string;
 }
 
+/**
+ *
+ */
 export interface BrandingSettingsInput {
   logo: string;
   primaryColor: string;

@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Preference Catalog Service
  * Fetches service preferences, packing preferences, and preference bundles
@@ -225,6 +225,8 @@ export class PreferenceCatalogService {
 
   /**
    * Get preference bundles (Care Packages) for tenant
+   * @param supabase - Supabase client
+   * @param tenantId - Tenant organization ID
    * @param includeInactive - When true, return all bundles (for admin config)
    */
   static async getPreferenceBundles(
@@ -1011,6 +1013,8 @@ export class PreferenceCatalogService {
   /**
    * Get preference kinds for tenant: **only** rows in `org_preference_kind_cf` for the tenant,
    * merged with `sys_preference_kind_cd`. No org row ⇒ kind not returned.
+   * @param supabase - Supabase client
+   * @param tenantId - Tenant organization ID
    * @param quickBarOnly - When true, only return kinds with merged is_show_in_quick_bar=true
    */
   static async getPreferenceKinds(

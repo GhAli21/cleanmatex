@@ -39,6 +39,9 @@ interface QuickAction {
   variant?: 'primary' | 'secondary' | 'outline'
 }
 
+/**
+ *
+ */
 export function QuickActionsStrip() {
   const t = useTranslations('common')
   const router = useRouter()

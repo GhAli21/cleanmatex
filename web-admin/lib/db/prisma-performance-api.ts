@@ -11,6 +11,7 @@ import { getTenantIdFromSession } from './tenant-context';
 /**
  * GET /api/admin/prisma-performance
  * Get performance metrics (admin only)
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
 /**
  * DELETE /api/admin/prisma-performance
  * Clear performance metrics
+ * @param request
  */
 export async function DELETE(request: NextRequest) {
   try {

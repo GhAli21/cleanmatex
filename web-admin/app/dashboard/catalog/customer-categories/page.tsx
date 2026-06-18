@@ -41,6 +41,9 @@ const SYSTEM_TYPES = [
   { value: 'b2b', label: 'B2B' },
 ] as const;
 
+/**
+ *
+ */
 export default function CustomerCategoriesPage() {
   const t = useTranslations('catalog');
   const tCommon = useTranslations('common');

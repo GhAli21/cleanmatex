@@ -31,6 +31,7 @@ export type MoneyInput = number | string | Decimal | null | undefined;
 /**
  * Coerce any acceptable money input to a Decimal. `null` / `undefined` → 0.
  * Non-finite numbers (NaN, Infinity) throw — they're never valid money values.
+ * @param value
  */
 export function toDecimal(value: MoneyInput): Decimal {
   if (value === null || value === undefined) return new Decimal(0);
@@ -44,22 +45,41 @@ export function toDecimal(value: MoneyInput): Decimal {
   return new Decimal(value);
 }
 
-/** Add two money inputs and round to MONEY_SCALE (default 4 decimal places). */
+/**
+ * Add two money inputs and round to MONEY_SCALE (default 4 decimal places).
+ * @param a
+ * @param b
+ * @param scale
+ */
 export function addMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCALE): Decimal {
   return toDecimal(a).plus(toDecimal(b)).toDecimalPlaces(scale);
 }
 
-/** Subtract `b` from `a` and round to MONEY_SCALE. */
+/**
+ * Subtract `b` from `a` and round to MONEY_SCALE.
+ * @param a
+ * @param b
+ * @param scale
+ */
 export function subMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCALE): Decimal {
   return toDecimal(a).minus(toDecimal(b)).toDecimalPlaces(scale);
 }
 
-/** Multiply two money inputs and round to MONEY_SCALE. */
+/**
+ * Multiply two money inputs and round to MONEY_SCALE.
+ * @param a
+ * @param b
+ * @param scale
+ */
 export function mulMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCALE): Decimal {
   return toDecimal(a).times(toDecimal(b)).toDecimalPlaces(scale);
 }
 
-/** Round a money value to MONEY_SCALE (default 4 decimal places). */
+/**
+ * Round a money value to MONEY_SCALE (default 4 decimal places).
+ * @param value
+ * @param scale
+ */
 export function roundMoney(value: MoneyInput, scale: number = MONEY_SCALE): Decimal {
   return toDecimal(value).toDecimalPlaces(scale);
 }
@@ -68,6 +88,8 @@ export function roundMoney(value: MoneyInput, scale: number = MONEY_SCALE): Deci
  * Sum a list of money inputs into a single Decimal, rounded to MONEY_SCALE.
  * Empty array → 0. Used for leg totals, split-amount validation, and any
  * accumulator that would otherwise drift on plain `+`.
+ * @param values
+ * @param scale
  */
 export function sumMoney(values: MoneyInput[], scale: number = MONEY_SCALE): Decimal {
   return values
@@ -79,6 +101,9 @@ export function sumMoney(values: MoneyInput[], scale: number = MONEY_SCALE): Dec
  * Equality at MONEY_SCALE. Both sides are rounded to the same scale before
  * comparison, so `0.30000001` and `0.30000002` compare equal at scale 4 (they
  * round to the same 0.3000).
+ * @param a
+ * @param b
+ * @param scale
  */
 export function eqMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCALE): boolean {
   return roundMoney(a, scale).equals(roundMoney(b, scale));
@@ -88,6 +113,9 @@ export function eqMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCAL
  * Three-way comparison at MONEY_SCALE. Returns -1 if `a < b`, 0 if equal, 1 if `a > b`.
  * Useful for tolerance-aware checks where `>` / `<` on raw JS numbers would
  * surface 0.0000000001-style drift as a false mismatch.
+ * @param a
+ * @param b
+ * @param scale
  */
 export function compareMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY_SCALE): -1 | 0 | 1 {
   const ad = roundMoney(a, scale);
@@ -97,7 +125,10 @@ export function compareMoney(a: MoneyInput, b: MoneyInput, scale: number = MONEY
   return 0;
 }
 
-/** Convert a Decimal to a JS number safely (Decimal precision is preserved at scale 4). */
+/**
+ * Convert a Decimal to a JS number safely (Decimal precision is preserved at scale 4).
+ * @param value
+ */
 export function decimalToNumber(value: MoneyInput): number {
   return toDecimal(value).toNumber();
 }

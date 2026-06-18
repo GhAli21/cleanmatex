@@ -31,6 +31,10 @@ function mapRowToContract(row: Record<string, unknown>): B2BContract {
   };
 }
 
+/**
+ *
+ * @param customerId
+ */
 export async function listContractsByCustomer(
   customerId: string
 ): Promise<B2BContract[]> {
@@ -57,6 +61,11 @@ export async function listContractsByCustomer(
   return (data ?? []).map(mapRowToContract);
 }
 
+/**
+ *
+ * @param filters
+ * @param filters.customerId
+ */
 export async function listContracts(filters?: {
   customerId?: string;
 }): Promise<B2BContract[]> {
@@ -101,6 +110,10 @@ async function generateContractNo(tenantId: string): Promise<string> {
   return `CON-${yyyy}${mm}-${String(seq).padStart(4, '0')}`;
 }
 
+/**
+ *
+ * @param request
+ */
 export async function createContract(
   request: CreateB2BContractRequest
 ): Promise<B2BContract> {
@@ -139,6 +152,10 @@ export async function createContract(
   return mapRowToContract(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ */
 export async function getContractById(id: string): Promise<B2BContract | null> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
@@ -156,6 +173,11 @@ export async function getContractById(id: string): Promise<B2BContract | null> {
   return mapRowToContract(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ * @param request
+ */
 export async function updateContract(
   id: string,
   request: UpdateB2BContractRequest
@@ -191,6 +213,10 @@ export async function updateContract(
   return mapRowToContract(data as Record<string, unknown>);
 }
 
+/**
+ *
+ * @param id
+ */
 export async function deleteContract(id: string): Promise<void> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();

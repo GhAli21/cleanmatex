@@ -13,6 +13,10 @@ const schema = z.object({
   bonusMultiplier: z.number().min(0).optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;

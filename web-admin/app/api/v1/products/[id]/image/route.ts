@@ -16,6 +16,12 @@ const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 // POST /api/v1/products/[id]/image — Upload or replace product image
 // ==================================================================
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -75,6 +81,12 @@ export async function POST(
 // DELETE /api/v1/products/[id]/image — Remove product image
 // ==================================================================
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

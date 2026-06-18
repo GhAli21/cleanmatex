@@ -7,6 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { pricingBulkService } from '@/lib/services/pricing-bulk.service';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
     try {
         const { user, tenantId } = await getAuthContext();

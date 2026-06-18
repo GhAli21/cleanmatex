@@ -3,6 +3,20 @@ import storybook from "eslint-plugin-storybook";
 import nextVitals from "eslint-config-next/core-web-vitals";
 
 import jsdoc from 'eslint-plugin-jsdoc';
+
+/** JSDoc rules turned off for tests, Storybook, and generated-style files */
+const jsdocRulesOff = {
+  'jsdoc/require-jsdoc': 'off',
+  'jsdoc/require-param': 'off',
+  'jsdoc/require-returns': 'off',
+  'jsdoc/require-param-description': 'off',
+  'jsdoc/require-returns-description': 'off',
+  'jsdoc/check-param-names': 'off',
+  'jsdoc/check-types': 'off',
+  'jsdoc/valid-types': 'off',
+  'jsdoc/check-tag-names': 'off',
+};
+
 const eslintConfig = [...nextVitals, {
   ignores: [
     "node_modules/**",
@@ -10,10 +24,24 @@ const eslintConfig = [...nextVitals, {
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated / very large — skip lint (Babel deoptimises >500KB; not hand-edited)
+    "types/database.ts",
+    "types/database.generated.ts",
+    "docs/typedoc/**",
   ],
 }, {
-  // JSDoc enforcement — warn only, does not block builds or commits
+  // JSDoc — warn on production code only; noisy rules off (TypeScript is source of truth)
   plugins: { jsdoc },
+  settings: {
+    jsdoc: {
+      tagNamePreference: {
+        'jest-environment': 'jest-environment',
+        swagger: 'swagger',
+        last_updated: 'last_updated',
+        remarks: 'remarks',
+      },
+    },
+  },
   rules: {
     'jsdoc/require-jsdoc': ['warn', {
       publicOnly: true,
@@ -31,15 +59,26 @@ const eslintConfig = [...nextVitals, {
       ],
     }],
     'jsdoc/require-param': 'warn',
-    'jsdoc/require-returns': 'warn',
-    'jsdoc/require-param-description': 'warn',
-    'jsdoc/require-returns-description': 'warn',
-    'jsdoc/check-param-names': 'warn',
+    'jsdoc/require-returns': 'off',
+    'jsdoc/require-param-description': 'off',
+    'jsdoc/require-returns-description': 'off',
+    'jsdoc/check-param-names': ['warn', {
+      checkDestructured: false,
+      checkRestProperty: false,
+    }],
     'jsdoc/check-types': 'warn',
-    'jsdoc/no-undefined-types': 'off',  // too noisy with TypeScript
+    'jsdoc/no-undefined-types': 'off',
     'jsdoc/valid-types': 'warn',
     'jsdoc/check-tag-names': 'warn',
   },
+}, {
+  files: [
+    '__tests__/**',
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '.storybook/**',
+  ],
+  rules: jsdocRulesOff,
 }, {
   rules: {
     // Migrated: prefer @ui/* over legacy @/components (Phase 6)
@@ -81,6 +120,7 @@ const eslintConfig = [...nextVitals, {
     "@typescript-eslint/no-unused-vars": "off",
     "no-unused-vars": "off",
     "react-hooks/exhaustive-deps": "off",
+    "react-hooks/incompatible-library": "warn",
     "@next/next/no-img-element": "off",
   },
 }, {

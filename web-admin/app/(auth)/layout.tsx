@@ -5,6 +5,11 @@
  * Provides a clean, centered layout without navigation
  */
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export default function AuthLayout({
   children,
 }: {

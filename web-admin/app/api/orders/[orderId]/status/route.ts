@@ -9,6 +9,12 @@ import { WorkflowService } from '@/lib/services/workflow-service';
 import { createClient } from '@/lib/supabase/server';
 import type { OrderStatus } from '@/lib/types/workflow';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
@@ -109,6 +115,9 @@ export async function PATCH(
 /**
  * Get allowed transitions for current order status
  * GET /api/orders/[orderId]/status
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,

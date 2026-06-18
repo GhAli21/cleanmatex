@@ -10,6 +10,9 @@
 import { getPaymentStatus, getPaymentsForOrder } from '@/lib/services/payment-service';
 import { getInvoicesForOrder } from '@/lib/services/invoice-service';
 
+/**
+ *
+ */
 export interface ReadyOrderPaymentContext {
   paymentSummary: {
     status: string;

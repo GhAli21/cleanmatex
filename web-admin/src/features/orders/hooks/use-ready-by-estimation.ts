@@ -10,6 +10,10 @@ import { useAuth } from '@/lib/auth/auth-context';
 
 /**
  * Estimate ready-by date
+ * @param params
+ * @param params.items
+ * @param params.isQuickDrop
+ * @param params.express
  */
 async function estimateReadyBy(params: {
     items: Array<{ serviceCategoryCode?: string; quantity: number }>;

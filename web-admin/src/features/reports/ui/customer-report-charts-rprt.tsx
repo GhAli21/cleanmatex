@@ -21,6 +21,13 @@ interface CustomerReportChartsProps {
   currencyCode: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.topCustomersByRevenue
+ * @param root0.newVsReturning
+ * @param root0.currencyCode
+ */
 export default function CustomerReportCharts({
   topCustomersByRevenue,
   newVsReturning,

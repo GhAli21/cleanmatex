@@ -12,6 +12,9 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * DELETE /api/workflow-roles/[id]
  * Remove workflow role assignment
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

@@ -26,6 +26,7 @@ import type { PaymentListItem } from '@/lib/types/payment';
 
 /**
  * Fetch a single payment by ID
+ * @param paymentId
  */
 export async function getPaymentAction(
   paymentId: string
@@ -53,6 +54,8 @@ export async function getPaymentAction(
 
 /**
  * Update payment notes (rec_notes)
+ * @param paymentId
+ * @param notes
  */
 export async function updatePaymentNotesAction(
   paymentId: string,
@@ -87,6 +90,8 @@ export async function updatePaymentNotesAction(
 /**
  * Cancel a payment (permission-gated: payments:cancel)
  * Stores reason in rec_notes, reverses invoice/order balances.
+ * @param paymentId
+ * @param reason
  */
 export async function cancelPaymentAction(
   paymentId: string,
@@ -130,6 +135,9 @@ export async function cancelPaymentAction(
 
 /**
  * Refund a payment (permission-gated: payments:refund)
+ * @param transactionId
+ * @param amount
+ * @param reason
  */
 export async function refundPaymentAction(
   transactionId: string,
@@ -186,6 +194,7 @@ export async function refundPaymentAction(
 
 /**
  * Create a standalone payment via processPayment service
+ * @param input
  */
 export async function createStandalonePaymentAction(
   input: Record<string, unknown>

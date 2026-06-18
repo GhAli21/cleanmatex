@@ -12,6 +12,9 @@ import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { CmxButton } from '../../primitives/cmx-button';
 import { zIndex } from '../../foundations/zindex';
 
+/**
+ *
+ */
 export interface CmxAlertDialogProps {
   /**
    * Dialog title
@@ -108,6 +111,19 @@ const variantStyles = {
 
 /**
  * Custom Alert Dialog Component
+ * @param root0
+ * @param root0.title
+ * @param root0.message
+ * @param root0.description
+ * @param root0.variant
+ * @param root0.confirmLabel
+ * @param root0.cancelLabel
+ * @param root0.icon
+ * @param root0.iconComponent
+ * @param root0.showCancel
+ * @param root0.onConfirm
+ * @param root0.onCancel
+ * @param root0.open
  */
 export function CmxAlertDialog({
   title,

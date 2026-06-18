@@ -121,6 +121,33 @@ interface OrderDetailsFullClientProps {
   locale: 'en' | 'ar';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.allPayments
+ * @param root0.unappliedPayments
+ * @param root0.orderInvoices
+ * @param root0.vouchers
+ * @param root0.stockTransactions
+ * @param root0.receipts
+ * @param root0.editHistory
+ * @param root0.orderPreferences
+ * @param root0.discountLines
+ * @param root0.financialData
+ * @param root0.orderPreferenceDtlColumnLabels
+ * @param root0.tenantOrgId
+ * @param root0.userId
+ * @param root0.processPaymentAction
+ * @param root0.applyPaymentToInvoiceAction
+ * @param root0.initialTab
+ * @param root0.initialInvoiceId
+ * @param root0.initialVoucherId
+ * @param root0.returnUrl
+ * @param root0.returnLabel
+ * @param root0.translations
+ * @param root0.locale
+ */
 export function OrderDetailsFullClient({
   order,
   allPayments,

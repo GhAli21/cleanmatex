@@ -21,6 +21,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArStatementsPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.statements');
   const tCommon = await getTranslations('common');

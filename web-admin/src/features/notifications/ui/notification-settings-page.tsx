@@ -39,6 +39,9 @@ interface UserPref {
 
 type Tab = 'my-prefs' | 'channel-settings'
 
+/**
+ *
+ */
 export function NotificationSettingsPage() {
   const locale = useLocale()
   const isAr = locale === 'ar'
@@ -121,6 +124,9 @@ export function NotificationSettingsPage() {
   const getChannelSetting = (channelCode: ChannelCode) =>
     settings.find((s) => s.channel_code === channelCode)
 
+  /**
+   *
+   */
   type TabDef = { id: Tab; label: string }
   const TABS: TabDef[] = [
     { id: 'my-prefs', label: t('settings.myPrefs') },

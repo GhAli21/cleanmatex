@@ -25,6 +25,15 @@ interface AdjustStockModalProps {
   branches?: BranchOption[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.item
+ * @param root0.onClose
+ * @param root0.onSuccess
+ * @param root0.branchId
+ * @param root0.branches
+ */
 export default function AdjustStockModal({ item, onClose, onSuccess, branchId: initialBranchId, branches = [] }: AdjustStockModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');

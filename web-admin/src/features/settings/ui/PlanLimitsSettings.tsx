@@ -12,6 +12,9 @@ import { CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxProgressBar } from '@ui/feedback';
 import type { UsageMetrics } from '@/lib/types/tenant';
 
+/**
+ *
+ */
 export function PlanLimitsSettings() {
   const [metrics, setMetrics] = React.useState<UsageMetrics | null>(null);
   const [loading, setLoading] = React.useState(true);

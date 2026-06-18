@@ -14,6 +14,11 @@ interface CustomerB2BContactsTabProps {
   customerId: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ */
 export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: contacts, isLoading } = useQuery({
@@ -67,6 +72,11 @@ export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabPro
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ */
 export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: contracts, isLoading } = useQuery({
@@ -126,6 +136,11 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ */
 export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: statements, isLoading } = useQuery({

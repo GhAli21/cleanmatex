@@ -6,6 +6,9 @@
 
 import type { ConfirmDialogOptions } from '../types';
 
+/**
+ *
+ */
 export interface AlertDialogContextValue {
   showConfirm: (options: ConfirmDialogOptions) => Promise<boolean>;
 }

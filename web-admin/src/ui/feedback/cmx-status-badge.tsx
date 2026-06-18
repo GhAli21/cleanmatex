@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import { Badge } from '@/src/ui/primitives/badge';
 
+/**
+ *
+ */
 export type StatusBadgeVariant =
   | 'default'
   | 'success'
@@ -19,8 +22,14 @@ export type StatusBadgeVariant =
   | 'processing'
   | 'outline';
 
+/**
+ *
+ */
 export type StatusBadgeSize = 'sm' | 'md' | 'lg';
 
+/**
+ *
+ */
 export interface CmxStatusBadgeProps
   extends React.HTMLAttributes<HTMLDivElement> {
   label: string;
@@ -60,6 +69,18 @@ const sizeStyles: Record<StatusBadgeSize, { text: string; icon: string; padding:
   },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.label
+ * @param root0.variant
+ * @param root0.size
+ * @param root0.icon
+ * @param root0.showIcon
+ * @param root0.pulse
+ * @param root0.tooltip
+ * @param root0.className
+ */
 export function CmxStatusBadge({
   label,
   variant = 'default',

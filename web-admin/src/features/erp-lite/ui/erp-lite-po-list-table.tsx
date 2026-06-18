@@ -11,6 +11,12 @@ interface ErpLitePoListTableProps {
   displayConfig: ErpLiteDisplayConfig
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.items
+ * @param root0.displayConfig
+ */
 export function ErpLitePoListTable({ items, displayConfig }: ErpLitePoListTableProps) {
   const t = useTranslations('erpLite.po')
 

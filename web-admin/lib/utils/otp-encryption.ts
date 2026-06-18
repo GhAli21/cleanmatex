@@ -15,6 +15,7 @@ const IV_LENGTH = 16;
 
 /**
  * Helper: Convert ArrayBuffer to Hex String
+ * @param buffer
  */
 function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
@@ -24,6 +25,7 @@ function bufferToHex(buffer: ArrayBuffer): string {
 
 /**
  * Helper: Convert Hex String to Uint8Array
+ * @param hexString
  */
 function hexToUint8Array(hexString: string): Uint8Array {
   const match = hexString.match(/.{1,2}/g);
@@ -33,6 +35,7 @@ function hexToUint8Array(hexString: string): Uint8Array {
 
 /**
  * Helper: Derive Key from Secret + TenantId (SHA-256)
+ * @param tenantId
  */
 async function getKey(tenantId: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
@@ -52,6 +55,8 @@ async function getKey(tenantId: string): Promise<CryptoKey> {
 
 /**
  * Encrypt OTP code
+ * @param otpCode
+ * @param tenantId
  * @returns Format: "iv_hex:ciphertext_hex"
  */
 export async function encryptOTP(otpCode: string, tenantId: string): Promise<string> {
@@ -76,6 +81,8 @@ export async function encryptOTP(otpCode: string, tenantId: string): Promise<str
 
 /**
  * Decrypt OTP code
+ * @param encryptedOTP
+ * @param tenantId
  */
 export async function decryptOTP(encryptedOTP: string, tenantId: string): Promise<string> {
   try {

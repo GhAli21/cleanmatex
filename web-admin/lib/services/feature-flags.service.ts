@@ -118,6 +118,8 @@ export const FEATURE_FLAGS: Partial<Record<FeatureFlagKey, { name: string; descr
 
 /**
  * Coerce RPC JSONB value to FeatureFlags-compatible type
+ * @param value
+ * @param flagKey
  */
 function coerceFlagValue(
   value: unknown,

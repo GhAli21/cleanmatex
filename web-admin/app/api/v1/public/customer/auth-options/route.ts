@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { customerHasPassword } from '@/lib/services/customer-password.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const tenantId = request.nextUrl.searchParams.get('tenantId')?.trim() ?? '';

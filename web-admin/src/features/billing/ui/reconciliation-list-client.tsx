@@ -82,7 +82,10 @@ function fmtPeriod(locale: string, from: string | null, to: string | null): stri
   return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
 
-/** Map a recon run status to a `Badge` variant. */
+/**
+ * Map a recon run status to a `Badge` variant.
+ * @param status
+ */
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
   switch (status) {
     case 'PASSED':  return 'success';
@@ -93,6 +96,12 @@ function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destruct
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.runs
+ * @param root0.pagination
+ */
 export default function ReconciliationListClient({ runs, pagination }: ReconciliationListClientProps) {
   const t = useTranslations('billing.reconciliation');
   const tCommon = useTranslations('common');

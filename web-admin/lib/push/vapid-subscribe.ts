@@ -9,6 +9,10 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return array;
 }
 
+/**
+ *
+ * @param deviceId
+ */
 export async function subscribeVapid(deviceId: string): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('[push] VAPID not supported in this browser');
@@ -52,6 +56,10 @@ export async function subscribeVapid(deviceId: string): Promise<boolean> {
   return res.ok;
 }
 
+/**
+ *
+ * @param deviceId
+ */
 export async function unsubscribeVapid(deviceId: string): Promise<void> {
   const reg = await navigator.serviceWorker.getRegistration('/sw.js');
   if (reg) {

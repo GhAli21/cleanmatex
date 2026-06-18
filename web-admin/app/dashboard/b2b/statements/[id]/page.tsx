@@ -14,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { B2BStatementsPrintRprt } from '@features/b2b/ui/b2b-statements-print-rprt';
 import type { StatementForPrint } from '@/lib/services/b2b-statements.service';
 
+/**
+ *
+ */
 export default function B2BStatementDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();

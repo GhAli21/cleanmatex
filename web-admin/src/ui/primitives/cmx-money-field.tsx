@@ -16,6 +16,9 @@ import {
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import { CmxInput, type CmxInputProps } from './cmx-input'
 
+/**
+ *
+ */
 export interface CmxMoneyFieldProps
   extends Omit<CmxInputProps, 'type' | 'value' | 'onChange' | 'inputMode' | 'dir'> {
   /** Canonical numeric value controlled by the parent. */

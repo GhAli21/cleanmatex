@@ -73,6 +73,7 @@ async function getAuthContext() {
  * - sortOrder: 'asc' | 'desc'
  *
  * Response: { success: true, data: ProductListItem[], pagination: {...} }
+ * @param request
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -176,6 +177,7 @@ export async function GET(request: NextRequest) {
  * Request Body: ProductCreateRequest
  *
  * Response: { success: true, data: Product, message: string }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

@@ -16,6 +16,12 @@ import { log } from '@/lib/utils/logger';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string; pieceId: string }> }
@@ -77,6 +83,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string; pieceId: string }> }
@@ -129,6 +141,12 @@ export async function POST(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string; pieceId: string }> }

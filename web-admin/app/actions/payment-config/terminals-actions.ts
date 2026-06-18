@@ -8,7 +8,10 @@ import type { OrgPaymentTerminal, CreateTerminalInput, UpdateTerminalInput } fro
 
 const REVALIDATE_PATH = '/dashboard/settings/payments';
 
-/** List payment terminals, optionally filtered by branch */
+/**
+ * List payment terminals, optionally filtered by branch
+ * @param branchId
+ */
 export async function getTerminals(
   branchId?: string
 ): Promise<{ success: boolean; data?: OrgPaymentTerminal[]; error?: string }> {
@@ -31,7 +34,10 @@ export async function getTerminals(
   }
 }
 
-/** Create a new payment terminal */
+/**
+ * Create a new payment terminal
+ * @param input
+ */
 export async function createTerminal(
   input: CreateTerminalInput
 ): Promise<{ success: boolean; data?: OrgPaymentTerminal; error?: string }> {
@@ -66,7 +72,11 @@ export async function createTerminal(
   }
 }
 
-/** Update a terminal */
+/**
+ * Update a terminal
+ * @param id
+ * @param input
+ */
 export async function updateTerminal(
   id: string,
   input: UpdateTerminalInput
@@ -102,7 +112,11 @@ export async function updateTerminal(
   }
 }
 
-/** Toggle terminal enabled state */
+/**
+ * Toggle terminal enabled state
+ * @param id
+ * @param isEnabled
+ */
 export async function toggleTerminalEnabled(
   id: string,
   isEnabled: boolean
@@ -127,7 +141,10 @@ export async function toggleTerminalEnabled(
   }
 }
 
-/** Soft-delete a terminal — rejects if linked to an active cash drawer */
+/**
+ * Soft-delete a terminal — rejects if linked to an active cash drawer
+ * @param id
+ */
 export async function softDeleteTerminal(
   id: string
 ): Promise<{ success: boolean; error?: string }> {

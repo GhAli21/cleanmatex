@@ -29,6 +29,14 @@ interface OrdersPaymentsTabRprtProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.payments
+ * @param root0.filterInvoiceId
+ * @param root0.filterVoucherId
+ * @param root0.translations
+ */
 export function OrdersPaymentsTabRprt({
   payments,
   filterInvoiceId,

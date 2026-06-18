@@ -6,6 +6,9 @@ import UserContextViewer from './components/UserContextViewer';
 import AuthContextViewer from './components/AuthContextViewer';
 import { Key, Bug, Database, Zap, TestTube2 } from 'lucide-react';
 
+/**
+ *
+ */
 export default function JhTestUiPage() {
   const [activeTest, setActiveTest] = useState<string>('jwt');
 

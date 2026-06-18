@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getSessionSummary } from '@/lib/services/cash-drawer.service';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ drawerId: string; sessionId: string }> }

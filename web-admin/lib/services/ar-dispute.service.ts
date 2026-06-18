@@ -98,6 +98,11 @@ function mapDispute(row: DisputeRow): ArDisputeCase {
   };
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function listArDisputes(
   query: ArDisputesQuery,
   actor: ActorContext = {}
@@ -198,6 +203,11 @@ export async function listArDisputes(
   });
 }
 
+/**
+ *
+ * @param input
+ * @param actor
+ */
 export async function createArDispute(
   input: CreateArDisputeInput,
   actor: ActorContext = {}
@@ -327,6 +337,12 @@ export async function createArDispute(
   );
 }
 
+/**
+ *
+ * @param disputeId
+ * @param input
+ * @param actor
+ */
 export async function resolveArDispute(
   disputeId: string,
   input: ResolveArDisputeInput,

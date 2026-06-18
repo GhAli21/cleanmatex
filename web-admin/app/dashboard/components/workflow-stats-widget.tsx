@@ -25,6 +25,9 @@ interface WorkflowStats {
   avgCompletionHours: number;
 }
 
+/**
+ *
+ */
 export function WorkflowStatsWidget() {
   const [stats, setStats] = useState<WorkflowStats | null>(null);
   const [loading, setLoading] = useState(true);

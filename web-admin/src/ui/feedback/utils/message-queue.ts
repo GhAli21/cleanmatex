@@ -6,6 +6,9 @@
 
 import type { MessageType, MessageOptions, MessageResult } from '../types';
 
+/**
+ *
+ */
 export interface QueuedMessage {
   id: string;
   type: MessageType;
@@ -27,6 +30,7 @@ class MessageQueueManager {
 
   /**
    * Set maximum queue size
+   * @param size
    */
   setMaxSize(size: number): void {
     this.maxSize = Math.max(1, size);
@@ -34,6 +38,7 @@ class MessageQueueManager {
 
   /**
    * Set delay between processing messages
+   * @param delay
    */
   setProcessingDelay(delay: number): void {
     this.processingDelay = Math.max(0, delay);
@@ -41,6 +46,10 @@ class MessageQueueManager {
 
   /**
    * Add message to queue
+   * @param type
+   * @param message
+   * @param showFn
+   * @param options
    */
   async enqueue(
     type: MessageType,
@@ -78,6 +87,7 @@ class MessageQueueManager {
 
   /**
    * Process queue sequentially
+   * @param showFn
    */
   private async processQueue(
     showFn: (type: MessageType, message: string, options?: MessageOptions) => MessageResult | Promise<MessageResult>

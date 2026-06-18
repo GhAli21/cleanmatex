@@ -12,6 +12,7 @@ const inlineMessageListeners: Set<(message: InlineMessage | null) => void> = new
 
 /**
  * Get ARIA role based on message type
+ * @param type
  */
 function getAriaRole(type: MessageType): 'alert' | 'status' {
   switch (type) {
@@ -28,6 +29,7 @@ function getAriaRole(type: MessageType): 'alert' | 'status' {
 
 /**
  * Get ARIA live region politeness based on message type
+ * @param type
  */
 function getAriaLive(type: MessageType): 'polite' | 'assertive' {
   switch (type) {
@@ -44,6 +46,9 @@ function getAriaLive(type: MessageType): 'polite' | 'assertive' {
 
 /**
  * Display a message as an inline message object
+ * @param type
+ * @param message
+ * @param options
  */
 export function showInlineMessage(
   type: MessageType,
@@ -99,6 +104,7 @@ export function getCurrentInlineMessage(): InlineMessage | null {
 
 /**
  * Subscribe to inline message changes
+ * @param listener
  */
 export function subscribeToInlineMessages(
   listener: (message: InlineMessage | null) => void
@@ -116,6 +122,12 @@ export function subscribeToInlineMessages(
 
 /**
  * Show a promise-based inline message
+ * @param promise
+ * @param messages
+ * @param messages.loading
+ * @param messages.success
+ * @param messages.error
+ * @param options
  */
 export async function showInlinePromise<T>(
   promise: Promise<T>,

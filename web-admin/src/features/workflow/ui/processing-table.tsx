@@ -60,6 +60,16 @@ interface ProcessingTableProps {
   selectedOrderId?: string | null; // Current/selected order ID for highlighting
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orders
+ * @param root0.sortField
+ * @param root0.onSort
+ * @param root0.onRefresh
+ * @param root0.onEditClick
+ * @param root0.selectedOrderId
+ */
 export function ProcessingTable({
   orders,
   sortField,

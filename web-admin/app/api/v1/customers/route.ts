@@ -43,6 +43,7 @@ const CUSTOMER_LIST_SORT_KEYS = ['name', 'createdAt', 'lastOrderAt', 'totalOrder
  * - Full: { type: 'full', firstName: string, phone: string, email?: string, otpCode: string, preferences?: object, addresses?: array }
  *
  * Response: { success: true, data: Customer }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/v1/customers
  * Returns all customers for current tenant
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

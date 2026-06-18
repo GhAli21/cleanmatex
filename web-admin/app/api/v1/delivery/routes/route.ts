@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DeliveryService } from '@/lib/services/delivery-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authContext = await getAuthContext();
@@ -53,6 +57,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const authContext = await getAuthContext();

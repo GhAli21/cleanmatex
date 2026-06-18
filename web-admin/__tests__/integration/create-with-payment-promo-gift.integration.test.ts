@@ -66,11 +66,11 @@ import { applyGiftCardTx } from '@/lib/services/gift-card-service';
 // Structural mock type — avoids referencing jest namespace in type position
 // while still exposing .mock.calls for assertion helpers below.
 interface MockFn {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   (...args: any[]): Promise<any>;
   mock: { calls: unknown[][] };
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type AnyMock = (...args: any[]) => Promise<any>;
 
 interface CapturedTx {

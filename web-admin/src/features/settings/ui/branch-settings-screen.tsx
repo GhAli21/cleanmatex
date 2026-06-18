@@ -30,6 +30,9 @@ interface BranchPricingModes {
 
 const INHERIT_SENTINEL = '__inherit__';
 
+/**
+ *
+ */
 export function BranchSettingsScreen() {
   const t = useTranslations('settings');
   const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING);

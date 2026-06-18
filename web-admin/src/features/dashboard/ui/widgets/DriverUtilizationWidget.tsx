@@ -20,6 +20,9 @@ interface DriverData {
   avgDeliveriesPerDriver: number
 }
 
+/**
+ *
+ */
 export function DriverUtilizationWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

@@ -4,9 +4,11 @@
  * This allows the logger to work without Sentry being installed
  */
 
-export default {
+const sentryStub = {
   captureException: () => {},
   captureMessage: () => {},
   init: () => {},
 };
+
+export default sentryStub;
 

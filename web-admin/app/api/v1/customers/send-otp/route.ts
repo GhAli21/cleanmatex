@@ -25,6 +25,7 @@ import type { SendOTPRequest } from '@/lib/types/customer';
  *   expiresAt: string (ISO timestamp),
  *   phone: string (masked, e.g., "+968901****56")
  * }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

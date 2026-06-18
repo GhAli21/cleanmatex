@@ -10,6 +10,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface ReceiptRecord {
   id: string;
   receiptTypeCode: string;
@@ -20,6 +23,10 @@ export interface ReceiptRecord {
   retryCount: number;
 }
 
+/**
+ *
+ * @param orderId
+ */
 export function useReceipts(orderId: string) {
   const { currentTenant } = useAuth();
 
@@ -40,6 +47,9 @@ export function useReceipts(orderId: string) {
   });
 }
 
+/**
+ *
+ */
 export function useSendReceipt() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();
@@ -94,6 +104,9 @@ export function useSendReceipt() {
   });
 }
 
+/**
+ *
+ */
 export function useResendReceipt() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();

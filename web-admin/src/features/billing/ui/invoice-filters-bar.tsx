@@ -13,6 +13,9 @@ const INVOICE_TYPE_OPTIONS =  [
   { value: 'B2B', labelKey: 'b2b' },
 ] as const;
 
+/**
+ *
+ */
 export default function InvoiceFiltersBar() {
   const t = useTranslations('invoices.filters');
   const tCommon = useTranslations('common');

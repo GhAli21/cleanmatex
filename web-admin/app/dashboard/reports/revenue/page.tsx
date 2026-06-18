@@ -12,6 +12,9 @@ import RevenueBreakdownCharts from '@features/reports/ui/revenue-breakdown-chart
 
 const BASE_PATH = '/dashboard/reports/revenue';
 
+/**
+ *
+ */
 export default function RevenueReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();

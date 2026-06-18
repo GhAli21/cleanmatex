@@ -22,6 +22,14 @@ function formatAmount(value: number, decimals: number): string {
   return value.toFixed(decimals);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.selectedDate
+ * @param root0.currencyCode
+ * @param root0.onSuccess
+ */
 export default function CashUpForm({
   data,
   selectedDate,

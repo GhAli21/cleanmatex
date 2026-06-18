@@ -47,6 +47,15 @@ const CATEGORY_NAMES: Record<string, { name: string; name2: string }> = {
   other: { name: 'Other', name2: 'أخرى' },
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.role
+ * @param root0.assignedPermissions
+ * @param root0.accessToken
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function PermissionAssignmentModal({
   role,
   assignedPermissions,
@@ -67,7 +76,7 @@ export default function PermissionAssignmentModal({
 
   useEffect(() => {
     loadPermissions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   const loadPermissions = async () => {

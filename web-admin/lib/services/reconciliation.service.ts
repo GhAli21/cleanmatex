@@ -48,6 +48,9 @@ import {
   runVoucherIntegrityChecks,
 } from './reconciliation/voucher-checks';
 
+/**
+ *
+ */
 export interface ReconciliationParams {
   periodFrom: Date;
   periodTo: Date;
@@ -123,6 +126,8 @@ const RECONCILIATION_TOTAL_CHECKS = EXECUTED_CHECK_NAMES.length;
  * Why a centralised projection: the shape is shared with
  * `ReconciliationOrderRow` (exported by `order-checks.ts`) so the type
  * contract between orchestrator and check modules cannot drift silently.
+ * @param tenantId
+ * @param params
  */
 async function getScopedOrders(
   tenantId: string,
@@ -158,6 +163,8 @@ async function getScopedOrders(
  * Only runs the per-order balance checks today (PRD §22.1 link/snapshot
  * checks are tenant-window-scoped). The output shape is kept identical to
  * the pre-Phase-4 service so existing callers do not break.
+ * @param tenantId
+ * @param orderId
  */
 export async function getOrderFinancialReconciliation(
   tenantId: string,
@@ -205,6 +212,8 @@ export async function getOrderFinancialReconciliation(
  *      failure cannot leave a half-written run (BVM R7 fix).
  *   5. Summarise via `summarizeIssues` using the dynamic `RECONCILIATION_TOTAL_CHECKS`.
  *   6. Update the run row with final status + counts.
+ * @param tenantId
+ * @param params
  */
 export async function runReconciliation(
   tenantId: string,
@@ -306,6 +315,11 @@ export async function runReconciliation(
 /**
  * Mark a reconciliation issue as acknowledged or resolved.
  *
+ * @param tenantId
+ * @param issueId
+ * @param status
+ * @param notes
+ * @param userId
  * @see app/api/v1/finance/reconciliation/issues/[issueId]/route.ts for the
  *      PATCH route (permission code: `reconciliation:acknowledge_issues`,
  *      seeded by mig 0294; BVM R1 fix).
@@ -331,6 +345,12 @@ export async function acknowledgeIssue(
   );
 }
 
+/**
+ *
+ * @param tenantId
+ * @param page
+ * @param pageSize
+ */
 export async function listReconRuns(tenantId: string, page = 1, pageSize = 20) {
   const skip = (page - 1) * pageSize;
   const [items, total] = await withTenantContext(tenantId, () =>
@@ -347,6 +367,11 @@ export async function listReconRuns(tenantId: string, page = 1, pageSize = 20) {
   return { items, total, page, pageSize };
 }
 
+/**
+ *
+ * @param tenantId
+ * @param runId
+ */
 export async function getReconRunWithIssues(tenantId: string, runId: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_fin_recon_runs_mst.findFirstOrThrow({

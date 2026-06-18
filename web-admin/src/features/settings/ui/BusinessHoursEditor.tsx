@@ -16,6 +16,9 @@
 import { useTranslations } from 'next-intl'
 import { Copy } from 'lucide-react'
 
+/**
+ *
+ */
 export interface BusinessHours {
   [key: string]: { open: string; close: string; closed: boolean }
 }
@@ -35,6 +38,12 @@ const DAYS = [
   'sunday'
 ]
 
+/**
+ *
+ * @param root0
+ * @param root0.hours
+ * @param root0.onChange
+ */
 export function BusinessHoursEditor({ hours, onChange }: BusinessHoursEditorProps) {
   const t = useTranslations('settings')
 

@@ -50,6 +50,9 @@ async function getAuthContext() {
  * Get a single product by ID
  *
  * Response: { success: true, data: Product }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -97,6 +100,9 @@ export async function GET(
  * Request Body: ProductUpdateRequest (partial)
  *
  * Response: { success: true, data: Product, message: string }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -161,6 +167,9 @@ export async function PATCH(
  * Soft delete a product (set is_active to false)
  *
  * Response: { success: true, message: string }
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

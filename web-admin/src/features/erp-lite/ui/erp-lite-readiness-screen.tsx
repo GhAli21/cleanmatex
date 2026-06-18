@@ -56,6 +56,12 @@ function MappingIssueBadge({ issue }: { issue: ErpLiteMissingUsageRow['mapping_i
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.readiness
+ * @param root0.missingUsage
+ */
 export function ErpLiteReadinessScreen({
   readiness,
   missingUsage,

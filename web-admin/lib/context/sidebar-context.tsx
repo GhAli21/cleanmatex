@@ -19,6 +19,9 @@ import {
 
 const STORAGE_KEY = 'cmx-sidebar-collapsed'
 
+/**
+ *
+ */
 export interface SidebarContextType {
   isCollapsed: boolean
   toggleCollapse: () => void
@@ -50,6 +53,11 @@ function getInitialReducedMotionPreference(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsedState] = useState(getInitialCollapsedState)
   const [mounted, setMounted] = useState(false)
@@ -95,6 +103,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ *
+ */
 export function useSidebar() {
   const ctx = useContext(SidebarContext)
   if (ctx === undefined) {

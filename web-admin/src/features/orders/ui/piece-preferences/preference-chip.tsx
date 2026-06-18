@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { catalogColorChipStyle, parseKindBgHex } from './piece-pref-kind-styles';
 
+/**
+ *
+ */
 export interface PreferenceChipProps {
   label: string;
   extraPrice: number;
@@ -27,6 +30,20 @@ export interface PreferenceChipProps {
   copyLabel: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.label
+ * @param root0.extraPrice
+ * @param root0.currencyCode
+ * @param root0.kindClassName
+ * @param root0.accentStyle
+ * @param root0.catalogColorHex
+ * @param root0.onRemove
+ * @param root0.onCopy
+ * @param root0.removeLabel
+ * @param root0.copyLabel
+ */
 export function PreferenceChip({
   label,
   extraPrice,

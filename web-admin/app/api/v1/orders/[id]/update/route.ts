@@ -17,6 +17,9 @@ import { logger } from '@/lib/utils/logger';
 /**
  * PATCH /api/v1/orders/[id]/update
  * Updates an existing order with validation and audit trail
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,

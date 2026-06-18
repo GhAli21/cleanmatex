@@ -22,6 +22,10 @@ interface ErpLiteShellScreenProps {
 /**
  * Phase 1 shell screen keeps ERP-Lite routes visible to the app without
  * implying that runtime finance functionality already exists.
+ * @param root0
+ * @param root0.moduleKey
+ * @param root0.feature
+ * @param root0.permissions
  */
 export function ErpLiteShellScreen({
   moduleKey,

@@ -31,6 +31,14 @@ interface CancelOrderDialogProps {
 
 const MIN_REASON_LENGTH = 10;
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.onSuccess
+ */
 export function CancelOrderDialog({
   orderId,
   open,

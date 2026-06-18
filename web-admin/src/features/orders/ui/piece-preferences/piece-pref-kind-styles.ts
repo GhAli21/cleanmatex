@@ -17,6 +17,10 @@ function normalizeFullHex(hex: string): string {
   return `#${h}`;
 }
 
+/**
+ *
+ * @param kindBg
+ */
 export function parseKindBgHex(kindBg: string | null | undefined): string | null {
   if (!kindBg?.trim()) return null;
   const t = kindBg.trim();
@@ -24,6 +28,11 @@ export function parseKindBgHex(kindBg: string | null | undefined): string | null
   return normalizeFullHex(t);
 }
 
+/**
+ *
+ * @param hex
+ * @param alpha
+ */
 export function hexToRgba(hex: string, alpha: number): string {
   const full = normalizeFullHex(hex).replace('#', '');
   const r = parseInt(full.slice(0, 2), 16);
@@ -32,7 +41,10 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/** Inactive tab: tinted fill + border from kind color */
+/**
+ * Inactive tab: tinted fill + border from kind color
+ * @param hex
+ */
 export function kindToolbarInactiveSurface(hex: string | null): { style: CSSProperties; textClass: string } {
   if (!hex) {
     return {
@@ -51,7 +63,10 @@ export function kindToolbarInactiveSurface(hex: string | null): { style: CSSProp
   };
 }
 
-/** Chip accent: left stripe + light tint (distinct from pill default gray) */
+/**
+ * Chip accent: left stripe + light tint (distinct from pill default gray)
+ * @param hex
+ */
 export function kindChipAccentStyle(hex: string | null): CSSProperties | undefined {
   if (!hex) return undefined;
   return {
@@ -61,7 +76,10 @@ export function kindChipAccentStyle(hex: string | null): CSSProperties | undefin
   };
 }
 
-/** Readable text on top of a solid-ish tinted chip background */
+/**
+ * Readable text on top of a solid-ish tinted chip background
+ * @param hex
+ */
 export function contrastTextForHexBg(hex: string): string {
   const full = normalizeFullHex(hex).replace('#', '');
   const r = parseInt(full.slice(0, 2), 16) / 255;
@@ -71,7 +89,10 @@ export function contrastTextForHexBg(hex: string): string {
   return luminance > 0.55 ? '#111827' : '#ffffff';
 }
 
-/** Color-catalog chips: background/tint from the swatch hex (not the kind tab color). */
+/**
+ * Color-catalog chips: background/tint from the swatch hex (not the kind tab color).
+ * @param hex
+ */
 export function catalogColorChipStyle(hex: string): CSSProperties {
   const full = normalizeFullHex(hex);
   return {
@@ -82,7 +103,10 @@ export function catalogColorChipStyle(hex: string): CSSProperties {
   };
 }
 
-/** True if value looks like Tailwind utility fragments (legacy seed data). */
+/**
+ * True if value looks like Tailwind utility fragments (legacy seed data).
+ * @param kindBg
+ */
 export function isTailwindKindBgToken(kindBg: string | null | undefined): boolean {
   if (!kindBg?.trim()) return false;
   return /^(bg-|text-|border-)/.test(kindBg.trim());

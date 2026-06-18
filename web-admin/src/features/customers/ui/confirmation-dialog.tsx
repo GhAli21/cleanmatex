@@ -15,6 +15,19 @@ interface ConfirmationDialogProps {
   loading?: boolean
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.isOpen
+ * @param root0.title
+ * @param root0.message
+ * @param root0.confirmLabel
+ * @param root0.cancelLabel
+ * @param root0.confirmVariant
+ * @param root0.onConfirm
+ * @param root0.onCancel
+ * @param root0.loading
+ */
 export default function ConfirmationDialog({
   isOpen,
   title,

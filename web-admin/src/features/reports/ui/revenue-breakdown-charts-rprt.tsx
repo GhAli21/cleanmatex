@@ -26,6 +26,15 @@ interface RevenueBreakdownChartsProps {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
+/**
+ *
+ * @param root0
+ * @param root0.byServiceCategory
+ * @param root0.byBranch
+ * @param root0.byOrderType
+ * @param root0.totalRevenue
+ * @param root0.currencyCode
+ */
 export default function RevenueBreakdownCharts({
   byServiceCategory,
   byBranch,

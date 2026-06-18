@@ -33,6 +33,14 @@ const STATUS_COLORS: Record<string, string> = {
   refunded: '#8B5CF6',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.paymentsByDay
+ * @param root0.paymentsByMethod
+ * @param root0.paymentsByStatus
+ * @param root0.currencyCode
+ */
 export default function PaymentsReportCharts({
   paymentsByDay,
   paymentsByMethod,

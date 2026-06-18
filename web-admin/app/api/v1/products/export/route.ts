@@ -48,6 +48,7 @@ async function getAuthContext() {
  * - template: 'basic' | 'advanced' (default: 'advanced')
  *
  * Response: CSV file download
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {

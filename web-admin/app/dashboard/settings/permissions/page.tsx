@@ -29,6 +29,9 @@ import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantPermission, PermissionsByCategory } from '@/lib/api/permissions'
 import { SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/settings-access'
 
+/**
+ *
+ */
 export default function PermissionsManagementPage() {
   const { currentTenant, permissions, session } = useAuth()
   const accessToken = session?.access_token ?? ''
@@ -66,7 +69,7 @@ export default function PermissionsManagementPage() {
     if (accessToken) {
       loadPermissions()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [accessToken])
 
   const loadPermissions = async () => {

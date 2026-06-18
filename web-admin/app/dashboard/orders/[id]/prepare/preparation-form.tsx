@@ -39,6 +39,11 @@ interface ItemFormData {
   notes: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ */
 export function PreparationForm({ order }: PreparationFormProps) {
   const router = useRouter();
   const t = useTranslations('orders.preparation');

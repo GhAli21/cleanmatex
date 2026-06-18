@@ -29,6 +29,14 @@ interface AddressFormModalProps {
   onSuccess: (address: CustomerAddress) => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ * @param root0.address
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export default function AddressFormModal({
   customerId,
   address,

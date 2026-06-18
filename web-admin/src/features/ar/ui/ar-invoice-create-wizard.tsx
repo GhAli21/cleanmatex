@@ -48,6 +48,9 @@ function parseOrderIds(value: string) {
     .filter(Boolean);
 }
 
+/**
+ *
+ */
 export function ArInvoiceCreateWizard() {
   const t = useTranslations('invoices.ar.create');
   const tCommon = useTranslations('common');

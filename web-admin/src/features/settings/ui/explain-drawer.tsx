@@ -22,6 +22,16 @@ interface ExplainDrawerProps {
   onClose: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.settingCode
+ * @param root0.tenantId
+ * @param root0.branchId
+ * @param root0.userId
+ * @param root0.isOpen
+ * @param root0.onClose
+ */
 export function ExplainDrawer({
   settingCode,
   tenantId,

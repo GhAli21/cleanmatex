@@ -28,7 +28,14 @@ type ParentAccountRow = {
   allow_tenant_children: boolean;
 };
 
+/**
+ *
+ */
 export class ErpLiteCoaService {
+  /**
+   *
+   * @param locale
+   */
   static async getDashboardSnapshot(locale: 'en' | 'ar'): Promise<ErpLiteCoaDashboardSnapshot> {
     const tenantId = await this.requireTenantId();
 
@@ -50,7 +57,12 @@ export class ErpLiteCoaService {
     });
   }
 
-  /** Paginated account list. Called directly from the COA page. */
+  /**
+   * Paginated account list. Called directly from the COA page.
+   * @param locale
+   * @param page
+   * @param pageSize
+   */
   static async getAccountPage(
     locale: 'en' | 'ar',
     page: number,
@@ -63,6 +75,10 @@ export class ErpLiteCoaService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createAccount(input: CreateErpLiteAccountInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -173,6 +189,9 @@ export class ErpLiteCoaService {
         ? Prisma.sql`COALESCE(NULLIF(b.name2, ''), b.name)`
         : Prisma.sql`b.name`;
 
+    /**
+     *
+     */
     type AccountRow = ErpLiteCoaAccountListItem & { total_count: bigint };
 
     const rows = await prisma.$queryRaw<AccountRow[]>(Prisma.sql`

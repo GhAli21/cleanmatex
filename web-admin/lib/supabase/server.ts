@@ -54,6 +54,8 @@ function getSupabaseEnv() {
 /**
  * Apply session-only cookie options when user chose "Remember me" = false.
  * Strips maxAge/expires so cookies expire when browser closes.
+ * @param options
+ * @param rememberMe
  */
 function applySessionCookieOptions(
   options: Record<string, unknown>,
@@ -64,6 +66,9 @@ function applySessionCookieOptions(
   return { ...rest, maxAge: undefined, expires: undefined }
 }
 
+/**
+ *
+ */
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
   const { url, anonKey } = getSupabaseEnv()

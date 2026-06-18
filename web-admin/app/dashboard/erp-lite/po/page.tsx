@@ -27,6 +27,11 @@ function getSingleParam(value: SearchParamsValue): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ErpLitePoPage({
   searchParams,
 }: {

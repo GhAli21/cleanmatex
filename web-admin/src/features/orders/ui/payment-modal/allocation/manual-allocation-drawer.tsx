@@ -11,6 +11,9 @@ import {
   CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES,
 } from '@/lib/types/customer-receipt-allocation';
 
+/**
+ *
+ */
 export type ManualAllocationDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,6 +27,20 @@ export type ManualAllocationDrawerProps = {
   isRTL?: boolean;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.targets
+ * @param root0.excessAmount
+ * @param root0.currencyCode
+ * @param root0.formatAmount
+ * @param root0.loading
+ * @param root0.submitting
+ * @param root0.onSubmit
+ * @param root0.isRTL
+ */
 export function ManualAllocationDrawer({
   open,
   onOpenChange,

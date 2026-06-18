@@ -6,6 +6,9 @@ import { ErpLiteExceptionsScreen } from '@features/erp-lite/ui/erp-lite-exceptio
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteExceptionsPage() {
   const tCommon = await getTranslations('erpLite.common')
 

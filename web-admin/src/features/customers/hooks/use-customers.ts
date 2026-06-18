@@ -8,11 +8,18 @@ import type {
   CustomerStatistics,
 } from '@/lib/types/customer';
 
+/**
+ *
+ */
 export interface UseCustomersOptions {
   tenantId: string | null;
   initialPageSize?: number;
 }
 
+/**
+ *
+ * @param options
+ */
 export function useCustomers(options: UseCustomersOptions) {
   const { tenantId, initialPageSize = 20 } = options;
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);

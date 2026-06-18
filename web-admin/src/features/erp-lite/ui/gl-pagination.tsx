@@ -17,6 +17,10 @@ const PAGE_SIZES = [25, 50, 100] as const
 
 /**
  * URL-driven pagination bar for the GL Inquiry screen.
+ * @param root0
+ * @param root0.page
+ * @param root0.pageSize
+ * @param root0.total
  */
 export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
   const tCommon = useTranslations('common')

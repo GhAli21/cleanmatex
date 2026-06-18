@@ -13,6 +13,9 @@ import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { CmxInput, CmxTextarea } from '@ui/primitives';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
+/**
+ *
+ */
 export function OrderCustomerDetailsSection() {
   const { state, setCustomerSnapshotOverride, setCustomerNotes } = useNewOrderStateWithDispatch();
   const isRTL = useRTL();

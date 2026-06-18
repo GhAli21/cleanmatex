@@ -5,6 +5,10 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('tax:view_config')(request);
   if (auth instanceof NextResponse) return auth;
@@ -36,6 +40,10 @@ const createSchema = z.object({
   isDefault:     z.boolean().optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;

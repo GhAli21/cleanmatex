@@ -19,6 +19,10 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
 import { uploadTenantLogo } from '@/lib/storage/tenant-logo';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // CSRF first — must run before formData() consumes the body.

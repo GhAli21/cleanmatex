@@ -21,6 +21,9 @@ interface PaymentMixData {
   otherPct: number
 }
 
+/**
+ *
+ */
 export function PaymentMixWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

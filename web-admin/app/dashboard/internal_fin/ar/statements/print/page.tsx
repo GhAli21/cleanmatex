@@ -8,6 +8,9 @@ import { CmxButton } from '@ui/primitives';
 import { ArCustomerStatementPrintRprt } from '@features/ar/ui/ar-customer-statement-print-rprt';
 import type { ArCustomerStatement } from '@/lib/types/ar-invoice';
 
+/**
+ *
+ */
 export default function ArStatementPrintPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

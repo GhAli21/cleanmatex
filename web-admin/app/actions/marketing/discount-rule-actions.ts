@@ -58,7 +58,7 @@ type DiscountRuleFormInput = z.infer<typeof discountRuleFormSchema>;
 // Helper
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function mapRow(row: any): DiscountRule {
   return {
     id: row.id,
@@ -93,6 +93,10 @@ function mapRow(row: any): DiscountRule {
 
 /**
  * List discount rules for the current tenant with pagination.
+ * @param params
+ * @param params.page
+ * @param params.limit
+ * @param params.search
  */
 export async function listDiscountRules(params: {
   page?: number;
@@ -150,6 +154,7 @@ export async function listDiscountRules(params: {
 
 /**
  * Create a new discount rule for the current tenant.
+ * @param input
  */
 export async function createDiscountRule(
   input: DiscountRuleFormInput
@@ -223,6 +228,8 @@ export async function createDiscountRule(
 
 /**
  * Update a discount rule. Verifies ownership by tenant_org_id.
+ * @param id
+ * @param input
  */
 export async function updateDiscountRule(
   id: string,
@@ -285,6 +292,7 @@ export async function updateDiscountRule(
 
 /**
  * Soft-delete (archive) a discount rule by setting is_active = false.
+ * @param id
  */
 export async function archiveDiscountRule(
   id: string

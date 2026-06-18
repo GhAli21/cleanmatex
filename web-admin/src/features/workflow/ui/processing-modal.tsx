@@ -53,6 +53,7 @@ interface ProcessingModalProps {
 /**
  * Generate pieces from an order item
  * Fallback when pieces are not yet loaded from DB; normally pieces are loaded from DB
+ * @param item
  */
 function generatePieces(item: OrderItem): ItemPiece[] {
   const pieces: ItemPiece[] = [];
@@ -80,6 +81,8 @@ function generatePieces(item: OrderItem): ItemPiece[] {
 /**
  * Map OrderItemPiece (from DB) to ItemPiece (for UI)
  * Converts database piece format to component format
+ * @param dbPiece
+ * @param itemId
  */
 function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | null }, itemId: string): ItemPiece {
   // is_ready exists in DB but not in OrderItemPiece type, so we access it via type assertion
@@ -114,6 +117,15 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.isOpen
+ * @param root0.orderId
+ * @param root0.tenantId
+ * @param root0.onClose
+ * @param root0.onRefresh
+ */
 export function ProcessingModal({
   isOpen,
   orderId,

@@ -28,6 +28,9 @@ type OverpaymentPlanInput = {
   realPaymentLegs: RealPaymentLeg[];
 };
 
+/**
+ *
+ */
 export type SettlementOverpaymentOptions = {
   payExtraIntent?: boolean;
   explicitChangeResolved?: number;
@@ -36,6 +39,9 @@ export type SettlementOverpaymentOptions = {
 /**
  * Mirrors Payment Modal V4 excess logic so client and server agree on when
  * disposition is mandatory vs auto-handled via cash change only.
+ * @param plan
+ * @param epsilon
+ * @param options
  */
 export function computeSettlementOverpaymentMetrics(
   plan: OverpaymentPlanInput,

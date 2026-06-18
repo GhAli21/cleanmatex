@@ -14,6 +14,11 @@ interface OrderStatsCardsProps {
   stats: OrderStats;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ */
 export function OrderStatsCards({ stats }: OrderStatsCardsProps) {
   const t = useTranslations('orders');
   const isRTL = useRTL();

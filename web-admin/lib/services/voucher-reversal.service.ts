@@ -12,6 +12,9 @@ import { validateStatusTransition } from './voucher-validation.service';
 import { generateBizVoucherNo } from './voucher-number.service';
 import type { VoucherType } from '../types/voucher';
 
+/**
+ *
+ */
 export interface ReversalResult {
   reversalVoucherId: string;
   reversalVoucherNo: string;
@@ -21,6 +24,10 @@ export interface ReversalResult {
  * Reverse a fully POSTED voucher.
  * Creates a mirror reversal voucher with opposite-direction lines.
  * Sets original voucher_status = REVERSED.
+ * @param tenantOrgId
+ * @param voucherId
+ * @param reason
+ * @param userId
  */
 export async function reverseBizVoucher(
   tenantOrgId: string,

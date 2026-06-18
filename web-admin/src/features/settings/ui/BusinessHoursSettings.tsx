@@ -27,6 +27,13 @@ interface BusinessHoursSettingsProps {
   effectiveSettings?: ResolvedSetting[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenant
+ * @param root0.onUpdate
+ * @param root0.effectiveSettings
+ */
 export function BusinessHoursSettings({ tenant, onUpdate, effectiveSettings }: BusinessHoursSettingsProps) {
   const [businessHours, setBusinessHours] = useState<BusinessHours>(
     tenant.business_hours || {}

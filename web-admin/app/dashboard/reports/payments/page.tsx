@@ -16,6 +16,9 @@ import PaymentsReportTable from '@features/reports/ui/payments-report-table-rprt
 const PAYMENT_STATUSES = ['completed', 'pending', 'cancelled', 'refunded'];
 const BASE_PATH = '/dashboard/reports/payments';
 
+/**
+ *
+ */
 export default function PaymentsReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();

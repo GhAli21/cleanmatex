@@ -29,6 +29,9 @@ const METHOD_OPTIONS = [
 
 const KIND_OPTIONS = ['invoice', 'deposit', 'advance', 'pos'] as const;
 
+/**
+ *
+ */
 export default function PaymentFiltersBar() {
   const t = useTranslations('payments.filters');
   const tStatuses = useTranslations('payments.statuses');

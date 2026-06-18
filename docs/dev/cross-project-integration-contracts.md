@@ -34,6 +34,33 @@ Database migrations are created in `cleanmatex` only. Agents must not apply migr
 
 After the user applies a migration, regenerate types in the consuming project as needed. Do not manually copy generated or handwritten types between repos.
 
+## Financial Catalogs & Feature Flags (added 2026-06-18)
+
+HQ now owns and exposes the 14 `sys_fin_*` catalog tables (settlement, BVM, payment config)
+through the `fin-settlement-catalogs` NestJS module.
+
+**cleanmatex must:**
+- Call `GET /api/hq/v1/fin-catalogs/*` to read catalog data — never query `sys_fin_*` directly
+- Evaluate financial feature flags via `GET /api/hq/v1/feature-flags/tenants/:id/evaluate/...`
+- Never query `sys_feature_flags_mst` or `sys_feature_flags_*` tables directly
+- Fall back to `false` for feature flag evaluation if HQ is unavailable (fail-closed)
+
+**Active feature flags:**
+
+| Flag key | Default | Purpose |
+|---|---|---|
+| `customer_receipt_allocation_v1` | false | Gates allocation preview/post + account receipts |
+| `overpayment_disposition_v1` | false | Gates overpayment disposition UI |
+
+**BVM line_role / target_type constraint:** Adding new codes to `sys_fin_vch_line_role_cd` or
+`sys_fin_vch_target_type_cd` requires a cleanmatex migration to extend the CHECK constraint on
+`org_fin_voucher_trx_lines_dtl`. Coordinate with the HQ team before adding rows.
+
+Full contract details: `F:/jhapp/cleanmatexsaas/docs/dev/rules/integration-contracts.md` §15
+
+---
+
 ## Reference
 
-Primary guide: `F:/jhapp/cleanmatexsaas/docs/dev/cross-project-integration-contracts/developer_guide.md`
+Primary guide: `F:/jhapp/cleanmatexsaas/docs/dev/cross-project-integration-contracts/developer_guide.md`  
+Integration contracts (detailed, numbered): `F:/jhapp/cleanmatexsaas/docs/dev/rules/integration-contracts.md`

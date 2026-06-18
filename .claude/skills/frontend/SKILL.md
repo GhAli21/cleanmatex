@@ -13,6 +13,7 @@ user-invocable: true
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
 5. **Routes visible in the system menu MUST go through `/navigation` skill** — any new route, renamed route, moved route, or removed route that appears (or should appear) in the sidebar/system menu requires the **dual-write** workflow: update `web-admin/config/navigation.ts` AND generate a `sys_components_cd` migration. Load `/navigation` BEFORE touching `app/**/page.tsx` for a menu-visible route. See [Routes & Navigation Menu](#routes--navigation-menu) below.
+6. **React lint (mandatory before done)** — Read `docs/dev/rules/react-lint-verification-checklist.md`. Effects/Link: `react-effects-patterns.md`. RHF/TanStack/a11y: `react-rhf-and-table-lint.md`. Run `cd web-admin && npx eslint . --quiet` (must be 0). No `setState` in `useEffect`; no `form.watch()` — use `useWatch`; internal links → `next/link`.
 
 ## Folder Structure
 
@@ -233,3 +234,6 @@ When building or implementing a **report** (screen, component, page, tool):
 - [standards.md](./standards.md) - Detailed frontend coding standards
 - [ui-blueprint.md](./ui-blueprint.md) - UI layer blueprint
 - [uiux-rules.md](./uiux-rules.md) - UI/UX design guidelines
+- [react-effects-patterns.md](../../../docs/dev/rules/react-effects-patterns.md) - Effects, Next `Link`, memoization ESLint
+- [react-rhf-and-table-lint.md](../../../docs/dev/rules/react-rhf-and-table-lint.md) - useWatch, TanStack Table, a11y, exports
+- [react-lint-verification-checklist.md](../../../docs/dev/rules/react-lint-verification-checklist.md) - Pre-submit agent checklist

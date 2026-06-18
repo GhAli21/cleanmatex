@@ -30,6 +30,15 @@ interface SplitConfirmationDialogProps {
   isLoading?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.isOpen
+ * @param root0.pieceCount
+ * @param root0.onConfirm
+ * @param root0.onCancel
+ * @param root0.isLoading
+ */
 export function SplitConfirmationDialog({
   isOpen,
   pieceCount,

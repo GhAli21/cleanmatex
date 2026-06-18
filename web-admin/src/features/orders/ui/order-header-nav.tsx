@@ -18,6 +18,9 @@ interface NavLink {
   active?: boolean;
 }
 
+/**
+ *
+ */
 export function OrderHeaderNav() {
   const t = useTranslations('navigation');
   const tOrders = useTranslations('orders');

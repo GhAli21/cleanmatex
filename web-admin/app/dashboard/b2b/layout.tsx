@@ -7,6 +7,11 @@ import { ReactNode } from 'react';
 import { RequireFeature, UpgradePrompt } from '@/src/features/auth/ui/RequireFeature';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export default function B2BLayout({ children }: { children: ReactNode }) {
   return (
     <RequireFeature

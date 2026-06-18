@@ -12,6 +12,9 @@ export const WORKFLOW_ROLES = {
   ADMIN: 'ADMIN', 
 } as const;
 
+/**
+ *
+ */
 export type Role = typeof WORKFLOW_ROLES[keyof typeof WORKFLOW_ROLES];
 
 /**
@@ -43,6 +46,8 @@ export const TRANSITION_ACCESS: Record<string, Role[]> = {
 
 /**
  * Check if user has required role for screen
+ * @param userRole
+ * @param screen
  */
 export function hasScreenAccess(userRole: Role, screen: string): boolean {
   const allowedRoles = SCREEN_ACCESS[screen] || [];
@@ -51,6 +56,9 @@ export function hasScreenAccess(userRole: Role, screen: string): boolean {
 
 /**
  * Check if user has required role for transition 
+ * @param userRole
+ * @param from
+ * @param to
  */
 export function hasTransitionAccess(userRole: Role, from: string, to: string): boolean {
   const key = `${from}->${to}`;

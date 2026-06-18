@@ -8,6 +8,12 @@ import { createClient } from '@/lib/supabase/server';
 import { addOrderItems } from '@/lib/db/orders';
 import { isPreparationEnabled } from '@/lib/config/features';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

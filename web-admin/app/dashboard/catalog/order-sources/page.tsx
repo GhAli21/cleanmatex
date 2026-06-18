@@ -23,6 +23,9 @@ type SourceRow = {
   is_allowed: boolean;
 };
 
+/**
+ *
+ */
 export default function OrderSourcesCatalogPage() {
   const t = useTranslations('catalog.orderSources');
   const tCommon = useTranslations('common');

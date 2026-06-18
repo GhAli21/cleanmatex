@@ -65,6 +65,13 @@ const EMPTY_HEADER: HeaderForm = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.voucher
+ * @param root0.onClose
+ */
 export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogProps) {
   const t       = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
@@ -135,7 +142,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
     });
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [open, voucher?.id]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────

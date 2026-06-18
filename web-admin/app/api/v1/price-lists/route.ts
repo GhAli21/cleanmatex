@@ -55,6 +55,7 @@ async function getAuthContext() {
  * List all price lists for tenant
  *
  * Response: { success: true, data: PriceList[] }
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {
@@ -93,6 +94,7 @@ export async function GET(request: NextRequest) {
  * Request Body: PriceListCreateRequest
  *
  * Response: { success: true, data: PriceList, message: string }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

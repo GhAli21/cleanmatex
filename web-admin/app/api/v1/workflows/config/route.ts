@@ -11,6 +11,10 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const { tenantId } = await getAuthContext();
@@ -45,6 +49,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const { tenantId } = await getAuthContext();

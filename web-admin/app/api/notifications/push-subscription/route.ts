@@ -39,6 +39,10 @@ const deregisterSchema = z.object({
 // POST — register / refresh subscription
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const authCheck = await requirePermission('notifications:read')(request)
   if (authCheck instanceof NextResponse) return authCheck
@@ -96,6 +100,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // DELETE — deregister (logout or permission revoked)
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const authCheck = await requirePermission('notifications:read')(request)
   if (authCheck instanceof NextResponse) return authCheck

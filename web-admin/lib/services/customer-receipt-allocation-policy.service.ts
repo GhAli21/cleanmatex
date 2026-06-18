@@ -8,6 +8,9 @@ import {
 import { RECEIPT_ALLOCATION_WARNING_CODES } from '@/lib/types/customer-receipt-allocation';
 import type { ReceiptAllocationPolicySnapshot } from '@/lib/types/customer-receipt-allocation';
 
+/**
+ *
+ */
 export interface ReceiptAllocationPolicyRow {
   id: string;
   tenant_org_id: string;
@@ -30,6 +33,9 @@ export interface ReceiptAllocationPolicyRow {
   max_targets_per_allocation: number;
 }
 
+/**
+ *
+ */
 export interface ResolvePolicyParams {
   tenantId: string;
   branchId?: string | null;
@@ -51,6 +57,7 @@ function mapPolicyRow(row: ReceiptAllocationPolicyRow): ReceiptAllocationPolicyS
 
 /**
  * Resolves effective receipt allocation policy: branch-specific → tenant default.
+ * @param params
  */
 export async function resolveReceiptAllocationPolicy(
   params: ResolvePolicyParams
@@ -102,6 +109,10 @@ export async function resolveReceiptAllocationPolicy(
   throw new Error(RECEIPT_ALLOCATION_WARNING_CODES.POLICY_MISSING);
 }
 
+/**
+ *
+ * @param params
+ */
 export async function getReceiptAllocationPolicySnapshot(
   params: ResolvePolicyParams
 ): Promise<ReceiptAllocationPolicySnapshot> {
@@ -109,6 +120,12 @@ export async function getReceiptAllocationPolicySnapshot(
   return mapPolicyRow(row);
 }
 
+/**
+ *
+ * @param fallbackDestination
+ * @param amount
+ * @param customerId
+ */
 export function buildFallbackAllocationLine(
   fallbackDestination: string,
   amount: number,

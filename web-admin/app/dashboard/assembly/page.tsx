@@ -27,6 +27,9 @@ interface AssemblyOrder {
   current_status: string;
 }
 
+/**
+ *
+ */
 export default function AssemblyPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();

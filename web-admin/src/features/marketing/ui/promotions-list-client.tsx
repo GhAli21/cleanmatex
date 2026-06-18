@@ -45,6 +45,9 @@ interface PromotionRow {
   is_active:            boolean;
 }
 
+/**
+ *
+ */
 export function PromotionsListClient() {
   const t       = useTranslations('marketing.promotionsV2');
   const tCommon = useTranslations('common');

@@ -1,0 +1,28 @@
+---
+description: React Hook Form useWatch, TanStack Table, a11y combobox, default exports — ESLint patterns (portable)
+globs: web-admin/**/*.ts,web-admin/**/*.tsx
+alwaysApply: false
+---
+
+# React RHF, table, a11y & export lint (portable)
+
+**Canonical:** `docs/dev/rules/react-rhf-and-table-lint.md`  
+**Checklist:** `docs/dev/rules/react-lint-verification-checklist.md`  
+**Effects / Link:** `docs/dev/rules/react-effects-patterns.md`
+
+## Rules (CI errors)
+
+| Rule | Fix |
+|------|-----|
+| `react-hooks/incompatible-library` (RHF) | `useWatch({ control, name })` — never `form.watch()` in JSX or hooks |
+| `react-hooks/incompatible-library` (table) | `eslint-disable-next-line` above `useReactTable` only |
+| `import/no-anonymous-default-export` | `const x = {...}; export default x` |
+| `jsx-a11y/role-supports-aria-props` | `role="combobox"` + `aria-controls` + `role="listbox"` on list |
+
+## Before done
+
+```bash
+cd web-admin && npx eslint . --quiet && npx tsc --noEmit
+```
+
+**Copy to other projects:** adjust `globs` above to your app folder (e.g. `src/**`).

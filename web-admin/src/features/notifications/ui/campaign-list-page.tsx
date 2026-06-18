@@ -124,6 +124,9 @@ function CampaignRowSkeleton() {
 // Main list page
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ *
+ */
 export function CampaignListPage() {
   const locale     = useLocale()
   const t          = useTranslations('notifications')

@@ -10,6 +10,9 @@
 import twilio from 'twilio'
 import { logger } from '@lib/utils/logger'
 
+/**
+ *
+ */
 export interface OutboxSmsRow {
   id: string
   tenant_org_id: string
@@ -19,6 +22,9 @@ export interface OutboxSmsRow {
   retry_count: number
 }
 
+/**
+ *
+ */
 export interface SmsDeliveryResult {
   success: boolean
   errorMessage?: string
@@ -77,6 +83,10 @@ async function deliverViaHqProxy(row: OutboxSmsRow): Promise<SmsDeliveryResult> 
   }
 }
 
+/**
+ *
+ * @param row
+ */
 export async function deliverSmsOutbox(row: OutboxSmsRow): Promise<SmsDeliveryResult> {
   if (!row.recipient_address) {
     return { success: false, errorMessage: 'No recipient phone number', permanent: true }

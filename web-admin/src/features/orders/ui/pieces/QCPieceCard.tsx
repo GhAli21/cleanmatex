@@ -8,6 +8,9 @@ import { CmxButton } from '@ui/primitives';
 import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface QCPieceCardProps {
   piece: OrderItemPiece;
   onPass?: (pieceId: string) => void;
@@ -15,6 +18,14 @@ export interface QCPieceCardProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.onPass
+ * @param root0.onRewash
+ * @param root0.readOnly
+ */
 export function QCPieceCard({
   piece,
   onPass,

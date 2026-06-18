@@ -16,6 +16,14 @@ interface ProcessingFiltersBarProps {
   onStatusFilterChange: (value: string) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.filters
+ * @param root0.onFilterChange
+ * @param root0.statusFilter
+ * @param root0.onStatusFilterChange
+ */
 export function ProcessingFiltersBar({
   filters,
   onFilterChange,

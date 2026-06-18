@@ -52,17 +52,26 @@ function chipFallbackClass(kind: string): string | undefined {
   return undefined;
 }
 
-/** Legacy: DB sometimes stores tailwind class fragments */
+/**
+ * Legacy: DB sometimes stores tailwind class fragments
+ * @param kindBg
+ */
 function tailwindKindTokenClass(kindBg: string | null | undefined): string | undefined {
   if (!kindBg || !isTailwindKindBgToken(kindBg)) return undefined;
   return kindBg.trim();
 }
 
-/** DB kind row for notes: main_type_code `notes` and/or kind_code `note` */
+/**
+ * DB kind row for notes: main_type_code `notes` and/or kind_code `note`
+ * @param k
+ */
 function isNotesKindRow(k: PreferenceKind): boolean {
   return k.main_type_code === PREFERENCE_MAIN_TYPES.NOTES || k.kind_code === 'note';
 }
 
+/**
+ *
+ */
 export interface PiecePreferenceCardProps {
   categoryLabel?: string;
   itemTitle: string;
@@ -84,6 +93,28 @@ export interface PiecePreferenceCardProps {
   updatePieceFields: (pieceId: string, updates: Partial<PreSubmissionPiece>) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.categoryLabel
+ * @param root0.itemTitle
+ * @param root0.piece
+ * @param root0.preferences
+ * @param root0.preferenceKinds
+ * @param root0.prefsByKind
+ * @param root0.packingPrefs
+ * @param root0.servicePrefsFallback
+ * @param root0.conditionCatalog
+ * @param root0.currencyCode
+ * @param root0.kindsLoading
+ * @param root0.enforcePrefCompatibility
+ * @param root0.siblingPieceIds
+ * @param root0.copyAllTooltip
+ * @param root0.onRemovePreference
+ * @param root0.onCopyPreferenceToPieces
+ * @param root0.onCopyAllToPieces
+ * @param root0.updatePieceFields
+ */
 export function PiecePreferenceCard({
   categoryLabel,
   itemTitle,

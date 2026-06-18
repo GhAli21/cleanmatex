@@ -15,6 +15,9 @@ interface GlSummaryBarProps {
 /**
  * Stat cards showing total debit, total credit, and row count
  * for the currently active GL filter set.
+ * @param root0
+ * @param root0.summary
+ * @param root0.displayConfig
  */
 export function GlSummaryBar({ summary, displayConfig }: GlSummaryBarProps) {
   const t = useTranslations('erpLite.reports')

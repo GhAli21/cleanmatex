@@ -15,6 +15,9 @@ import type {
   OrderDiscountRow,
 } from '@/app/actions/orders/get-order-financial';
 
+/**
+ *
+ */
 export interface BillingReceiptVoucherPrintRprtData {
   voucher: VoucherData;
   payment?: {
@@ -64,6 +67,11 @@ function formatDate(date: Date | string | null | undefined, locale: string): str
   });
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ */
 export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPrintRprtProps) {
   const tBilling = useTranslations('billing');
   const tCommon = useTranslations('common');

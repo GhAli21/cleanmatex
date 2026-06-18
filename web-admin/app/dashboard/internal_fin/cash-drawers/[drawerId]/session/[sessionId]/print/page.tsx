@@ -17,6 +17,11 @@ interface PageProps {
   params: Promise<{ drawerId: string; sessionId: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function CashDrawerSessionPrintPage({ params }: PageProps) {
   const { sessionId } = await params;
 

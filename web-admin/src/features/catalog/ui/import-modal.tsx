@@ -18,6 +18,11 @@ interface ImportModalProps {
   onClose: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onClose
+ */
 export default function ImportModal({ onClose }: ImportModalProps) {
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')

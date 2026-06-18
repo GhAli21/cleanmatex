@@ -29,6 +29,14 @@ function LogStatusBadge({ status }: { status: string }) {
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.total
+ * @param root0.page
+ * @param root0.pageSize
+ */
 export function ErpLitePostAuditScreen({
   rows,
   total,

@@ -15,6 +15,9 @@ import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxAlertDialog } from '@/src/ui/feedback'
 import type { LogoutReason } from '@/lib/auth/logout-tracker'
 
+/**
+ *
+ */
 export default function LogoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()

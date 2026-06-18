@@ -2,7 +2,7 @@
 
 import { useEffect, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -31,6 +31,16 @@ interface CashDrawerFormDialogProps {
 
 const NO_TERMINAL_VALUE = '__no_terminal__';
 
+/**
+ *
+ * @param root0
+ * @param root0.drawer
+ * @param root0.branches
+ * @param root0.terminals
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function CashDrawerFormDialog({
   drawer,
   branches,
@@ -70,7 +80,11 @@ export function CashDrawerFormDialog({
     form.setValue('currency_code', tenantCurrencyCode);
   }, [form, tenantCurrencyCode]);
 
-  const selectedBranchId = form.watch('branch_id');
+  const selectedBranchId = useWatch({ control: form.control, name: 'branch_id' });
+  const drawerType = useWatch({ control: form.control, name: 'drawer_type' });
+  const assignedTerminalId = useWatch({ control: form.control, name: 'assigned_terminal_id' });
+  const requiresSession = useWatch({ control: form.control, name: 'requires_session' });
+  const openingFloatRequired = useWatch({ control: form.control, name: 'opening_float_required' });
   const branchScopedTerminals = terminals.filter((terminal) => !selectedBranchId || terminal.branch_id === null || terminal.branch_id === selectedBranchId);
 
   const handleSubmit = (values: CreateCashDrawerFormValues) => {
@@ -123,7 +137,7 @@ export function CashDrawerFormDialog({
           </div>
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.drawerType')}</label>
-            <CmxSelectDropdown value={form.watch('drawer_type')} onValueChange={(v) => form.setValue('drawer_type', v as never)}>
+            <CmxSelectDropdown value={drawerType} onValueChange={(v) => form.setValue('drawer_type', v as never)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
                 {Object.values(DRAWER_TYPES).map((dt) => (
@@ -134,7 +148,7 @@ export function CashDrawerFormDialog({
           </div>
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.branch')}</label>
-            <CmxSelectDropdown value={form.watch('branch_id') ?? ''} onValueChange={(v) => form.setValue('branch_id', v)}>
+            <CmxSelectDropdown value={selectedBranchId ?? ''} onValueChange={(v) => form.setValue('branch_id', v)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
                 {branches.map((branch) => (
@@ -166,7 +180,7 @@ export function CashDrawerFormDialog({
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.assignedTerminal')}</label>
             <CmxSelectDropdown
-              value={form.watch('assigned_terminal_id') ?? NO_TERMINAL_VALUE}
+              value={assignedTerminalId ?? NO_TERMINAL_VALUE}
               onValueChange={(value) => form.setValue('assigned_terminal_id', value === NO_TERMINAL_VALUE ? undefined : value)}
             >
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
@@ -182,11 +196,11 @@ export function CashDrawerFormDialog({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">{t('cashDrawers.requiresSession')}</span>
-            <CmxSwitch checked={!!form.watch('requires_session')} onCheckedChange={(v) => form.setValue('requires_session', v)} />
+            <CmxSwitch checked={!!requiresSession} onCheckedChange={(v) => form.setValue('requires_session', v)} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">{t('cashDrawers.openingFloatRequired')}</span>
-            <CmxSwitch checked={!!form.watch('opening_float_required')} onCheckedChange={(v) => form.setValue('opening_float_required', v)} />
+            <CmxSwitch checked={!!openingFloatRequired} onCheckedChange={(v) => form.setValue('opening_float_required', v)} />
           </div>
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={onClose} disabled={isPending}>{t('common.cancel')}</CmxButton>

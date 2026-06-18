@@ -10,6 +10,12 @@ interface StatsCardsProps {
   branchName?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ * @param root0.branchName
+ */
 export default function StatsCards({ stats, branchName }: StatsCardsProps) {
   const t = useTranslations('inventory.stats');
   const atBranch = branchName ? t('atBranch', { branch: branchName }) : t('allBranches');

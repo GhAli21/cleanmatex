@@ -24,6 +24,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArLedgerPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.ledger');
   const auth = await getAuthContext();

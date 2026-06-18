@@ -16,6 +16,13 @@ interface IntlProviderProps {
   children: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.locale
+ * @param root0.messages
+ * @param root0.children
+ */
 export function IntlProvider({ locale, messages, children }: IntlProviderProps) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">

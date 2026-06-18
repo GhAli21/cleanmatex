@@ -37,6 +37,9 @@ function newChipId(): string {
   return `pref-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ *
+ */
 export interface AddPreferenceInput {
   preference_code: string;
   preference_sys_kind: string;
@@ -47,6 +50,10 @@ export interface AddPreferenceInput {
   extra_price?: number;
 }
 
+/**
+ *
+ * @param packingPrefs
+ */
 export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
   const { state, updateItemPieces, updateItemServicePrefs, adjustItemPackingCharge } = useNewOrderStateWithDispatch();
 

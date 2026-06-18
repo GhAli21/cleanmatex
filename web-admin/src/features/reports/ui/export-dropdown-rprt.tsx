@@ -12,6 +12,15 @@ interface ExportDropdownProps {
   isExporting?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onExportCSV
+ * @param root0.onExportExcel
+ * @param root0.onExportPDF
+ * @param root0.onPrint
+ * @param root0.isExporting
+ */
 export default function ExportDropdown({
   onExportCSV,
   onExportExcel,

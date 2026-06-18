@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/server';
 import { getAvailablePlans } from '@/lib/services/subscriptions.service';
 import { getCurrentSubscription } from '@/lib/services/subscriptions.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     // Get current subscription to mark current plan

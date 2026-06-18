@@ -46,6 +46,11 @@ function getActiveTab(pathname: string): string {
   return 'orders';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export default function ReportsLayout({ children }: { children: ReactNode }) {
   const t = useTranslations('reports');
   const pathname = usePathname();

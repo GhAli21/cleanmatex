@@ -36,5 +36,11 @@ export const updateCardBrandConfigSchema = z.object({
   rec_order: nullableOrder,
 });
 
+/**
+ *
+ */
 export type UpdateCardBrandConfigFormInput = z.input<typeof updateCardBrandConfigSchema>;
+/**
+ *
+ */
 export type UpdateCardBrandConfigFormValues = z.output<typeof updateCardBrandConfigSchema>;

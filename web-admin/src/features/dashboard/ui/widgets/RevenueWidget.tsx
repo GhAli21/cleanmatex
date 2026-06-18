@@ -16,6 +16,9 @@ import { formatMoneyAmount } from '@/lib/money/format-money'
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import { dashboardService } from '@/lib/services/dashboard.service'
 
+/**
+ *
+ */
 export function RevenueWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

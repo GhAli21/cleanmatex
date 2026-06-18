@@ -23,6 +23,14 @@ function formatDateTime(value: string | undefined, locale: string) {
   }).format(new Date(value));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.page
+ * @param root0.limit
+ * @param root0.total
+ */
 export function ArStatementCyclesTable({ rows, page, limit, total }: ArStatementCyclesTableProps) {
   const t = useTranslations('invoices.ar.v2.cycles');
   const locale = useLocale();

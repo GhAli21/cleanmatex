@@ -25,6 +25,15 @@ interface OTPVerificationModalProps {
   description?: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.phone
+ * @param root0.onClose
+ * @param root0.onVerified
+ * @param root0.title
+ * @param root0.description
+ */
 export default function OTPVerificationModal({
   phone: initialPhone = '',
   onClose,

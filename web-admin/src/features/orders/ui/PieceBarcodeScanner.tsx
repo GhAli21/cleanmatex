@@ -12,6 +12,9 @@ import { CmxInput, CmxButton } from '@ui/primitives';
 import { Scan, CheckCircle2, XCircle } from 'lucide-react';
 import { log } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface PieceBarcodeScannerProps {
   orderId: string;
   itemId: string;
@@ -20,6 +23,15 @@ export interface PieceBarcodeScannerProps {
   onScanError?: (error: string) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.itemId
+ * @param root0.tenantId
+ * @param root0.onScanSuccess
+ * @param root0.onScanError
+ */
 export function PieceBarcodeScanner({
   orderId,
   itemId,

@@ -20,6 +20,9 @@ import { useLocale } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
+/**
+ *
+ */
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<PlanComparison[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);

@@ -17,6 +17,9 @@ import { CmxButton } from '@ui/primitives';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface PieceListProps {
   pieces: OrderItemPiece[];
   onPieceUpdate?: (pieceId: string, updates: Partial<OrderItemPiece>) => void;
@@ -42,6 +45,29 @@ export interface PieceListProps {
 
 const DEFAULT_PAGE_SIZE = 20;
 
+/**
+ *
+ * @param root0
+ * @param root0.pieces
+ * @param root0.onPieceUpdate
+ * @param root0.readOnly
+ * @param root0.showSplitCheckbox
+ * @param root0.selectedForSplit
+ * @param root0.onSplitToggle
+ * @param root0.rejectColor
+ * @param root0.emptyMessage
+ * @param root0.pageSize
+ * @param root0.enablePagination
+ * @param root0.bulkSelectMode
+ * @param root0.selectedBulkIds
+ * @param root0.onBulkSelectToggle
+ * @param root0.orderId
+ * @param root0.orderItemId
+ * @param root0.branchId
+ * @param root0.onPreferencesSaved
+ * @param root0.density
+ * @param root0.mode
+ */
 export function PieceList({
   pieces,
   onPieceUpdate,

@@ -6,7 +6,14 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import type { ErpLiteJournalListRow } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLiteJournalsService {
+  /**
+   *
+   * @param limit
+   */
   static async listRecentJournals(limit = 150): Promise<ErpLiteJournalListRow[]> {
     const tenantId = await this.requireTenantId();
     const take = Math.min(Math.max(1, limit), 500);

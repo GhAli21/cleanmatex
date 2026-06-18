@@ -139,6 +139,10 @@ class ErpLitePostingError extends Error {
  * Idempotency, preview vs execute, and failure semantics: `docs/dev/erp-lite-posting-engine-as-built.md`.
  */
 export class ErpLitePostingEngineService {
+  /**
+   *
+   * @param input
+   */
   static async preview(
     input: ErpLitePostingRequest
   ): Promise<ErpLitePostingPreviewResult> {
@@ -173,6 +177,10 @@ export class ErpLitePostingEngineService {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async execute(
     input: ErpLitePostingRequest
   ): Promise<ErpLitePostingExecuteResult> {
@@ -184,6 +192,11 @@ export class ErpLitePostingEngineService {
     });
   }
 
+  /**
+   *
+   * @param tx
+   * @param input
+   */
   static async executeInTransaction(
     tx: PrismaTx,
     input: ErpLitePostingRequest
@@ -204,10 +217,18 @@ export class ErpLitePostingEngineService {
     });
   }
 
+  /**
+   *
+   * @param params
+   */
   static async retry(params: ErpLiteRetryParams): Promise<ErpLitePostingExecuteResult> {
     return this.replayStoredAttempt(params.posting_log_id, ERP_LITE_POSTING_MODES.RETRY);
   }
 
+  /**
+   *
+   * @param params
+   */
   static async repost(params: ErpLiteRepostParams): Promise<ErpLitePostingExecuteResult> {
     return this.replayStoredAttempt(params.posting_log_id, ERP_LITE_POSTING_MODES.REPOST);
   }
@@ -878,6 +899,12 @@ export class ErpLitePostingEngineService {
    * idempotency when the engine is retried after a partial failure.
    *
    * All data is already resolved in `context` — no extra DB reads are needed here.
+   * @param tx
+   * @param context
+   * @param postingLogId
+   * @param journalResult
+   * @param journalResult.journalId
+   * @param journalResult.journalNo
    */
   private static async writePostingSnapshot(
     tx: PrismaTx,

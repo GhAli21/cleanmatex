@@ -19,6 +19,7 @@ import { emitNotificationEvent } from '@lib/notifications/event-emitter';
  * POST /api/v1/orders
  * Create new order
  * Requires: orders:create permission
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {
@@ -175,6 +176,10 @@ export async function POST(request: NextRequest) {
  */
 export const maxDuration = 10; // Vercel timeout limit
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 

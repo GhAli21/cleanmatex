@@ -2,8 +2,9 @@
 
 **Audience:** cleanmatexsaas implementer (you)  
 **Date:** 2026-06-11  
-**Status:** Ready for HQ implementation  
+**Status:** ✅ HQ implementation complete (2026-06-18) — Phases A–G done in cleanmatexsaas  
 **Tenant consumer:** `cleanmatex` (web-admin) — constants in `web-admin/lib/constants/settlement-catalog.ts` and `voucher.ts`
+**Notes:** the Implementation plan is C:\Users\JHNLP\.claude\plans\you-are-a-world-class-synthetic-octopus.md
 
 ---
 

@@ -76,6 +76,13 @@ function VoucherDetailField({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.voucher
+ * @param root0.userRole
+ * @param root0.linkedEffects
+ */
 export function VoucherDetailClient({ voucher, userRole, linkedEffects }: VoucherDetailClientProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');

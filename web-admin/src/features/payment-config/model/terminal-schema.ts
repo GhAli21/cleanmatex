@@ -21,5 +21,11 @@ export const createTerminalSchema = z.object({
 
 export const updateTerminalSchema = createTerminalSchema.partial().omit({ terminal_code: true });
 
+/**
+ *
+ */
 export type CreateTerminalFormValues = z.infer<typeof createTerminalSchema>;
+/**
+ *
+ */
 export type UpdateTerminalFormValues = z.infer<typeof updateTerminalSchema>;

@@ -31,6 +31,11 @@ interface PageProps {
   searchParams?: Promise<PaymentsSearchParams>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function PaymentsPage({ searchParams }: PageProps) {
   const t = await getTranslations('payments');
   const tCommon = await getTranslations('common');

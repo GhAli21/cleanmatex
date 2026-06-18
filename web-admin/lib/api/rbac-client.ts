@@ -17,6 +17,11 @@ const PLATFORM_API_BASE =
  * Preserves HTTP status code for caller-side handling (e.g. 403, 404, 409).
  */
 export class RbacApiError extends Error {
+  /**
+   *
+   * @param status
+   * @param message
+   */
   constructor(
     public readonly status: number,
     message: string
@@ -26,6 +31,9 @@ export class RbacApiError extends Error {
   }
 }
 
+/**
+ *
+ */
 export interface RbacFetchOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown

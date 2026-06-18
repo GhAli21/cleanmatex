@@ -64,6 +64,11 @@ function DashboardContent({
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.children
+ */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()

@@ -40,6 +40,9 @@ const TAX_TYPES = [
   { value: 'NONE', label: 'No Tax', label2: 'بدون ضريبة' },
 ]
 
+/**
+ *
+ */
 export default function FinanceSettingsPage() {
   const t = useTranslations('settings')
   const isRTL = useRTL()

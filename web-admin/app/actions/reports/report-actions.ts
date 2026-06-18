@@ -52,6 +52,20 @@ function parseFilters(params: {
   };
 }
 
+/**
+ *
+ * @param params
+ * @param params.startDate
+ * @param params.endDate
+ * @param params.customerId
+ * @param params.status
+ * @param params.orderTypeId
+ * @param params.branchId
+ * @param params.page
+ * @param params.limit
+ * @param params.sortBy
+ * @param params.sortOrder
+ */
 export async function fetchOrdersReport(params: {
   startDate: string;
   endDate: string;
@@ -78,6 +92,19 @@ export async function fetchOrdersReport(params: {
   }
 }
 
+/**
+ *
+ * @param params
+ * @param params.startDate
+ * @param params.endDate
+ * @param params.customerId
+ * @param params.status
+ * @param params.paymentMethodCode
+ * @param params.page
+ * @param params.limit
+ * @param params.sortBy
+ * @param params.sortOrder
+ */
 export async function fetchPaymentsReport(params: {
   startDate: string;
   endDate: string;
@@ -103,6 +130,18 @@ export async function fetchPaymentsReport(params: {
   }
 }
 
+/**
+ *
+ * @param params
+ * @param params.startDate
+ * @param params.endDate
+ * @param params.customerId
+ * @param params.status
+ * @param params.page
+ * @param params.limit
+ * @param params.sortBy
+ * @param params.sortOrder
+ */
 export async function fetchInvoicesReport(params: {
   startDate: string;
   endDate: string;
@@ -127,6 +166,14 @@ export async function fetchInvoicesReport(params: {
   }
 }
 
+/**
+ *
+ * @param params
+ * @param params.startDate
+ * @param params.endDate
+ * @param params.status
+ * @param params.branchId
+ */
 export async function fetchRevenueBreakdown(params: {
   startDate: string;
   endDate: string;
@@ -147,6 +194,17 @@ export async function fetchRevenueBreakdown(params: {
   }
 }
 
+/**
+ *
+ * @param params
+ * @param params.startDate
+ * @param params.endDate
+ * @param params.customerId
+ * @param params.page
+ * @param params.limit
+ * @param params.sortBy
+ * @param params.sortOrder
+ */
 export async function fetchCustomerReport(params: {
   startDate: string;
   endDate: string;

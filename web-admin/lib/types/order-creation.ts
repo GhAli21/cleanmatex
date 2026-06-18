@@ -6,6 +6,9 @@
 
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 
+/**
+ *
+ */
 export interface OrderLineItem {
   id: string; // Unique identifier for this line item
   productId: string;
@@ -29,6 +32,9 @@ export interface OrderLineItem {
   damageNotes?: string;
 }
 
+/**
+ *
+ */
 export interface OrderCreationState {
   // Customer
   customer: {
@@ -67,6 +73,9 @@ export interface OrderCreationState {
   };
 }
 
+/**
+ *
+ */
 export interface StainCondition {
   code: string;
   label: string;
@@ -106,6 +115,9 @@ export const STAIN_CONDITIONS: StainCondition[] = [
   { code: 'delicate', label: 'Delicate', category: 'special' },
 ];
 
+/**
+ *
+ */
 export interface PaymentOption {
   id: string;
   label: string;

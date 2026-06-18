@@ -11,6 +11,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPaymentsForOrder, refundPayment } from './payment-service';
 
+/**
+ *
+ */
 export interface ProcessCustomerReturnInput {
   orderId: string;
   tenantId: string;
@@ -19,6 +22,9 @@ export interface ProcessCustomerReturnInput {
   return_reason_code?: string;
 }
 
+/**
+ *
+ */
 export interface ProcessCustomerReturnResult {
   success: boolean;
   error?: string;
@@ -27,6 +33,7 @@ export interface ProcessCustomerReturnResult {
 /**
  * Process customer return and handle refunds.
  * Call cmx_ord_returning_transition RPC, then refund each completed payment.
+ * @param input
  */
 export async function processCustomerReturn(
   input: ProcessCustomerReturnInput

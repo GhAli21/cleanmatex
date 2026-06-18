@@ -17,6 +17,12 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ category: string }> }

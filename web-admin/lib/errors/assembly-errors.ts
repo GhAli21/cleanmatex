@@ -7,7 +7,14 @@
 
 import { AppError } from './base-errors';
 
+/**
+ *
+ */
 export class AssemblyTaskNotFoundError extends AppError {
+  /**
+   *
+   * @param taskId
+   */
   constructor(taskId: string) {
     super(
       `Assembly task with ID ${taskId} not found`,
@@ -18,13 +25,28 @@ export class AssemblyTaskNotFoundError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class InvalidScanError extends AppError {
+  /**
+   *
+   * @param message
+   * @param details
+   */
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'INVALID_SCAN', 400, details);
   }
 }
 
+/**
+ *
+ */
 export class ExceptionNotResolvedError extends AppError {
+  /**
+   *
+   * @param exceptionId
+   */
   constructor(exceptionId: string) {
     super(
       `Exception ${exceptionId} must be resolved before proceeding`,
@@ -35,7 +57,15 @@ export class ExceptionNotResolvedError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class AssemblyNotCompleteError extends AppError {
+  /**
+   *
+   * @param orderId
+   * @param details
+   */
   constructor(orderId: string, details?: Record<string, unknown>) {
     super(
       `Assembly not complete for order ${orderId}`,
@@ -46,7 +76,14 @@ export class AssemblyNotCompleteError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class QANotPassedError extends AppError {
+  /**
+   *
+   * @param orderId
+   */
   constructor(orderId: string) {
     super(
       `QA not passed for order ${orderId}`,
@@ -57,7 +94,14 @@ export class QANotPassedError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class LocationNotFoundError extends AppError {
+  /**
+   *
+   * @param locationId
+   */
   constructor(locationId: string) {
     super(
       `Assembly location with ID ${locationId} not found`,
@@ -68,7 +112,16 @@ export class LocationNotFoundError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class LocationCapacityExceededError extends AppError {
+  /**
+   *
+   * @param locationId
+   * @param currentLoad
+   * @param capacity
+   */
   constructor(locationId: string, currentLoad: number, capacity: number) {
     super(
       `Location capacity exceeded: ${currentLoad}/${capacity}`,

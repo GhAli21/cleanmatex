@@ -15,6 +15,9 @@ type OrgAuthUserRoleRow = Database['public']['Tables']['org_auth_user_roles']['R
 // Types
 // ========================
 
+/**
+ *
+ */
 export interface Role {
   role_id: string;
   code: string;
@@ -25,6 +28,9 @@ export interface Role {
   created_at: string;
 }
 
+/**
+ *
+ */
 export interface UserRoleAssignment {
   id: string;
   user_id: string;
@@ -34,6 +40,9 @@ export interface UserRoleAssignment {
   created_at: string;
 }
 
+/**
+ *
+ */
 export interface WorkflowRoleAssignment {
   id: string;
   user_id: string;
@@ -43,6 +52,9 @@ export interface WorkflowRoleAssignment {
   created_at: string;
 }
 
+/**
+ *
+ */
 export interface CreateRoleRequest {
   code: string;
   name: string;
@@ -51,25 +63,37 @@ export interface CreateRoleRequest {
   permission_ids?: string[];
 }
 
+/**
+ *
+ */
 export interface UpdateRoleRequest {
   name?: string;
   name2?: string;
   description?: string;
 }
 
+/**
+ *
+ */
 export interface AssignRoleRequest {
   user_id: string;
   tenant_org_id: string;
   role_id: string;
 }
 
+/**
+ *
+ */
 export interface AssignWorkflowRoleRequest {
   user_id: string;
   tenant_org_id: string;
   workflow_role: string;
 }
 
-/** `sys_auth_roles` is keyed by `code`; `role_id` in API types is that code. */
+/**
+ * `sys_auth_roles` is keyed by `code`; `role_id` in API types is that code.
+ * @param row
+ */
 function mapRoleRow(row: SysAuthRoleRow): Role {
   return {
     role_id: row.code,

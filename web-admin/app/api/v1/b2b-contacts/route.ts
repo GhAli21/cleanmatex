@@ -22,6 +22,10 @@ const CreateContactSchema = z.object({
   isPrimary: z.boolean().optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_contacts:view')(request);
@@ -47,6 +51,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const authCheck = await requirePermission('b2b_contacts:create')(request);

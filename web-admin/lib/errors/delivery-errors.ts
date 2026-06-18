@@ -7,7 +7,14 @@
 
 import { AppError } from './base-errors';
 
+/**
+ *
+ */
 export class RouteNotFoundError extends AppError {
+  /**
+   *
+   * @param routeId
+   */
   constructor(routeId: string) {
     super(
       `Delivery route with ID ${routeId} not found`,
@@ -18,7 +25,14 @@ export class RouteNotFoundError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class InvalidOTPError extends AppError {
+  /**
+   *
+   * @param orderId
+   */
   constructor(orderId: string) {
     super(
       `Invalid OTP for order ${orderId}`,
@@ -29,13 +43,28 @@ export class InvalidOTPError extends AppError {
   }
 }
 
+/**
+ *
+ */
 export class PODCaptureError extends AppError {
+  /**
+   *
+   * @param message
+   * @param details
+   */
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'POD_CAPTURE_ERROR', 400, details);
   }
 }
 
+/**
+ *
+ */
 export class StopNotFoundError extends AppError {
+  /**
+   *
+   * @param stopId
+   */
   constructor(stopId: string) {
     super(
       `Delivery stop with ID ${stopId} not found`,

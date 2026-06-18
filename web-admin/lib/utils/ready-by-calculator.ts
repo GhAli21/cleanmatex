@@ -16,6 +16,9 @@
 
 import { addHours, addDays, setHours, setMinutes, isWeekend, format } from 'date-fns';
 
+/**
+ *
+ */
 export interface BusinessHours {
   /**
    * Opening hour (24-hour format, e.g., 9 for 9 AM)
@@ -34,8 +37,14 @@ export interface BusinessHours {
   workingDays: number[];
 }
 
+/**
+ *
+ */
 export type Priority = 'normal' | 'urgent' | 'express';
 
+/**
+ *
+ */
 export interface ReadyByCalculationParams {
   /**
    * When the order was received
@@ -63,6 +72,9 @@ export interface ReadyByCalculationParams {
   holidays?: Date[];
 }
 
+/**
+ *
+ */
 export interface ReadyByResult {
   /**
    * Calculated Ready-By date

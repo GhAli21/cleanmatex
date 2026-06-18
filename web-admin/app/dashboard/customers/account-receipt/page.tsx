@@ -7,6 +7,9 @@ import { CustomerAccountReceiptClient } from '@/src/features/customers/ui/custom
 
 export const metadata = { title: 'Customer Account Receipt — CleanMateX' };
 
+/**
+ *
+ */
 export default function CustomerAccountReceiptPage() {
   return (
     <div className="container mx-auto py-6">

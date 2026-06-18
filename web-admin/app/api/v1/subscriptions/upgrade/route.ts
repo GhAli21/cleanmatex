@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/server';
 import { upgradeSubscription } from '@/lib/services/subscriptions.service';
 import type { SubscriptionUpgradeRequest } from '@/lib/types/tenant';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // Get tenant ID from session

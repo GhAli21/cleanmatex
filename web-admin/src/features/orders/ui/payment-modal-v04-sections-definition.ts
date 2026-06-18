@@ -64,6 +64,9 @@ export interface PaymentModalSectionDefinition {
   collapsible: boolean;
 }
 
+/**
+ *
+ */
 export type PaymentModalSectionExpandedState = Record<PaymentModalSectionId, boolean>;
 
 /**

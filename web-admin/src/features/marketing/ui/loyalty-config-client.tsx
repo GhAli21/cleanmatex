@@ -55,6 +55,9 @@ function toNum(v: { toNumber: () => number } | number | null | undefined): numbe
   return Number(v);
 }
 
+/**
+ *
+ */
 export function LoyaltyConfigClient() {
   const t       = useTranslations('marketing.loyalty');
   const tCommon = useTranslations('common');

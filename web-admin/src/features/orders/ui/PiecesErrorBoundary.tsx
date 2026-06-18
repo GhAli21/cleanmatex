@@ -19,23 +19,42 @@ interface PiecesErrorBoundaryState {
   error: Error | null;
 }
 
+/**
+ *
+ */
 export class PiecesErrorBoundary extends React.Component<
   PiecesErrorBoundaryProps,
   PiecesErrorBoundaryState
 > {
+  /**
+   *
+   * @param props
+   */
   constructor(props: PiecesErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
+  /**
+   *
+   * @param error
+   */
   static getDerivedStateFromError(error: Error): PiecesErrorBoundaryState {
     return { hasError: true, error };
   }
 
+  /**
+   *
+   * @param error
+   * @param errorInfo
+   */
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[PiecesErrorBoundary] Error caught:', error, errorInfo);
   }
 
+  /**
+   *
+   */
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {

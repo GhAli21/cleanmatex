@@ -4,6 +4,9 @@
  * DB functions remain in order-discounts.ts (server-only).
  */
 
+/**
+ *
+ */
 export interface OrderDiscountLine {
   id: string;
   tenant_org_id: string;
@@ -23,7 +26,11 @@ export interface OrderDiscountLine {
   created_by: string | null;
 }
 
-/** EN/AR label for a source_type — used in print components */
+/**
+ * EN/AR label for a source_type — used in print components
+ * @param sourceType
+ * @param locale
+ */
 export function sourceLabel(sourceType: string, locale: 'en' | 'ar'): string {
   const labels: Record<string, { en: string; ar: string }> = {
     MANUAL:        { en: 'Manual',     ar: 'يدوي' },

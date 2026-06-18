@@ -12,6 +12,11 @@ interface OrderFinancialSummaryCardsProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderFinancialSummaryCards({ viewModel }: OrderFinancialSummaryCardsProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

@@ -10,6 +10,11 @@ interface PostingAuditPageProps {
   searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ErpLitePostingAuditPage({ searchParams }: PostingAuditPageProps) {
   const tCommon = await getTranslations('erpLite.common')
   const params = await searchParams

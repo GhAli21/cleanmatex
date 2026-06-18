@@ -3,6 +3,9 @@
 import { useAuth } from '@/lib/auth/auth-context'
 import DashboardContent from '@features/dashboard/ui/DashboardContent'
 
+/**
+ *
+ */
 export default function DashboardPage() {
   const { isLoading } = useAuth()
 

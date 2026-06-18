@@ -17,6 +17,9 @@ interface ServiceCategory {
   is_active: boolean;
 }
 
+/**
+ *
+ */
 export default function CategoriesPage() {
   const t = useTranslations("catalog");
   const tCommon = useTranslations("common");

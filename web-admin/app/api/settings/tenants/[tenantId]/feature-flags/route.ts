@@ -9,6 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentTenant } from '@/lib/services/tenants.service';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ tenantId: string }> },

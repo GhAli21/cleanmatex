@@ -47,6 +47,12 @@ const statusTransitionSchema = z.object({
   scheduled_at:    z.string().datetime().optional(),
 })
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

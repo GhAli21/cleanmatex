@@ -9,6 +9,9 @@ import { sanitizeHtmlSync, containsHtml } from '../utils/html-sanitizer';
 
 /**
  * Display a message using Sonner toast notifications
+ * @param type
+ * @param message
+ * @param options
  */
 export function showToastMessage(
   type: MessageType,
@@ -91,6 +94,12 @@ export function showToastMessage(
 
 /**
  * Show a promise-based toast
+ * @param promise
+ * @param messages
+ * @param messages.loading
+ * @param messages.success
+ * @param messages.error
+ * @param options
  */
 export function showToastPromise<T>(
   promise: Promise<T>,
@@ -122,6 +131,7 @@ export function showToastPromise<T>(
 
 /**
  * Get default duration for message type
+ * @param type
  */
 function getDefaultDuration(type: MessageType): number {
   const durations: Record<MessageType, number> = {

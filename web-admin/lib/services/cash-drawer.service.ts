@@ -8,18 +8,27 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
+/**
+ *
+ */
 export interface SessionCloseParams {
   physicalCount: number;
   closedBy:      string;
   notes?:        string;
 }
 
+/**
+ *
+ */
 export interface SessionCloseResult {
   session:    Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.findFirstOrThrow>>;
   variance:   number;
   isBalanced: boolean;
 }
 
+/**
+ *
+ */
 export interface CashDrawerWithCurrentSession {
   id: string;
   tenant_org_id: string;
@@ -43,6 +52,11 @@ export interface CashDrawerWithCurrentSession {
   } | null;
 }
 
+/**
+ *
+ * @param tenantId
+ * @param branchId
+ */
 export async function getDrawers(tenantId: string, branchId?: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_cash_drawers_mst.findMany({
@@ -184,6 +198,15 @@ export async function resolveCashDrawerSessionId(
   return sessions[0].id;
 }
 
+/**
+ *
+ * @param tenantId
+ * @param drawerId
+ * @param params
+ * @param params.openingBalance
+ * @param params.openedBy
+ * @param params.notes
+ */
 export async function openSession(
   tenantId: string,
   drawerId:  string,
@@ -228,6 +251,12 @@ export async function openSession(
   );
 }
 
+/**
+ *
+ * @param tenantId
+ * @param sessionId
+ * @param params
+ */
 export async function closeSession(
   tenantId:  string,
   sessionId: string,
@@ -271,6 +300,16 @@ export async function closeSession(
   return { session: updated, variance, isBalanced };
 }
 
+/**
+ *
+ * @param tenantId
+ * @param drawerId
+ * @param params
+ * @param params.movementType
+ * @param params.amount
+ * @param params.reason
+ * @param params.performedBy
+ */
 export async function recordMovement(
   tenantId:  string,
   drawerId:  string,
@@ -311,6 +350,11 @@ export async function recordMovement(
   );
 }
 
+/**
+ *
+ * @param tenantId
+ * @param sessionId
+ */
 export async function getSessionSummary(tenantId: string, sessionId: string) {
   const [session, movements, payments] = await Promise.all([
     withTenantContext(tenantId, () =>
@@ -341,6 +385,8 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
 
 /**
  * Verify a drawer has an open session before allowing cash payment routing.
+ * @param tenantId
+ * @param drawerId
  */
 export async function validateDrawerForCashPayment(tenantId: string, drawerId: string): Promise<string> {
   const session = await withTenantContext(tenantId, () =>

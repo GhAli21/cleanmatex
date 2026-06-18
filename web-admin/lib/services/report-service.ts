@@ -52,6 +52,12 @@ async function getTenantCurrency(tenantOrgId: string, branchId?: string, userId?
 // Orders & Sales Report
 // ============================================================================
 
+/**
+ *
+ * @param params
+ * @param params.tenantOrgId
+ * @param params.filters
+ */
 export async function getOrdersReport(params: {
   tenantOrgId: string;
   filters: ReportFilters;
@@ -225,6 +231,12 @@ export async function getOrdersReport(params: {
 // Payments Report
 // ============================================================================
 
+/**
+ *
+ * @param params
+ * @param params.tenantOrgId
+ * @param params.filters
+ */
 export async function getPaymentsReport(params: {
   tenantOrgId: string;
   filters: ReportFilters;
@@ -385,6 +397,12 @@ export async function getPaymentsReport(params: {
 // Invoices Report
 // ============================================================================
 
+/**
+ *
+ * @param params
+ * @param params.tenantOrgId
+ * @param params.filters
+ */
 export async function getInvoicesReport(params: {
   tenantOrgId: string;
   filters: ReportFilters;
@@ -571,6 +589,12 @@ export async function getInvoicesReport(params: {
 // Revenue Breakdown
 // ============================================================================
 
+/**
+ *
+ * @param params
+ * @param params.tenantOrgId
+ * @param params.filters
+ */
 export async function getRevenueBreakdown(params: {
   tenantOrgId: string;
   filters: ReportFilters;
@@ -668,6 +692,12 @@ export async function getRevenueBreakdown(params: {
 // Customer Report
 // ============================================================================
 
+/**
+ *
+ * @param params
+ * @param params.tenantOrgId
+ * @param params.filters
+ */
 export async function getCustomerReport(params: {
   tenantOrgId: string;
   filters: ReportFilters;

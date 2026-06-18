@@ -20,6 +20,14 @@ interface CustomerEditModalProps {
   onSuccess: (updatedCustomer: Customer) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.customerId
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function CustomerEditModal({
   open,
   customerId,

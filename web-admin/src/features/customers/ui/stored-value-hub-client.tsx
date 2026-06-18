@@ -18,6 +18,9 @@ import { cmxMessage } from '@ui/feedback';
 import { getAllStoredValueSummaries } from '@/app/actions/customers/stored-value-actions';
 import type { StoredValueSummaryRow } from '@/app/actions/customers/stored-value-actions';
 
+/**
+ *
+ */
 export function StoredValueHubClient() {
   const t       = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');

@@ -6,6 +6,9 @@ import { ErpLiteJournalsScreen } from '@features/erp-lite/ui/erp-lite-journals-s
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteJournalsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED)

@@ -14,4 +14,7 @@ export const preferenceKindAdminPutSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
+/**
+ *
+ */
 export type PreferenceKindAdminPutBody = z.infer<typeof preferenceKindAdminPutSchema>;

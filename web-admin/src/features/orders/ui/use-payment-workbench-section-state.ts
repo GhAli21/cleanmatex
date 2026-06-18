@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   buildInitialWorkbenchSectionExpandedState,
   getPaymentModalSectionDefinition,
@@ -17,13 +17,14 @@ export function usePaymentWorkbenchSectionState(open: boolean) {
   const [expandedBySection, setExpandedBySection] = useState<PaymentModalSectionExpandedState>(
     () => buildInitialWorkbenchSectionExpandedState()
   );
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
-    if (!open) {
-      return;
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setExpandedBySection(buildInitialWorkbenchSectionExpandedState());
     }
-    setExpandedBySection(buildInitialWorkbenchSectionExpandedState());
-  }, [open]);
+  }
 
   const isSectionExpanded = useCallback(
     (sectionId: PaymentModalSectionId) => expandedBySection[sectionId] ?? true,

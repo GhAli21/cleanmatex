@@ -6,6 +6,9 @@
 import { NextResponse } from 'next/server';
 import { getBranchesForCurrentTenant } from '@/lib/services/inventory-service';
 
+/**
+ *
+ */
 export async function GET() {
   try {
     const branches = await getBranchesForCurrentTenant();

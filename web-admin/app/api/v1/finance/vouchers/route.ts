@@ -8,6 +8,10 @@ import {
 } from '@/lib/validators/voucher-validators';
 import type { VoucherListFilters, CreateBizVoucherInput } from '@/lib/types/voucher';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('fin_vouchers:view')(request);
   if (auth instanceof NextResponse) return auth;
@@ -37,6 +41,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requirePermission('fin_vouchers:create')(request);
   if (auth instanceof NextResponse) return auth;

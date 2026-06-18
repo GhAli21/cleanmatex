@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * CleanMateX Logging Utility 
  * 
@@ -149,7 +149,7 @@ class Logger {
       // Server-side Sentry initialization
       try {
         // Use require with try-catch - webpack will ignore this if package is not installed
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+         
         const Sentry = require('@sentry/nextjs');
         this.sentryClient = Sentry;
       } catch (e) {

@@ -35,6 +35,14 @@ function FieldRow({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ * @param root0.orderId
+ * @param root0.customerId
+ * @param root0.branchId
+ */
 export function OrderReceivableCollectionPanel({
   viewModel,
   orderId,

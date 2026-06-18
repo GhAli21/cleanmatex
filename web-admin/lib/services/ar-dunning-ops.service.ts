@@ -81,6 +81,11 @@ async function nextRunNoTx(tx: Prisma.TransactionClient, tenantId: string, custo
   return rows[0]?.next_no ?? 1;
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function listArDunningRuns(
   query: ArDunningQuery,
   actor: ActorContext = {}
@@ -155,6 +160,11 @@ export async function listArDunningRuns(
   });
 }
 
+/**
+ *
+ * @param input
+ * @param actor
+ */
 export async function runArDunningAction(
   input: RunArDunningInput,
   actor: ActorContext = {}

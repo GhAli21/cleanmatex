@@ -8,6 +8,11 @@ type ExtraReceiptSummaryTranslator = (
 
 /**
  * Cashier-facing one-line summary for submit confirm when excess routing is chosen.
+ * @param mode
+ * @param amount
+ * @param currencyCode
+ * @param formatAmount
+ * @param t
  */
 export function getExtraReceiptResolutionSummary(
   mode: ExtraReceiptHandlingMode,

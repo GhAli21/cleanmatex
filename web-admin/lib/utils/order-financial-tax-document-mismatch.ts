@@ -37,6 +37,7 @@ export interface EvaluateTaxDocumentTotalMismatchInput {
  * differs from the order sale total by more than `tolerance`. Returns `false`
  * in every other case (no document linked, fiscal total not yet available,
  * or amounts match within tolerance).
+ * @param input
  */
 export function evaluateTaxDocumentTotalMismatch(
   input: EvaluateTaxDocumentTotalMismatchInput,

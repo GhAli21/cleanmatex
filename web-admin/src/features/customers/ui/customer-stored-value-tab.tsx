@@ -57,6 +57,11 @@ interface Props {
 
 type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
 
+/**
+ *
+ * @param root0
+ * @param root0.customerId
+ */
 export function CustomerStoredValueTab({ customerId }: Props) {
   const t       = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');

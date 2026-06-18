@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * Rate Limiting Middleware
  * 
@@ -15,9 +15,9 @@ let Redis: any;
 
 try {
   // Use require for optional dependencies to avoid breaking if packages aren't installed
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const ratelimitModule = require('@upstash/ratelimit');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const redisModule = require('@upstash/redis');
   Ratelimit = ratelimitModule.Ratelimit;
   Redis = redisModule.Redis;

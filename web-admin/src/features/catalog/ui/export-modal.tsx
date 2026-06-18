@@ -8,6 +8,11 @@ interface ExportModalProps {
   onClose: () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onClose
+ */
 export default function ExportModal({ onClose }: ExportModalProps) {
   const t = useTranslations('catalog')
   const [template, setTemplate] = useState<'basic' | 'advanced'>('advanced')

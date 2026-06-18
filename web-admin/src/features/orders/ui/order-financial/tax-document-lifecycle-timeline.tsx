@@ -41,6 +41,9 @@ function Field({ label, value, isRTL }: { label: string; value: string | number 
  * Displays the Phase 7 tax-document lifecycle state: status badge, document no,
  * sequence / fiscal-year, issued-at, and cancellation info when relevant.
  * Extracted from order-tax-document-panel so it can be independently storied.
+ * @param root0
+ * @param root0.taxDocument
+ * @param root0.currencyCode
  */
 export function TaxDocumentLifecycleTimeline({
   taxDocument,

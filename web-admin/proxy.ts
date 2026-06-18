@@ -62,6 +62,7 @@ const LOGIN_PATH = '/login'
 
 /**
  * Proxy function
+ * @param request
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl

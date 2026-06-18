@@ -12,6 +12,9 @@ import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { CmxKpiStatCard } from '@ui/data-display'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteArPage() {
   const t = await getTranslations('erpLite.reports.arAging')
   const tCommon = await getTranslations('erpLite.common')

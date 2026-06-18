@@ -54,6 +54,12 @@ interface OrderActionsProps {
   screen?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.screen
+ */
 export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
   const router = useRouter();
   const t = useTranslations('orders.actions');

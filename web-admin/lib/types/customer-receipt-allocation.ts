@@ -16,6 +16,9 @@ export const CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES = {
   RETURN_CHANGE: 'RETURN_CHANGE',
 } as const;
 
+/**
+ *
+ */
 export type CustomerReceiptAllocationTargetType =
   (typeof CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES)[keyof typeof CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES];
 
@@ -28,6 +31,9 @@ export const CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES = {
   CUSTOMER_CREDIT_ISSUE: LINE_ROLE.CUSTOMER_CREDIT_ISSUE,
 } as const;
 
+/**
+ *
+ */
 export type CustomerReceiptAllocationLineRole =
   (typeof CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES)[keyof typeof CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES];
 
@@ -39,6 +45,9 @@ export const CUSTOMER_RECEIPT_PREVIEW_STATUSES = {
   CANCELLED: 'CANCELLED',
 } as const;
 
+/**
+ *
+ */
 export type CustomerReceiptPreviewStatus =
   (typeof CUSTOMER_RECEIPT_PREVIEW_STATUSES)[keyof typeof CUSTOMER_RECEIPT_PREVIEW_STATUSES];
 
@@ -54,9 +63,15 @@ export const RECEIPT_ALLOCATION_WARNING_CODES = {
   BLOCKED: 'RECEIPT_ALLOCATION_BLOCKED',
 } as const;
 
+/**
+ *
+ */
 export type ReceiptAllocationWarningCode =
   (typeof RECEIPT_ALLOCATION_WARNING_CODES)[keyof typeof RECEIPT_ALLOCATION_WARNING_CODES];
 
+/**
+ *
+ */
 export interface ReceiptAllocationPolicySnapshot {
   policyId: string;
   policyCode: string;
@@ -67,6 +82,9 @@ export interface ReceiptAllocationPolicySnapshot {
   requireSameCurrency: boolean;
 }
 
+/**
+ *
+ */
 export interface OpenBalanceTarget {
   targetType: CustomerReceiptAllocationTargetType;
   targetId: string;
@@ -80,6 +98,9 @@ export interface OpenBalanceTarget {
   branchId: string | null;
 }
 
+/**
+ *
+ */
 export interface ReceiptAllocationLine {
   lineRole: CustomerReceiptAllocationLineRole;
   targetType: CustomerReceiptAllocationTargetType;
@@ -91,6 +112,9 @@ export interface ReceiptAllocationLine {
   isPartial?: boolean;
 }
 
+/**
+ *
+ */
 export interface ReceiptAllocationPreviewResult {
   previewId: string;
   policy: ReceiptAllocationPolicySnapshot;
@@ -109,7 +133,10 @@ export const CUSTOMER_RECEIPT_SOURCE_TYPES = {
   CUSTOMER_RECEIPT: VOUCHER_SOURCE_TYPES.CUSTOMER_RECEIPT,
 } as const;
 
-/** Maps feature-pack / API target type to BVM voucher target_type column value. */
+/**
+ * Maps feature-pack / API target type to BVM voucher target_type column value.
+ * @param targetType
+ */
 export function toVoucherTargetType(
   targetType: CustomerReceiptAllocationTargetType
 ): string | null {

@@ -11,6 +11,11 @@ interface ErpLiteJournalsScreenProps {
   rows: ErpLiteJournalListRow[]
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ErpLiteJournalsScreen({ rows }: ErpLiteJournalsScreenProps) {
   const t = useTranslations('erpLite.journals')
 

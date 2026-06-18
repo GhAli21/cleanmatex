@@ -2,6 +2,9 @@
 
 import type { LucideIcon } from 'lucide-react';
 
+/**
+ *
+ */
 export interface KPICardData {
   label: string;
   value: string | number;
@@ -15,6 +18,11 @@ interface KPICardsProps {
   cards: KPICardData[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.cards
+ */
 export default function KPICards({ cards }: KPICardsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

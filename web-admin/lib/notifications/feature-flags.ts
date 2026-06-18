@@ -25,6 +25,8 @@ export const CHANNEL_FLAG_MAP: Record<string, string | undefined> = {
  * already-resolved featureFlags record (from the HQ FF batch API).
  *
  * Returns true when no flag key is defined for the channel (e.g. IN_APP).
+ * @param channel
+ * @param featureFlags
  */
 export function isChannelFlagEnabled(
   channel: string,

@@ -459,6 +459,7 @@ function OrderValueBreakdownPanel({
  * @param root0.isRetailOnlyOrder Marks retail-only orders for payment method rules.
  * @param root0.loading Disables submit while the parent order flow is busy.
  * @param root0.initialPaymentNotes Existing payment notes restored when reopening.
+ * @param root0.checkoutAmount
  * @returns Payment modal JSX for the active order.
  */
 export function PaymentModalV4({

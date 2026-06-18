@@ -16,6 +16,9 @@ import { ORDER_FINANCIAL_SNAPSHOT_STATUS } from '@/lib/constants/order-financial
  * instead of stitching together partial views independently.
  */
 
+/**
+ *
+ */
 export interface OrderFinancialSnapshot {
   orderId: string;
   orderNo: string | null;
@@ -86,6 +89,9 @@ export interface OrderFinancialSnapshot {
   roundingAmount: number;
 }
 
+/**
+ *
+ */
 export interface OrderChargeRow {
   id: string;
   charge_type: string;
@@ -95,6 +101,9 @@ export interface OrderChargeRow {
   currency_code: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderTaxRow {
   id: string;
   tax_type: string;
@@ -105,6 +114,9 @@ export interface OrderTaxRow {
   currency_code: string;
 }
 
+/**
+ *
+ */
 export interface OrderPaymentRow {
   id: string;
   payment_method_code: string | null;
@@ -119,6 +131,9 @@ export interface OrderPaymentRow {
   fin_voucher_id: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderCreditApplicationRow {
   id: string;
   credit_type: string;
@@ -132,6 +147,9 @@ export interface OrderCreditApplicationRow {
   fin_voucher_id: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderRefundRow {
   id: string;
   refund_no: string | null;
@@ -169,6 +187,9 @@ export interface TaxDocumentSummaryRow {
   created_at: string;
 }
 
+/**
+ *
+ */
 export interface OrderAdjustmentRow {
   id: string;
   adjustment_type: string;
@@ -182,6 +203,9 @@ export interface OrderAdjustmentRow {
   metadata: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface OrderDiscountRow {
   id: string;
   source_type: string;
@@ -191,6 +215,9 @@ export interface OrderDiscountRow {
   discount_amount: number;
 }
 
+/**
+ *
+ */
 export interface OrderFinancialTimelineRow {
   id: string;
   eventType: string;
@@ -199,6 +226,9 @@ export interface OrderFinancialTimelineRow {
   happenedAt: string;
 }
 
+/**
+ *
+ */
 export interface OrderFinancialSummary {
   snapshot: OrderFinancialSnapshot;
   taxDocuments: TaxDocumentSummaryRow[];

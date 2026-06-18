@@ -20,6 +20,9 @@ import type { PromoCode } from '@/lib/types/payment';
 import { PromoFormDialog } from './promo-form-dialog';
 import { PromoUsageTable } from './promo-usage-table';
 
+/**
+ *
+ */
 export function PromoListScreen() {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');

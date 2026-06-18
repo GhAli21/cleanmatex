@@ -30,6 +30,9 @@ import { ProcessingFiltersBar } from '@features/workflow/ui/processing-filters-b
 import { ProcessingTable } from '@features/workflow/ui/processing-table';
 import { ProcessingModal } from '@features/workflow/ui/processing-modal';
 
+/**
+ *
+ */
 export default function ProcessingPage() {
   const t = useTranslations('processing');
   const tCommon = useTranslations('common');

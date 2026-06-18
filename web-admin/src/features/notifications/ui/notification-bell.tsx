@@ -8,6 +8,9 @@ import { CmxButton } from '@ui/primitives/cmx-button'
 import { useNotificationBell } from '../hooks/use-notification-bell'
 import { NotificationItem } from './notification-item'
 
+/**
+ *
+ */
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)

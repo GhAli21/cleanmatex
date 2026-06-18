@@ -7,9 +7,21 @@
 // ENUMS & CONSTANTS
 // ==================================================================
 
+/**
+ *
+ */
 export type PriceListType = 'standard' | 'express' | 'vip' | 'seasonal' | 'b2b' | 'promotional';
+/**
+ *
+ */
 export type ProductUnit = 'piece' | 'kg' | 'item';
+/**
+ *
+ */
 export type CSVTemplateType = 'basic' | 'advanced';
+/**
+ *
+ */
 export type PriceType = 'fixed' | 'per_piece' | 'per_kg';
 
 // ==================================================================

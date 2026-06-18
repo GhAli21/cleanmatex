@@ -113,6 +113,11 @@ function computeNextRunAt(input: CreateArStatementCycleInput): Date | null {
   return null;
 }
 
+/**
+ *
+ * @param query
+ * @param actor
+ */
 export async function listArStatementCycles(
   query: ArStatementCyclesQuery,
   actor: ActorContext = {}
@@ -185,6 +190,11 @@ export async function listArStatementCycles(
   });
 }
 
+/**
+ *
+ * @param input
+ * @param actor
+ */
 export async function createArStatementCycle(
   input: CreateArStatementCycleInput,
   actor: ActorContext = {}
@@ -303,6 +313,12 @@ export async function createArStatementCycle(
   );
 }
 
+/**
+ *
+ * @param cycleId
+ * @param input
+ * @param actor
+ */
 export async function previewArStatementCycle(
   cycleId: string,
   input: PreviewArStatementCycleInput,

@@ -14,6 +14,14 @@ interface CustomerReportTableProps {
   basePath: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.customers
+ * @param root0.pagination
+ * @param root0.currencyCode
+ * @param root0.basePath
+ */
 export default function CustomerReportTable({
   customers,
   pagination,

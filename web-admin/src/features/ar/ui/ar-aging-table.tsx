@@ -23,6 +23,14 @@ function formatCurrency(amount: number, currencyCode: string, locale: string) {
   }).format(amount);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.page
+ * @param root0.limit
+ * @param root0.total
+ */
 export function ArAgingTable({ rows, page, limit, total }: ArAgingTableProps) {
   const t = useTranslations('invoices.ar.aging');
   const tCommon = useTranslations('common');

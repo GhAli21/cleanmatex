@@ -16,12 +16,18 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 // Public types
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface ActiveProvider {
   providerCode: string
   /** Non-secret config stored in org_ntf_channel_provider_cf.config */
   config: Record<string, unknown>
 }
 
+/**
+ *
+ */
 export interface ChannelConfig {
   channelCode: string
   isEnabled: boolean
@@ -34,6 +40,9 @@ export interface ChannelConfig {
   activeProvider: ActiveProvider | null
 }
 
+/**
+ *
+ */
 export interface UserPref {
   channelCode: string
   /** Null = preference applies to all events on this channel. */
@@ -68,6 +77,7 @@ class NotificationSettingsService {
   /**
    * Returns all channel configs for a tenant, merged with the active provider.
    * Results are cached 30 s per tenant.
+   * @param tenantOrgId
    */
   async getAllChannelConfigs(tenantOrgId: string): Promise<ChannelConfig[]> {
     const key = `ch:${tenantOrgId}`
@@ -114,19 +124,31 @@ class NotificationSettingsService {
     return configs
   }
 
-  /** Returns config for a single channel, or null if no settings row exists. */
+  /**
+   * Returns config for a single channel, or null if no settings row exists.
+   * @param tenantOrgId
+   * @param channelCode
+   */
   async getChannelConfig(tenantOrgId: string, channelCode: string): Promise<ChannelConfig | null> {
     const all = await this.getAllChannelConfigs(tenantOrgId)
     return all.find(c => c.channelCode === channelCode) ?? null
   }
 
-  /** Quick boolean: is this channel enabled for the tenant? */
+  /**
+   * Quick boolean: is this channel enabled for the tenant?
+   * @param tenantOrgId
+   * @param channelCode
+   */
   async isChannelEnabled(tenantOrgId: string, channelCode: string): Promise<boolean> {
     const cfg = await this.getChannelConfig(tenantOrgId, channelCode)
     return cfg?.isEnabled ?? false
   }
 
-  /** Returns the currently active provider for a channel, or null if none configured. */
+  /**
+   * Returns the currently active provider for a channel, or null if none configured.
+   * @param tenantOrgId
+   * @param channelCode
+   */
   async getActiveProvider(tenantOrgId: string, channelCode: string): Promise<ActiveProvider | null> {
     const cfg = await this.getChannelConfig(tenantOrgId, channelCode)
     return cfg?.activeProvider ?? null
@@ -139,6 +161,9 @@ class NotificationSettingsService {
   /**
    * Returns all preferences for a user, optionally filtered to one channel.
    * Results are cached 30 s per (tenant, user).
+   * @param tenantOrgId
+   * @param userId
+   * @param channelCode
    */
   async getUserPrefs(tenantOrgId: string, userId: string, channelCode?: string): Promise<UserPref[]> {
     const key = `pref:${tenantOrgId}:${userId}`
@@ -169,6 +194,9 @@ class NotificationSettingsService {
   /**
    * Returns true if the user has given marketing consent for a channel.
    * Returns true unconditionally for transactional events (caller must check is_transactional first).
+   * @param tenantOrgId
+   * @param userId
+   * @param channelCode
    */
   async hasMarketingConsent(tenantOrgId: string, userId: string, channelCode: string): Promise<boolean> {
     const prefs = await this.getUserPrefs(tenantOrgId, userId, channelCode)
@@ -181,17 +209,28 @@ class NotificationSettingsService {
   // Cache invalidation
   // -------------------------------------------------------------------------
 
-  /** Call after any write to org_ntf_settings_cf or org_ntf_channel_provider_cf. */
+  /**
+   * Call after any write to org_ntf_settings_cf or org_ntf_channel_provider_cf.
+   * @param tenantOrgId
+   */
   invalidateChannel(tenantOrgId: string): void {
     this.channelCache.delete(`ch:${tenantOrgId}`)
   }
 
-  /** Call after any write to org_ntf_user_prefs_dtl. */
+  /**
+   * Call after any write to org_ntf_user_prefs_dtl.
+   * @param tenantOrgId
+   * @param userId
+   */
   invalidateUserPrefs(tenantOrgId: string, userId: string): void {
     this.prefsCache.delete(`pref:${tenantOrgId}:${userId}`)
   }
 
-  /** Convenience: invalidate everything for a tenant (and optionally one user). */
+  /**
+   * Convenience: invalidate everything for a tenant (and optionally one user).
+   * @param tenantOrgId
+   * @param userId
+   */
   invalidateAll(tenantOrgId: string, userId?: string): void {
     this.invalidateChannel(tenantOrgId)
     if (userId) this.invalidateUserPrefs(tenantOrgId, userId)

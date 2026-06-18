@@ -8,6 +8,9 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import Link from 'next/link';
 
+/**
+ *
+ */
 export default async function VoucherReportsPage() {
   const t = await getTranslations('finance.vouchers');
   const tCommon = await getTranslations('common');

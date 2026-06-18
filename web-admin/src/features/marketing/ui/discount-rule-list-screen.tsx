@@ -18,6 +18,9 @@ import { useDiscountRules } from '../hooks/use-discount-rules';
 import type { DiscountRule } from '@/lib/types/payment';
 import { DiscountRuleFormDialog } from './discount-rule-form-dialog';
 
+/**
+ *
+ */
 export function DiscountRuleListScreen() {
   const t = useTranslations('marketing.discountRules');
   const tCommon = useTranslations('common');

@@ -12,6 +12,10 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
+/**
+ *
+ * @param tenantId
+ */
 export async function getLoyaltyConfig(tenantId: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_loyalty_programs_cf.findFirst({
@@ -21,6 +25,11 @@ export async function getLoyaltyConfig(tenantId: string) {
   );
 }
 
+/**
+ *
+ * @param tenantId
+ * @param customerId
+ */
 export async function getLoyaltyAccount(tenantId: string, customerId: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_loyalty_accounts_mst.findFirst({
@@ -29,6 +38,11 @@ export async function getLoyaltyAccount(tenantId: string, customerId: string) {
   );
 }
 
+/**
+ *
+ * @param tenantId
+ * @param pointsBalance
+ */
 export async function getCustomerTier(
   tenantId: string,
   pointsBalance: number
@@ -45,7 +59,7 @@ export async function getCustomerTier(
   );
 }
 
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * Redeem loyalty points within a transaction (SELECT FOR UPDATE).
  *

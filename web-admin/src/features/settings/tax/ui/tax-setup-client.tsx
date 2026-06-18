@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CmxButton } from '@ui/primitives';
@@ -57,6 +57,9 @@ type ExemptionFormValues = z.infer<typeof exemptionSchema>;
 // Serialized types (date fields come as ISO strings from server component)
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export interface SerializedTaxProfile {
   id: string;
   tenant_org_id: string;
@@ -73,6 +76,9 @@ export interface SerializedTaxProfile {
   created_at: string;
 }
 
+/**
+ *
+ */
 export interface SerializedTaxExemption {
   id: string;
   tenant_org_id: string;
@@ -111,6 +117,12 @@ const EXEMPTION_TYPES = ['CUSTOMER_EXEMPT', 'PRODUCT_EXEMPT', 'ZERO_RATED', 'RED
 // Main Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param root0
+ * @param root0.initialProfiles
+ * @param root0.initialExemptions
+ */
 export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupClientProps) {
   const t = useTranslations('taxSetup');
   const tCommon = useTranslations('common');
@@ -145,6 +157,10 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
       is_default: false,
     },
   });
+
+  const profileTaxType = useWatch({ control: profileForm.control, name: 'tax_type' });
+  const profileIsCompound = useWatch({ control: profileForm.control, name: 'is_compound' });
+  const profileIsDefault = useWatch({ control: profileForm.control, name: 'is_default' });
 
   const openCreateProfile = () => {
     profileForm.reset({
@@ -274,6 +290,8 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
       valid_to: '',
     },
   });
+
+  const exemptionType = useWatch({ control: exemptionForm.control, name: 'exemption_type' });
 
   const openCreateExemption = () => {
     exemptionForm.reset({
@@ -616,7 +634,7 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
               <div>
                 <label className="text-sm font-medium">{t('taxType')}</label>
                 <CmxSelectDropdown
-                  value={profileForm.watch('tax_type')}
+                  value={profileTaxType}
                   onValueChange={(v) => profileForm.setValue('tax_type', v as 'VAT' | 'GST' | 'CUSTOM')}
                 >
                   <CmxSelectDropdownTrigger>
@@ -668,7 +686,7 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
             <div className="flex items-center justify-between rounded-md border px-3 py-2">
               <span className="text-sm">{t('isCompound')}</span>
               <CmxSwitch
-                checked={profileForm.watch('is_compound')}
+                checked={profileIsCompound}
                 onCheckedChange={(v) => profileForm.setValue('is_compound', v)}
               />
             </div>
@@ -676,7 +694,7 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
             <div className="flex items-center justify-between rounded-md border px-3 py-2">
               <span className="text-sm">{t('isDefault')}</span>
               <CmxSwitch
-                checked={profileForm.watch('is_default')}
+                checked={profileIsDefault}
                 onCheckedChange={(v) => profileForm.setValue('is_default', v)}
               />
             </div>
@@ -709,7 +727,7 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
             <div>
               <label className="text-sm font-medium">{t('exemptionType')} *</label>
               <CmxSelectDropdown
-                value={exemptionForm.watch('exemption_type')}
+                value={exemptionType}
                 onValueChange={(v) => exemptionForm.setValue('exemption_type', v)}
               >
                 <CmxSelectDropdownTrigger>

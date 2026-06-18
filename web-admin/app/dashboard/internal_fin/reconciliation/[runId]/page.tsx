@@ -24,6 +24,11 @@ interface PageProps {
   params: Promise<{ runId: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function ReconciliationDetailPage({ params }: PageProps) {
   const t = await getTranslations('billing.reconciliation');
   const { runId } = await params;

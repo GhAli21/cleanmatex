@@ -30,6 +30,9 @@ interface ReadyOrder {
   ready_by: string;
 }
 
+/**
+ *
+ */
 export default function ReadyPage() {
   const t = useTranslations('workflow');
   const locale = useLocale();

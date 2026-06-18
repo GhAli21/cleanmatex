@@ -24,6 +24,13 @@ interface BulkUpdateResult {
   }[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.selectedOrderIds
+ * @param root0.onComplete
+ * @param root0.onCancel
+ */
 export function BulkStatusUpdate({
   selectedOrderIds,
   onComplete,

@@ -5,6 +5,9 @@
 
 import { logger } from '@/lib/utils/logger'
 
+/**
+ *
+ */
 export type LogoutReason = 
   | 'user'           // User-initiated logout
   | 'session_expired' // Session expired
@@ -12,6 +15,9 @@ export type LogoutReason =
   | 'timeout'         // Inactivity timeout
   | 'unknown'         // Unknown reason
 
+/**
+ *
+ */
 export interface LogoutEvent {
   userId: string
   tenantId?: string
@@ -23,6 +29,7 @@ export interface LogoutEvent {
 
 /**
  * Track logout event
+ * @param event
  */
 export function trackLogout(event: Omit<LogoutEvent, 'timestamp'>): void {
   const logoutEvent: LogoutEvent = {

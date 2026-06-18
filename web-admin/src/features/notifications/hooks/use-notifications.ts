@@ -10,6 +10,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { NotificationRow } from '@lib/notifications/types';
 
+/**
+ *
+ */
 export type NotificationTab = 'all' | 'unread' | string; // 'all' | 'unread' | category_code
 
 interface NotificationsResponse {
@@ -37,6 +40,10 @@ async function fetchNotifications(
   return res.json();
 }
 
+/**
+ *
+ * @param initialTab
+ */
 export function useNotifications(initialTab: NotificationTab = 'all') {
   const { currentTenant, user } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';

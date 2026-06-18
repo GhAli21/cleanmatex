@@ -7,10 +7,25 @@
 // ENUMS & CONSTANTS
 // ==================================================================
 
+/**
+ *
+ */
 export type CustomerType = 'guest' | 'stub' | 'walk_in' | 'full' | 'b2b';
+/**
+ *
+ */
 export type ProfileStatus = 0 | 1 | 2 | 3;
+/**
+ *
+ */
 export type isActive = true | false;
+/**
+ *
+ */
 export type AddressType = 'home' | 'work' | 'other';
+/**
+ *
+ */
 export type OTPPurpose = 'registration' | 'login' | 'verification';
 
 // ==================================================================

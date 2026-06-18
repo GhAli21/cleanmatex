@@ -97,6 +97,12 @@ async function PreparationContent({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ * @param root0.searchParams
+ */
 export default async function PreparationPage({ params, searchParams }: PreparationPageProps) {
   const { orderId } = await params;
   const { returnUrl } = await searchParams;

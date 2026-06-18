@@ -29,6 +29,8 @@ const TOLERANCE = 0.001;
  *
  * This function is only called when defaultCreationStatus is null/empty in D9 config;
  * a configured status always wins.
+ * @param paymentMethodCode
+ * @param gatewayCode
  */
 function resolveDefaultStatus(paymentMethodCode: string, gatewayCode?: string | null): string {
   if (gatewayCode) return 'PROCESSING';

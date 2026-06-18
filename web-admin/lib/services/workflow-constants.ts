@@ -16,6 +16,9 @@ export const WORKFLOW_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: [],
 };
 
+/**
+ *
+ */
 export type QualityGateChecker = (args: {
   orderId: string;
   tenantId: string;

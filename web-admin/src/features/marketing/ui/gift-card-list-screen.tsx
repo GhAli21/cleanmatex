@@ -78,6 +78,9 @@ const FILTERABLE_ISSUE_TYPES: GiftCardIssueType[] = [
   'SOLD', 'PROMOTIONAL', 'CORPORATE', 'GOODWILL', 'MIGRATION', 'REPLACEMENT',
 ];
 
+/**
+ *
+ */
 export function GiftCardListScreen() {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');

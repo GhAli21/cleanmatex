@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { setCustomerPassword } from '@/lib/services/customer-password.service';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

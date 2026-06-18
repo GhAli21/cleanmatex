@@ -34,6 +34,19 @@ interface UserTableProps {
   accessToken?: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.users
+ * @param root0.loading
+ * @param root0.pagination
+ * @param root0.selectedUsers
+ * @param root0.onPageChange
+ * @param root0.onEditUser
+ * @param root0.onSelectionChange
+ * @param root0.onRefresh
+ * @param root0.accessToken
+ */
 export default function UserTable({
   users,
   loading,

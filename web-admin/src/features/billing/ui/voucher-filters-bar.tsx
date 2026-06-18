@@ -9,6 +9,9 @@ const STATUS_OPTIONS = Object.values(VOUCHER_STATUS);
 const CATEGORY_OPTIONS = Object.values(VOUCHER_CATEGORY);
 const TYPE_OPTIONS = Object.values(VOUCHER_TYPE);
 
+/**
+ *
+ */
 export default function VoucherFiltersBar() {
   const t = useTranslations('billing.receiptVoucher');
   const tCommon = useTranslations('common');

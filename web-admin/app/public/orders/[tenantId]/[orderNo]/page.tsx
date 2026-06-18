@@ -8,6 +8,11 @@ interface PublicOrderPageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.params
+ */
 export default async function PublicOrderPage({ params }: PublicOrderPageProps) {
   const { tenantId, orderNo } = await params;
 

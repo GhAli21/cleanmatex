@@ -16,8 +16,14 @@ const BREAKPOINTS = {
   xl: 1280,
 } as const;
 
+/**
+ *
+ */
 export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl';
 
+/**
+ *
+ */
 export interface UseBreakpointResult {
   breakpoint: Breakpoint;
   isMobile: boolean;

@@ -40,6 +40,17 @@ interface OrderDetailsSectionProps {
   enforcePrefCompatibility?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.trackByPiece
+ * @param root0.currencyCode
+ * @param root0.packingPerPieceEnabled
+ * @param root0.bundlesEnabled
+ * @param root0.repeatLastOrderEnabled
+ * @param root0.smartSuggestionsEnabled
+ * @param root0.enforcePrefCompatibility
+ */
 export function OrderDetailsSection({
   trackByPiece,
   currencyCode = ORDER_DEFAULTS.CURRENCY,

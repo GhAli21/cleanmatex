@@ -23,6 +23,9 @@ interface FeatureFlag {
   category?: string | null;
 }
 
+/**
+ *
+ */
 export function FeatureFlagsSettings() {
   const [flags, setFlags] = React.useState<FeatureFlag[]>([]);
   const [filter, setFilter] = React.useState('');

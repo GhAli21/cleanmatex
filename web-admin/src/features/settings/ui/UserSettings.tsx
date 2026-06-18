@@ -21,6 +21,9 @@ import {
   type ResolvedSetting,
 } from '@/lib/api/settings-client';
 
+/**
+ *
+ */
 export function UserSettings() {
   const t = useTranslations('settings');
   const { currentTenant, session } = useAuth();

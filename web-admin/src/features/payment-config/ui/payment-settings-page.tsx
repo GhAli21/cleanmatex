@@ -119,7 +119,7 @@ export function PaymentSettingsPage() {
     loadTerminals();
     loadDrawers();
     loadBranches();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   const tabs = [
     {

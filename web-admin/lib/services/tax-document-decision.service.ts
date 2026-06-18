@@ -60,6 +60,9 @@ const ELIGIBLE_STATUSES: Record<TaxDocumentTriggerEvent, string[]> = {
  *   2. The order status is in the eligible set for that trigger.
  *   3. The order has at least one tax line (no point issuing a tax document
  *      for a zero-tax order unless explicitly configured otherwise).
+ * @param triggerEvent
+ * @param orderState
+ * @param tenantConfigs
  */
 export function decideTaxDocumentIssuance(
   triggerEvent:  TaxDocumentTriggerEvent,
@@ -109,6 +112,7 @@ export function decideTaxDocumentIssuance(
  * netDelta > 0 → customer owes more → DEBIT_NOTE
  * netDelta < 0 → customer is owed back → CREDIT_NOTE
  * netDelta = 0 → no correction needed
+ * @param netDelta
  */
 export function decideCorrectionDocumentType(
   netDelta: number,

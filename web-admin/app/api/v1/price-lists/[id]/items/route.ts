@@ -32,6 +32,9 @@ async function getAuthContext() {
 /**
  * POST /api/v1/price-lists/[id]/items
  * Create a new price list item
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function POST(
   request: NextRequest,

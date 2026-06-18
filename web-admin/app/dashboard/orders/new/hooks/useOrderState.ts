@@ -40,6 +40,9 @@ const INITIAL_STATE: OrderCreationState = {
   },
 };
 
+/**
+ *
+ */
 export function useOrderState() {
   const [state, setState] = useState<OrderCreationState>(INITIAL_STATE);
 

@@ -21,6 +21,9 @@ import { useState, useEffect } from 'react'
 import { Calendar, Building2, Filter, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+/**
+ *
+ */
 export interface GlobalFilters {
   dateFrom?: string
   dateTo?: string
@@ -41,6 +44,19 @@ interface GlobalFiltersBarProps {
   showDateFilter?: boolean
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.filters
+ * @param root0.onFiltersChange
+ * @param root0.availableBranches
+ * @param root0.availableStatuses
+ * @param root0.availablePriorities
+ * @param root0.showBranchFilter
+ * @param root0.showStatusFilter
+ * @param root0.showPriorityFilter
+ * @param root0.showDateFilter
+ */
 export function GlobalFiltersBar({
   filters,
   onFiltersChange,

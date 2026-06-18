@@ -15,6 +15,10 @@ import {
 } from '@/lib/security/csrf';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // CSRF validation

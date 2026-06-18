@@ -30,6 +30,12 @@ async function getAuthContext() {
   };
 }
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }

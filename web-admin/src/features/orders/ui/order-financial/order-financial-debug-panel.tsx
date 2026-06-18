@@ -32,6 +32,11 @@ const RAW_FIELDS: Array<{ key: keyof OrderFinancialSummaryViewModel['rawSnapshot
   { key: 'currencyExRate', labelKey: 'currencyExRate' },
 ];
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanelProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

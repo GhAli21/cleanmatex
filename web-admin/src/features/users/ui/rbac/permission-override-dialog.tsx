@@ -44,6 +44,15 @@ interface PendingOverride {
 
 const RESOURCE_TYPES = ['branch', 'store', 'pos', 'route', 'device'] as const
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.userId
+ * @param root0.userName
+ * @param root0.onSuccess
+ */
 export function PermissionOverrideDialog({
   open,
   onOpenChange,

@@ -36,6 +36,10 @@ const brandingInputSchema = z.object({
 
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     const authCheck = await requirePermission('settings:read')(request);
@@ -59,6 +63,10 @@ export async function GET(request: NextRequest) {
 
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param request
+ */
 export async function PUT(request: NextRequest) {
   try {
     const csrfResponse = await validateCSRF(request);
@@ -141,6 +149,8 @@ export async function PUT(request: NextRequest) {
  * Accept only logos that came from our own storage host AND are scoped to
  * this tenant's logo key prefix. Defends against arbitrary-URL XSS via the
  * Branding form (e.g. inline-script SVG hosted on attacker domain).
+ * @param url
+ * @param tenantOrgId
  */
 function isAllowedLogoUrl(url: string, tenantOrgId: string): boolean {
   try {

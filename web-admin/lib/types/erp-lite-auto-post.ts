@@ -8,6 +8,9 @@ import type {
   ErpLitePostingRequest,
 } from '@/lib/types/erp-lite-posting';
 
+/**
+ *
+ */
 export interface ErpLiteAutoPostPolicy {
   auto_post_id: string;
   pkg_id: string;
@@ -23,6 +26,9 @@ export interface ErpLiteAutoPostPolicy {
   package_version_no: number;
 }
 
+/**
+ *
+ */
 export interface ErpLiteInvoiceAutoPostInput {
   tenant_org_id?: string;
   invoice_id: string;
@@ -40,6 +46,9 @@ export interface ErpLiteInvoiceAutoPostInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLitePaymentAutoPostInput {
   tenant_org_id?: string;
   payment_id: string;
@@ -58,6 +67,9 @@ export interface ErpLitePaymentAutoPostInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteRefundAutoPostInput {
   tenant_org_id?: string;
   refund_payment_id: string;
@@ -77,6 +89,9 @@ export interface ErpLiteRefundAutoPostInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteExpenseAutoPostInput {
   tenant_org_id?: string;
   expense_id: string;
@@ -92,6 +107,9 @@ export interface ErpLiteExpenseAutoPostInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLitePettyCashAutoPostInput {
   tenant_org_id?: string;
   cash_txn_id: string;
@@ -191,6 +209,9 @@ export interface ErpLiteGiftCardBonusGrantedInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteAutoPostDispatchResult {
   status: 'executed' | 'skipped';
   txn_event_code: ErpLiteTxnEventCode;

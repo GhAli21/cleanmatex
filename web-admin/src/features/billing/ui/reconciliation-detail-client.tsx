@@ -102,6 +102,11 @@ function issueBadgeVariant(status: string): 'default' | 'secondary' | 'destructi
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.run
+ */
 export default function ReconciliationDetailClient({ run }: ReconciliationDetailClientProps) {
   const t = useTranslations('billing.reconciliation');
   const locale = useLocale();

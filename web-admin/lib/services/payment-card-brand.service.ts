@@ -18,6 +18,7 @@ interface CardBrandSeedSource {
 /**
  * Sorting is applied in the service so every caller gets the same stable order,
  * including rows with a null rec_order after manual tenant edits.
+ * @param rows
  */
 function sortCardBrands(rows: OrgCardBrandConfig[]): OrgCardBrandConfig[] {
   return [...rows].sort((left, right) => {

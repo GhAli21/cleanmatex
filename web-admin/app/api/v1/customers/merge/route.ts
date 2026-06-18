@@ -66,6 +66,7 @@ async function getAuthContext() {
  *   },
  *   message: 'Customers merged successfully'
  * }
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

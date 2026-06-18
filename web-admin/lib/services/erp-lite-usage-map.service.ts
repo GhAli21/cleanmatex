@@ -10,10 +10,17 @@ import type {
   CreateUsageMapInput,
 } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLiteUsageMapService {
   // -------------------------------------------------------
   // List all usage maps for the current tenant with enrichment
   // -------------------------------------------------------
+  /**
+   *
+   * @param locale
+   */
   static async listUsageMaps(locale: 'en' | 'ar' = 'en'): Promise<ErpLiteUsageMapRow[]> {
     const tenantId = await this.requireTenantId();
     const ucNameSql =
@@ -30,6 +37,9 @@ export class ErpLiteUsageMapService {
         : Prisma.sql`b.name`;
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = {
         id: string;
         tenant_org_id: string;
@@ -118,6 +128,10 @@ export class ErpLiteUsageMapService {
   // -------------------------------------------------------
   // Create a new usage map (status = DRAFT initially)
   // -------------------------------------------------------
+  /**
+   *
+   * @param input
+   */
   static async createUsageMap(input: CreateUsageMapInput): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();
@@ -145,6 +159,10 @@ export class ErpLiteUsageMapService {
   // -------------------------------------------------------
   // Activate a DRAFT mapping
   // -------------------------------------------------------
+  /**
+   *
+   * @param mappingId
+   */
   static async activateUsageMap(mappingId: string): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();
@@ -174,6 +192,10 @@ export class ErpLiteUsageMapService {
   // -------------------------------------------------------
   // Deactivate an ACTIVE mapping
   // -------------------------------------------------------
+  /**
+   *
+   * @param mappingId
+   */
   static async deactivateUsageMap(mappingId: string): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();

@@ -15,6 +15,9 @@ import { CmxButton } from '@ui/primitives';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
+/**
+ *
+ */
 export default function UserPreferencesPage() {
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);

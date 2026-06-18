@@ -28,6 +28,13 @@ interface PaymentMethodsTabProps {
   onRefresh: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.methods
+ * @param root0.isLoading
+ * @param root0.onRefresh
+ */
 export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMethodsTabProps) {
   const t = useTranslations('paymentConfig');
   const locale = useLocale();

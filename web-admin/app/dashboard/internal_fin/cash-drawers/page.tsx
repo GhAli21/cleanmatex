@@ -12,6 +12,9 @@ import { getDrawers } from '@/lib/services/cash-drawer.service';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
 
+/**
+ *
+ */
 export default async function CashDrawersPage() {
   const t = await getTranslations('billing.cashDrawers');
 

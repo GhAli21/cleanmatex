@@ -167,6 +167,7 @@ npm run build                      # Build (run after changes)
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
+- **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` · `react-effects-patterns.md` · `react-rhf-and-table-lint.md` — run `cd web-admin && npx eslint . --quiet` before done; no `form.watch()`, no `setState` in `useEffect`, internal links → `next/link`
 
 ---
 
@@ -258,6 +259,9 @@ docs/         # All documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐
 - **Integration Contracts:** `docs/dev/rules/integration-contracts.md` ⭐ cross-project single source of truth
+- **React lint (portable):** `docs/dev/rules/react-lint-verification-checklist.md` ⭐ pre-submit gate
+- **React effects / Link:** `docs/dev/rules/react-effects-patterns.md`
+- **React RHF / table / a11y:** `docs/dev/rules/react-rhf-and-table-lint.md`
 - **UI Migration Guide:** `docs/dev/ui-migration-guide.md`
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Planning Backlog:** `docs/plan/` is the approved planning authority

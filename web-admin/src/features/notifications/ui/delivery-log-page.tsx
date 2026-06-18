@@ -50,6 +50,9 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+/**
+ *
+ */
 export function DeliveryLogPage() {
   const t = useTranslations('notifications')
 

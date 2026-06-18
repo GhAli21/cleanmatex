@@ -11,6 +11,10 @@ import { logger } from '@/lib/utils/logger';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('notifications:read')(request);
   if (authCheck instanceof NextResponse) return authCheck;

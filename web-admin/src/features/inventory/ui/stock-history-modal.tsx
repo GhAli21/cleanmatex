@@ -38,6 +38,14 @@ function getSourceLabel(refType: string | null, t: (k: string) => string): strin
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.item
+ * @param root0.onClose
+ * @param root0.branchId
+ * @param root0.branches
+ */
 export default function StockHistoryModal({ item, onClose, branchId, branches = [] }: StockHistoryModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');

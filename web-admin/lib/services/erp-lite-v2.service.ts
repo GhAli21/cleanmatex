@@ -152,7 +152,14 @@ const PREFIX_STMT = 'BST';
 const PREFIX_RECON = 'BRC';
 const AP_AGING_BUCKET_ORDER = ['CURRENT', 'DUE_1_30', 'DUE_31_60', 'DUE_61_90', 'DUE_91_PLUS'] as const;
 
+/**
+ *
+ */
 export class ErpLiteV2Service {
+  /**
+   *
+   * @param locale
+   */
   static async getApDashboardSnapshot(
     locale: 'en' | 'ar'
   ): Promise<ErpLiteApDashboardSnapshot> {
@@ -198,6 +205,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param locale
+   */
   static async getPoDashboardSnapshot(
     locale: 'en' | 'ar'
   ): Promise<ErpLitePoDashboardSnapshot> {
@@ -220,6 +231,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param locale
+   */
   static async getBankDashboardSnapshot(
     locale: 'en' | 'ar'
   ): Promise<ErpLiteBankDashboardSnapshot> {
@@ -274,6 +289,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createSupplier(input: CreateErpLiteSupplierInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -333,6 +352,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createPurchaseOrder(input: CreateErpLitePurchaseOrderInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -450,6 +473,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createApInvoice(input: CreateErpLiteApInvoiceInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -573,6 +600,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createApPayment(input: CreateErpLiteApPaymentInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -710,6 +741,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createBankAccount(input: CreateErpLiteBankAccountInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -776,6 +811,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createBankStatement(input: CreateErpLiteBankStatementInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -823,6 +862,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createBankRecon(input: CreateErpLiteBankReconInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -872,6 +915,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createBankStatementLine(
     input: CreateErpLiteBankStatementLineInput
   ): Promise<void> {
@@ -900,6 +947,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async importBankStatementLines(input: ImportErpLiteBankStatementLinesInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -933,6 +984,10 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param input
+   */
   static async createBankMatch(input: CreateErpLiteBankMatchInput): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -1026,6 +1081,11 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param bankReconId
+   * @param closedBy
+   */
   static async closeBankRecon(bankReconId: string, closedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -1050,6 +1110,11 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param bankReconId
+   * @param lockedBy
+   */
   static async lockBankRecon(bankReconId: string, lockedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 
@@ -1072,6 +1137,11 @@ export class ErpLiteV2Service {
     });
   }
 
+  /**
+   *
+   * @param bankMatchId
+   * @param reversedBy
+   */
   static async reverseBankMatch(bankMatchId: string, reversedBy?: string | null): Promise<void> {
     const tenantId = await this.requireTenantId();
 

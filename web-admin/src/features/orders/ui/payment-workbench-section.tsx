@@ -11,6 +11,9 @@ import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import type { PaymentModalSectionId } from './payment-modal-v04-sections-definition';
 
+/**
+ *
+ */
 export interface PaymentWorkbenchSectionProps {
   sectionId: PaymentModalSectionId;
   expanded: boolean;
@@ -33,6 +36,23 @@ export interface PaymentWorkbenchSectionProps {
 /**
  * Renders a workbench card with an optional corner collapse control.
  * Header stays visible when collapsed so operators can re-open the section quickly.
+ * @param root0
+ * @param root0.sectionId
+ * @param root0.expanded
+ * @param root0.collapsible
+ * @param root0.onToggle
+ * @param root0.sectionRef
+ * @param root0.cardClassName
+ * @param root0.headerClassName
+ * @param root0.contentClassName
+ * @param root0.title
+ * @param root0.description
+ * @param root0.titleClassName
+ * @param root0.headerAside
+ * @param root0.isRTL
+ * @param root0.expandLabel
+ * @param root0.collapseLabel
+ * @param root0.children
  */
 export function PaymentWorkbenchSection({
   sectionId,

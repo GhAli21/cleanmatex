@@ -15,6 +15,9 @@ import CustomerReportTable from '@features/reports/ui/customer-report-table-rprt
 
 const BASE_PATH = '/dashboard/reports/customers';
 
+/**
+ *
+ */
 export default function CustomersReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();

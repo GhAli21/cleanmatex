@@ -18,6 +18,9 @@ import type { OrderItemPiece } from '@/types/order';
 import { log } from '@/lib/utils/logger';
 import { downloadPiecesCSV } from '@/lib/utils/piece-export';
 
+/**
+ *
+ */
 export interface OrderPiecesManagerProps {
   orderId: string;
   itemId: string;
@@ -39,6 +42,25 @@ export interface OrderPiecesManagerProps {
   mode?: 'intake' | 'processing' | 'sorting' | 'assembly' | 'qc';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.itemId
+ * @param root0.tenantId
+ * @param root0.branchId
+ * @param root0.onUpdate
+ * @param root0.readOnly
+ * @param root0.showSplitCheckbox
+ * @param root0.selectedForSplit
+ * @param root0.onSplitToggle
+ * @param root0.rejectColor
+ * @param root0.autoLoad
+ * @param root0.enableBarcodeScanner
+ * @param root0.enableBulkOperations
+ * @param root0.pieceDensity
+ * @param root0.mode
+ */
 export function OrderPiecesManager({
   orderId,
   itemId,

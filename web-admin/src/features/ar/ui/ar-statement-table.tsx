@@ -25,6 +25,11 @@ function formatDate(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ */
 export function ArStatementTable({ rows }: ArStatementTableProps) {
   const t = useTranslations('invoices.ar.statements');
   const locale = useLocale();

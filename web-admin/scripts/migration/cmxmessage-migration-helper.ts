@@ -20,6 +20,7 @@ const results: MigrationTarget[] = [];
 
 /**
  * Scan file for migration targets
+ * @param filePath
  */
 function scanFile(filePath: string): MigrationTarget[] {
   const content = fs.readFileSync(filePath, 'utf-8');
@@ -105,6 +106,7 @@ function scanFile(filePath: string): MigrationTarget[] {
 
 /**
  * Generate migration report
+ * @param targets
  */
 function generateReport(targets: MigrationTarget[]): string {
   const byType = targets.reduce((acc, target) => {

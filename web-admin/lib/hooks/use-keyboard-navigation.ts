@@ -7,6 +7,9 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 
+/**
+ *
+ */
 export interface KeyboardNavigationOptions {
     /**
      * Whether keyboard navigation is enabled
@@ -36,6 +39,7 @@ export interface KeyboardNavigationOptions {
 
 /**
  * Hook for keyboard navigation support
+ * @param options
  */
 export function useKeyboardNavigation(options: KeyboardNavigationOptions = {}) {
     const {
@@ -132,6 +136,8 @@ export function useKeyboardNavigation(options: KeyboardNavigationOptions = {}) {
 
 /**
  * Hook for focus trap within a container
+ * @param containerRef
+ * @param enabled
  */
 export function useFocusTrap(
     containerRef: React.RefObject<HTMLElement>,
@@ -188,6 +194,9 @@ export function useFocusTrap(
 
 /**
  * Hook for arrow key navigation in lists
+ * @param items
+ * @param onSelect
+ * @param enabled
  */
 export function useArrowKeyNavigation<T>(
     items: T[],

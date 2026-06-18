@@ -28,6 +28,11 @@ function formatDate(dateStr: string | null | undefined, locale: string): string 
   });
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ */
 export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
   const tB2B = useTranslations('b2b');
   const tOrders = useTranslations('orders');

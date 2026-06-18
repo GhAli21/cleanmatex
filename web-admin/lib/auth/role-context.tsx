@@ -36,6 +36,8 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined)
 /**
  * Role Provider Component
  * Wraps the app to provide role-based access control
+ * @param root0
+ * @param root0.children
  */
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { currentTenant } = useAuth()
@@ -133,6 +135,7 @@ export function useRole() {
  * Hook to check if user has required role(s)
  * Useful for conditional rendering
  *
+ * @param requiredRole
  * @example
  * const canEdit = useHasRole(['admin', 'operator'])
  * if (canEdit) return <EditButton />
@@ -145,6 +148,7 @@ export function useHasRole(requiredRole: UserRole | UserRole[]): boolean {
 /**
  * Hook to check if user has minimum role level
  *
+ * @param minimumRole
  * @example
  * const canManage = useHasMinimumRole('operator')
  * // Returns true for operator and admin, false for viewer
@@ -157,6 +161,8 @@ export function useHasMinimumRole(minimumRole: UserRole): boolean {
 /**
  * Hook to check if user can access a path
  *
+ * @param path
+ * @param requiredRoles
  * @example
  * const canViewReports = useCanAccessPath('/dashboard/reports', ['admin'])
  */

@@ -466,6 +466,11 @@ export async function deactivateTenant(
 /**
  * List all tenants (admin only)
  * @param filters - Optional filters
+ * @param filters.status
+ * @param filters.plan
+ * @param filters.search
+ * @param filters.page
+ * @param filters.limit
  * @returns List of tenants
  */
 export async function listTenants(filters?: {
@@ -478,7 +483,7 @@ export async function listTenants(filters?: {
   const supabase = await createClient();
 
   // Widen query builder: chained filters can hit TS2589 (excessively deep instantiation).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let query: any = supabase
     .from('org_tenants_mst')
     .select('*', { count: 'exact' });

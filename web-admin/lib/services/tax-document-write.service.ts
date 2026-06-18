@@ -20,6 +20,8 @@ type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>
  * Does NOT allocate a sequence number or transition to ISSUED — call
  * issueTaxDocumentTx() immediately after if the document should be issued
  * atomically in the same transaction.
+ * @param tx
+ * @param input
  */
 export async function createTaxDocumentTx(
   tx: PrismaTransactionClient,
@@ -75,6 +77,10 @@ export async function createTaxDocumentTx(
  *
  * Must be called inside the same transaction that created the document.
  * After this call the document is immutable (DB trigger enforces it).
+ * @param tx
+ * @param documentId
+ * @param tenantId
+ * @param issuedBy
  */
 export async function issueTaxDocumentTx(
   tx: PrismaTransactionClient,
@@ -134,6 +140,8 @@ export async function issueTaxDocumentTx(
  *
  * Sequence number allocation and ISSUED status are committed together —
  * if anything fails, both are rolled back with no fiscal gap.
+ * @param input
+ * @param issuedBy
  */
 export async function createAndIssueTaxDocument(
   input: TaxDocumentCreateInput,
@@ -157,6 +165,9 @@ export async function createAndIssueTaxDocument(
  *
  * The DB immutability trigger allows ISSUED → SUPERSEDED and will reject any
  * other update on the original row.
+ * @param originalDocumentId
+ * @param correctionInput
+ * @param issuedBy
  */
 export async function supersedeTaxDocument(
   originalDocumentId: string,
@@ -218,6 +229,7 @@ export async function supersedeTaxDocument(
 /**
  * Loads per-tenant trigger configurations for the decision service.
  * Returns only enabled, active rows.
+ * @param tenantId
  */
 export async function getTaxDocumentTriggerConfigs(
   tenantId: string,

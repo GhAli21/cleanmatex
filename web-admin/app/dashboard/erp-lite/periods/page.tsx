@@ -6,6 +6,9 @@ import { ErpLitePeriodsScreen } from '@features/erp-lite/ui/erp-lite-periods-scr
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLitePeriodsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'

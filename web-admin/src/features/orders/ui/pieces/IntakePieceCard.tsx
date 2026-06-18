@@ -8,6 +8,9 @@ import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea } from '@ui/primitives';
 import { EditIcon, SplitSquareHorizontal } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface IntakePieceCardProps {
   piece: OrderItemPiece;
   onUpdate?: (pieceId: string, updates: Partial<OrderItemPiece>) => void;
@@ -19,6 +22,18 @@ export interface IntakePieceCardProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.onUpdate
+ * @param root0.onEditPreferences
+ * @param root0.showSplitCheckbox
+ * @param root0.isSelectedForSplit
+ * @param root0.onSplitToggle
+ * @param root0.rejectColor
+ * @param root0.readOnly
+ */
 export function IntakePieceCard({
   piece,
   onUpdate,

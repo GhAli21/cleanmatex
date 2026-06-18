@@ -173,6 +173,7 @@ npm run build                      # Build (run after changes)
 
 - **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** → `ui_components`
 - **web-admin TS/UI (tsc):** Follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (discriminated unions, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod `Resolver`, Recharts `Legend` wrapper, `useState` widening, ARIA booleans)
+- **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` — `npx eslint . --quiet` in web-admin before done. See also `react-effects-patterns.md`, `react-rhf-and-table-lint.md`
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
 - Run `npm run check:i18n` after translation changes
@@ -227,6 +228,9 @@ docs/         # All documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐
 - **Integration Contracts:** `docs/dev/rules/integration-contracts.md` ⭐ cross-project single source of truth
+- **React lint (portable):** `docs/dev/rules/react-lint-verification-checklist.md` ⭐
+- **React effects / Link:** `docs/dev/rules/react-effects-patterns.md`
+- **React RHF / table / a11y:** `docs/dev/rules/react-rhf-and-table-lint.md`
 - **UI Migration Guide:** `docs/dev/ui-migration-guide.md`
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Planning Backlog:** `docs/plan/` is the approved planning authority

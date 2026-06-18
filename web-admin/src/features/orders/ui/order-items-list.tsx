@@ -37,6 +37,16 @@ interface OrderItemsListProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.items
+ * @param root0.orderId
+ * @param root0.tenantId
+ * @param root0.branchId
+ * @param root0.trackByPiece
+ * @param root0.readOnly
+ */
 export function OrderItemsList({ 
   items, 
   orderId,

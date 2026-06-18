@@ -15,8 +15,14 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { CmxButton, type CmxButtonProps } from '@ui/primitives'
 
+/**
+ *
+ */
 export type CmxKeypadKey = string
 
+/**
+ *
+ */
 export interface CmxKeypadProps<T extends CmxKeypadKey = CmxKeypadKey> {
   /** Ordered keys rendered into the keypad grid. Empty string '' renders as a non-interactive spacer. */
   keys: readonly T[]
@@ -109,6 +115,27 @@ function getDefaultKeyLabel(key: string): React.ReactNode {
  * Renders a configurable keypad that stays friendly to touch-heavy payment flows.
  *
  * @param props - Keypad layout, interaction, and styling configuration.
+ * @param props.keys
+ * @param props.onKeyPress
+ * @param props.onKeyLongPress
+ * @param props.longPressMs
+ * @param props.preserveInputFocus
+ * @param props.disabled
+ * @param props.columns
+ * @param props.keyHeight
+ * @param props.gap
+ * @param props.defaultVariant
+ * @param props.size
+ * @param props.ariaLabelMessages
+ * @param props.buttonClassName
+ * @param props.className
+ * @param props.gridClassName
+ * @param props.headerSlot
+ * @param props.isKeyDisabled
+ * @param props.getKeyVariant
+ * @param props.getKeyClassName
+ * @param props.renderKeyLabel
+ * @param props.getKeyAriaLabel
  * @returns A reusable keypad utility surface.
  */
 export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({

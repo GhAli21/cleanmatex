@@ -7,6 +7,9 @@ import {
 } from '@ui/primitives/cmx-card';
 import { ArInvoiceCreateWizard } from '@features/ar/ui/ar-invoice-create-wizard';
 
+/**
+ *
+ */
 export default async function NewArInvoicePage() {
   const t = await getTranslations('invoices.ar.create');
 

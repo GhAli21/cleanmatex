@@ -11,6 +11,9 @@
 
 import { BranchSettingsScreen } from '@features/settings/ui/branch-settings-screen';
 
+/**
+ *
+ */
 export default function BranchSettingsPage() {
   return <BranchSettingsScreen />;
 }

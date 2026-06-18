@@ -174,6 +174,25 @@ function SummaryRow({
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSubmit
+ * @param root0.total
+ * @param root0.items
+ * @param root0.isExpress
+ * @param root0.tenantOrgId
+ * @param root0.customerId
+ * @param root0.customerType
+ * @param root0.serviceCategories
+ * @param root0.branchId
+ * @param root0.userId
+ * @param root0.isRetailOnlyOrder
+ * @param root0.loading
+ * @param root0.initialPaymentNotes
+ */
 export function PaymentModalV3({
   open,
   onClose,
@@ -289,6 +308,9 @@ export function PaymentModalV3({
   // Tax state
   const [taxRate, setTaxRate] = useState<number>(0.06);
 
+  /**
+   *
+   */
   type TaxProfileEntry = {
     id: string;
     name: string;
@@ -317,6 +339,9 @@ export function PaymentModalV3({
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([
     { method: PAYMENT_METHODS.CASH as PaymentMethodCode, amount: 0 },
   ]);
+  /**
+   *
+   */
   type TaxBreakdownLine = {
     taxType: 'VAT' | 'GST' | 'CUSTOM';
     label: string;

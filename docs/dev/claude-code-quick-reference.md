@@ -1,222 +1,164 @@
-# Claude Code Quick Reference Card
+# Claude Code Quick Reference Card — CleanMateX
+**Purpose:** keep Claude Code efficient, scoped, and safe.  
+**Rule:** direct targeted work first; subagents only when explicitly requested.
 
-**Print this or keep it visible while working with Claude Code**
-
----
-
-## 🚦 Context Usage Monitor
-
-```
-0-30%   ✅ Healthy      → Continue working
-30-60%  ⚠️  Moderate    → Be mindful
-60-80%  🟡 High         → Finish task, then /clear
-80-95%  🔴 Critical     → /clear immediately
-95-100% 🚨 Emergency    → Must /clear now
+## 1. Usage Monitor
+```text
+0–30%   Healthy   → continue
+30–60%  Moderate  → stay scoped
+60–70%  High      → prepare /compact
+70–80%  Very high → finish step, then /compact or /clear
+80%+    Critical  → /compact if same task, /clear if switching
 ```
 
----
-
-## 🤖 When to Use Agents
-
-| Your Question | Use Agent? | Agent Type |
-|---------------|------------|------------|
-| "How does X work?" | ✅ YES | Explore |
-| "Where is Y?" | ✅ YES | Explore |
-| "Implement Z" | ✅ YES | Implementer-Tester |
-| "Fix this error" | ✅ YES | Debugging-Specialist |
-| "Read file.ts line 42" | ❌ NO | Direct Read |
-| "Edit this specific line" | ❌ NO | Direct Edit |
-
----
-
-## 📝 Question Templates
-
-### Exploration (Use Agent)
-```
-"Use a [quick/medium/thorough] exploration agent to [task]"
-
-Examples:
-✅ "Explore how pricing calculation works"
-✅ "Find where customer emails are sent"
-✅ "Analyze the order workflow states"
+## 2. Default Prompt Header
+```text
+CleanMateX efficiency rules:
+- Do not use subagents unless I explicitly say "use subagent".
+- Do not scan the whole repo.
+- Search narrowly inside the relevant module only.
+- Read only required files/functions.
+- Before editing, list the exact files you will touch.
+- Modify only files required for this task.
+- Keep output concise.
 ```
 
-### Direct Action (No Agent)
+## 3. Model Choice
+```text
+Sonnet → normal coding, UI, API, tests, build fixes, docs cleanup.
+Opus   → architecture, payment/voucher/settlement design, RLS/security, risky DB review.
 ```
-"Read [exact-file-path]"
-"Edit [file] line [X] to change [Y] to [Z]"
-"Add [field] to [specific component]"
+Rule: **Sonnet runs the factory. Opus designs the factory.**
 
-Examples:
-✅ "Read web-admin/lib/services/pricing.service.ts"
-✅ "Edit order.ts line 42 to add discount field"
-✅ "Add email validation to customer form"
-```
+## 4. Agent Decision
+| Task | Agent? | Better Action |
+|---|---:|---|
+| Exact file/path known | No | Direct read/edit |
+| 1–5 files affected | No | Main conversation |
+| Specific build/type error | No | Targeted debug |
+| Unknown location | Maybe | One scoped read-only Explore agent |
+| Noisy multi-folder research | Maybe | One scoped read-only Explore agent |
+| Broad “find everything” | No | Narrow the task first |
+| Implementation | Usually no | Main conversation after approved plan |
 
-### Implementation (Use Agent)
-```
-"Implement [feature] in [location] following [pattern]"
-
-Examples:
-✅ "Implement discount field following pricing pattern"
-✅ "Add PDF export to invoices with tests"
-```
-
-### Debugging (Use Agent)
-```
-"Debug [specific error/behavior] in [context]"
-
-Examples:
-✅ "Debug 403 error when creating orders"
-✅ "Debug slow query on orders list page"
+Default:
+```text
+No subagents unless explicitly requested.
 ```
 
----
+## 5. Safe Subagent Prompt
+```text
+Use one read-only Explore subagent.
+Scope only: [folders]
+Do not edit files.
+Do not spawn nested agents.
+Inspect maximum [N] files.
+Return only: relevant files, current behavior, recommended change, risks, and next step.
+```
+Forbidden unless explicitly approved:
+```text
+parallel agents, background agents, nested agents, full-repo exploration, agent edits
+```
 
-## ⚡ Daily Workflow
+## 6. Task Templates
+Analysis:
+```text
+Do not edit yet. Analyze only the minimum required files. Return current behavior, required change, files to modify, risks, and implementation steps. Do not use subagents.
+```
+Implementation:
+```text
+Proceed with the approved plan. Modify only the listed files. Do not refactor unrelated code. Summarize changed files, validation command, and remaining risks.
+```
+Debugging:
+```text
+Debug this specific issue: [error]. Start from [file/path]. Search only related folders. Do not paste full logs. Show root cause and minimal fix.
+```
+Review:
+```text
+Review only these changed files: [files]. Check correctness, tenant isolation, security, financial impact, TS/build risk, and missing tests. Do not scan unrelated files.
+```
 
-```bash
-# Morning - Start Fresh
-/clear
-
-# During Work
-Ask focused questions with agents
-Check context % regularly
-When switching topics → /clear
-
-# Evening - Commit Work
-git add .
-git commit -m "Your changes"
+## 7. Context Commands
+Compact when continuing the same task:
+```text
+/compact keep only the task goal, approved decisions, changed files, open issues, test status, and next steps
+```
+Clear when switching tasks/modules:
+```text
 /clear
 ```
-
----
-
-## 🎯 Agent Selection Guide
-
-| Task | Command |
-|------|---------|
-| Understand code | "Explore [feature]" |
-| Find code | "Explore where [X] is implemented" |
-| Build feature | "Implement [feature] with tests" |
-| Fix error | "Debug [error description]" |
-| Review code | "Review [file] for quality" |
-| Write docs | "Document [feature/API]" |
-| Plan feature | "Plan implementation of [feature]" |
-
----
-
-## 💾 Context-Saving Habits
-
-### ✅ DO
-- Use `/clear` when switching topics
-- Ask "Explore X" instead of "Show me all X files"
-- Specify exact files when you know them
-- Break big tasks into sessions
-- Let agents research, you get summaries
-
-### ❌ DON'T
-- Ask "Explain the entire codebase"
-- Read 10+ files in one conversation
-- Keep working past 80% context
-- Mix multiple unrelated topics
-- Ask for "everything about X"
-
----
-
-## 🔧 CleanMateX Specific
-
-### Tenant Filtering (CRITICAL)
-```typescript
-// ALWAYS use in queries
-const tenantId = await getTenantIdFromSession();
-const data = await withTenantContext(async (prisma) => {
-  return prisma.org_orders_mst.findMany({
-    where: { tenant_org_id: tenantId }
-  });
-});
+Golden rule:
+```text
+One Claude Code session = one bounded task.
 ```
 
-### After Code Changes
-```bash
-npm run build
-# Fix errors until build succeeds
+## 8. Good vs Bad Requests
+Good:
+```text
+Search only in web-admin/src/features/orders for payment_status usage.
+Read only calculateOrderFinancialSnapshot.
+Fix the TypeScript error in this file only.
+```
+Bad:
+```text
+Search the whole repo for payment.
+Explain the entire order system.
+Find everything related and fix it.
+Read all files in this module.
 ```
 
-### Skills to Use
+## 9. Build/Test Output Rule
+```text
+Run the command. If it fails, show only command, first relevant error, file/line, root cause, and proposed fix. Do not paste the full log.
 ```
-/multitenancy - Before ANY database query
-/database     - Before creating tables/migrations
-/frontend     - Before creating UI components
-/i18n         - Before adding translations
-```
-
----
-
-## 🆘 Emergency Recovery
-
-### Context Explosion (95%+)
-```
-1. /clear immediately
-2. Review what you were doing
-3. Ask more focused question
-4. Use agent for exploration
+For repeated failures:
+```text
+Show only the new error compared to the previous run.
 ```
 
-### Lost in Codebase
-```
-1. /clear
-2. "Explore [specific feature] at medium depth"
-3. Review summary
-4. Ask targeted follow-up
-```
-
-### Too Many Files Modified
-```bash
-# Commit in chunks
-git add feature-1/
-git commit -m "Feature 1 complete"
-
-git add feature-2/
-git commit -m "Feature 2 complete"
-
-# Keep <15 files modified at any time
+## 10. CleanMateX Safety Rules
+```text
+- Never reset Supabase without explicit approval.
+- Every tenant-owned query must enforce tenant_org_id.
+- Every org_* table must respect tenant isolation and RLS.
+- EN/AR and RTL support are mandatory for UI text/layout changes.
+- Do not change approved financial behavior silently.
+- DB changes require migration, rollback, seed, and verification SQL.
+- Gateway payments are completed only after gateway confirmation/webhook.
+- Payment, voucher, invoice, refund, settlement, wallet, advance, gift card, and overpayment logic is high-risk.
 ```
 
----
-
-## 📊 Session Planning
-
-**Estimate context per task:**
-- Explore agent: 5-15%
-- Implement agent: 20-40%
-- Large file read: 5-10%
-- Build output: 10-20%
-- Debug session: 15-30%
-
-**Plan your session:**
+## 11. Git Hygiene
+Before review:
+```text
+git status --short
+git diff --stat
 ```
-Budget: 100%
-- Explore pricing:     -10% → 90% left
-- Implement discount:  -30% → 60% left
-- Run tests:           -15% → 45% left
-✅ Comfortable margin
+Keep changes small:
+```text
+small branch, small commits, few modified files
+```
+Avoid:
+```text
+30+ modified files, mixed UI/API/DB work, generated files, accidental lockfile changes
 ```
 
----
+## 12. Success Targets
+```text
+Subagent-heavy usage: below 25%
+8+ hour sessions: below 10%
+Sessions above 150k context: below 10%
+Average files read per task: 3–8
+Average modified files per task: under 5
+Full repo scans: zero unless approved
+Parallel agents: zero unless approved
+```
 
-## 🎓 Remember
-
-1. **Agents are your friends** - Use them liberally
-2. **Context is precious** - Spend it wisely
-3. **Clear frequently** - Don't hoard context
-4. **Be specific** - Focused questions = better answers
-5. **Monitor usage** - Check the % indicator
-
----
-
-## 📚 Full Documentation
-
-**Efficiency Guide:** [docs/dev/claude-code-efficiency-guide.md](./claude-code-efficiency-guide.md)
-
-**Updated:** 2026-01-29
+## 13. Final Reminder
+```text
+Use Claude Code like a senior engineer with a strict task ticket, not like an unlimited research team.
+```
+Full guide:
+```text
+docs/dev/claude-code-efficiency-guide.md
+```

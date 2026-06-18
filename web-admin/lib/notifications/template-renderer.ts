@@ -7,6 +7,9 @@
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
 
+/**
+ *
+ */
 export interface RenderedContent {
   title:  string;
   title2: string | null;
@@ -15,7 +18,11 @@ export interface RenderedContent {
   metadata: Record<string, unknown>;
 }
 
-/** Replace {{key}} placeholders with values. Unknown keys are left as-is. */
+/**
+ * Replace {{key}} placeholders with values. Unknown keys are left as-is.
+ * @param template
+ * @param vars
+ */
 function interpolate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? `{{${key}}}`);
 }
@@ -24,6 +31,9 @@ function interpolate(template: string, vars: Record<string, string>): string {
  * Fetch the APPROVED template for an event on a given channel and render it.
  * For EMAIL: tries EMAIL first, falls back to IN_APP content if no email template exists.
  * Falls back to a plain text notification when no template is found at all.
+ * @param eventCode
+ * @param channelCode
+ * @param variables
  */
 export async function renderChannelTemplate(
   eventCode: string,
@@ -89,6 +99,8 @@ export async function renderChannelTemplate(
 /**
  * Fetch the APPROVED IN_APP template for an event and render it with variables.
  * Falls back to a plain text notification when no template is found.
+ * @param eventCode
+ * @param variables
  */
 export async function renderInAppTemplate(
   eventCode: string,

@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * GET /api/workflow-roles?userId={userId}
  * Get workflow role assignments for a user
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/workflow-roles
  * Assign workflow role to user
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

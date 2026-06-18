@@ -20,6 +20,10 @@ interface RequireRoleProps {
 /**
  * Render children only if user has required role(s)
  *
+ * @param root0
+ * @param root0.roles
+ * @param root0.fallback
+ * @param root0.children
  * @example
  * <RequireRole roles="admin">
  *   <AdminOnlyButton />
@@ -54,6 +58,13 @@ interface RequireMinimumRoleProps {
   children: ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.role
+ * @param root0.fallback
+ * @param root0.children
+ */
 export function RequireMinimumRole({
   role,
   fallback = null,
@@ -71,6 +82,9 @@ export function RequireMinimumRole({
 /**
  * Render children only if user is admin
  *
+ * @param root0
+ * @param root0.fallback
+ * @param root0.children
  * @example
  * <AdminOnly>
  *   <DeleteButton />
@@ -95,6 +109,9 @@ export function AdminOnly({
 /**
  * Render children only if user is operator or admin
  *
+ * @param root0
+ * @param root0.fallback
+ * @param root0.children
  * @example
  * <OperatorOnly>
  *   <EditCustomerButton />

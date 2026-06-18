@@ -8,6 +8,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface JWTHealthMetrics {
   totalEvents: number;
   eventsWithTenant: number;
@@ -23,6 +26,9 @@ export interface JWTHealthMetrics {
   repairSuccessRate: number; // Percentage of successful repairs
 }
 
+/**
+ *
+ */
 export interface JWTHealthEvent {
   userId: string;
   eventType: 'validation' | 'repair' | 'refresh' | 'switch';
@@ -38,6 +44,7 @@ export interface JWTHealthEvent {
 
 /**
  * Log a JWT health event to the database
+ * @param event
  */
 export async function logJWTHealthEvent(event: JWTHealthEvent): Promise<void> {
   try {

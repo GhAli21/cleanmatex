@@ -34,6 +34,10 @@ function verifyWebhookSignature(
   return timingSafeEqual(computed, expected);
 }
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     // Read raw body for signature verification (Meta signs the exact bytes)
@@ -74,7 +78,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Process webhook events
+    /**
+     *
+     */
     type WaChange = { field?: string; value?: Record<string, unknown> };
+    /**
+     *
+     */
     type WaEntry = { changes?: WaChange[] };
     const entries: WaEntry[] = Array.isArray(body.entry) ? (body.entry as WaEntry[]) : [];
     const supabase = await createClient();
@@ -173,6 +183,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/v1/receipts/webhooks/whatsapp
  * Webhook verification endpoint
+ * @param request
  */
 export async function GET(request: NextRequest) {
   const mode = request.nextUrl.searchParams.get('hub.mode');

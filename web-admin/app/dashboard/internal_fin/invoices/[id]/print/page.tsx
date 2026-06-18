@@ -8,6 +8,9 @@ import { CmxButton } from '@ui/primitives';
 import { ArInvoicePrintRprt } from '@features/ar/ui/ar-invoice-print-rprt';
 import type { ArInvoiceDetail } from '@/lib/types/ar-invoice';
 
+/**
+ *
+ */
 export default function ArInvoicePrintPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();

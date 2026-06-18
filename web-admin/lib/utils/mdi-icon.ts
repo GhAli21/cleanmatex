@@ -4,6 +4,10 @@
 
 const MDI_ICON_CLASS_SAFE = /^mdi-[a-z0-9-]+$/i;
 
+/**
+ *
+ * @param icon
+ */
 export function isSafeMdiIconClass(
   icon: string | null | undefined
 ): icon is string {

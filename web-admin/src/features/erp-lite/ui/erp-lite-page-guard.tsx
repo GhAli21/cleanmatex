@@ -35,6 +35,14 @@ function GuardIcon({
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.feature
+ * @param root0.requireAllFeatures
+ * @param root0.permissions
+ * @param root0.children
+ */
 export function ErpLitePageGuard({
   feature,
   requireAllFeatures = true,

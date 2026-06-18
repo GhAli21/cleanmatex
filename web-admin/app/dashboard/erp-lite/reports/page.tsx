@@ -14,6 +14,9 @@ import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { ErpLiteReportsScreen } from '@features/erp-lite/ui/erp-lite-reports-screen'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteReportsPage() {
   const t = await getTranslations('erpLite.reports')
   const tCommon = await getTranslations('erpLite.common')

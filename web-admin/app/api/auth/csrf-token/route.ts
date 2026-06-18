@@ -8,6 +8,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCSRFTokenFromRequest } from '@/lib/security/csrf';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   try {
     // Get CSRF token from request cookies

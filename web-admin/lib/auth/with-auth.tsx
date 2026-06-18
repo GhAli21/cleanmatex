@@ -19,6 +19,8 @@ interface WithAuthOptions {
 /**
  * HOC to protect pages requiring authentication
  *
+ * @param Component
+ * @param options
  * @example
  * ```tsx
  * const ProtectedPage = withAuth(MyPage)
@@ -78,6 +80,7 @@ export function withAuth<P extends object>(
  * Convenience wrapper for pages that should redirect to dashboard if authenticated
  * Useful for login/register pages
  *
+ * @param Component
  * @example
  * ```tsx
  * const LoginPage = withAuthRedirect(MyLoginPage)

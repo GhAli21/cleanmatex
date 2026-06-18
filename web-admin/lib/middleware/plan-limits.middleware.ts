@@ -149,6 +149,9 @@ export async function checkBranchLimit(
 // Generic Limit Checker
 // ========================
 
+/**
+ *
+ */
 export type LimitType = 'order' | 'user' | 'branch';
 
 /**
@@ -187,6 +190,8 @@ export async function checkLimit(
  *   // Your order creation logic here
  *   return NextResponse.json({ success: true });
  * });
+ * @param limitType
+ * @param handler
  */
 export function withLimitCheck(
   limitType: LimitType,

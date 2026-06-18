@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { CmxMoneyFieldController } from '@ui/primitives'
 
 // ─── Render helper ────────────────────────────────────────────────────────────
@@ -18,6 +18,17 @@ import { CmxMoneyFieldController } from '@ui/primitives'
  * Wraps CmxMoneyFieldController with a useForm instance so the Controller has a
  * live form context. Displays the current numeric value below the field so
  * story reviewers can verify round-trip behaviour.
+ * @param root0
+ * @param root0.defaultValue
+ * @param root0.decimalPlaces
+ * @param root0.label
+ * @param root0.placeholder
+ * @param root0.error
+ * @param root0.disabled
+ * @param root0.showZero
+ * @param root0.min
+ * @param root0.max
+ * @param root0.rtl
  */
 function ControllerStory({
   defaultValue = null,
@@ -53,10 +64,10 @@ function ControllerStory({
     } else {
       form.clearErrors('amount')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [error])
 
-  const watchedValue = form.watch('amount')
+  const watchedValue = useWatch({ control: form.control, name: 'amount' })
 
   return (
     <div className="w-[320px] space-y-3" dir={rtl ? 'rtl' : 'ltr'}>

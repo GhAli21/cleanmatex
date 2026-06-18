@@ -9,6 +9,9 @@ import { LoyaltyConfigClient } from '@/src/features/marketing/ui/loyalty-config-
 
 export const metadata = { title: 'Loyalty Program — CleanMateX' };
 
+/**
+ *
+ */
 export default function LoyaltyPage() {
   return (
     <div className="container mx-auto py-6">

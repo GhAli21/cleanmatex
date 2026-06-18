@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Link from 'next/link'
 import { ArrowLeft, Send, Ban, FlaskConical, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -71,6 +72,11 @@ function StatCard({ label, value, color = '' }: { label: string; value: number; 
 
 interface Props { id: string }
 
+/**
+ *
+ * @param root0
+ * @param root0.id
+ */
 export function CampaignDetailPage({ id }: Props) {
   const locale  = useLocale()
   const t       = useTranslations('notifications')
@@ -152,13 +158,13 @@ export function CampaignDetailPage({ id }: Props) {
       {/* Back + header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <a
+          <Link
             href="/dashboard/marketing/campaigns"
             className="mb-1 inline-flex items-center gap-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
             {t('campaigns.title')}
-          </a>
+          </Link>
           <h1 className="text-xl font-semibold">{displayName}</h1>
           {displayDescription && (
             <p className="mt-0.5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">

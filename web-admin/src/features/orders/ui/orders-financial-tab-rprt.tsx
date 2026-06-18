@@ -70,6 +70,10 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString();
 }
 
+/**
+ *
+ * @param props
+ */
 export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
   const {
     snapshot,

@@ -10,6 +10,12 @@ interface PricePreviewProps {
   refreshNonce?: number;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.refreshNonce
+ */
 export function PricePreview({ orderId, refreshNonce = 0 }: PricePreviewProps) {
   const tCommon = useTranslations('common');
   const t = useTranslations('workflow');

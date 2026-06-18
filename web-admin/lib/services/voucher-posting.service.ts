@@ -12,6 +12,9 @@ import { withTenantContext } from '../db/tenant-context';
 import { VOUCHER_STATUS } from '../constants/voucher';
 import { validateStatusTransition, validateVoucherForPosting } from './voucher-validation.service';
 
+/**
+ *
+ */
 export interface PostingResult {
   voucherId: string;
   voucher_no: string;
@@ -22,6 +25,10 @@ export interface PostingResult {
 /**
  * Post a BVM voucher: DRAFT → POSTED.
  * All steps run in a single Prisma transaction — full rollback on any failure.
+ * @param tenantOrgId
+ * @param voucherId
+ * @param userId
+ * @param idempotencyKey
  */
 export async function postBizVoucher(
   tenantOrgId: string,

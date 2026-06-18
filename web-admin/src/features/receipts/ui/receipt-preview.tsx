@@ -31,6 +31,12 @@ const DELIVERY_CHANNELS = [
   { value: 'app', label: 'In-App' },
 ];
 
+/**
+ *
+ * @param root0
+ * @param root0.orderId
+ * @param root0.customerType
+ */
 export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const [receiptType, setReceiptType] = useState('whatsapp_text');
   const [deliveryChannels, setDeliveryChannels] = useState<string[]>(['whatsapp']);

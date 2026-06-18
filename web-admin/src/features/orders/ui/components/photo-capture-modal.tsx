@@ -24,6 +24,12 @@ interface PhotoCaptureModalProps {
 
 /**
  * Photo Capture Modal Component
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onCapture
+ * @param root0.maxPhotos
+ * @param root0.existingPhotos
  */
 export function PhotoCaptureModal({
   open,

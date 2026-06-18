@@ -27,6 +27,13 @@ const POD_METHODS = [
   { value: 'MIXED', label: 'Mixed (Multiple Methods)' },
 ];
 
+/**
+ *
+ * @param root0
+ * @param root0.stopId
+ * @param root0.orderId
+ * @param root0.onSuccess
+ */
 export function PODCapture({ stopId, orderId, onSuccess }: PODCaptureProps) {
   const [podMethod, setPodMethod] = useState('OTP');
   const [otpCode, setOtpCode] = useState('');

@@ -11,6 +11,11 @@ interface OrderSettlementSummaryProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.viewModel
+ */
 export function OrderSettlementSummary({ viewModel }: OrderSettlementSummaryProps) {
   const t = useTranslations('orders.detail.financial');
   const isRTL = useRTL();

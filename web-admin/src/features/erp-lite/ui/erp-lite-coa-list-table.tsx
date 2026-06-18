@@ -13,6 +13,14 @@ interface ErpLiteCoaListTableProps {
   pageSize: number
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.items
+ * @param root0.total
+ * @param root0.page
+ * @param root0.pageSize
+ */
 export function ErpLiteCoaListTable({ items, total, page, pageSize }: ErpLiteCoaListTableProps) {
   const t = useTranslations('erpLite.coa')
 

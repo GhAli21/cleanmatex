@@ -19,6 +19,12 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { tenantId } = await getAuthContext();
@@ -95,6 +101,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     };
 
     // All order invoices for payment recording (id, invoice_no, total, paid_amount, remaining)
+    /**
+     *
+     */
     type InvoiceRow = { id: string; invoice_no: string | null; total: number; paid_amount: number };
     let orderInvoices: Array<InvoiceRow & { remaining: number }> = [];
     let primaryInvoiceId: string | null = null;

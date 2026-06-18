@@ -69,6 +69,7 @@ const ISSUE_TYPES: GiftCardIssueType[] = [
  * - < 7 days remaining: red
  * - < 30 days remaining: amber
  * - Otherwise: default muted
+ * @param isoDate
  */
 function expiryDateClasses(isoDate: string | undefined): string {
   if (!isoDate) return 'text-muted-foreground';
@@ -80,7 +81,10 @@ function expiryDateClasses(isoDate: string | undefined): string {
   return 'text-muted-foreground';
 }
 
-/** Format an ISO date string for display (date portion only). */
+/**
+ * Format an ISO date string for display (date portion only).
+ * @param iso
+ */
 function fmtDate(iso: string | undefined): string {
   if (!iso) return '—';
   return new Intl.DateTimeFormat(undefined, {
@@ -123,6 +127,9 @@ function KpiCard({ label, value, icon, highlight = false }: KpiCardProps) {
 // Main component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export function GiftCardsLiabilityRprt() {
   const t = useTranslations('marketing.giftCards');
   const tRpt = useTranslations('marketing.giftCards.reports');

@@ -32,6 +32,9 @@ async function getAuthContext() {
 /**
  * PUT /api/v1/price-lists/[id]/items/[itemId]
  * Update a price list item
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PUT(
   request: NextRequest,
@@ -149,6 +152,9 @@ export async function PUT(
 /**
  * DELETE /api/v1/price-lists/[id]/items/[itemId]
  * Delete a price list item
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

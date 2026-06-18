@@ -19,6 +19,12 @@ function nextRetryAt(attempts: number): Date | null {
 /**
  * Append a domain event to the outbox within an existing transaction.
  * The worker picks up PENDING rows and publishes them to the event bus.
+ * @param tx
+ * @param tenantId
+ * @param eventType
+ * @param aggregateType
+ * @param aggregateId
+ * @param payload
  */
 export async function emitEventTx(
   tx: PrismaTransactionClient,
@@ -46,6 +52,7 @@ export async function emitEventTx(
 /**
  * Claim a batch of PENDING or FAILED events ready for processing.
  * Sets status → PROCESSING to prevent concurrent worker picks.
+ * @param limit
  */
 export async function claimBatch(limit = 50) {
   const now = new Date();
@@ -73,6 +80,7 @@ export async function claimBatch(limit = 50) {
 
 /**
  * Mark an outbox event as successfully processed.
+ * @param eventId
  */
 export async function markProcessed(eventId: string): Promise<void> {
   await prisma.org_domain_events_outbox.update({
@@ -83,6 +91,8 @@ export async function markProcessed(eventId: string): Promise<void> {
 
 /**
  * Mark an event as FAILED and schedule a retry if attempts < max_attempts.
+ * @param eventId
+ * @param error
  */
 export async function markFailed(eventId: string, error: string): Promise<void> {
   const event = await prisma.org_domain_events_outbox.findUniqueOrThrow({ where: { id: eventId } });
@@ -102,6 +112,8 @@ export async function markFailed(eventId: string, error: string): Promise<void> 
 
 /**
  * Re-schedule a retry for an event that is still within its attempt budget.
+ * @param eventId
+ * @param currentAttempts
  */
 export async function scheduleRetry(eventId: string, currentAttempts: number): Promise<void> {
   const retryAt = nextRetryAt(currentAttempts);

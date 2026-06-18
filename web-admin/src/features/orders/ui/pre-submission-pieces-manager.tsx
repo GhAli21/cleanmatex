@@ -12,6 +12,9 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
+/**
+ *
+ */
 export interface PreSubmissionPiece {
   id: string;
   itemId: string;
@@ -38,6 +41,16 @@ interface PreSubmissionPiecesManagerProps {
   onSelectPiece?: (pieceId: string | null) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.pieces
+ * @param root0.itemId
+ * @param root0.onPiecesChange
+ * @param root0.readOnly
+ * @param root0.selectedPieceId
+ * @param root0.onSelectPiece
+ */
 export function PreSubmissionPiecesManager({
   pieces,
   itemId,

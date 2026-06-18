@@ -8,6 +8,9 @@ export const INVOICE_TYPES = {
   ADJUSTMENT: 'ADJUSTMENT',
 } as const;
 
+/**
+ *
+ */
 export type InvoiceTypeCd = (typeof INVOICE_TYPES)[keyof typeof INVOICE_TYPES];
 
 export const STATEMENT_STATUSES = {
@@ -18,6 +21,9 @@ export const STATEMENT_STATUSES = {
   OVERDUE: 'OVERDUE',
 } as const;
 
+/**
+ *
+ */
 export type StatementStatusCd =
   (typeof STATEMENT_STATUSES)[keyof typeof STATEMENT_STATUSES];
 
@@ -37,6 +43,9 @@ export const CONTACT_ROLES = {
   OTHER: 'other',
 } as const;
 
+/**
+ *
+ */
 export type ContactRoleCd = (typeof CONTACT_ROLES)[keyof typeof CONTACT_ROLES];
 
 export const CREDIT_LIMIT_MODES = {
@@ -44,5 +53,8 @@ export const CREDIT_LIMIT_MODES = {
   BLOCK: 'block',
 } as const;
 
+/**
+ *
+ */
 export type CreditLimitMode =
   (typeof CREDIT_LIMIT_MODES)[keyof typeof CREDIT_LIMIT_MODES];

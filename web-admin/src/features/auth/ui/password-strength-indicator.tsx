@@ -18,6 +18,9 @@ interface PasswordStrengthIndicatorProps {
   showRequirements?: boolean
 }
 
+/**
+ *
+ */
 export interface PasswordStrength {
   score: number // 0-4
   label: string // 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'
@@ -34,6 +37,7 @@ export interface PasswordStrength {
 
 /**
  * Calculate password strength score
+ * @param password
  */
 function calculatePasswordStrength(password: string): PasswordStrength {
   const requirements = {
@@ -97,6 +101,12 @@ function calculatePasswordStrength(password: string): PasswordStrength {
   }
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.password
+ * @param root0.showRequirements
+ */
 export function PasswordStrengthIndicator({
   password,
   showRequirements = true,
@@ -161,6 +171,10 @@ export function PasswordStrengthIndicator({
 
 /**
  * Individual requirement item
+ * @param root0
+ * @param root0.met
+ * @param root0.text
+ * @param root0.optional
  */
 function RequirementItem({
   met,
@@ -205,6 +219,7 @@ function RequirementItem({
 /**
  * Utility function to validate password strength
  * Returns true if password meets minimum requirements
+ * @param password
  */
 export function isPasswordStrong(password: string): boolean {
   const strength = calculatePasswordStrength(password)
@@ -217,6 +232,7 @@ export function isPasswordStrong(password: string): boolean {
 /**
  * Get password validation error message
  * Returns null if password is valid
+ * @param password
  */
 export function getPasswordError(password: string): string | null {
   const strength = calculatePasswordStrength(password)

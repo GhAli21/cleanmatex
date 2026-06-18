@@ -87,6 +87,9 @@ export function validateProductIds(productIds: string[]): string[] {
 /**
  * Validates order item data
  * @param item - Order item to validate
+ * @param item.productId
+ * @param item.quantity
+ * @param item.pricePerUnit
  * @returns Object with validation result and errors
  */
 export function validateOrderItem(item: {

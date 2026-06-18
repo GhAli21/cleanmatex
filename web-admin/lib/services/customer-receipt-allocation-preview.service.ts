@@ -44,6 +44,12 @@ function mapPreviewRow(row: {
   };
 }
 
+/**
+ *
+ * @param tenantId
+ * @param userId
+ * @param input
+ */
 export async function createAutoAllocationPreview(
   tenantId: string,
   userId: string | null,
@@ -123,6 +129,12 @@ export async function createAutoAllocationPreview(
   return mapPreviewRow(inserted[0]);
 }
 
+/**
+ *
+ * @param tenantId
+ * @param userId
+ * @param input
+ */
 export async function createManualAllocationPreview(
   tenantId: string,
   userId: string | null,
@@ -185,6 +197,13 @@ export async function createManualAllocationPreview(
   return mapPreviewRow(inserted[0]);
 }
 
+/**
+ *
+ * @param tenantId
+ * @param previewId
+ * @param customerId
+ * @param userId
+ */
 export async function confirmAllocationPreview(
   tenantId: string,
   previewId: string,
@@ -229,6 +248,11 @@ export async function confirmAllocationPreview(
   return (await getAllocationPreview(tenantId, previewId))!;
 }
 
+/**
+ *
+ * @param tenantId
+ * @param previewId
+ */
 export async function getAllocationPreview(
   tenantId: string,
   previewId: string
@@ -247,6 +271,14 @@ export async function getAllocationPreview(
   return mapPreviewRow(rows[0]);
 }
 
+/**
+ *
+ * @param tx
+ * @param tx.$executeRaw
+ * @param tenantId
+ * @param previewId
+ * @param userId
+ */
 export async function markAllocationPreviewPosted(
   tx: { $executeRaw: typeof prisma.$executeRaw },
   tenantId: string,

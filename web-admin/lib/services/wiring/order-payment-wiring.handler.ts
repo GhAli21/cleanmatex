@@ -11,6 +11,7 @@ import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/ty
  * wiringMode does not lose explicit PENDING card/check/bank statuses.
  * CASH and CARD are immediately COMPLETED.
  * Bank transfers, checks, and gateway payments start PENDING.
+ * @param line
  */
 function resolvePaymentStatus(line: VoucherLineForWiring): string {
   if (line.payment_status) return line.payment_status;

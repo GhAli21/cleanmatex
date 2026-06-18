@@ -21,6 +21,14 @@ interface AddItemModalProps {
   branches?: BranchOption[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onClose
+ * @param root0.onSuccess
+ * @param root0.branchId
+ * @param root0.branches
+ */
 export default function AddItemModal({ onClose, onSuccess, branchId, branches = [] }: AddItemModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');

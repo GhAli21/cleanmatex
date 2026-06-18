@@ -25,6 +25,9 @@ const SEQ_LEN = 6;
  * Generate the next BVM voucher number for a tenant + voucher type.
  * Must be called inside a Prisma $transaction.
  * Uses pg_advisory_xact_lock to prevent concurrent number generation for the same tenant.
+ * @param tenantOrgId
+ * @param voucherType
+ * @param tx
  */
 export async function generateBizVoucherNo(
   tenantOrgId: string,

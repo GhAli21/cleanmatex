@@ -22,7 +22,11 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
-/** List all reconciliation runs for the tenant (paginated). */
+/**
+ * List all reconciliation runs for the tenant (paginated).
+ * @param page
+ * @param pageSize
+ */
 export async function listReconRunsAction(page = 1, pageSize = 20) {
   try {
     const auth = await getAuthContext();
@@ -59,7 +63,14 @@ export async function listReconRunsAction(page = 1, pageSize = 20) {
   }
 }
 
-/** Trigger a new reconciliation run. */
+/**
+ * Trigger a new reconciliation run.
+ * @param params
+ * @param params.periodFrom
+ * @param params.periodTo
+ * @param params.currencyCode
+ * @param params.branchId
+ */
 export async function runReconciliationAction(params: {
   periodFrom: string;
   periodTo: string;
@@ -87,7 +98,10 @@ export async function runReconciliationAction(params: {
   }
 }
 
-/** Get a single reconciliation run with its issues. */
+/**
+ * Get a single reconciliation run with its issues.
+ * @param runId
+ */
 export async function getReconRunAction(runId: string) {
   try {
     const auth = await getAuthContext();

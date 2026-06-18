@@ -8,6 +8,9 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
+/**
+ *
+ */
 export function ArDisputePanel() {
   const t = useTranslations('invoices.ar.v2.disputes');
   const router = useRouter();

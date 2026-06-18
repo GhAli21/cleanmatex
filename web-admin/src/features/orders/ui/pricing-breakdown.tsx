@@ -31,6 +31,17 @@ interface PricingBreakdownProps {
   }>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.subtotal
+ * @param root0.discount
+ * @param root0.tax
+ * @param root0.total
+ * @param root0.taxRate
+ * @param root0.priceListType
+ * @param root0.items
+ */
 export function PricingBreakdown({
   subtotal,
   discount,

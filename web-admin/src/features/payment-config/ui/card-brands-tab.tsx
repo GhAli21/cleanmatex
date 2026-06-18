@@ -23,6 +23,10 @@ interface CardBrandsTabProps {
 /**
  * Card brands are editable only at the label/order level because the HQ code
  * remains the shared payment-data contract across the platform.
+ * @param root0
+ * @param root0.brands
+ * @param root0.isLoading
+ * @param root0.onRefresh
  */
 export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabProps) {
   const t = useTranslations('paymentConfig');
@@ -52,6 +56,8 @@ export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabPro
   /**
    * Applies optimistic active-state toggles so enable/disable feels immediate
    * while the server keeps the row for later re-enable flows.
+   * @param brand
+   * @param nextActive
    */
   const handleToggle = (brand: OrgCardBrandConfig, nextActive: boolean) => {
     setLocalActive((previous) => ({ ...previous, [brand.id]: nextActive }));

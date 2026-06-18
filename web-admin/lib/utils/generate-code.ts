@@ -1,6 +1,7 @@
 /**
  * Generate a clean code from a name (uppercase, no spaces, underscores)
  * Used for customer category codes and similar slug/code fields
+ * @param name
  */
 export function generateCode(name: string): string {
   return name
@@ -16,6 +17,8 @@ export function generateCode(name: string): string {
  * When name is empty or produces no valid code (e.g. Arabic-only), return CUST_CTG_00XX
  * where XX = last display_order + 1 (padded to 4 digits).
  * Useful when user language is Arabic and they type the name first.
+ * @param name
+ * @param categories
  */
 export function generateCustomerCategoryCode(
   name: string,

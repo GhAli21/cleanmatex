@@ -1,5 +1,10 @@
 /**
  * Normalizes `GET /api/v1/orders/[id]/state` JSON: some callers used `data.order` while the route returns `order` at top level.
+ * @param json
+ * @param json.success
+ * @param json.data
+ * @param json.data.order
+ * @param json.order
  */
 export function getOrderFromStateResponse(json: {
   success?: boolean;
@@ -10,7 +15,10 @@ export function getOrderFromStateResponse(json: {
   return json.data?.order ?? json.order ?? null;
 }
 
-/** Customer display fields from `org_orders_mst` row + `org_customers_mst` join on state payload. */
+/**
+ * Customer display fields from `org_orders_mst` row + `org_customers_mst` join on state payload.
+ * @param raw
+ */
 export function mapOrderCustomerFromStateRow(raw: Record<string, unknown>): {
   name: string;
   phone: string;

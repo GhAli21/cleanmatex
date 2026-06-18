@@ -18,6 +18,14 @@ interface CmxFormProps<TFieldValues extends FieldValues> {
   children: React.ReactNode
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.form
+ * @param root0.onSubmit
+ * @param root0.className
+ * @param root0.children
+ */
 export function CmxForm<TFieldValues extends FieldValues>({
   form,
   onSubmit,
@@ -44,6 +52,15 @@ interface CmxFormFieldProps<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.name
+ * @param root0.label
+ * @param root0.description
+ * @param root0.children
+ * @param root0.form
+ */
 export function CmxFormField<TFieldValues extends FieldValues>({
   name,
   label,

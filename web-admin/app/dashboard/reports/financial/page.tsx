@@ -1,6 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import { FinancialReportsClient } from '@features/reports/ui/financial-reports-client';
 
+/**
+ *
+ */
 export default async function FinancialReportsPage() {
   const t = await getTranslations('reports.financial');
 

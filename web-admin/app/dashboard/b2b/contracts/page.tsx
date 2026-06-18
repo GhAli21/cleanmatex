@@ -30,6 +30,9 @@ type B2bCustomerRow = {
   display_name: string | null;
 };
 
+/**
+ *
+ */
 export default function B2BContractsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();

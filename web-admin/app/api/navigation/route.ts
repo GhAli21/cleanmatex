@@ -10,6 +10,8 @@ import type { UserRole } from '@/config/navigation'
  * 
  * Returns navigation items filtered by user permissions
  * Uses database function to build parent chain automatically
+ * @param promise
+ * @param timeoutMs
  */
 // Add timeout wrapper for Vercel (10s timeout on Hobby plan)
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
@@ -24,6 +26,10 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<
 export const runtime = 'nodejs' // Ensure Node.js runtime
 export const maxDuration = 10 // Vercel timeout limit
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: Request) {
   const startTime = Date.now()
   console.log('[API] GET /api/navigation - Request started at', new Date().toISOString())

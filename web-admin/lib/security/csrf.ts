@@ -13,6 +13,7 @@ const CSRF_TOKEN_LENGTH = 32; // 256 bits
 
 /**
  * Helper: Convert ArrayBuffer/Uint8Array to Hex String
+ * @param buffer
  */
 function bufferToHex(buffer: ArrayBuffer | Uint8Array): string {
   return Array.from(new Uint8Array(buffer))
@@ -40,6 +41,7 @@ export async function getCSRFToken(): Promise<string | null> {
 
 /**
  * Get CSRF token from request cookies (for middleware)
+ * @param request
  */
 export function getCSRFTokenFromRequest(request: NextRequest): string | null {
   return request.cookies.get(CSRF_TOKEN_COOKIE_NAME)?.value || null;
@@ -47,6 +49,7 @@ export function getCSRFTokenFromRequest(request: NextRequest): string | null {
 
 /**
  * Set CSRF token in cookies (for server components/API routes)
+ * @param token
  */
 export async function setCSRFToken(token: string): Promise<void> {
   const cookieStore = await cookies();
@@ -61,6 +64,8 @@ export async function setCSRFToken(token: string): Promise<void> {
 
 /**
  * Set CSRF token in response cookies (for middleware)
+ * @param response
+ * @param token
  */
 export function setCSRFTokenInResponse(response: NextResponse, token: string): void {
   response.cookies.set(CSRF_TOKEN_COOKIE_NAME, token, {
@@ -91,6 +96,7 @@ export function validateCSRFToken(requestToken: string | null, cookieToken: stri
 
 /**
  * Get CSRF token from request header
+ * @param headers
  */
 export function getCSRFTokenFromHeader(headers: Headers): string | null {
   return headers.get(CSRF_TOKEN_HEADER_NAME);
@@ -99,6 +105,7 @@ export function getCSRFTokenFromHeader(headers: Headers): string | null {
 /**
  * Hash token for additional security (optional)
  * WARNING: This is now ASYNC because Web Crypto is async
+ * @param token
  */
 export async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();

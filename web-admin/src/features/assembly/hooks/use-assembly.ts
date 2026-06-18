@@ -10,6 +10,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface AssemblyTask {
   id: string;
   orderId: string;
@@ -21,6 +24,9 @@ export interface AssemblyTask {
   locationId?: string;
 }
 
+/**
+ *
+ */
 export interface AssemblyDashboard {
   pendingTasks: number;
   inProgressTasks: number;
@@ -29,6 +35,9 @@ export interface AssemblyDashboard {
   exceptionsOpen: number;
 }
 
+/**
+ *
+ */
 export function useAssemblyDashboard() {
   const { currentTenant } = useAuth();
 
@@ -50,6 +59,9 @@ export function useAssemblyDashboard() {
   });
 }
 
+/**
+ *
+ */
 export function useCreateAssemblyTask() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();
@@ -87,6 +99,9 @@ export function useCreateAssemblyTask() {
   });
 }
 
+/**
+ *
+ */
 export function useStartAssemblyTask() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();
@@ -129,6 +144,9 @@ export function useStartAssemblyTask() {
   });
 }
 
+/**
+ *
+ */
 export function useScanItem() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();
@@ -175,6 +193,9 @@ export function useScanItem() {
   });
 }
 
+/**
+ *
+ */
 export function usePerformQA() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();
@@ -225,6 +246,9 @@ export function usePerformQA() {
   });
 }
 
+/**
+ *
+ */
 export function usePackOrder() {
   const { currentTenant, user } = useAuth();
   const queryClient = useQueryClient();

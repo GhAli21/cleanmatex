@@ -13,6 +13,9 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 
+/**
+ *
+ */
 export default function B2BCustomersPage() {
   const t = useTranslations('b2b');
   const router = useRouter();

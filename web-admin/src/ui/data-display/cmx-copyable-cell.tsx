@@ -25,6 +25,14 @@ interface CmxCopyableCellProps {
 /**
  * Table cell (or span) that displays a value and copies it to clipboard on click.
  * Shows a brief success toast when copied.
+ * @param root0
+ * @param root0.value
+ * @param root0.displayValue
+ * @param root0.emptyPlaceholder
+ * @param root0.className
+ * @param root0.maxLength
+ * @param root0.align
+ * @param root0.as
  */
 export function CmxCopyableCell({
   value,

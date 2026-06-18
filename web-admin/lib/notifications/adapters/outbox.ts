@@ -10,12 +10,22 @@ import type { NotificationEvent } from '@lib/notifications/types';
 import { OUTBOX_STATUS } from '@lib/notifications/types';
 import { renderChannelTemplate } from '@lib/notifications/template-renderer';
 
+/**
+ *
+ */
 export interface EnqueueOptions {
   scheduledAt?: Date;
   skipReason?: string;
 }
 
-/** Format: {tenant_org_id}:{event_code}:{channel}:{source_entity_id}:{recipient_user_id} */
+/**
+ * Format: {tenant_org_id}:{event_code}:{channel}:{source_entity_id}:{recipient_user_id}
+ * @param tenantOrgId
+ * @param eventCode
+ * @param channelCode
+ * @param sourceEntityId
+ * @param recipientUserId
+ */
 function buildOutboxIdempotencyKey(
   tenantOrgId: string,
   eventCode: string,
@@ -34,6 +44,12 @@ async function resolveRecipientAddress(userId: string, channelCode: string): Pro
   return data.user.email ?? null;
 }
 
+/**
+ *
+ * @param event
+ * @param channelCode
+ * @param opts
+ */
 export async function enqueueOutbox(
   event: NotificationEvent,
   channelCode: string,

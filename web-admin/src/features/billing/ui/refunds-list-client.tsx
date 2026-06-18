@@ -54,6 +54,12 @@ function statusBadgeClass(status: string): string {
   return map[status] ?? 'bg-gray-100 text-gray-800';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.refunds
+ * @param root0.pagination
+ */
 export default function RefundsListClient({ refunds, pagination }: RefundsListClientProps) {
   const t = useTranslations('billing.refunds');
   const tCommon = useTranslations('common');

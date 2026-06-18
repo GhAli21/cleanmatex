@@ -16,6 +16,9 @@ import OrdersReportTable from '@features/reports/ui/orders-report-table-rprt';
 const ORDER_STATUSES = ['intake', 'pending', 'preparing', 'processing', 'ready', 'delivered', 'completed', 'cancelled'];
 const BASE_PATH = '/dashboard/reports/orders';
 
+/**
+ *
+ */
 export default function OrdersReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();

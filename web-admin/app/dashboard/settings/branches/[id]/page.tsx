@@ -17,6 +17,9 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { settingsClient, type ResolvedSetting, type SettingDefinition } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
+/**
+ *
+ */
 export default function BranchSettingsPage() {
   const params = useParams();
   const router = useRouter();

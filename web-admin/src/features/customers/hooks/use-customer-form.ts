@@ -16,11 +16,18 @@ import type {
   CustomerUpdateRequest,
 } from '@/lib/types/customer';
 
+/**
+ *
+ */
 export interface UseCustomerFormOptions {
   onSuccess?: (customer: Customer) => void;
   onError?: (message: string) => void;
 }
 
+/**
+ *
+ * @param options
+ */
 export function useCustomerForm(options: UseCustomerFormOptions = {}) {
   const { onSuccess, onError } = options;
   const [submitting, setSubmitting] = useState(false);

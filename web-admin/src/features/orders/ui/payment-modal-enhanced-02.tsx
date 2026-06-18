@@ -34,7 +34,13 @@ import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { Control } from 'react-hook-form';
 import type { PaymentMethodCode } from '@/lib/constants/order-types';
 
-/** B2B contract selector - fetches contracts for customer */
+/**
+ * B2B contract selector - fetches contracts for customer
+ * @param root0
+ * @param root0.customerId
+ * @param root0.control
+ * @param root0.isRTL
+ */
 function B2BContractsSelect({
   customerId,
   control,
@@ -109,6 +115,25 @@ interface PaymentModalProps {
   initialPaymentNotes?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSubmit
+ * @param root0.total
+ * @param root0.items
+ * @param root0.isExpress
+ * @param root0.tenantOrgId
+ * @param root0.customerId
+ * @param root0.customerType
+ * @param root0.serviceCategories
+ * @param root0.branchId
+ * @param root0.userId
+ * @param root0.isRetailOnlyOrder
+ * @param root0.loading
+ * @param root0.initialPaymentNotes
+ */
 export function PaymentModalEnhanced02({
   open,
   onClose,
@@ -435,7 +460,7 @@ export function PaymentModalEnhanced02({
       // When switching to an immediate method, reset to single leg with full total
       setPaymentLegs([{ method: paymentMethod as PaymentMethodCode, amount: 0 }]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [paymentMethod]);
 
   const currencyCode = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
@@ -1577,7 +1602,7 @@ export function PaymentModalEnhanced02({
                               inputMode="numeric"
                               maxLength={20}
                               dir="ltr"
-                              // eslint-disable-next-line jsx-a11y/no-autofocus
+                               
                               autoFocus
                               autoComplete="one-time-code"
                               placeholder={t('giftCard.pinPlaceholder')}

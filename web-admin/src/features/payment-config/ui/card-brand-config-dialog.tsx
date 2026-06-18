@@ -34,6 +34,11 @@ interface CardBrandConfigDialogProps {
 /**
  * The dialog allows tenants to override only presentation fields while keeping
  * the HQ card brand code locked for payment data consistency.
+ * @param root0
+ * @param root0.brand
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
  */
 export function CardBrandConfigDialog({
   brand,
@@ -57,6 +62,7 @@ export function CardBrandConfigDialog({
 
   /**
    * Saves tenant-visible label and order overrides for the selected card brand.
+   * @param values
    */
   const handleSubmit = (values: UpdateCardBrandConfigFormValues) => {
     startTransition(async () => {

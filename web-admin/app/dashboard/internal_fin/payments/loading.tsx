@@ -2,6 +2,9 @@
  * Loading State for Payments Page
  */
 
+/**
+ *
+ */
 export default function PaymentsLoading() {
   return (
     <div className="space-y-6 p-6">

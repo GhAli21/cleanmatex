@@ -14,6 +14,9 @@ import QRCode from 'qrcode';
 // Note: jsbarcode requires canvas which doesn't work well in Next.js server-side
 // We'll use a simpler approach for barcodes or generate them client-side
 
+/**
+ *
+ */
 export interface QRCodeData {
   orderNumber: string;
   tenantOrgId: string;
@@ -21,6 +24,9 @@ export interface QRCodeData {
   customerId?: string;
 }
 
+/**
+ *
+ */
 export interface QRCodeOptions {
   errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
   width?: number;

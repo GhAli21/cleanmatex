@@ -24,6 +24,12 @@ const paramsSchema = z.object({
   voucherId: z.string().uuid(),
 });
 
+/**
+ *
+ * @param request
+ * @param context
+ * @param context.params
+ */
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ voucherId: string }> },

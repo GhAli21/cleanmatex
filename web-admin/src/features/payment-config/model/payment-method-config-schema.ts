@@ -109,5 +109,11 @@ export const payTabsGatewayConfigSchema = z.object({
   cancelUrl: z.string().url(),
 });
 
+/**
+ *
+ */
 export type CreatePaymentMethodConfigFormValues = z.infer<typeof createPaymentMethodConfigSchema>;
+/**
+ *
+ */
 export type UpdatePaymentMethodConfigFormValues = z.infer<typeof updatePaymentMethodConfigSchema>;

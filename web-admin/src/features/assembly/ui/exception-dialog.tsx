@@ -34,6 +34,13 @@ const SEVERITY_LEVELS = [
   { value: 'CRITICAL', label: 'Critical' },
 ];
 
+/**
+ *
+ * @param root0
+ * @param root0.taskId
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function ExceptionDialog({ taskId, onClose, onSuccess }: ExceptionDialogProps) {
   const [exceptionType, setExceptionType] = useState('');
   const [severity, setSeverity] = useState('MEDIUM');

@@ -19,6 +19,12 @@ interface FastItemizerProps {
   productCatalog: Array<{ id: string; name: string; name2?: string; price: number; expressPrice?: number; serviceCategory: string; unit: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.productCatalog
+ */
 export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
   const router = useRouter();
   const t = useTranslations('workflow');

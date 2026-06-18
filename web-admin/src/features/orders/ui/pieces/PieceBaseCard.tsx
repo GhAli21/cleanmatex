@@ -7,6 +7,9 @@ import { CmxCard } from '@ui/primitives/cmx-card';
 import type { OrderItemPiece } from '@/types/order';
 import { Shirt, Scissors } from 'lucide-react'; // Fallback icons
 
+/**
+ *
+ */
 export interface PieceBaseCardProps {
   piece: OrderItemPiece;
   rejectColor?: string;
@@ -23,6 +26,16 @@ function formatPieceCodeDisplay(code: string): { short: string; full: string } {
   return { short: `…${full.slice(-8)}`, full };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.rejectColor
+ * @param root0.className
+ * @param root0.actionSlot
+ * @param root0.detailsSlot
+ * @param root0.statusSlot
+ */
 export function PieceBaseCard({
   piece,
   rejectColor = '#10B981',

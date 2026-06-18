@@ -24,6 +24,13 @@ interface CreatePaymentFormProps {
 
 const PAYMENT_KINDS = ['invoice', 'deposit', 'advance', 'pos'] as const;
 
+/**
+ *
+ * @param root0
+ * @param root0.paymentMethods
+ * @param root0.paymentTypes
+ * @param root0.defaultCurrencyCode
+ */
 export default function CreatePaymentForm({
   paymentMethods,
   paymentTypes,

@@ -145,6 +145,12 @@ function SmartSuggestionsForCustomer({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.smartSuggestionsEnabled
+ * @param root0.branchId
+ */
 export function SmartSuggestionsPanel({
   smartSuggestionsEnabled = true,
   branchId,

@@ -33,6 +33,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 const AGING_COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#F97316', '#EF4444'];
 
+/**
+ *
+ * @param root0
+ * @param root0.invoicesByStatus
+ * @param root0.agingBuckets
+ * @param root0.collectionTrend
+ * @param root0.currencyCode
+ */
 export default function InvoicesReportCharts({
   invoicesByStatus,
   agingBuckets,

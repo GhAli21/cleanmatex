@@ -744,6 +744,8 @@ export async function checkOrderCreditApplicationNotInDiscounts(
  *  3. For every affected order, the sum of completed payment rows whose linked
  *     voucher line is ORDER_PAYMENT + target ORDER/{order_id} must equal the
  *     header `total_paid_amount`.
+ * @param tenantOrgId
+ * @param window
  */
 export async function checkPaymentTargetVsOrderTotals(
   tenantOrgId: string,
@@ -985,6 +987,8 @@ export async function checkPaymentTargetVsOrderTotals(
  *       APPLIED                        -> total_credit_applied_amount
  *       PENDING/RESERVED/PROCESSING    -> pending_credit_application_amount
  *       FAILED/CANCELLED/EXPIRED       -> failed_credit_application_amount
+ * @param tenantOrgId
+ * @param window
  */
 export async function checkCreditAppLifecycleConsistency(
   tenantOrgId: string,
@@ -1249,6 +1253,8 @@ export async function checkCreditAppLifecycleConsistency(
 /**
  * ADR-039 requires a stored historical exchange rate for base-currency
  * snapshots. Missing or zero rates make every base_cur_* projection unusable.
+ * @param tenantOrgId
+ * @param window
  */
 export async function checkBaseCurrencyRatePresent(
   tenantOrgId: string,
@@ -1286,6 +1292,8 @@ export async function checkBaseCurrencyRatePresent(
 /**
  * Compares base_cur_* reporting snapshots to transaction-currency amounts
  * projected with the stored order-level historical exchange rate.
+ * @param tenantOrgId
+ * @param window
  */
 export async function checkBaseVsOrderAmountConsistency(
   tenantOrgId: string,
@@ -1373,6 +1381,8 @@ export async function checkBaseVsOrderAmountConsistency(
  * branch/tenant config. A mismatch means the snapshot was calculated under
  * a different mode than what the branch is now configured for and the order
  * needs a re-snapshot.
+ * @param tenantId
+ * @param window
  */
 export async function checkPricingModeConsistency(
   tenantId: string,
@@ -1440,6 +1450,8 @@ export async function checkPricingModeConsistency(
  * Flags any active, processed refund that still carries MANUAL_EXCEPTION
  * as its refund_source_type. These rows require finance lead review and
  * explicit reclassification via the `refunds:mark_manual_exception` permission.
+ * @param tenantId
+ * @param window
  */
 export async function checkRefundSourceLineageClassification(
   tenantId: string,
@@ -1492,6 +1504,8 @@ export async function checkRefundSourceLineageClassification(
  * Verifies that reopens_due_amount <= refund_amount on every active refund row.
  * The DB-level CHECK constraint enforces this at write time; this reconciliation
  * check catches any rows that bypassed the constraint (e.g. direct SQL updates).
+ * @param tenantId
+ * @param window
  */
 export async function checkRefundReopensDueBound(
   tenantId: string,
@@ -1549,6 +1563,8 @@ export async function checkRefundReopensDueBound(
  * A gap means a sequence number between 1 and last_sequence has no matching
  * ISSUED document row (SUPERSEDED documents still hold their sequence number
  * so they don't count as gaps).
+ * @param tenantId
+ * @param window
  */
 export async function checkTaxDocSequenceGaps(
   tenantId: string,
@@ -1612,6 +1628,8 @@ export async function checkTaxDocSequenceGaps(
  * RECON_TAX_DOC_IMMUTABILITY — detects ISSUED documents that were updated
  * after issuance (updated_at > issued_at). This should never occur if the
  * DB trigger is in place; this check is the application-layer safety net.
+ * @param tenantId
+ * @param window
  */
 export async function checkTaxDocImmutability(
   tenantId: string,
@@ -1655,6 +1673,8 @@ export async function checkTaxDocImmutability(
  *
  * Note: a mismatch is expected for SUPERSEDED documents (the correction chain
  * takes care of the delta), so those are excluded.
+ * @param tenantId
+ * @param window
  */
 export async function checkTaxDocVsOrderTotals(
   tenantId: string,

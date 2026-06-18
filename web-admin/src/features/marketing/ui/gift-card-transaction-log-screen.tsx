@@ -52,7 +52,10 @@ const TX_TYPE_BADGE: Record<
   BONUS_REDEEM: 'secondary',
 };
 
-/** Returns a signed, coloured amount string for each transaction type. */
+/**
+ * Returns a signed, coloured amount string for each transaction type.
+ * @param row
+ */
 function formatSignedAmount(row: GiftCardTransactionLogRow): {
   text: string;
   className: string;
@@ -68,7 +71,11 @@ function formatSignedAmount(row: GiftCardTransactionLogRow): {
   return { text: `+${formatted}`, className: 'text-green-600 font-medium tabular-nums' };
 }
 
-/** Truncate a long string in the middle for display. */
+/**
+ * Truncate a long string in the middle for display.
+ * @param value
+ * @param maxLen
+ */
 function truncateMid(value: string, maxLen = 20): string {
   if (value.length <= maxLen) return value;
   const half = Math.floor(maxLen / 2);
@@ -79,6 +86,9 @@ function truncateMid(value: string, maxLen = 20): string {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ */
 export function GiftCardTransactionLogScreen() {
   const t = useTranslations('marketing.giftCards');
   const tLog = useTranslations('marketing.giftCards.transactionLog');

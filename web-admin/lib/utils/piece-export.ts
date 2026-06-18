@@ -6,12 +6,20 @@
 import type { OrderItemPiece } from '@/types/order';
 import { formatDateTime } from './rtl';
 
+/**
+ *
+ */
 export interface PieceExportOptions {
   format: 'csv' | 'excel';
   includeHeaders?: boolean;
   fields?: string[];
 }
 
+/**
+ *
+ * @param pieces
+ * @param options
+ */
 export function exportPiecesToCSV(
   pieces: OrderItemPiece[],
   options: PieceExportOptions = { format: 'csv' }
@@ -46,6 +54,12 @@ export function exportPiecesToCSV(
   return csvContent;
 }
 
+/**
+ *
+ * @param pieces
+ * @param filename
+ * @param options
+ */
 export function downloadPiecesCSV(
   pieces: OrderItemPiece[],
   filename: string = 'pieces-export.csv',

@@ -17,6 +17,7 @@ interface UploadPhotoResult {
 /**
  * Upload a photo for an order
  * This is a server action that handles file upload to MinIO
+ * @param formData
  */
 export async function uploadPhotoAction(
   formData: FormData
@@ -70,6 +71,8 @@ export async function uploadPhotoAction(
 
 /**
  * Upload multiple photos at once
+ * @param orderId
+ * @param files
  */
 export async function uploadMultiplePhotos(
   orderId: string,

@@ -16,6 +16,9 @@ import InvoicesReportTable from '@features/reports/ui/invoices-report-table-rprt
 const INVOICE_STATUSES = ['pending', 'paid', 'partial', 'overdue', 'draft', 'cancelled'];
 const BASE_PATH = '/dashboard/reports/invoices';
 
+/**
+ *
+ */
 export default function InvoicesReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();

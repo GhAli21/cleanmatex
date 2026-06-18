@@ -32,6 +32,10 @@ import type {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
+/**
+ *
+ * @param input
+ */
 export async function createBizVoucherAction(
   input: CreateBizVoucherInput
 ): Promise<{ success: boolean; data?: { id: string; voucher_no: string }; error?: string }> {
@@ -50,6 +54,11 @@ export async function createBizVoucherAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ * @param input
+ */
 export async function updateBizVoucherAction(
   voucherId: string,
   input: UpdateBizVoucherInput
@@ -70,6 +79,11 @@ export async function updateBizVoucherAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ * @param idempotencyKey
+ */
 export async function postBizVoucherAction(
   voucherId: string,
   idempotencyKey?: string
@@ -98,6 +112,11 @@ export async function postBizVoucherAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ * @param reason
+ */
 export async function cancelBizVoucherAction(
   voucherId: string,
   reason: string
@@ -119,6 +138,11 @@ export async function cancelBizVoucherAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ * @param reason
+ */
 export async function reverseBizVoucherAction(
   voucherId: string,
   reason: string
@@ -140,6 +164,10 @@ export async function reverseBizVoucherAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ */
 export async function getBizVoucherDetailAction(
   voucherId: string
 ): Promise<{ success: boolean; data?: BizVoucherDetailData; error?: string }> {
@@ -155,6 +183,10 @@ export async function getBizVoucherDetailAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ */
 export async function getVoucherLinkedEffectsAction(
   voucherId: string
 ): Promise<{ success: boolean; data?: LinkedEffectsResult; error?: string }> {
@@ -170,6 +202,12 @@ export async function getVoucherLinkedEffectsAction(
   }
 }
 
+/**
+ *
+ * @param filters
+ * @param page
+ * @param pageSize
+ */
 export async function listBizVouchersAction(
   filters: VoucherListFilters = {},
   page = 1,

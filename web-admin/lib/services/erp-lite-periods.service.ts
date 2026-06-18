@@ -13,10 +13,17 @@ import type {
   PeriodStatus,
 } from '@/lib/types/erp-lite-ops';
 
+/**
+ *
+ */
 export class ErpLitePeriodsService {
   // -------------------------------------------------------
   // List all periods for the current tenant
   // -------------------------------------------------------
+  /**
+   *
+   * @param locale
+   */
   static async listPeriods(locale: 'en' | 'ar' = 'en'): Promise<ErpLitePeriodRow[]> {
     const tenantId = await this.requireTenantId();
     const nameSql =
@@ -25,6 +32,9 @@ export class ErpLitePeriodsService {
         : Prisma.sql`p.name`;
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type RawRow = {
         id: string;
         tenant_org_id: string;
@@ -86,6 +96,10 @@ export class ErpLitePeriodsService {
   // -------------------------------------------------------
   // Create a new OPEN period
   // -------------------------------------------------------
+  /**
+   *
+   * @param input
+   */
   static async createPeriod(input: CreatePeriodInput): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();
@@ -114,10 +128,17 @@ export class ErpLitePeriodsService {
   // -------------------------------------------------------
   // Period close precheck (draft journals + open exceptions in-range)
   // -------------------------------------------------------
+  /**
+   *
+   * @param periodId
+   */
   static async precheckPeriodClose(periodId: string): Promise<PeriodClosePrecheckResult> {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
+      /**
+       *
+       */
       type PeriodHead = {
         id: string;
         period_code: string;
@@ -231,6 +252,10 @@ export class ErpLitePeriodsService {
   // -------------------------------------------------------
   // Close an OPEN period
   // -------------------------------------------------------
+  /**
+   *
+   * @param input
+   */
   static async closePeriod(input: ClosePeriodInput): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();

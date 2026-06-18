@@ -14,6 +14,12 @@ interface ErpLiteArAgingGridProps {
   displayConfig: ErpLiteDisplayConfig
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.displayConfig
+ */
 export function ErpLiteArAgingGrid({ rows, displayConfig }: ErpLiteArAgingGridProps) {
   const t = useTranslations('erpLite.reports.arAging')
   const grouped = new Map<string, ErpLiteArAgingRow[]>()

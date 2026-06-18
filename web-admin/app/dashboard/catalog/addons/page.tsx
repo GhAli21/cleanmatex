@@ -10,6 +10,9 @@ import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { Tag } from 'lucide-react';
 
+/**
+ *
+ */
 export default function CatalogAddonsPage() {
   const t = useTranslations('catalog');
 

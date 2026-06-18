@@ -6,11 +6,17 @@
 import type { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
 
+/**
+ *
+ */
 export interface RequestAuditContext {
   userAgent?: string;
   userIp?: string;
 }
 
+/**
+ *
+ */
 export interface ServerAuditContext {
   userId?: string;
   userName?: string;
@@ -20,6 +26,7 @@ export interface ServerAuditContext {
 
 /**
  * Extract audit context from request headers
+ * @param request
  */
 export function getRequestAuditContext(
   request: NextRequest

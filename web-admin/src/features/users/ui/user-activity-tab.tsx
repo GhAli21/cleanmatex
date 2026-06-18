@@ -133,6 +133,12 @@ function UserAuditLogTable({ userId, tenantId, formatDate, emptyLabel }: UserAud
   )
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.userId
+ * @param root0.tenantId
+ */
 export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
   const t = useTranslations('users.detail')
   const tCommon = useTranslations('common')

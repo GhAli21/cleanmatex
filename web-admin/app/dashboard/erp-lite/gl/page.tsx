@@ -29,6 +29,11 @@ interface GlPageProps {
   }>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
   const t = await getTranslations('erpLite.reports')
   const tCommon = await getTranslations('erpLite.common')

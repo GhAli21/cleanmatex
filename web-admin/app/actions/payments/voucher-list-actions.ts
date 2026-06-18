@@ -11,6 +11,17 @@ import { listVouchers } from '@/lib/services/voucher-service';
 
 /**
  * List all vouchers with filtering and pagination
+ * @param params
+ * @param params.page
+ * @param params.limit
+ * @param params.voucher_status
+ * @param params.voucherCategory
+ * @param params.voucherType
+ * @param params.fromDate
+ * @param params.toDate
+ * @param params.search
+ * @param params.sortBy
+ * @param params.sortOrder
  */
 export async function listVouchersAction(params: {
   page?: number;

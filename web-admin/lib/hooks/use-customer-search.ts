@@ -17,6 +17,9 @@ export const CUSTOMER_SEARCH_MIN_CHARS = 2;
 export const CUSTOMER_SEARCH_MIN_PHONE = 3;
 export const CUSTOMER_SEARCH_MIN_EMAIL = 3;
 
+/**
+ *
+ */
 export interface UseCustomerSearchOptions {
   search: string;
   searchPhone?: string;
@@ -28,6 +31,9 @@ export interface UseCustomerSearchOptions {
   minChars?: number;
 }
 
+/**
+ *
+ */
 export interface UseCustomerSearchResult {
   customers: CustomerSearchItem[];
   isLoading: boolean;
@@ -41,6 +47,7 @@ export interface UseCustomerSearchResult {
  * - 250ms debounce for reduced API calls
  * - Caches results per query key
  * - Stale-while-revalidate: shows previous results while refetching
+ * @param options
  */
 export function useCustomerSearch(options: UseCustomerSearchOptions): UseCustomerSearchResult {
   const {

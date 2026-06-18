@@ -26,6 +26,9 @@ import {
 } from './widgets'
 import { RecentOrdersList } from './RecentOrdersList'
 
+/**
+ *
+ */
 export default function DashboardContent() {
   const { user, currentTenant } = useAuth()
   const t = useTranslations('dashboard')

@@ -44,6 +44,13 @@ interface GeneralSettingsProps {
   effectiveSettings?: ResolvedSetting[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenant
+ * @param root0.onUpdate
+ * @param root0.effectiveSettings
+ */
 export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: GeneralSettingsProps) {
   const [formData, setFormData] = useState({
     name: tenant.name,

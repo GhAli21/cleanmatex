@@ -9,6 +9,9 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@ui/primitives';
 
+/**
+ *
+ */
 export type PieceStatus = 'intake' | 'processing' | 'qa' | 'ready';
 
 interface PieceStatusBadgeProps {
@@ -24,6 +27,13 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   ready: { bg: 'bg-green-100', text: 'text-green-700' },
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.status
+ * @param root0.isRejected
+ * @param root0.className
+ */
 export function PieceStatusBadge({
   status,
   isRejected = false,

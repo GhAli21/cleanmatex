@@ -22,6 +22,11 @@ function buildPhoneLookupCandidates(inputPhone: string) {
   );
 }
 
+/**
+ *
+ * @param phone
+ * @param traceId
+ */
 export async function listCustomerTenantsByPhone(
   phone: string,
   traceId?: string,

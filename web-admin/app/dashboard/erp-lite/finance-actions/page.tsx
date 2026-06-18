@@ -6,6 +6,9 @@ import { ErpLiteFinanceActionsAuditScreen } from '@features/erp-lite/ui/erp-lite
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
+/**
+ *
+ */
 export default async function ErpLiteFinanceActionsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const isEnabled =

@@ -4,6 +4,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { listPromotions, createPromotion } from '@/lib/services/promotion-engine.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('promotions:view')(request);
   if (auth instanceof NextResponse) return auth;
@@ -35,6 +39,10 @@ const createSchema = z.object({
   maxUsesPerCustomer:    z.number().int().positive().optional(),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;

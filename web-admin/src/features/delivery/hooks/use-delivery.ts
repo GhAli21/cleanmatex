@@ -10,6 +10,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export function useCreateRoute() {
   const { currentTenant, user } = useAuth();
 
@@ -51,6 +54,9 @@ export function useCreateRoute() {
   });
 }
 
+/**
+ *
+ */
 export function useGenerateOTP() {
   const { currentTenant, user } = useAuth();
 
@@ -85,6 +91,9 @@ export function useGenerateOTP() {
   });
 }
 
+/**
+ *
+ */
 export function useVerifyOTP() {
   const { currentTenant } = useAuth();
 
@@ -127,6 +136,9 @@ export function useVerifyOTP() {
   });
 }
 
+/**
+ *
+ */
 export function useCapturePOD() {
   const { currentTenant, user } = useAuth();
 

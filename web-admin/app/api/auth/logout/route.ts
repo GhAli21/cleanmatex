@@ -14,6 +14,10 @@ import { logger } from '@/lib/utils/logger'
 
 type LogoutReason = 'user' | 'session_expired' | 'security' | 'timeout' | 'unknown'
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

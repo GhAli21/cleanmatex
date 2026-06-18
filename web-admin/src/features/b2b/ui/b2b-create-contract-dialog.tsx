@@ -26,6 +26,12 @@ type B2bCustomerRow = {
   display_name: string | null;
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ */
 export function B2bCreateContractDialog({
   open,
   onOpenChange,

@@ -2,7 +2,7 @@
 
 import { useEffect, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -42,6 +42,14 @@ interface PaymentMethodConfigDialogProps {
   onSuccess: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.method
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: PaymentMethodConfigDialogProps) {
   const t = useTranslations('paymentConfig');
   const tCommon = useTranslations('common');
@@ -107,18 +115,20 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
     });
   };
 
-  const feeType = form.watch('fee_type');
-  const paymentNature = form.watch('payment_nature');
+  const watched = useWatch({ control: form.control });
+
+  const feeType = watched?.fee_type;
+  const paymentNature = watched?.payment_nature;
   // Tri-state form values (read once per render). Dropdowns serialize through
   // strings; helpers round-trip back to boolean | null on selection.
-  const allowStatusOverrideForm = booleanToTriState(form.watch('allow_status_override'));
-  const isUserIdRequiredForm = booleanToTriState(form.watch('is_user_id_required'));
-  const settlementTypeForm = nullableStringToFormValue(form.watch('settlement_type_code'));
-  const creditApplicationTypeForm = nullableStringToFormValue(form.watch('credit_application_type'));
-  const defaultCreationStatusForm = nullableStringToFormValue(form.watch('default_creation_status'));
+  const allowStatusOverrideForm = booleanToTriState(watched?.allow_status_override);
+  const isUserIdRequiredForm = booleanToTriState(watched?.is_user_id_required);
+  const settlementTypeForm = nullableStringToFormValue(watched?.settlement_type_code);
+  const creditApplicationTypeForm = nullableStringToFormValue(watched?.credit_application_type);
+  const defaultCreationStatusForm = nullableStringToFormValue(watched?.default_creation_status);
 
   const boolField = (field: keyof UpdatePaymentMethodConfigFormValues) => ({
-    checked: !!form.watch(field),
+    checked: !!watched?.[field],
     onCheckedChange: (v: boolean) => form.setValue(field, v as never),
   });
 
@@ -157,7 +167,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
-                  <CmxSelectDropdown value={form.watch('payment_nature')} onValueChange={(v) => form.setValue('payment_nature', v as never)}>
+                  <CmxSelectDropdown value={paymentNature} onValueChange={(v) => form.setValue('payment_nature', v as never)}>
                     <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
                       {Object.values(PAYMENT_NATURE).map((n) => (
@@ -362,7 +372,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
               </div>
               <div>
                 <label className="text-sm font-medium">{t('methods.feeType')}</label>
-                <CmxSelectDropdown value={form.watch('fee_type')} onValueChange={(v) => form.setValue('fee_type', v as never)}>
+                <CmxSelectDropdown value={feeType} onValueChange={(v) => form.setValue('fee_type', v as never)}>
                   <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                   <CmxSelectDropdownContent>
                     {Object.values(FEE_TYPES).map((f) => (

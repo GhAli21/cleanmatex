@@ -8,8 +8,14 @@ import { z } from 'zod'
 import { ReactNode } from 'react'
 
 // Row state types
+/**
+ *
+ */
 export type RowStateType = 'idle' | 'editing' | 'saving' | 'error' | 'deleted'
 
+/**
+ *
+ */
 export interface RowState<TData extends Record<string, any>> {
   original: TData
   current: TData
@@ -21,18 +27,27 @@ export interface RowState<TData extends Record<string, any>> {
 }
 
 // Change tracking
+/**
+ *
+ */
 export interface TableChanges<TData extends Record<string, any>> {
   new: TData[]
   modified: Array<{ original: TData; updated: TData }>
   deleted: Array<{ id: string | number; data: TData }>
 }
 
+/**
+ *
+ */
 export interface BulkSaveResult<TData extends Record<string, any>> {
   success: TData[]
   failed: Array<{ row: TData; error: string }>
 }
 
 // Error handling
+/**
+ *
+ */
 export interface TableError {
   type: 'save' | 'delete' | 'bulk_save' | 'validation'
   message: string
@@ -41,6 +56,9 @@ export interface TableError {
   originalError?: Error
 }
 
+/**
+ *
+ */
 export interface ErrorContext<TData extends Record<string, any>> {
   operation: 'create' | 'update' | 'delete' | 'bulk_save'
   row?: TData
@@ -49,9 +67,15 @@ export interface ErrorContext<TData extends Record<string, any>> {
 
 // Validation types (Three-Layer System)
 // Layer 1: Schema-level (Zod) - structure & base rules
+/**
+ *
+ */
 export type SchemaValidator<TData> = z.ZodSchema<TData>
 
 // Layer 2: Cell-level callbacks - custom per-column logic
+/**
+ *
+ */
 export type CellValidator<TData> = (
   value: any,
   row: TData,
@@ -59,12 +83,18 @@ export type CellValidator<TData> = (
 ) => string | null | Promise<string | null>
 
 // Layer 3: Async/Server validation - backend checks
+/**
+ *
+ */
 export type AsyncRowValidator<TData> = (
   row: TData,
   isNew: boolean
 ) => Promise<Record<string, string> | null>
 
 // Column definition extension
+/**
+ *
+ */
 export interface EditableColumnDef<TData extends Record<string, any>>
   extends Omit<ColumnDef<TData>, 'cell'> {
   editable?: boolean
@@ -86,6 +116,9 @@ export interface EditableColumnDef<TData extends Record<string, any>>
 }
 
 // Main component props
+/**
+ *
+ */
 export interface CmxEditableDataTableProps<
   TData extends Record<string, any> = Record<string, any>
 > {

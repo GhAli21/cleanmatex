@@ -15,6 +15,13 @@ interface OrderDetailsPrintProps {
   discountLines?: OrderDiscountLine[];
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.order
+ * @param root0.layout
+ * @param root0.discountLines
+ */
 export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDetailsPrintProps) {
   const tOrders = useTranslations('orders.detail');
   const tOrdersMain = useTranslations('orders');

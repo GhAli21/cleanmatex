@@ -21,6 +21,9 @@ import {
   PAYMENT_KEY_CLASS,
 } from './cmx-keypad-presets'
 
+/**
+ *
+ */
 export interface CmxMoneyKeypadProps {
   /** Canonical numeric value. Set to null/undefined to reset the field. */
   value: number | null | undefined
@@ -49,6 +52,27 @@ export interface CmxMoneyKeypadProps {
   className?: string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.onValueChange
+ * @param root0.currencyCode
+ * @param root0.decimalPlaces
+ * @param root0.min
+ * @param root0.max
+ * @param root0.disabled
+ * @param root0.placeholder
+ * @param root0.label
+ * @param root0.error
+ * @param root0.quickAddKeys
+ * @param root0.showQuickAdd
+ * @param root0.getKeyVariant
+ * @param root0.getKeyClassName
+ * @param root0.headerSlot
+ * @param root0.fieldClassName
+ * @param root0.className
+ */
 export function CmxMoneyKeypad({
   value,
   onValueChange,

@@ -3,6 +3,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('finance_reports:view')(request);
   if (auth instanceof NextResponse) return auth;
@@ -38,6 +42,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: { rows: [], grandTotal: 0 } });
     }
 
+    /**
+     *
+     */
     type TaxRow = { tax_type: string; label: string; total_taxable: number; total_tax: number; cnt: bigint };
     const taxRows = await withTenantContext(tenantId, () =>
       prisma.$queryRaw<TaxRow[]>`

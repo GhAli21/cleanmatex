@@ -55,6 +55,9 @@ const PROCESSING_STEPS = [
   { code: 'finishing', labelKey: 'steps.finishing' },
 ];
 
+/**
+ *
+ */
 export default function ProcessingDetailPage() {
   const router = useRouter();
   const params = useParams();

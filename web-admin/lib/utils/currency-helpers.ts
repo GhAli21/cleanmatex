@@ -31,6 +31,7 @@ export function formatCurrency(
  * Formats currency for current locale
  * @param amount - Amount to format
  * @param currency - Currency code (default: 'OMR')
+ * @param decimalPlaces
  * @returns Formatted currency string
  */
 export function formatCurrencyForCurrentLocale(
@@ -79,6 +80,7 @@ export function getCurrencySymbol(currency: string = DEFAULT_CURRENCY): string {
 /**
  * Validates currency code (ISO 4217 alphabetic, case-insensitive).
  * Avoids rejecting tenant-configured codes that are valid for Intl but not in a short allowlist.
+ * @param currency
  */
 export function isValidCurrencyCode(currency: string): boolean {
   const c = currency?.trim();

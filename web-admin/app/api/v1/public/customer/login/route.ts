@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { loginWithPassword } from '@/lib/services/customer-password.service';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const rateLimitResponse = await checkLoginRateLimit(request);
   if (rateLimitResponse) {

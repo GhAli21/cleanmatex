@@ -4,6 +4,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { listReconRuns, runReconciliation } from '@/lib/services/reconciliation.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('reconciliation:view')(request);
   if (auth instanceof NextResponse) return auth;
@@ -28,6 +32,10 @@ const schema = z.object({
   currencyCode: z.string().min(1),
 });
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;

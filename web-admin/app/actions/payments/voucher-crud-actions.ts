@@ -14,6 +14,7 @@ import type { CreateVoucherInput } from '@/lib/types/voucher';
 
 /**
  * Create a new voucher (draft status)
+ * @param input
  */
 export async function createVoucherAction(
   input: Omit<CreateVoucherInput, 'tenant_org_id'>
@@ -43,6 +44,14 @@ export async function createVoucherAction(
 
 /**
  * Create and issue a receipt voucher (for manual creation)
+ * @param input
+ * @param input.branch_id
+ * @param input.invoice_id
+ * @param input.order_id
+ * @param input.customer_id
+ * @param input.total_amount
+ * @param input.currency_code
+ * @param input.reason_code
  */
 export async function createAndIssueReceiptVoucherAction(
   input: {

@@ -16,6 +16,12 @@ interface OrdersStockTabRprtProps {
   };
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.transactions
+ * @param root0.translations
+ */
 export function OrdersStockTabRprt({
   transactions,
   translations: t,

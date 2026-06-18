@@ -8,6 +8,9 @@ import { CmxInput } from '@ui/primitives';
 import { Package, ScanBarcode } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 
+/**
+ *
+ */
 export interface AssemblyPieceCardProps {
   piece: OrderItemPiece;
   onAssembleScan?: (pieceId: string, barcode: string) => void;
@@ -16,6 +19,14 @@ export interface AssemblyPieceCardProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.onAssembleScan
+ * @param root0.isAssembled
+ * @param root0.readOnly
+ */
 export function AssemblyPieceCard({
   piece,
   onAssembleScan,

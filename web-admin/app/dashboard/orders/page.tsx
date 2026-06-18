@@ -35,6 +35,11 @@ interface PageProps {
   searchParams?: Promise<OrdersSearchParams>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function OrdersPage({ searchParams }: PageProps) {
   const t = await getTranslations('orders');
 

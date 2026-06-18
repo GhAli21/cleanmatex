@@ -21,6 +21,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ArStatementCyclesPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices.ar.v2.cycles');
   const auth = await getAuthContext();

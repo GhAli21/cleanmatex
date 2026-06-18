@@ -14,6 +14,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { validateRegisterForm } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
 
+/**
+ *
+ */
 export default function RegisterPage() {
   const router = useRouter()
   const { signUp, isLoading } = useAuth()

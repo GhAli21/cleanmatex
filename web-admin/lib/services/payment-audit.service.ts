@@ -9,12 +9,18 @@ import { prisma } from '@/lib/db/prisma';
 import type { Prisma } from '@prisma/client';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 
+/**
+ *
+ */
 export type PaymentAuditActionType =
   | 'CREATED'
   | 'CANCELLED'
   | 'REFUNDED'
   | 'NOTES_UPDATED';
 
+/**
+ *
+ */
 export interface RecordPaymentAuditParams {
   tenantId: string;
   paymentId: string;
@@ -44,6 +50,8 @@ type PrismaDelegate = {
 /**
  * Insert one row into org_payment_audit_log.
  * When called from inside a Prisma $transaction, pass the tx client so the audit is part of the same transaction.
+ * @param params
+ * @param client
  */
 export async function recordPaymentAudit(
   params: RecordPaymentAuditParams,
@@ -64,6 +72,14 @@ export async function recordPaymentAudit(
 
 /**
  * Build a compact snapshot of a payment row for audit before_value/after_value.
+ * @param payment
+ * @param payment.id
+ * @param payment.status
+ * @param payment.paid_amount
+ * @param payment.invoice_id
+ * @param payment.order_id
+ * @param payment.rec_notes
+ * @param payment.updated_at
  */
 export function paymentSnapshot(payment: {
   id: string;
@@ -85,6 +101,9 @@ export function paymentSnapshot(payment: {
   };
 }
 
+/**
+ *
+ */
 export interface PaymentAuditEntry {
   id: string;
   action_type: string;
@@ -96,6 +115,7 @@ export interface PaymentAuditEntry {
 
 /**
  * Get audit log entries for a payment (tenant-scoped, ordered by changed_at DESC).
+ * @param paymentId
  */
 export async function getPaymentAuditLog(
   paymentId: string

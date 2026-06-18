@@ -10,6 +10,9 @@ import { OrderService } from './order-service';
 import { ProcessingStepsService } from './processing-steps-service';
 import type { OrderStatus } from '@/lib/types/workflow';
 
+/**
+ *
+ */
 export interface RecordProcessingStepParams {
   orderId: string;
   orderItemId: string;
@@ -21,11 +24,17 @@ export interface RecordProcessingStepParams {
   userName: string;
 }
 
+/**
+ *
+ */
 export interface RecordProcessingStepResult {
   success: boolean;
   error?: string;
 }
 
+/**
+ *
+ */
 export interface MarkItemCompleteParams {
   orderId: string;
   orderItemId: string;
@@ -34,22 +43,32 @@ export interface MarkItemCompleteParams {
   userName: string;
 }
 
+/**
+ *
+ */
 export interface MarkItemCompleteResult {
   success: boolean;
   allItemsReady?: boolean;
   error?: string;
 }
 
+/**
+ *
+ */
 export interface GetItemStepsResult {
   success: boolean;
   steps?: any[];
   error?: string;
 }
 
+/**
+ *
+ */
 export class ItemProcessingService {
   /**
    * Record a processing step for an item
    * PRD-010: Track 5-step processing
+   * @param params
    */
   static async recordProcessingStep(
     params: RecordProcessingStepParams
@@ -179,6 +198,7 @@ export class ItemProcessingService {
   /**
    * Mark item as complete
    * PRD-010: Check if all items ready and auto-transition order
+   * @param params
    */
   static async markItemComplete(
     params: MarkItemCompleteParams
@@ -262,6 +282,8 @@ export class ItemProcessingService {
   /**
    * Check if all items are complete for an order
    * PRD-010: Quality gate check
+   * @param orderId
+   * @param tenantId
    */
   static async checkAllItemsReady(orderId: string, tenantId: string): Promise<boolean> {
     try {
@@ -287,6 +309,8 @@ export class ItemProcessingService {
   /**
    * Get processing steps for an item
    * PRD-010: Step history
+   * @param orderItemId
+   * @param tenantId
    */
   static async getItemSteps(
     orderItemId: string,

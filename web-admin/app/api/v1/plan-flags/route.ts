@@ -9,6 +9,9 @@ import { getPlanFlags } from '@/lib/services/plan-flags.service';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ *
+ */
 export async function GET() {
   try {
     const supabase = await createClient();

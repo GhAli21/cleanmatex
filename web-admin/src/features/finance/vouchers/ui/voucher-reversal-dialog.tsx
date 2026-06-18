@@ -11,6 +11,13 @@ interface VoucherReversalDialogProps {
   onConfirm: (reason: string) => Promise<void>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onConfirm
+ */
 export function VoucherReversalDialog({ open, onClose, onConfirm }: VoucherReversalDialogProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');

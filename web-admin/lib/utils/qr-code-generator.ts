@@ -12,6 +12,8 @@ import { logger } from './logger';
 /**
  * Generate QR code data URL for order tracking
  * Returns a data URL suitable for <img src={dataUrl} /> display
+ * @param orderNumber
+ * @param tenantId
  */
 export async function generateQRCode(
   orderNumber: string,
@@ -53,6 +55,8 @@ export async function generateQRCode(
 /**
  * Generate QR code for packing list verification
  * Returns a data URL suitable for <img src={dataUrl} /> display
+ * @param packingListNumber
+ * @param tenantId
  */
 export async function generatePackingListQRCode(
   packingListNumber: string,

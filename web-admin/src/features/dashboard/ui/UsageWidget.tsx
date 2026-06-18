@@ -18,6 +18,12 @@ interface UsageWidgetProps {
   compact?: boolean; // If true, show even more compact version
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.tenantId
+ * @param root0.compact
+ */
 export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
   const tCommon = useTranslations('common');
   const [usage, setUsage] = useState<UsageMetrics | null>(null);

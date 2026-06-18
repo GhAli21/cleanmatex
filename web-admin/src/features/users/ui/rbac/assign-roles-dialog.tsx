@@ -37,6 +37,15 @@ interface AssignRolesDialogProps {
 
 const RESOURCE_TYPES = ['branch', 'store', 'pos', 'route', 'device'] as const
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.userId
+ * @param root0.userName
+ * @param root0.onSuccess
+ */
 export function AssignRolesDialog({
   open,
   onOpenChange,
@@ -67,7 +76,7 @@ export function AssignRolesDialog({
   // Re-sync selection when dialog opens or assigned codes change
   useMemo(() => {
     setSelected(new Set(assignedCodes))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [open])
 
   const added = useMemo(

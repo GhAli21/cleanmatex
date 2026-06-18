@@ -33,6 +33,12 @@ function buildCsv(run: Awaited<ReturnType<typeof getReconRunWithIssues>>): strin
   return [headers.join(','), ...rows].join('\r\n');
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ runId: string }> }

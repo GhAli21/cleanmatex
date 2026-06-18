@@ -8,6 +8,10 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ * @param request
+ */
 export async function PATCH(request: NextRequest) {
   const authCheck = await requirePermission('notifications:manage')(request);
   if (authCheck instanceof NextResponse) return authCheck;

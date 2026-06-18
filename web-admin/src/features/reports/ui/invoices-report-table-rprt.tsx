@@ -23,6 +23,14 @@ const STATUS_BADGE: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.invoices
+ * @param root0.pagination
+ * @param root0.currencyCode
+ * @param root0.basePath
+ */
 export default function InvoicesReportTable({
   invoices,
   pagination,

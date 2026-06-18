@@ -36,6 +36,18 @@ interface BarChartProps {
   formatter?: (value: number) => string
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.data
+ * @param root0.bars
+ * @param root0.xAxisKey
+ * @param root0.height
+ * @param root0.showGrid
+ * @param root0.showLegend
+ * @param root0.horizontal
+ * @param root0.formatter
+ */
 export function BarChartComponent({
   data,
   bars,

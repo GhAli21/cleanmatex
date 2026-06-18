@@ -35,8 +35,14 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
+/**
+ *
+ */
 export type QueryParams = Record<string, string | string[] | number | boolean | undefined | null>
 
+/**
+ *
+ */
 export function useQueryParams<T extends QueryParams = QueryParams>(): [
   T,
   (params: Partial<T>, options?: { replace?: boolean }) => void,
@@ -123,6 +129,8 @@ export function useQueryParams<T extends QueryParams = QueryParams>(): [
 
 /**
  * Hook to get a single query parameter
+ * @param key
+ * @param defaultValue
  */
 export function useQueryParam<T = string>(
   key: string,
@@ -144,6 +152,7 @@ export function useQueryParam<T = string>(
 
 /**
  * Hook to manage filter state with URL synchronization
+ * @param defaultFilters
  */
 export function useFilters<T extends QueryParams>(defaultFilters?: T) {
   const [params, setParams, clearParams] = useQueryParams<T>()

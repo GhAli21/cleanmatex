@@ -10,6 +10,9 @@ import Link from 'next/link';
 import { LifeBuoy, Book, MessageCircle, Mail, ExternalLink } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 
+/**
+ *
+ */
 export default function HelpPage() {
   const t = useTranslations('help');
   const isRTL = useRTL();

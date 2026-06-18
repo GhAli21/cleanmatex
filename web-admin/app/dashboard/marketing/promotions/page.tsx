@@ -9,6 +9,9 @@ import { PromotionsListClient } from '@/src/features/marketing/ui/promotions-lis
 
 export const metadata = { title: 'Promotions — CleanMateX' };
 
+/**
+ *
+ */
 export default function PromotionsPage() {
   return (
     <div className="container mx-auto py-6">

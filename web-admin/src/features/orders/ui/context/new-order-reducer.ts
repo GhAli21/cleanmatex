@@ -5,7 +5,14 @@
 
 import type { NewOrderState, NewOrderAction, PreSubmissionPiece } from '../../model/new-order-types';
 
-/** Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty). */
+/**
+ * Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty).
+ * @param item
+ * @param item.quantity
+ * @param item.pricePerUnit
+ * @param item.servicePrefCharge
+ * @param item.packingPrefCharge
+ */
 function itemLineBasePlusPrefCharges(item: {
   quantity: number;
   pricePerUnit: number;
@@ -22,7 +29,10 @@ function itemLineBasePlusPrefCharges(item: {
 /**
  * Initial state
  */
-/** Check if all items are retail (RETAIL_ITEMS) */
+/**
+ * Check if all items are retail (RETAIL_ITEMS)
+ * @param items
+ */
 function isRetailOnlyItems(items: { serviceCategoryCode?: string }[]): boolean {
   return items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
 }
@@ -92,6 +102,8 @@ export const initialState: NewOrderState = {
 
 /**
  * New Order Reducer
+ * @param state
+ * @param action
  */
 export function newOrderReducer(
   state: NewOrderState,

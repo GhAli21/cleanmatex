@@ -17,6 +17,11 @@ import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } 
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
+/**
+ *
+ * @param voucherId
+ * @param input
+ */
 export async function addVoucherLineAction(
   voucherId: string,
   input: CreateVoucherLineInput
@@ -42,6 +47,12 @@ export async function addVoucherLineAction(
   }
 }
 
+/**
+ *
+ * @param lineId
+ * @param voucherId
+ * @param input
+ */
 export async function updateVoucherLineAction(
   lineId: string,
   voucherId: string,
@@ -62,6 +73,11 @@ export async function updateVoucherLineAction(
   }
 }
 
+/**
+ *
+ * @param lineId
+ * @param voucherId
+ */
 export async function deleteDraftVoucherLineAction(
   lineId: string,
   voucherId: string
@@ -80,6 +96,10 @@ export async function deleteDraftVoucherLineAction(
   }
 }
 
+/**
+ *
+ * @param voucherId
+ */
 export async function listVoucherLinesAction(
   voucherId: string
 ): Promise<{ success: boolean; data?: VoucherLineData[]; error?: string }> {

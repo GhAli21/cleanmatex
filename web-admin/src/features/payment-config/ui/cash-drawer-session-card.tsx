@@ -22,6 +22,14 @@ function CashDrawerSessionRow({ label, value }: { label: string; value: React.Re
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.session
+ * @param root0.drawer
+ * @param root0.open
+ * @param root0.onClose
+ */
 export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDrawerSessionCardProps) {
   const t = useTranslations('paymentConfig');
 

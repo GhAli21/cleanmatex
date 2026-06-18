@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getDrawersWithCurrentSession } from '@/lib/services/cash-drawer.service';
 
+/**
+ *
+ * @param request
+ */
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('cash_drawer:view')(request);
   if (auth instanceof NextResponse) return auth;

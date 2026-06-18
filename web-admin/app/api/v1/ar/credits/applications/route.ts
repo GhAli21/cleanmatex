@@ -4,6 +4,10 @@ import { applyArCredit } from '@/lib/services/ar-credit.service';
 import { applyArCreditSchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError } from '@/app/api/v1/ar/_shared';
 
+/**
+ *
+ * @param request
+ */
 export async function POST(request: NextRequest) {
   const auth = await requirePermission('ar_credits:apply')(request);
   if (auth instanceof NextResponse) return auth;

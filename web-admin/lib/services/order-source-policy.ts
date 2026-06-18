@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/db/prisma';
 
+/**
+ *
+ */
 export type OrderSourceCatalogRow = {
   order_source_code: string;
   requires_remote_intake_confirm: boolean;
@@ -9,6 +12,8 @@ export type OrderSourceCatalogRow = {
 /**
  * Tenant allowlist: zero rows in org_tenant_order_sources_cf means all active global sources are allowed.
  * If the tenant has any rows, an order source must have an explicit row with is_allowed=true.
+ * @param tenantId
+ * @param orderSourceCode
  */
 export async function assertTenantAllowsOrderSource(
   tenantId: string,
@@ -39,6 +44,10 @@ export async function assertTenantAllowsOrderSource(
   return { ok: true };
 }
 
+/**
+ *
+ * @param orderSourceCode
+ */
 export async function fetchActiveOrderSource(
   orderSourceCode: string
 ): Promise<{ ok: true; row: OrderSourceCatalogRow } | { ok: false; error: string }> {
@@ -58,6 +67,11 @@ export async function fetchActiveOrderSource(
   };
 }
 
+/**
+ *
+ * @param tenantId
+ * @param orderSourceCode
+ */
 export async function validateOrderSourceForCreation(
   tenantId: string,
   orderSourceCode: string

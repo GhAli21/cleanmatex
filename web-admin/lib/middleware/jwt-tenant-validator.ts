@@ -15,6 +15,9 @@ import {
 import { logJWTHealthEvent } from '@/lib/monitoring/jwt-health-monitor';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ *
+ */
 export interface JWTValidationContext {
   user: any;
   tenantId: string;
@@ -159,6 +162,7 @@ export async function validateJWTWithTenant(
  * Middleware wrapper that validates JWT tenant context
  * Use this in API routes before processing requests
  * 
+ * @param handler
  * @example
  * ```typescript
  * export async function GET(request: NextRequest) {

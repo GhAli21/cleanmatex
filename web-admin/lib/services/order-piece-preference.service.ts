@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Order Piece Preference Service
  * CRUD for order piece service prefs (org_order_preferences_dtl, prefs_level=PIECE).

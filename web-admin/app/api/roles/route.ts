@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * GET /api/roles
  * Get all roles (system + custom) for current tenant
+ * @param request
  */
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/roles
  * Create a new custom role
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {

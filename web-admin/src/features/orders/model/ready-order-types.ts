@@ -1,6 +1,9 @@
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 
+/**
+ *
+ */
 export interface PaymentSummary {
   status: string;
   total: number;
@@ -17,6 +20,9 @@ export interface ReadyOrderInvoice {
   remaining: number;
 }
 
+/**
+ *
+ */
 export interface ReadyOrderItem {
   id: string;
   productName: string;
@@ -24,11 +30,17 @@ export interface ReadyOrderItem {
   totalPrice: number;
 }
 
+/**
+ *
+ */
 export interface ReadyOrderCustomer {
   name: string;
   phone: string;
 }
 
+/**
+ *
+ */
 export interface ReadyOrder {
   id: string;
   orderNo: string;
@@ -48,6 +60,9 @@ export interface ReadyOrder {
   invoices?: ReadyOrderInvoice[];
 }
 
+/**
+ *
+ */
 export interface ReadyOrderStateResponse {
   success: boolean;
   /** Legacy/alternate wrapper shape */
@@ -71,6 +86,7 @@ export interface ReadyOrderStateResponse {
  *
  * This keeps the mapping logic shared between the Ready detail screen
  * and any print-preview screens.
+ * @param response
  */
 export function mapReadyOrderFromStateResponse(
   response: ReadyOrderStateResponse,

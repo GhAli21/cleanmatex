@@ -22,7 +22,12 @@ interface StepResult {
   error_message: string | null;
 }
 
-/** Fix product names: backfill product_name/product_name2 from catalog for items missing them */
+/**
+ * Fix product names: backfill product_name/product_name2 from catalog for items missing them
+ * @param tenantId
+ * @param orderId
+ * @param dryRun
+ */
 async function fixProductNames(
   tenantId: string,
   orderId: string,
@@ -102,6 +107,12 @@ async function fixProductNames(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

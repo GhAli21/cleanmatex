@@ -84,6 +84,21 @@ export interface ApplyOrderCreditResult {
  * stores fin_voucher_id + fin_voucher_trx_line_id (back-link FK from migration
  * 0329). Existing callers (post-order credit application) can omit
  * voucherId/voucherLineId and behavior is unchanged.
+ * @param tx
+ * @param params
+ * @param params.tenantId
+ * @param params.orderId
+ * @param params.customerId
+ * @param params.creditType
+ * @param params.amount
+ * @param params.creditReferenceId
+ * @param params.appliedBy
+ * @param params.currencyCode
+ * @param params.idempotencyKey
+ * @param params.referenceNo
+ * @param params.voucherId
+ * @param params.voucherLineId
+ * @param params.skipCreditAppRow
  */
 export async function applyStoredValueDebitTx(
   tx: PrismaTransactionClient,

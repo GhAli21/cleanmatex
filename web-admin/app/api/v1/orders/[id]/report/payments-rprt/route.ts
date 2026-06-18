@@ -19,6 +19,9 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
+/**
+ *
+ */
 export interface PaymentsRprtResponse {
   order: {
     id: string;
@@ -30,6 +33,12 @@ export interface PaymentsRprtResponse {
   sortOrder: 'asc' | 'desc';
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

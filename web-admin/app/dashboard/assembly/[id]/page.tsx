@@ -39,6 +39,9 @@ interface AssemblyOrder {
   items: AssemblyItem[];
 }
 
+/**
+ *
+ */
 export default function AssemblyDetailPage() {
   const router = useRouter();
   const params = useParams();

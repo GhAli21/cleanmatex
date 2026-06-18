@@ -8,6 +8,9 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+/**
+ *
+ */
 export interface TaxCalcParams {
   tenantId: string;
   branchId?: string;
@@ -114,6 +117,7 @@ async function isTaxExempt(
  * Load the active tax profile for a tenant + branch + service-type combination,
  * then compute per-line tax breakdown. Falls back to tenant VAT setting if no
  * profile is configured.
+ * @param params
  */
 export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]> {
   const {
@@ -169,6 +173,8 @@ export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]
 
 /**
  * Resolve tax lines inside an existing transaction (used by order-settlement.service.ts).
+ * @param _tx
+ * @param params
  */
 export async function calculateTaxInTx(
   _tx: PrismaTransactionClient,

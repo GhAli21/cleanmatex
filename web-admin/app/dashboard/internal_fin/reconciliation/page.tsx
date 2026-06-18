@@ -13,6 +13,11 @@ interface PageProps {
   searchParams?: Promise<{ page?: string }>;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function ReconciliationPage({ searchParams }: PageProps) {
   const t = await getTranslations('billing.reconciliation');
 

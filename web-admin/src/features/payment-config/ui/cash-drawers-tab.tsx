@@ -24,6 +24,15 @@ interface CashDrawersTabProps {
   onRefresh: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.drawers
+ * @param root0.branches
+ * @param root0.terminals
+ * @param root0.isLoading
+ * @param root0.onRefresh
+ */
 export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefresh }: CashDrawersTabProps) {
   const t = useTranslations('paymentConfig');
   const [showCreate, setShowCreate] = useState(false);

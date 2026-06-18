@@ -7,6 +7,11 @@ interface VoucherDirectionBadgeProps {
   direction: string | null | undefined;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.direction
+ */
 export function VoucherDirectionBadge({ direction }: VoucherDirectionBadgeProps) {
   if (!direction) return null;
 

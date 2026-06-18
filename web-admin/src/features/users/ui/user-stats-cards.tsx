@@ -13,6 +13,11 @@ interface UserStatsCardsProps {
   stats: UserStats
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.stats
+ */
 export default function UserStatsCards({ stats }: UserStatsCardsProps) {
   const t = useTranslations('users.stats')
   const tCommon = useTranslations('common')

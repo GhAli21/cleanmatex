@@ -23,10 +23,17 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...SETTINGS_ACCESS_CONTRACTS,
 ]
 
+/**
+ *
+ */
 export function getAllPageAccessContracts(): PageAccessContract[] {
   return PAGE_ACCESS_CONTRACTS
 }
 
+/**
+ *
+ * @param pathname
+ */
 export function getPageAccessContractByPath(pathname: string): PageAccessContract | null {
   return PAGE_ACCESS_CONTRACTS.find((contract) => matchesRoutePattern(contract.routePattern, pathname)) ?? null
 }

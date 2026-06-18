@@ -82,6 +82,14 @@ interface PaymentsTableProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param root0
+ * @param root0.payments
+ * @param root0.pagination
+ * @param root0.sortBy
+ * @param root0.sortOrder
+ */
 export default function PaymentsTable({
   payments,
   pagination,

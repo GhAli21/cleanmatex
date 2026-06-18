@@ -23,6 +23,9 @@ export const OVERPAYMENT_RESOLUTIONS = {
   AUTO_ALLOCATE_TO_CUSTOMER_BALANCES: 'AUTO_ALLOCATE_TO_CUSTOMER_BALANCES',
 } as const;
 
+/**
+ *
+ */
 export type OverpaymentResolutionCode =
   (typeof OVERPAYMENT_RESOLUTIONS)[keyof typeof OVERPAYMENT_RESOLUTIONS];
 
@@ -60,6 +63,9 @@ export const VOUCHER_SOURCE_TYPES = {
   REFUND_PROCESS: 'REFUND_PROCESS',
 } as const;
 
+/**
+ *
+ */
 export type VoucherSourceType =
   (typeof VOUCHER_SOURCE_TYPES)[keyof typeof VOUCHER_SOURCE_TYPES];
 
@@ -71,6 +77,9 @@ export const CUSTOMER_RECEIPT_ALLOCATION_MODES = {
   MANUAL_ONLY: 'MANUAL_ONLY',
 } as const;
 
+/**
+ *
+ */
 export type CustomerReceiptAllocationMode =
   (typeof CUSTOMER_RECEIPT_ALLOCATION_MODES)[keyof typeof CUSTOMER_RECEIPT_ALLOCATION_MODES];
 
@@ -84,6 +93,9 @@ export const CUSTOMER_RECEIPT_FALLBACK_DESTINATIONS = {
   BLOCK_AND_REQUIRE_MANUAL_ACTION: 'BLOCK_AND_REQUIRE_MANUAL_ACTION',
 } as const;
 
+/**
+ *
+ */
 export type CustomerReceiptFallbackDestination =
   (typeof CUSTOMER_RECEIPT_FALLBACK_DESTINATIONS)[keyof typeof CUSTOMER_RECEIPT_FALLBACK_DESTINATIONS];
 
@@ -95,6 +107,9 @@ export const REMAINING_BALANCE_POLICIES = {
   B2B_STATEMENT: 'B2B_STATEMENT',
 } as const;
 
+/**
+ *
+ */
 export type RemainingBalancePolicyCode =
   (typeof REMAINING_BALANCE_POLICIES)[keyof typeof REMAINING_BALANCE_POLICIES];
 
@@ -111,6 +126,9 @@ export const OVERPAYMENT_RESOLUTION_ERROR_CODES = {
   EXCESS_UNRESOLVED: 'RECEIPT_ALLOCATION_EXCESS_UNRESOLVED',
 } as const;
 
+/**
+ *
+ */
 export type OverpaymentResolutionErrorCode =
   (typeof OVERPAYMENT_RESOLUTION_ERROR_CODES)[keyof typeof OVERPAYMENT_RESOLUTION_ERROR_CODES];
 

@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Copy, CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
@@ -79,6 +79,13 @@ interface GiftCardSellDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.onSuccess
+ */
 export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSellDialogProps) {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
@@ -117,8 +124,8 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     if (tenantCurrency) form.setValue('currency_code', tenantCurrency);
   }, [tenantCurrency, form]);
 
-  const sameAsBuyer  = form.watch('same_as_buyer');
-  const currencyCode = form.watch('currency_code');
+  const sameAsBuyer = useWatch({ control: form.control, name: 'same_as_buyer' });
+  const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
 
   const { formState: { isSubmitting } } = form;
 

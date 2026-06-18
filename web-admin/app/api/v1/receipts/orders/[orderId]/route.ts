@@ -8,6 +8,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ * @param root0.params.orderId
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { orderId: string } }
@@ -66,6 +73,10 @@ export async function POST(
 /**
  * GET /api/v1/receipts/orders/:orderId
  * Get all receipts for an order
+ * @param request
+ * @param root0
+ * @param root0.params
+ * @param root0.params.orderId
  */
 export async function GET(
   request: NextRequest,

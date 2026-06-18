@@ -22,6 +22,9 @@ type PrismaClient = typeof prisma | PrismaTransactionClient;
  * regardless of the DB column value.
  * The result is safe to call inside a Prisma transaction (pass the tx client)
  * or outside one (pass the global prisma client).
+ * @param client
+ * @param tenantId
+ * @param branchId
  */
 export async function resolveTaxPricingMode(
   client: PrismaClient,
@@ -73,6 +76,9 @@ export async function resolveTaxPricingMode(
  * Resolve the effective extra-price presentation mode for an order.
  *
  * Resolution order: branch override → tenant default → 'INCLUDED_IN_ITEM_PRICE'.
+ * @param client
+ * @param tenantId
+ * @param branchId
  */
 export async function resolveExtraPricePricingMode(
   client: PrismaClient,

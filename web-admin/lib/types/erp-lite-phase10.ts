@@ -1,3 +1,6 @@
+/**
+ *
+ */
 export interface ErpLiteBranchProfitabilityAdvancedRow {
   branch_id: string | null;
   branch_name: string;
@@ -9,6 +12,9 @@ export interface ErpLiteBranchProfitabilityAdvancedRow {
   allocated_profit: number;
 }
 
+/**
+ *
+ */
 export interface ErpLiteAllocationRuleListItem {
   id: string;
   rule_code: string;
@@ -18,6 +24,9 @@ export interface ErpLiteAllocationRuleListItem {
   effective_from: string | null;
 }
 
+/**
+ *
+ */
 export interface ErpLiteAllocationRunListItem {
   id: string;
   run_no: string;
@@ -26,6 +35,9 @@ export interface ErpLiteAllocationRunListItem {
   line_count: number;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCostComponentListItem {
   id: string;
   comp_code: string;
@@ -35,6 +47,9 @@ export interface ErpLiteCostComponentListItem {
   status_code: string;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCostRunListItem {
   id: string;
   run_no: string;
@@ -44,12 +59,18 @@ export interface ErpLiteCostRunListItem {
   total_cost: number;
 }
 
+/**
+ *
+ */
 export interface ErpLiteCostSummaryRow {
   branch_id: string | null;
   branch_name: string;
   total_cost: number;
 }
 
+/**
+ *
+ */
 export interface ErpLitePhase10DashboardSnapshot {
   profitability_rows: ErpLiteBranchProfitabilityAdvancedRow[];
   allocation_rules: ErpLiteAllocationRuleListItem[];
@@ -66,6 +87,9 @@ export interface ErpLitePhase10DashboardSnapshot {
   latest_cost_run_no: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteAllocationRuleInput {
   rule_code?: string | null;
   name: string;
@@ -75,11 +99,17 @@ export interface CreateErpLiteAllocationRuleInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteAllocationRunInput {
   run_date: string;
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteAllocationRunLineInput {
   alloc_run_id: string;
   alloc_rule_id?: string | null;
@@ -90,6 +120,9 @@ export interface CreateErpLiteAllocationRunLineInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCostComponentInput {
   comp_code?: string | null;
   name: string;
@@ -99,11 +132,17 @@ export interface CreateErpLiteCostComponentInput {
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCostRunInput {
   run_date: string;
   created_by?: string | null;
 }
 
+/**
+ *
+ */
 export interface CreateErpLiteCostRunDetailInput {
   cost_run_id: string;
   cost_comp_id: string;

@@ -15,6 +15,11 @@ const STATUS_STYLE: Record<string, string> = {
   [VOUCHER_STATUS.PARTIALLY_REVERSED]: 'bg-orange-100 text-orange-800',
 };
 
+/**
+ *
+ * @param root0
+ * @param root0.status
+ */
 export function VoucherStatusBadge({ status }: VoucherStatusBadgeProps) {
   const t = useTranslations('finance.vouchers.statusLabels');
 

@@ -16,6 +16,13 @@ interface CustomerFiltersBarProps {
   selectedCount?: number
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.filters
+ * @param root0.onFilterChange
+ * @param root0.selectedCount
+ */
 export default function CustomerFiltersBar({
   filters,
   onFilterChange,

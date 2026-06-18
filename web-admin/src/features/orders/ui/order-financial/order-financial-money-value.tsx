@@ -13,6 +13,14 @@ interface OrderFinancialMoneyValueProps {
   variant?: 'default' | 'credit' | 'balanceDue' | 'paid';
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.amount
+ * @param root0.currencyCode
+ * @param root0.className
+ * @param root0.variant
+ */
 export function OrderFinancialMoneyValue({
   amount,
   currencyCode,

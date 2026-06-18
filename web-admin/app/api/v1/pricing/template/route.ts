@@ -6,6 +6,9 @@
 import { NextResponse } from 'next/server';
 import { pricingBulkService } from '@/lib/services/pricing-bulk.service';
 
+/**
+ *
+ */
 export async function GET() {
   try {
     const template = pricingBulkService.getImportTemplate();

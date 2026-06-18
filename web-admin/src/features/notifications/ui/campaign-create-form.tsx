@@ -35,6 +35,12 @@ interface Props {
   onCancel:  () => void
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.onSuccess
+ * @param root0.onCancel
+ */
 export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
   const t = useTranslations('notifications')
   const [serverError, setServerError] = useState<string | null>(null)

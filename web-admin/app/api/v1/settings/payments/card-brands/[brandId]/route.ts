@@ -24,6 +24,9 @@ const schema = z.object({
 
 /**
  * Updates one tenant card brand config row.
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,

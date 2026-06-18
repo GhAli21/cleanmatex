@@ -42,6 +42,9 @@ type AnyColumn<TData> =
   | ColumnDef<TData, unknown>
   | CmxDataTableSimpleColumn<TData>
 
+/**
+ *
+ */
 export type CmxDataTablePaginationFooter = 'auto' | 'always' | 'never'
 
 interface CmxDataTableProps<TData> {
@@ -156,6 +159,39 @@ function withSortableColumnHeader<TData>(
   } as ColumnDef<TData, unknown>
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.columns
+ * @param root0.data
+ * @param root0.loading
+ * @param root0.isLoading
+ * @param root0.page
+ * @param root0.currentPage
+ * @param root0.pageSize
+ * @param root0.total
+ * @param root0.totalCount
+ * @param root0.onPageChange
+ * @param root0.onPageSizeChange
+ * @param root0.sorting
+ * @param root0.onSortingChange
+ * @param root0.clientSideSorting
+ * @param root0.emptyStateTitle
+ * @param root0.emptyStateDescription
+ * @param root0.emptyStateIcon
+ * @param root0.emptyStateAction
+ * @param root0.skeletonRows
+ * @param root0.className
+ * @param root0.enableZebraStriping
+ * @param root0.emptyMessage
+ * @param root0.scrollable
+ * @param root0.scrollAreaClassName
+ * @param root0.showRowNumbers
+ * @param root0.rowNumberHeader
+ * @param root0.rowNumberOffset
+ * @param root0.paginationFooter
+ * @param root0.getRowClassName
+ */
 export function CmxDataTable<TData>({
   columns,
   data,
@@ -254,6 +290,8 @@ export function CmxDataTable<TData>({
     return [rowNoCol, ...mapped]
   }, [columns, showRowNumbers, rowNumberHeader, resolvedRowNumberOffset])
 
+  // TanStack Table is not React Compiler memoizable — see react-hooks/incompatible-library
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table useReactTable
   const table = useReactTable({
     data,
     columns: tanstackColumns,

@@ -50,6 +50,8 @@ export async function withTenantContext<T>(
 
 /**
  * Run a function with tenant context (sync version)
+ * @param tenantId
+ * @param fn
  */
 export function withTenantContextSync<T>(
   tenantId: string,
@@ -84,6 +86,7 @@ export async function getTenantIdFromSession(): Promise<string | null> {
 /**
  * Wrapper for server actions that automatically sets tenant context
  * 
+ * @param fn
  * @example
  * ```typescript
  * export const listOrders = withTenantFromSession(async (tenantId, filters) => {
@@ -183,6 +186,9 @@ export async function ensureTenantContext(): Promise<string> {
 /**
  * Wrapper with tenant validation
  * Validates tenant access before executing function
+ * @param tenantId
+ * @param userId
+ * @param fn
  */
 export async function withTenantValidation<T>(
   tenantId: string,

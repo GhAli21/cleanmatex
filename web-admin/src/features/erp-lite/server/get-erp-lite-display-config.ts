@@ -6,6 +6,9 @@ import { getAuthContext } from '@/lib/auth/server-auth'
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import type { ErpLiteDisplayConfig } from '../lib/display-format'
 
+/**
+ *
+ */
 export async function getErpLiteDisplayConfig(): Promise<ErpLiteDisplayConfig> {
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
 

@@ -11,7 +11,13 @@ import { NOTIFICATION_CHANNEL, NOTIFICATION_PRIORITY } from '@lib/notifications/
 import type { RenderedContent } from '@lib/notifications/template-renderer';
 import type { Json } from '@/types/database';
 
-/** Format: {tenant_org_id}:{event_code}:{source_entity_id}:{recipient_user_id} */
+/**
+ * Format: {tenant_org_id}:{event_code}:{source_entity_id}:{recipient_user_id}
+ * @param tenantOrgId
+ * @param eventCode
+ * @param sourceEntityId
+ * @param recipientUserId
+ */
 function buildIdempotencyKey(
   tenantOrgId: string,
   eventCode: string,
@@ -24,6 +30,9 @@ function buildIdempotencyKey(
 /**
  * Deliver an IN_APP notification to one or more recipients.
  * Skips duplicate rows silently via ON CONFLICT (idempotency_key) DO NOTHING.
+ * @param event
+ * @param rendered
+ * @param categoryCode
  */
 export async function deliverInApp(
   event: NotificationEvent,

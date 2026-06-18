@@ -19,6 +19,12 @@ interface AssemblyScannerProps {
   onScanSuccess?: () => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.taskId
+ * @param root0.onScanSuccess
+ */
 export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps) {
   const [barcode, setBarcode] = useState('');
   const [lastScanResult, setLastScanResult] = useState<{

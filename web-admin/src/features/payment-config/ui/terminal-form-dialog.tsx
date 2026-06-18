@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -24,6 +24,15 @@ interface TerminalFormDialogProps {
 
 const NO_BRANCH_VALUE = '__no_branch__';
 
+/**
+ *
+ * @param root0
+ * @param root0.terminal
+ * @param root0.branches
+ * @param root0.open
+ * @param root0.onClose
+ * @param root0.onSuccess
+ */
 export function TerminalFormDialog({ terminal, branches, open, onClose, onSuccess }: TerminalFormDialogProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
@@ -45,6 +54,9 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
       branch_id: undefined,
     },
   });
+
+  const terminalType = useWatch({ control: form.control, name: 'terminal_type' });
+  const branchId = useWatch({ control: form.control, name: 'branch_id' });
 
   const handleSubmit = (values: CreateTerminalFormValues) => {
     startTransition(async () => {
@@ -87,7 +99,7 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
           </div>
           <div>
             <label className="text-sm font-medium">{t('terminals.type')}</label>
-            <CmxSelectDropdown value={form.watch('terminal_type')} onValueChange={(v) => form.setValue('terminal_type', v as never)}>
+            <CmxSelectDropdown value={terminalType} onValueChange={(v) => form.setValue('terminal_type', v as never)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
                 {Object.values(TERMINAL_TYPES).map((ty) => (
@@ -99,7 +111,7 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
           <div>
             <label className="text-sm font-medium">{t('terminals.branch')}</label>
             <CmxSelectDropdown
-              value={form.watch('branch_id') ?? NO_BRANCH_VALUE}
+              value={branchId ?? NO_BRANCH_VALUE}
               onValueChange={(value) => form.setValue('branch_id', value === NO_BRANCH_VALUE ? undefined : value)}
             >
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>

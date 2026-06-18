@@ -34,6 +34,9 @@ import CustomerFiltersBar from '@features/customers/ui/customer-filters-bar'
 import CustomerStatsCards from '@features/customers/ui/customer-stats-cards'
 import CustomerCreateModal from '@features/customers/ui/customer-create-modal'
 
+/**
+ *
+ */
 export default function CustomersPage() {
   const { currentTenant } = useAuth()
   const t = useTranslations('customers')

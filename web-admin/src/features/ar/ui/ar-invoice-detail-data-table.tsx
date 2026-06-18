@@ -21,6 +21,15 @@ interface ArInvoiceDetailDataTableProps<TData> {
   scrollAreaClassName?: string;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.value
+ * @param root0.displayValue
+ * @param root0.maxLength
+ * @param root0.align
+ * @param root0.className
+ */
 export function ArInvoiceDetailCopyValue({
   value,
   displayValue,
@@ -40,6 +49,16 @@ export function ArInvoiceDetailCopyValue({
   );
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.columns
+ * @param root0.data
+ * @param root0.emptyStateTitle
+ * @param root0.emptyStateDescription
+ * @param root0.className
+ * @param root0.scrollAreaClassName
+ */
 export function ArInvoiceDetailDataTable<TData>({
   columns,
   data,

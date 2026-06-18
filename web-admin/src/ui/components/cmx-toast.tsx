@@ -14,18 +14,33 @@ interface ToastOptions {
   description?: string
 }
 
+/**
+ *
+ * @param message
+ * @param options
+ */
 export function showSuccessToast(message: string, options?: ToastOptions) {
   toast.success(message, {
     description: options?.description,
   })
 }
 
+/**
+ *
+ * @param message
+ * @param options
+ */
 export function showErrorToast(message: string, options?: ToastOptions) {
   toast.error(message, {
     description: options?.description,
   })
 }
 
+/**
+ *
+ * @param message
+ * @param options
+ */
 export function showInfoToast(message: string, options?: ToastOptions) {
   toast(message, {
     description: options?.description,

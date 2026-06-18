@@ -15,7 +15,7 @@ This document outlines comprehensive, structured, and scalable rules for creatin
 > Never create new files under `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level subfolder — those are legacy locations that receive no new content.
 
 - Each **feature** must have a dedicated folder under **`docs/features/`**, uniquely named after the feature (e.g. `docs/features/Feature_A`).
-- Duplicate folders for the same feature are not allowed.
+- Duplicate folders for the same feature are not allowed, Unless the user ask or specify or mention something else .
 - Each feature folder contains documentation files and subfolders for components, services, screens, etc.
 
 ### 1.2 Sub-Component Folders
@@ -45,13 +45,13 @@ When implementing any feature, add to the feature documentation a list of platfo
 - **Platform docs** — See [docs/platform/README.md](../../docs/platform/README.md) for permissions, settings, feature flags, and plan limits reference
 - **New permissions** — Add to `sys_permission_*` and assign to roles
 - **Navigation tree / screen** — Add new menu item or screen to sys tree
-- **New tenant setting** — Add to `sys_tenant_settings_cd` and seed data
-- **New feature flag** — Add to `sys_ff_*` if feature is gated
-- **New plan limit / constraint** — Add to plan limits if feature is tiered
-- **New i18n keys** — Add to `en.json` / `ar.json` (search existing first)
-- **New API route(s)** — Document endpoint(s) and version
+- **settings** — use settings skill or same previous work
+- **feature flag** — Add to `sys_ff_*` if feature is gated
+- **plan limit / constraint** — Add to plan limits if feature is tiered
+- **i18n keys** — Add to `en.json` / `ar.json` (search existing first)
+- **API route(s)** — Document endpoint(s) and version
 - **Database migration(s)** — New tables, columns, indexes, RLS
-- **New constants / types** — Add to `lib/constants/` and `lib/types/`
+- **constants / types** — Add to `lib/constants/` and `lib/types/`
 - **RBAC / role changes** — Update role-permission mappings
 - **Environment variables** — New `.env` keys if needed
 - **Other** — Document any other platform-level requirements
@@ -91,7 +91,7 @@ Each feature or sub-component folder must include the following files with regul
 - `deploy_guide.md`  
   Step-by-step deploy workflows, requirements, FAQs, and troubleshooting information relevant at this level.
 
-- `testing_scenarios.md`  
+- `testing_guide_and_scenarios.md`  
   Clear test cases, edge cases, and acceptance criteria scoped to the feature/component.
 
 - `CHANGELOG.md`  
@@ -113,7 +113,7 @@ Each feature or sub-component folder must include the following files with regul
 
 - Every markdown file should start with a metadata header:
 version: v1.2.0
-last_updated: 2025-10-24
+last_updated: yyyy-mm-dd
 author: Author Name
 
 - Documentation must be clear, concise, and language consistent.

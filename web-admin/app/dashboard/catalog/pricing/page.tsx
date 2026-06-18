@@ -19,6 +19,9 @@ interface PriceList {
   item_count?: number
 }
 
+/**
+ *
+ */
 export default function PricingPage() {
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')

@@ -24,6 +24,9 @@ import { UserActivityTab } from './user-activity-tab'
 
 type TabKey = 'profile' | 'roles' | 'activity'
 
+/**
+ *
+ */
 export function UserDetailScreen() {
   const params = useParams()
   const userId = params?.userId as string

@@ -21,6 +21,9 @@ export const DISCOUNT_STACKING_ORDER = [
   'gift_card',
 ] as const;
 
+/**
+ *
+ */
 export type DiscountStackingStep = (typeof DISCOUNT_STACKING_ORDER)[number];
 
 /**

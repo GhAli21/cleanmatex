@@ -41,6 +41,15 @@ function getNumberLocale(locale: string) {
   return locale === 'ar' ? 'ar-OM' : 'en-OM'
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.trialBalanceRows
+ * @param root0.profitAndLossRows
+ * @param root0.balanceSheetRows
+ * @param root0.currencyCode
+ * @param root0.decimalPlaces
+ */
 export function ErpLiteReportsScreen({
   trialBalanceRows,
   profitAndLossRows,

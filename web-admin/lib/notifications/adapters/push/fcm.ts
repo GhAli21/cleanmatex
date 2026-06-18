@@ -15,10 +15,16 @@
 
 import { logger } from '@lib/utils/logger'
 
+/**
+ *
+ */
 export interface FcmSubscriptionData {
   token: string
 }
 
+/**
+ *
+ */
 export interface FcmSendResult {
   success: boolean
   subscriptionId: string
@@ -96,6 +102,12 @@ function loadServiceAccount(): FcmServiceAccount | null {
   }
 }
 
+/**
+ *
+ * @param subscriptionId
+ * @param subscriptionData
+ * @param payload
+ */
 export async function sendFcmPush(
   subscriptionId: string,
   subscriptionData: FcmSubscriptionData,

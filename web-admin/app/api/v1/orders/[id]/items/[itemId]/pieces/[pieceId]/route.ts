@@ -14,6 +14,9 @@ import { log } from '@/lib/utils/logger';
  * GET /api/v1/orders/:id/items/:itemId/pieces/:pieceId
  * Get a single piece by ID
  * Requires: orders:read permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function GET(
   request: NextRequest,
@@ -86,6 +89,9 @@ export async function GET(
  * PATCH /api/v1/orders/:id/items/:itemId/pieces/:pieceId
  * Update a single piece
  * Requires: orders:update permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function PATCH(
   request: NextRequest,
@@ -174,6 +180,9 @@ export async function PATCH(
  * DELETE /api/v1/orders/:id/items/:itemId/pieces/:pieceId
  * Delete a piece (soft delete)
  * Requires: orders:delete permission
+ * @param request
+ * @param root0
+ * @param root0.params
  */
 export async function DELETE(
   request: NextRequest,

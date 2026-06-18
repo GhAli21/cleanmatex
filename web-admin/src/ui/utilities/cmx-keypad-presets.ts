@@ -33,17 +33,29 @@ export const KEYPAD_PIN_3COL = [
   '',  '0', 'backspace',
 ] as const
 
+/**
+ *
+ */
 export type PaymentKeypadKey = (typeof KEYPAD_PAYMENT_4COL)[number]
+/**
+ *
+ */
 export type PinKeypadKey = (typeof KEYPAD_PIN_3COL)[number]
 
-/** Variant resolver for payment keypads. Pass as getKeyVariant to CmxKeypad. */
+/**
+ * Variant resolver for payment keypads. Pass as getKeyVariant to CmxKeypad.
+ * @param key
+ */
 export function PAYMENT_KEY_VARIANT(key: string): CmxButtonProps['variant'] {
   if (/^\+\d+$/.test(key)) return 'secondary'
   if (key === 'clear') return 'destructive'
   return 'outline'
 }
 
-/** Class resolver for payment keypads. Pass as getKeyClassName to CmxKeypad. */
+/**
+ * Class resolver for payment keypads. Pass as getKeyClassName to CmxKeypad.
+ * @param key
+ */
 export function PAYMENT_KEY_CLASS(key: string): string | undefined {
   if (/^\+\d+$/.test(key)) return 'bg-slate-50 text-cyan-700'
   if (key === 'clear')

@@ -28,6 +28,10 @@ function getOptional(formData: FormData, key: string): string | null {
 // Usage Map Actions
 // -------------------------------------------------------
 
+/**
+ *
+ * @param formData
+ */
 export async function createUsageMapAction(formData: FormData) {
   try {
     await ErpLiteUsageMapService.createUsageMap({
@@ -46,6 +50,10 @@ export async function createUsageMapAction(formData: FormData) {
   redirect('/dashboard/erp-lite/usage-maps?notice=created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function activateUsageMapAction(formData: FormData) {
   const mappingId = getRequired(formData, 'mapping_id');
   try {
@@ -59,6 +67,10 @@ export async function activateUsageMapAction(formData: FormData) {
   redirect('/dashboard/erp-lite/usage-maps?notice=activated');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function deactivateUsageMapAction(formData: FormData) {
   const mappingId = getRequired(formData, 'mapping_id');
   try {
@@ -76,6 +88,10 @@ export async function deactivateUsageMapAction(formData: FormData) {
 // Period Actions
 // -------------------------------------------------------
 
+/**
+ *
+ * @param formData
+ */
 export async function createPeriodAction(formData: FormData) {
   try {
     await ErpLitePeriodsService.createPeriod({
@@ -95,6 +111,10 @@ export async function createPeriodAction(formData: FormData) {
   redirect('/dashboard/erp-lite/periods?notice=created');
 }
 
+/**
+ *
+ * @param formData
+ */
 export async function closePeriodAction(formData: FormData) {
   const periodId = getRequired(formData, 'period_id');
   try {
@@ -111,7 +131,10 @@ export async function closePeriodAction(formData: FormData) {
   redirect('/dashboard/erp-lite/periods?notice=closed');
 }
 
-/** Client-callable precheck for period close modal (returns JSON, no redirect). */
+/**
+ * Client-callable precheck for period close modal (returns JSON, no redirect).
+ * @param periodId
+ */
 export async function precheckPeriodCloseForAction(periodId: string) {
   try {
     const data = await ErpLitePeriodsService.precheckPeriodClose(periodId);
@@ -122,7 +145,11 @@ export async function precheckPeriodCloseForAction(periodId: string) {
   }
 }
 
-/** Client-callable close after UI precheck (revalidates; no redirect). */
+/**
+ * Client-callable close after UI precheck (revalidates; no redirect).
+ * @param periodId
+ * @param lockReason
+ */
 export async function closePeriodFromUiAction(periodId: string, lockReason: string | null) {
   try {
     await ErpLitePeriodsService.closePeriod({
@@ -142,6 +169,10 @@ export async function closePeriodFromUiAction(periodId: string, lockReason: stri
 // Exception Actions
 // -------------------------------------------------------
 
+/**
+ *
+ * @param formData
+ */
 export async function resolveExceptionAction(formData: FormData) {
   const action = getRequired(formData, 'action') as ResolveExceptionInput['action'];
   const exceptionId = getRequired(formData, 'exception_id');

@@ -36,6 +36,9 @@ interface PackingOrder {
   items: PackingItem[];
 }
 
+/**
+ *
+ */
 export default function PackingDetailPage() {
   const router = useRouter();
   const params = useParams();

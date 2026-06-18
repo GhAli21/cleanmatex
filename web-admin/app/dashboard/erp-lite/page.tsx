@@ -58,6 +58,9 @@ async function buildVisibility(): Promise<ErpLiteHomeVisibility> {
   }
 }
 
+/**
+ *
+ */
 export default async function ErpLiteHomePage() {
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)

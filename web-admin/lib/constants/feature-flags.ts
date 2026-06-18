@@ -11,11 +11,23 @@ import type { FeatureFlags } from '@/lib/types/tenant';
 // Catalog Types
 // ========================
 
+/**
+ *
+ */
 export type PlanBindingType = 'plan_bound' | 'independent';
+/**
+ *
+ */
 export type FlagDataType = 'boolean' | 'integer' | 'string' | 'object';
 
+/**
+ *
+ */
 export type GovernanceCategory = 'tenant_feature' | 'tenant_limit' | 'hq_feature' | 'hq_config' | 'experimental' | 'beta';
 
+/**
+ *
+ */
 export interface FlagCatalogEntry {
   flag_key: string;
   flag_name: string;
@@ -30,7 +42,13 @@ export interface FlagCatalogEntry {
   ui_display_order?: number;
 }
 
+/**
+ *
+ */
 export type TenantSettingDefaultValue = boolean | number | string | Record<string, unknown>;
+/**
+ *
+ */
 export type FeatureFlagKey = keyof FeatureFlags;
 
 // ========================

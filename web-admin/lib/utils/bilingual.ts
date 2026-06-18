@@ -98,6 +98,7 @@ export function getBilingualFieldCustom<T extends Record<string, any>>(
 
 /**
  * Check if item has both bilingual fields populated
+ * @param item
  */
 export function hasBilingualContent<T extends BilingualItem>(item: T): boolean {
   return !!(item?.name?.trim() && item?.name2?.trim())
@@ -106,6 +107,10 @@ export function hasBilingualContent<T extends BilingualItem>(item: T): boolean {
 /**
  * Get display name for product/service items
  * Common pattern: product_name/product_name2
+ * @param item
+ * @param item.product_name
+ * @param item.product_name2
+ * @param locale
  */
 export function getProductName(
   item: { product_name?: string; product_name2?: string },
@@ -122,6 +127,10 @@ export function getProductName(
 /**
  * Get display description for items
  * Common pattern: description/description2
+ * @param item
+ * @param item.description
+ * @param item.description2
+ * @param locale
  */
 export function getDescription(
   item: { description?: string; description2?: string },

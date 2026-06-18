@@ -14,6 +14,9 @@
 
 import { uploadFile, deleteFile, getFileUrl } from '@/lib/storage/minio-client';
 
+/**
+ *
+ */
 export interface UploadLogoResult {
   success: boolean;
   url?: string;
@@ -23,6 +26,11 @@ export interface UploadLogoResult {
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
 
+/**
+ *
+ * @param file
+ * @param tenantOrgId
+ */
 export async function uploadTenantLogo(
   file: File,
   tenantOrgId: string
@@ -65,6 +73,7 @@ export async function uploadTenantLogo(
  * Delete a tenant logo previously uploaded by {@link uploadTenantLogo}.
  * Returns true on success or no-op; false on a real failure so the caller
  * can log it.
+ * @param url
  */
 export async function deleteTenantLogo(url: string): Promise<boolean> {
   try {

@@ -81,6 +81,9 @@ export {
   AR_SENSITIVE_APPROVAL_ACTIONS,
 };
 
+/**
+ *
+ */
 export interface ArInvoiceLine {
   id: string;
   invoice_id: string;
@@ -105,6 +108,9 @@ export interface ArInvoiceLine {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArInvoiceOrderLink {
   id: string;
   invoice_id: string;
@@ -117,6 +123,9 @@ export interface ArInvoiceOrderLink {
   allocation_policy: 'FULL_ORDER' | 'REMAINING_ONLY' | 'CUSTOM_AMOUNT';
 }
 
+/**
+ *
+ */
 export interface ArInvoicePaymentAllocation {
   id: string;
   invoice_id: string;
@@ -133,6 +142,9 @@ export interface ArInvoicePaymentAllocation {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArInvoiceAdjustment {
   id: string;
   invoice_id: string;
@@ -147,6 +159,9 @@ export interface ArInvoiceAdjustment {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArInvoiceStatusHistoryEntry {
   id: string;
   invoice_id: string;
@@ -159,6 +174,9 @@ export interface ArInvoiceStatusHistoryEntry {
   created_by?: string;
 }
 
+/**
+ *
+ */
 export interface ArCustomerLedgerEntry {
   id: string;
   customer_id: string;
@@ -177,6 +195,9 @@ export interface ArCustomerLedgerEntry {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArCustomerBalance {
   customer_id: string;
   currency_code: string;
@@ -189,17 +210,26 @@ export interface ArCustomerBalance {
   last_activity_at?: string;
 }
 
+/**
+ *
+ */
 export interface ArCustomerBalanceRow extends ArCustomerBalance {
   customer_name?: string;
   customer_name2?: string;
 }
 
+/**
+ *
+ */
 export interface ArAgingBucketSummary {
   bucket_code: 'CURRENT' | 'DUE_1_30' | 'DUE_31_60' | 'DUE_61_90' | 'DUE_90_PLUS';
   invoice_count: number;
   total_amount: number;
 }
 
+/**
+ *
+ */
 export interface ArAgingCustomerRow {
   customer_id: string;
   customer_name?: string;
@@ -213,6 +243,9 @@ export interface ArAgingCustomerRow {
   total_outstanding_amount: number;
 }
 
+/**
+ *
+ */
 export interface ArStatementLine {
   kind: 'INVOICE' | 'PAYMENT' | 'ADJUSTMENT' | 'LEDGER';
   event_at: string;
@@ -225,6 +258,9 @@ export interface ArStatementLine {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArCustomerStatement {
   customer_id: string;
   customer_name?: string;
@@ -237,6 +273,9 @@ export interface ArCustomerStatement {
   lines: ArStatementLine[];
 }
 
+/**
+ *
+ */
 export interface ArInvoiceDetail {
   invoice: {
     id: string;
@@ -288,8 +327,14 @@ export interface ArInvoiceDetail {
   ledger: ArCustomerLedgerEntry[];
 }
 
+/**
+ *
+ */
 export type ArInvoiceSummary = ArInvoiceDetail['invoice'];
 
+/**
+ *
+ */
 export interface ArInvoiceHubStats {
   total_invoices: number;
   draft_invoices: number;
@@ -299,6 +344,9 @@ export interface ArInvoiceHubStats {
   total_outstanding_amount: number;
 }
 
+/**
+ *
+ */
 export interface ArCustomerCreditRow {
   source_ledger_id: string;
   customer_id: string;
@@ -310,6 +358,9 @@ export interface ArCustomerCreditRow {
   ref_doc_no?: string;
 }
 
+/**
+ *
+ */
 export interface ArCreditApplication {
   id: string;
   tenant_org_id: string;
@@ -327,6 +378,9 @@ export interface ArCreditApplication {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArDisputeCase {
   id: string;
   tenant_org_id: string;
@@ -353,6 +407,9 @@ export interface ArDisputeCase {
   customer_name2?: string;
 }
 
+/**
+ *
+ */
 export interface ArDunningRun {
   id: string;
   tenant_org_id: string;
@@ -371,6 +428,9 @@ export interface ArDunningRun {
   invoice_no?: string;
 }
 
+/**
+ *
+ */
 export interface ArStatementCycle {
   id: string;
   tenant_org_id: string;
@@ -389,6 +449,9 @@ export interface ArStatementCycle {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ *
+ */
 export interface ArStatementCycleCustomer {
   id: string;
   cycle_id: string;

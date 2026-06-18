@@ -13,6 +13,9 @@ import { Clock, CheckCircle, Truck } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
 
+/**
+ *
+ */
 export function OrderStatusWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')

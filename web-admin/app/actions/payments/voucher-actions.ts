@@ -15,6 +15,7 @@ import type { VoucherData } from '@/lib/types/voucher';
 
 /**
  * Get voucher data by payment ID (for payment detail page print)
+ * @param paymentId
  */
 export async function getReceiptVoucherDataByPaymentIdAction(
   paymentId: string
@@ -46,6 +47,7 @@ export async function getReceiptVoucherDataByPaymentIdAction(
 
 /**
  * Get voucher data by voucher ID
+ * @param voucherId
  */
 export async function getReceiptVoucherDataAction(
   voucherId: string

@@ -15,6 +15,9 @@ import {
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import CreatePaymentForm from './create-payment-form';
 
+/**
+ *
+ */
 export default async function CreatePaymentPage() {
   const t = await getTranslations('payments.create');
 

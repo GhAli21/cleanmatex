@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   computeCheckoutExcessMetrics,
   type CheckoutExcessLegInput,
@@ -12,8 +12,14 @@ import {
   type UseOverpaymentAllocationParams,
 } from './use-overpayment-allocation';
 
+/**
+ *
+ */
 export type PayExtraValidationPhase = 'editing' | 'ready';
 
+/**
+ *
+ */
 export interface UsePayExtraCheckoutParams extends UseOverpaymentAllocationParams {
   saleTotal: number;
   immediateSettlementAmount: number;
@@ -28,6 +34,15 @@ export interface UsePayExtraCheckoutParams extends UseOverpaymentAllocationParam
 /**
  * Shared pay-extra checkout state for Payment Modal V4 and Collect Payment.
  * Wraps allocation drawers and owns validate → extra-receipt dialog flow (ADR-050).
+ * @param root0
+ * @param root0.saleTotal
+ * @param root0.immediateSettlementAmount
+ * @param root0.legs
+ * @param root0.primaryCashLegRef
+ * @param root0.legacyUnresolvedExcess
+ * @param root0.resetDeps
+ * @param root0.excessAmount
+ * @param root0.moneyEpsilon
  */
 export function usePayExtraCheckout({
   saleTotal,
@@ -43,6 +58,17 @@ export function usePayExtraCheckout({
   const [payExtraIntent, setPayExtraIntent] = useState(false);
   const [validationPhase, setValidationPhase] = useState<PayExtraValidationPhase>('editing');
   const [extraReceiptDialogOpen, setExtraReceiptDialogOpen] = useState(false);
+
+  const resetSignature = JSON.stringify([payExtraIntent, ...resetDeps]);
+  const [prevResetSignature, setPrevResetSignature] = useState<string | undefined>(undefined);
+
+  if (prevResetSignature !== resetSignature) {
+    if (prevResetSignature !== undefined) {
+      setValidationPhase('editing');
+      setExtraReceiptDialogOpen(false);
+    }
+    setPrevResetSignature(resetSignature);
+  }
 
   const baseCheckoutMetrics = useMemo(
     () =>
@@ -65,6 +91,7 @@ export function usePayExtraCheckout({
     ...allocationParams,
     excessAmount: allocationExcessAmount,
     moneyEpsilon,
+    stateResetKey: resetSignature,
   });
 
   const checkoutMetrics = useMemo(() => {
@@ -129,14 +156,6 @@ export function usePayExtraCheckout({
     ? baseCheckoutMetrics.unresolvedExcessAmount
     : legacyUnresolvedExcess;
 
-  useEffect(() => {
-    setValidationPhase('editing');
-    setExtraReceiptDialogOpen(false);
-    allocation.resetAllocationState();
-    allocation.setExtraReceiptMode('adjust_legs');
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- resetDeps is caller-controlled fingerprint
-  }, [payExtraIntent, ...resetDeps]);
-
   const overpaymentNeedsResolution =
     (payExtraIntent ? baseCheckoutMetrics.unresolvedExcessAmount : legacyUnresolvedExcess) >
     moneyEpsilon;
@@ -163,7 +182,13 @@ export function usePayExtraCheckout({
       return;
     }
     setExtraReceiptDialogOpen(true);
-  }, [checkoutMetrics.unresolvedExcessAmount, moneyEpsilon, payExtraIntent]);
+  }, [
+    checkoutMetrics.unresolvedExcessAmount,
+    moneyEpsilon,
+    payExtraIntent,
+    setValidationPhase,
+    setExtraReceiptDialogOpen,
+  ]);
 
   const confirmExtraReceiptSelection = useCallback(() => {
     if (overpaymentResolutionPayload) {
@@ -172,7 +197,7 @@ export function usePayExtraCheckout({
       return true;
     }
     return false;
-  }, [overpaymentResolutionPayload]);
+  }, [overpaymentResolutionPayload, setValidationPhase, setExtraReceiptDialogOpen]);
 
   const resetPayExtraState = useCallback(() => {
     setPayExtraIntent(false);
@@ -180,7 +205,12 @@ export function usePayExtraCheckout({
     setExtraReceiptDialogOpen(false);
     allocation.resetAllocationState();
     allocation.setExtraReceiptMode('adjust_legs');
-  }, [allocation]);
+  }, [
+    allocation,
+    setPayExtraIntent,
+    setValidationPhase,
+    setExtraReceiptDialogOpen,
+  ]);
 
   return {
     payExtraIntent,

@@ -8,6 +8,12 @@ import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
 
+/**
+ *
+ * @param _request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

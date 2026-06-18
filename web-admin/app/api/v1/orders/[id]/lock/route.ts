@@ -8,6 +8,12 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { createClient } from '@/lib/supabase/server';
 import { lockOrderForEdit } from '@/lib/services/order-lock.service';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

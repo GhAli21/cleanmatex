@@ -37,6 +37,11 @@ function normalizePositiveInt(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.searchParams
+ */
 export default async function InvoicesPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices');
   const tHub = await getTranslations('invoices.ar.hub');

@@ -19,6 +19,14 @@ function formatCurrency(amount: number, locale: string) {
   }).format(amount);
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.rows
+ * @param root0.page
+ * @param root0.limit
+ * @param root0.total
+ */
 export function ArDisputesTable({ rows, page, limit, total }: ArDisputesTableProps) {
   const t = useTranslations('invoices.ar.v2.disputes');
   const locale = useLocale();

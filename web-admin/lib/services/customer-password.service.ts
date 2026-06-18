@@ -80,7 +80,12 @@ async function verifyPassword(plain: string, stored: string): Promise<boolean> {
 // Public service functions
 // ---------------------------------------------------------------------------
 
-/** Returns true if the customer identified by phone + tenant has a password set. */
+/**
+ * Returns true if the customer identified by phone + tenant has a password set.
+ * @param params
+ * @param params.phone
+ * @param params.tenantId
+ */
 export async function customerHasPassword(params: {
   phone: string;
   tenantId: string;
@@ -113,7 +118,13 @@ export async function customerHasPassword(params: {
   return typeof data?.password_hash === 'string' && data.password_hash.length > 0;
 }
 
-/** Sets (or replaces) the password for the customer identified by the verification token. */
+/**
+ * Sets (or replaces) the password for the customer identified by the verification token.
+ * @param params
+ * @param params.tenantId
+ * @param params.verificationToken
+ * @param params.newPassword
+ */
 export async function setCustomerPassword(params: {
   tenantId: string;
   verificationToken: string;
@@ -158,6 +169,9 @@ export async function setCustomerPassword(params: {
   }
 }
 
+/**
+ *
+ */
 export interface CustomerPasswordLoginResult {
   customerId: string;
   displayName: string | null;
@@ -168,6 +182,10 @@ export interface CustomerPasswordLoginResult {
 /**
  * Validates phone + password and returns session-ready customer data.
  * Returns null on wrong credentials (caller must return 401 — never leak why).
+ * @param params
+ * @param params.phone
+ * @param params.password
+ * @param params.tenantId
  */
 export async function loginWithPassword(params: {
   phone: string;

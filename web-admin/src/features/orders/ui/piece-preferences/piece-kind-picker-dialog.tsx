@@ -44,6 +44,26 @@ interface PieceKindPickerDialogProps {
   onConditionToggle: (code: string) => void;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.open
+ * @param root0.onOpenChange
+ * @param root0.kind
+ * @param root0.packingPrefCode
+ * @param root0.pieceServicePrefs
+ * @param root0.selectedConditionCodes
+ * @param root0.selectedColorCodes
+ * @param root0.onColorsChange
+ * @param root0.conditionCatalog
+ * @param root0.packingPrefs
+ * @param root0.prefsForKind
+ * @param root0.servicePrefsFallback
+ * @param root0.enforcePrefCompatibility
+ * @param root0.onPackingChange
+ * @param root0.onServicePrefsChange
+ * @param root0.onConditionToggle
+ */
 export function PieceKindPickerDialog({
   open,
   onOpenChange,

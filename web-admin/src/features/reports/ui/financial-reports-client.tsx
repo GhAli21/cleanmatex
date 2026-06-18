@@ -57,6 +57,9 @@ function fmt(n: number | null | undefined, currency?: string | null): string {
   return `${currency ?? ''} ${n.toFixed(3)}`.trim();
 }
 
+/**
+ *
+ */
 export function FinancialReportsClient() {
   const t = useTranslations('reports.financial');
   const [from, setFrom] = useState(defaultFrom());

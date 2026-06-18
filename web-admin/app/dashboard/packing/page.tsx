@@ -23,6 +23,9 @@ interface PackingOrder {
   rack_location?: string;
 }
 
+/**
+ *
+ */
 export default function PackingPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();

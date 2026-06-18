@@ -27,6 +27,7 @@ async function getTenantIdFromSession(): Promise<string> {
 /**
  * POST /api/v1/tenants/me/logo
  * Upload logo file
+ * @param request
  */
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE /api/v1/tenants/me/logo
  * Remove tenant logo
+ * @param request
  */
 export async function DELETE(request: NextRequest) {
   try {

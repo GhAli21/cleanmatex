@@ -20,6 +20,7 @@ export function usePermissions(): string[] {
 /**
  * Check if user has a permission by full code (e.g. orders:overpayment_allocate).
  * Use this when the action segment contains underscores or multiple colons are not used.
+ * @param permissionCode
  */
 export function useHasPermissionCode(permissionCode: string): boolean {
   const { permissions } = useAuth()

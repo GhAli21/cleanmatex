@@ -32,6 +32,9 @@ import {
 
 const VOUCHER_CHECK_COUNT = 3; // VOUCHER_TOTAL_EQUALS_LINES, NO_DUPLICATE_OPERATIONAL_EFFECT, GATEWAY_STATE_VALID
 
+/**
+ *
+ */
 export interface VoucherReconciliationResult {
   voucherId: string;
   voucherNo: string;

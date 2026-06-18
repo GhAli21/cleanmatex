@@ -31,12 +31,18 @@ const PROCESSING_STARTED_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
+/**
+ *
+ */
 export interface EditabilityCheckResult {
   canEdit: boolean;
   reason?: string;
   blockers?: string[];
 }
 
+/**
+ *
+ */
 export interface OrderForEditabilityCheck {
   current_status?: string | null;
   preparation_status?: string | null;
@@ -45,6 +51,9 @@ export interface OrderForEditabilityCheck {
   order_subtype?: string | null;
 }
 
+/**
+ *
+ */
 export interface OrderForDeleteCheck {
   current_status?: string | null;
   paid_amount?: number | null;
@@ -150,6 +159,7 @@ export function canDeleteOrder(order: OrderForDeleteCheck): EditabilityCheckResu
 /**
  * Helper to check if order is in editable status
  * (Quick check without full validation)
+ * @param status
  */
 export function isEditableStatus(status: string | null | undefined): boolean {
   if (!status) return false;
@@ -158,6 +168,7 @@ export function isEditableStatus(status: string | null | undefined): boolean {
 
 /**
  * Helper to check if processing has started
+ * @param status
  */
 export function hasProcessingStarted(status: string | null | undefined): boolean {
   if (!status) return false;
@@ -166,6 +177,8 @@ export function hasProcessingStarted(status: string | null | undefined): boolean
 
 /**
  * Get human-readable message for why order cannot be edited
+ * @param order
+ * @param locale
  */
 export function getEditabilityMessage(
   order: OrderForEditabilityCheck,

@@ -9,33 +9,51 @@ import type { OverpaymentResolutionCode } from '@/lib/constants/settlement-catal
 /** Stable client id on each payment leg in Payment Modal V4 (not array index). */
 export type PaymentLegRef = string;
 
+/**
+ *
+ */
 export type ReturnCashChangeResolutionLine = {
   resolutionCode: 'RETURN_CASH_CHANGE';
   legRef: PaymentLegRef;
   amount: number;
 };
 
+/**
+ *
+ */
 export type SaveAsCustomerAdvanceResolutionLine = {
   resolutionCode: 'SAVE_AS_CUSTOMER_ADVANCE';
   amount: number;
 };
 
+/**
+ *
+ */
 export type SaveAsCustomerCreditResolutionLine = {
   resolutionCode: 'SAVE_AS_CUSTOMER_CREDIT';
   amount: number;
   noteReason?: string;
 };
 
+/**
+ *
+ */
 export type ReducePaymentResolutionLine = {
   resolutionCode: 'REDUCE_PAYMENT';
   amount: number;
 };
 
+/**
+ *
+ */
 export type RestoreStoredValueResolutionLine = {
   resolutionCode: 'RESTORE_STORED_VALUE';
   amount: number;
 };
 
+/**
+ *
+ */
 export type OverpaymentResolutionLine =
   | ReturnCashChangeResolutionLine
   | SaveAsCustomerAdvanceResolutionLine

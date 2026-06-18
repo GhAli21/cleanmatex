@@ -24,6 +24,9 @@ const PROCESSING_STEPS = [
   { value: 'finishing', labelKey: 'steps.finishing' },
 ];
 
+/**
+ *
+ */
 export interface ProcessingPieceCardProps {
   piece: OrderItemPiece;
   onUpdate?: (pieceId: string, updates: Partial<OrderItemPiece>) => void;
@@ -32,6 +35,15 @@ export interface ProcessingPieceCardProps {
   readOnly?: boolean;
 }
 
+/**
+ *
+ * @param root0
+ * @param root0.piece
+ * @param root0.onUpdate
+ * @param root0.isBulkSelected
+ * @param root0.onBulkSelectToggle
+ * @param root0.readOnly
+ */
 export function ProcessingPieceCard({
   piece,
   onUpdate,

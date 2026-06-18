@@ -4,6 +4,12 @@ import { getBizVoucherById, updateBizVoucher } from '@/lib/services/voucher-biz.
 import { updateBizVoucherSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { UpdateBizVoucherInput } from '@/lib/types/voucher';
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string }> }
@@ -23,6 +29,12 @@ export async function GET(
   }
 }
 
+/**
+ *
+ * @param request
+ * @param root0
+ * @param root0.params
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ voucherId: string }> }

@@ -12,6 +12,9 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
+/**
+ *
+ */
 export interface PromoValidation {
   isValid:    boolean;
   promotion?: Awaited<ReturnType<typeof getPromotion>>;
@@ -25,7 +28,7 @@ async function getPromotion(tenantId: string, promoId: string) {
   });
 }
 
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Return all auto-apply promotions (NULL promo_code) for the given order context.
  */

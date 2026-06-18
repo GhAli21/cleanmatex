@@ -10,6 +10,9 @@ import { alertDialogManager } from '../utils/alert-dialog-manager';
  * Display a message using browser alert/confirm dialogs
  * Note: For confirm dialogs, this returns a promise-based result
  * For regular alerts, returns synchronously
+ * @param type
+ * @param message
+ * @param options
  */
 export function showAlertMessage(
   type: MessageType,
@@ -61,6 +64,12 @@ export function showAlertMessage(
 
 /**
  * Show a promise-based alert (not recommended, but supported)
+ * @param promise
+ * @param messages
+ * @param messages.loading
+ * @param messages.success
+ * @param messages.error
+ * @param options
  */
 export async function showAlertPromise<T>(
   promise: Promise<T>,

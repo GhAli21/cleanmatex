@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * BVM Business Voucher Service
  * Core CRUD for org_fin_vouchers_mst (BVM flow).

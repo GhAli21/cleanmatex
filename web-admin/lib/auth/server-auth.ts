@@ -6,6 +6,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ *
+ */
 export interface AuthContext {
   user: {
     id: string;

@@ -1,4 +1,4 @@
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param */
 /**
  * User RBAC API Client — Extended role/permission operations
  *
@@ -127,7 +127,7 @@ export interface UserPermissionOverridesResponse {
  * Get all role assignments for a user — both tenant-level and resource-scoped.
  * GET /tenants/{tenantId}/users/{userId}/roles
  *
- * @returns { tenant_roles, resource_roles }
+ * @returns Tenant and resource role assignments for the user
  */
 export async function getUserRolesExtended(
   userId: string,
@@ -155,9 +155,12 @@ export async function getUserRolesExtended(
  * Assign (or replace) tenant-level roles for a user.
  * POST /tenants/{tenantId}/users/{userId}/roles
  *
+ * @param userId - User UUID
+ * @param tenantId - Tenant organization UUID
  * @param roleCodes - Full list of role codes to assign (replaces existing)
+ * @param accessToken - RBAC API bearer token
  * @param resourceType - Optional: if provided, assign as resource-scoped role
- * @param resourceId   - Optional: resource UUID (required when resourceType set)
+ * @param resourceId - Optional: resource UUID (required when resourceType set)
  */
 export async function assignRoles(
   userId: string,
@@ -229,7 +232,10 @@ export async function getUserWorkflowRoles(
  * Assign (replace) workflow roles for a user.
  * POST /tenants/{tenantId}/users/{userId}/workflow-roles
  *
+ * @param userId - User UUID
+ * @param tenantId - Tenant organization UUID
  * @param workflowRoles - Full list of workflow role codes to assign (replaces existing)
+ * @param accessToken - RBAC API bearer token
  */
 export async function assignWorkflowRoles(
   userId: string,
@@ -273,7 +279,10 @@ export async function getPermissionOverrides(
  * Save global permission overrides for a user (replaces existing).
  * POST /tenants/{tenantId}/users/{userId}/permissions
  *
+ * @param userId - User UUID
+ * @param tenantId - Tenant organization UUID
  * @param overrides - Array of { permission_code, allow } objects
+ * @param accessToken - RBAC API bearer token
  */
 export async function setPermissionOverrides(
   userId: string,
@@ -292,7 +301,10 @@ export async function setPermissionOverrides(
  * Save resource-scoped permission overrides for a user (replaces existing).
  * POST /tenants/{tenantId}/users/{userId}/permissions/resource
  *
+ * @param userId - User UUID
+ * @param tenantId - Tenant organization UUID
  * @param overrides - Array of { permission_code, allow, resource_type, resource_id }
+ * @param accessToken - RBAC API bearer token
  */
 export async function setResourcePermissionOverrides(
   userId: string,
