@@ -33,6 +33,7 @@ import {
   stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
 
@@ -296,7 +297,10 @@ export async function POST(request: NextRequest) {
       recipientUserIds: [userId],
       sourceEntityType: 'order',
       sourceEntityId: result.order.id,
-      variables: { order_number: result.order.orderNo },
+      variables: buildOrderCreatedNotificationVariables({
+        orderNo:   result.order.orderNo,
+        readyByAt: input.readyByAt,
+      }),
     });
 
     return NextResponse.json({ success: true, data: result });

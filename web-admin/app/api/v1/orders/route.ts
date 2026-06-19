@@ -14,6 +14,7 @@ import { logger } from '@/lib/utils/logger';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 
 /**
  * POST /api/v1/orders
@@ -151,7 +152,10 @@ export async function POST(request: NextRequest) {
         recipientUserIds: [userId],
         sourceEntityType: 'order',
         sourceEntityId: result.order.id,
-        variables: { order_number: result.order.orderNo },
+        variables: buildOrderCreatedNotificationVariables({
+          orderNo:   result.order.orderNo,
+          readyByAt: result.order.readyByAt,
+        }),
       });
     }
 

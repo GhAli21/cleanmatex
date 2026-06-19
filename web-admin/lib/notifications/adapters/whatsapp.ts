@@ -43,19 +43,66 @@ export interface WhatsAppDeliveryResult {
   permanent?: boolean
 }
 
-function buildSandboxContentVariables(row: OutboxWhatsAppRow): Record<string, string> {
-  const variables = (row.metadata?.variables as Record<string, string> | undefined) ?? {}
-  const label =
-    variables.order_number != null
-      ? 'CleanMateX order'
-      : (row.event_code?.replace(/\./g, ' ') ?? 'CleanMateX')
-  const code =
-    variables.order_number ??
-    variables.otp ??
-    variables.code ??
-    row.rendered_body.slice(0, 80)
+function sanitizeContentVariableValue(value: string): string {
+  return value
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 256)
+}
 
+/**
+ * Build Twilio ContentVariables JSON keys for a Content template.
+ *
+ * Provider config `content_variable_map` maps template slot/name → value source:
+ *   - `"$order_number"` — from outbox metadata.variables
+ *   - `"CleanMateX"`      — literal static text
+ *
+ * Example for template with {{1}} and {{2}}:
+ *   { "1": "CleanMateX", "2": "$order_number" }
+ *
+ * Example for named template variable {{order_number}}:
+ *   { "order_number": "$order_number" }
+ *
+ * Set `content_variable_map: {}` to send no ContentVariables (static template only).
+ */
+function buildContentVariables(
+  row: OutboxWhatsAppRow,
+  providerConfig?: Record<string, unknown>,
+): Record<string, string> {
+  const eventVars = (row.metadata?.variables as Record<string, string> | undefined) ?? {}
+  const map = providerConfig?.content_variable_map
+
+  if (map !== undefined && map !== null && typeof map === 'object' && !Array.isArray(map)) {
+    const result: Record<string, string> = {}
+    for (const [slot, source] of Object.entries(map as Record<string, unknown>)) {
+      if (typeof source !== 'string') continue
+      const raw =
+        source.startsWith('$')
+          ? (eventVars[source.slice(1)] ?? row.event_code ?? '')
+          : source
+      const cleaned = sanitizeContentVariableValue(String(raw))
+      if (cleaned.length > 0) result[slot] = cleaned
+    }
+    return result
+  }
+
+  // Default: Twilio sandbox "Your {1} code is {2}" style templates
+  const code = sanitizeContentVariableValue(
+    eventVars.order_number ??
+      eventVars.otp ??
+      eventVars.code ??
+      row.event_code ??
+      'notification',
+  )
+  const label = sanitizeContentVariableValue(
+    eventVars.order_number != null ? 'CleanMateX' : (row.event_code?.replace(/\./g, ' ') ?? 'CleanMateX'),
+  )
   return { '1': label, '2': code }
+}
+
+function isTwilioContentVariablesError(code: number | undefined): boolean {
+  return code === 21656 || code === 92007 || code === 50529 || code === 50541
 }
 
 function resolveSandboxContentSid(providerConfig?: Record<string, unknown>): string | undefined {
@@ -113,15 +160,22 @@ async function sendViaTwilio(
 
     let message
     if (useSandbox && contentSid) {
-      const contentVariables = JSON.stringify(buildSandboxContentVariables(row))
-      message = await client.messages.create({
+      const varsObj = buildContentVariables(row, providerConfig)
+      const createPayload: Parameters<typeof client.messages.create>[0] = {
         from: fromAddr,
         to:   toAddr,
         contentSid,
-        contentVariables,
-      })
-      logger.info('whatsapp-adapter(twilio): sent via sandbox template', {
-        outboxId: row.id, messageSid: message.sid, contentSid, feature: 'notifications',
+      }
+      if (Object.keys(varsObj).length > 0) {
+        createPayload.contentVariables = JSON.stringify(varsObj)
+      }
+      message = await client.messages.create(createPayload)
+      logger.info('whatsapp-adapter(twilio): sent via content template', {
+        outboxId: row.id,
+        messageSid: message.sid,
+        contentSid,
+        contentVariables: varsObj,
+        feature: 'notifications',
       })
     } else {
       message = await client.messages.create({
@@ -134,11 +188,30 @@ async function sendViaTwilio(
       })
     }
 
+    if (message.errorCode || message.status === 'failed') {
+      const msg = message.errorMessage ?? `Twilio message status: ${message.status}`
+      logger.error('whatsapp-adapter(twilio): message rejected', new Error(msg), {
+        outboxId: row.id,
+        code: message.errorCode,
+        status: message.status,
+        feature: 'notifications',
+      })
+      return {
+        success: false,
+        errorMessage: msg,
+        permanent: isTwilioContentVariablesError(message.errorCode ?? undefined) || message.errorCode === 63055,
+      }
+    }
+
     return { success: true }
   } catch (err) {
     const error = err as { code?: number; message?: string }
     const msg   = error.message ?? 'Unknown Twilio error'
-    const permanent = error.code === 21211 || error.code === 21614
+    const permanent =
+      error.code === 21211 ||
+      error.code === 21614 ||
+      error.code === 63055 ||
+      isTwilioContentVariablesError(error.code)
     logger.error('whatsapp-adapter(twilio): failed', new Error(msg), {
       outboxId: row.id, code: error.code, permanent, feature: 'notifications',
     })
