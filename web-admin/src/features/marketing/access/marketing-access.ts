@@ -137,4 +137,38 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     notes: ['Promotions route distinct from promo-code management.'],
   },
+  {
+    routePattern: '/dashboard/marketing/campaigns',
+    label: 'Campaigns',
+    page: {
+      permissions: ['notifications:manage'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      create: {
+        label: 'Create campaign',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      edit: {
+        label: 'Edit campaign',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    notes: ['Campaign management route aligned with navigation permissions.'],
+  },
+  {
+    routePattern: '/dashboard/marketing/campaigns/[id]',
+    label: 'Campaign Detail',
+    page: {
+      permissions: ['notifications:manage'],
+      requireAllPermissions: true,
+    },
+    notes: ['Campaign detail route aligned with navigation permissions.'],
+  },
 ];

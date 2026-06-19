@@ -6,6 +6,7 @@ import { CORE_ACCESS_CONTRACTS } from '@features/core/access/core-access'
 import { ERP_LITE_ACCESS_CONTRACTS } from '@features/erp-lite/access/erp-lite-access'
 import { VOUCHER_ACCESS_CONTRACTS } from '@features/finance/vouchers/access/vouchers-access'
 import { MARKETING_ACCESS_CONTRACTS } from '@features/marketing/access/marketing-access'
+import { NOTIFICATIONS_ACCESS_CONTRACTS } from '@features/notifications/access/notifications-access'
 import { ORDERS_ACCESS_CONTRACTS } from '@features/orders/access/orders-access'
 import { PAYMENT_CONFIG_ACCESS_CONTRACTS } from '@features/payment-config/access/payment-config-access'
 import { SETTINGS_ACCESS_CONTRACTS } from '@features/settings/access/settings-access'
@@ -18,6 +19,7 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...ERP_LITE_ACCESS_CONTRACTS,
   ...VOUCHER_ACCESS_CONTRACTS,
   ...MARKETING_ACCESS_CONTRACTS,
+  ...NOTIFICATIONS_ACCESS_CONTRACTS,
   ...ORDERS_ACCESS_CONTRACTS,
   ...PAYMENT_CONFIG_ACCESS_CONTRACTS,
   ...SETTINGS_ACCESS_CONTRACTS,

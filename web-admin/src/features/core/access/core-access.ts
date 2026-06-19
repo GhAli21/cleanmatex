@@ -126,6 +126,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: CORE_NOTES,
   },
   {
+    routePattern: '/dashboard/customers/account-receipt',
+    label: 'Customer Account Receipt',
+    page: {
+      permissions: ['customers:receipt_allocate'],
+      requireAllPermissions: true,
+    },
+    notes: ['Standalone customer account receipt allocation screen.'],
+  },
+  {
     routePattern: '/dashboard/customers/[id]',
     label: 'Customer Details',
     page: {},

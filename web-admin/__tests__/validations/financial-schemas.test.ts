@@ -9,7 +9,7 @@
  * - createWithPaymentRequestSchema — paymentLegs accepted when present
  * - createWithPaymentRequestSchema — single legacy paymentMethod still valid
  * - newOrderPaymentPayloadSchema — paymentLegs optional
- * - newOrderPaymentPayloadSchema — amountToCharge > saleTotal rejected
+ * - newOrderPaymentPayloadSchema — overpayment policy deferred to settlement services
  */
 
 import {
@@ -165,12 +165,17 @@ describe('newOrderPaymentPayloadSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects when amountToCharge > saleTotal + 0.001', () => {
+  // Overpayment is a first-class flow since the ADR-046 overpayment policy (11-06-2026):
+  // the schema-level `amountToCharge <= saleTotal` guard was intentionally removed so that
+  // paying more than saleTotal is accepted here. Excess routing/resolution is enforced
+  // downstream by the settlement services (overpaymentResolution + customer-receipt-excess
+  // executor), not by this payload schema.
+  it('accepts overpayment (amountToCharge > saleTotal) — excess routed by settlement services', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 200,
       totals: { subtotal: 100, vatValue: 0, saleTotal: 100 },
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('accepts amountToCharge <= saleTotal', () => {

@@ -36,6 +36,8 @@ export const statementPaymentWiringHandler: WiringHandler = {
       amount: Number(line.amount),
       idempotencyKey: `${voucherId}_stmt_${line.id}`,
       voucherId,
+      voucherTrxLineId: line.id,
+      branchId: line.branch_id ?? null,
     });
     return result.id;
   },

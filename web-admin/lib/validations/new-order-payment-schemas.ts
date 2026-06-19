@@ -302,7 +302,7 @@ export const newOrderPaymentPayloadSchema = z
     (data) => {
       if (!data.paymentLegs || data.paymentLegs.length === 0) return true;
       const legSum = data.paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
-      return Math.abs(legSum - data.amountToCharge) <= 0.001;
+      return Math.abs(legSum - data.amountToCharge) <= SETTLEMENT_MONEY_EPSILON;
     },
     { message: 'Payment leg sum must equal amount to charge', path: ['paymentLegs'] }
   );

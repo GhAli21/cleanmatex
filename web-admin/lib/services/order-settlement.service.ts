@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
+
 import { prisma } from '@/lib/db/prisma';
 import {
   CREDIT_APPLICATION_TYPES,
@@ -601,7 +603,12 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     idempotencyKey: idempotencyKeyInput,
   } = params;
   const policy = await getPartialLaterCollectionPolicy(tenantId);
-  const idempotencyKey = idempotencyKeyInput ?? `${orderId}_collect_${collectedBy}`;
+  // F-10 (D-05): never reuse a stable per-(order,user) key — `${orderId}_collect_${collectedBy}`
+  // collides across DISTINCT collection events and can silently dedupe a legitimate
+  // second partial collection by the same cashier. Prefer the client/POS-supplied
+  // per-event key; fall back to a per-request UUID (collision-free). The UI sends a
+  // stable per-attempt key so genuine retries dedupe (see collect-payment modal).
+  const idempotencyKey = idempotencyKeyInput ?? `${orderId}_collect_${randomUUID()}`;
 
   return prisma.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<

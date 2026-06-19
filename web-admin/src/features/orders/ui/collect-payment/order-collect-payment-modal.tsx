@@ -293,7 +293,10 @@ export function OrderCollectPaymentModal({
           ],
           customerId: customerId ?? undefined,
           ...(submitResolution ? { overpaymentResolution: submitResolution } : {}),
-          idempotencyKey: `collect_${orderId}_${Date.now()}`,
+          // F-10: per-event idempotency key. Random suffix guards against two
+          // distinct rapid collections landing in the same millisecond (which
+          // would otherwise dedupe a legitimate second partial collection).
+          idempotencyKey: `collect_${orderId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
         }),
       });
       const json = await res.json();

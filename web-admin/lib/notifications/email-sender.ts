@@ -35,7 +35,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
     subject,
     html,
     text,
-    from = process.env.RESEND_FROM_EMAIL || 'noreply@cleanmatex.com',
+    from = process.env.RESEND_FROM_EMAIL || 'noreply@service.cleanmatex.com',
   } = params;
 
   if (isResendConfigured()) {
