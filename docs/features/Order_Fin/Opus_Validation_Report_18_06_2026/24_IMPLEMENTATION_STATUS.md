@@ -118,3 +118,54 @@ Tight Phase 1 (approved scope): **1A (F-01 RLS) · 1B (F-02/F-04 B2B) · 1C (F-1
 ### Re-validation verdict
 🟢 **D-11 PASS (LOCAL).** Both GA-gate DB changes (F-01 RLS, F-04 B2B detail/idempotency/composite-FK) are live and correct on local. Remaining gates: remote/prod apply of 0379/0380/0381 (user-gated); broader tsc type-debt cleanup (postponed); own phases (F-T5, F-05, D-09, D-12).
 
+
+---
+
+## F-T5 — DB-level finance test harness (2026-06-20)
+
+🟢 **DONE (local).** New Node-environment integration suite runs against the REAL local Supabase DB (migrations applied) and asserts live CHECK/FK/RLS invariants the mocked-Prisma unit tests can never reach — closing the structural seam that let F-00 (the wallet CHECK) ship.
+
+**Files added / changed**
+- `web-admin/__tests__/db-integration/finance-smoke.test.ts` — 7 DB-truth tests.
+- `web-admin/jest.db.config.js` — node-env jest config, separate from the jsdom unit suite.
+- `web-admin/jest.config.js` — default suite now ignores `__tests__/db-integration/`.
+- `web-admin/package.json` — `"test:db-integration": "jest --config jest.db.config.js"`.
+
+**Coverage (every write inside a rolled-back tx — nothing persists)**
+- **Overpayment catalog/constraint parity (wallet-blocker class):** `sys_fin_overpay_res_cd` holds all V1 codes incl. `SAVE_TO_CUSTOMER_WALLET`; `org_fin_overpay_disp_dtl.resolution_code` is FK-guarded (`org_fin_overpay_disp_res_fk`) with **no** re-introduced hardcoded CHECK — a live 0378 regression lock.
+- **F-01 RLS enforcement (T-6):** under a tenant-A JWT (`SET LOCAL ROLE authenticated` + `request.jwt.claims`), a tenant-B `org_tax_doc_seq_counters` row is invisible (own=1, cross=0). Proven non-vacuous — an inverted-expectation sanity run failed with `Received: 0`.
+- **F-04 B2B detail (live):** `chk_b2b_stmt_pay_amt` rejects amount<=0 (23514); composite `fk_b2b_stmt_pay_statement` rejects an unknown statement (23503); partial `uq_b2b_stmt_pay_idem` blocks a duplicate (tenant, idempotency_key) (23505); two distinct keys are allowed.
+
+**Design:** Prisma interactive transactions, always rolled back (negative tests reject the tx; positive tests throw a sentinel). Raw SQL bypasses the tenant middleware so tenant context is explicit. A `beforeAll` DB-ping **gates** the suite — skips cleanly when no DB (dev without the stack / CI without a DB), enforces when present. **No new dependencies** (`pg`, `@prisma/client` already present).
+
+**Validation:** `npm run test:db-integration` -> **7/7 pass**. Default `npm test` excludes the folder (0 db-integration tests). New files add **0 lint errors** and **0 tsc errors** (project total unchanged at 43, still postponed).
+
+**Remaining F-T5 hardening (optional, deferred to D-12/later):** the doc-19 🔵 items — wiring-handler unit tests (T-4/T-5), AR-allocate regression-lock (T-3), cash-change idempotency (T-7), gateway-pending exclusion (T-8), allocation fallback matrix (T-10) — plus the constants/catalog anti-pattern audit. The GA-critical T-1/T-6 + B2B/wallet DB-truth are **DONE**.
+
+
+---
+
+## F-05 — E-invoicing foundation (2026-06-20)
+
+🟡 **Foundation SHIPPED — NOT complete** (ADR-052 honesty guardrail: real per-category decomposition + adapters are tracked follow-ups). Full feature doc: [F-05-E-Invoicing-Foundation.md](../F-05-E-Invoicing-Foundation.md).
+
+**Blocking decision resolved:** tenant-flag placement = **dedicated typed columns on org_tenants_mst** (Approved_By_Jh). Chosen over feature_flags jsonb / HQ-managed setting because it is the only option that DB-enforces "start date set when enabled" and keeps the activation read off any cross-project API on the order hot path.
+
+**Migration:** `0383_einvoice_tenant_enablement.sql` — adds `is_e_invoice_enabled` (bool, default false) + `e_invoice_enabled_start_date` (date) + CHECK `chk_org_tnt_einv_start`. Additive; **applied local + remote** (user, 2026-06-20); verified live on local. (Seq 0382 was already taken by `0382_ntf_templates_full_seed.sql` → next free = 0383. **Next seq now 0384.**)
+
+**Activation rule:** `is_e_invoice_enabled = true AND order_date >= e_invoice_enabled_start_date` (calendar-date granularity). Disabled / pre-start-date orders keep the existing flat-VAT flow unchanged.
+
+**Code added:**
+- `prisma/schema.prisma` — org_tenants_mst gains the two fields (client regenerated).
+- `lib/constants/e-invoice.ts` — `TAX_CATEGORY` (STANDARD/EXEMPT/ZERO_RATED/OUT_OF_SCOPE), `E_INVOICE_STATUS` (scaffolding, not yet persisted).
+- `lib/types/e-invoice.ts` — enablement, activation, `TaxCategoryDecomposition`, `FiscalTotalCheck`.
+- `lib/payments/e-invoice.ts` (pure) — `isEInvoiceActive`, `validateFiscalTotal`, `buildFoundationTaxDecomposition` (V1 STANDARD passthrough).
+- `lib/services/e-invoice.service.ts` (server) — `resolveEInvoiceActivation` (mirrors `resolveTaxPricingMode`).
+- `__tests__/services/e-invoice.foundation.test.ts` — 12 pure tests.
+
+**Validation:** F-05 unit tests **12/12**; typecheck **0 new errors** (project total unchanged at 43); lint **0 errors**; migration verified live.
+
+**Cross-project follow-up:** cleanmatexsaas HQ tenant-management must surface the enablement toggle + start-date picker that WRITE these columns (cleanmatex only reads them).
+
+**NOT complete until:** real per-category tax decomposition (engine emits buckets that reconcile) + wiring into order/tax-document path + e-invoice status persistence + jurisdiction adapter(s) + HQ toggle UI.
+

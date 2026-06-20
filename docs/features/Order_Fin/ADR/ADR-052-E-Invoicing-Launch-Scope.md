@@ -35,3 +35,7 @@ Country-specific adapters (e.g. Saudi **ZATCA**) are **separate jurisdiction ada
 ## Alternatives considered
 - **Defer e-invoicing post-launch:** rejected by D-02 — launch scope includes it.
 - **Implement all country adapters now:** rejected — only launch jurisdictions are GA-blocking; adapters are pluggable.
+
+## Implementation status
+- **2026-06-20 — Foundation SHIPPED (NOT complete).** Placement decision resolved: **dedicated typed columns on `org_tenants_mst`** (`is_e_invoice_enabled`, `e_invoice_enabled_start_date`) via migration `0383_einvoice_tenant_enablement.sql` (applied local + remote), with CHECK `chk_org_tnt_einv_start`. Delivered: activation rule + helpers (`lib/payments/e-invoice.ts`), server reader (`lib/services/e-invoice.service.ts`), `TAX_CATEGORY`/`E_INVOICE_STATUS` constants, decomposition + fiscal-total foundations, 12 unit tests. See [F-05-E-Invoicing-Foundation.md](../F-05-E-Invoicing-Foundation.md).
+- **Still open before F-05 is "complete":** real per-category tax decomposition (engine emits EXEMPT/ZERO_RATED/OUT_OF_SCOPE and reconciles), wiring into the order/tax-document path, e-invoice status persistence, jurisdiction adapter(s), and the HQ enablement-toggle UI (cleanmatexsaas).

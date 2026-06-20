@@ -362,4 +362,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllFeatureFlags: true,
     },
   },
+  {
+    routePattern: '/dashboard/reports/reconciliation',
+    label: 'Reconciliation Reports',
+    page: {
+      permissions: ['finance_reports:view'],
+      requireAllPermissions: true,
+      featureFlags: ['advanced_analytics'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ['D-09 read-only reconciliation report views.'],
+  },
 ]

@@ -7,6 +7,8 @@ Companion to [11](./11_TEST_COVERAGE_FINDINGS.md). Priority: 🟠 GA · 🔵 har
 - ✅ `__tests__/services/overpayment-disposition.wallet.test.ts` *(new)* — wallet credit, audit row, idempotent replay, no-customer reject, recalc `overpaid→0`.
 
 ## To add (GA)
+
+> **Status (2026-06-20):** ✅ `__tests__/db-integration/finance-smoke.test.ts` SHIPPED (F-T5) — a Node-env harness vs the real local DB covering the wallet/overpay FK+catalog parity, the **F-01 RLS cross-tenant probe (T-6)**, and the **F-04** B2B `amount>0` CHECK + composite statement FK + partial idempotency unique (live). ✅ `b2b-statement-payment.idempotency.test.ts` (F-02, service-level) shipped in Phase 1. The standalone `tax-doc-seq-counters-rls.test.ts` is **folded into finance-smoke**. ⏳ Still pending: dedicated `collect-payment.idempotency.test.ts` (F-10).
 | Test file (new) | Scenario | Finding |
 |---|---|---|
 | `__tests__/db-integration/finance-smoke.test.ts` | Real test DB: insert `SAVE_TO_CUSTOMER_WALLET` disposition vs the live FK; RLS cross-tenant probe; CHECK/FK enforcement | F-T5 (highest leverage) |

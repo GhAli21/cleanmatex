@@ -1539,6 +1539,8 @@ model org_tenants_mst {
   rec_notes                        String?
   tax_pricing_mode                 String                             @default("TAX_EXCLUSIVE")
   extra_price_pricing_mode         String                             @default("INCLUDED_IN_ITEM_PRICE")
+  is_e_invoice_enabled             Boolean                            @default(false)
+  e_invoice_enabled_start_date     DateTime?                          @db.Date
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_asm_locations_mst            org_asm_locations_mst[]

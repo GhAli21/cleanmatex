@@ -551,6 +551,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'viewer'],
         permissions: ['finance_reports:view'],
       },
+      {
+        key: 'reports_reconciliation',
+        label: 'Reconciliation',
+        label2: 'التسوية',
+        path: '/dashboard/reports/reconciliation',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'viewer'],
+        permissions: ['finance_reports:view'],
+      },
     ],
   },
   {

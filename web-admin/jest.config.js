@@ -70,8 +70,8 @@ const customJestConfig = {
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
 
-  // Ignore patterns
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
+  // Ignore patterns — db-integration runs under jest.db.config.js (node env + real DB), not here.
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/', '<rootDir>/__tests__/db-integration/'],
 
   // Verbose output
   verbose: true,
