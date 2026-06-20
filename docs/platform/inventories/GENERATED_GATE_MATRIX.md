@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-20T08:00:30.818Z
-Git SHA: 1615ad2c
+Generated: 2026-06-20T08:18:55.584Z
+Git SHA: 417052a9
 ## Summary
 | Domain | Count |
 | --- | --- |
@@ -52,7 +52,7 @@ Git SHA: 1615ad2c
 | /dashboard/erp-lite/finance-actions | Finance control audit | erp_lite_periods:view | erp_lite_enabled, erp_lite_periods_enabled | 0 |
 | /dashboard/erp-lite/gl | General Ledger | erp_lite_gl:view | erp_lite_enabled, erp_lite_gl_enabled | 0 |
 | /dashboard/erp-lite/journals | Journal register | erp_lite_gl:view | erp_lite_enabled, erp_lite_gl_enabled | 0 |
-| /dashboard/erp-lite/periods | Period Management | erp_lite:view | erp_lite_enabled, erp_lite_periods_enabled | 0 |
+| /dashboard/erp-lite/periods | Period Management | erp_lite_periods:view | erp_lite_enabled, erp_lite_periods_enabled | 0 |
 | /dashboard/erp-lite/po | Purchase Orders | erp_lite_po:view | erp_lite_enabled, erp_lite_po_enabled | 0 |
 | /dashboard/erp-lite/posting-audit | Posting Audit Viewer | erp_lite_post_audit:view | erp_lite_enabled, erp_lite_post_audit_enabled | 0 |
 | /dashboard/erp-lite/readiness | Finance Readiness | erp_lite:view | erp_lite_enabled, erp_lite_readiness_enabled | 0 |
@@ -93,8 +93,8 @@ Git SHA: 1615ad2c
 | /dashboard/inventory/stock | Inventory Stock | — | — | 0 |
 | /dashboard/jhtestui | JWT Test | — | — | 0 |
 | /dashboard/marketing | Marketing | promotions:read | — | 0 |
-| /dashboard/marketing/campaigns | Campaigns | notifications:manage | — | 0 |
-| /dashboard/marketing/campaigns/[id] | Campaign Detail | notifications:manage | — | 0 |
+| /dashboard/marketing/campaigns | Campaigns | notifications:manage | campaigns_enabled | 0 |
+| /dashboard/marketing/campaigns/[id] | Campaign Detail | notifications:manage | campaigns_enabled | 0 |
 | /dashboard/marketing/discount-rules | Discount Rules | discount_rules:read | — | 0 |
 | /dashboard/marketing/gift-cards | Gift Cards | gift_cards:read | — | 0 |
 | /dashboard/marketing/gift-cards/liability | Gift Card Liability | gift_cards:read | — | 0 |

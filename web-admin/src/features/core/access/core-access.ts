@@ -144,6 +144,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Standalone customer account receipt allocation screen.'],
   },
   {
+    routePattern: '/dashboard/customers/stored-value',
+    label: 'Stored Value',
+    page: {
+      permissions: ['stored_value:view_balances'],
+      requireAllPermissions: true,
+    },
+    notes: ['Stored value balances route requires the dedicated stored value viewer permission from navigation.'],
+  },
+  {
     routePattern: '/dashboard/customers/[id]',
     label: 'Customer Details',
     page: {},
@@ -213,15 +222,6 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: CORE_NOTES,
-  },
-  {
-    routePattern: '/dashboard/customers/stored-value',
-    label: 'Stored Value',
-    page: {
-      permissions: ['stored_value:view_balances'],
-      requireAllPermissions: true,
-    },
-    notes: ['Stored value balances route requires the dedicated stored value viewer permission from navigation.'],
   },
   {
     routePattern: '/dashboard/users',

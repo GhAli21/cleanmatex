@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Baseline allowlist for delta-only platform inventory CI. Shrink in Phase 6 repair pass.",
+  "description": "Baseline allowlist for delta-only platform inventory CI. Only nav placeholders without pages remain after Phase 6 repair pass.",
   "exceptions": [
     {
       "id": "nav_missing_contract:/dashboard/drivers",
@@ -20,26 +20,6 @@
     {
       "id": "nav_missing_contract:/dashboard/internal_fin",
       "reason": "Internal finance section nav path is parent-only without page.tsx",
-      "addedAt": "2026-06-20"
-    },
-    {
-      "id": "nav_contract_permission_mismatch:/dashboard/internal_fin/invoices/new",
-      "reason": "Nav uses invoices:write; contract uses broader finance gate — align in Phase 6",
-      "addedAt": "2026-06-20"
-    },
-    {
-      "id": "nav_contract_permission_mismatch:/dashboard/internal_fin/vouchers/reports",
-      "reason": "Nav permission set differs from voucher reports contract — align in Phase 6",
-      "addedAt": "2026-06-20"
-    },
-    {
-      "id": "nav_contract_permission_mismatch:/dashboard/erp-lite/periods",
-      "reason": "Nav erp_lite:view vs contract erp_lite_periods:view — intentional finer contract gate",
-      "addedAt": "2026-06-20"
-    },
-    {
-      "id": "nav_contract_feature_flag_mismatch:/dashboard/marketing/campaigns_missing_in_contract",
-      "reason": "Nav requires CAMPAIGNS_ENABLED; contract missing page.featureFlags — fix in Phase 6",
       "addedAt": "2026-06-20"
     },
     {

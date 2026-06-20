@@ -55,11 +55,7 @@ function isStaticBeforeDynamic(staticRoute: string, dynamicRoute: string): boole
   return false
 }
 
-const KNOWN_STATIC_ORDER_VIOLATIONS = new Set([
-  '/dashboard/customers/stored-value|/dashboard/customers/[id]',
-  '/dashboard/internal_fin/invoices/new|/dashboard/internal_fin/invoices/[id]',
-  '/dashboard/internal_fin/vouchers/reports|/dashboard/internal_fin/vouchers/[voucherId]',
-])
+const KNOWN_STATIC_ORDER_VIOLATIONS = new Set<string>()
 
 describe('platform inventories — registry integrity', () => {
   it('has no duplicate routePattern values in the registry', () => {

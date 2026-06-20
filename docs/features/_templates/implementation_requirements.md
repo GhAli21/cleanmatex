@@ -66,6 +66,10 @@ author: CleanMateX Team
 
 - Role-permission mappings (if applicable)
 
+## Platform inventories (after gating sections above)
+
+When permissions, navigation, feature flags, or access contracts change, invoke **`/rebuild-platform-info-inventories`** (mode `refresh`, scoped to the feature). Run `npm run check:platform-info-inventories` before merge. See [platform inventories README](../../platform/inventories/README.md).
+
 ## Environment Variables
 
 - `VAR_NAME` — Description (if applicable)

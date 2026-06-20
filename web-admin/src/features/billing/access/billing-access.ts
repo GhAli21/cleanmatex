@@ -79,6 +79,26 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Sidebar navigation also requires `invoices:read`.', ...BILLING_NOTES],
   },
   {
+    routePattern: '/dashboard/internal_fin/invoices/new',
+    label: 'New AR Invoice',
+    page: {
+      permissions: ['invoices:create'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Create AR invoice',
+        method: 'POST',
+        path: '/api/v1/ar/invoices',
+        requirement: {
+          permissions: ['invoices:create'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ['Wizard page for manual AR invoice creation.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/invoices/[id]',
     label: 'Invoice Details',
     page: {
@@ -272,26 +292,6 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: ['Printable AR invoice report route.'],
-  },
-  {
-    routePattern: '/dashboard/internal_fin/invoices/new',
-    label: 'New AR Invoice',
-    page: {
-      permissions: ['invoices:create'],
-      requireAllPermissions: true,
-    },
-    apiDependencies: [
-      {
-        label: 'Create AR invoice',
-        method: 'POST',
-        path: '/api/v1/ar/invoices',
-        requirement: {
-          permissions: ['invoices:create'],
-          requireAllPermissions: true,
-        },
-      },
-    ],
-    notes: ['Wizard page for manual AR invoice creation.'],
   },
   {
     routePattern: '/dashboard/internal_fin/ar/aging',

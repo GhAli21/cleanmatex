@@ -70,7 +70,7 @@ function cmdFull(): void {
 
 function cmdValidate(): void {
   const errors: string[] = [];
-  const warnOnly = process.env.PLATFORM_INVENTORIES_STRICT !== '1';
+  const warnOnly = process.env.PLATFORM_INVENTORIES_WARN_ONLY === '1';
 
   if (!fs.existsSync(INVENTORY_OUTPUT)) {
     errors.push(`Missing inventory: ${INVENTORY_OUTPUT}`);
@@ -108,7 +108,7 @@ function cmdValidate(): void {
     if (!passed) {
       const msg = `[rebuild] ${newDrift.length} new drift item(s) not in KNOWN_EXCEPTIONS.json`;
       if (warnOnly) {
-        console.warn(`${msg} (warn-only — set PLATFORM_INVENTORIES_STRICT=1 to fail)`);
+        console.warn(`${msg} (warn-only — unset PLATFORM_INVENTORIES_WARN_ONLY to fail)`);
         for (const d of newDrift) {
           console.warn(`  - [${d.severity}] ${d.id}: ${d.message}`);
         }
@@ -134,7 +134,7 @@ Commands:
   reconcile       Compare declarative vs scans → DRIFT_REPORT.md
   generate-views  Write GENERATED_GATE_MATRIX.md
   full            extract-delta → ingest → reconcile → generate-views
-  validate        Assert outputs exist; warn on new drift (strict with PLATFORM_INVENTORIES_STRICT=1)
+  validate        Assert outputs exist; fail on new drift (warn-only with PLATFORM_INVENTORIES_WARN_ONLY=1)
 `);
 }
 

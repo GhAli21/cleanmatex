@@ -18,7 +18,7 @@ npm run check:platform-info-inventories      # validate + access-contract Jest
 | `reconcile` | Compare declarative vs scans → `DRIFT_REPORT.md`, `GENERATED_UNDOCUMENTED.md`, `GENERATED_ORPHANS.md` |
 | `generate-views` | Write `GENERATED_GATE_MATRIX.md` (more slices in later phases) |
 | `full` | extract-delta → ingest → reconcile → generate-views |
-| `validate` | Assert artifacts exist; warn on new drift (strict with `PLATFORM_INVENTORIES_STRICT=1`) |
+| `validate` | Assert artifacts exist; fail on new drift (warn-only with `PLATFORM_INVENTORIES_WARN_ONLY=1`) |
 
 ## Extract outputs (legacy paths preserved)
 
@@ -38,4 +38,4 @@ Bootstrap: missing extract files auto-run before ingest.
 ## Delta CI
 
 - Baseline: `KNOWN_EXCEPTIONS.json`
-- New drift IDs not in allowlist → warn (Phase 3–5) or fail when `PLATFORM_INVENTORIES_STRICT=1` (Phase 6+)
+- New drift IDs not in allowlist → fail by default; warn when `PLATFORM_INVENTORIES_WARN_ONLY=1`

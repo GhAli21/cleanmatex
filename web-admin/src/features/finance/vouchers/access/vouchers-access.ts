@@ -102,6 +102,12 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Draft voucher creation route for the canonical voucher stack.'],
   },
   {
+    routePattern: '/dashboard/internal_fin/vouchers/reports',
+    label: 'Voucher Reports',
+    page: { permissions: ['fin_vouchers:reports'], requireAllPermissions: true },
+    notes: ['Reporting route for posted voucher analysis.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/vouchers/[voucherId]',
     label: 'Voucher Detail',
     page: { permissions: ['fin_vouchers:view'], requireAllPermissions: true },
@@ -162,11 +168,5 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: ['Voucher detail route is the canonical place to review posting results and operational linked effects.'],
-  },
-  {
-    routePattern: '/dashboard/internal_fin/vouchers/reports',
-    label: 'Voucher Reports',
-    page: { permissions: ['fin_vouchers:reports'], requireAllPermissions: true },
-    notes: ['Reporting route for posted voucher analysis.'],
   },
 ];

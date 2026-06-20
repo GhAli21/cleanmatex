@@ -91,7 +91,7 @@ npm run check:platform-info-inventories
 cd web-admin && npm run check:access-contracts
 ```
 
-Strict CI drift: `PLATFORM_INVENTORIES_STRICT=1 npm run check:platform-info-inventories`
+Strict CI drift: default for `npm run check:platform-info-inventories`. Local warn-only: `PLATFORM_INVENTORIES_WARN_ONLY=1 npm run check:platform-info-inventories`
 
 ## References
 

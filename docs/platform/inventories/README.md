@@ -44,7 +44,7 @@ npm run check:platform-info-inventories
 npm run docs:ingest-platform-info
 ```
 
-Strict drift (fail on new items): `PLATFORM_INVENTORIES_STRICT=1 npm run check:platform-info-inventories`
+Strict drift (fail on new items): default for `npm run check:platform-info-inventories`. Local warn-only: `PLATFORM_INVENTORIES_WARN_ONLY=1 npm run check:platform-info-inventories`
 
 ## Help UI (admin)
 

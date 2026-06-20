@@ -364,7 +364,11 @@ export type VoidArInvoiceInput = z.infer<typeof voidArInvoiceSchema>;
 /**
  *
  */
-export type AllocateArPaymentInput = z.infer<typeof allocateArPaymentSchema>;
+// z.input (not z.infer/z.output): the AR allocate services consume the raw input
+// shape directly (they never .parse() it), so fields with a Zod .default() —
+// notably `unapplied_credit_amount`, which the producer DERIVES and ignores from
+// input — must be optional for callers. Using z.output wrongly required it.
+export type AllocateArPaymentInput = z.input<typeof allocateArPaymentSchema>;
 /**
  *
  */

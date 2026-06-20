@@ -86,8 +86,7 @@ jobs:
         run: npm ci
       - name: Rebuild platform info inventories
         run: npm run rebuild:platform-info-inventories
-      - name: Check platform info inventories (warn-only on drift)
+      - name: Check platform info inventories
         run: npm run check:platform-info-inventories
-        continue-on-error: true
       - name: Access contract Jest tests
         run: npm run check:access-contracts --workspace=web-admin

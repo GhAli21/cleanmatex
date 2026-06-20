@@ -143,6 +143,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {
       permissions: ['notifications:manage'],
       requireAllPermissions: true,
+      featureFlags: ['campaigns_enabled'],
+      requireAllFeatureFlags: true,
     },
     actions: {
       create: {
@@ -168,6 +170,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {
       permissions: ['notifications:manage'],
       requireAllPermissions: true,
+      featureFlags: ['campaigns_enabled'],
+      requireAllFeatureFlags: true,
     },
     notes: ['Campaign detail route aligned with navigation permissions.'],
   },

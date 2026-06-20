@@ -349,7 +349,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/erp-lite/periods',
     label: 'Period Management',
     page: {
-      permissions: ['erp_lite:view'],
+      permissions: ['erp_lite_periods:view'],
       requireAllPermissions: true,
       featureFlags: ['erp_lite_enabled', 'erp_lite_periods_enabled'],
       requireAllFeatureFlags: true,
@@ -360,7 +360,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/ops-actions.createPeriodAction',
         requirement: {
-          permissions: ['erp_lite:view'],
+          permissions: ['erp_lite_periods:view'],
           requireAllPermissions: true,
         },
       },
@@ -369,7 +369,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/ops-actions.closePeriodAction',
         requirement: {
-          permissions: ['erp_lite:view'],
+          permissions: ['erp_lite_periods:view'],
           requireAllPermissions: true,
         },
       },
