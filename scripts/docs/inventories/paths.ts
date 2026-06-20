@@ -13,6 +13,8 @@ export const EXTRACTED_PATHS = {
 } as const;
 
 export const INVENTORY_OUTPUT = path.join(INVENTORIES_DIR, 'platform-info-inventory.json');
+/** Deploy/runtime copy read by web-admin Help UI API (Vercel does not ship repo-root docs/). */
+export const WEB_ADMIN_INVENTORY_RUNTIME = path.join(WEB_ADMIN, 'data/platform/platform-info-inventory.json');
 export const GENERATED_GATE_MATRIX = path.join(INVENTORIES_DIR, 'GENERATED_GATE_MATRIX.md');
 export const GENERATED_PERMISSIONS = path.join(INVENTORIES_DIR, 'GENERATED_PERMISSIONS.md');
 export const GENERATED_FEATURE_FLAGS = path.join(INVENTORIES_DIR, 'GENERATED_FEATURE_FLAGS.md');

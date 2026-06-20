@@ -12,6 +12,7 @@ import { ingestExtractedJson } from './ingest-extracted-json';
 import { ingestNavigationTs } from './ingest-navigation-ts';
 import { PLATFORM_INFO_INVENTORY_SCHEMA_VERSION, type PlatformInfoInventory } from '../inventories/schema';
 import { INVENTORIES_DIR, INVENTORY_OUTPUT } from '../inventories/paths';
+import { syncWebAdminInventoryRuntimeCopy } from '../inventories/sync-runtime-copy';
 import { resolveGitSha } from './normalize';
 
 function main() {
@@ -59,9 +60,11 @@ function main() {
 
   fs.mkdirSync(INVENTORIES_DIR, { recursive: true });
   fs.writeFileSync(INVENTORY_OUTPUT, JSON.stringify(inventory, null, 2), 'utf-8');
+  const runtimeCopy = syncWebAdminInventoryRuntimeCopy(INVENTORY_OUTPUT);
 
   console.log('[ingest] Platform info inventory written:');
   console.log(`  path: ${INVENTORY_OUTPUT}`);
+  console.log(`  runtime copy: ${runtimeCopy}`);
   console.log(`  accessContracts: ${inventory.counts.accessContracts}`);
   console.log(`  permissionUsages: ${inventory.counts.permissionUsages}`);
   console.log(`  featureFlagUsages: ${inventory.counts.featureFlagUsages}`);

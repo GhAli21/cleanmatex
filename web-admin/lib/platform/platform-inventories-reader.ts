@@ -8,25 +8,43 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 25
 
-function inventoryPath(): string {
-  return path.join(process.cwd(), '..', 'docs/platform/inventories/platform-info-inventory.json')
+/** Paths tried in order — production deploy only includes web-admin, not repo-root docs/. */
+function resolveInventoryPath(): string {
+  const cwd = process.cwd()
+  const candidates = [
+    path.join(cwd, 'data/platform/platform-info-inventory.json'),
+    path.join(cwd, '..', 'docs/platform/inventories/platform-info-inventory.json'),
+    path.join(cwd, 'docs/platform/inventories/platform-info-inventory.json'),
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  throw new Error(
+    'Platform inventory file not found. Run npm run rebuild:platform-info-inventories from repo root (copies data into web-admin/data/platform/).'
+  )
 }
 
-let cached: { mtimeMs: number; data: PlatformInventoryFile } | null = null
+let cached: { mtimeMs: number; data: PlatformInventoryFile; filePath: string } | null = null
 
 export function loadPlatformInventory(): PlatformInventoryFile {
-  const filePath = inventoryPath()
+  const filePath = resolveInventoryPath()
   if (!fs.existsSync(filePath)) {
-    throw new Error('Platform inventory file not found. Run npm run rebuild:platform-info-inventories from repo root.')
+    throw new Error(
+      'Platform inventory file not found. Run npm run rebuild:platform-info-inventories from repo root.'
+    )
   }
 
   const stat = fs.statSync(filePath)
-  if (cached && cached.mtimeMs === stat.mtimeMs) {
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.filePath === filePath) {
     return cached.data
   }
 
   const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as PlatformInventoryFile
-  cached = { mtimeMs: stat.mtimeMs, data }
+  cached = { mtimeMs: stat.mtimeMs, data, filePath }
   return data
 }
 

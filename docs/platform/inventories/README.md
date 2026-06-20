@@ -17,6 +17,7 @@ Merged inventories for permissions, feature flags, settings, access contracts, n
 | File | Purpose | Edit by hand? |
 |------|---------|---------------|
 | `platform-info-inventory.json` | Merged inventory JSON | No — regenerate |
+| `web-admin/data/platform/platform-info-inventory.json` | Runtime copy for Help UI in production | No — synced on ingest/prebuild |
 | `GENERATED_GATE_MATRIX.md` | Summary gate matrix | No |
 | `GENERATED_PERMISSIONS.md` | Permissions by surface | No |
 | `GENERATED_FEATURE_FLAGS.md` | Feature flags (all surfaces) | No |
