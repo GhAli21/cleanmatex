@@ -6,6 +6,15 @@ const CATALOG_NOTES = [
 
 export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
+    routePattern: '/dashboard/catalog',
+    label: 'Catalog & Pricing',
+    page: {
+      permissions: ['catalog:read'],
+      requireAllPermissions: true,
+    },
+    notes: ['Section hub route; redirects to catalog services.'],
+  },
+  {
     routePattern: '/dashboard/catalog/services',
     label: 'Catalog Services',
     page: {},

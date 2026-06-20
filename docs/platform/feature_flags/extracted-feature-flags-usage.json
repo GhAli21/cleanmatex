@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-06-20T08:18:52.556Z",
+  "extractedAt": "2026-06-20T08:30:52.867Z",
   "schemaVersion": 2,
   "usages": {
     "getFeatureFlags": [
@@ -195,21 +195,21 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 199,
+        "line": 200,
         "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 206,
+        "line": 208,
         "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 213,
+        "line": 216,
         "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -257,7 +257,7 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 514,
+        "line": 518,
         "context": "//featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -273,133 +273,133 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 571,
+        "line": 575,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 579,
+        "line": 583,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 588,
+        "line": 592,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 596,
+        "line": 600,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 604,
+        "line": 608,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 612,
+        "line": 616,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 620,
+        "line": 624,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 628,
+        "line": 632,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 636,
+        "line": 640,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 644,
+        "line": 648,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 652,
+        "line": 656,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 660,
+        "line": 664,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 668,
+        "line": 672,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 676,
+        "line": 680,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 684,
+        "line": 688,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 692,
+        "line": 696,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 700,
+        "line": 704,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 708,
+        "line": 712,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 716,
+        "line": 720,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -422,28 +422,28 @@
       },
       {
         "path": "config/navigation.ts",
-        "line": 278,
+        "line": 281,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 286,
+        "line": 289,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 294,
+        "line": 297,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
       },
       {
         "path": "config/navigation.ts",
-        "line": 302,
+        "line": 305,
         "context": "//featureFlag: 'b2b_contracts',",
         "surface": "navigation",
         "pattern": "featureFlag"
@@ -484,14 +484,14 @@
     "erp_lite_gl_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 644,
+        "line": 648,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
       },
       {
         "path": "config/navigation.ts",
-        "line": 652,
+        "line": 656,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -500,7 +500,7 @@
     "erp_lite_ar_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 668,
+        "line": 672,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -509,7 +509,7 @@
     "erp_lite_ap_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 676,
+        "line": 680,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -518,7 +518,7 @@
     "erp_lite_po_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 684,
+        "line": 688,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -527,7 +527,7 @@
     "erp_lite_expenses_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 692,
+        "line": 696,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -536,7 +536,7 @@
     "erp_lite_bank_recon_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 700,
+        "line": 704,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -545,7 +545,7 @@
     "erp_lite_branch_pl_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 708,
+        "line": 712,
         "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"
@@ -554,7 +554,7 @@
     "campaigns_enabled": [
       {
         "path": "config/navigation.ts",
-        "line": 772,
+        "line": 776,
         "context": "featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED,",
         "surface": "navigation",
         "pattern": "FLAG_KEYS"

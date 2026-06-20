@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-20T08:18:55.584Z
-Git SHA: 417052a9
+Generated: 2026-06-20T08:30:55.435Z
+Git SHA: baf33ca9
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 140 |
+| Access contracts | 145 |
 | Permission usages | 236 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
@@ -26,6 +26,7 @@ Git SHA: 417052a9
 | /dashboard/b2b/customers/new | New B2B Customer | b2b_customers:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements | B2B Statements | b2b_statements:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements/[id] | B2B Statement Details | b2b_statements:view | b2b_contracts | 0 |
+| /dashboard/catalog | Catalog & Pricing | catalog:read | — | 0 |
 | /dashboard/catalog/addons | Catalog Add-ons | — | — | 0 |
 | /dashboard/catalog/categories | Catalog Categories | — | — | 0 |
 | /dashboard/catalog/customer-categories | Customer Categories | config:preferences_manage | — | 0 |
@@ -41,6 +42,8 @@ Git SHA: 417052a9
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
 | /dashboard/customers/stored-value | Stored Value | stored_value:view_balances | — | 0 |
 | /dashboard/delivery | Delivery | — | — | 0 |
+| /dashboard/drivers | Drivers | drivers:read | driver_app | 0 |
+| /dashboard/drivers/routes | Driver Routes | drivers:read | driver_app | 0 |
 | /dashboard/erp-lite | Finance & Accounting | erp_lite:view | erp_lite_enabled | 0 |
 | /dashboard/erp-lite/ap | Accounts Payable | erp_lite_ap:view | erp_lite_enabled, erp_lite_ap_enabled | 0 |
 | /dashboard/erp-lite/ar | AR Aging | erp_lite_ar:view | erp_lite_enabled, erp_lite_ar_enabled | 0 |
@@ -61,6 +64,7 @@ Git SHA: 417052a9
 | /dashboard/erp-lite/usage-maps | Usage Mapping Console | erp_lite_usage_map:view | erp_lite_enabled, erp_lite_usage_map_enabled | 0 |
 | /dashboard/help | Help | — | — | 0 |
 | /dashboard/help/platform-inventories | Platform Inventories | admin:read | — | 0 |
+| /dashboard/internal_fin | Internal Finance And Operations | — | — | 0 |
 | /dashboard/internal_fin/ar/aging | AR Aging | ar_aging:view | — | 0 |
 | /dashboard/internal_fin/ar/credits | AR Credits | ar_credits:view | — | 0 |
 | /dashboard/internal_fin/ar/customers | AR Customers | ar_ledger:view | — | 0 |
@@ -90,6 +94,7 @@ Git SHA: 417052a9
 | /dashboard/internal_fin/vouchers/new | New Business Voucher | fin_vouchers:create | — | 0 |
 | /dashboard/internal_fin/vouchers/reports | Voucher Reports | fin_vouchers:reports | — | 0 |
 | /dashboard/inventory | Inventory | — | — | 0 |
+| /dashboard/inventory/machines | Inventory Machines | inventory:read | — | 0 |
 | /dashboard/inventory/stock | Inventory Stock | — | — | 0 |
 | /dashboard/jhtestui | JWT Test | — | — | 0 |
 | /dashboard/marketing | Marketing | promotions:read | — | 0 |

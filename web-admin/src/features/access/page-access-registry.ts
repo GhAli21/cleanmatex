@@ -3,6 +3,7 @@ import { B2B_ACCESS_CONTRACTS } from '@features/b2b/access/b2b-access'
 import { BILLING_ACCESS_CONTRACTS } from '@features/billing/access/billing-access'
 import { CATALOG_ACCESS_CONTRACTS } from '@features/catalog/access/catalog-access'
 import { CORE_ACCESS_CONTRACTS } from '@features/core/access/core-access'
+import { DRIVERS_ACCESS_CONTRACTS } from '@features/drivers/access/drivers-access'
 import { ERP_LITE_ACCESS_CONTRACTS } from '@features/erp-lite/access/erp-lite-access'
 import { VOUCHER_ACCESS_CONTRACTS } from '@features/finance/vouchers/access/vouchers-access'
 import { MARKETING_ACCESS_CONTRACTS } from '@features/marketing/access/marketing-access'
@@ -16,6 +17,7 @@ export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...B2B_ACCESS_CONTRACTS,
   ...BILLING_ACCESS_CONTRACTS,
   ...CATALOG_ACCESS_CONTRACTS,
+  ...DRIVERS_ACCESS_CONTRACTS,
   ...ERP_LITE_ACCESS_CONTRACTS,
   ...VOUCHER_ACCESS_CONTRACTS,
   ...MARKETING_ACCESS_CONTRACTS,

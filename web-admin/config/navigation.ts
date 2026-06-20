@@ -196,6 +196,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Truck,
     path: '/dashboard/drivers',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    permissions: ['drivers:read'],
     featureFlag: FLAG_KEYS.DRIVER_APP,
     children: [
       {
@@ -203,6 +204,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'All Drivers',
         path: '/dashboard/drivers',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['drivers:read'],
         featureFlag: FLAG_KEYS.DRIVER_APP,
       },
       {
@@ -210,6 +212,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Routes',
         path: '/dashboard/drivers/routes',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['drivers:read'],
         featureFlag: FLAG_KEYS.DRIVER_APP,
       },
     ],
@@ -309,6 +312,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Tags,
     path: '/dashboard/catalog',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    permissions: ['catalog:read'],
     children: [
       {
         key: 'catalog_services',
@@ -827,6 +831,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Machines',
         path: '/dashboard/inventory/machines',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['inventory:read'],
       },
     ],
   },

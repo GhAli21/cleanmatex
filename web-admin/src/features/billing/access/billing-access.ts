@@ -6,6 +6,12 @@ const BILLING_NOTES = [
 
 export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
+    routePattern: '/dashboard/internal_fin',
+    label: 'Internal Finance And Operations',
+    page: {},
+    notes: ['Section hub route; redirects to invoices list.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/invoices',
     label: 'Invoices',
     page: {

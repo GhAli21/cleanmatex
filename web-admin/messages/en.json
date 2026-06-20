@@ -6000,6 +6000,11 @@
       "success": "You have been successfully signed out"
     }
   },
+  "drivers": {
+    "allDriversTitle": "All Drivers",
+    "routesTitle": "Driver Routes",
+    "comingSoon": "Driver management screens are coming soon. Delivery routes can be created from the Delivery workflow screen in the meantime."
+  },
   "inventory": {
     "title": "Inventory Stock",
     "labels": {
@@ -6145,7 +6150,9 @@
       "nameRequired": "Item name is required",
       "quantityRequired": "Quantity must be greater than 0",
       "reasonRequired": "Reason is required"
-    }
+    },
+    "machinesTitle": "Machines",
+    "machinesComingSoon": "Machine registry and maintenance tracking will be available here soon."
   },
   "b2b": {
     "customer": "B2B",

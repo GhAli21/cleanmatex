@@ -6000,6 +6000,11 @@
       "success": "تم تسجيل الخروج بنجاح"
     }
   },
+  "drivers": {
+    "allDriversTitle": "جميع السائقين",
+    "routesTitle": "مسارات السائقين",
+    "comingSoon": "شاشات إدارة السائقين قادمة قريباً. يمكن إنشاء مسارات التوصيل من شاشة التسليم في الوقت الحالي."
+  },
   "inventory": {
     "title": "مخزون المواد",
     "labels": {
@@ -6145,7 +6150,9 @@
       "nameRequired": "اسم الصنف مطلوب",
       "quantityRequired": "الكمية يجب أن تكون أكبر من صفر",
       "reasonRequired": "السبب مطلوب"
-    }
+    },
+    "machinesTitle": "الآلات",
+    "machinesComingSoon": "سجل الآلات وتتبع الصيانة سيتوفر هنا قريباً."
   },
   "b2b": {
     "customer": "B2B",

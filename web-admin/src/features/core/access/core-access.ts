@@ -308,6 +308,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: CORE_NOTES,
   },
   {
+    routePattern: '/dashboard/inventory/machines',
+    label: 'Inventory Machines',
+    page: {
+      permissions: ['inventory:read'],
+      requireAllPermissions: true,
+    },
+    notes: ['Machine registry placeholder route aligned with navigation permissions.'],
+  },
+  {
     routePattern: '/dashboard/reports',
     label: 'Reports',
     page: {
