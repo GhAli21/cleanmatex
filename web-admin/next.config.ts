@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
 
   outputFileTracingIncludes: {
-    '/api/dev/platform-inventories': ['./data/platform/platform-info-inventory.json'],
+    '/api/dev/platform-inventories/route': ['./data/platform/platform-info-inventory.json'],
   },
 
   // Temporarily ignore TypeScript errors to get build working

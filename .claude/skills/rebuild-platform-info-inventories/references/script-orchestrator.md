@@ -17,7 +17,7 @@ npm run check:platform-info-inventories      # validate + access-contract Jest
 | `ingest` | Merge extracts + `*-access.ts` + `navigation.ts` + `FLAG_CATALOG` → `platform-info-inventory.json` |
 | `reconcile` | Compare declarative vs scans → `DRIFT_REPORT.md`, `GENERATED_UNDOCUMENTED.md`, `GENERATED_ORPHANS.md` |
 | `generate-views` | Write `GENERATED_GATE_MATRIX.md` (more slices in later phases) |
-| `full` | extract-delta → ingest → reconcile → generate-views |
+| `full` | extract-delta → ingest → reconcile → generate-views → sync `web-admin/data/platform/platform-info-inventory.json` |
 | `validate` | Assert artifacts exist; fail on new drift (warn-only with `PLATFORM_INVENTORIES_WARN_ONLY=1`) |
 
 ## Extract outputs (legacy paths preserved)

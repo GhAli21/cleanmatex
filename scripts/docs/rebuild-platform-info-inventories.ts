@@ -13,7 +13,9 @@ import {
   INVENTORY_OUTPUT,
   KNOWN_EXCEPTIONS,
   REPO_ROOT,
+  WEB_ADMIN_INVENTORY_RUNTIME,
 } from './inventories/paths';
+import { syncWebAdminInventoryRuntimeCopy } from './inventories/sync-runtime-copy';
 import {
   loadKnownExceptions,
   runReconcile,
@@ -46,6 +48,14 @@ function cmdExtractDelta(): void {
   }
 }
 
+function cmdSyncRuntimeCopy(): void {
+  if (!fs.existsSync(INVENTORY_OUTPUT)) {
+    throw new Error(`Cannot sync runtime copy — missing ${INVENTORY_OUTPUT}`);
+  }
+  const dest = syncWebAdminInventoryRuntimeCopy(INVENTORY_OUTPUT);
+  console.log(`[rebuild] web-admin runtime copy: ${dest}`);
+}
+
 function cmdIngest(): void {
   runTsx('scripts/docs/ingest/index.ts');
 }
@@ -66,6 +76,7 @@ function cmdFull(): void {
   cmdIngest();
   cmdReconcile();
   cmdGenerateViews();
+  cmdSyncRuntimeCopy();
 }
 
 function cmdValidate(): void {
@@ -74,6 +85,9 @@ function cmdValidate(): void {
 
   if (!fs.existsSync(INVENTORY_OUTPUT)) {
     errors.push(`Missing inventory: ${INVENTORY_OUTPUT}`);
+  }
+  if (!fs.existsSync(WEB_ADMIN_INVENTORY_RUNTIME)) {
+    errors.push(`Missing web-admin runtime copy: ${WEB_ADMIN_INVENTORY_RUNTIME} — run full rebuild`);
   }
   if (!fs.existsSync(GENERATED_GATE_MATRIX)) {
     errors.push(`Missing gate matrix: ${GENERATED_GATE_MATRIX}`);
@@ -101,6 +115,7 @@ function cmdValidate(): void {
   }
 
   if (fs.existsSync(INVENTORY_OUTPUT)) {
+    cmdSyncRuntimeCopy();
     const result = runReconcile(INVENTORY_OUTPUT);
     const known = loadKnownExceptions();
     const { newDrift, passed } = validateNewDrift(result, known);
@@ -133,8 +148,8 @@ Commands:
   extract-delta   Run code extractors
   reconcile       Compare declarative vs scans → DRIFT_REPORT.md
   generate-views  Write GENERATED_GATE_MATRIX.md
-  full            extract-delta → ingest → reconcile → generate-views
-  validate        Assert outputs exist; fail on new drift (warn-only with PLATFORM_INVENTORIES_WARN_ONLY=1)
+  full            extract-delta → ingest → reconcile → generate-views → web-admin runtime copy
+  validate        Assert artifacts exist; sync runtime copy; fail on new drift (warn-only with PLATFORM_INVENTORIES_WARN_ONLY=1)
 `);
 }
 

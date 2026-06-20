@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import bundledInventory from '../../data/platform/platform-info-inventory.json'
 import type {
   PlatformInventoryFile,
   PlatformInventoryListResponse,
@@ -8,8 +9,8 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 25
 
-/** Paths tried in order — production deploy only includes web-admin, not repo-root docs/. */
-function resolveInventoryPath(): string {
+/** Paths tried in dev — production uses webpack-bundled JSON (fs paths missing in serverless). */
+function resolveInventoryPath(): string | null {
   const cwd = process.cwd()
   const candidates = [
     path.join(cwd, 'data/platform/platform-info-inventory.json'),
@@ -23,19 +24,24 @@ function resolveInventoryPath(): string {
     }
   }
 
-  throw new Error(
-    'Platform inventory file not found. Run npm run rebuild:platform-info-inventories from repo root (copies data into web-admin/data/platform/).'
-  )
+  return null
 }
 
 let cached: { mtimeMs: number; data: PlatformInventoryFile; filePath: string } | null = null
 
+function loadBundledInventory(): PlatformInventoryFile {
+  return bundledInventory as PlatformInventoryFile
+}
+
 export function loadPlatformInventory(): PlatformInventoryFile {
+  // Serverless (Vercel): bundled JSON — build-time copy is not on disk at runtime cwd.
+  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+    return loadBundledInventory()
+  }
+
   const filePath = resolveInventoryPath()
-  if (!fs.existsSync(filePath)) {
-    throw new Error(
-      'Platform inventory file not found. Run npm run rebuild:platform-info-inventories from repo root.'
-    )
+  if (!filePath) {
+    return loadBundledInventory()
   }
 
   const stat = fs.statSync(filePath)
