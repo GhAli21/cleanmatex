@@ -49,6 +49,13 @@ reference-original.md
 
 Read it only when the task requires detailed examples/templates.
 
+## Platform info inventories (conditional)
+
+After permission seed migrations or feature-flag catalog changes:
+
+1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=permission` or `feature-flag`
+2. Run `npm run rebuild:platform-info-inventories`
+
 ## Final Response Contract
 
 ```text

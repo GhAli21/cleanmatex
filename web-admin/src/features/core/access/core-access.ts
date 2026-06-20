@@ -32,6 +32,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: CORE_NOTES,
   },
   {
+    routePattern: '/dashboard/help/platform-inventories',
+    label: 'Platform Inventories',
+    page: {
+      permissions: ['admin:read'],
+      requireAllPermissions: true,
+    },
+    notes: ['Read-only inventory browser for admins; requires admin:read.'],
+  },
+  {
     routePattern: '/dashboard/jhtestui',
     label: 'JWT Test',
     page: {},

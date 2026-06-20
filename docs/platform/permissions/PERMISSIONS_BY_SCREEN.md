@@ -6,6 +6,8 @@ author: CleanMateX Team
 
 # Permissions by Screen
 
+> **Generated inventories:** Prefer [`../inventories/GENERATED_PERMISSIONS.md`](../inventories/GENERATED_PERMISSIONS.md) and [`../inventories/GENERATED_GATE_MATRIX.md`](../inventories/GENERATED_GATE_MATRIX.md). Regenerate with `npm run rebuild:platform-info-inventories`. This document describes contract alignment; do not duplicate generated tables here.
+
 This document is now contract-aligned.
 
 ## Source Of Truth

@@ -1,12 +1,19 @@
 #!/usr/bin/env npx tsx
 /**
  * Extract permission usage from web-admin codebase.
- * Output: JSON and/or append to PERMISSIONS_BY_SCREEN / PERMISSIONS_BY_API
- * Run: npm run docs:extract-permissions (from web-admin)
+ * Output: JSON with surface tagging (screen, api, service, hook, …)
+ * Run: npm run docs:extract-permissions
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  apiRouteFromPath,
+  inferSurfaceFromRelativePath,
+  normalizeRelativePath,
+  routeFromDashboardPage,
+  type ExtractSurface,
+} from './inventories/surface';
 
 const WEB_ADMIN = path.resolve(__dirname, '../../web-admin');
 const DOCS = path.resolve(__dirname, '../../docs/platform/permissions');
@@ -17,6 +24,7 @@ interface ScreenPermission {
   permission: string;
   component: string;
   line: number;
+  surface: ExtractSurface;
 }
 
 interface ApiPermission {
@@ -25,6 +33,7 @@ interface ApiPermission {
   route: string;
   permission: string;
   line: number;
+  surface: ExtractSurface;
 }
 
 const screenResults: ScreenPermission[] = [];
@@ -45,63 +54,69 @@ function* walkDir(dir: string, ext: string): Generator<string> {
   }
 }
 
-// RequirePermission, useHasPermission, requirePermission patterns
 const PERM_PATTERNS = [
   /RequirePermission\s+[^>]*permission[s]?=["']([^"']+)["']/g,
   /useHasPermission\s*\(\s*["']([^"']+)["']/g,
   /requirePermission\s*\(\s*["']([^"']+)["']/g,
   /RequireAnyPermission\s+[^>]*permissions=["']([^"']+)["']/g,
   /useHasAnyPermission\s*\(\s*\[([^\]]+)\]/g,
+  /hasPermissionServer\s*\(\s*[^,]+,\s*["']([^"']+)["']/g,
 ];
 
-function extractFromFile(filePath: string, content: string, relativePath: string) {
-  const lines = content.split('\n');
-  const isApi = relativePath.includes('app/api') && relativePath.endsWith('route.ts');
+function extractFromFile(_filePath: string, content: string, relativePath: string) {
+  const rel = normalizeRelativePath(relativePath);
+  const surface = inferSurfaceFromRelativePath(rel);
+  const isApi = surface === 'api';
 
   for (const pattern of PERM_PATTERNS) {
-    let m;
+    let m: RegExpExecArray | null;
     const re = new RegExp(pattern.source, pattern.flags);
     while ((m = re.exec(content)) !== null) {
       const lineNum = content.slice(0, m.index).split('\n').length;
       const perm = m[1]?.trim?.() || m[0];
+
       if (isApi) {
-        const route = relativePath.replace(/\/route\.ts$/, '').replace(/\\/g, '/');
-        const method = /export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)/.test(content)
-          ? (content.match(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)/)?.[1] ?? 'GET')
-          : 'GET';
-        apiResults.push({ file: relativePath, method, route, permission: perm, line: lineNum });
+        const route = apiRouteFromPath(rel) ?? rel.replace(/\/route\.ts$/, '');
+        const method =
+          content.match(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)/)?.[1] ?? 'GET';
+        apiResults.push({
+          file: rel,
+          method,
+          route,
+          permission: perm,
+          line: lineNum,
+          surface: 'api',
+        });
       } else {
-        const route = relativePath.replace(/^app\/dashboard/, '/dashboard').replace(/\/page\.tsx$/, '').replace(/\\/g, '/');
-        screenResults.push({ file: relativePath, route, permission: perm, component: 'RequirePermission/useHasPermission', line: lineNum });
+        screenResults.push({
+          file: rel,
+          route: routeFromDashboardPage(rel) ?? rel,
+          permission: perm,
+          component: 'RequirePermission/useHasPermission',
+          line: lineNum,
+          surface,
+        });
       }
     }
   }
 }
 
 function main() {
-  for (const file of walkDir(path.join(WEB_ADMIN, 'app'), '.tsx')) {
-    const content = fs.readFileSync(file, 'utf-8');
-    const rel = path.relative(WEB_ADMIN, file);
-    extractFromFile(file, content, rel);
-  }
-  for (const file of walkDir(path.join(WEB_ADMIN, 'app'), '.ts')) {
-    const content = fs.readFileSync(file, 'utf-8');
-    const rel = path.relative(WEB_ADMIN, file);
-    extractFromFile(file, content, rel);
-  }
-  for (const file of walkDir(path.join(WEB_ADMIN, 'src'), '.tsx')) {
-    const content = fs.readFileSync(file, 'utf-8');
-    const rel = path.relative(WEB_ADMIN, file);
-    extractFromFile(file, content, rel);
-  }
-  for (const file of walkDir(path.join(WEB_ADMIN, 'lib'), '.ts')) {
-    const content = fs.readFileSync(file, 'utf-8');
-    const rel = path.relative(WEB_ADMIN, file);
-    extractFromFile(file, content, rel);
+  for (const dir of ['app', 'src', 'lib']) {
+    const base = path.join(WEB_ADMIN, dir);
+    if (!fs.existsSync(base)) continue;
+    for (const ext of ['.tsx', '.ts']) {
+      for (const file of walkDir(base, ext)) {
+        const content = fs.readFileSync(file, 'utf-8');
+        const rel = path.relative(WEB_ADMIN, file);
+        extractFromFile(file, content, rel);
+      }
+    }
   }
 
   const output = {
     extractedAt: new Date().toISOString(),
+    schemaVersion: 2,
     screens: screenResults,
     apis: apiResults,
   };

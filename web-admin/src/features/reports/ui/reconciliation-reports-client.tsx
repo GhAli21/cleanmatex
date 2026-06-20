@@ -114,6 +114,7 @@ export function ReconciliationReportsClient() {
         <label className="text-sm font-medium shrink-0">{t('periodFrom')}</label>
         <input
           type="date"
+          aria-label={t('periodFrom')}
           className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
@@ -123,6 +124,7 @@ export function ReconciliationReportsClient() {
         <label className="text-sm font-medium shrink-0">{t('periodTo')}</label>
         <input
           type="date"
+          aria-label={t('periodTo')}
           className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
           value={to}
           onChange={(e) => setTo(e.target.value)}

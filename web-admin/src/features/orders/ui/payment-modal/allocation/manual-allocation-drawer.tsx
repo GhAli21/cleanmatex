@@ -66,6 +66,12 @@ export function ManualAllocationDrawer({
     [amounts]
   );
   const remaining = Math.max(0, excessAmount - allocatedSum);
+  // Over-allocation guard: the manual amounts are free-typed, so unlike the auto
+  // drawer (whose backend preview caps the total at the excess) the user can type
+  // more than the excess. Guard both directions so submit only enables when the
+  // allocated total matches the extra exactly.
+  const overAllocatedBy = Math.max(0, allocatedSum - excessAmount);
+  const isOverAllocated = overAllocatedBy > 0.001;
 
   const handleSubmit = () => {
     const allocations = targets
@@ -82,7 +88,7 @@ export function ManualAllocationDrawer({
       })
       .filter(Boolean) as Array<{ targetType: string; targetId: string; lineRole: string; amount: number }>;
 
-    if (allocations.length === 0) return;
+    if (allocations.length === 0 || isOverAllocated) return;
     onSubmit(allocations);
   };
 
@@ -146,6 +152,12 @@ export function ManualAllocationDrawer({
                   amount: `${currencyCode} ${formatAmount(remaining)}`,
                 })}
               </p>
+            ) : isOverAllocated ? (
+              <p className={`text-sm font-medium text-rose-600 ${textAlign}`}>
+                {t('manualOverAllocated', {
+                  amount: `${currencyCode} ${formatAmount(overAllocatedBy)}`,
+                })}
+              </p>
             ) : null}
           </div>
         )}
@@ -157,7 +169,7 @@ export function ManualAllocationDrawer({
           <LoadingButton
             type="button"
             loading={submitting}
-            disabled={remaining > 0.001 || allocatedSum <= 0}
+            disabled={remaining > 0.001 || isOverAllocated || allocatedSum <= 0}
             onClick={handleSubmit}
           >
             {t('confirmAllocation')}

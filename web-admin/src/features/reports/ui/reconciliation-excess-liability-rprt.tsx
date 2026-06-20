@@ -59,7 +59,8 @@ export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref }: Pr
   ];
 
   if (loading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
-  if (!data || data.rows.length === 0) return <p className="text-sm text-muted-foreground">{t('emptyExcess')}</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">{t('notLoaded')}</p>;
+  if (data.rows.length === 0) return <p className="text-sm text-muted-foreground">{t('emptyExcess')}</p>;
 
   const s = data.summary;
 

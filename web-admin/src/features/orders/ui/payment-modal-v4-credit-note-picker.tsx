@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 /**
  *
@@ -42,6 +43,7 @@ export function PaymentModalV4CreditNotePicker({
   isRTL,
 }: PaymentModalV4CreditNotePickerProps) {
   const t = useTranslations('newOrder.payment.customerCredits');
+  const { decimalPlaces } = useTenantCurrency();
 
   return (
     <CmxDialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -77,6 +79,7 @@ export function PaymentModalV4CreditNotePicker({
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
                     {formatMoneyAmountWithCode(note.remaining_balance, {
                       currencyCode: note.currency_code,
+                      decimalPlaces,
                     })}
                   </span>
                 </CmxButton>

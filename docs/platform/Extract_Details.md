@@ -63,4 +63,26 @@ Extraction outputs:
 - `docs/platform/permissions/extracted-permissions.json`
 - `docs/platform/settings/extracted-settings-usage.json`
 - `docs/platform/feature_flags/extracted-feature-flags-usage.json`
+- `docs/platform/plan_limits/extracted-plan-limits-usage.json`
 - `docs/platform/permissions/API_AUTH_AUDIT.md`
+
+=================
+
+## Platform Info Inventories (Phase 2+)
+
+**Preferred workflow** — single orchestrator:
+
+```bash
+npm run rebuild:platform-info-inventories   # extract → ingest → reconcile → views
+npm run check:platform-info-inventories       # validate + access-contract Jest
+```
+
+**Merged output:** `docs/platform/inventories/platform-info-inventory.json`
+
+**Generated views:** `docs/platform/inventories/GENERATED_*.md` (do not hand-edit)
+
+**Drift:** `docs/platform/inventories/DRIFT_REPORT.md` + `KNOWN_EXCEPTIONS.json`
+
+**Agent skill:** `/rebuild-platform-info-inventories` (conditional — see CLAUDE.md)
+
+Legacy per-script extracts above are still used as ingest inputs inside the pipeline.

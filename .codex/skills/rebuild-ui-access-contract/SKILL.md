@@ -1,10 +1,19 @@
 ---
 name: rebuild-ui-access-contract
-description: Build or repair contract-first UI and page-linked API access control for web-admin dashboard routes. Use when adding or changing permission-gated buttons, page access, workflow-role gates, feature-flag gates, linked API dependencies, the permissions inspector popup, or the contract-aligned UI/API permissions documentation.
+description: "DEPRECATED — use /rebuild-platform-info-inventories (Mode: refresh, Scope: surface=page). Build or repair contract-first UI access for dashboard routes."
 user-invocable: true
 ---
 
-# Rebuild UI Access Contract
+> **Deprecated.** Use **`/rebuild-platform-info-inventories`** instead.
+>
+> - Page contract work: `Mode: refresh` · `Scope: surface=page` · `route=/dashboard/...`
+> - Full inventory rebuild: `Mode: rebuild-all`
+>
+> Canonical skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md`
+>
+> This alias remains for backward compatibility only. Do not add new references to PERMISSIONS_BY_SCREEN hand tables — use GENERATED inventories.
+
+# Rebuild UI Access Contract (legacy alias)
 
 Use this skill for `web-admin` dashboard route access work.
 

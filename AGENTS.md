@@ -82,7 +82,27 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 
 ---
 
-## Agent-First Workflow
+## Platform info inventories — when to invoke
+
+**Not in the mandatory preload table above.** Invoke **`/rebuild-platform-info-inventories`** after gating-related changes.
+
+| You changed… | Invoke |
+|--------------|--------|
+| `*-access.ts` or page-access-registry | `Mode: refresh` · `Scope: surface=page` · `route=<path>` |
+| `navigation.ts` or nav DB migration | `Mode: refresh` · `Scope: surface=navigation` |
+| API permission guards | `Mode: refresh` · `Scope: surface=api` |
+| Feature flags / plan limits in code | `Mode: refresh` · `surface=feature-flag` or `plan-limit` |
+| New permission code | `/create-update-rbac-permission` then refresh inventories |
+| New `DRIFT_REPORT.md` items | `Mode: repair` |
+
+```bash
+npm run rebuild:platform-info-inventories
+npm run check:platform-info-inventories
+```
+
+Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md`
+
+---
 
 **ALWAYS use agents for:**
 - Exploratory questions: "How does X work?" → Explore agent

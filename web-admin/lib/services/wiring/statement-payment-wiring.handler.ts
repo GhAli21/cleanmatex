@@ -47,10 +47,17 @@ export const statementPaymentWiringHandler: WiringHandler = {
     tenantOrgId: string,
     tx: Prisma.TransactionClient
   ): Promise<LinkedEffect | null> {
-    const row = await tx.org_b2b_statements_mst.findFirst({
-      where: { id: line.target_id ?? '', tenant_org_id: tenantOrgId },
-      select: { id: true, balance_amount: true, currency_cd: true },
-    });
+    // org_b2b_statements_mst has no Prisma model (raw-SQL only, like the rest of
+    // the B2B statement path in b2b-statement-payment.service) — `tx.org_b2b_statements_mst`
+    // does not exist on the client, so the previous model access was both a tsc
+    // error and a runtime crash had this ever been exercised. Use raw SQL.
+    if (!line.target_id) return null;
+    const rows = await tx.$queryRaw<Array<{ id: string; currency_cd: string | null }>>`
+      SELECT id, currency_cd
+      FROM org_b2b_statements_mst
+      WHERE id = ${line.target_id}::uuid AND tenant_org_id = ${tenantOrgId}::uuid
+      LIMIT 1`;
+    const row = rows[0];
     if (!row) return null;
     return {
       effectType: 'STATEMENT_PAYMENT',

@@ -6,24 +6,24 @@
 
 | Question | Answer |
 |---|---|
-| Migrations that exist for this batch | `0379`, `0380`, `0381` |
-| Applied to **local** dev DB? | ✅ **Yes** — all three, applied + verified live (2026-06-19) |
-| Applied to **remote / prod**? | ❌ **No** — none applied to remote/prod |
-| Still require user review before remote/prod | **All three** (`0379`, `0380`, `0381`) |
+| Order-Fin migrations to date | `0378`–`0384` (0378 wallet-FK · 0379 seq RLS · 0380/0381 B2B detail+FK · 0383 e-invoice flags · 0384 D-09 nav) |
+| Applied to **local** dev DB? | ✅ **Yes** — all applied + verified |
+| Applied to **remote / prod**? | ✅ **Yes** — all applied (user, through 2026-06-20) |
+| Next free migration seq | **0385** |
 
 > Note: "applied" everywhere in this file means **local dev only** unless stated otherwise. Remote/prod apply is a separate, user-gated step.
 
 ## Current Phase
-Tight Phase 1 (approved scope): **1A (F-01 RLS) · 1B (F-02/F-04 B2B) · 1C (F-10 collect-key)**. F-T5, F-05, D-09 = own subsequent phases (decided, not this batch).
+**D-12 — third pass (next / starting).** Completed phases (newest first, see dated sections below): Phase 5 frontend/UX verify+harden · D-09 reconciliation reports (mig 0384) · F-05 e-invoicing foundation (0383) · F-T5 DB harness · D-11 re-validation · Phase 1 F-01/F-02/F-04/F-10 (0378–0381).
 
 ## Current Status
-🟢 **Phase 1 COMPLETE, APPLIED + VERIFIED locally (2026-06-19). Migrations 0379, 0380, 0381 all applied.**
+🟢 **Phases 1 → D-09 + Phase 5 all COMPLETE; migrations 0378–0384 applied LOCAL + REMOTE (through 2026-06-20). D-12 third pass is the next phase.** (Phase-1 detail retained below for history.)
 - 1A (F-01) ✅ `org_tax_doc_seq_counters` RLS=true, 2 policies.
 - 1B (F-02/F-04) ✅ `org_b2b_statement_payments_dtl` RLS=true, 2 policies, `uq_b2b_stmt_pay_idem` present; service idempotency active. Composite FK applied via 0381 (`uq_b2b_statements_id_tenant` UNIQUE + `fk_b2b_stmt_pay_statement` composite — both verified live).
 - 1C (F-10) ✅ collect-payment per-event key (server UUID fallback + UI random suffix).
 - Tests: **12/12** Phase-1 pass; tsc (changed) clean; eslint clean.
 - **GA-gate items F-01, F-02, F-04, F-10 = DONE + verified.**
-- **Next:** focused re-validation (D-11), then own phases — F-T5 (DB harness), F-05 (e-invoicing — needs tenant-flag-placement decision), D-09 (reconciliation reports), D-12 (third pass incl. 2 pre-existing tsc errors).
+- **Next:** **D-12 third pass** — the 43 pre-existing tsc errors, refund-create idempotency, AR reverse/void accounting, `voucher-reversal.service` review, doc-19 🔵 hardening tests (T-3/T-4/T-5/T-7/T-8/T-10). Scope checklist appended at the end of this file.
 
 ## Completed Items
 - [x] Decisions D-01..D-12 → `23_DECISIONS_ADDENDUM.md`; `20_OPEN_QUESTIONS.md` marked DECIDED
@@ -169,3 +169,96 @@ Tight Phase 1 (approved scope): **1A (F-01 RLS) · 1B (F-02/F-04 B2B) · 1C (F-1
 
 **NOT complete until:** real per-category tax decomposition (engine emits buckets that reconcile) + wiring into order/tax-document path + e-invoice status persistence + jurisdiction adapter(s) + HQ toggle UI.
 
+
+
+---
+
+## D-09 — Reconciliation reports (2026-06-20)
+
+🟢 **Implemented (local). Migration `0384` created — NOT applied (user-gated, local + remote).** Four read-only reconciliation reports over existing finance tables (no new tables). Full feature doc: [D-09-Reconciliation-Reports.md](../D-09-Reconciliation-Reports.md).
+
+**Reports (all tenant-scoped via `withTenantContext` + explicit `tenant_org_id` WHERE):**
+- **1. Unallocated excess / customer stored-value liability** — wallet + advance + active credit-note balances > 0 (point-in-time snapshot, not date-filtered). Prisma.
+- **2. B2B statement payment recon** — header `paid_amount` vs Σ `org_b2b_statement_payments_dtl` (mig 0380) per statement; `|delta| ≥ 0.01` = exception. Raw SQL (no Prisma model).
+- **3. Overpayment disposition recon** — `org_fin_overpay_disp_dtl` (mig 0354) grouped by resolution code + currency; posted (has `voucher_trx_line_id`) vs orphan (no voucher line = exception). Raw SQL.
+- **4. Cash drawer movement recon** — per session: opening + Σ IN − Σ OUT (recomputed expected) vs header expected, close difference, count of movements with no `fin_voucher` backlink. Prisma + raw-SQL movement aggregate.
+
+**Permission DECISION (user, 2026-06-20):** REUSE `finance_reports:view` (already seeded by 0295). So `0384_nav_fin_reconciliation_reports.sql` is **nav-only** — no new permission, no role-default rows; one `sys_components_cd` row (`reports_reconciliation` under `reports`, roles = super_admin/tenant_admin/admin/branch_manager/viewer, path `/dashboard/reports/reconciliation`). Dual-write: `config/navigation.ts` child added.
+
+**Files added:** `lib/constants/reconciliation-reports.ts`, `lib/types/reconciliation-report.ts`, `lib/services/reports/finance-reconciliation-report.service.ts`, `lib/utils/report-csv.ts`, 4 routes under `app/api/v1/finance/reports/reconciliation/*`, `app/dashboard/reports/reconciliation/page.tsx`, `src/features/reports/ui/reconciliation-reports-client.tsx` + 4 `reconciliation-*-rprt.tsx` + `reconciliation-format.ts`. i18n: `reports.reconciliation.*` (54 keys) EN+AR.
+
+**Validation:** unit tests **6/6** (`finance-reconciliation-report.service.test.ts`, node env — Prisma.sql needs the node build); DB-integration **5/5** (`reconciliation-reports.db.test.ts` — raw-SQL validity + shape for all 4 + tenant isolation: ghost tenant → 0 rows). `npm run check:i18n` ✅; ESLint (new files) **0 errors**; tsc — **0 new errors** (project total unchanged at 43, still postponed). Build: see below.
+
+**Migration apply (user-gated, NOT done):** review + apply `0384` to local + remote. **Next seq after 0384 = 0385.**
+
+**Not in scope:** branch-filter UI (API supports `branchId` on reports 3–4; client sends date window only); advanced/drill-through reporting (phased later per D-09).
+
+
+---
+
+## Phase 5 — Frontend / UX verification + hardening (2026-06-20)
+
+🟢 **DONE.** Two parts (user: "Both, D-09 first").
+
+### Part A — D-09 reconciliation reports UX (verify + harden)
+- **Runtime smoke** (dev server :3007, unauth): all 4 API routes → **401** (routed + permission-gated, not 404/500); page `/dashboard/reports/reconciliation` → **200** (server page + edited client/components compiled clean in dev); CSV path also auth-gated. Combined with the DB-integration tests (real tenant) this verifies wiring end-to-end.
+- **Hardening:** the 4 `reconciliation-*-rprt.tsx` now distinguish **not-loaded** (`data === null` → `notLoaded` prompt) from **loaded-but-empty** (was previously conflated — the default Excess tab showed "no balances" before it had even queried). Date inputs in the client got `aria-label`s. New i18n key `reports.reconciliation.notLoaded` (EN/AR).
+
+### Part B — Order-Fin Phase 5 financial UX audit (UX-03)
+Reviewed the surfaces not opened in the original pass — see [10_FRONTEND_UX_FINDINGS.md](./10_FRONTEND_UX_FINDINGS.md) "Phase 5" section. Verdict 🟢: manual + auto allocation drawers, collect-payment modal (later-collection), and order-detail financial view all meet preview-before-post / submit-disabled-until-resolved / canonical-field-separation / EN-AR / RTL / RBAC criteria.
+- **Hardening (UX-04):** `manual-allocation-drawer.tsx` allowed **over-allocation** (`remaining = max(0, excess − allocated)` → typing more than the excess still enabled submit). Added `isOverAllocated` guard (submit disabled both directions + rose warning + `handleSubmit` backstop), new i18n key `newOrder.payment.extraReceipt.allocation.manualOverAllocated` (EN/AR).
+- **UX-01** feature-flag gating = accepted per **D-01 / ADR-051** (not actionable). **UX-02** Save-to-Wallet (fixed by 0378) = needs **manual QA** only.
+
+### Validation
+`npm run check:i18n` ✅ · ESLint (changed files) **0** · production build green · tsc unchanged (43 pre-existing, 0 new). No new migration (UI/i18n only). **Next seq still 0385.**
+
+
+---
+
+## D-12 — Third pass (KICKOFF / scope) — 2026-06-20
+
+🟡 **NOT STARTED — scope locked, this is the active phase.** Source: [23 D-12](./23_DECISIONS_ADDENDUM.md), [19](./19_TESTS_TO_ADD_OR_REWRITE.md), [22](./22_FOLLOWUP_DEEP_DIVE.md), Phase-2 tsc-cluster note above. No GA blockers remain; D-12 is hardening + type-debt + remaining ❓ closure.
+
+### Scope checklist
+**1. Type-debt — the 43 pre-existing tsc errors** (build hides them via `next.config.ts ignoreBuildErrors:true`). Clusters (Phase-2 note): A. `PaymentMethodCode` union drift (~15: `lib/types/payment.ts:845` + payment-modal-enhanced-02/-v3/-v4); B. voucher line types (5); C. AR receipt/allocation (5); D. Phase-1 carry-over (3: `statement-payment-wiring.handler:50`, `collect-payment-modal:111,337`); E. customer-receipt UI (2); F. pay-extra button variant (1); G. submit-order route discriminated-union (2); H. unrelated domains (9: notifications/push, subscriptions.service, cmx-audit-info-card).
+- [ ] Resolve cluster D first (it overlaps the known runtime risk: `getLinkedEffect` B2B model-accessor mismatch in `statement-payment-wiring.handler.ts`).
+- [ ] Then A–C, E–H. Target: `tsc --noEmit` → 0 (or a documented, justified residue).
+
+**2. Remaining GA-class test**
+- [ ] `__tests__/services/collect-payment.idempotency.test.ts` (F-10) — two sequential partial collections (same cashier) both succeed + sum; explicit-key replay dedupes.
+
+**3. doc-19 🔵 hardening tests**
+- [ ] `invoice-payment-wiring.handler.test.ts` (F-T2 / rule 7)
+- [ ] `statement-payment-wiring.handler.test.ts` (F-T2 / rule 8) — pairs with cluster-D fix
+- [ ] `ar-allocate.idempotency.test.ts` (F-02 — lock the AR mechanism)
+- [ ] `cash-drawer-change.idempotency.test.ts` (F-07)
+- [ ] `order-financial-write.gateway-pending.test.ts` (rule 19/20)
+- [ ] extend `customer-receipt-allocation.service.test.ts` (rule 12)
+- [ ] `customer-receipt-allocation.fallback.test.ts` (rule 16)
+
+**4. Remaining ❓ correctness review (deferred items)**
+- [ ] Refund-create idempotency + reverse-allocation accounting.
+- [ ] `voucher-reversal.service` unwind correctness (order-payment + cash + stored-value).
+- [ ] AR reverse/void accounting.
+
+**5. Anti-pattern audit (across the suite)**
+- [ ] Find other `*constants*`/`*catalog*` tests asserting only shape/uniqueness (the F-T1 false-positive class) → convert to real DB/migration parity.
+
+### Out of scope for D-12 (own later phases)
+- F-05 tax decomposition completion; promotion/loyalty engine correctness; gateway capture/callback; mobile/offline POS.
+
+### Notes
+- Likely **no migration** (type fixes + tests). If any fix needs a DB change, next seq = **0385**.
+- Each cluster/test lands incrementally; this checklist is the live tracker — tick items as they complete.
+
+
+### D-12 progress log
+- **2026-06-20 — Cluster D DONE (tsc 43 → 39).** Fixed: `statement-payment-wiring.handler.ts` `getLinkedEffect` — `org_b2b_statements_mst` has no Prisma model (raw-SQL only), so `tx.org_b2b_statements_mst.findFirst` was both a tsc error AND a runtime crash had it been exercised; replaced with `tx.$queryRaw`. Fixed the `formatMoneyWithCode(value, currencyCode)` 2-arg calls (1-arg fn; 2nd arg was a runtime no-op) in `order-collect-payment-modal.tsx` (×2) and `customer-account-receipt-client.tsx` (×1). Added `__tests__/services/statement-payment-wiring.handler.test.ts` (7 tests, green) — covers canHandle/validate/wire + a **regression lock** for the raw-SQL `getLinkedEffect`. ESLint clean.
+  - Remaining **39** by cluster: **A** PaymentMethodCode union drift ~16 (payment-modal-v3 7, -enhanced-02 6, -v4 1, v4-credit-note-picker 1, payment.ts 1); **H** unrelated 9 (cmx-audit-info-card 4, push.ts 3, subscriptions.service 2); **B** voucher line types 5 (add-line-dialog 2, voucher-edit-dialog 1, voucher-biz.service 1, new-voucher-client 1); **C** AR receipt/allocation ~5 (customer-receipt-excess-executor 2, overpayment-resolution-validator 1, customer-account-receipt-client 1, + invoice-payment-wiring.handler 2 = missing `unapplied_credit_amount` arg + `ArInvoiceDetail.id` mismatch); **G** submit-order route 2; **F** pay-extra button variant 1.
+  - Checklist items ticked: §1 cluster D; §3 `statement-payment-wiring.handler.test.ts`.
+
+- **2026-06-20 — Cluster A partial (tsc 39 → 36).** Applied the 3 **safe, unambiguous** root-cause fixes: (1) `PAYMENT_METHOD_ICONS` (`lib/types/payment.ts`) was `Record<PaymentMethodCode,string>` missing `PAY_ON_DELIVERY` + `PAYMENT_GATEWAY` keys → added. (2) `payment-validate-button.tsx` `variant="default"` → `"primary"` (not a valid LoadingButton variant). (3) `payment-modal-v4-credit-note-picker.tsx` `formatMoneyAmountWithCode(.., { currencyCode })` missing required `decimalPlaces` → pulled from `useTenantCurrency()`. ESLint clean; no new errors.
+  - **REMAINING cluster A = 14 union-drift errors** (payment-modal-v3 ×7, -enhanced-02 ×6, -v4 ×1; all 3 modals are live, imported by `new-order-modals.tsx`). Root: code assigns a value typed `PaymentMethodCode` (12 members incl. gateway codes HYPERPAY/PAYTABS/STRIPE) to a leg `method` field typed by `canonicalPaymentMethodCodeSchema` (`new-order-payment-schemas.ts`), which **deliberately excludes** HYPERPAY/PAYTABS/STRIPE. `normalizePaymentMethodCode` only maps legacy aliases — it does NOT fold gateway codes into PAYMENT_GATEWAY. **This is a DOMAIN QUESTION, not a cosmetic cast** → ⚠️ NEEDS DECISION before fixing: *Are HYPERPAY/PAYTABS/STRIPE valid checkout-leg method values, or do gateway payments always use method=`PAYMENT_GATEWAY` with the provider in a separate field?* If valid → widen the leg schema enum (also fixes a latent runtime validation **rejection** of gateway legs). If not → narrow the source type (config `payment_method_code` → leg-method type) so the gateway codes can't flow into a leg. Deferred until answered; a blind `as` cast would hide the question.
+  - **Phase total: tsc 43 → 36** (cluster D 3 + customer-receipt 1 + cluster A 3). Tests: +1 suite (statement-payment-wiring.handler, 7/7).
+
+- **2026-06-20 — Cluster A union-drift POSTPONED (user decision).** All PAYMENT_GATEWAY-related work (the HYPERPAY/PAYTABS/STRIPE leg-method question + the 14 union-drift errors in payment-modal-v3/-enhanced-02/-v4 that depend on it) is **deferred to a later phase** per user. Do NOT cast/force these — they need the gateway-method domain decision first (see the previous entry). Remaining tsc after this stays at **36** until that phase. Continuing D-12 with the non-gateway clusters (C/B/G) + doc-19 hardening tests.

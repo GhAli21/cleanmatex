@@ -1,0 +1,35 @@
+---
+description: Conditionally invoke /rebuild-platform-info-inventories after gating, nav, permission, or flag changes — not a mandatory preload rule
+alwaysApply: false
+---
+
+# Platform Info Inventories — When to Invoke
+
+**Do not preload.** Invoke `/rebuild-platform-info-inventories` when you change platform gating artifacts.
+
+## Triggers
+
+| Change | Action |
+|--------|--------|
+| `*-access.ts` or page-access-registry | `Mode: refresh` · `Scope: surface=page` · `route=...` |
+| `navigation.ts` or nav DB migration | `Mode: refresh` · `Scope: surface=navigation` |
+| API permission guard | `Mode: refresh` · `Scope: surface=api` |
+| Feature flag / plan limit enforcement | `Mode: refresh` · `surface=feature-flag` or `plan-limit` |
+| New permission code (after migration) | `/create-update-rbac-permission` then refresh inventories |
+| DRIFT_REPORT new items | `Mode: repair` |
+
+## Commands
+
+```bash
+npm run rebuild:platform-info-inventories
+npm run check:platform-info-inventories
+```
+
+## Skill
+
+`.claude/skills/rebuild-platform-info-inventories/SKILL.md`
+
+## Do not
+
+- Hand-edit `docs/platform/inventories/GENERATED_*.md` or `platform-info-inventory.json`
+- Use `/update-rbac-role` for seeding new permission codes (use `/create-update-rbac-permission`)

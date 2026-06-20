@@ -13,6 +13,7 @@ jobs:
     outputs:
       cmx-api: ${{ steps.filter.outputs.cmx-api }}
       web-admin: ${{ steps.filter.outputs.web-admin }}
+      platform-inventories: ${{ steps.filter.outputs.platform-inventories }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -23,6 +24,12 @@ jobs:
               - 'cmx-api/**'
             web-admin:
               - 'web-admin/**'
+            platform-inventories:
+              - 'scripts/docs/**'
+              - 'docs/platform/inventories/**'
+              - 'package.json'
+              - 'web-admin/__tests__/auth/platform-inventories.test.ts'
+              - 'web-admin/__tests__/auth/page-access-registry.test.ts'
 
   cmx-api:
     name: cmx-api
@@ -63,3 +70,24 @@ jobs:
         run: npm run lint --workspace=web-admin
       - name: Build web-admin
         run: npm run build --workspace=web-admin
+
+  platform-inventories:
+    name: platform-inventories
+    needs: changes
+    if: needs.changes.outputs.platform-inventories == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Rebuild platform info inventories
+        run: npm run rebuild:platform-info-inventories
+      - name: Check platform info inventories (warn-only on drift)
+        run: npm run check:platform-info-inventories
+        continue-on-error: true
+      - name: Access contract Jest tests
+        run: npm run check:access-contracts --workspace=web-admin

@@ -32,7 +32,7 @@ export function PaymentValidateButton({
   return (
     <LoadingButton
       type="button"
-      variant="default"
+      variant="primary"
       loading={loading}
       disabled={disabled}
       onClick={onClick}

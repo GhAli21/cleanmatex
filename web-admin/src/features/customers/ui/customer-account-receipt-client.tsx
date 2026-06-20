@@ -72,7 +72,9 @@ export function CustomerAccountReceiptClient() {
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
 
   const formatAmount = useCallback(
-    (value: number) => formatMoneyWithCode(value, currencyCode).replace(currencyCode, '').trim(),
+    // formatMoneyWithCode takes only the amount; the 2nd currencyCode arg was a
+    // no-op at runtime and a tsc error. Strip the code to get a bare number.
+    (value: number) => formatMoneyWithCode(value).replace(currencyCode, '').trim(),
     [currencyCode, formatMoneyWithCode]
   );
 

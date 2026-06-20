@@ -49,6 +49,13 @@ reference-original.md
 
 Read it only when the task requires detailed examples/templates.
 
+## Platform info inventories (conditional)
+
+After navigation dual-write (`navigation.ts` + `sys_components_cd` migration):
+
+1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=navigation`
+2. Run `npm run rebuild:platform-info-inventories` and verify nav↔contract parity in `DRIFT_REPORT.md`
+
 ## Final Response Contract
 
 ```text

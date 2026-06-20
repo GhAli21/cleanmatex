@@ -88,6 +88,33 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 
 ---
 
+## Platform info inventories — when to invoke
+
+**Not in the mandatory preload table above.** Invoke **`/rebuild-platform-info-inventories`** conditionally after gating-related changes.
+
+| You changed… | Invoke |
+|--------------|--------|
+| `web-admin/src/features/*/access/*-access.ts` or page-access-registry | `Mode: refresh` · `Scope: surface=page` · `route=<path>` |
+| `web-admin/config/navigation.ts` or `sys_components_cd` nav migration | `Mode: refresh` · `Scope: surface=navigation` |
+| API `requirePermission` / auth guards | `Mode: refresh` · `Scope: surface=api` |
+| Feature flag or plan-limit enforcement in code | `Mode: refresh` · `surface=feature-flag` or `plan-limit` |
+| New permission code (after DB migration) | `/create-update-rbac-permission` then refresh inventories |
+| New drift in `DRIFT_REPORT.md` | `Mode: repair` |
+| Quarterly / release hardening | `Mode: rebuild-all` |
+
+```bash
+npm run rebuild:platform-info-inventories
+npm run check:platform-info-inventories
+```
+
+**Authority:** runtime code → declarative contracts → `docs/platform/inventories/platform-info-inventory.json` → `GENERATED_*.md` → legacy docs (link only).
+
+**Deprecated aliases:** `/rebuild-ui-access-contract`, `/rebuild-platform-inventories`, `/platform-gating` → use `/rebuild-platform-info-inventories`.
+
+Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md` · Cursor rule: `.cursor/rules/rebuild-platform-info-inventories.mdc`
+
+---
+
 ## Agent-First Workflow
 
 **ALWAYS use agents for:**

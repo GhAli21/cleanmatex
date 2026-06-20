@@ -239,3 +239,13 @@ When building or implementing a **report** (screen, component, page, tool):
 - [react-effects-patterns.md](../../../docs/dev/rules/react-effects-patterns.md) - Effects, Next `Link`, memoization ESLint
 - [react-rhf-and-table-lint.md](../../../docs/dev/rules/react-rhf-and-table-lint.md) - useWatch, TanStack Table, a11y, exports
 - [react-lint-verification-checklist.md](../../../docs/dev/rules/react-lint-verification-checklist.md) - Pre-submit agent checklist
+
+## Platform info inventories (conditional)
+
+After changing page access contracts (`src/features/*/access/*-access.ts`), navigation gates, or UI feature-flag guards:
+
+1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=page` · `route=<path>`
+2. Run `npm run rebuild:platform-info-inventories` and `npm run check:platform-info-inventories`
+3. Fix new drift in `docs/platform/inventories/DRIFT_REPORT.md`
+
+Do not hand-edit `GENERATED_*.md`. Deprecated alias: `/rebuild-ui-access-contract`.

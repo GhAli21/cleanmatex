@@ -118,6 +118,16 @@ agents:
 - [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
 - [ ] New permission codes have a DB seed migration
 
+## Platform info inventories (conditional)
+
+After permissions, navigation, feature flags, plan limits, or access contracts change:
+
+1. Load **`/rebuild-platform-info-inventories`** — pick `refresh` / `repair` / `rebuild-all` per scope
+2. Run `npm run rebuild:platform-info-inventories` and `npm run check:platform-info-inventories`
+3. Document remaining allowlisted drift in PR notes
+
+See `docs/features/_templates/implementation_requirements.md` for feature-level gating sections.
+
 ## Additional Resources
 
 - [prd-rules.md](./prd-rules.md) - PRD implementation rules

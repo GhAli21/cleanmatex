@@ -7,7 +7,7 @@
 
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { LifeBuoy, Book, MessageCircle, Mail, ExternalLink } from 'lucide-react';
+import { LifeBuoy, Book, MessageCircle, Mail, ExternalLink, Database } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 
 /**
@@ -76,6 +76,30 @@ export default function HelpPage() {
                 <Mail className="h-4 w-4" />
                 {t('support.email') || 'support@cleanmatex.com'}
               </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Platform Inventories (admin) */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-slate-100 rounded-lg">
+              <Database className="h-6 w-6 text-slate-700" />
+            </div>
+            <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <h2 className="text-xl font-semibold mb-2">
+                {t('platformInventories.title')}
+              </h2>
+              <p className="text-gray-600 mb-4">
+                {t('platformInventories.cardDescription')}
+              </p>
+              <Link
+                href="/dashboard/help/platform-inventories"
+                className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2"
+              >
+                {t('platformInventories.openViewer')}
+                <ExternalLink className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </div>

@@ -145,3 +145,10 @@ export async function POST(request: Request) {
 
 - [nestjs-standards.md](./nestjs-standards.md) - NestJS patterns (Phase 2)
 - [supabase-rules.md](./supabase-rules.md) - Supabase server-side usage
+
+## Platform info inventories (conditional)
+
+After adding or changing API permission guards, `requireFeature`, or plan-limit middleware:
+
+1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=api` or `service`
+2. Run `npm run rebuild:platform-info-inventories`

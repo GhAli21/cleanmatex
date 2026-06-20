@@ -8,6 +8,7 @@
 
 import { useState, useMemo } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X, RefreshCw } from 'lucide-react'
@@ -540,6 +541,14 @@ export default function CmxTopBar() {
                         </p>
                         <p className="break-all">
                           <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
+                        </p>
+                        <p className="pt-1">
+                          <Link
+                            href={`/dashboard/help/platform-inventories?route=${encodeURIComponent(currentPageContract.routePattern)}`}
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                          >
+                            {t('permissionsDialog.viewFullInventory')}
+                          </Link>
                         </p>
                       </div>
 

@@ -107,8 +107,11 @@ export function OrderCollectPaymentModal({
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
 
+  // formatMoneyWithCode takes only the amount (tenant currency); the modal
+  // strips the code to render a bare number. Passing currencyCode as a 2nd arg
+  // was a no-op (ignored at runtime) and a tsc error — drop it.
   const formatAmount = useCallback(
-    (value: number) => formatMoneyWithCode(value, currencyCode).replace(currencyCode, '').trim(),
+    (value: number) => formatMoneyWithCode(value).replace(currencyCode, '').trim(),
     [currencyCode, formatMoneyWithCode]
   );
 
@@ -334,7 +337,7 @@ export function OrderCollectPaymentModal({
 
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              {t('outstanding', { amount: formatMoneyWithCode(outstandingAmount, currencyCode) })}
+              {t('outstanding', { amount: formatMoneyWithCode(outstandingAmount) })}
             </p>
 
             {methodsLoading ? (

@@ -43,7 +43,20 @@ Central reference for platform-level configuration across the CleanMateX codebas
 - [PLAN_CONSTRAINTS](plan_limits/PLAN_CONSTRAINTS.md) — sys_plan_setting_constraints
 - [SUBSCRIPTION_UI](plan_limits/SUBSCRIPTION_UI.md) — Subscription page, upgrade flow
 
+### Platform Info Inventories (generated — preferred for review)
+
+> **Authority:** See [inventories/README.md](inventories/README.md). Regenerate with `npm run rebuild:platform-info-inventories`.
+
+- [platform-info-inventory.json](inventories/platform-info-inventory.json) — merged JSON (committed)
+- [GENERATED_GATE_MATRIX.md](inventories/GENERATED_GATE_MATRIX.md) — human gate matrix
+- [DRIFT_REPORT.md](inventories/DRIFT_REPORT.md) — declarative vs code drift
+- [KNOWN_EXCEPTIONS.json](inventories/KNOWN_EXCEPTIONS.json) — CI allowlist baseline
+
+Agent skill: **`/rebuild-platform-info-inventories`** (conditional invoke — not mandatory preload)
+
 ## Maintenance
 
-- Run extraction scripts after significant permission/API/settings changes: `npm run docs:extract-permissions`, etc.
-- When adding new features, update both feature-level `implementation_requirements.md` and platform docs (or rely on extraction)
+- **Preferred:** `npm run rebuild:platform-info-inventories` after gating changes
+- **Checks:** `npm run check:platform-info-inventories`
+- Legacy extract scripts still run as part of the rebuild pipeline: `docs:extract-permissions`, etc.
+- When adding new features, update feature-level `implementation_requirements.md` and run rebuild (do not hand-edit GENERATED tables)

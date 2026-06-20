@@ -6,6 +6,8 @@ author: CleanMateX Team
 
 # Feature Flags Usage
 
+> **Generated inventories:** Prefer [`../inventories/GENERATED_FEATURE_FLAGS.md`](../inventories/GENERATED_FEATURE_FLAGS.md) and surface slices (`GENERATED_FEATURE_FLAGS_BY_*.md`). Regenerate with `npm run rebuild:platform-info-inventories`. Legacy tables below may be stale — use generated views for review.
+
 Where each feature flag is checked in the codebase. **All flags resolve via HQ system** (`hq_ff_get_effective_values_batch` RPC).
 
 **Source:** Grep for `getFeatureFlags`, `canAccess`, `requireFeature`, `currentTenantCan`, `feature_flag`

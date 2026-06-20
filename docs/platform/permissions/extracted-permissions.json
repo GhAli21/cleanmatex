@@ -1,0 +1,1896 @@
+{
+  "extractedAt": "2026-06-20T08:00:26.903Z",
+  "schemaVersion": 2,
+  "screens": [
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 66,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 67,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 68,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 69,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 70,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 71,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 72,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 73,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
+      "permission": "invoices",
+      "component": "RequirePermission/useHasPermission",
+      "line": 74,
+      "surface": "server_action"
+    },
+    {
+      "file": "src/features/customers/ui/customer-account-receipt-client.tsx",
+      "route": "src/features/customers/ui/customer-account-receipt-client.tsx",
+      "permission": "customers:receipt_allocate",
+      "component": "RequirePermission/useHasPermission",
+      "line": 59,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
+      "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
+      "permission": "orders",
+      "component": "RequirePermission/useHasPermission",
+      "line": 64,
+      "surface": "screen"
+    },
+    {
+      "file": "lib/hooks/use-has-permission.ts",
+      "route": "lib/hooks/use-has-permission.ts",
+      "permission": "orders",
+      "component": "RequirePermission/useHasPermission",
+      "line": 8,
+      "surface": "hook"
+    },
+    {
+      "file": "lib/hooks/use-has-permission.ts",
+      "route": "lib/hooks/use-has-permission.ts",
+      "permission": "customers",
+      "component": "RequirePermission/useHasPermission",
+      "line": 9,
+      "surface": "hook"
+    },
+    {
+      "file": "lib/hooks/use-has-permission.ts",
+      "route": "lib/hooks/use-has-permission.ts",
+      "permission": "*   ['orders', 'read'",
+      "component": "RequirePermission/useHasPermission",
+      "line": 43,
+      "surface": "hook"
+    },
+    {
+      "file": "lib/middleware/require-permission.ts",
+      "route": "lib/middleware/require-permission.ts",
+      "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
+      "component": "RequirePermission/useHasPermission",
+      "line": 165,
+      "surface": "middleware"
+    },
+    {
+      "file": "lib/middleware/require-permission.ts",
+      "route": "lib/middleware/require-permission.ts",
+      "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
+      "component": "RequirePermission/useHasPermission",
+      "line": 196,
+      "surface": "middleware"
+    },
+    {
+      "file": "lib/middleware/tenant-guard.ts",
+      "route": "lib/middleware/tenant-guard.ts",
+      "permission": ")}]`,\r\n            code:",
+      "component": "RequirePermission/useHasPermission",
+      "line": 95,
+      "surface": "middleware"
+    },
+    {
+      "file": "lib/middleware/tenant-guard.ts",
+      "route": "lib/middleware/tenant-guard.ts",
+      "permission": ")}]`,\r\n            code:",
+      "component": "RequirePermission/useHasPermission",
+      "line": 144,
+      "surface": "middleware"
+    },
+    {
+      "file": "lib/services/order-settlement.service.ts",
+      "route": "lib/services/order-settlement.service.ts",
+      "permission": "orders:verify_payment",
+      "component": "RequirePermission/useHasPermission",
+      "line": 421,
+      "surface": "service"
+    }
+  ],
+  "apis": [
+    {
+      "file": "app/api/admin/jwt-health/route.ts",
+      "method": "GET",
+      "route": "/api/admin/jwt-health",
+      "permission": "admin:read",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/dev/platform-inventories/route.ts",
+      "method": "GET",
+      "route": "/api/dev/platform-inventories",
+      "permission": "admin:read",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/notifications/push-subscription/route.ts",
+      "method": "POST",
+      "route": "/api/notifications/push-subscription",
+      "permission": "notifications:read",
+      "line": 47,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/notifications/push-subscription/route.ts",
+      "method": "POST",
+      "route": "/api/notifications/push-subscription",
+      "permission": "notifications:read",
+      "line": 108,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/credits/applications/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/credits/applications",
+      "permission": "ar_credits:apply",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/credits/applications/[id]/reverse/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/credits/applications/[id]/reverse",
+      "permission": "ar_credits:reverse",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/credits/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/credits",
+      "permission": "ar_credits:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/customers/[customerId]/balance/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/customers/[customerId]/balance",
+      "permission": "ar_ledger:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/customers/[customerId]/ledger/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/customers/[customerId]/ledger",
+      "permission": "ar_ledger:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/customers/[customerId]/statements/print/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/customers/[customerId]/statements/print",
+      "permission": "customer_statements:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/customers/[customerId]/statements/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/customers/[customerId]/statements",
+      "permission": "customer_statements:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/disputes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/disputes",
+      "permission": "ar_disputes:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/disputes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/disputes",
+      "permission": "ar_disputes:create",
+      "line": 36,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/disputes/[id]/resolve/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/disputes/[id]/resolve",
+      "permission": "ar_disputes:resolve",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/dunning/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/dunning",
+      "permission": "ar_dunning:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/dunning/run/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/dunning/run",
+      "permission": "ar_dunning:run",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/export/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices/export",
+      "permission": "invoices:export",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/from-orders/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/from-orders",
+      "permission": "invoices:create",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices",
+      "permission": "invoices:read",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices",
+      "permission": "invoices:create",
+      "line": 39,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/allocations/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/allocations",
+      "permission": "invoices:allocate_payment",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/allocations/[allocationId]/reverse/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/allocations/[allocationId]/reverse",
+      "permission": "invoices:allocate_payment",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/approve-sensitive/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/approve-sensitive",
+      "permission": "invoices:approve_sensitive",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/credit-note/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/credit-note",
+      "permission": "invoices:credit_note",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/debit-note/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/debit-note",
+      "permission": "invoices:debit_note",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/issue/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/issue",
+      "permission": "invoices:issue",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/print/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices/[id]/print",
+      "permission": "invoices:print",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices/[id]",
+      "permission": "invoices:read",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/invoices/[id]",
+      "permission": "invoices:update",
+      "line": 42,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/void/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/void",
+      "permission": "invoices:void",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/invoices/[id]/write-off/route.ts",
+      "method": "POST",
+      "route": "/api/v1/ar/invoices/[id]/write-off",
+      "permission": "invoices:write_off",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/reports/aging/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/reports/aging",
+      "permission": "ar_aging:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/statement-cycles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/statement-cycles",
+      "permission": "ar_stmt_cycles:view",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/statement-cycles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/statement-cycles",
+      "permission": "ar_stmt_cycles:manage",
+      "line": 39,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/ar/statement-cycles/[id]/preview/route.ts",
+      "method": "GET",
+      "route": "/api/v1/ar/statement-cycles/[id]/preview",
+      "permission": "ar_stmt_cycles:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b/overdue-statements/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b/overdue-statements",
+      "permission": "b2b_statements:view",
+      "line": 37,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b/run-dunning-actions/route.ts",
+      "method": "POST",
+      "route": "/api/v1/b2b/run-dunning-actions",
+      "permission": "b2b_statements:create",
+      "line": 52,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contacts/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contacts",
+      "permission": "b2b_contacts:view",
+      "line": 31,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contacts/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contacts",
+      "permission": "b2b_contacts:create",
+      "line": 60,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contacts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contacts/[id]",
+      "permission": "b2b_contacts:view",
+      "line": 38,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contacts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contacts/[id]",
+      "permission": "b2b_contacts:create",
+      "line": 101,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contacts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contacts/[id]",
+      "permission": "b2b_contacts:create",
+      "line": 143,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contracts/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contracts",
+      "permission": "b2b_contracts:view",
+      "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contracts/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contracts",
+      "permission": "b2b_contracts:create",
+      "line": 52,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contracts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contracts/[id]",
+      "permission": "b2b_contracts:view",
+      "line": 35,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contracts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contracts/[id]",
+      "permission": "b2b_contracts:create",
+      "line": 67,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-contracts/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-contracts/[id]",
+      "permission": "b2b_contracts:create",
+      "line": 107,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-statements/generate/route.ts",
+      "method": "POST",
+      "route": "/api/v1/b2b-statements/generate",
+      "permission": "b2b_statements:create",
+      "line": 25,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-statements/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-statements",
+      "permission": "b2b_statements:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-statements/[id]/print/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-statements/[id]/print",
+      "permission": "b2b_statements:view",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-statements/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-statements/[id]",
+      "permission": "b2b_statements:view",
+      "line": 30,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/b2b-statements/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/b2b-statements/[id]",
+      "permission": "b2b_statements:create",
+      "line": 62,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers",
+      "permission": "cash_drawer:view",
+      "line": 10,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/cash-movement/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/cash-movement",
+      "permission": "cash_drawer:record_movement",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/close-session/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/close-session",
+      "permission": "cash_drawer:close_session",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/open-session/route.ts",
+      "method": "POST",
+      "route": "/api/v1/cash-drawers/[drawerId]/open-session",
+      "permission": "cash_drawer:open_session",
+      "line": 25,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary/route.ts",
+      "method": "GET",
+      "route": "/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary",
+      "permission": "cash_drawer:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/order-sources/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/order-sources",
+      "permission": "config:preferences_manage",
+      "line": 23,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/order-sources/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/order-sources",
+      "permission": "config:preferences_manage",
+      "line": 63,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/packing-preferences/admin/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/packing-preferences/admin",
+      "permission": "config:preferences_manage",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/packing-preferences/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/packing-preferences",
+      "permission": "orders:read",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/packing-preferences/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/packing-preferences",
+      "permission": "config:preferences_manage",
+      "line": 51,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/packing-preferences/[code]/route.ts",
+      "method": "PUT",
+      "route": "/api/v1/catalog/packing-preferences/[code]",
+      "permission": "config:preferences_manage",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/packing-preferences/[code]/route.ts",
+      "method": "PUT",
+      "route": "/api/v1/catalog/packing-preferences/[code]",
+      "permission": "config:preferences_manage",
+      "line": 90,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-bundles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/preference-bundles",
+      "permission": "orders:read",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-bundles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/preference-bundles",
+      "permission": "config:preferences_manage",
+      "line": 55,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-bundles/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/catalog/preference-bundles/[id]",
+      "permission": "config:preferences_manage",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-bundles/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/catalog/preference-bundles/[id]",
+      "permission": "config:preferences_manage",
+      "line": 82,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-kinds/admin/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/preference-kinds/admin",
+      "permission": "config:preferences_manage",
+      "line": 25,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-kinds/admin/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/preference-kinds/admin",
+      "permission": "config:preferences_manage",
+      "line": 55,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/preference-kinds/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/preference-kinds",
+      "permission": "orders:read",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/service-preferences/admin/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/service-preferences/admin",
+      "permission": "config:preferences_manage",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/service-preferences/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/service-preferences",
+      "permission": "orders:read",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/service-preferences/route.ts",
+      "method": "GET",
+      "route": "/api/v1/catalog/service-preferences",
+      "permission": "config:preferences_manage",
+      "line": 55,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/service-preferences/[code]/route.ts",
+      "method": "PUT",
+      "route": "/api/v1/catalog/service-preferences/[code]",
+      "permission": "config:preferences_manage",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/catalog/service-preferences/[code]/route.ts",
+      "method": "PUT",
+      "route": "/api/v1/catalog/service-preferences/[code]",
+      "permission": "config:preferences_manage",
+      "line": 90,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/check-code/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories/check-code",
+      "permission": "config:preferences_manage",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories",
+      "permission": "customers:read",
+      "line": 23,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories",
+      "permission": "config:preferences_manage",
+      "line": 58,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/[code]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories/[code]",
+      "permission": "customers:read",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/[code]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories/[code]",
+      "permission": "config:preferences_manage",
+      "line": 74,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customer-categories/[code]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customer-categories/[code]",
+      "permission": "config:preferences_manage",
+      "line": 133,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers",
+      "permission": "customers:create",
+      "line": 57,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/advance/issue/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/[id]/advance/issue",
+      "permission": "stored_value:issue_advance",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/advance/ledger/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/advance/ledger",
+      "permission": "stored_value:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/credit-note/issue/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/[id]/credit-note/issue",
+      "permission": "stored_value:issue_credit_note",
+      "line": 28,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/credit-notes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/credit-notes",
+      "permission": "stored_value:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/loyalty/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/loyalty",
+      "permission": "loyalty:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/open-balances/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/open-balances",
+      "permission": "orders:overpayment_allocate",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]",
+      "permission": "customers:read",
+      "line": 43,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]",
+      "permission": "customers:update",
+      "line": 126,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]",
+      "permission": "customers:delete",
+      "line": 214,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/service-prefs",
+      "permission": "customers:read",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/service-prefs",
+      "permission": "customers:update",
+      "line": 74,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/service-prefs",
+      "permission": "customers:update",
+      "line": 140,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/stored-value/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/stored-value",
+      "permission": "stored_value:view_balances",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/wallet/ledger/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/wallet/ledger",
+      "permission": "stored_value:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/wallet/top-up/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/[id]/wallet/top-up",
+      "permission": "stored_value:top_up_wallet",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reconciliation/issues/[issueId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/finance/reconciliation/issues/[issueId]",
+      "permission": "reconciliation:acknowledge_issues",
+      "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reconciliation/runs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reconciliation/runs",
+      "permission": "reconciliation:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reconciliation/runs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reconciliation/runs",
+      "permission": "reconciliation:run",
+      "line": 43,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reconciliation/runs/[runId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reconciliation/runs/[runId]",
+      "permission": "reconciliation:view",
+      "line": 46,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/orders-summary/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/orders-summary",
+      "permission": "finance_reports:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/payments-breakdown/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/payments-breakdown",
+      "permission": "finance_reports:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/reconciliation/b2b-statements/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/reconciliation/b2b-statements",
+      "permission": "finance_reports:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/reconciliation/cash-drawer/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/reconciliation/cash-drawer",
+      "permission": "finance_reports:view",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/reconciliation/excess-liability/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/reconciliation/excess-liability",
+      "permission": "finance_reports:view",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/reconciliation/overpayment-disposition/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/reconciliation/overpayment-disposition",
+      "permission": "finance_reports:view",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/reports/tax-report/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/tax-report",
+      "permission": "finance_reports:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/voucher-lines/[lineId]/linked-effects/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/voucher-lines/[lineId]/linked-effects",
+      "permission": "fin_vouchers:view_effects",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/lookups/expense-categories/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/lookups/expense-categories",
+      "permission": "fin_vouchers:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/lookups/line-roles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/lookups/line-roles",
+      "permission": "fin_vouchers:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/lookups/types/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/lookups/types",
+      "permission": "fin_vouchers:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers",
+      "permission": "fin_vouchers:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers",
+      "permission": "fin_vouchers:create",
+      "line": 49,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/cancel/route.ts",
+      "method": "POST",
+      "route": "/api/v1/finance/vouchers/[voucherId]/cancel",
+      "permission": "fin_vouchers:cancel",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/finance/vouchers/[voucherId]/lines/[lineId]",
+      "permission": "fin_voucher_lines:update",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/finance/vouchers/[voucherId]/lines/[lineId]",
+      "permission": "fin_voucher_lines:delete_draft",
+      "line": 43,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/linked-effects/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/[voucherId]/linked-effects",
+      "permission": "fin_vouchers:view_effects",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/post/route.ts",
+      "method": "POST",
+      "route": "/api/v1/finance/vouchers/[voucherId]/post",
+      "permission": "fin_vouchers:post",
+      "line": 18,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/[voucherId]/reconciliation",
+      "permission": "reconciliation:view",
+      "line": 37,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/reverse/route.ts",
+      "method": "POST",
+      "route": "/api/v1/finance/vouchers/[voucherId]/reverse",
+      "permission": "fin_vouchers:reverse",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/[voucherId]",
+      "permission": "fin_vouchers:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/finance/vouchers/[voucherId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/vouchers/[voucherId]",
+      "permission": "fin_vouchers:update",
+      "line": 42,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/gift-cards/[cardCode]/balance/route.ts",
+      "method": "GET",
+      "route": "/api/v1/gift-cards/[cardCode]/balance",
+      "permission": "gift_cards:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/gift-cards/[cardCode]/ledger/route.ts",
+      "method": "GET",
+      "route": "/api/v1/gift-cards/[cardCode]/ledger",
+      "permission": "gift_cards:view",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/loyalty/config/route.ts",
+      "method": "GET",
+      "route": "/api/v1/loyalty/config",
+      "permission": "loyalty:view_config",
+      "line": 14,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/loyalty/config/route.ts",
+      "method": "GET",
+      "route": "/api/v1/loyalty/config",
+      "permission": "loyalty:manage_config",
+      "line": 43,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/loyalty/tiers/route.ts",
+      "method": "POST",
+      "route": "/api/v1/loyalty/tiers",
+      "permission": "loyalty:manage_config",
+      "line": 24,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions",
+      "permission": "promotions:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions",
+      "permission": "promotions:manage",
+      "line": 50,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/validate/route.ts",
+      "method": "POST",
+      "route": "/api/v1/marketing/promotions/validate",
+      "permission": "promotions:view",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions/[promoId]",
+      "permission": "promotions:view",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions/[promoId]",
+      "permission": "promotions:manage",
+      "line": 61,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions/[promoId]",
+      "permission": "promotions:manage",
+      "line": 109,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns",
+      "permission": "notifications:manage",
+      "line": 38,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns",
+      "permission": "notifications:manage",
+      "line": 96,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/[id]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns/[id]",
+      "permission": "notifications:manage",
+      "line": 24,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/[id]/status/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/notifications/campaigns/[id]/status",
+      "permission": "notifications:manage",
+      "line": 61,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/[id]/status/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/notifications/campaigns/[id]/status",
+      "permission": "notifications:configure",
+      "line": 121,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/[id]/test/route.ts",
+      "method": "POST",
+      "route": "/api/v1/notifications/campaigns/[id]/test",
+      "permission": "notifications:manage",
+      "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/delivery-log/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/delivery-log",
+      "permission": "notifications:view_log",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/read-all/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/notifications/read-all",
+      "permission": "notifications:manage",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications",
+      "permission": "notifications:read",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/providers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings/providers",
+      "permission": "notifications:configure",
+      "line": 32,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/providers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings/providers",
+      "permission": "notifications:configure",
+      "line": 70,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/providers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings/providers",
+      "permission": "notifications:configure",
+      "line": 133,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/providers/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings/providers",
+      "permission": "notifications:configure",
+      "line": 209,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings",
+      "permission": "notifications:configure",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/settings/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/settings",
+      "permission": "notifications:configure",
+      "line": 53,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/unread-count/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/unread-count",
+      "permission": "notifications:read",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/user-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/user-prefs",
+      "permission": "notifications:manage",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/user-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/user-prefs",
+      "permission": "notifications:manage",
+      "line": 44,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/[id]/read/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/notifications/[id]/read",
+      "permission": "notifications:manage",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/pieces/[pieceId]/history/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/pieces/[pieceId]/history",
+      "permission": "orders:read",
+      "line": 36,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/preview-financials/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/preview-financials",
+      "permission": "orders:create",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/preview-payment/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/preview-payment",
+      "permission": "orders:create",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/refunds/[refundId]/approve/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/orders/refunds/[refundId]/approve",
+      "permission": "orders:approve_refund",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/refunds/[refundId]/process/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/orders/refunds/[refundId]/process",
+      "permission": "orders:process_refund",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders",
+      "permission": "orders:create",
+      "line": 34,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders",
+      "permission": "orders:read",
+      "line": 192,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/submit-order/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/submit-order",
+      "permission": "orders:create",
+      "line": 72,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/adjustments/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/adjustments",
+      "permission": "orders:create_adjustment",
+      "line": 38,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/batch-update/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/batch-update",
+      "permission": "orders:update",
+      "line": 44,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/collect-payment/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/collect-payment",
+      "permission": "orders:collect_payment",
+      "line": 35,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/confirm-physical-intake/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/confirm-physical-intake",
+      "permission": "orders:transition",
+      "line": 24,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/credit-applications/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/credit-applications",
+      "permission": "orders:apply_credit",
+      "line": 35,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/financial-reconcile/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/financial-reconcile",
+      "permission": "reconciliation:run",
+      "line": 38,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/financial-reconciliation/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/financial-reconciliation",
+      "permission": "reconciliation:view",
+      "line": 31,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/financial-summary/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/financial-summary",
+      "permission": "orders:view_financial_breakdown",
+      "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]",
+      "permission": "orders:update",
+      "line": 30,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/packing-pref/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/orders/[id]/items/[itemId]/packing-pref",
+      "permission": "orders:update",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
+      "permission": "orders:read",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
+      "permission": "orders:create",
+      "line": 94,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces",
+      "permission": "orders:update",
+      "line": 192,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/scan/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/scan",
+      "permission": "orders:read",
+      "line": 24,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/sync/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/sync",
+      "permission": "orders:update",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions",
+      "permission": "orders:update",
+      "line": 31,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
+      "permission": "orders:read",
+      "line": 27,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
+      "permission": "orders:update",
+      "line": 102,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]",
+      "permission": "orders:delete",
+      "line": 193,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/confirm/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/confirm",
+      "permission": "orders:update",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
+      "permission": "orders:read",
+      "line": 30,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
+      "permission": "orders:update",
+      "line": 97,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs",
+      "permission": "orders:update",
+      "line": 155,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
+      "permission": "orders:read",
+      "line": 30,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
+      "permission": "orders:update",
+      "line": 82,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/items/[itemId]/service-prefs",
+      "permission": "orders:update",
+      "line": 139,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/payments/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/payments",
+      "permission": "orders:collect_payment",
+      "line": 39,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/payments/[paymentId]/verify",
+      "permission": "orders:verify_payment",
+      "line": 42,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/pieces/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/pieces",
+      "permission": "orders:read",
+      "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/refund/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/refund",
+      "permission": "orders:process_refund",
+      "line": 46,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/refunds/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/refunds",
+      "permission": "orders:view_financial_breakdown",
+      "line": 53,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/refunds/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/refunds",
+      "permission": "orders:process_refund",
+      "line": 88,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/transition/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/transition",
+      "permission": "orders:transition",
+      "line": 37,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/transition/route.ts",
+      "method": "POST",
+      "route": "/api/v1/orders/[id]/transition",
+      "permission": "orders:transition",
+      "line": 175,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/update/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/orders/[id]/update",
+      "permission": "orders:update",
+      "line": 37,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/workflow-context/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/workflow-context",
+      "permission": "orders:read",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/preferences/last-order/route.ts",
+      "method": "GET",
+      "route": "/api/v1/preferences/last-order",
+      "permission": "orders:read",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/preferences/resolve/route.ts",
+      "method": "GET",
+      "route": "/api/v1/preferences/resolve",
+      "permission": "orders:read",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/preferences/suggest/route.ts",
+      "method": "GET",
+      "route": "/api/v1/preferences/suggest",
+      "permission": "orders:read",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/branding/logo/route.ts",
+      "method": "POST",
+      "route": "/api/v1/settings/branding/logo",
+      "permission": "settings:branding",
+      "line": 32,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/branding/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/branding",
+      "permission": "settings:read",
+      "line": 45,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/branding/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/branding",
+      "permission": "settings:branding",
+      "line": 75,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/general/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/general",
+      "permission": "settings:read",
+      "line": 83,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/general/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/general",
+      "permission": "settings:organization",
+      "line": 115,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/card-brands/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/payments/card-brands",
+      "permission": "payment_config:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/card-brands/[brandId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/settings/payments/card-brands/[brandId]",
+      "permission": "payment_config:manage",
+      "line": 39,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/methods/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/payments/methods",
+      "permission": "payment_config:view",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/methods/[methodId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/settings/payments/methods/[methodId]",
+      "permission": "payment_config:manage",
+      "line": 32,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/terminals/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/payments/terminals",
+      "permission": "payment_config:view",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/payments/terminals/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/payments/terminals",
+      "permission": "payment_config:manage",
+      "line": 57,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/tax/exemptions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/tax/exemptions",
+      "permission": "tax:view_config",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/tax/exemptions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/tax/exemptions",
+      "permission": "tax:manage_config",
+      "line": 55,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/tax/profiles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/tax/profiles",
+      "permission": "tax:view_config",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/tax/profiles/route.ts",
+      "method": "GET",
+      "route": "/api/v1/settings/tax/profiles",
+      "permission": "tax:manage_config",
+      "line": 51,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/settings/tax/profiles/[profileId]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/settings/tax/profiles/[profileId]",
+      "permission": "tax:manage_config",
+      "line": 29,
+      "surface": "api"
+    }
+  ]
+}

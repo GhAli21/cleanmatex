@@ -1,0 +1,237 @@
+{
+  "extractedAt": "2026-06-20T08:00:28.715Z",
+  "usages": {
+    "B2B_DUNNING_LEVELS": [
+      {
+        "path": "app\\api\\v1\\b2b\\overdue-statements\\route.ts",
+        "line": 49,
+        "context": "SETTING_CODES.B2B_DUNNING_LEVELS"
+      },
+      {
+        "path": "app\\api\\v1\\b2b\\run-dunning-actions\\route.ts",
+        "line": 61,
+        "context": "SETTING_CODES.B2B_DUNNING_LEVELS"
+      }
+    ],
+    "B2B_CREDIT_LIMIT_MODE": [
+      {
+        "path": "app\\api\\v1\\orders\\preview-financials\\route.ts",
+        "line": 69,
+        "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
+      },
+      {
+        "path": "app\\api\\v1\\orders\\preview-payment\\route.ts",
+        "line": 79,
+        "context": "SETTING_CODES.B2B_CREDIT_LIMIT_MODE,"
+      }
+    ],
+    "TENANT_VAT_RATE": [
+      {
+        "path": "app\\api\\v1\\preparation\\[id]\\preview\\route.ts",
+        "line": 53,
+        "context": "const taxRateRaw = await tenantSettings.getSettingValue(tenantId, SETTING_CODES."
+      },
+      {
+        "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
+        "line": 403,
+        "context": "tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE', branchId),"
+      },
+      {
+        "path": "app\\api\\v1\\public\\customer\\booking\\route.ts",
+        "line": 853,
+        "context": "tenantSettings.getSettingValue(body.tenantId, 'TENANT_VAT_RATE', branch.id, sess"
+      },
+      {
+        "path": "app\\dashboard\\settings\\finance\\page.tsx",
+        "line": 78,
+        "context": "const taxRateSetting = json.data?.find((s: any) => s.stngCode === SETTING_CODES."
+      },
+      {
+        "path": "app\\dashboard\\settings\\finance\\page.tsx",
+        "line": 113,
+        "context": "settingCode: SETTING_CODES.TENANT_VAT_RATE,"
+      },
+      {
+        "path": "lib\\services\\tax.service.ts",
+        "line": 74,
+        "context": "SETTING_CODES.TENANT_VAT_RATE,"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 29,
+        "context": "TENANT_VAT_RATE: 'TENANT_VAT_RATE',"
+      }
+    ],
+    "TENANT_DEFAULT_GUEST_CUSTOMER_ID": [
+      {
+        "path": "app\\api\\v1\\tenant-settings\\default-guest-customer\\route.ts",
+        "line": 47,
+        "context": "SETTING_CODES.TENANT_DEFAULT_GUEST_CUSTOMER_ID"
+      }
+    ],
+    "TENANT_CURRENCY": [
+      {
+        "path": "lib\\services\\order-financial-write.service.ts",
+        "line": 1002,
+        "context": "const tenantCurrency = settings.find((setting) => setting.stngCode === 'TENANT_C"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 221,
+        "context": "const v = map[SETTING_CODES.TENANT_CURRENCY];"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 264,
+        "context": "(typeof map[SETTING_CODES.TENANT_CURRENCY] === 'string'"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 265,
+        "context": "? (map[SETTING_CODES.TENANT_CURRENCY] as string)"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 266,
+        "context": ": String(map[SETTING_CODES.TENANT_CURRENCY] ?? '')"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 27,
+        "context": "TENANT_CURRENCY: 'TENANT_CURRENCY',"
+      }
+    ],
+    "fn_stng_resolve": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 5,
+        "context": "* Fetches tenant-specific settings using fn_stng_resolve_all_settings (7-layer r"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 80,
+        "context": "* Uses fn_stng_resolve_all_settings (7-layer resolution)."
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 281,
+        "context": "/** Parse JSONB value from fn_stng_resolve_all_settings (string, number, boolean"
+      }
+    ],
+    "USING_SPLIT_ORDER": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 183,
+        "context": "splitOrderEnabled: toBoolean(map[SETTING_CODES.USING_SPLIT_ORDER], false),"
+      }
+    ],
+    "USE_REJECT_TO_SOLVE": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 184,
+        "context": "rejectEnabled: toBoolean(map[SETTING_CODES.USE_REJECT_TO_SOLVE], false),"
+      }
+    ],
+    "USE_TRACK_BY_PIECE": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 185,
+        "context": "trackByPiece: toBoolean(map[SETTING_CODES.USE_TRACK_BY_PIECE], false),"
+      }
+    ],
+    "REJECT_ROW_COLOR": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 186,
+        "context": "rejectColor: toString(map[SETTING_CODES.REJECT_ROW_COLOR], '#10B981'),"
+      }
+    ],
+    "SERVICE_PREF_PACKING_PER_PIECE_ENABLED": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 187,
+        "context": "packingPerPieceEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PACKING_PER_PIE"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 38,
+        "context": "SERVICE_PREF_PACKING_PER_PIECE_ENABLED: 'SERVICE_PREF_PACKING_PER_PIECE_ENABLED'"
+      }
+    ],
+    "SERVICE_PREF_ENFORCE_COMPATIBILITY": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 188,
+        "context": "enforcePrefCompatibility: toBoolean(map[SETTING_CODES.SERVICE_PREF_ENFORCE_COMPA"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 39,
+        "context": "SERVICE_PREF_ENFORCE_COMPATIBILITY: 'SERVICE_PREF_ENFORCE_COMPATIBILITY',"
+      }
+    ],
+    "SERVICE_PREF_PROCESSING_CONFIRMATION": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 189,
+        "context": "processingConfirmationEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PROCESSI"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 40,
+        "context": "SERVICE_PREF_PROCESSING_CONFIRMATION: 'SERVICE_PREF_PROCESSING_CONFIRMATION',"
+      }
+    ],
+    "TENANT_DECIMAL_PLACES": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 235,
+        "context": "const v = map[SETTING_CODES.TENANT_DECIMAL_PLACES];"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 269,
+        "context": "(typeof map[SETTING_CODES.TENANT_DECIMAL_PLACES] === 'number'"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 270,
+        "context": "? (map[SETTING_CODES.TENANT_DECIMAL_PLACES] as number)"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 271,
+        "context": ": parseInt(String(map[SETTING_CODES.TENANT_DECIMAL_PLACES] ?? ''), 10)"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 28,
+        "context": "TENANT_DECIMAL_PLACES: 'TENANT_DECIMAL_PLACES',"
+      }
+    ],
+    "DEFAULT_PHONE_COUNTRY_CODE": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 249,
+        "context": "const v = map[SETTING_CODES.DEFAULT_PHONE_COUNTRY_CODE];"
+      },
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 30,
+        "context": "DEFAULT_PHONE_COUNTRY_CODE: 'DEFAULT_PHONE_COUNTRY_CODE',"
+      }
+    ],
+    "SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS": [
+      {
+        "path": "lib\\services\\tenant-settings.service.ts",
+        "line": 41,
+        "context": "SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS: 'SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS'"
+      },
+      {
+        "path": "src\\features\\orders\\hooks\\use-tenant-preference-settings.ts",
+        "line": 46,
+        "context": "SETTING_CODES.SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS,"
+      }
+    ]
+  }
+}

@@ -1,0 +1,564 @@
+{
+  "extractedAt": "2026-06-20T08:00:27.886Z",
+  "schemaVersion": 2,
+  "usages": {
+    "getFeatureFlags": [
+      {
+        "path": "app/api/feature-flags/route.ts",
+        "line": 23,
+        "context": "const flags = await Promise.race([getFeatureFlags(tenantId), timeoutPromise])",
+        "surface": "api",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "app/api/navigation/route.ts",
+        "line": 88,
+        "context": "const flags = await withTimeout(getFeatureFlags(tenantId), 3000)",
+        "surface": "api",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "app/api/navigation/route.ts",
+        "line": 125,
+        "context": "const featureFlags = await getFeatureFlags(authContext.tenantId)",
+        "surface": "api",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "app/api/settings/tenants/[tenantId]/feature-flags/route.ts",
+        "line": 34,
+        "context": "const flags = await hqApiClient.getFeatureFlags({",
+        "surface": "api",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/api/hq-api-client.ts",
+        "line": 402,
+        "context": "async getFeatureFlags(options?: { authHeader?: string | null; search?: string }) {",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 142,
+        "context": "export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 197,
+        "context": "return getFeatureFlags(user.user_metadata.tenant_org_id);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 214,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 247,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 299,
+        "context": "return getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 337,
+        "context": "return getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 360,
+        "context": "return getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/pricing-mode-resolver.service.ts",
+        "line": 63,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/workflow-service-enhanced.ts",
+        "line": 221,
+        "context": "const featureFlags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "lib/services/workflow-service-enhanced.ts",
+        "line": 422,
+        "context": "const flags = await getFeatureFlags(tenantId);",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      }
+    ],
+    "online_booking": [
+      {
+        "path": "app/api/v1/public/customer/booking/route.ts",
+        "line": 360,
+        "context": "const bookingEnabled = await canAccess(tenantId, 'online_booking');",
+        "surface": "api",
+        "pattern": "canAccess"
+      },
+      {
+        "path": "app/api/v1/public/customer/booking/route.ts",
+        "line": 683,
+        "context": "const bookingEnabled = await canAccess(body.tenantId, 'online_booking');",
+        "surface": "api",
+        "pattern": "canAccess"
+      }
+    ],
+    "pdf_invoices": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 529,
+        "context": "{plan.feature_flags.pdf_invoices && (",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 666,
+        "context": "{selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "lib/services/feature-flags.service.ts",
+        "line": 406,
+        "context": "*   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES);",
+        "surface": "service",
+        "pattern": "requireFeature"
+      },
+      {
+        "path": "src/features/auth/ui/RequireFeature.tsx",
+        "line": 231,
+        "context": "* const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)",
+        "surface": "screen",
+        "pattern": "useFeature"
+      },
+      {
+        "path": "src/features/auth/ui/RequireFeature.tsx",
+        "line": 271,
+        "context": "* const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)",
+        "surface": "screen",
+        "pattern": "useFeature"
+      }
+    ],
+    "whatsapp_receipts": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 532,
+        "context": "{plan.feature_flags.whatsapp_receipts && (",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 667,
+        "context": "{selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      }
+    ],
+    "driver_app": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 535,
+        "context": "{plan.feature_flags.driver_app && (",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 668,
+        "context": "{selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 199,
+        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 206,
+        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 213,
+        "context": "featureFlag: FLAG_KEYS.DRIVER_APP,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "multi_branch": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 538,
+        "context": "{plan.feature_flags.multi_branch && (",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 669,
+        "context": "{selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      }
+    ],
+    "api_access": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 541,
+        "context": "{plan.feature_flags.api_access && (",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 671,
+        "context": "{selectedPlan.feature_flags.api_access && <li>✓ API Access</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      }
+    ],
+    "advanced_analytics": [
+      {
+        "path": "app/dashboard/subscription/page.tsx",
+        "line": 670,
+        "context": "{selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>}",
+        "surface": "screen",
+        "pattern": "feature_flags"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 514,
+        "context": "//featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_enabled": [
+      {
+        "path": "lib/services/erp-lite-feature-guard.ts",
+        "line": 11,
+        "context": "await requireFeature(tenantId, FEATURE_FLAG_KEYS.ERP_LITE_ENABLED);",
+        "surface": "service",
+        "pattern": "requireFeature"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 571,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 579,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 588,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 596,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 604,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 612,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 620,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 628,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 636,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 644,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 652,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 660,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 668,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 676,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 684,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 692,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 700,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 708,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 716,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "b2b_contracts": [
+      {
+        "path": "src/features/billing/ui/invoice-filters-bar.tsx",
+        "line": 25,
+        "context": "const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS);",
+        "surface": "screen",
+        "pattern": "useFeature"
+      },
+      {
+        "path": "src/features/customers/ui/customer-create-modal.tsx",
+        "line": 43,
+        "context": "const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS)",
+        "surface": "screen",
+        "pattern": "useFeature"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 278,
+        "context": "//featureFlag: 'b2b_contracts',",
+        "surface": "navigation",
+        "pattern": "featureFlag"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 286,
+        "context": "//featureFlag: 'b2b_contracts',",
+        "surface": "navigation",
+        "pattern": "featureFlag"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 294,
+        "context": "//featureFlag: 'b2b_contracts',",
+        "surface": "navigation",
+        "pattern": "featureFlag"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 302,
+        "context": "//featureFlag: 'b2b_contracts',",
+        "surface": "navigation",
+        "pattern": "featureFlag"
+      }
+    ],
+    "usePlanFlags": [
+      {
+        "path": "src/features/orders/hooks/use-plan-flags.ts",
+        "line": 30,
+        "context": "export function usePlanFlags() {",
+        "surface": "hook",
+        "pattern": "usePlanFlags"
+      },
+      {
+        "path": "src/features/orders/ui/new-order-content.tsx",
+        "line": 71,
+        "context": "const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags();",
+        "surface": "screen",
+        "pattern": "usePlanFlags"
+      }
+    ],
+    "tax_inclusive_pricing": [
+      {
+        "path": "src/features/settings/ui/branch-settings-screen.tsx",
+        "line": 38,
+        "context": "const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING);",
+        "surface": "screen",
+        "pattern": "useFeature"
+      },
+      {
+        "path": "src/features/settings/ui/tenant-settings-screen.tsx",
+        "line": 28,
+        "context": "const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING);",
+        "surface": "screen",
+        "pattern": "useFeature"
+      }
+    ],
+    "erp_lite_gl_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 644,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      },
+      {
+        "path": "config/navigation.ts",
+        "line": 652,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_ar_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 668,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_ap_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 676,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_po_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 684,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_expenses_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 692,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_bank_recon_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 700,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "erp_lite_branch_pl_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 708,
+        "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ],
+    "campaigns_enabled": [
+      {
+        "path": "config/navigation.ts",
+        "line": 772,
+        "context": "featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED,",
+        "surface": "navigation",
+        "pattern": "FLAG_KEYS"
+      }
+    ]
+  }
+}

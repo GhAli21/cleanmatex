@@ -853,6 +853,8 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
   STRIPE:           'credit-card',
   BANK_TRANSFER:    'building-2',
   MOBILE_PAYMENT:   'smartphone',
+  PAY_ON_DELIVERY:  'hand-coins',
+  PAYMENT_GATEWAY:  'credit-card',
 };
 
 export const DEFAULT_CURRENCY = 'USD';
