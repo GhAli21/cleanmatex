@@ -5988,6 +5988,7 @@
       "role": "Role",
       "permissionsDialog": {
         "title": "My Permissions",
+        "dragToMove": "Drag to move this window",
         "total": "{count} total",
         "searchPlaceholder": "Search permissions, actions, or flags…",
         "currentPageAccess": "Current Page Access",

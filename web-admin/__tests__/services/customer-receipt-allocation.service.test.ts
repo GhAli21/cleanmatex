@@ -91,3 +91,53 @@ describe('runAutoAllocationAlgorithm', () => {
     expect(result.warnings.some((w) => w.code === 'RECEIPT_ALLOCATION_BLOCKED')).toBe(true);
   });
 });
+
+describe('runAutoAllocationAlgorithm — edge cases (D-12 §3 hardening)', () => {
+  it('skips a zero-outstanding target and routes the full excess to fallback', () => {
+    const result = runAutoAllocationAlgorithm(
+      15,
+      [makeTarget({ targetId: 'inv-zero', outstandingAmount: 0 })],
+      makePolicy(),
+      CUSTOMER_ID
+    );
+    // The zero-balance target contributes no allocation line.
+    expect(result.allocations.filter((a) => a.targetId === 'inv-zero')).toHaveLength(0);
+    expect(result.remainingUnallocatedAmount).toBe(0);
+    expect(result.fallbackAllocation?.targetType).toBe('CUSTOMER_ADVANCE');
+    expect(result.fallbackAllocation?.allocationAmount).toBe(15);
+  });
+
+  it('allocates one target then routes the remainder to fallback advance', () => {
+    const result = runAutoAllocationAlgorithm(
+      50,
+      [makeTarget({ targetId: 'inv-a', outstandingAmount: 20 })],
+      makePolicy(),
+      CUSTOMER_ID
+    );
+    const toInvoice = result.allocations.find((a) => a.targetId === 'inv-a');
+    expect(toInvoice?.allocationAmount).toBe(20);
+    expect(result.fallbackAllocation?.allocationAmount).toBe(30); // 50 - 20
+    expect(result.remainingUnallocatedAmount).toBe(0);
+  });
+
+  it('respects max_targets_per_allocation, routing the uncovered remainder to fallback', () => {
+    const targets = [
+      makeTarget({ targetId: 'inv-a', dueDate: '2026-06-01', outstandingAmount: 10 }),
+      makeTarget({ targetId: 'inv-b', dueDate: '2026-06-02', outstandingAmount: 10 }),
+      makeTarget({ targetId: 'inv-c', dueDate: '2026-06-03', outstandingAmount: 10 }),
+    ];
+    const result = runAutoAllocationAlgorithm(30, targets, makePolicy({ max_targets_per_allocation: 1 }), CUSTOMER_ID);
+
+    // Only the first (oldest-due) target is considered.
+    const invoiceLines = result.allocations.filter((a) => a.targetType === 'AR_INVOICE');
+    expect(invoiceLines).toHaveLength(1);
+    expect(invoiceLines[0]?.targetId).toBe('inv-a');
+    expect(result.fallbackAllocation?.allocationAmount).toBe(20); // 30 - 10
+  });
+
+  // NOTE (D-12 §4 finding): the `allow_partial_last_target=false` guard in
+  // runAutoAllocationAlgorithm is currently unreachable — its `isLastWithRemainder`
+  // (allocAmount < outstanding ⇒ remaining < outstanding) contradicts the same `if`'s
+  // `remaining > target.outstandingAmount`. Documented in 24_IMPLEMENTATION_STATUS.md §4;
+  // no test asserts the dead branch (would lock unreachable behavior).
+});

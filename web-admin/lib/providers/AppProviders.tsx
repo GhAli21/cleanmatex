@@ -16,6 +16,7 @@ import { TenantCurrencyProvider } from '@/lib/context/tenant-currency-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
 import { AlertDialogProvider } from '@ui/feedback'
+import { PermissionsInspectorProvider } from '@ui/navigation/permissions-inspector'
 import { type Locale, getLocaleFromLocalStorage } from '@/lib/utils/locale.client'
 import enMessages from '@/messages/en.json'
 import arMessages from '@/messages/ar.json'
@@ -88,8 +89,10 @@ export function AppProviders({
           <TenantCurrencyProvider>
             <RoleProvider>
               <AlertDialogProvider>
-                {children}
-                <Toaster position={toastPosition} richColors />
+                <PermissionsInspectorProvider>
+                  {children}
+                  <Toaster position={toastPosition} richColors />
+                </PermissionsInspectorProvider>
               </AlertDialogProvider>
             </RoleProvider>
           </TenantCurrencyProvider>

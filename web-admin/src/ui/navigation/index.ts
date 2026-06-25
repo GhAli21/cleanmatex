@@ -9,3 +9,4 @@ export * from './cmx-tabs-panel';
 export * from './cmx-language-switcher';
 export { default as CmxSidebar } from './cmx-sidebar';
 export { default as CmxTopBar } from './cmx-top-bar';
+export * from './permissions-inspector';

@@ -5988,6 +5988,7 @@
       "role": "الدور",
       "permissionsDialog": {
         "title": "صلاحياتي",
+        "dragToMove": "اسحب لتحريك النافذة",
         "total": "الإجمالي {count}",
         "searchPlaceholder": "ابحث في الصلاحيات أو الإجراءات أو العلامات…",
         "currentPageAccess": "وصول الصفحة الحالية",

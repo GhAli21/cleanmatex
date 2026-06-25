@@ -225,7 +225,7 @@ Reviewed the surfaces not opened in the original pass — see [10_FRONTEND_UX_FI
 - [x] Then A–C, E–H. Target: `tsc --noEmit` → 0. **DONE 2026-06-25 — tsc now 0** (cluster A closed by retiring legacy modals v3/enhanced-02 → `*.tsx.bak` + v4 typed-helper fix).
 
 **2. Remaining GA-class test**
-- [ ] `__tests__/services/collect-payment.idempotency.test.ts` (F-10) — two sequential partial collections (same cashier) both succeed + sum; explicit-key replay dedupes.
+- [x] `__tests__/db-integration/collect-payment.idempotency.test.ts` (F-10) — DONE 2026-06-25 — two sequential partial collections (same cashier) both succeed + sum; explicit-key replay dedupes.
 
 **3. doc-19 🔵 hardening tests**
 - [x] `invoice-payment-wiring.handler.test.ts` (F-T2 / rule 7) — DONE 2026-06-25 (linkage regression lock)
@@ -286,3 +286,8 @@ Reviewed the surfaces not opened in the original pass — see [10_FRONTEND_UX_FI
   **Selector collapse:** `new-order-modals.tsx` dropped the two retired dynamic imports + the version branch; `ActivePaymentModal` is now always `PaymentModalV4` (legacy stored version codes fall back to V4). `order-summary-panel.tsx` demo-tenant version dropdown reduced to the single V4 option + label simplified. The `usePaymentModalVersion` hook + `PAYMENT_MODAL_VERSIONS` enum are left intact (stored settings still coerce safely; `payment-modal-version.test.ts` unchanged and green).
   **Validation:** `tsc --noEmit` → **0 errors** (was 14); eslint 0 on the 4 changed files; full `npm test` → **1423 pass / 141 suites**. **Phase total: tsc 43 → 0.** No migration. Next seq still 0385.
   **Checklist tick:** §1 (all 8 type-debt clusters now resolved — cluster A closed by retiring the two legacy modals + the v4 typed-helper fix). **D-12 §1 type-debt fully closed.**
+
+- **2026-06-25 (later) — §2 collect-payment.idempotency GA-class test DONE.** Added `__tests__/db-integration/collect-payment.idempotency.test.ts` (3 tests, DB-level, rolled back, DB-gated).
+  **Design note (important):** `collectPaymentTx` is NOT directly testable in the rollback harness — it opens its OWN `prisma.$transaction` (commits) and reads tenant settings via the Supabase SSR `createClient()` (no request context in node). Its idempotency semantics live entirely in the keyed sub-op `executeOverpaymentDispositionTx(tx,…)`, which IS rollback-composable and is the exact locus of the old F-10 collision (stable `${orderId}_collect_${collectedBy}` key shared across distinct collection events → second event silently deduped). The suite exercises that real DB path: (1) **distinct keys → two independent disposition rows that sum** (proves two collection events both apply — the F-10 fix), (2) **same-key replay → one row, second call returns the existing id** (genuine retry dedupes), (3) **different resolution codes under one base key stay distinct** (per-line key `${key}_op_${code}_${idx}` composition).
+  **Validation:** `npm run test:db-integration` → **15/15** (7 finance-smoke + 5 reconciliation + 3 new); eslint 0; tsc unaffected (0). No migration.
+  **Checklist tick:** §2 collect-payment.idempotency. **Note for §4:** the plain (non-overpayment) collection path has NO row-level idempotency guard — a genuine retry of a plain partial collection with the same explicit key would insert a second `org_order_payments_dtl` row (potential double-apply). Flagged for the §4 correctness review.
