@@ -3,15 +3,16 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-06-20T08:50:58.947Z
+Generated: 2026-06-25T10:43:39.590Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
 | api | 217 |
-| screen | 2 |
-| unknown | 17 |
+| middleware | 4 |
+| screen | 13 |
+| service | 1 |
 
 ## All permission usages
 
@@ -24,7 +25,7 @@ Generated: 2026-06-20T08:50:58.947Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | unknown | lib/middleware/require-permission.ts | 165 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 165 | lib/middleware/require-permission.ts |
 | )}]` },
           { status: 403 }
         )
@@ -32,12 +33,11 @@ Generated: 2026-06-20T08:50:58.947Z
 
       return authContext
     } catch (error) {
-      const message = error instanceof Error ? error.message : | unknown | lib/middleware/require-permission.ts | 196 | lib/middleware/require-permission.ts |
+      const message = error instanceof Error ? error.message : | middleware | lib/middleware/require-permission.ts | 196 | lib/middleware/require-permission.ts |
 | )}]`,
-            code: | unknown | lib/middleware/tenant-guard.ts | 95 | lib/middleware/tenant-guard.ts |
+            code: | middleware | lib/middleware/tenant-guard.ts | 95 | lib/middleware/tenant-guard.ts |
 | )}]`,
-            code: | unknown | lib/middleware/tenant-guard.ts | 144 | lib/middleware/tenant-guard.ts |
-| *   ['orders', 'read' | unknown | lib/hooks/use-has-permission.ts | 43 | lib/hooks/use-has-permission.ts |
+            code: | middleware | lib/middleware/tenant-guard.ts | 144 | lib/middleware/tenant-guard.ts |
 | admin:read | api | app/api/admin/jwt-health/route.ts | 21 | /api/admin/jwt-health |
 | admin:read | api | app/api/dev/platform-inventories/route.ts | 15 | /api/dev/platform-inventories |
 | ar_aging:view | api | app/api/v1/ar/reports/aging/route.ts | 12 | /api/v1/ar/reports/aging |
@@ -97,7 +97,6 @@ Generated: 2026-06-20T08:50:58.947Z
 | config:preferences_manage | api | app/api/v1/customer-categories/[code]/route.ts | 133 | /api/v1/customer-categories/[code] |
 | customer_statements:view | api | app/api/v1/ar/customers/[customerId]/statements/print/route.ts | 17 | /api/v1/ar/customers/[customerId]/statements/print |
 | customer_statements:view | api | app/api/v1/ar/customers/[customerId]/statements/route.ts | 17 | /api/v1/ar/customers/[customerId]/statements |
-| customers | unknown | lib/hooks/use-has-permission.ts | 9 | lib/hooks/use-has-permission.ts |
 | customers:create | api | app/api/v1/customers/route.ts | 57 | /api/v1/customers |
 | customers:delete | api | app/api/v1/customers/[id]/route.ts | 214 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customer-categories/route.ts | 23 | /api/v1/customer-categories |
@@ -131,29 +130,29 @@ Generated: 2026-06-20T08:50:58.947Z
 | finance_reports:view | api | app/api/v1/finance/reports/tax-report/route.ts | 11 | /api/v1/finance/reports/tax-report |
 | gift_cards:view | api | app/api/v1/gift-cards/[cardCode]/balance/route.ts | 15 | /api/v1/gift-cards/[cardCode]/balance |
 | gift_cards:view | api | app/api/v1/gift-cards/[cardCode]/ledger/route.ts | 15 | /api/v1/gift-cards/[cardCode]/ledger |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 66 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 67 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 68 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 69 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 70 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 71 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 72 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 73 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
-| invoices | unknown | src/features/ar/ui/ar-invoice-detail-actions.tsx | 74 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
+| invoices:allocate_payment | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 69 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:allocate_payment | api | app/api/v1/ar/invoices/[id]/allocations/route.ts | 17 | /api/v1/ar/invoices/[id]/allocations |
 | invoices:allocate_payment | api | app/api/v1/ar/invoices/[id]/allocations/[allocationId]/reverse/route.ts | 17 | /api/v1/ar/invoices/[id]/allocations/[allocationId]/reverse |
+| invoices:approve_sensitive | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 68 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:approve_sensitive | api | app/api/v1/ar/invoices/[id]/approve-sensitive/route.ts | 17 | /api/v1/ar/invoices/[id]/approve-sensitive |
 | invoices:create | api | app/api/v1/ar/invoices/from-orders/route.ts | 12 | /api/v1/ar/invoices/from-orders |
 | invoices:create | api | app/api/v1/ar/invoices/route.ts | 39 | /api/v1/ar/invoices |
+| invoices:credit_note | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 70 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:credit_note | api | app/api/v1/ar/invoices/[id]/credit-note/route.ts | 17 | /api/v1/ar/invoices/[id]/credit-note |
+| invoices:debit_note | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 71 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:debit_note | api | app/api/v1/ar/invoices/[id]/debit-note/route.ts | 17 | /api/v1/ar/invoices/[id]/debit-note |
 | invoices:export | api | app/api/v1/ar/invoices/export/route.ts | 12 | /api/v1/ar/invoices/export |
+| invoices:issue | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 67 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:issue | api | app/api/v1/ar/invoices/[id]/issue/route.ts | 17 | /api/v1/ar/invoices/[id]/issue |
+| invoices:print | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 74 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:print | api | app/api/v1/ar/invoices/[id]/print/route.ts | 16 | /api/v1/ar/invoices/[id]/print |
 | invoices:read | api | app/api/v1/ar/invoices/route.ts | 18 | /api/v1/ar/invoices |
 | invoices:read | api | app/api/v1/ar/invoices/[id]/route.ts | 20 | /api/v1/ar/invoices/[id] |
+| invoices:update | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 66 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:update | api | app/api/v1/ar/invoices/[id]/route.ts | 42 | /api/v1/ar/invoices/[id] |
+| invoices:void | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 73 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:void | api | app/api/v1/ar/invoices/[id]/void/route.ts | 17 | /api/v1/ar/invoices/[id]/void |
+| invoices:write_off | screen | src/features/ar/ui/ar-invoice-detail-actions.tsx | 72 | src/features/ar/ui/ar-invoice-detail-actions.tsx |
 | invoices:write_off | api | app/api/v1/ar/invoices/[id]/write-off/route.ts | 17 | /api/v1/ar/invoices/[id]/write-off |
 | loyalty:manage_config | api | app/api/v1/loyalty/config/route.ts | 43 | /api/v1/loyalty/config |
 | loyalty:manage_config | api | app/api/v1/loyalty/tiers/route.ts | 24 | /api/v1/loyalty/tiers |
@@ -180,12 +179,12 @@ Generated: 2026-06-20T08:50:58.947Z
 | notifications:read | api | app/api/v1/notifications/route.ts | 19 | /api/v1/notifications |
 | notifications:read | api | app/api/v1/notifications/unread-count/route.ts | 19 | /api/v1/notifications/unread-count |
 | notifications:view_log | api | app/api/v1/notifications/delivery-log/route.ts | 19 | /api/v1/notifications/delivery-log |
-| orders | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 64 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders | unknown | lib/hooks/use-has-permission.ts | 8 | lib/hooks/use-has-permission.ts |
 | orders:apply_credit | api | app/api/v1/orders/[id]/credit-applications/route.ts | 35 | /api/v1/orders/[id]/credit-applications |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
+| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 90 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 35 | /api/v1/orders/[id]/collect-payment |
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 39 | /api/v1/orders/[id]/payments |
+| orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 35 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/preview-financials/route.ts | 22 | /api/v1/orders/preview-financials |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 26 | /api/v1/orders/preview-payment |
 | orders:create | api | app/api/v1/orders/route.ts | 34 | /api/v1/orders |
@@ -229,7 +228,8 @@ Generated: 2026-06-20T08:50:58.947Z
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts | 82 | /api/v1/orders/[id]/items/[itemId]/service-prefs |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts | 139 | /api/v1/orders/[id]/items/[itemId]/service-prefs |
 | orders:update | api | app/api/v1/orders/[id]/update/route.ts | 37 | /api/v1/orders/[id]/update |
-| orders:verify_payment | unknown | lib/services/order-settlement.service.ts | 421 | lib/services/order-settlement.service.ts |
+| orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 64 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:verify_payment | service | lib/services/order-settlement.service.ts | 421 | lib/services/order-settlement.service.ts |
 | orders:verify_payment | api | app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts | 42 | /api/v1/orders/[id]/payments/[paymentId]/verify |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/financial-summary/route.ts | 15 | /api/v1/orders/[id]/financial-summary |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/refunds/route.ts | 53 | /api/v1/orders/[id]/refunds |

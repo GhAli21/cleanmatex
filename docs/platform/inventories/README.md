@@ -52,6 +52,7 @@ Strict drift (fail on new items): default for `npm run check:platform-info-inven
 Read-only browser for merged inventory data:
 
 - **Route:** `/dashboard/help/platform-inventories` (requires `admin:read`)
+- **User guide:** [user_guide.md](user_guide.md)
 - **API:** `GET /api/dev/platform-inventories?tab=contracts|permissions|flags|navigation|summary`
 - **Shield link:** Top bar permissions dialog → “View full inventory in Help” (passes `?route=` filter)
 

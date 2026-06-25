@@ -169,7 +169,7 @@ async function applyAllocationLineTx(
       },
       { tenantId: params.tenantId, userId: params.userId }
     );
-    targetRef = allocation.id;
+    targetRef = allocation.allocationPaymentId;
   } else if (
     line.lineRole === CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES.ORDER_PAYMENT &&
     line.targetType === CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES.ORDER

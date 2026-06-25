@@ -211,13 +211,13 @@ export async function deliverPushOutbox(row: OutboxPushRow): Promise<PushDeliver
 
     switch (sub.provider_code) {
       case 'VAPID':
-        result = await sendVapidPush(sub.id, data as VapidSubscriptionData, payload)
+        result = await sendVapidPush(sub.id, data as unknown as VapidSubscriptionData, payload)
         break
       case 'FCM':
-        result = await sendFcmPush(sub.id, data as FcmSubscriptionData, payload)
+        result = await sendFcmPush(sub.id, data as unknown as FcmSubscriptionData, payload)
         break
       case 'ONESIGNAL':
-        result = await sendOneSignalPush(sub.id, data as OneSignalSubscriptionData, payload)
+        result = await sendOneSignalPush(sub.id, data as unknown as OneSignalSubscriptionData, payload)
         break
       default:
         logger.warn('push-adapter: unknown provider_code', { providerCode: sub.provider_code, subscriptionId: sub.id, feature: 'notifications' })

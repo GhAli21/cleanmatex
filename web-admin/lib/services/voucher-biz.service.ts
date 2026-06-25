@@ -254,6 +254,7 @@ export async function getBizVoucherById(
       supplier_id:            l.supplier_id ?? null,
       employee_id:            l.employee_id ?? null,
       payment_method_code:    l.payment_method_code,
+      payment_status:         l.payment_status ?? null,
       amount:                 Number(l.amount),
       currency_code:          l.currency_code,
       direction:              l.direction,

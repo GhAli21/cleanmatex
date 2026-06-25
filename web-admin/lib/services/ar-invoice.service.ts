@@ -287,7 +287,13 @@ async function appendLedgerEntryTx(
   });
 }
 
-async function withIdempotency<T>(
+/**
+ * Idempotency wrapper that also exposes the underlying resource id (the
+ * `resource_id` column). On a cache hit the id is read back from the stored row,
+ * so callers that need the created child-row id (e.g. the allocation-payment row
+ * for wired-effect/target_ref linkage) get a stable value on replay too.
+ */
+async function withIdempotencyResource<T>(
   tx: PrismaTx,
   input: {
     tenantId: string;
@@ -296,9 +302,10 @@ async function withIdempotency<T>(
     resourceType: string;
     producer: () => Promise<IdempotentResult<T>>;
   }
-): Promise<T> {
+): Promise<{ resourceId: string | null; data: T }> {
   if (!input.key) {
-    return (await input.producer()).data;
+    const fresh = await input.producer();
+    return { resourceId: fresh.resourceId, data: fresh.data };
   }
 
   const existing = await tx.org_idempotency_keys.findFirst({
@@ -310,7 +317,7 @@ async function withIdempotency<T>(
   });
 
   if (existing?.response_cache) {
-    return existing.response_cache as T;
+    return { resourceId: existing.resource_id ?? null, data: existing.response_cache as T };
   }
 
   const result = await input.producer();
@@ -339,7 +346,20 @@ async function withIdempotency<T>(
     },
   });
 
-  return result.data;
+  return { resourceId: result.resourceId, data: result.data };
+}
+
+async function withIdempotency<T>(
+  tx: PrismaTx,
+  input: {
+    tenantId: string;
+    userId?: string | null;
+    key?: string | null;
+    resourceType: string;
+    producer: () => Promise<IdempotentResult<T>>;
+  }
+): Promise<T> {
+  return (await withIdempotencyResource(tx, input)).data;
 }
 
 /**
@@ -558,11 +578,11 @@ export async function allocateArPaymentTx(
   invoiceId: string,
   input: AllocateArPaymentInput,
   actor: ArActorContext = {}
-) {
+): Promise<{ allocationPaymentId: string | null; invoice: ArInvoiceDetail }> {
   const tenantId = await resolveTenantId(actor.tenantId);
   const userId = actor.userId ?? null;
 
-  return withIdempotency(tx, {
+  const { resourceId, data } = await withIdempotencyResource<ArInvoiceDetail>(tx, {
     tenantId,
     userId,
     key: input.idempotency_key ?? null,
@@ -702,6 +722,8 @@ export async function allocateArPaymentTx(
       return { resourceId: allocation.id, data: detail };
     },
   });
+
+  return { allocationPaymentId: resourceId, invoice: data };
 }
 
 /**

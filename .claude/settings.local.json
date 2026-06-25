@@ -24,7 +24,8 @@
       "Bash(grep*)",
       "Bash(findstr*)",
       "Bash(wc*)",
-      "Bash(node -e*)"
+      "Bash(node -e*)",
+      "Bash(sed 's/\\(.*//')"
     ],
     "deny": [
       "Read(**/node_modules/**)",
@@ -81,11 +82,11 @@
       "Bash(Remove-Item*)"
     ]
   },
-  "outputStyle": "concise",
   "enabledMcpjsonServers": [
     "supabase_remote_with_token",
     "supabase_remote",
     "supabase_local",
     "supabase_remote_db"
-  ]
+  ],
+  "outputStyle": "concise"
 }

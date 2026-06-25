@@ -25,9 +25,9 @@ export function inferSurfaceFromRelativePath(relativePath: string): ExtractSurfa
   if (p.includes('middleware') && p.endsWith('.ts')) return 'middleware';
   if (p.includes('/hooks/')) return 'hook';
   if (p.includes('/services/') || p.startsWith('lib/services/')) return 'service';
-  if (p.includes('actions.ts') || p.includes('/actions/')) return 'server_action';
-  if (p.includes('workflow')) return 'workflow';
   if (p.includes('app/dashboard') || p.includes('src/features/')) return 'screen';
+  if (p.includes('/actions/') || /\/actions\.ts$/.test(p)) return 'server_action';
+  if (p.includes('workflow')) return 'workflow';
   if (p.startsWith('lib/')) return 'service';
   return 'unknown';
 }

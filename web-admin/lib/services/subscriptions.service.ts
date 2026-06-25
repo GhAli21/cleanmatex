@@ -454,13 +454,13 @@ export async function processSubscriptionRenewals(): Promise<void> {
 
   for (const subscription of renewals) {
     try {
-      const plan = await getPlan(subscription.plan);
+      const plan = await getPlan(subscription.plan_code);
 
       // Process payment (TODO: Integrate payment gateway)
       // const paymentResult = await processPayment(plan.price_monthly, subscription.payment_method_id);
 
       // Extend subscription period
-      const newEndDate = new Date(subscription.end_date);
+      const newEndDate = new Date(subscription.current_period_end);
       newEndDate.setMonth(newEndDate.getMonth() + 1); // Assuming monthly billing
 
       await supabase

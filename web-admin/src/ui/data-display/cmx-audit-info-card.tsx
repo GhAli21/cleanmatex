@@ -70,6 +70,12 @@ export interface CmxAuditInfoCardProps {
 
 type AuditRowKind = 'datetime' | 'actor' | 'generic'
 
+/**
+ * Row values may carry an AuditActor for actor-kind rows; renderRowValue
+ * resolves the actor at render time (other kinds carry ReactNode/Date).
+ */
+type AuditRowValue = ReactNode | Date | AuditActor | null | undefined
+
 interface NormalizedField<T> {
   present: boolean
   value: T
@@ -90,7 +96,7 @@ interface NormalizedAuditRecord {
 interface RenderableAuditRow {
   key: string
   label: string
-  value: ReactNode | Date | null | undefined
+  value: AuditRowValue
   kind: AuditRowKind
   hideWhenEmpty: boolean
   defaultVisible: boolean
@@ -168,8 +174,8 @@ function normalizeActorFromRecord(
   const phoneField = readKnownField<string>(record, phoneKeys)
 
   if (normalizedActor == null || typeof normalizedActor === 'string') {
-    const fallbackId =
-      normalizedActor == null ? null : normalizedActor
+    const fallbackId: string | null =
+      typeof normalizedActor === 'string' ? normalizedActor : null
 
     return {
       present: true,
@@ -226,7 +232,7 @@ function normalizeAuditRecord(record?: Record<string, unknown>): NormalizedAudit
   }
 }
 
-function isValueEmpty(value: ReactNode | Date | null | undefined): boolean {
+function isValueEmpty(value: AuditRowValue): boolean {
   if (value instanceof Date) {
     return false
   }
@@ -285,7 +291,7 @@ function resolveActorMeta(actor: AuditActor | null | undefined): {
 }
 
 function renderRowValue(
-  value: ReactNode | Date | null | undefined,
+  value: AuditRowValue,
   kind: AuditRowKind,
   locale: 'en' | 'ar',
   notAvailableLabel: string,
@@ -330,14 +336,15 @@ function renderRowValue(
     return formatDateTime(value, locale)
   }
 
-  return isValueEmpty(value) ? notAvailableLabel : value
+  // Non-actor kinds never hold an AuditActor at runtime (actor kind returns above).
+  return isValueEmpty(value) ? notAvailableLabel : (value as ReactNode)
 }
 
 function buildRow(
   key: string,
   label: string,
   kind: AuditRowKind,
-  explicitValue: ReactNode | Date | null | undefined,
+  explicitValue: AuditRowValue,
   explicitPresent: boolean,
   normalizedField: NormalizedField<ReactNode | AuditActor | string | Date | null>,
   options: Pick<RenderableAuditRow, 'hideWhenEmpty' | 'defaultVisible'>,

@@ -31,7 +31,7 @@ export const invoicePaymentWiringHandler: WiringHandler = {
     userId: string,
     tx: Prisma.TransactionClient
   ): Promise<string> {
-    const allocation = await allocateArPaymentTx(
+    const { allocationPaymentId } = await allocateArPaymentTx(
       tx,
       line.target_id!,
       {
@@ -42,7 +42,10 @@ export const invoicePaymentWiringHandler: WiringHandler = {
       },
       { tenantId: tenantOrgId, userId }
     );
-    return allocation.id;
+    if (!allocationPaymentId) {
+      throw new Error(`INVOICE_PAYMENT line ${line.id} did not produce an allocation payment row`);
+    }
+    return allocationPaymentId;
   },
 
   async getLinkedEffect(

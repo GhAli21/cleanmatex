@@ -38,7 +38,7 @@ export interface PermissionUsageRecord {
   id: string;
   kind: 'permission_usage';
   permissionCode: string;
-  surface: 'screen' | 'api' | 'unknown';
+  surface: InventorySurface;
   route?: string;
   file: string;
   line: number;

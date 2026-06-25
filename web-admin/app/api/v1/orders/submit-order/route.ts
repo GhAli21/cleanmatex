@@ -223,9 +223,13 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    if (stakedRecord.resourceId) {
+    // conflict is already handled above; bind resourceId via the discriminant so
+    // the non-conflict variant narrows explicitly (flow-narrowing after the early
+    // return does not engage for this union shape).
+    const stakedResourceId = stakedRecord.conflict ? null : stakedRecord.resourceId;
+    if (stakedResourceId) {
       const stakedOrder = await prisma.org_orders_mst.findFirst({
-        where:  { id: stakedRecord.resourceId, tenant_org_id: tenantId },
+        where:  { id: stakedResourceId, tenant_org_id: tenantId },
         select: { id: true, order_no: true, current_status: true },
       });
       if (stakedOrder) {

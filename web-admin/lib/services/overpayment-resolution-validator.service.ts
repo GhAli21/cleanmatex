@@ -109,10 +109,10 @@ export async function validateOverpaymentResolution(
       continue;
     }
 
-    if (
-      line.resolutionCode === OVERPAYMENT_RESOLUTIONS.VOID_OR_REFUND_EXCESS ||
-      line.resolutionCode === OVERPAYMENT_RESOLUTIONS.RESTORE_STORED_VALUE
-    ) {
+    // VOID_OR_REFUND_EXCESS is rejected upstream by the resolution-code schema
+    // (not a member of OverpaymentResolutionInput), so only RESTORE_STORED_VALUE
+    // can reach this validator and needs blocking here.
+    if (line.resolutionCode === OVERPAYMENT_RESOLUTIONS.RESTORE_STORED_VALUE) {
       throw new Error(OVERPAYMENT_RESOLUTION_ERROR_CODES.NOT_ALLOWED);
     }
 

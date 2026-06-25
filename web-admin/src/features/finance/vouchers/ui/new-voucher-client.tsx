@@ -181,6 +181,7 @@ export function NewVoucherClient() {
             order_id:               input.order_id ?? null,
             customer_id:            input.customer_id ?? null,
             payment_method_code:    input.payment_method_code ?? null,
+            payment_status:         null,
             amount:                 input.amount,
             currency_code:          input.currency_code ?? null,
             direction:              input.direction ?? null,

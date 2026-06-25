@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
@@ -56,7 +56,7 @@ export function CustomerAccountReceiptClient() {
   const { currentTenant } = useAuth();
   const { formatMoneyWithCode, currencyCode: tenantCurrency } = useTenantCurrency();
   const { token: csrfToken } = useCSRFToken();
-  const canPost = useHasPermission('customers:receipt_allocate');
+  const canPost = useHasPermissionCode('customers:receipt_allocate');
 
   const [customer, setCustomer] = useState<SelectedCustomer | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);

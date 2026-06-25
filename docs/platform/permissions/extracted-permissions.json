@@ -1,124 +1,116 @@
 {
-  "extractedAt": "2026-06-20T08:50:55.428Z",
-  "schemaVersion": 2,
+  "extractedAt": "2026-06-25T10:43:35.299Z",
+  "schemaVersion": 3,
   "screens": [
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:update",
+      "component": "useHasPermission",
       "line": 66,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:issue",
+      "component": "useHasPermission",
       "line": 67,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:approve_sensitive",
+      "component": "useHasPermission",
       "line": 68,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:allocate_payment",
+      "component": "useHasPermission",
       "line": 69,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:credit_note",
+      "component": "useHasPermission",
       "line": 70,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:debit_note",
+      "component": "useHasPermission",
       "line": 71,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:write_off",
+      "component": "useHasPermission",
       "line": 72,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:void",
+      "component": "useHasPermission",
       "line": 73,
-      "surface": "server_action"
+      "surface": "screen"
     },
     {
       "file": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
-      "permission": "invoices",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "invoices:print",
+      "component": "useHasPermission",
       "line": 74,
-      "surface": "server_action"
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/auth/ui/RequirePermission.tsx",
+      "route": "src/features/auth/ui/RequirePermission.tsx",
+      "permission": "orders:create",
+      "component": "RequirePermission",
+      "line": 35,
+      "surface": "screen"
     },
     {
       "file": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "route": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "permission": "customers:receipt_allocate",
-      "component": "RequirePermission/useHasPermission",
+      "component": "useHasPermission",
       "line": 59,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
+      "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
+      "permission": "orders:collect_payment",
+      "component": "useHasPermissionCode",
+      "line": 90,
       "surface": "screen"
     },
     {
       "file": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
-      "permission": "orders",
-      "component": "RequirePermission/useHasPermission",
+      "permission": "orders:verify_payment",
+      "component": "useHasPermission",
       "line": 64,
       "surface": "screen"
-    },
-    {
-      "file": "lib/hooks/use-has-permission.ts",
-      "route": "lib/hooks/use-has-permission.ts",
-      "permission": "orders",
-      "component": "RequirePermission/useHasPermission",
-      "line": 8,
-      "surface": "hook"
-    },
-    {
-      "file": "lib/hooks/use-has-permission.ts",
-      "route": "lib/hooks/use-has-permission.ts",
-      "permission": "customers",
-      "component": "RequirePermission/useHasPermission",
-      "line": 9,
-      "surface": "hook"
-    },
-    {
-      "file": "lib/hooks/use-has-permission.ts",
-      "route": "lib/hooks/use-has-permission.ts",
-      "permission": "*   ['orders', 'read'",
-      "component": "RequirePermission/useHasPermission",
-      "line": 43,
-      "surface": "hook"
     },
     {
       "file": "lib/middleware/require-permission.ts",
       "route": "lib/middleware/require-permission.ts",
       "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
-      "component": "RequirePermission/useHasPermission",
+      "component": "hasPermissionServer",
       "line": 165,
       "surface": "middleware"
     },
@@ -126,7 +118,7 @@
       "file": "lib/middleware/require-permission.ts",
       "route": "lib/middleware/require-permission.ts",
       "permission": ")}]` },\n          { status: 403 }\n        )\n      }\n\n      return authContext\n    } catch (error) {\n      const message = error instanceof Error ? error.message :",
-      "component": "RequirePermission/useHasPermission",
+      "component": "hasPermissionServer",
       "line": 196,
       "surface": "middleware"
     },
@@ -134,7 +126,7 @@
       "file": "lib/middleware/tenant-guard.ts",
       "route": "lib/middleware/tenant-guard.ts",
       "permission": ")}]`,\r\n            code:",
-      "component": "RequirePermission/useHasPermission",
+      "component": "hasPermissionServer",
       "line": 95,
       "surface": "middleware"
     },
@@ -142,7 +134,7 @@
       "file": "lib/middleware/tenant-guard.ts",
       "route": "lib/middleware/tenant-guard.ts",
       "permission": ")}]`,\r\n            code:",
-      "component": "RequirePermission/useHasPermission",
+      "component": "hasPermissionServer",
       "line": 144,
       "surface": "middleware"
     },
@@ -150,7 +142,7 @@
       "file": "lib/services/order-settlement.service.ts",
       "route": "lib/services/order-settlement.service.ts",
       "permission": "orders:verify_payment",
-      "component": "RequirePermission/useHasPermission",
+      "component": "requirePermission",
       "line": 421,
       "surface": "service"
     }

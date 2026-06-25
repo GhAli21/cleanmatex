@@ -59,9 +59,18 @@ interface ExtractedPlanLimitsFile {
 }
 
 function toPermissionSurface(surface: ExtractSurface): PermissionUsageRecord['surface'] {
-  if (surface === 'api') return 'api';
-  if (surface === 'screen') return 'screen';
-  return 'unknown';
+  const map: Record<ExtractSurface, PermissionUsageRecord['surface']> = {
+    screen: 'screen',
+    api: 'api',
+    service: 'service',
+    server_action: 'server_action',
+    navigation: 'navigation',
+    hook: 'hook',
+    workflow: 'workflow',
+    middleware: 'middleware',
+    unknown: 'unknown',
+  };
+  return map[surface] ?? 'unknown';
 }
 
 function resolveSurface(filePath: string, explicit?: ExtractSurface): ExtractSurface {
