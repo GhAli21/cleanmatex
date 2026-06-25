@@ -5,7 +5,11 @@
  */
 
 import { z } from 'zod';
-import { PAYMENT_METHODS, normalizePaymentMethodCode } from '@/lib/constants/order-types';
+import {
+  PAYMENT_METHODS,
+  normalizePaymentMethodCode,
+  type PaymentMethodCode,
+} from '@/lib/constants/order-types';
 import {
   OVERPAYMENT_RESOLUTIONS,
   SETTLEMENT_MONEY_EPSILON,
@@ -71,6 +75,39 @@ const paymentMethodCodeSchema = z.preprocess(
   (value) => (typeof value === 'string' ? normalizePaymentMethodCode(value) : value),
   canonicalPaymentMethodCodeSchema
 );
+
+/**
+ * Canonical leg-method union — the full set of method codes a settlement leg may
+ * carry (real-payment + stored-value). Excludes the gateway *provider* codes
+ * (HYPERPAY / PAYTABS / STRIPE), which always fold to `PAYMENT_GATEWAY` on a leg.
+ */
+export type CanonicalPaymentMethodCode = z.infer<typeof canonicalPaymentMethodCodeSchema>;
+
+/**
+ * The {@link PaymentMethodCode} union with the gateway *provider* codes removed.
+ * After {@link normalizePaymentMethodCode} folds HYPERPAY / PAYTABS / STRIPE to
+ * `PAYMENT_GATEWAY`, the result is one of these settlement codes — which is
+ * assignable to both the canonical leg `method` and the top-level
+ * `paymentMethod` form field.
+ */
+export type SettlementMethodCode = Exclude<
+  PaymentMethodCode,
+  'HYPERPAY' | 'PAYTABS' | 'STRIPE'
+>;
+
+/**
+ * Narrows a full {@link PaymentMethodCode} (which includes the gateway provider
+ * codes HYPERPAY / PAYTABS / STRIPE) to the gateway-folded settlement union.
+ * Provider codes fold to `PAYMENT_GATEWAY` at runtime via
+ * {@link normalizePaymentMethodCode}; the original provider code should be carried
+ * separately in the leg `gateway_code` field.
+ *
+ * @param code Raw payment method code, possibly a gateway provider code.
+ * @returns The settlement method code (gateway providers → `PAYMENT_GATEWAY`).
+ */
+export function toCanonicalLegMethod(code: PaymentMethodCode): SettlementMethodCode {
+  return normalizePaymentMethodCode(code) as SettlementMethodCode;
+}
 
 // ---------------------------------------------------------------------------
 // Payment leg (one leg in a multi-leg split payment)

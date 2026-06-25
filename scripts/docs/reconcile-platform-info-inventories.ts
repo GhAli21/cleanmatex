@@ -21,6 +21,7 @@ import {
   KNOWN_EXCEPTIONS,
   WEB_ADMIN,
 } from './inventories/paths';
+import { syncWebAdminInventoryRuntimeCopy } from './inventories/sync-runtime-copy';
 
 function slugDriftId(kind: string, key: string): string {
   return `${kind}:${key.replace(/[^a-zA-Z0-9._/-]+/g, '_')}`;
@@ -348,6 +349,34 @@ export function validateNewDrift(result: ReconcileResult, known: KnownExceptions
   return { newDrift, passed: newDrift.length === 0 };
 }
 
+export function embedDriftInInventory(
+  inventoryPath: string,
+  result: ReconcileResult,
+  known: KnownExceptionsFile
+): void {
+  const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf-8')) as PlatformInfoInventory;
+  const knownIds = new Set(known.exceptions.map((e) => e.id));
+  const newDrift = result.driftItems.filter((d) => !knownIds.has(d.id));
+
+  inventory.driftItems = result.driftItems.map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    severity: d.severity,
+    message: d.message,
+    path: d.path,
+    isKnownException: knownIds.has(d.id),
+  }));
+  inventory.driftCounts = {
+    errors: result.counts.errors,
+    warnings: result.counts.warnings,
+    total: result.counts.total,
+    newDrift: newDrift.length,
+  };
+
+  fs.writeFileSync(inventoryPath, JSON.stringify(inventory, null, 2), 'utf-8');
+  syncWebAdminInventoryRuntimeCopy(inventoryPath);
+}
+
 export function runReconcile(inventoryPath = INVENTORY_OUTPUT): ReconcileResult {
   if (!fs.existsSync(inventoryPath)) {
     throw new Error(`Inventory not found: ${inventoryPath}`);
@@ -359,6 +388,7 @@ export function runReconcile(inventoryPath = INVENTORY_OUTPUT): ReconcileResult 
   writeDriftReport(result, known);
   writeUndocumented(result);
   writeOrphans(result);
+  embedDriftInInventory(inventoryPath, result, known);
 
   console.log(`[reconcile] drift: ${result.counts.total} (${result.counts.errors} errors, ${result.counts.warnings} warnings)`);
   console.log(`[reconcile] wrote: ${DRIFT_REPORT}`);

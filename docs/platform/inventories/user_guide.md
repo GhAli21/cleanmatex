@@ -20,8 +20,8 @@ Use this screen when you need to answer:
 
 | Requirement | Details |
 |-------------|---------|
-| **Permission** | `admin:read` |
-| **Typical roles** | `super_admin`, `tenant_admin`, `admin` |
+| **Permission** | `help:platform_inventories` |
+| **Typical roles** | All roles (seeded via migration `0385` on every `sys_auth_roles` row) |
 | **Read-only** | You cannot change gates from this screen — it is for review only |
 
 ---

@@ -24,6 +24,8 @@ import { getAllPageAccessContracts, getPageAccessContractByPath } from '@feature
 import { CmxInput } from '@ui/primitives'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { HELP_PERMISSIONS } from '@/lib/constants/help'
 import { NotificationBell } from '@features/notifications/ui/notification-bell'
 
 function RequirementBadge({
@@ -202,6 +204,7 @@ export default function CmxTopBar() {
   })
 
   const currentPageContract = getPageAccessContractByPath(pathname)
+  const canViewPlatformInventories = useHasPermissionCode(HELP_PERMISSIONS.PLATFORM_INVENTORIES)
   const pageTitle = currentPageContract?.label ?? 'Dashboard'
   const sortedFeatureFlags = Object.entries(featureFlags).sort(
     ([leftKey, leftEnabled], [rightKey, rightEnabled]) => {
@@ -501,14 +504,16 @@ export default function CmxTopBar() {
                         <p className="break-all">
                           <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
                         </p>
-                        <p className="pt-1">
-                          <Link
-                            href={`/dashboard/help/platform-inventories?route=${encodeURIComponent(currentPageContract.routePattern)}`}
-                            className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                          >
-                            {t('permissionsDialog.viewFullInventory')}
-                          </Link>
-                        </p>
+                        {canViewPlatformInventories ? (
+                          <p className="pt-1">
+                            <Link
+                              href={`/dashboard/help/platform-inventories?tab=contracts&route=${encodeURIComponent(currentPageContract.routePattern)}`}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                            >
+                              {t('permissionsDialog.viewFullInventory')}
+                            </Link>
+                          </p>
+                        ) : null}
                       </div>
 
                       <RequirementBlock

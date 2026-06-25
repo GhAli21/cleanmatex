@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-25T10:43:39.590Z
-Git SHA: 32cad5c7
+Generated: 2026-06-25T14:10:31.840Z
+Git SHA: a4f470c8
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 145 |
-| Permission usages | 235 |
+| Permission usages | 234 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
@@ -63,7 +63,7 @@ Git SHA: 32cad5c7
 | /dashboard/erp-lite/setup | ERP-Lite setup guide | erp_lite:view | erp_lite_enabled | 0 |
 | /dashboard/erp-lite/usage-maps | Usage Mapping Console | erp_lite_usage_map:view | erp_lite_enabled, erp_lite_usage_map_enabled | 0 |
 | /dashboard/help | Help | — | — | 0 |
-| /dashboard/help/platform-inventories | Platform Inventories | admin:read | — | 0 |
+| /dashboard/help/platform-inventories | Platform Inventories | help:platform_inventories | — | 0 |
 | /dashboard/internal_fin | Internal Finance And Operations | — | — | 0 |
 | /dashboard/internal_fin/ar/aging | AR Aging | ar_aging:view | — | 0 |
 | /dashboard/internal_fin/ar/credits | AR Credits | ar_credits:view | — | 0 |

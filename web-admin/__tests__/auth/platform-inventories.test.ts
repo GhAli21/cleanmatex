@@ -5,6 +5,12 @@ import {
   getPageAccessContractByPath,
 } from '@features/access/page-access-registry'
 
+const NAV_DRIFT_KINDS = new Set([
+  'nav_contract_permission_mismatch',
+  'nav_contract_feature_flag_mismatch',
+  'nav_missing_contract',
+])
+
 function collectPageRoutes(baseDir: string): string[] {
   const routes: string[] = []
 
@@ -56,6 +62,18 @@ function isStaticBeforeDynamic(staticRoute: string, dynamicRoute: string): boole
 }
 
 const KNOWN_STATIC_ORDER_VIOLATIONS = new Set<string>()
+
+function resolveInventoryPath(): string {
+  const candidates = [
+    path.join(process.cwd(), 'data/platform/platform-info-inventory.json'),
+    path.join(process.cwd(), '..', 'docs/platform/inventories/platform-info-inventory.json'),
+  ]
+  const found = candidates.find((candidate) => fs.existsSync(candidate))
+  if (!found) {
+    throw new Error('platform-info-inventory.json not found for nav parity test')
+  }
+  return found
+}
 
 describe('platform inventories — registry integrity', () => {
   it('has no duplicate routePattern values in the registry', () => {
@@ -110,6 +128,17 @@ describe('platform inventories — registry integrity', () => {
   })
 })
 
-describe('platform inventories — nav vs contract parity (warn until allowlist clean)', () => {
-  it.todo('flags navigation vs contract permission mismatches via reconcile script output')
+describe('platform inventories — nav vs contract parity', () => {
+  it('has no new navigation vs contract drift in merged inventory', () => {
+    const inventoryPath = resolveInventoryPath()
+    const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf-8')) as {
+      driftItems?: { id: string; kind: string; isKnownException?: boolean }[]
+    }
+
+    const navDrift = (inventory.driftItems ?? []).filter(
+      (item) => NAV_DRIFT_KINDS.has(item.kind) && !item.isKnownException
+    )
+
+    expect(navDrift.map((item) => item.id)).toEqual([])
+  })
 })

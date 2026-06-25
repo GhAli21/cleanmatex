@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-06-25T10:43:35.299Z",
+  "extractedAt": "2026-06-25T14:10:27.546Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -86,7 +86,7 @@
       "file": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "route": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "permission": "customers:receipt_allocate",
-      "component": "useHasPermission",
+      "component": "useHasPermissionCode",
       "line": 59,
       "surface": "screen"
     },
@@ -154,14 +154,6 @@
       "route": "/api/admin/jwt-health",
       "permission": "admin:read",
       "line": 21,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/dev/platform-inventories/route.ts",
-      "method": "GET",
-      "route": "/api/dev/platform-inventories",
-      "permission": "admin:read",
-      "line": 15,
       "surface": "api"
     },
     {

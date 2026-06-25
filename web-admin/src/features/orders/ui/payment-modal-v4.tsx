@@ -28,6 +28,7 @@ import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/mod
 import { taxService } from '@/lib/services/tax.service';
 import {
   newOrderPaymentPayloadSchema,
+  toCanonicalLegMethod,
   type NewOrderPaymentPayload,
   type OutstandingPolicy,
   type PaymentLeg,
@@ -1532,7 +1533,7 @@ export function PaymentModalV4({
 
   const handleMethodSelect = useCallback(
     (option: CheckoutSettlementOption) => {
-      setValue('paymentMethod', option.payment_method_code as PaymentMethodCode, { shouldDirty: true });
+      setValue('paymentMethod', toCanonicalLegMethod(option.payment_method_code as PaymentMethodCode), { shouldDirty: true });
       const existingIndex = paymentLegs.findIndex(
         (leg) =>
           leg.method === option.payment_method_code &&

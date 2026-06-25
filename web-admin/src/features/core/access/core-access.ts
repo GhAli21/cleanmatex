@@ -35,10 +35,10 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/help/platform-inventories',
     label: 'Platform Inventories',
     page: {
-      permissions: ['admin:read'],
+      permissions: ['help:platform_inventories'],
       requireAllPermissions: true,
     },
-    notes: ['Read-only inventory browser for admins; requires admin:read.'],
+    notes: ['Read-only inventory browser; requires help:platform_inventories.'],
   },
   {
     routePattern: '/dashboard/jhtestui',

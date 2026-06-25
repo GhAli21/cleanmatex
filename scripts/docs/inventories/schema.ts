@@ -136,6 +136,15 @@ export interface FlagCatalogRecord {
   provenance: InventoryProvenance[];
 }
 
+export interface InventoryDriftRecord {
+  id: string;
+  kind: string;
+  severity: 'error' | 'warn';
+  message: string;
+  path?: string;
+  isKnownException?: boolean;
+}
+
 export interface PlatformInfoInventory {
   schemaVersion: number;
   generatedAt: string;
@@ -157,4 +166,11 @@ export interface PlatformInfoInventory {
   accessContracts: AccessContractRecord[];
   navigationEntries: NavigationEntryRecord[];
   flagCatalog: FlagCatalogRecord[];
+  driftItems?: InventoryDriftRecord[];
+  driftCounts?: {
+    errors: number;
+    warnings: number;
+    total: number;
+    newDrift: number;
+  };
 }

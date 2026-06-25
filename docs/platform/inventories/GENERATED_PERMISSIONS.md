@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-06-25T10:43:39.590Z
+Generated: 2026-06-25T14:10:31.840Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 217 |
+| api | 216 |
 | middleware | 4 |
 | screen | 13 |
 | service | 1 |
@@ -39,7 +39,6 @@ Generated: 2026-06-25T10:43:39.590Z
 | )}]`,
             code: | middleware | lib/middleware/tenant-guard.ts | 144 | lib/middleware/tenant-guard.ts |
 | admin:read | api | app/api/admin/jwt-health/route.ts | 21 | /api/admin/jwt-health |
-| admin:read | api | app/api/dev/platform-inventories/route.ts | 15 | /api/dev/platform-inventories |
 | ar_aging:view | api | app/api/v1/ar/reports/aging/route.ts | 12 | /api/v1/ar/reports/aging |
 | ar_credits:apply | api | app/api/v1/ar/credits/applications/route.ts | 12 | /api/v1/ar/credits/applications |
 | ar_credits:reverse | api | app/api/v1/ar/credits/applications/[id]/reverse/route.ts | 17 | /api/v1/ar/credits/applications/[id]/reverse |

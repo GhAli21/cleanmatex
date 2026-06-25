@@ -5898,20 +5898,79 @@
     },
     "platformInventories": {
       "title": "Platform Inventories",
-      "subtitle": "Read-only view of access contracts, permissions, feature flags, and navigation gates",
-      "cardDescription": "Browse merged platform gating inventories for admins (permissions, flags, contracts, navigation).",
+      "subtitle": "Read-only reference for access contracts, permissions, feature flags, navigation, settings, and drift",
+      "cardDescription": "Browse merged platform gating inventories (contracts, permissions, flags, navigation, drift).",
       "openViewer": "Open Platform Inventories",
       "backToHelp": "Back to Help",
       "searchPlaceholder": "Search inventories…",
       "loading": "Loading inventories…",
       "generatedAt": "Generated",
       "routeFilter": "Route filter",
+      "clearRouteFilter": "Clear filter",
+      "userGuide": "Help guide",
+      "exportCsv": "Export CSV",
+      "driftBanner": "{count} new drift item(s)",
       "tabs": {
         "contracts": "Access contracts",
         "permissions": "Permissions",
         "flags": "Feature flags",
         "navigation": "Navigation",
+        "settings": "Settings",
+        "planLimits": "Plan limits",
+        "flagCatalog": "Flag catalog",
+        "drift": "Drift",
         "summary": "Summary"
+      },
+      "columns": {
+        "routePattern": "Route",
+        "label": "Label",
+        "permissions": "Permissions",
+        "featureFlags": "Feature flags",
+        "actions": "Actions",
+        "sourceFile": "Source",
+        "permissionCode": "Permission",
+        "surface": "Surface",
+        "file": "File",
+        "line": "Line",
+        "route": "Route",
+        "flagKey": "Flag key",
+        "context": "Context",
+        "path": "Path",
+        "key": "Key",
+        "featureFlag": "Feature flag",
+        "settingCode": "Setting",
+        "limitKey": "Limit",
+        "pattern": "Pattern",
+        "flagName": "Name",
+        "planBindingType": "Binding",
+        "uiGroup": "Group",
+        "severity": "Severity",
+        "kind": "Kind",
+        "message": "Message",
+        "knownException": "Status"
+      },
+      "badges": {
+        "known": "Known",
+        "new": "New"
+      },
+      "empty": {
+        "title": "No rows found",
+        "description": "Try a different search term, tab, or clear the route filter."
+      },
+      "hints": {
+        "permissionsTab": "Code-scan audit only. For page-level gates, use the Access contracts tab — it is the authoritative source."
+      },
+      "contractDialog": {
+        "pagePermissions": "Page permissions",
+        "pageFlags": "Page feature flags",
+        "actions": "Gated actions",
+        "apiDependencies": "API dependencies",
+        "close": "Close"
+      },
+      "errors": {
+        "forbiddenTitle": "Access not granted",
+        "forbidden": "You need the help:platform_inventories permission to view platform inventories. Ask your tenant admin to grant it.",
+        "loadFailed": "Failed to load platform inventories."
       }
     }
   },

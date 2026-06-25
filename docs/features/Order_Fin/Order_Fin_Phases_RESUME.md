@@ -11,12 +11,52 @@
 
 ## Paste-prompt (after `/clear`)
 
+**Default (continue next phase):**
 ```
 Resume CleanMateX Order Financial. Read docs/features/Order_Fin/Order_Fin_Phases_RESUME.md
 then the canonical log 24_IMPLEMENTATION_STATUS.md (via node -e, that folder blocks Read).
 Continue with D-12 third pass (recommended next) unless I say otherwise.
 NOTE: migrations 0378–0384 are all applied LOCAL + REMOTE. Next free seq = 0385.
 ```
+
+**Finish-everything (plan + implement ALL remaining phases):**
+```
+Resume CleanMateX Order Financial. Read docs/features/Order_Fin/Order_Fin_Phases_RESUME.md
+then the canonical log 24_IMPLEMENTATION_STATUS.md (via node -e, that folder blocks Read).
+Then enter plan mode: produce an ordered plan to FINISH all remaining Order-Fin work
+in the "Full remaining backlog" section below (D-12 remainder + F-05 completion),
+flag anything needing a migration or a decision (e.g. gateway-method, F-05 jurisdiction),
+and after I approve, implement phase-by-phase. Per phase: load required skills first,
+keep tsc/lint/jest green, NO migration applies (create .sql + STOP), and after each phase
+update 24_IMPLEMENTATION_STATUS.md + this RESUME + memory.
+NOTE: migrations 0378–0384 applied LOCAL + REMOTE. Next free seq = 0385.
+Open decisions to surface before coding: (1) gateway-leg-method (HYPERPAY/PAYTABS/STRIPE
+vs method=PAYMENT_GATEWAY) — blocks cluster-A 14 tsc errors; (2) F-05 jurisdiction adapter
+scope (ZATCA?) + HQ enablement-toggle (cleanmatexsaas, cross-project).
+```
+
+---
+
+## Full remaining backlog (ordered) — to finish Order Financial
+
+> Read the live detail in the D-12 sections at the END of `24_IMPLEMENTATION_STATUS.md`. This is the cold-start index.
+
+**Phase 1 (cluster A) — ✅ DONE 2026-06-25:** tsc 14 → **0**. User chose to **retire** the two legacy payment modals instead of fixing them: `payment-modal-v3.tsx` + `payment-modal-enhanced-02.tsx` renamed to `*.tsx.bak` (excluded from compilation); `payment-modal-v4.tsx` is the only maintained modal. Gateway decision = PAYMENT_GATEWAY + provider field (`SettlementMethodCode` + `toCanonicalLegMethod` helper in `new-order-payment-schemas.ts`). Selector in `new-order-modals.tsx` collapsed to V4; version dropdown reduced to V4. tsc 0 / eslint 0 / jest 1423✓. No migration.
+
+**Phase D-12 (third pass) — remaining (no migration expected):**
+1. **F-10 `collect-payment.idempotency`** test (GA-class) — implement in the **DB-integration harness** (`__tests__/db-integration/`, run vs `supabase start`), NOT a mock-only unit test. Asserts: two sequential partial collections by the same cashier both apply + sum; explicit-key replay dedupes.
+2. **Other doc-19 🔵 hardening tests:** `ar-allocate.idempotency`, `cash-drawer-change.idempotency`, `order-financial-write.gateway-pending`, extend `customer-receipt-allocation.service.test`, `customer-receipt-allocation.fallback`.
+3. **§4 correctness review:** refund-create idempotency + reverse-allocation accounting; `voucher-reversal.service` unwind; AR reverse/void accounting.
+4. **§5 anti-pattern audit:** find other `*constants*`/`*catalog*` tests asserting only shape/uniqueness → convert to real DB/migration parity.
+5. ~~**Cluster A gateway-union (14 tsc errors)**~~ ✅ **DONE 2026-06-25.** Decision = PAYMENT_GATEWAY + provider field. Legacy modals v3/enhanced-02 **retired** (`*.tsx.bak`); only v4 fixed via `toCanonicalLegMethod`/`SettlementMethodCode`. tsc → 0.
+
+**Phase F-05 (e-invoicing) — completion (foundation already shipped, mig 0383):**
+6. Real per-category tax decomposition (engine emits EXEMPT/ZERO_RATED/OUT_OF_SCOPE buckets that reconcile via `validateFiscalTotal`).
+7. Wire activation + fiscal-total into the order / tax-document path; persist e-invoice status (likely a migration → seq 0385+).
+8. Jurisdiction adapter(s) (e.g. ZATCA) — decision #2.
+9. **Cross-project:** HQ (cleanmatexsaas) tenant-management enablement toggle + start-date picker that WRITE the `org_tenants_mst` e-invoice columns (cleanmatex only reads them).
+
+**Process gates (carry-over):** finance sign-off + soak for v1.1 items; remote/prod apply is always user-gated.
 
 ---
 

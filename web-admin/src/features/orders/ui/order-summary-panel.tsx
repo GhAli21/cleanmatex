@@ -169,15 +169,11 @@ function OrderSummaryPanelComponent({
     });
   const [isCalculating, setIsCalculating] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  const paymentModalVersionLabel = useMemo(() => {
-    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V02_ENHANCED) {
-      return t('paymentModalVersionOptions.v02Enhanced');
-    }
-    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V3) {
-      return t('paymentModalVersionOptions.v3');
-    }
-    return t('paymentModalVersionOptions.v4');
-  }, [paymentModalVersion, t]);
+  // V02_ENHANCED and V3 variants were retired; V4 is the only maintained modal.
+  const paymentModalVersionLabel = useMemo(
+    () => t('paymentModalVersionOptions.v4'),
+    [t]
+  );
 
   const readyByValidation = useMemo(() => {
     if (!readyByAt) {
@@ -506,12 +502,7 @@ function OrderSummaryPanelComponent({
                     />
                   </CmxSelectDropdownTrigger>
                   <CmxSelectDropdownContent>
-                    <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V02_ENHANCED}>
-                      {t('paymentModalVersionOptions.v02Enhanced')}
-                    </CmxSelectDropdownItem>
-                    <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V3}>
-                      {t('paymentModalVersionOptions.v3')}
-                    </CmxSelectDropdownItem>
+                    {/* V02_ENHANCED and V3 variants were retired; V4 is the only maintained modal. */}
                     <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V4}>
                       {t('paymentModalVersionOptions.v4')}
                     </CmxSelectDropdownItem>

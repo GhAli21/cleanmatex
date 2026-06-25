@@ -14,10 +14,6 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
-import {
-  PAYMENT_MODAL_VERSIONS,
-  usePaymentModalVersion,
-} from '../hooks/use-payment-modal-version';
 import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -71,22 +67,8 @@ const CustomerEditModal = dynamic(
   }
 );
 
-const PaymentModalEnhanced02 = dynamic<PaymentModalComponentProps>(
-  () => import('@features/orders/ui/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
-  {
-    ssr: false,
-    loading: () => null
-  }
-);
-
-const PaymentModalV3 = dynamic<PaymentModalComponentProps>(
-  () => import('@features/orders/ui/payment-modal-v3').then(mod => ({ default: mod.PaymentModalV3 })),
-  {
-    ssr: false,
-    loading: () => null
-  }
-);
-
+// PaymentModalEnhanced02 and PaymentModalV3 were retired (backed up as *.tsx.bak).
+// V4 is the only maintained payment modal; legacy version codes fall back to it.
 const PaymentModalV4 = dynamic<PaymentModalComponentProps>(
   () => import('@features/orders/ui/payment-modal-v4').then(mod => ({ default: mod.PaymentModalV4 })),
   {
@@ -115,7 +97,6 @@ export function NewOrderModals() {
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
   const { submitOrder, amountMismatch, setAmountMismatch } = useOrderSubmission();
-  const { paymentModalVersion } = usePaymentModalVersion(currentTenant);
   const { trackByPiece } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
@@ -344,15 +325,9 @@ export function NewOrderModals() {
     };
   }, [state.state.priceOverrideItemId, state.state.items]);
 
-  const ActivePaymentModal = useMemo(() => {
-    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V02_ENHANCED) {
-      return PaymentModalEnhanced02;
-    }
-    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V3) {
-      return PaymentModalV3;
-    }
-    return PaymentModalV4;
-  }, [paymentModalVersion]);
+  // V4 is the only maintained payment modal. The V02_ENHANCED / V3 variants were
+  // retired (files backed up as *.tsx.bak); any legacy stored version code renders V4.
+  const ActivePaymentModal = PaymentModalV4;
 
   // Expose function to open price override modal (for use in other components)
   // We'll use a ref or context to expose this, but for now let's use a simpler approach
