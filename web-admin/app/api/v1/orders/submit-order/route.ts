@@ -223,10 +223,10 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    // conflict is already handled above; bind resourceId via the discriminant so
-    // the non-conflict variant narrows explicitly (flow-narrowing after the early
-    // return does not engage for this union shape).
-    const stakedResourceId = stakedRecord.conflict ? null : stakedRecord.resourceId;
+    // conflict is already handled above. Narrow via the `in` operator: boolean
+    // discriminant narrowing does not engage under this project's non-strict
+    // tsconfig, but property-presence narrowing does.
+    const stakedResourceId = 'resourceId' in stakedRecord ? stakedRecord.resourceId : null;
     if (stakedResourceId) {
       const stakedOrder = await prisma.org_orders_mst.findFirst({
         where:  { id: stakedResourceId, tenant_org_id: tenantId },

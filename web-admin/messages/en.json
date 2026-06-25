@@ -5934,7 +5934,7 @@
         "currentPageAccess": "Current Page Access",
         "uiAccessTab": "UI Access",
         "allPermissionsTab": "All Permissions",
-        "allPermissionsHelp": "Your effective permission codes for this tenant. Overpayment codes control Pay Extra options in the payment modal.",
+        "allPermissionsHelp": "Your effective permission codes for this tenant.",
         "overpaymentGroupTitle": "Pay extra / overpayment",
         "allGrantedTitle": "All granted permissions",
         "granted": "Granted",

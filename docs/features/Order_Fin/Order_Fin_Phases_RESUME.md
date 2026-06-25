@@ -1,6 +1,6 @@
 # Order Financial — Phases RESUME
 
-**Purpose:** one-click pointer to resume after `/clear`. Last updated **2026-06-20**.
+**Purpose:** one-click pointer to resume after `/clear`. Last updated **2026-06-25**.
 **Canonical live log:** `Opus_Validation_Report_18_06_2026/24_IMPLEMENTATION_STATUS.md`
 **Memory:** `project_order_fin_validation_2026_06_18` (auto-loads each session).
 
@@ -15,7 +15,7 @@
 Resume CleanMateX Order Financial. Read docs/features/Order_Fin/Order_Fin_Phases_RESUME.md
 then the canonical log 24_IMPLEMENTATION_STATUS.md (via node -e, that folder blocks Read).
 Continue with D-12 third pass (recommended next) unless I say otherwise.
-NOTE: migration 0384 (D-09 nav) may still be pending apply — confirm with me first.
+NOTE: migrations 0378–0384 are all applied LOCAL + REMOTE. Next free seq = 0385.
 ```
 
 ---
@@ -48,5 +48,5 @@ NOTE: migration 0384 (D-09 nav) may still be pending apply — confirm with me f
 
 ## Remaining phases
 1. ~~**D-09** — minimum reconciliation reports.~~ ✅ **DONE 2026-06-20** (mig 0384 applied L+R). See `D-09-Reconciliation-Reports.md`.
-2. **D-12** — third pass. 🟡 **ACTIVE / in progress (tsc 43 → 34).** Scope checklist + dated progress log = the "D-12" sections at the END of `24_IMPLEMENTATION_STATUS.md`. **Done 2026-06-20:** cluster D (statement-wiring `getLinkedEffect` raw-SQL fix — was a runtime crash — + `formatMoneyWithCode` 2-arg) + `statement-payment-wiring.handler.test.ts` (7/7); cluster A 3 safe fixes (icon Record, button variant, picker decimalPlaces); cluster C `AllocateArPaymentInput` → `z.input` (vestigial required `unapplied_credit_amount`). **POSTPONED (user):** all PAYMENT_GATEWAY / cluster-A union-drift (14 errors, v3/enhanced-02/v4) — needs the gateway-leg-method domain decision. **DEFERRED (documented):** 2 `allocation.id`-on-`ArInvoiceDetail` latent linkage gaps (AR allocate returns the invoice, not the payment-row id → undefined `target_ref`/effect-ref; fix = expose allocation id from `allocateArPaymentTx`, touches idempotency cache shape) + the paired `invoice-payment-wiring.handler.test.ts`. **Remaining:** cluster B (voucher 5), G (route 2), H (notifications/audit 9), the AR `.id` fix, GA test `collect-payment.idempotency` (F-10), other doc-19 🔵 tests, refund/AR-reverse/voucher-reversal review, anti-pattern audit. Likely no migration.
+2. **D-12** — third pass. 🟡 **ACTIVE / in progress (tsc 43 → 14).** Scope checklist + dated progress log = the "D-12" sections at the END of `24_IMPLEMENTATION_STATUS.md`. **Done 2026-06-20:** cluster D (statement-wiring `getLinkedEffect` raw-SQL fix + `formatMoneyWithCode` 2-arg) + `statement-payment-wiring.handler.test.ts`; cluster A 3 safe fixes; cluster C `AllocateArPaymentInput` → `z.input`. **Done 2026-06-25:** clusters **B** (voucher line types 5), **G** (submit-order — `'resourceId' in x` narrowing 2), **H** (push `as unknown as` 3 + subscriptions `plan_code`/`current_period_end` 2 + cmx-audit-info-card `AuditRowValue` 4), **C** (`useHasPermissionCode` 1 + overpayment dead-branch 1 + the **AR `.id` linkage own-change** 2). AR fix: `allocateArPaymentTx` now returns `{ allocationPaymentId, invoice }` via new `withIdempotencyResource` (delegated; 4 ignoring callers unchanged); `wire`/excess-executor consume the real `org_invoice_payments_dtl` row id. Paired `invoice-payment-wiring.handler.test.ts` (7/7, linkage regression lock). Full suite 1422✓/141 suites, eslint 0, no migration. **Root cause noted:** tsconfig `strict:false` → boolean-discriminant narrowing doesn't engage. **POSTPONED (user):** all PAYMENT_GATEWAY / cluster-A union-drift (the 14 remaining: payment-modal-v3 7, -enhanced-02 6, -v4 1) — needs the gateway-leg-method domain decision. **Remaining (next session):** GA test `collect-payment.idempotency` (F-10 — belongs in DB-integration harness), other doc-19 🔵 tests (ar-allocate, cash-drawer-change, gateway-pending, receipt extend/fallback), refund/AR-reverse/voucher-reversal review, anti-pattern audit. Likely no migration. **Inventory follow-up:** refresh surface=page for `/dashboard/customers/account-receipt` (useHasPermission→useHasPermissionCode; entry id stable).
 3. **F-05 completion** — real per-category tax decomposition (engine emits EXEMPT/ZERO_RATED/OUT_OF_SCOPE that reconcile), wire activation + fiscal-total into the order/tax-doc path, e-invoice status persistence, jurisdiction adapter(s) e.g. ZATCA, **+ HQ (cleanmatexsaas) enablement-toggle UI** that writes the `org_tenants_mst` columns.

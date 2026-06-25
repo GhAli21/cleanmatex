@@ -21,7 +21,6 @@ import {
   type AccessRequirement,
 } from '@/lib/auth/access-contracts'
 import { getAllPageAccessContracts, getPageAccessContractByPath } from '@features/access/page-access-registry'
-import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog'
 import { CmxInput } from '@ui/primitives'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
@@ -169,11 +168,6 @@ export default function CmxTopBar() {
   const [permissionSearchQuery, setPermissionSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const overpaymentPermissionCodes = useMemo(
-    () => Object.values(OVERPAYMENT_RESOLUTION_PERMISSIONS),
-    []
-  )
-
   const normalizedPermissionSearch = permissionSearchQuery.trim().toLowerCase()
 
   const filteredUserPermissions = useMemo(() => {
@@ -181,13 +175,6 @@ export default function CmxTopBar() {
     if (!normalizedPermissionSearch) return sorted
     return sorted.filter((code) => code.toLowerCase().includes(normalizedPermissionSearch))
   }, [normalizedPermissionSearch, permissions])
-
-  const filteredOverpaymentPermissions = useMemo(() => {
-    if (!normalizedPermissionSearch) return overpaymentPermissionCodes
-    return overpaymentPermissionCodes.filter((code) =>
-      code.toLowerCase().includes(normalizedPermissionSearch)
-    )
-  }, [normalizedPermissionSearch, overpaymentPermissionCodes])
 
   const handleRefreshAll = async () => {
     setIsRefreshing(true)
@@ -473,61 +460,33 @@ export default function CmxTopBar() {
                 </div>
 
                 {activeInspectorTab === 'all' ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <p className="text-xs text-gray-600">{t('permissionsDialog.allPermissionsHelp')}</p>
 
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {t('permissionsDialog.overpaymentGroupTitle')}
-                      </h4>
-                      {filteredOverpaymentPermissions.length === 0 ? (
-                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
-                          {t('permissionsDialog.noSearchResults')}
-                        </p>
-                      ) : (
-                        filteredOverpaymentPermissions.map((permissionCode) => {
-                          const granted = (permissions ?? []).includes(permissionCode)
-                          return (
-                            <div
-                              key={permissionCode}
-                              className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2"
-                            >
-                              <p className="break-all text-xs font-mono text-gray-700">{permissionCode}</p>
-                              <RequirementBadge
-                                passed={granted}
-                                label={granted ? t('permissionsDialog.granted') : t('permissionsDialog.missing')}
-                              />
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
-
-                    <div className="space-y-2 border-t border-gray-200 pt-4">
-                      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {t('permissionsDialog.allGrantedTitle')}
-                      </h4>
-                      {(permissions ?? []).length === 0 ? (
-                        <p className="rounded-md bg-white px-3 py-2 text-xs text-red-600">
-                          {t('permissionsDialog.noPermissionsLoaded')}
-                        </p>
-                      ) : filteredUserPermissions.length === 0 ? (
-                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
-                          {t('permissionsDialog.noSearchResults')}
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {filteredUserPermissions.map((permissionCode) => (
-                            <span
-                              key={permissionCode}
-                              className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded"
-                            >
-                              {permissionCode}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {(permissions ?? []).length === 0 ? (
+                      <p className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-red-600">
+                        {t('permissionsDialog.noPermissionsLoaded')}
+                      </p>
+                    ) : filteredUserPermissions.length === 0 ? (
+                      <p className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+                        {t('permissionsDialog.noSearchResults')}
+                      </p>
+                    ) : (
+                      <div className="max-h-[min(50vh,28rem)] space-y-2 overflow-y-auto pr-1">
+                        {filteredUserPermissions.map((permissionCode) => (
+                          <div
+                            key={permissionCode}
+                            className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2"
+                          >
+                            <p className="break-all text-xs font-mono text-gray-700">{permissionCode}</p>
+                            <RequirementBadge
+                              passed
+                              label={t('permissionsDialog.granted')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : currentPageContract && pageEvaluation ? (
                   activeInspectorTab === 'ui' ? (

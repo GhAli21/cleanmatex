@@ -5934,7 +5934,7 @@
         "currentPageAccess": "وصول الصفحة الحالية",
         "uiAccessTab": "وصول الواجهة",
         "allPermissionsTab": "كل الصلاحيات",
-        "allPermissionsHelp": "رموز الصلاحيات الفعّالة لهذا المستأجر. صلاحيات الدفع الزائد تتحكم في خيارات «العميل يدفع زيادة» في نافذة الدفع.",
+        "allPermissionsHelp": "رموز الصلاحيات الفعّالة لهذا المستأجر.",
         "overpaymentGroupTitle": "الدفع الزائد / فائض الدفع",
         "allGrantedTitle": "جميع الصلاحيات الممنوحة",
         "granted": "ممنوح",
