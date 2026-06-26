@@ -48,16 +48,13 @@ import {
   deriveOutstandingPolicy,
   formatDecimalDraft,
   getPreferredCashDrawerStorageKey,
-  getAmountAppliedToOrder,
   getDisplayChangeAmount,
   getNetCashRetainedAmount,
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
-  getUnresolvedOverpaymentAmount,
   reconcilePaymentLegAmounts,
   resolvePreferredCashDrawerSessionId,
-  walletLegExceedsBalance,
   parseDecimalDraft,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
@@ -67,7 +64,6 @@ import {
   legHasRequiredPaymentReference,
   wasPaymentLegAmountCapped,
   getStoredValueCapForLeg,
-  canReturnChangeFromAllCashLegs,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
 import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
@@ -87,6 +83,7 @@ import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workb
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
+import { useMoneyDerivations } from '@features/orders/hooks/use-money-derivations';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -1645,75 +1642,38 @@ export function PaymentModalV4({
     [decimalPlaces]
   );
 
-  const settlementLegEntries = useMemo(
-    () =>
-      paymentLegs
-        .map((leg, index) => ({ leg, index }))
-        .filter(({ leg }) => (leg.amount ?? 0) > 0),
-    [paymentLegs]
-  );
-
-  const realPaymentEntries = useMemo(
-    () =>
-      settlementLegEntries.filter(({ leg }) =>
-        (IMMEDIATE_METHOD_CODES as readonly string[]).includes(leg.method)
-      ),
-    [IMMEDIATE_METHOD_CODES, settlementLegEntries]
-  );
-
-  const customerCreditEntries = useMemo(
-    () => settlementLegEntries.filter(({ leg }) => creditMethodCodes.includes(leg.method)),
-    [creditMethodCodes, settlementLegEntries]
-  );
-
-  const payNowAmount = useMemo(
-    () => realPaymentEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
-    [realPaymentEntries]
-  );
-
-  const customerCreditAmount = useMemo(
-    () => customerCreditEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
-    [customerCreditEntries]
-  );
-
-  const settledNowAmount = useMemo(
-    () => payNowAmount + customerCreditAmount,
-    [customerCreditAmount, payNowAmount]
-  );
-  const cashLegAmount = useMemo(
-    () =>
-      realPaymentEntries
-        .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
-        .reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
-    [realPaymentEntries]
-  );
-  const cashTenderedAmount = useMemo(
-    () =>
-      realPaymentEntries
-        .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
-        .reduce((sum, { leg }) => sum + (leg.cashTendered ?? leg.amount ?? 0), 0),
-    [realPaymentEntries]
-  );
-  const totalSettledNowAmount = settledNowAmount + giftCardSettlementAmount;
-  const walletLegEntry = useMemo(
-    () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
-    [settlementLegEntries]
-  );
-  const storedValueLegExceedance = useMemo(() => {
-    for (const { leg, index } of settlementLegEntries) {
-      const cap = getLegStoredValueCap(leg);
-      if (cap != null && walletLegExceedsBalance(leg.amount || 0, cap)) {
-        return { leg, index, cap };
-      }
-    }
-    return null;
-  }, [getLegStoredValueCap, settlementLegEntries]);
-  const walletLegExceedsLiveBalance =
-    storedValueLegExceedance?.leg.method === 'WALLET' &&
-    !!storedValueLegExceedance;
-  const storedValueLegExceedsBalance = !!storedValueLegExceedance;
-
-  const moneyEpsilon = Math.pow(10, -(decimalPlaces + 1));
+  const {
+    settlementLegEntries,
+    realPaymentEntries,
+    customerCreditEntries,
+    payNowAmount,
+    customerCreditAmount,
+    settledNowAmount,
+    cashLegAmount,
+    cashTenderedAmount,
+    totalSettledNowAmount,
+    walletLegEntry,
+    storedValueLegExceedance,
+    walletLegExceedsLiveBalance,
+    storedValueLegExceedsBalance,
+    moneyEpsilon,
+    remainingBalance,
+    changeAmount,
+    canReturnChangeFromCash,
+    cashChangeAmount,
+    cashChangeCapacity,
+    legacyUnresolvedOverpaymentAmount,
+    amountAppliedToOrder,
+  } = useMoneyDerivations({
+    paymentLegs,
+    immediateMethodCodes: IMMEDIATE_METHOD_CODES,
+    creditMethodCodes,
+    getMethodOption,
+    getLegStoredValueCap,
+    saleTotal,
+    giftCardSettlementAmount,
+    decimalPlaces,
+  });
 
   const notifyIfLegAmountCapped = useCallback(
     (leg: PaymentLeg, rawAmount: number, cappedAmount: number) => {
@@ -1743,54 +1703,9 @@ export function PaymentModalV4({
     [currencyCode, formatAmount, getMethodOption, moneyEpsilon, t]
   );
 
-  const remainingBalance = Math.max(0, saleTotal - totalSettledNowAmount);
-  const changeAmount = Math.max(0, totalSettledNowAmount - saleTotal);
-  const canReturnChangeFromCash = useMemo(
-    () =>
-      canReturnChangeFromAllCashLegs(
-        realPaymentEntries
-          .filter(({ leg }) => leg.method === PAYMENT_METHODS.CASH)
-          .map(({ leg }) => ({
-            supportsChangeReturn:
-              getMethodOption(leg.method, leg.gateway_code)?.supports_change_return === true,
-          }))
-      ),
-    [getMethodOption, realPaymentEntries]
-  );
-  const cashChangeAmount = deriveChangeReturnedAmount(
-    cashTenderedAmount,
-    cashLegAmount,
-    canReturnChangeFromCash,
-    moneyEpsilon
-  );
-  const cashChangeCapacity = realPaymentEntries.reduce((sum, { leg }) => {
-    if (leg.method !== PAYMENT_METHODS.CASH) return sum;
-    const option = getMethodOption(leg.method, leg.gateway_code);
-    if (option?.supports_change_return !== true) return sum;
-    const applied = deriveLegAppliedAmount({
-      rawAmount: leg.amount,
-      paymentLegs: settlementLegEntries.map(({ leg: l }) => ({ amount: l.amount })),
-      legIndex: settlementLegEntries.findIndex(({ leg: l }) => l === leg),
-      saleTotal,
-      giftCardAmount: giftCardSettlementAmount,
-      decimalPlaces,
-      supportsOverpayment: option?.supports_overpayment === true,
-    });
-    const tendered = deriveCashTenderedAmount(
-      leg.cashTendered ?? leg.amount,
-      applied,
-      true,
-      decimalPlaces
-    );
-    return sum + Math.max(0, tendered - applied);
-  }, 0);
-  const legacyUnresolvedOverpaymentAmount = getUnresolvedOverpaymentAmount(
-    changeAmount,
-    cashChangeCapacity,
-    canReturnChangeFromCash,
-    moneyEpsilon
-  );
-  const amountAppliedToOrder = getAmountAppliedToOrder(saleTotal, totalSettledNowAmount);
+  // Money derivations (remainingBalance, changeAmount, canReturnChangeFromCash,
+  // cashChangeAmount, cashChangeCapacity, legacyUnresolvedOverpaymentAmount,
+  // amountAppliedToOrder) are provided by useMoneyDerivations above.
 
   const canAllocateOverpayment = useHasPermissionCode(
     OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE
