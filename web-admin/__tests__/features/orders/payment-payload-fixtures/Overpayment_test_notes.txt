@@ -1,0 +1,4 @@
+
+test overpayment-allocation:
+. when click validate the allocation window show and when choose Auto allocate to open balances Or Manual allocate their screens not shown but when i close that window i found those screens behind???.
+. 

@@ -1,0 +1,51 @@
+PAYMENT_FIXTURE
+{
+  "paymentData": {
+    "paymentMethod": "CARD",
+    "checkNumber": "",
+    "checkBank": "",
+    "checkDate": "",
+    "percentDiscount": 0,
+    "amountDiscount": 0,
+    "promoCodeId": "",
+    "promoDiscount": 0,
+    "payAllOrders": false,
+    "paymentNotes": "",
+    "outstandingPolicy": "PAY_ON_COLLECTION",
+    "b2bContractId": "",
+    "costCenterCode": "",
+    "poNumber": ""
+  },
+  "payload": {
+    "amountToCharge": 1.605,
+    "totals": {
+      "subtotal": 1.5,
+      "manualDiscount": 0,
+      "promoDiscount": 0,
+      "afterDiscounts": 1.5,
+      "taxRate": 0,
+      "taxAmount": 0.03,
+      "vatTaxPercent": 5,
+      "vatValue": 0.075,
+      "giftCardApplied": 0,
+      "saleTotal": 1.605
+    },
+    "outstandingPolicy": "NONE",
+    "currencyCode": "OMR",
+    "currencyExRate": 1,
+    "taxProfileIds": [
+      "e233ea70-ce82-464b-8a2d-34688d74e52e",
+      "227836ad-fbbf-4f47-ae07-343ddea178bb"
+    ],
+    "paymentLegs": [
+      {
+        "method": "CARD",
+        "amount": 1.605,
+        "card_brand_code": "VISA",
+        "card_last4": "0000",
+        "auth_code": "ath000",
+        "legRef": "334f6dfb-b5ca-4006-9990-d724c6764240"
+      }
+    ]
+  }
+}

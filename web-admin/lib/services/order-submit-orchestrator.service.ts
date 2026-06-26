@@ -351,7 +351,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   const giftApplied =
     input.giftCardId && serverTotals.giftCardApplied > 0 ? serverTotals.giftCardApplied : 0;
   const unpaidBalance = Math.max(0, serverSaleTotal - amountToCharge - giftApplied);
-
+ 
   if (input.outstandingPolicy === 'NONE' && unpaidBalance > TOLERANCE) {
     throw new Error('OUTSTANDING_POLICY_REQUIRED');
   }

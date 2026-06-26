@@ -1,0 +1,41 @@
+PAYMENT_FIXTURE
+{
+  "paymentData": {
+    "paymentMethod": "CREDIT_INVOICE",
+    "checkNumber": "",
+    "checkBank": "",
+    "checkDate": "",
+    "percentDiscount": 0,
+    "amountDiscount": 0,
+    "promoCodeId": "",
+    "promoDiscount": 0,
+    "payAllOrders": false,
+    "paymentNotes": "",
+    "outstandingPolicy": "CREDIT_INVOICE",
+    "b2bContractId": "",
+    "costCenterCode": "",
+    "poNumber": ""
+  },
+  "payload": {
+    "amountToCharge": 0,
+    "totals": {
+      "subtotal": 1,
+      "manualDiscount": 0,
+      "promoDiscount": 0,
+      "afterDiscounts": 1,
+      "taxRate": 0,
+      "taxAmount": 0.02,
+      "vatTaxPercent": 5,
+      "vatValue": 0.05,
+      "giftCardApplied": 0,
+      "saleTotal": 1.07
+    },
+    "outstandingPolicy": "CREDIT_INVOICE",
+    "currencyCode": "OMR",
+    "currencyExRate": 1,
+    "taxProfileIds": [
+      "e233ea70-ce82-464b-8a2d-34688d74e52e",
+      "227836ad-fbbf-4f47-ae07-343ddea178bb"
+    ]
+  }
+}

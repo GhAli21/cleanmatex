@@ -5733,31 +5733,6 @@ export function PaymentModalV4({
         }}
       />
 
-      <AutoAllocationPreviewDrawer
-        open={allocation.autoDrawerOpen}
-        onOpenChange={allocation.setAutoDrawerOpen}
-        preview={allocation.allocationPreview}
-        loading={allocation.previewLoading}
-        confirming={allocation.confirmLoading}
-        currencyCode={currencyCode}
-        formatAmount={formatAmount}
-        onConfirm={() => void allocation.handleConfirmAutoAllocation()}
-        isRTL={isRTL}
-      />
-
-      <ManualAllocationDrawer
-        open={allocation.manualDrawerOpen}
-        onOpenChange={allocation.setManualDrawerOpen}
-        targets={allocation.openBalanceTargets}
-        excessAmount={unresolvedOverpaymentAmount}
-        currencyCode={currencyCode}
-        formatAmount={formatAmount}
-        loading={allocation.openBalancesLoading}
-        submitting={allocation.confirmLoading}
-        onSubmit={(lines) => void allocation.handleSubmitManualAllocation(lines)}
-        isRTL={isRTL}
-      />
-
       <PaymentExtraReceiptDialog
         open={extraReceiptDialogOpen}
         onOpenChange={setExtraReceiptDialogOpen}
@@ -5794,6 +5769,38 @@ export function PaymentModalV4({
         }}
         onBack={() => setExtraReceiptDialogOpen(false)}
         confirmDisabled={!overpaymentResolutionPayload}
+        isRTL={isRTL}
+      />
+
+      {/*
+        Allocation drawers are rendered AFTER the extra-receipt dialog on purpose.
+        CmxDialog renders inline (no portal) with a shared `z-50`, so stacking is
+        decided by DOM order. Declaring these last lets the auto/manual allocation
+        drawers paint ABOVE the extra-receipt dialog that opens them; otherwise they
+        appear behind it and the operator cannot confirm the allocation.
+      */}
+      <AutoAllocationPreviewDrawer
+        open={allocation.autoDrawerOpen}
+        onOpenChange={allocation.setAutoDrawerOpen}
+        preview={allocation.allocationPreview}
+        loading={allocation.previewLoading}
+        confirming={allocation.confirmLoading}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        onConfirm={() => void allocation.handleConfirmAutoAllocation()}
+        isRTL={isRTL}
+      />
+
+      <ManualAllocationDrawer
+        open={allocation.manualDrawerOpen}
+        onOpenChange={allocation.setManualDrawerOpen}
+        targets={allocation.openBalanceTargets}
+        excessAmount={unresolvedOverpaymentAmount}
+        currencyCode={currencyCode}
+        formatAmount={formatAmount}
+        loading={allocation.openBalancesLoading}
+        submitting={allocation.confirmLoading}
+        onSubmit={(lines) => void allocation.handleSubmitManualAllocation(lines)}
         isRTL={isRTL}
       />
     </>
