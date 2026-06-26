@@ -104,7 +104,17 @@ npm run register:ui-access-contract -- --fix                 # if new module not
 
 Then hand-tune `notes` / gaps derive cannot see. Import permission constants in `*-access.ts`; define `page`, `actions`, `apiDependencies`.
 3. Register module in `page-access-registry.ts` if scaffold/register did not
-4. Wire gates on **`page.tsx`** (`wire --fix` + manual async/redirect) + `app/api/**/route.ts` (`requirePermission`)
+4. Wire gates on **`page.tsx`** (`wire --fix` + manual async/redirect) + `app/api/**/route.ts` ( **`permission` tier:** `requirePermission`; **`auth_only` tier:** session helpers — see 3-tier table in user guide)
+
+### API wire enforcement (3 tiers)
+
+| Tier | Wire expects |
+|------|----------------|
+| `permission` | `requirePermission` when `requirement.permissions` is set |
+| `auth_only` | `getUser`+401, `getAuthContext`, `getTenantIdFromSession`, `requireAuth` (default when no RBAC requirement) |
+| `external` | WARN only — `/tenant-api/*`, server actions |
+
+Full detail: `docs/platform/ui-access-contract/user_guide.md` § `audit-wire` · `scripts/docs/ui-access-contract/resolve-api-enforcement.ts`
 
 ### 2. Run the orchestrator script
 

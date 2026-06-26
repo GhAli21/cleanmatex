@@ -6,8 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getAvailablePlans } from '@/lib/services/subscriptions.service';
-import { getCurrentSubscription } from '@/lib/services/subscriptions.service';
+import { getAvailablePlans, getCurrentSubscription } from '@/lib/services/subscriptions.service';
 
 /**
  *
@@ -15,13 +14,12 @@ import { getCurrentSubscription } from '@/lib/services/subscriptions.service';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get current subscription to mark current plan
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user || !user.user_metadata?.tenant_org_id) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -67,8 +67,9 @@ import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'  // preferre
   apiDependencies: [{
     label: '…',
     method: 'GET',
-    path: '/api/dev/platform-inventories',        // must match fetch path
+    path: '/api/dev/platform-inventories',        // no ?query — use notes for filters
     requirement: { permissions: [HELP_PERMISSIONS.PLATFORM_INVENTORIES] },
+    // enforcement inferred: permission (because requirement.permissions is set)
   }],
   notes: ['…'],
 }
@@ -86,10 +87,16 @@ import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'  // preferre
 
 | Route prefix | Contract file |
 |--------------|---------------|
-| `/dashboard/help/*`, `/dashboard` | `core/access/core-access.ts` |
+| `/dashboard` (exact) | `dashboard/access/dashboard-access.ts` |
+| `/dashboard/help/*` | `help/access/help-access.ts` |
+| `/dashboard/tenant-admin/*` | `tenant-admin/access/tenant-admin-access.ts` |
+| `/dashboard/subscription` (legacy derive/scaffold) | `tenant-admin/access/tenant-admin-access.ts` |
 | workflow segments (`preparation`, `processing`, `qa`, `ready`, …) | `orders/access/orders-access.ts` |
 | `/dashboard/internal_fin/vouchers/*` | `finance/vouchers/access/vouchers-access.ts` |
+| `/dashboard/jhtestui` | `core/access/core-access.ts` (debug only) |
 | `/dashboard/{segment}/*` (typical) | `{segment}/access/{segment}-access.ts` |
+
+Resolver implementation: `scripts/docs/ui-access-contract/access-contract-files.ts` (`EXACT_ROUTE_FEATURE`, `SEGMENT_FEATURE_OVERRIDES`).
 
 Optional (recommended for complex pages): single-route export at bottom of access file:
 
@@ -155,14 +162,23 @@ export default function Page() {
 
 See `docs/platform/ui-access-contract/user_guide.md` § B3 for full flags and examples.
 
-### Step 4 — API gate — **each local `apiDependencies` path**
+### Step 4 — API gate — **each `apiDependencies` entry (3 tiers)**
+
+| `enforcement` | When | Wire expects |
+|---------------|------|--------------|
+| `permission` | `requirement.permissions` set | `requirePermission` in local `route.ts` |
+| `auth_only` | No RBAC requirement (default when no `requirement.permissions`) | `getUser` + 401/`Unauthorized`, `getAuthContext`, `getTenantIdFromSession`, `requireAuth`, or `validateCSRF` |
+| `external` | `/tenant-api/*`, `/app/actions/*` | Manual verify (WARN, not FAIL) |
 
 ```ts
+// permission tier
 const authCheck = await requirePermission(HELP_PERMISSIONS.PLATFORM_INVENTORIES)(request)
 if (authCheck) return authCheck
 ```
 
-`/tenant-api/*`: document in `apiDependencies` + `notes`; enforce in platform layer (not auto-fixed by CLI).
+Optional explicit field on dependency: `enforcement: 'auth_only'`. Strip query strings from `path` (`/api/v1/categories?enabled=true` → `/api/v1/categories`).
+
+`/tenant-api/*`: `enforcement: 'external'` + `notes`; enforce in platform layer (not auto-fixed by CLI).
 
 ### Step 5 — Navigation (only if sidebar/menu entry exists)
 
@@ -251,7 +267,7 @@ Legacy: permission blocks inside `settlement-catalog.ts` etc. — **do not bulk-
 | **Existing permission, new route** | Steps 1–4 + 6 (no new migration if code exists) |
 | **Contract-only change** | Edit `*-access.ts` → check → sync |
 | **Open route (no perm)** | `page: {}` + `notes` in contract; no fake `RequireAnyPermission` |
-| **Auth-only API** | `apiDependencies` with `notes` explaining auth-only; no `requirePermission` mismatch in docs |
+| **Auth-only API** | `apiDependencies` with `enforcement: 'auth_only'` or no `requirement.permissions`; session auth in `route.ts` |
 | **UI in `features/foo/ui/`** | Contract still in route-mapped `*-access.ts`; gate on `page.tsx` |
 
 ---

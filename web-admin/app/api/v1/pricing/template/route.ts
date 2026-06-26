@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getAuthContext } from '@/lib/auth/server-auth';
 import { pricingBulkService } from '@/lib/services/pricing-bulk.service';
 
 /**
@@ -11,6 +12,12 @@ import { pricingBulkService } from '@/lib/services/pricing-bulk.service';
  */
 export async function GET() {
   try {
+    const { user, tenantId } = await getAuthContext();
+
+    if (!user || !tenantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const template = pricingBulkService.getImportTemplate();
 
     // Return CSV template file

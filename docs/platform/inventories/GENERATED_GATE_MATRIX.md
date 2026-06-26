@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-25T23:55:24.190Z
-Git SHA: 3b3eb630
+Generated: 2026-06-26T00:36:00.567Z
+Git SHA: 58accfae
 ## Summary
 | Domain | Count |
 | --- | --- |
@@ -26,7 +26,7 @@ Git SHA: 3b3eb630
 | /dashboard/b2b/customers/new | New B2B Customer | b2b_customers:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements | B2B Statements | b2b_statements:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements/[id] | B2B Statement Details | b2b_statements:view | b2b_contracts | 0 |
-| /dashboard/catalog | Catalog & Pricing | catalog:read | — | 0 |
+| /dashboard/catalog | Catalog & Pricing | — | — | 0 |
 | /dashboard/catalog/addons | Catalog Add-ons | — | — | 0 |
 | /dashboard/catalog/categories | Catalog Categories | — | — | 0 |
 | /dashboard/catalog/customer-categories | Customer Categories | config:preferences_manage | — | 0 |

@@ -1,6 +1,6 @@
 ---
 version: v1.0.0
-last_updated: 2026-06-19
+last_updated: 2026-06-26
 audience: developers
 ---
 
@@ -111,11 +111,30 @@ npm run check:ui-access-contract -- --route=/dashboard/help --wire --verbose
 npm run features:ui-access-contract
 ```
 
-Typical values: `marketing`, `settings`, `orders`, `catalog`, `b2b`, `billing`, `core`, `finance-vouchers`, `erp-lite`, …
+Typical values: `marketing`, `settings`, `orders`, `catalog`, `b2b`, `billing`, `core`, `customers`, `dashboard`, `help`, `inventory`, `reports`, `tenant-admin`, `users`, `finance-vouchers`, `erp-lite`, …
 
-> **Note:** Some routes map to a different feature file than the URL segment (e.g. `/dashboard/help` → `core-access.ts`, workflow screens → `orders-access.ts`). The script resolves this from existing `*-access.ts` patterns.
+> **Note:** Some routes map to a different feature file than the URL segment (e.g. workflow screens → `orders-access.ts`, legacy `/dashboard/subscription` → `tenant-admin-access.ts`). See [Route → contract file resolver](#route--contract-file-resolver).
 
 **Do not combine** `--route` and `--feature` on the same command.
+
+---
+
+## Route → contract file resolver
+
+`scaffold`, `derive`, and `wire` resolve which `*-access.ts` owns a dashboard route via `scripts/docs/ui-access-contract/access-contract-files.ts`.
+
+| Route | Contract module |
+|-------|-----------------|
+| `/dashboard` | `dashboard/access/dashboard-access.ts` |
+| `/dashboard/help/*` | `help/access/help-access.ts` |
+| `/dashboard/tenant-admin/*` | `tenant-admin/access/tenant-admin-access.ts` |
+| `/dashboard/subscription` (legacy tooling) | `tenant-admin/access/tenant-admin-access.ts` |
+| `/dashboard/jhtestui` | `core/access/core-access.ts` (debug only) |
+| Workflow segments (`preparation`, `processing`, `qa`, `ready`, …) | `orders/access/orders-access.ts` |
+| `/dashboard/internal_fin/vouchers/*` | `finance/vouchers/access/vouchers-access.ts` |
+| `/dashboard/{segment}/*` (default) | `{segment}/access/{segment}-access.ts` |
+
+Tests: `npx tsx --test scripts/docs/ui-access-contract/access-contract-files.test.ts`
 
 ---
 
@@ -265,7 +284,47 @@ Scoped register only **reports** in-scope missing imports; `--fix` still updates
 Compares contracts to actual code:
 
 - **Page:** `RequireAnyPermission`, `RequirePermission`, `useHasPermissionCode`, `useHasPermission` (`resource`+`action` or full code), `useHasAnyPermission` / `useHasAllPermissions`, or `.page.permissions` reference — scanned on `page.tsx`, route siblings, and feature UI files directly imported by the page
-- **API:** `requirePermission` in `web-admin/app/api/**/route.ts` for declared `apiDependencies`
+- **API (3 tiers):** each `apiDependency` is checked by `enforcement` (explicit field on the dependency object, or inferred):
+
+| Tier | Inferred when | Wire expects in local `route.ts` |
+|------|---------------|----------------------------------|
+| **`permission`** | `requirement.permissions` is set | `requirePermission` |
+| **`auth_only`** | No `requirement.permissions` (default) | Session + tenant: `getUser` + 401/`Unauthorized`, `getAuthContext`, `getTenantIdFromSession`, `requireAuth`, or `validateCSRF` |
+| **`external`** | Path is `/tenant-api/*` or `/app/actions/*`, or notes say platform/manual | WARN only — verify upstream RBAC manually |
+
+**Inference rules** (`scripts/docs/ui-access-contract/resolve-api-enforcement.ts`):
+
+1. Explicit `enforcement: 'permission' \| 'auth_only' \| 'external'` wins.
+2. `/tenant-api/*` and server-action paths → `external`.
+3. `requirement.permissions` present → `permission`.
+4. Notes containing “auth-only” / “auth only” → `auth_only`.
+5. Otherwise → `auth_only`.
+
+**Path normalization:** strip query strings when resolving route files (`/api/v1/categories?enabled=true` → `/api/v1/categories`; document filters in `notes`).
+
+```ts
+// permission tier
+{
+  path: '/api/dev/platform-inventories',
+  requirement: { permissions: ['help:platform_inventories'] },
+}
+
+// auth_only tier (explicit or default)
+{
+  path: '/api/v1/subscriptions/plans',
+  enforcement: 'auth_only',
+  notes: ['Session + tenant_org_id; no granular permission yet.'],
+}
+
+// external tier
+{
+  path: '/tenant-api/roles',
+  enforcement: 'external',
+  notes: ['Platform API — verify RBAC manually.'],
+}
+```
+
+Strip query strings from `path` when resolving route files (e.g. `/api/v1/categories?enabled=true` → `/api/v1/categories`).
 
 ```bash
 npm run audit-wire:ui-access-contract -- --feature=marketing
@@ -285,7 +344,9 @@ With `--fix`:
 
 1. Adds a single-route export constant to `*-access.ts` (e.g. `MARKETING_PROMOS_ACCESS`)
 2. Wraps simple `page.tsx` default exports with `RequireAnyPermission`
-3. Inserts `requirePermission` into local API route handlers
+3. Inserts `requirePermission` into local API route handlers (**permission tier only** — `auth_only` routes are not auto-patched)
+
+Prefer scoped fixes: `npm run wire:ui-access-contract -- --route=/dashboard/foo --fix` — avoid repo-wide `--fix`.
 
 ```bash
 # Preview fixes
@@ -517,7 +578,7 @@ Review `docs/platform/inventories/DRIFT_REPORT.md` for new drift.
 | `Missing contract` for a route | `scaffold --route=...` or add block manually |
 | `*-access.ts not imported` | `register --fix` |
 | `PAGE FAIL` with permissions declared | Add `RequireAnyPermission` or run `wire --fix --dry-run` |
-| `API FAIL` on local route | Add `requirePermission` in `app/api/.../route.ts` |
+| `API FAIL` on local route | Check tier: `permission` → add `requirePermission`; `auth_only` → add session auth (`getAuthContext`, `getTenantIdFromSession`, or `getUser` + 401); `external` → WARN only |
 | Inspector shows wrong permissions | Registry reads live TS — fix `*-access.ts`; no sync needed for inspector |
 | Help inventories tab stale | `npm run sync:ui-access-contract` |
 | Unknown `--feature=` | `npm run features:ui-access-contract` |

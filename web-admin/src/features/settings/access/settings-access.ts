@@ -65,7 +65,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'Effective settings',
         method: 'GET',
-        path: '/api/settings/tenants/me/effective',
+        path: '/api/settings/tenants/[tenantId]/effective',
         notes: ['Auth-only settings route.'],
       },
       {
@@ -143,7 +143,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'Effective settings',
         method: 'GET',
-        path: '/api/settings/tenants/me/effective',
+        path: '/api/settings/tenants/[tenantId]/effective',
         notes: ['Auth-only settings route.'],
       },
       {
@@ -195,7 +195,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'Effective settings',
         method: 'GET',
-        path: '/api/settings/tenants/me/effective',
+        path: '/api/settings/tenants/[tenantId]/effective',
         notes: ['Auth-only settings route.'],
       },
     ],

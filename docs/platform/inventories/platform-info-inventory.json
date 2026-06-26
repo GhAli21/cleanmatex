@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-25T23:55:24.190Z",
-  "gitSha": "3b3eb630",
+  "generatedAt": "2026-06-26T00:36:00.567Z",
+  "gitSha": "58accfae",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -6935,14 +6935,11 @@
       "label": "Catalog & Pricing",
       "sourceFile": "web-admin/src/features/catalog/access/catalog-access.ts",
       "page": {
-        "permissions": [
-          "catalog:read"
-        ],
+        "permissions": [],
         "permissionPrefixes": [],
         "featureFlags": [],
         "workflowRoles": [],
-        "tenantRoles": [],
-        "requireAllPermissions": true
+        "tenantRoles": []
       },
       "actions": [],
       "apiDependencyCount": 0,
@@ -6989,7 +6986,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 2,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -7099,7 +7096,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 3,
+      "apiDependencyCount": 2,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -9366,7 +9363,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 1,
+      "apiDependencyCount": 0,
       "provenance": [
         {
           "sourceType": "access-contract-ts",

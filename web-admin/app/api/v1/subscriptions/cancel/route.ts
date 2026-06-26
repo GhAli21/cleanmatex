@@ -5,8 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { cancelSubscription } from '@/lib/services/subscriptions.service';
+import {
+  cancelSubscription,
+  getAuthenticatedTenantId,
+} from '@/lib/services/subscriptions.service';
 import type { SubscriptionCancelRequest } from '@/lib/types/tenant';
 
 /**
@@ -15,17 +17,7 @@ import type { SubscriptionCancelRequest } from '@/lib/types/tenant';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get tenant ID from session
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user || !user.user_metadata?.tenant_org_id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata.tenant_org_id;
+    const tenantId = await getAuthenticatedTenantId();
     const cancelRequest: SubscriptionCancelRequest = await request.json();
 
     // Validate required fields

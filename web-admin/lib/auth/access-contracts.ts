@@ -30,6 +30,9 @@ export interface AccessActionContract {
   notes?: string[]
 }
 
+/** How a local API route enforces access (wire audit tier). */
+export type ApiAccessEnforcement = 'permission' | 'auth_only' | 'external'
+
 /**
  *
  */
@@ -38,6 +41,13 @@ export interface ApiAccessDependency {
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   path: string
   requirement?: AccessRequirement
+  /**
+   * Wire audit tier (see docs/platform/ui-access-contract/user_guide.md § audit-wire):
+   * - permission: requirePermission when requirement.permissions is set
+   * - auth_only: session + tenant (getAuthContext, getTenantIdFromSession, getUser + 401) — default when no RBAC requirement
+   * - external: /tenant-api/*, server actions — manual verify (WARN)
+   */
+  enforcement?: ApiAccessEnforcement
   notes?: string[]
 }
 

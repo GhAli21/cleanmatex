@@ -78,7 +78,7 @@ async function getAuthContext() {
  */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('catalog:read')(request)
-  if (authCheck) return authCheck
+  if (authCheck instanceof NextResponse) return authCheck
 
   const startTime = Date.now();
 

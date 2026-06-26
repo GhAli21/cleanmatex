@@ -10,8 +10,18 @@ import {
   sourceReferencesContractPermissions,
 } from './extract-page-gate-permissions';
 import type { AccessScope } from './resolve-scope';
+import {
+  normalizeApiDependencyPath,
+  parseApiDependencyEntry,
+  routeContentSatisfiesEnforcement,
+  splitApiDependencyObjects,
+} from './resolve-api-enforcement';
 
-export type WireIssueKind = 'PAGE_GATE_MISSING' | 'PAGE_PERMISSION_GAP' | 'API_GATE_MISSING' | 'API_NOT_LOCAL';
+export type WireIssueKind =
+  | 'PAGE_GATE_MISSING'
+  | 'PAGE_PERMISSION_GAP'
+  | 'API_GATE_MISSING'
+  | 'API_NOT_LOCAL';
 
 export interface WireIssue {
   kind: WireIssueKind;
@@ -25,9 +35,25 @@ const PAGE_GATE_PATTERNS =
   'RequireAnyPermission, RequirePermission, useHasPermissionCode, useHasPermission, useHasAnyPermission, or .page.permissions';
 
 function apiPathToRouteFile(apiPath: string): string | null {
-  if (!apiPath.startsWith('/api/')) return null;
-  const rel = apiPath.replace(/^\/api/, 'app/api');
+  const normalized = normalizeApiDependencyPath(apiPath);
+  if (!normalized.startsWith('/api/')) return null;
+  const rel = normalized.replace(/^\/api/, 'app/api');
   return path.join(WEB_ADMIN, rel, 'route.ts');
+}
+
+function extractApiDependenciesFromContractSource(
+  sourceContent: string,
+  pattern: string
+): ReturnType<typeof parseApiDependencyEntry>[] {
+  const routeEscaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const routeBlock = sourceContent.match(
+    new RegExp(`routePattern:\\s*['"]${routeEscaped}['"][\\s\\S]*?apiDependencies:\\s*\\[([\\s\\S]*?)\\]`)
+  );
+  if (!routeBlock?.[1]) return [];
+
+  return splitApiDependencyObjects(routeBlock[1])
+    .map((entry) => parseApiDependencyEntry(entry))
+    .filter((dep): dep is NonNullable<typeof dep> => dep !== null);
 }
 
 export interface AuditWireOptions {
@@ -113,48 +139,51 @@ function auditSingleRoute(
 
   const sourceFile = path.join(WEB_ADMIN, contract.sourceFile.replace(/^web-admin\//, ''));
   const sourceContent = fs.existsSync(sourceFile) ? fs.readFileSync(sourceFile, 'utf-8') : '';
-  const routeEscaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const routeBlock = sourceContent.match(
-    new RegExp(`routePattern:\\s*['"]${routeEscaped}['"][\\s\\S]*?apiDependencies:\\s*\\[([\\s\\S]*?)\\]`)
-  );
-  if (!routeBlock?.[1]) return;
+  const apiDeps = extractApiDependenciesFromContractSource(sourceContent, pattern);
 
-  const pathRe = /path:\s*['"]([^'"]+)['"]/g;
-  let apiMatch: RegExpExecArray | null;
-  while ((apiMatch = pathRe.exec(routeBlock[1])) !== null) {
-    const apiPath = apiMatch[1];
-    const routeFile = apiPathToRouteFile(apiPath);
-    if (!routeFile) {
+  for (const dep of apiDeps) {
+    const apiPath = dep.path;
+    const enforcement = dep.enforcement;
+
+    if (enforcement === 'external' || !apiPathToRouteFile(apiPath)) {
       issues.push({
         kind: 'API_NOT_LOCAL',
         route: pattern,
-        detail: `apiDependency ${apiPath} is external — verify platform API gate manually`,
+        detail: `apiDependency ${apiPath} (${enforcement}) — verify platform API gate manually`,
         fixable: false,
       });
       continue;
     }
 
-    if (!fs.existsSync(routeFile)) {
+    const routeFile = apiPathToRouteFile(apiPath);
+    if (!routeFile || !fs.existsSync(routeFile)) {
       issues.push({
         kind: 'API_GATE_MISSING',
         route: pattern,
-        detail: `apiDependency ${apiPath} — route file missing: ${routeFile}`,
-        file: routeFile,
+        detail: `apiDependency ${apiPath} — route file missing: ${routeFile ?? '(unresolved)'}`,
+        file: routeFile ?? undefined,
         fixable: false,
       });
       continue;
     }
 
     const apiContent = fs.readFileSync(routeFile, 'utf-8');
-    if (!apiContent.includes('requirePermission')) {
-      issues.push({
-        kind: 'API_GATE_MISSING',
-        route: pattern,
-        detail: `apiDependency ${apiPath} — no requirePermission in ${path.relative(WEB_ADMIN, routeFile)}`,
-        file: routeFile,
-        fixable: true,
-      });
+    if (routeContentSatisfiesEnforcement(apiContent, enforcement)) {
+      continue;
     }
+
+    const expected =
+      enforcement === 'auth_only'
+        ? 'session auth (getUser + 401) or requirePermission'
+        : 'requirePermission';
+
+    issues.push({
+      kind: 'API_GATE_MISSING',
+      route: pattern,
+      detail: `apiDependency ${apiPath} [${enforcement}] — expected ${expected} in ${path.relative(WEB_ADMIN, routeFile)}`,
+      file: routeFile,
+      fixable: enforcement === 'permission',
+    });
   }
 }
 

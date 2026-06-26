@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { DeliveryService } from '@/lib/services/delivery-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
 
 /**
  *
@@ -14,7 +14,7 @@ import { getAuthContext } from '@/lib/middleware/require-permission';
  */
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('drivers:read')(request)
-  if (authCheck) return authCheck
+  if (authCheck instanceof NextResponse) return authCheck
 
   try {
     const authContext = await getAuthContext();

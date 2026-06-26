@@ -45,8 +45,8 @@ npx tsx scripts/docs/rebuild-ui-access-contract.ts show --route=/dashboard/help/
 |------|---------|-------|
 | Contract stub | `scaffold --route=...` | Resolves feature `*-access.ts` by route prefix; creates file if needed |
 | Registry | `register --fix` | Adds import + spread for any unregistered `*-access.ts` |
-| Wire audit | `audit-wire` | Page `RequireAnyPermission` / `useHasPermissionCode` / `useHasPermission` / imported feature UI vs contract |
-| Wire fix | `wire --fix` | Wraps simple `page.tsx`; adds API guard for `/api/*` only |
+| Wire audit | `audit-wire` | Page gates vs contract; API **3-tier** enforcement (`permission` / `auth_only` / `external`) |
+| Wire fix | `wire --fix` | Wraps simple `page.tsx`; adds `requirePermission` for **permission-tier** `/api/*` only |
 | Derive | `derive --route=...` | Reverse-engineer contract from code; `--apply` merge; `--prune-stale` comment orphans |
 | All-in-one | `refresh --route=... --fix` | scaffold → register → wire; add `--sync` to refresh inventories |
 
@@ -84,6 +84,35 @@ npx tsx scripts/docs/rebuild-ui-access-contract.ts show --route=/dashboard/help/
 1. [ ] `npm run rebuild:ui-access-contract`
 2. [ ] `cd web-admin && npm run check:access-contracts`
 
+## Route → contract file resolver
+
+After the core-access split (2026-06), these overrides apply (`access-contract-files.ts`):
+
+| Route | Contract module |
+|-------|-----------------|
+| `/dashboard` | `dashboard/access/dashboard-access.ts` |
+| `/dashboard/help/*` | `help/access/help-access.ts` |
+| `/dashboard/tenant-admin/*` | `tenant-admin/access/tenant-admin-access.ts` |
+| `/dashboard/subscription` (legacy) | `tenant-admin/access/tenant-admin-access.ts` |
+| `/dashboard/jhtestui` | `core/access/core-access.ts` (debug only) |
+| Workflow segments | `orders/access/orders-access.ts` |
+| `/dashboard/internal_fin/vouchers/*` | `finance/vouchers/access/vouchers-access.ts` |
+| Default | `{segment}/access/{segment}-access.ts` |
+
+Feature keys (`npm run features:ui-access-contract`): includes `dashboard`, `help`, `customers`, `users`, `inventory`, `reports`, `tenant-admin`, plus `marketing`, `settings`, `orders`, `catalog`, `b2b`, `billing`, `core`, etc.
+
+## API wire enforcement (3 tiers)
+
+| `enforcement` | When | Wire check |
+|---------------|------|------------|
+| `permission` | `requirement.permissions` set | `requirePermission` in `app/api/**/route.ts` |
+| `auth_only` | Default when no RBAC requirement | `getUser`+401, `getAuthContext`, `getTenantIdFromSession`, `requireAuth` |
+| `external` | `/tenant-api/*`, `/app/actions/*` | WARN — manual verification |
+
+Type: `ApiAccessEnforcement` in `web-admin/lib/auth/access-contracts.ts`. Inference: `scripts/docs/ui-access-contract/resolve-api-enforcement.ts`.
+
+**Do not** put query strings in `apiDependencies.path` — use `notes` for `?enabled=true` style filters.
+
 ## In-scope routes
 
 All active `web-admin/app/dashboard/**/page.tsx` (exclude `*.disabled`, `loading.tsx`, `error.tsx`).
@@ -91,10 +120,10 @@ All active `web-admin/app/dashboard/**/page.tsx` (exclude `*.disabled`, `loading
 ## Contract rules
 
 - Every active dashboard route needs a contract (empty `page: {}` allowed with notes)
-- **Mandatory 4-layer pattern:** constant → `*-access.ts` → `page.tsx` gate → API `requirePermission` — see `.cursor/rules/ui-access-contract-pattern.mdc`
+- **Mandatory pattern:** constant → `*-access.ts` → `page.tsx` gate → API enforcement per tier — see `.cursor/rules/ui-access-contract-pattern.mdc`
 - Feature UI (`src/features/**/ui/*.tsx`) is **not** the contract source; page gate lives on `app/dashboard/**/page.tsx`
 - Gated UI actions → `actions` on the page contract **and** `RequireAnyPermission` on the parent page
-- Linked APIs → `apiDependencies` with explicit `requirement` or auth-only notes
+- Linked APIs → `apiDependencies` with `requirement` (permission tier) or `enforcement: 'auth_only'` / notes (session tier)
 - Page-level gates → `page.permissions` / `page.featureFlags`
 - Inspector evaluates **live registry** — no inventory rebuild required for inspector-only reads
 - Help Platform Inventories browser reads **merged JSON** — run `sync` after contract edits
@@ -103,9 +132,9 @@ All active `web-admin/app/dashboard/**/page.tsx` (exclude `*.disabled`, `loading
 
 1. Direct page fetches / server actions
 2. Feature hooks and client modules
-3. `requirePermission` / `hasPermissionServer` in API routes
-4. Auth-only notes when no explicit permission
-5. Upstream/platform API notes when enforcement is outside `web-admin`
+3. **`permission` tier:** `requirePermission` in API routes when `requirement.permissions` is set
+4. **`auth_only` tier:** session + tenant helpers (`getAuthContext`, `getTenantIdFromSession`, `getUser` + 401)
+5. **`external` tier:** `/tenant-api/*`, `/app/actions/*` — document in `notes`; wire reports WARN
 
 ## Related skills
 

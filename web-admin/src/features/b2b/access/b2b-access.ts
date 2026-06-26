@@ -18,7 +18,8 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'List customers',
         method: 'GET',
-        path: '/api/v1/customers?type=b2b',
+        path: '/api/v1/customers',
+        notes: ['GET with ?type=b2b query filter.'],
         requirement: {
           permissions: ['customers:read'],
           requireAllPermissions: true,

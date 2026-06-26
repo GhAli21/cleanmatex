@@ -6,7 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { upgradeSubscription } from '@/lib/services/subscriptions.service';
+import {
+  getAuthenticatedTenantId,
+  upgradeSubscription,
+} from '@/lib/services/subscriptions.service';
 import type { SubscriptionUpgradeRequest } from '@/lib/types/tenant';
 
 /**
@@ -15,17 +18,16 @@ import type { SubscriptionUpgradeRequest } from '@/lib/types/tenant';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get tenant ID from session
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user || !user.user_metadata?.tenant_org_id) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tenantId = user.user_metadata.tenant_org_id;
+    const tenantId = await getAuthenticatedTenantId();
     const upgradeRequest: SubscriptionUpgradeRequest = await request.json();
 
     // Validate required fields

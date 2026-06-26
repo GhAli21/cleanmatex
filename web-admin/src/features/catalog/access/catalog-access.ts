@@ -8,11 +8,8 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog',
     label: 'Catalog & Pricing',
-    page: {
-      permissions: ['catalog:read'],
-      requireAllPermissions: true,
-    },
-    notes: ['Section hub route; redirects to catalog services.'],
+    page: {},
+    notes: ['Section hub route; redirects to catalog services. Nav + child routes enforce catalog:read.'],
   },
   {
     routePattern: '/dashboard/catalog/services',
@@ -36,7 +33,8 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'List categories',
         method: 'GET',
-        path: '/api/v1/categories?enabled=true',
+        path: '/api/v1/categories',
+        notes: ['GET with ?enabled=true query filter.'],
       },
       {
         label: 'Create product',
@@ -169,7 +167,8 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       {
         label: 'List enabled categories',
         method: 'GET',
-        path: '/api/v1/categories?enabled=true',
+        path: '/api/v1/categories',
+        notes: ['GET with ?enabled=true query filter.'],
       },
       {
         label: 'Toggle category enablement',

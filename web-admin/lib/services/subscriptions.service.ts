@@ -12,7 +12,79 @@ import type {
   SubscriptionUpgradeRequest,
   SubscriptionCancelRequest,
 } from '@/lib/types/tenant';
+import { toBillingPlanCode, toLimitsPlanCode, planCodesMatch } from '@/lib/constants/plan-codes';
 import { getTenant, updateTenant } from './tenants.service';
+
+type SubscriptionRow = {
+  id: string;
+  tenant_org_id: string;
+  plan_code: string;
+  status: string | null;
+  current_period_start: string;
+  current_period_end: string;
+  trial_end: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+function mapSubscriptionStatus(
+  status: string | null
+): Subscription['status'] {
+  if (status === 'cancelled') return 'canceled';
+  if (
+    status === 'trial' ||
+    status === 'active' ||
+    status === 'canceling' ||
+    status === 'canceled' ||
+    status === 'past_due'
+  ) {
+    return status;
+  }
+  return 'active';
+}
+
+function mapSubscriptionRow(row: SubscriptionRow): Subscription {
+  const limitsPlanCode = toLimitsPlanCode(row.plan_code);
+  return {
+    id: row.id,
+    tenant_org_id: row.tenant_org_id,
+    plan: limitsPlanCode,
+    status: mapSubscriptionStatus(row.status),
+    orders_limit: 0,
+    orders_used: 0,
+    branch_limit: 0,
+    user_limit: 0,
+    start_date: row.current_period_start,
+    end_date: row.current_period_end,
+    trial_ends: row.trial_end,
+    auto_renew: true,
+    created_at: row.created_at ?? new Date().toISOString(),
+    updated_at: row.updated_at ?? new Date().toISOString(),
+  };
+}
+
+/**
+ * Resolve tenant ID for the authenticated user (org_users_mst / get_user_tenants).
+ */
+export async function getAuthenticatedTenantId(): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('No authenticated user');
+  }
+
+  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
+
+  if (error || !tenants || tenants.length === 0) {
+    throw new Error('No tenant access found');
+  }
+
+  const first = tenants[0] as { tenant_id: string };
+  return first.tenant_id;
+}
 
 // ========================
 // Plan Management
@@ -42,10 +114,12 @@ export async function getAvailablePlans(
 
   const plans = ((data ?? []) as unknown as PlanLimits[]) || [];
 
+  const normalizedCurrent = currentPlanCode ? toLimitsPlanCode(currentPlanCode) : undefined;
+
   // Add comparison metadata
   return plans.map((plan) => ({
     ...plan,
-    isCurrentPlan: plan.plan_code === currentPlanCode,
+    isCurrentPlan: normalizedCurrent ? planCodesMatch(plan.plan_code, normalizedCurrent) : false,
     isRecommended: plan.plan_code === 'growth', // Growth plan is recommended
   }));
 }
@@ -56,17 +130,22 @@ export async function getAvailablePlans(
  * @returns Plan details
  */
 export async function getPlan(planCode: string): Promise<PlanLimits> {
+  const limitsPlanCode = toLimitsPlanCode(planCode);
+  if (!limitsPlanCode) {
+    throw new Error('Plan code is required');
+  }
+
   // sys_plan_limits is a system table (no RLS), but using admin client for consistency
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
     .from('sys_plan_limits')
     .select('*')
-    .eq('plan_code', planCode)
+    .eq('plan_code', limitsPlanCode)
     .single();
 
   if (error || !data) {
-    console.error('Error fetching plan:', { planCode, error });
+    console.error('Error fetching plan:', { planCode, limitsPlanCode, error });
     throw new Error(`Plan "${planCode}" not found`);
   }
 
@@ -94,15 +173,15 @@ export async function getSubscription(tenantId: string): Promise<Subscription> {
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true)
     .single();
-  console.log('Jh Subscription tenantId='+tenantId)
+
   if (error) {
-    console.error('Jh Error fetching subscription:', {
+    console.error('Error fetching subscription:', {
       error,
       code: error.code,
       message: error.message,
       details: error.details,
       hint: error.hint,
-      tenantId, 
+      tenantId,
     });
     throw new Error(`Subscription not found: ${error.message}`);
   }
@@ -112,7 +191,7 @@ export async function getSubscription(tenantId: string): Promise<Subscription> {
     throw new Error('Subscription not found: No data returned');
   }
 
-  return data as unknown as Subscription;
+  return mapSubscriptionRow(data as SubscriptionRow);
 }
 
 /**
@@ -173,11 +252,8 @@ export async function getCurrentSubscription(): Promise<Subscription> {
   if (error || !tenants || tenants.length === 0) {
     throw new Error('No tenant access found');
   } 
-  console.log('Herrrrrrrr Jh tenants[0].tenant_id', tenants[0].tenant_id);
   // Use the first tenant (current tenant)
-  const subscription = await getSubscription(tenants[0].tenant_id);
-  console.log('Herrrrrrrr Jh subscription', subscription);
-  return subscription;
+  return getSubscription(tenants[0].tenant_id);
 }
 
 // ========================
@@ -245,9 +321,9 @@ export async function upgradeSubscription(
   const newPlan = await getPlan(request.planCode);
 
   // Step 2: Validate upgrade (can't downgrade via upgrade endpoint)
-  const planOrder = ['FREE_TRIAL', 'STARTER', 'GROWTH', 'PRO', 'ENTERPRISE'];
-  const currentIndex = planOrder.indexOf(currentPlan.plan_code);
-  const newIndex = planOrder.indexOf(newPlan.plan_code);
+  const planOrder = ['free', 'starter', 'growth', 'pro', 'enterprise'];
+  const currentIndex = planOrder.indexOf(toLimitsPlanCode(currentPlan.plan_code));
+  const newIndex = planOrder.indexOf(toLimitsPlanCode(newPlan.plan_code));
 
   if (newIndex <= currentIndex) {
     throw new Error('Cannot downgrade using upgrade endpoint. Use cancel instead.');
@@ -275,10 +351,12 @@ export async function upgradeSubscription(
   }
 
   // Step 6: Update subscription
+  const billingPlanCode = toBillingPlanCode(newPlan.plan_code);
+
   const { data: updatedSubscription, error: subscriptionError } = await supabase
     .from('org_pln_subscriptions_mst')
     .update({
-      plan_code: newPlan.plan_code,
+      plan_code: billingPlanCode,
       status: 'active',
       current_period_start: startDate.toISOString(),
       current_period_end: endDate.toISOString(),
@@ -302,7 +380,7 @@ export async function upgradeSubscription(
   await supabase
     .from('org_tenants_mst')
     .update({
-      s_cureent_plan: newPlan.plan_code,
+      s_cureent_plan: billingPlanCode,
       status: 'active',
     })
     .eq('id', tenantId);
@@ -310,12 +388,8 @@ export async function upgradeSubscription(
   // Step 8: Send confirmation email (TODO: Implement email service)
   // await sendUpgradeConfirmationEmail(tenant, newPlan);
 
-  return updatedSubscription as unknown as Subscription;
+  return mapSubscriptionRow(updatedSubscription as SubscriptionRow);
 }
-
-// ========================
-// Subscription Cancellation
-// ========================
 
 /**
  * Cancel subscription (schedules downgrade at end of billing period)
@@ -352,7 +426,7 @@ export async function cancelSubscription(
   // Send cancellation confirmation (TODO: Implement email service)
   // await sendCancellationEmail(tenant, currentSubscription.end_date);
 
-  return data as unknown as Subscription;
+  return mapSubscriptionRow(data as SubscriptionRow);
 }
 
 /**
