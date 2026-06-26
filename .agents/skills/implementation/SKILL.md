@@ -2,6 +2,8 @@
 name: implementation
 description: PRD implementation rules, coding standards, and feature development workflow. Use when implementing new features or understanding coding conventions.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # Feature Implementation Workflow
@@ -13,7 +15,6 @@ user-invocable: true
 3. **Understand multi-tenancy**: Use `/multitenancy` skill
 4. **Review database conventions**: Use `/database` skill
 5. **for frontend rules follow**: Use `/frontend` skill
-6. **for dashboard route/action/API access changes follow**: `/rebuild-ui-access-contract` + `.cursor/rules/ui-access-contract-pattern.mdc` (script-first `*-access.ts`)
 
 ## Implementation Checklist
 
@@ -32,9 +33,19 @@ user-invocable: true
 - [ ] Enable RLS policies
 - [ ] Add standard indexes
 - [ ] Update Prisma schema
-- [ ] **Permissions** — migration seeds DB; `{DOMAIN}_PERMISSIONS` in `lib/constants/permissions/{domain}-perm.ts`
-- [ ] **Navigation** — dual-write `navigation.ts` + `sys_components_cd` migration (before `derive --apply`)
-- [ ] **Access contract** — `/rebuild-ui-access-contract`: `scaffold` → `derive --apply` → `wire --fix` → `check --wire` → `sync` (do not hand-write full `*-access.ts`)
+- [ ] **Permissions** — migration seeds DB; add `{DOMAIN}_PERMISSIONS` in `lib/constants/permissions/{domain}-perm.ts`
+- [ ] **Navigation** (menu-visible routes) — `/navigation` dual-write: `navigation.ts` + `sys_components_cd` migration **before** derive (derive reads `navigation.ts` for `page.permissions`)
+- [ ] **Access contract** — load `/rebuild-ui-access-contract`; do **not** hand-write full `*-access.ts` from scratch:
+
+```bash
+npm run scaffold:ui-access-contract -- --feature=<feature>   # or --route=/dashboard/...
+npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
+npm run register:ui-access-contract -- --fix                  # new *-access.ts module only
+```
+
+- [ ] **Page + API gates** — `npm run wire:ui-access-contract -- --feature=<feature> --fix` then manual fix for `async`/redirect pages; API `requirePermission` on each local `/api/*` in `apiDependencies`
+- [ ] **Validate** — `npm run check:ui-access-contract -- --feature=<feature> --wire --verbose` then `npm run sync:ui-access-contract`
+- [ ] Rules: `.cursor/rules/ui-access-contract-pattern.mdc` · guide: `docs/platform/ui-access-contract/user_guide.md`
 
 ### Phase 3: Backend/API
 - [ ] Implement service layer with tenant context
@@ -42,6 +53,8 @@ user-invocable: true
 - [ ] Add error handling and logging
 - [ ] Implement business logic
 - [ ] Add input validation (Zod)
+- [ ] **API gate** — `requirePermission` on each `/api/*` route listed in `*-access.ts` `apiDependencies` (load `/rebuild-ui-access-contract`; `wire --fix` adds guards for local `/api/*` only)
+- [ ] **Server actions** — `hasPermissionServer` in `app/actions/**`; document module in contract `apiDependencies` as `/app/actions/...` (derive picks these up on `--apply`)
 
 ### Phase 4: Frontend
 - [ ] Create feature module in `src/features/<feature>/`
@@ -117,6 +130,16 @@ user-invocable: true
 - [ ] New constants match exact DB string values (no reformatting)
 - [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
 - [ ] New permission codes have a DB seed migration
+
+## Platform info inventories (conditional)
+
+After permissions, navigation, feature flags, plan limits, or access contracts change:
+
+1. Load **`/rebuild-platform-info-inventories`** — pick `refresh` / `repair` / `rebuild-all` per scope
+2. Run `npm run rebuild:platform-info-inventories` and `npm run check:platform-info-inventories`
+3. Document remaining allowlisted drift in PR notes
+
+See `docs/features/_templates/implementation_requirements.md` for feature-level gating sections.
 
 ## Additional Resources
 

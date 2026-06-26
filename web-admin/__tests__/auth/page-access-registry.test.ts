@@ -72,4 +72,17 @@ describe('page access registry coverage', () => {
       '/dashboard/settings/payments'
     )
   })
+
+  it('registers catalog section routes with admin:manage', () => {
+    const catalogRoutes = [
+      '/dashboard/catalog',
+      '/dashboard/catalog/services',
+      '/dashboard/catalog/pricing',
+    ]
+
+    for (const route of catalogRoutes) {
+      const contract = getPageAccessContractByPath(route)
+      expect(contract?.page.permissions).toEqual(expect.arrayContaining(['admin:manage']))
+    }
+  })
 })

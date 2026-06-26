@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-06-25T22:57:07.672Z",
+  "extractedAt": "2026-06-26T15:52:24.627Z",
   "schemaVersion": 1,
   "usages": [
     {
@@ -53,7 +53,7 @@
     {
       "limitKey": "sys_plan_limits",
       "file": "lib/services/subscriptions.service.ts",
-      "line": 32,
+      "line": 104,
       "context": ".from('sys_plan_limits')",
       "surface": "service",
       "pattern": "sys_plan_limits"
@@ -61,7 +61,7 @@
     {
       "limitKey": "sys_plan_limits",
       "file": "lib/services/subscriptions.service.ts",
-      "line": 63,
+      "line": 142,
       "context": ".from('sys_plan_limits')",
       "surface": "service",
       "pattern": "sys_plan_limits"

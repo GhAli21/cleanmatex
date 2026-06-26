@@ -4096,6 +4096,10 @@
     }
   },
   "catalog": {
+    "access": {
+      "forbiddenTitle": "الوصول غير مسموح",
+      "forbidden": "تحتاج إلى صلاحية admin:manage لعرض الكتالوج والتسعير. اطلب من مسؤول المستأجر منحها."
+    },
     "title": "الفهرس والتسعير",
     "categories": "فئات الخدمات",
     "customerCategories": "فئات العملاء",

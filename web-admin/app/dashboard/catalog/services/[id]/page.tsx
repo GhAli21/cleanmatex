@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import ProductForm, { type ProductFormValues } from '@features/catalog/ui/product-form'
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 import { CmxCard } from '@ui/primitives/cmx-card'
 
 /**
@@ -61,17 +62,22 @@ export default function EditProductPage() {
 
   if (loading) {
     return (
-      <CmxCard className="p-4 text-gray-500">{tCommon('loading')}</CmxCard>
+      <CatalogSectionGate>
+        <CmxCard className="p-4 text-gray-500">{tCommon('loading')}</CmxCard>
+      </CatalogSectionGate>
     )
   }
 
   if (error) {
     return (
-      <CmxCard className="p-4 text-red-700">{error}</CmxCard>
+      <CatalogSectionGate>
+        <CmxCard className="p-4 text-red-700">{error}</CmxCard>
+      </CatalogSectionGate>
     )
   }
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('editProduct')}</h1>
@@ -85,5 +91,6 @@ export default function EditProductPage() {
         />
       )}
     </div>
+    </CatalogSectionGate>
   )
 }

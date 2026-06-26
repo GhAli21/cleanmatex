@@ -10,6 +10,7 @@ import { Badge } from '@ui/primitives/badge'
 import { CmxButton } from '@ui/primitives'
 import ImportModal from '@features/catalog/ui/import-modal'
 import ExportModal from '@features/catalog/ui/export-modal'
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 
 interface ProductListItem {
   id: string
@@ -103,6 +104,7 @@ export default function ServicesPage() {
   }
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('products')}</h1>
@@ -215,5 +217,6 @@ export default function ServicesPage() {
       {showImport && <ImportModal onClose={() => { setShowImport(false); load() }} />}
       {showExport && <ExportModal onClose={() => setShowExport(false)} />}
     </div>
+    </CatalogSectionGate>
   )
 }

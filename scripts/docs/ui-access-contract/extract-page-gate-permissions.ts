@@ -70,11 +70,29 @@ export function extractPermissionCodesFromSource(content: string): Set<string> {
     codes.add('__has_require_any__');
   }
 
+  for (const m of content.matchAll(/hasPermissionServer\(\s*['"]([^'"]+)['"]/g)) {
+    codes.add(m[1]);
+  }
+
+  if (/hasPermissionServer\(\s*ADMIN_PERMISSIONS\.MANAGE/.test(content)) {
+    codes.add('admin:manage');
+  }
+
+  if (
+    /permissions=\{[^}]*ADMIN_PERMISSIONS\.MANAGE/.test(content) ||
+    /\[\.\.\.CATALOG_SECTION_PERMISSIONS\]/.test(content)
+  ) {
+    codes.add('admin:manage');
+  }
+
   return codes;
 }
 
 export function sourceReferencesContractPermissions(content: string): boolean {
-  return content.includes('.page.permissions');
+  return (
+    content.includes('.page.permissions') ||
+    content.includes('hasPermissionServer(')
+  );
 }
 
 function resolveImportToFile(importSpecifier: string, fromFile: string): string | null {

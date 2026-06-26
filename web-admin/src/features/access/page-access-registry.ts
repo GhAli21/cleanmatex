@@ -19,6 +19,22 @@ import { SETTINGS_ACCESS_CONTRACTS } from '@features/settings/access/settings-ac
 import { TENANT_ADMIN_ACCESS_CONTRACTS } from '@features/tenant-admin/access/tenant-admin-access'
 import { USERS_ACCESS_CONTRACTS } from '@features/users/access/users-access'
 
+/** Re-export catalog route contracts for page gates and inspector (single import). */
+export {
+  ADMIN_PERMISSIONS,
+  CATALOG_ACCESS_CONTRACTS,
+  CATALOG_CATALOG_ACCESS,
+  CATALOG_CUSTOMER_CATEGORIES_ACCESS,
+  CATALOG_ORDER_SOURCES_ACCESS,
+  CATALOG_PREFERENCES_ACCESS,
+  CATALOG_SECTION_PERMISSIONS,
+  CATALOG_SERVICES_ACCESS,
+} from '@features/catalog/access/catalog-access'
+
+/**
+ * Merged dashboard route contracts — one row per active app/dashboard page route.
+ * Feature modules own *-access.ts; this registry only imports and spreads them.
+ */
 export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...CORE_ACCESS_CONTRACTS,
   ...B2B_ACCESS_CONTRACTS,
@@ -54,4 +70,14 @@ export function getAllPageAccessContracts(): PageAccessContract[] {
  */
 export function getPageAccessContractByPath(pathname: string): PageAccessContract | null {
   return PAGE_ACCESS_CONTRACTS.find((contract) => matchesRoutePattern(contract.routePattern, pathname)) ?? null
+}
+
+/**
+ * Lookup by exact routePattern (e.g. /dashboard/catalog/services).
+ * @param routePattern
+ */
+export function getPageAccessContractByRoutePattern(
+  routePattern: string
+): PageAccessContract | null {
+  return PAGE_ACCESS_CONTRACTS.find((contract) => contract.routePattern === routePattern) ?? null
 }

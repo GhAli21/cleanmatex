@@ -1,13 +1,9 @@
 ---
 name: code-documentation
 description: >
-  Inline code documentation standards for CleanMateX — all domains.
-  Auto-invoked when writing or reviewing TypeScript (.ts/.tsx), SQL migrations,
-  CSS/Tailwind, or config files (next.config.ts, tailwind.config.ts, prisma schema,
-  .env.example, tsconfig.json). Covers JSDoc/TSDoc, SQL migration comment blocks,
-  RTL Tailwind annotations, and config option explanations.
-  Comment the WHY not the WHAT. English only.
 user-invocable: true
+effort: low
+agents:
 ---
 
 # Code Documentation Skill

@@ -2,6 +2,11 @@ import * as fs from 'fs';
 import type { NavigationEntryRecord } from '../inventories/schema';
 import { NAVIGATION_TS } from '../inventories/paths';
 import { extractQuotedStrings, extractStringArrayBlock, provenance, slugId, toRepoRelative } from './normalize';
+import {
+  extractResolvedPermissionArray,
+  loadGlobalPermissionRegistry,
+  registryForSource,
+} from './resolve-permission-constants';
 
 function resolveFeatureFlag(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
@@ -19,6 +24,7 @@ function resolveFeatureFlag(raw: string | undefined): string | undefined {
 function parseNavigationObjectBlock(
   block: string,
   depth: 'section' | 'child',
+  permissionRegistry: ReturnType<typeof loadGlobalPermissionRegistry>,
   parentKey?: string
 ): NavigationEntryRecord | null {
   const keyMatch = block.match(/key:\s*['"]([^'"]+)['"]/);
@@ -38,7 +44,10 @@ function parseNavigationObjectBlock(
     path: pathMatch[1],
     depth,
     parentKey,
-    permissions: extractStringArrayBlock(block, 'permissions'),
+    permissions: (() => {
+      const resolved = extractResolvedPermissionArray(block, 'permissions', permissionRegistry);
+      return resolved.length > 0 ? resolved : extractStringArrayBlock(block, 'permissions');
+    })(),
     featureFlag: resolveFeatureFlag(featureFlagRaw),
     roles: roles.length > 0 ? roles : undefined,
     provenance: [provenance('navigation-ts', toRepoRelative(NAVIGATION_TS))],
@@ -47,6 +56,7 @@ function parseNavigationObjectBlock(
 
 export function ingestNavigationTs(): { navigationEntries: NavigationEntryRecord[]; sources: string[] } {
   const content = fs.readFileSync(NAVIGATION_TS, 'utf-8');
+  const permissionRegistry = registryForSource(loadGlobalPermissionRegistry(), content);
   const sectionsStart = content.indexOf('export const NAVIGATION_SECTIONS');
   const sectionsContent = sectionsStart >= 0 ? content.slice(sectionsStart) : content;
 
@@ -56,7 +66,7 @@ export function ingestNavigationTs(): { navigationEntries: NavigationEntryRecord
 
   while ((sectionMatch = sectionRe.exec(sectionsContent)) !== null) {
     const sectionBlock = sectionMatch[0];
-    const section = parseNavigationObjectBlock(sectionBlock, 'section');
+    const section = parseNavigationObjectBlock(sectionBlock, 'section', permissionRegistry);
     if (section) navigationEntries.push(section);
 
     const childrenMatch = sectionBlock.match(/children:\s*\[([\s\S]*?)\]\s*,?\s*(?:\}|$)/);
@@ -65,7 +75,7 @@ export function ingestNavigationTs(): { navigationEntries: NavigationEntryRecord
     const childRe = /\{\s*key:\s*['"][^'"]+['"][\s\S]*?\}/g;
     let childMatch: RegExpExecArray | null;
     while ((childMatch = childRe.exec(childrenMatch[1])) !== null) {
-      const child = parseNavigationObjectBlock(childMatch[0], 'child', section.key);
+      const child = parseNavigationObjectBlock(childMatch[0], 'child', permissionRegistry, section.key);
       if (child) navigationEntries.push(child);
     }
   }

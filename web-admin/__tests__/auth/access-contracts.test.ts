@@ -1,7 +1,10 @@
 import {
   evaluateAccessRequirement,
+  evaluatePageAccessContract,
+  getPagePermissionCodes,
   hasExplicitPermissionGate,
   matchesRoutePattern,
+  type PageAccessContract,
 } from '@/lib/auth/access-contracts'
 
 describe('access contracts helpers', () => {
@@ -82,5 +85,26 @@ describe('access contracts helpers', () => {
     )
 
     expect(result.passed).toBe(true)
+  })
+
+  it('evaluates page contracts and lists page permission codes', () => {
+    const contract: PageAccessContract = {
+      routePattern: '/dashboard/catalog',
+      label: 'Catalog & Pricing',
+      page: {
+        permissions: ['admin:manage'],
+        requireAllPermissions: true,
+      },
+    }
+
+    expect(getPagePermissionCodes(contract)).toEqual(['admin:manage'])
+    expect(
+      evaluatePageAccessContract(contract, {
+        userPermissions: ['admin:manage'],
+        userWorkflowRoles: [],
+        userTenantRole: 'admin',
+        featureFlags: {},
+      }).passed
+    ).toBe(true)
   })
 })

@@ -429,7 +429,26 @@ Patterns:
 
 ---
 
-## 10. Quick Rules Checklist
+## 10. React lint (portable — copy `docs/dev/rules/*.md` to other projects)
+
+**Checklist:** `docs/dev/rules/react-lint-verification-checklist.md`  
+**Effects / Link:** `docs/dev/rules/react-effects-patterns.md`  
+**RHF / table / a11y:** `docs/dev/rules/react-rhf-and-table-lint.md`
+
+| ESLint rule | Do | Don't |
+|-------------|-----|-------|
+| `react-hooks/set-state-in-effect` | Render-time reset when props change | `useEffect(() => setState(...))` |
+| `@next/next/no-html-link-for-pages` | `<Link href="...">` | `<a href="/...">` |
+| `react-hooks/incompatible-library` (RHF) | `useWatch({ control, name })` | `form.watch('field')` |
+| `react-hooks/incompatible-library` (table) | `eslint-disable-next-line` on `useReactTable` only | File-wide disable |
+| `import/no-anonymous-default-export` | `const m = {}; export default m` | `export default {}` |
+| `jsx-a11y/role-supports-aria-props` | `role="combobox"` + listbox | `aria-expanded` on plain input |
+
+**Gate:** `cd web-admin && npx eslint . --quiet` before marking work complete.
+
+---
+
+## 11. Quick Rules Checklist
 
 - **Routing:** Only in `app/`.
 - **Reusable UI:** Only in `src/ui`, named with `Cmx*`.

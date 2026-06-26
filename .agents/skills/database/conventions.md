@@ -92,9 +92,13 @@ CREATE POLICY tenant_isolation_org_ord_orders_mst ON org_ord_orders_mst
 ### Migration File Naming (NEW Migrations)
 
 ```
-20251114103000_sys_auth_create_users_table.sql
-20251114104500_org_ord_create_orders_table.sql
-20251114110000_org_stng_create_settings_table.sql
+Last file Seq+1 xxxx
+--20251114103000
+xxxx_sys_auth_create_users_table.sql
+--20251114104500
+xxxx_org_ord_create_orders_table.sql
+--20251114110000
+xxxx_org_stng_create_settings_table.sql
 ```
 
 ## Example Table Creation

@@ -9,6 +9,7 @@
 import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { Tag } from 'lucide-react';
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate';
 
 /**
  *
@@ -17,6 +18,7 @@ export default function CatalogAddonsPage() {
   const t = useTranslations('catalog');
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('addons')}</h1>
@@ -29,5 +31,6 @@ export default function CatalogAddonsPage() {
         </p>
       </CmxCard>
     </div>
+    </CatalogSectionGate>
   );
 }

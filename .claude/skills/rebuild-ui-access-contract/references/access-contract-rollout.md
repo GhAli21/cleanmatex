@@ -3,7 +3,7 @@
 ## Source of truth (edit manually)
 
 | Layer | Path |
-|-------|------|
+|-------|------| 
 | Primitives | `web-admin/lib/auth/access-contracts.ts` |
 | Feature contracts | `web-admin/src/features/*/access/*-access.ts` |
 | Registry | `web-admin/src/features/access/page-access-registry.ts` |

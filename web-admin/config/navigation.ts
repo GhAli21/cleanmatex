@@ -9,6 +9,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import { FLAG_KEYS } from '@/lib/constants/feature-flags'
+import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
 import {
   Home,
   PackageSearch,
@@ -312,7 +313,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Tags,
     path: '/dashboard/catalog',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-    permissions: ['catalog:read'],
+    permissions: [ADMIN_PERMISSIONS.MANAGE],
     children: [
       {
         key: 'catalog_services',

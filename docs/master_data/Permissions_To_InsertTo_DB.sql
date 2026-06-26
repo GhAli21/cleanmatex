@@ -326,4 +326,101 @@ CROSS JOIN (VALUES
 ) AS perms(p)
 ON CONFLICT (role_code, permission_code) DO NOTHING;
 
+-- =====================================================
+-- Permission: admin:manage
+-- Description: Administrative management access
+-- Roles: super_admin, tenant_admin, admin
+-- Date: 2026-06-26
+-- =====================================================
+
+-- Insert permission into sys_auth_permissions
+INSERT INTO sys_auth_permissions (
+  code,
+  name,
+  name2,
+  category,
+  description,
+  description2,
+  category_main,
+  is_active,
+  is_enabled,
+  rec_status,
+  created_at,
+  created_by
+) VALUES (
+  'admin:manage',
+  'Manage Administration',
+  'إدارة النظام الإداري',
+  'management',
+  'Full administrative management access',
+  'وصول كامل لإدارة النظام الإداري',
+  'Admin',
+  true,
+  true,
+  1,
+  CURRENT_TIMESTAMP,
+  'system_admin'
+)
+ON CONFLICT (code) DO NOTHING;
+
+-- Assign permission to super_admin role
+INSERT INTO sys_auth_role_default_permissions (
+  role_code,
+  permission_code,
+  is_enabled,
+  is_active,
+  rec_status,
+  created_at,
+  created_by
+) VALUES (
+  'super_admin',
+  'admin:manage',
+  true,
+  true,
+  1,
+  CURRENT_TIMESTAMP,
+  'system_admin'
+)
+ON CONFLICT (role_code, permission_code) DO NOTHING;
+
+-- Assign permission to tenant_admin role
+INSERT INTO sys_auth_role_default_permissions (
+  role_code,
+  permission_code,
+  is_enabled,
+  is_active,
+  rec_status,
+  created_at,
+  created_by
+) VALUES (
+  'tenant_admin',
+  'admin:manage',
+  true,
+  true,
+  1,
+  CURRENT_TIMESTAMP,
+  'system_admin'
+)
+ON CONFLICT (role_code, permission_code) DO NOTHING;
+
+-- Assign permission to admin role
+INSERT INTO sys_auth_role_default_permissions (
+  role_code,
+  permission_code,
+  is_enabled,
+  is_active,
+  rec_status,
+  created_at,
+  created_by
+) VALUES (
+  'admin',
+  'admin:manage',
+  true,
+  true,
+  1,
+  CURRENT_TIMESTAMP,
+  'system_admin'
+)
+ON CONFLICT (role_code, permission_code) DO NOTHING;
+
 commit;

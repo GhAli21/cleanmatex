@@ -2,6 +2,8 @@
 name: architecture
 description: System architecture, tech stack, and module boundaries for CleanMateX. Use when discussing system design, data access patterns, or how repo modules fit together.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # CleanMateX System Architecture
@@ -29,7 +31,7 @@ user-invocable: true
 
 ## Use Higher Authorities When Needed
 
-- `../../AGENTS.md`
+- `../../CLAUDE.md`
 - `../../README.md`
 - `../../web-admin/README.md`
 - `../../cmx-api/README.md`

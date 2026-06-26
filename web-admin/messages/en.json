@@ -4096,6 +4096,10 @@
     }
   },
   "catalog": {
+    "access": {
+      "forbiddenTitle": "Access not granted",
+      "forbidden": "You need the admin:manage permission to view Catalog & Pricing. Ask your tenant admin to grant it."
+    },
     "title": "Catalog & Pricing",
     "categories": "Service Categories",
     "customerCategories": "Customer Categories",

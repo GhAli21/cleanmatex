@@ -2,6 +2,8 @@
 name: testing
 description: Testing strategy, test patterns, and commands for unit, integration, and E2E tests. Use when writing tests or understanding testing approach.
 user-invocable: true
+effort: low
+agents:
 ---
 
 # Testing Strategy

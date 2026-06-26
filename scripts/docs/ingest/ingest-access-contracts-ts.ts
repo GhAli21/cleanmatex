@@ -9,6 +9,12 @@ import {
   slugId,
   toRepoRelative,
 } from './normalize';
+import {
+  extractResolvedPermissionArray,
+  loadGlobalPermissionRegistry,
+  registryForSource,
+  type PermissionRegistry,
+} from './resolve-permission-constants';
 
 function stripComments(content: string): string {
   return content
@@ -16,7 +22,20 @@ function stripComments(content: string): string {
     .replace(/\/\/[^\n]*/g, '');
 }
 
-function extractActionsBlock(block: string): AccessContractActionRecord[] {
+function extractPermissionArray(
+  block: string,
+  field: string,
+  registry: PermissionRegistry
+): string[] {
+  const resolved = extractResolvedPermissionArray(block, field, registry);
+  if (resolved.length > 0) return resolved;
+  return extractStringArrayBlock(block, field);
+}
+
+function extractActionsBlock(
+  block: string,
+  registry: PermissionRegistry
+): AccessContractActionRecord[] {
   const actionsMatch = block.match(/actions:\s*\{([\s\S]*?)\n\s*\},?\s*(?:apiDependencies|notes|\})/);
   if (!actionsMatch?.[1]) return [];
 
@@ -29,7 +48,7 @@ function extractActionsBlock(block: string): AccessContractActionRecord[] {
     actions.push({
       actionKey: match[1],
       label: match[2],
-      permissions: extractStringArrayBlock(requirementBlock, 'permissions'),
+      permissions: extractPermissionArray(requirementBlock, 'permissions', registry),
       permissionPrefixes: extractStringArrayBlock(requirementBlock, 'permissionPrefixes'),
       featureFlags: extractStringArrayBlock(requirementBlock, 'featureFlags'),
       workflowRoles: extractStringArrayBlock(requirementBlock, 'workflowRoles'),
@@ -46,7 +65,24 @@ function countApiDependencies(block: string): number {
   return (apiBlock[1].match(/path:\s*['"][^'"]+['"]/g) ?? []).length;
 }
 
-function parseAccessContractBlocks(content: string, sourceFile: string): AccessContractRecord[] {
+function extractPageBlock(contractBlock: string, fileContent: string): string | null {
+  const inline = contractBlock.match(/page:\s*\{([\s\S]*?)\}/);
+  if (inline) return inline[1] ?? '';
+
+  const ref = contractBlock.match(/page:\s*([A-Z][A-Z0-9_]*)/);
+  if (!ref?.[1]) return null;
+
+  const constRe = new RegExp(`const ${ref[1]}\\s*=\\s*\\{([\\s\\S]*?)\\}\\s*as const`);
+  const match = fileContent.match(constRe);
+  return match?.[1] ?? null;
+}
+
+function parseAccessContractBlocks(
+  content: string,
+  sourceFile: string,
+  globalRegistry: PermissionRegistry
+): AccessContractRecord[] {
+  const registry = registryForSource(globalRegistry, content);
   const cleaned = stripComments(content);
   const contracts: AccessContractRecord[] = [];
   const routeRe = /routePattern:\s*['"]([^'"]+)['"][\s\S]*?(?=routePattern:|$)/g;
@@ -56,11 +92,9 @@ function parseAccessContractBlocks(content: string, sourceFile: string): AccessC
     const block = match[0];
     const routePattern = match[1];
     const labelMatch = block.match(/label:\s*['"]([^'"]+)['"]/);
-    const pageMatch = block.match(/page:\s*\{([\s\S]*?)\}/);
+    const pageBlock = extractPageBlock(block, cleaned);
 
-    if (!labelMatch?.[1] || !pageMatch) continue;
-
-    const pageBlock = pageMatch[1] ?? '';
+    if (!labelMatch?.[1] || pageBlock === null) continue;
     const relPath = toRepoRelative(sourceFile);
 
     contracts.push({
@@ -70,7 +104,7 @@ function parseAccessContractBlocks(content: string, sourceFile: string): AccessC
       label: labelMatch[1],
       sourceFile: relPath,
       page: {
-        permissions: extractStringArrayBlock(pageBlock, 'permissions'),
+        permissions: extractPermissionArray(pageBlock, 'permissions', registry),
         permissionPrefixes: extractStringArrayBlock(pageBlock, 'permissionPrefixes'),
         featureFlags: extractStringArrayBlock(pageBlock, 'featureFlags'),
         workflowRoles: extractStringArrayBlock(pageBlock, 'workflowRoles'),
@@ -78,7 +112,7 @@ function parseAccessContractBlocks(content: string, sourceFile: string): AccessC
         requireAllPermissions: extractBooleanField(pageBlock, 'requireAllPermissions'),
         requireAllFeatureFlags: extractBooleanField(pageBlock, 'requireAllFeatureFlags'),
       },
-      actions: extractActionsBlock(block),
+      actions: extractActionsBlock(block, registry),
       apiDependencyCount: countApiDependencies(block),
       provenance: [provenance('access-contract-ts', relPath)],
     });
@@ -104,6 +138,7 @@ function findAccessContractFiles(dir: string): string[] {
 }
 
 export function ingestAccessContractsTs(): { accessContracts: AccessContractRecord[]; sources: string[] } {
+  const globalRegistry = loadGlobalPermissionRegistry();
   const files = findAccessContractFiles(ACCESS_CONTRACTS_DIR);
   const accessContracts: AccessContractRecord[] = [];
   const sources: string[] = [];
@@ -112,7 +147,7 @@ export function ingestAccessContractsTs(): { accessContracts: AccessContractReco
     const rel = toRepoRelative(file);
     sources.push(rel);
     const content = fs.readFileSync(file, 'utf-8');
-    accessContracts.push(...parseAccessContractBlocks(content, file));
+    accessContracts.push(...parseAccessContractBlocks(content, file, globalRegistry));
   }
 
   return { accessContracts, sources };

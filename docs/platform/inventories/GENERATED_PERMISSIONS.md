@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-06-26T00:36:00.567Z
+Generated: 2026-06-26T17:39:53.124Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 216 |
+| api | 218 |
 | middleware | 4 |
 | screen | 13 |
 | service | 1 |
@@ -75,6 +75,7 @@ Generated: 2026-06-26T00:36:00.567Z
 | cash_drawer:record_movement | api | app/api/v1/cash-drawers/[drawerId]/cash-movement/route.ts | 26 | /api/v1/cash-drawers/[drawerId]/cash-movement |
 | cash_drawer:view | api | app/api/v1/cash-drawers/route.ts | 10 | /api/v1/cash-drawers |
 | cash_drawer:view | api | app/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary/route.ts | 15 | /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary |
+| catalog:read | api | app/api/v1/products/route.ts | 82 | /api/v1/products |
 | config:preferences_manage | api | app/api/v1/catalog/order-sources/route.ts | 23 | /api/v1/catalog/order-sources |
 | config:preferences_manage | api | app/api/v1/catalog/order-sources/route.ts | 63 | /api/v1/catalog/order-sources |
 | config:preferences_manage | api | app/api/v1/catalog/packing-preferences/admin/route.ts | 21 | /api/v1/catalog/packing-preferences/admin |
@@ -106,6 +107,7 @@ Generated: 2026-06-26T00:36:00.567Z
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 126 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 140 | /api/v1/customers/[id]/service-prefs |
+| drivers:read | api | app/api/v1/delivery/routes/route.ts | 16 | /api/v1/delivery/routes |
 | fin_voucher_lines:delete_draft | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 43 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_voucher_lines:update | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 17 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_vouchers:cancel | api | app/api/v1/finance/vouchers/[voucherId]/cancel/route.ts | 15 | /api/v1/finance/vouchers/[voucherId]/cancel |

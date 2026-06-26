@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-26T00:36:00.567Z
-Git SHA: 58accfae
+Generated: 2026-06-26T17:39:53.124Z
+Git SHA: ab855c54
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 144 |
-| Permission usages | 234 |
+| Permission usages | 236 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
@@ -26,17 +26,17 @@ Git SHA: 58accfae
 | /dashboard/b2b/customers/new | New B2B Customer | b2b_customers:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements | B2B Statements | b2b_statements:view | b2b_contracts | 0 |
 | /dashboard/b2b/statements/[id] | B2B Statement Details | b2b_statements:view | b2b_contracts | 0 |
-| /dashboard/catalog | Catalog & Pricing | — | — | 0 |
-| /dashboard/catalog/addons | Catalog Add-ons | — | — | 0 |
-| /dashboard/catalog/categories | Catalog Categories | — | — | 0 |
+| /dashboard/catalog | Catalog & Pricing | admin:manage | — | 0 |
+| /dashboard/catalog/addons | Catalog Add-ons | admin:manage | — | 0 |
+| /dashboard/catalog/categories | Catalog Categories | admin:manage | — | 0 |
 | /dashboard/catalog/customer-categories | Customer Categories | config:preferences_manage | — | 0 |
 | /dashboard/catalog/order-sources | Order channels (sources) | config:preferences_manage | — | 0 |
 | /dashboard/catalog/preferences | Preferences Catalog | orders:service_prefs_view, orders:read, config:preferences_manage | — | 0 |
-| /dashboard/catalog/pricing | Catalog Pricing | — | — | 0 |
-| /dashboard/catalog/pricing/[id] | Pricing Details | — | — | 0 |
-| /dashboard/catalog/services | Catalog Services | — | — | 0 |
-| /dashboard/catalog/services/[id] | Catalog Service Details | — | — | 0 |
-| /dashboard/catalog/services/new | New Catalog Service | — | — | 0 |
+| /dashboard/catalog/pricing | Catalog Pricing | admin:manage | — | 0 |
+| /dashboard/catalog/pricing/[id] | Pricing Details | admin:manage | — | 0 |
+| /dashboard/catalog/services | Catalog Services | admin:manage | — | 0 |
+| /dashboard/catalog/services/[id] | Catalog Service Details | admin:manage | — | 0 |
+| /dashboard/catalog/services/new | New Catalog Service | admin:manage | — | 0 |
 | /dashboard/customers | Customers | — | — | 0 |
 | /dashboard/customers/[id] | Customer Details | — | — | 0 |
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
@@ -63,7 +63,7 @@ Git SHA: 58accfae
 | /dashboard/erp-lite/setup | ERP-Lite setup guide | erp_lite:view | erp_lite_enabled | 0 |
 | /dashboard/erp-lite/usage-maps | Usage Mapping Console | erp_lite_usage_map:view | erp_lite_enabled, erp_lite_usage_map_enabled | 0 |
 | /dashboard/help | Help | — | — | 0 |
-| /dashboard/help/platform-inventories | Platform Inventories | — | — | 0 |
+| /dashboard/help/platform-inventories | Platform Inventories | help:platform_inventories | — | 0 |
 | /dashboard/internal_fin | Internal Finance And Operations | — | — | 0 |
 | /dashboard/internal_fin/ar/aging | AR Aging | ar_aging:view | — | 0 |
 | /dashboard/internal_fin/ar/credits | AR Credits | ar_credits:view | — | 0 |
@@ -145,7 +145,7 @@ Git SHA: 58accfae
 | /dashboard/settings/finance | Finance Settings | — | — | 0 |
 | /dashboard/settings/general | General Settings | — | — | 0 |
 | /dashboard/settings/navigation | Navigation Settings | — | — | 0 |
-| /dashboard/settings/payments | Payment Setup | — | — | 0 |
+| /dashboard/settings/payments | Payment Setup | payment_config:view | — | 0 |
 | /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
 | /dashboard/settings/preferences | Settings Preferences | — | — | 0 |
 | /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |

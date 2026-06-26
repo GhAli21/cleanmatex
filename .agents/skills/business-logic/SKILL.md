@@ -2,6 +2,8 @@
 name: business-logic
 description: Business logic, order lifecycle, workflow states, quality gates, and pricing rules. Use when implementing order features or understanding business workflows.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # Business Logic & Workflows

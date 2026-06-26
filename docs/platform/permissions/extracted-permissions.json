@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-06-25T22:57:05.178Z",
+  "extractedAt": "2026-06-26T15:52:21.918Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -925,6 +925,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/delivery/routes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/delivery/routes",
+      "permission": "drivers:read",
+      "line": 16,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/finance/reconciliation/issues/[issueId]/route.ts",
       "method": "PATCH",
       "route": "/api/v1/finance/reconciliation/issues/[issueId]",
@@ -1746,6 +1754,14 @@
       "route": "/api/v1/preferences/suggest",
       "permission": "orders:read",
       "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/products/route.ts",
+      "method": "GET",
+      "route": "/api/v1/products",
+      "permission": "catalog:read",
+      "line": 82,
       "surface": "api"
     },
     {

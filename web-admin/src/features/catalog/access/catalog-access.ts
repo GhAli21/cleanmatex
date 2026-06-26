@@ -1,183 +1,222 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts'
+import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
 
-const CATALOG_NOTES = [
-  'No explicit page-level UI permission gate; route relies on navigation visibility and backend enforcement.',
+export const CATALOG_SECTION_PERMISSIONS = [ADMIN_PERMISSIONS.MANAGE] as const
+
+export { ADMIN_PERMISSIONS }
+
+const CATALOG_SECTION_PAGE = {
+  permissions: [ADMIN_PERMISSIONS.MANAGE],
+  requireAllPermissions: true,
+} as const
+
+const CATALOG_CHILD_NOTES = [
+  'Catalog section child route; page gate and nav parent require admin:manage. Linked APIs enforce access separately.',
 ]
 
 export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog',
     label: 'Catalog & Pricing',
-    page: {},
-    notes: ['Section hub route; redirects to catalog services. Nav + child routes enforce catalog:read.'],
+    page: CATALOG_SECTION_PAGE,
+    notes: [
+      'Section hub route; redirects to catalog services. Nav visibility requires admin:manage.',
+    ],
   },
   {
     routePattern: '/dashboard/catalog/services',
     label: 'Catalog Services',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'List products',
         method: 'GET',
         path: '/api/v1/products',
-        notes: ['Local route used by the catalog services list screen.'],
+        requirement: {
+          permissions: ['catalog:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Export products',
+        method: 'GET',
+        path: '/api/v1/products/export',
+        enforcement: 'auth_only',
+        notes: ['Template/download export used by ImportModal/ExportModal on services screen.'],
+      },
+      {
+        label: 'Import products',
+        method: 'POST',
+        path: '/api/v1/products/import',
+        enforcement: 'auth_only',
+        notes: ['Bulk import used by ImportModal on services screen.'],
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/services/new',
     label: 'New Catalog Service',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'List categories',
         method: 'GET',
         path: '/api/v1/categories',
+        enforcement: 'auth_only',
         notes: ['GET with ?enabled=true query filter.'],
       },
       {
         label: 'Create product',
         method: 'POST',
         path: '/api/v1/products',
+        enforcement: 'auth_only',
       },
       {
         label: 'Upload product image',
         method: 'POST',
         path: '/api/v1/products/[id]/image',
+        enforcement: 'auth_only',
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/services/[id]',
     label: 'Catalog Service Details',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'Get product',
         method: 'GET',
         path: '/api/v1/products/[id]',
+        enforcement: 'auth_only',
       },
       {
         label: 'Update product',
         method: 'PATCH',
         path: '/api/v1/products/[id]',
+        enforcement: 'auth_only',
       },
       {
         label: 'Delete product image',
         method: 'DELETE',
         path: '/api/v1/products/[id]/image',
+        enforcement: 'auth_only',
       },
       {
         label: 'Upload product image',
         method: 'POST',
         path: '/api/v1/products/[id]/image',
+        enforcement: 'auth_only',
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/pricing',
     label: 'Catalog Pricing',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'List price lists',
         method: 'GET',
         path: '/api/v1/price-lists',
+        enforcement: 'auth_only',
       },
       {
         label: 'Create price list',
         method: 'POST',
         path: '/api/v1/price-lists',
-      },
-      {
-        label: 'Pricing history',
-        method: 'GET',
-        path: '/api/v1/pricing/history',
-      },
-      {
-        label: 'Download pricing template',
-        method: 'GET',
-        path: '/api/v1/pricing/template',
-      },
-      {
-        label: 'Import pricing',
-        method: 'POST',
-        path: '/api/v1/pricing/import',
+        enforcement: 'auth_only',
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/pricing/[id]',
     label: 'Pricing Details',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'Get price list',
         method: 'GET',
         path: '/api/v1/price-lists/[id]',
+        enforcement: 'auth_only',
       },
       {
         label: 'Update price list',
         method: 'PATCH',
         path: '/api/v1/price-lists/[id]',
+        enforcement: 'auth_only',
       },
       {
         label: 'Manage price list items',
         method: 'POST',
         path: '/api/v1/price-lists/[id]/items',
+        enforcement: 'auth_only',
       },
       {
         label: 'Update price list item',
         method: 'PATCH',
         path: '/api/v1/price-lists/[id]/items/[itemId]',
+        enforcement: 'auth_only',
       },
       {
         label: 'Export pricing',
         method: 'GET',
         path: '/api/v1/pricing/export',
+        enforcement: 'auth_only',
       },
       {
         label: 'Import all products',
         method: 'POST',
         path: '/api/v1/pricing/import-all-products',
+        enforcement: 'auth_only',
+      },
+      {
+        label: 'Search products for price list items',
+        method: 'GET',
+        path: '/api/v1/products/search',
+        enforcement: 'auth_only',
+        notes: ['Used by price-list-item modal product picker.'],
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/addons',
     label: 'Catalog Add-ons',
-    page: {},
-    notes: CATALOG_NOTES,
+    page: CATALOG_SECTION_PAGE,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/categories',
     label: 'Catalog Categories',
-    page: {},
+    page: CATALOG_SECTION_PAGE,
     apiDependencies: [
       {
         label: 'List categories',
         method: 'GET',
         path: '/api/v1/categories',
+        enforcement: 'auth_only',
       },
       {
         label: 'List enabled categories',
         method: 'GET',
         path: '/api/v1/categories',
+        enforcement: 'auth_only',
         notes: ['GET with ?enabled=true query filter.'],
       },
       {
         label: 'Toggle category enablement',
         method: 'POST',
         path: '/api/v1/categories/enable',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        enforcement: 'auth_only',
+        notes: ['Session + tenant; no granular permission on local route.'],
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/preferences',
@@ -371,7 +410,9 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
     ],
-    notes: CATALOG_NOTES,
+    notes: [
+      'Child under catalog nav (parent requires admin:manage). Page gate uses config:preferences_manage.',
+    ],
   },
   {
     routePattern: '/dashboard/catalog/customer-categories',
@@ -449,3 +490,6 @@ export const CATALOG_ORDER_SOURCES_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/order-sources')!
 export const CATALOG_CATALOG_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog')!
+
+export const CATALOG_SERVICES_ACCESS =
+  CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/services')!

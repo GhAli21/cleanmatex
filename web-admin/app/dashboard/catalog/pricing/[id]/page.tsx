@@ -28,6 +28,7 @@ import {
 import { ArrowLeft, Plus, Download, Upload, Edit, Trash2, Save, X, Package } from 'lucide-react'
 import type { PriceListWithItems, PriceListItem, PriceListType } from '@/lib/types/catalog'
 import { PriceListItemModal } from '@features/catalog/ui/price-list-item-modal'
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 import { BulkImportModal } from '@features/catalog/ui/bulk-import-modal'
 import { PriceHistoryTimeline } from '@features/catalog/ui/price-history-timeline'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
@@ -217,14 +218,17 @@ export default function PriceListDetailPage() {
 
   if (loading) {
     return (
+      <CatalogSectionGate>
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-gray-500">Loading...</div>
       </div>
+      </CatalogSectionGate>
     )
   }
 
   if (error && !priceList) {
     return (
+      <CatalogSectionGate>
       <div className="p-6">
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           {error}
@@ -233,14 +237,18 @@ export default function PriceListDetailPage() {
           Back to Price Lists
         </CmxButton>
       </div>
+      </CatalogSectionGate>
     )
   }
 
   if (!priceList) {
-    return null
+    return (
+      <CatalogSectionGate>{null}</CatalogSectionGate>
+    )
   }
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       {/* Header */}
       <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -380,6 +388,7 @@ export default function PriceListDetailPage() {
         />
       )}
     </div>
+    </CatalogSectionGate>
   )
 }
 

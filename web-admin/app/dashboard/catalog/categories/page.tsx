@@ -8,6 +8,7 @@ import { CmxCard } from '@ui/primitives/cmx-card';
 import { Badge } from '@ui/primitives/badge';
 import { CmxButton } from '@ui/primitives';
 import { useAuth } from "@/lib/auth/auth-context";
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate';
 
 interface ServiceCategory {
   service_category_code: string;
@@ -102,6 +103,7 @@ export default function CategoriesPage() {
   }
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("categories")}</h1>
@@ -165,5 +167,6 @@ export default function CategoriesPage() {
         )}
       </CmxCard>
     </div>
+    </CatalogSectionGate>
   );
 }

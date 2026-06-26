@@ -275,3 +275,20 @@ export function hasExplicitPermissionGate(requirement: AccessRequirement | undef
     (nextRequirement.tenantRoles?.length ?? 0) > 0
   )
 }
+
+/** Permission codes on a route contract's `page` block (empty when intentionally open). */
+export function getPagePermissionCodes(contract: PageAccessContract): string[] {
+  return contract.page.permissions ?? []
+}
+
+/**
+ * Evaluate a route contract's page requirement (inspector, server gates, tests).
+ * @param contract
+ * @param context
+ */
+export function evaluatePageAccessContract(
+  contract: PageAccessContract,
+  context: AccessEvaluationContext
+): AccessEvaluationResult {
+  return evaluateAccessRequirement(contract.page, context)
+}

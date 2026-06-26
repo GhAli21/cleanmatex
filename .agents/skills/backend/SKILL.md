@@ -2,6 +2,8 @@
 name: backend
 description: Backend development standards for NestJS, API routes, Supabase server-side patterns, service architecture. Use when creating API endpoints, services, or backend business logic.
 user-invocable: true
+effort: medium
+agents:
 ---
 
 # Backend Standards
@@ -10,7 +12,7 @@ Authority note:
 
 - use this skill as backend guidance, not as proof that one tenant-handling pattern fits every module
 - `web-admin` and `cmx-api` may use different server-side access patterns
-- when this skill conflicts with `AGENTS.md`, current module READMEs, or current implementation, the current implementation wins
+- when this skill conflicts with `CLAUDE.md`, current module READMEs, or current implementation, the current implementation wins
 
 ## Next.js API Routes
 
@@ -42,6 +44,15 @@ app/api/
         route.ts         # GET/PATCH/DELETE /api/v1/orders/:id
         items/
           route.ts       # GET /api/v1/orders/:id/items
+```
+
+**CRITICAL — Dynamic slug consistency**: All sub-routes of the same dynamic segment MUST use the same slug name. Adding a new folder like `[orderId]` alongside an existing `[id]` folder causes:
+```
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'orderId').
+```
+Always match the existing slug name. If the parent folder already has `[id]`, any new sub-routes must also live inside `[id]`, not in a new `[orderId]` or `[fooId]` folder. Inside the route file, destructure with an alias if needed:
+```ts
+const { id: orderId } = await params; // renames to orderId locally
 ```
 
 ## Service Layer Pattern
@@ -130,11 +141,34 @@ export async function POST(request: Request) {
 }
 ```
 
-## Access contracts & API gates (`*-access.ts`)
-
-Load **`/rebuild-ui-access-contract`**. Each local `/api/*` in `*-access.ts` `apiDependencies` needs `requirePermission` in `route.ts`. Server actions use `hasPermissionServer`; derive documents `/app/actions/...` on `--apply`.
-
 ## Additional Resources
 
 - [nestjs-standards.md](./nestjs-standards.md) - NestJS patterns (Phase 2)
 - [supabase-rules.md](./supabase-rules.md) - Supabase server-side usage
+
+## Access contracts & API gates (`*-access.ts`)
+
+Load **`/rebuild-ui-access-contract`** when adding or changing dashboard routes, server actions, or API permission enforcement.
+
+| Layer | Responsibility |
+|-------|----------------|
+| `*-access.ts` | Declares `page.permissions`, `actions`, `apiDependencies` |
+| `app/api/**/route.ts` | `requirePermission(code)(request)` for each local `/api/*` path in contract |
+| `app/actions/**` | `hasPermissionServer('resource:action')` per mutation; derive documents `/app/actions/...` |
+| `derive --apply` | Merges `/api/*` literals + server-action modules into `apiDependencies` |
+
+```bash
+# After API or action permission changes — refresh contract deps, then validate
+npm run derive:ui-access-contract -- --route=/dashboard/foo --apply
+npm run wire:ui-access-contract -- --route=/dashboard/foo --fix
+npm run check:ui-access-contract -- --route=/dashboard/foo --wire
+```
+
+Server-action-only features (no `/api/*` strings in UI): wire reports `API external/manual` for `/app/actions/...` — expected; enforcement is in the action file.
+
+## Platform info inventories (conditional)
+
+After adding or changing API permission guards, `requireFeature`, or plan-limit middleware:
+
+1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=api` or `service`
+2. Run `npm run rebuild:platform-info-inventories`

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { CmxInput } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
 import { CmxButton } from '@ui/primitives'
+import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 
 interface PriceList {
   id: string
@@ -89,6 +90,7 @@ export default function PricingPage() {
   }
 
   return (
+    <CatalogSectionGate>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('pricing')}</h1>
@@ -166,5 +168,6 @@ export default function PricingPage() {
         )}
       </CmxCard>
     </div>
+    </CatalogSectionGate>
   )
 }
