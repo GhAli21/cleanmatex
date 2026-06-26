@@ -907,12 +907,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
       },
       {
-        key: 'settings_subscription',
-        label: 'Subscription',
-        path: '/dashboard/settings/subscription',
-        roles: ['admin', 'super_admin', 'tenant_admin', 'viewer', 'operator'],
-      },
-      {
         key: 'settings_finance',
         label: 'Finance',
         path: '/dashboard/settings/finance',
@@ -943,6 +937,23 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/settings/tax',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['tax:view_config'],
+      },
+    ],
+  },
+  {
+    key: 'tenant_admin',
+    label: 'Tenant Admin',
+    label2: 'إدارة المستأجر',
+    icon: Building2,
+    path: '/dashboard/tenant-admin/subscription',
+    roles: ['admin', 'super_admin', 'tenant_admin'],
+    children: [
+      {
+        key: 'tenant_admin_subscription',
+        label: 'Subscription',
+        label2: 'الاشتراك',
+        path: '/dashboard/tenant-admin/subscription',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'viewer', 'operator'],
       },
     ],
   },

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/middleware/require-permission'
 import { createClient } from '@/lib/supabase/server';
 import {
   createProduct,
@@ -76,6 +77,9 @@ async function getAuthContext() {
  * @param request
  */
 export async function GET(request: NextRequest) {
+  const authCheck = await requirePermission('catalog:read')(request)
+  if (authCheck) return authCheck
+
   const startTime = Date.now();
 
   try {

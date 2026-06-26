@@ -11,6 +11,8 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { listArCredits } from '@/lib/services/ar-credit.service';
 import { ArCreditApplyPanel } from '@features/ar/ui/ar-credit-apply-panel';
 import { ArCreditsTable } from '@features/ar/ui/ar-credits-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_AR_CREDITS_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{
@@ -46,7 +48,8 @@ export default async function ArCreditsPage({ searchParams }: PageProps) {
   const totalAvailable = credits.data.reduce((sum, row) => sum + row.available_credit_amount, 0);
 
   return (
-    <div className="space-y-6 p-6">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_CREDITS_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
         <p className="text-sm text-slate-600">{t('subtitle')}</p>
@@ -73,5 +76,6 @@ export default async function ArCreditsPage({ searchParams }: PageProps) {
         <ArCreditApplyPanel />
       </div>
     </div>
+    </RequireAnyPermission>
   );
 }

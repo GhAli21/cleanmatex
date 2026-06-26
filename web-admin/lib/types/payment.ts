@@ -463,6 +463,7 @@ export interface ValidatePromoCodeResult {
     | 'EXPIRED'
     | 'MAX_USES_EXCEEDED'
     | 'MIN_ORDER_NOT_MET'
+    | 'MAX_ORDER_EXCEEDED'
     | 'CATEGORY_NOT_APPLICABLE'
     | 'CUSTOMER_LIMIT_EXCEEDED'
     | 'UNAUTHORIZED';

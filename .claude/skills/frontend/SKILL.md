@@ -240,12 +240,49 @@ When building or implementing a **report** (screen, component, page, tool):
 - [react-rhf-and-table-lint.md](../../../docs/dev/rules/react-rhf-and-table-lint.md) - useWatch, TanStack Table, a11y, exports
 - [react-lint-verification-checklist.md](../../../docs/dev/rules/react-lint-verification-checklist.md) - Pre-submit agent checklist
 
+## Dashboard `*-access.ts` (load `/rebuild-ui-access-contract` first)
+
+**Do not hand-author large `*-access.ts` blocks from memory.** Use scripts + golden path (`.cursor/rules/ui-access-contract-pattern.mdc`).
+
+### New dashboard route
+
+1. Permission migration + `lib/constants/permissions/{domain}-perm.ts` (if new codes)
+2. **`/navigation`** dual-write if menu-visible (`navigation.ts` + `sys_components_cd` migration)
+3. `app/dashboard/**/page.tsx` + feature UI
+4. Scripts (feature or route scope):
+
+```bash
+npm run scaffold:ui-access-contract -- --feature=<feature>
+npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
+npm run wire:ui-access-contract -- --feature=<feature> --fix
+npm run check:ui-access-contract -- --feature=<feature> --wire --verbose
+npm run sync:ui-access-contract
+```
+
+`derive` infers from: page/feature permission hooks, **`config/navigation.ts`** (when no page gate), `hasPermissionServer` in linked server actions, `/api/*` literals, `@/app/actions/*` modules.
+
+### Page gate on `page.tsx` (wire audit)
+
+| Pattern | When |
+|---------|------|
+| `RequireAnyPermission` + `FEATURE_ROUTE_ACCESS.page.permissions` | **Preferred** sync/client pages |
+| `hasPermissionServer` + `*.page.permissions` reference | `async` server pages, redirects |
+| `wire --fix` | Auto-wraps simple `return (...)` / `return <Component />` pages |
+
+Import: `RequireAnyPermission` from `@features/auth/ui/RequirePermission`; route export from `@features/<feature>/access/<feature>-access`.
+
+### After contract / gate changes
+
+`npm run sync:ui-access-contract` (or `rebuild:platform-info-inventories` if permission scans changed). See **`/rebuild-platform-info-inventories`** for drift.
+
+Full CLI: `docs/platform/ui-access-contract/user_guide.md`
+
 ## Platform info inventories (conditional)
 
 After changing page access contracts (`src/features/*/access/*-access.ts`), navigation gates, or UI feature-flag guards:
 
 1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=page` · `route=<path>`
-2. Run `npm run rebuild:platform-info-inventories` and `npm run check:platform-info-inventories`
+2. Run `npm run sync:ui-access-contract` (typical) or `npm run rebuild:platform-info-inventories`
 3. Fix new drift in `docs/platform/inventories/DRIFT_REPORT.md`
 
-Do not hand-edit `GENERATED_*.md`. Deprecated alias: `/rebuild-ui-access-contract`.
+Do not hand-edit `GENERATED_*.md`.

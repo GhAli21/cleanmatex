@@ -13,6 +13,8 @@ import { Button } from '@ui/primitives/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { B2BStatementsPrintRprt } from '@features/b2b/ui/b2b-statements-print-rprt';
 import type { StatementForPrint } from '@/lib/services/b2b-statements.service';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_STATEMENTS_ACCESS } from '@features/b2b/access/b2b-access'
 
 /**
  *
@@ -44,13 +46,15 @@ export default function B2BStatementDetailPage() {
 
   if (!id) {
     return (
+    <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
         <p className="text-gray-500">{tCommon('notFound') ?? 'Not found'}</p>
         <Button variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
           {t('statements') ?? 'Back to Statements'}
         </Button>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   if (isLoading) {

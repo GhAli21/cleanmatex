@@ -1,6 +1,6 @@
 # F-05 — E-Invoicing Foundation (ADR-052 / D-02)
 
-**Status:** 🟡 Foundation SHIPPED (2026-06-20) — **NOT complete** per ADR-052 honesty guardrail (real per-category tax decomposition + jurisdiction adapters are tracked follow-ups).
+**Status:** 🟢 **COMPLETE in cleanmatex (2026-06-25)** — real per-category decomposition + e-invoice status persistence (mig 0386) + ZATCA adapter all shipped. **HQ toggle UI shipped in cleanmatexsaas (2026-06-25).** Live ZATCA submission remains a tracked follow-up (see "F-05 COMPLETION" below).
 **Scope decision:** tenant-flag placement = **dedicated typed columns on `org_tenants_mst`** (Approved_By_Jh). See [ADR-052](./ADR/ADR-052-E-Invoicing-Launch-Scope.md).
 
 ## What shipped (foundation)
@@ -29,7 +29,7 @@ e-invoice active for an order ⇔
 ## Feature inventory (per /documentation)
 
 - **Permissions:** none added in cleanmatex. The flag is **read-only** here; writes belong to HQ tenant management. (No `*:*` permission needed for the read path.)
-- **Navigation / screens:** none in cleanmatex. The enablement toggle + start-date picker is an **HQ (cleanmatexsaas)** tenant-management UI.
+- **Navigation / screens:** none in cleanmatex. Enablement UI is **HQ (cleanmatexsaas)** at `/tenants/[id]/order-fin-settings` (E-invoice tab).
 - **Settings / feature flags:** none. Enablement is **dedicated `org_tenants_mst` columns**, deliberately NOT a `sys_stng_*` / `sys_feature_flags_*` entry (so no HQ-API consumption path; it is tenant master data read directly).
 - **Plan limits:** none.
 - **i18n keys:** none yet (no UI in this phase).
@@ -40,16 +40,28 @@ e-invoice active for an order ⇔
 
 ## Cross-project follow-up (cleanmatexsaas)
 
-The columns are defined here (migration ownership), but the **write path is HQ's**: cleanmatexsaas tenant-management must expose an enablement toggle + start-date picker that writes `org_tenants_mst.is_e_invoice_enabled` and `e_invoice_enabled_start_date`. Until then the flags default to `false` (no-op).
+✅ **DONE 2026-06-25** — HQ tenant-management UI: **Tenant order fin settings** → **E-invoice settings** tab writes `org_tenants_mst.is_e_invoice_enabled` and `e_invoice_enabled_start_date`. See `cleanmatexsaas/docs/features/Order_Fin/e-invoice-hq-tenant-settings.md`.
 
-## Explicit follow-ups (F-05 NOT complete until these land)
+## Follow-ups (status)
 
-1. **Real per-category tax decomposition** — the tax engine must emit EXEMPT/ZERO_RATED/OUT_OF_SCOPE bases per line; replace `buildFoundationTaxDecomposition` (STANDARD-only passthrough). *This is the blocker for marking F-05 complete (ADR-052).*
-2. **Wire activation + fiscal-total validation** into the order/tax-document creation path (`order-financial-write.service.ts`, tax-document issuance).
-3. **E-invoice status persistence** — add a status/audit/error column or table; `E_INVOICE_STATUS` is currently TS-only scaffolding.
-4. **Jurisdiction adapter(s)** — e.g. Saudi ZATCA — pluggable, GA-blocking only for launch jurisdictions.
-5. **HQ toggle UI** (cross-project, above).
+1. ✅ **DONE 2026-06-25** — **Real per-category tax decomposition** — `buildTaxDecomposition(bases)` + `reconcileTaxDecomposition` emit EXEMPT/ZERO_RATED/OUT_OF_SCOPE distinctly; `buildFoundationTaxDecomposition` now delegates.
+2. ✅ **DONE 2026-06-25** — **Wire activation + decomposition** — `resolveOrderTaxDecomposition` reads the order's per-category bases from `org_orders_mst` gated by activation.
+3. ✅ **DONE 2026-06-25** — **E-invoice status persistence** — migration `0386` adds `org_tax_documents_mst.e_invoice_status` (+ CHECK); `createTaxDocumentTx` stamps PENDING/NOT_APPLICABLE via `resolveInitialEInvoiceStatus`.
+4. ✅ **DONE 2026-06-25** — **ZATCA jurisdiction adapter** — `lib/payments/adapters/zatca.adapter.ts` maps the decomposition → ZATCA S/E/Z/O lines + reconciled totals (document SHAPE; live submission/clearance is a tracked follow-up).
+5. ✅ **DONE 2026-06-25 (cross-project)** — **HQ toggle UI** in cleanmatexsaas (`/tenants/[id]/order-fin-settings`).
+
+## F-05 COMPLETION (2026-06-25)
+
+| Area | Artifact |
+|---|---|
+| **Real decomposition (pure)** | `web-admin/lib/payments/e-invoice.ts` — `buildTaxDecomposition`, `reconcileTaxDecomposition`, `resolveInitialEInvoiceStatus` |
+| **Order decomposition reader** | `web-admin/lib/services/e-invoice.service.ts` — `resolveOrderTaxDecomposition` |
+| **Status persistence** | migration `0386_einvoice_status_column.sql`; `prisma/schema.prisma` field; `createTaxDocumentTx` wiring |
+| **ZATCA adapter** | `web-admin/lib/payments/adapters/zatca.adapter.ts` |
+| **Tests** | `e-invoice.foundation.test.ts` (20), `zatca.adapter.test.ts` (7); DB-integration `e-invoice-decomposition.db.test.ts` (2), `tax-document-einvoice-status.db.test.ts` (3) |
+
+**Migrations:** `0383` (tenant enablement) + `0386` (e_invoice_status, applied L+R 2026-06-25). **Next free seq = 0387.**
 
 ## Validation
 
-- F-05 unit tests: **12/12 pass**. Typecheck: **0 new errors** (project total unchanged). Migration verified live on local (columns + CHECK).
+- Full `npm test` **1464 / 145 suites**; `npm run test:db-integration` **24 / 7 suites**; eslint 0; tsc 0; i18n parity ✅. Migration `0386` applied to local + remote.

@@ -18,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 import { useMessage } from '@ui/feedback';
 import type { CustomerWithTenantData } from '@/lib/types/customer';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_CUSTOMERS_EDIT_ACCESS } from '@features/b2b/access/b2b-access'
 
 const COUNTRY_CODES = [
   { code: '+968', label: 'Oman', flag: '🇴🇲' },
@@ -177,11 +179,13 @@ export default function B2BCustomerEditPage() {
 
   if (loading) {
     return (
+    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_EDIT_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
         <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
         <div className="h-64 bg-gray-200 rounded animate-pulse" />
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   if (error && !customer) {

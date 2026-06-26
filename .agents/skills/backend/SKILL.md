@@ -130,6 +130,10 @@ export async function POST(request: Request) {
 }
 ```
 
+## Access contracts & API gates (`*-access.ts`)
+
+Load **`/rebuild-ui-access-contract`**. Each local `/api/*` in `*-access.ts` `apiDependencies` needs `requirePermission` in `route.ts`. Server actions use `hasPermissionServer`; derive documents `/app/actions/...` on `--apply`.
+
 ## Additional Resources
 
 - [nestjs-standards.md](./nestjs-standards.md) - NestJS patterns (Phase 2)

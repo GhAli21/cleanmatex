@@ -136,20 +136,6 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
-    routePattern: '/dashboard/settings/subscription',
-    label: 'Settings Subscription',
-    page: {},
-    apiDependencies: [
-      {
-        label: 'Subscription usage',
-        method: 'GET',
-        path: '/api/v1/subscriptions/usage',
-        notes: ['Auth-only subscription route.'],
-      },
-    ],
-    notes: SETTINGS_NOTES,
-  },
-  {
     routePattern: '/dashboard/settings/finance',
     label: 'Finance Settings',
     page: {},
@@ -419,3 +405,9 @@ export const SETTINGS_ROLES_ACCESS =
 
 export const SETTINGS_PERMISSIONS_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/permissions')!
+export const SETTINGS_SETTINGS_PERMISSIONS_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/permissions')!
+export const SETTINGS_SETTINGS_ROLES_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/roles')!
+export const SETTINGS_SETTINGS_TAX_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/tax')!

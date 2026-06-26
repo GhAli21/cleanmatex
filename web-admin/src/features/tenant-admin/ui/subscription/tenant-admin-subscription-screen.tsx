@@ -1,7 +1,6 @@
 /**
- * Subscription & Billing Management Page
- * Comprehensive subscription interface with plan comparison, upgrade flow, and usage metrics
- * Route: /dashboard/subscription (protected)
+ * Tenant Admin — Subscription & Billing screen.
+ * Route: /dashboard/tenant-admin/subscription
  */
 
 'use client';
@@ -23,7 +22,7 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 /**
  *
  */
-export default function SubscriptionPage() {
+export function TenantAdminSubscriptionScreen() {
   const [plans, setPlans] = useState<PlanComparison[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);

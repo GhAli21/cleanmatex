@@ -268,7 +268,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
 
       {/* Quick Actions */}
       <div className={`flex items-center justify-between ${compact ? 'mt-3 space-x-2' : 'mt-6 space-x-3'}`}>
-        <Link href="/dashboard/subscription" className="flex-1">
+        <Link href="/dashboard/tenant-admin/subscription" className="flex-1">
           <CmxButton
             variant="secondary"
             size={compact ? 'sm' : 'md'}
@@ -278,7 +278,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
           </CmxButton>
         </Link>
         {highUsageCount > 0 && (
-          <Link href="/dashboard/subscription" className="flex-1">
+          <Link href="/dashboard/tenant-admin/subscription" className="flex-1">
             <CmxButton
               variant="primary"
               size={compact ? 'sm' : 'md'}

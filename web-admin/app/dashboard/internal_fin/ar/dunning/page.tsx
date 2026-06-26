@@ -11,6 +11,8 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { listArDunningRuns } from '@/lib/services/ar-dunning-ops.service';
 import { ArDunningRunPanel } from '@features/ar/ui/ar-dunning-run-panel';
 import { ArDunningTable } from '@features/ar/ui/ar-dunning-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_AR_DUNNING_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{
@@ -50,7 +52,8 @@ export default async function ArDunningPage({ searchParams }: PageProps) {
   const holdCount = runs.data.filter((row) => row.action_cd === 'HOLD').length;
 
   return (
-    <div className="space-y-6 p-6">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_DUNNING_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
         <p className="text-sm text-slate-600">{t('subtitle')}</p>
@@ -77,5 +80,6 @@ export default async function ArDunningPage({ searchParams }: PageProps) {
         <ArDunningRunPanel />
       </div>
     </div>
+    </RequireAnyPermission>
   );
 }

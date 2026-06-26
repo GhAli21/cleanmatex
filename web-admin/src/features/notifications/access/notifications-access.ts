@@ -33,3 +33,9 @@ export const NOTIFICATIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: NOTIFICATIONS_NOTES,
   },
 ];
+export const NOTIFICATIONS_NOTIFICATIONS_ACCESS =
+  NOTIFICATIONS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/notifications')!
+export const NOTIFICATIONS_NOTIFICATIONS_DELIVERY_LOG_ACCESS =
+  NOTIFICATIONS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/notifications/delivery-log')!
+export const NOTIFICATIONS_NOTIFICATIONS_SETTINGS_ACCESS =
+  NOTIFICATIONS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/notifications/settings')!

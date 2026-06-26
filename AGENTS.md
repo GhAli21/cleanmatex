@@ -11,6 +11,7 @@
 | Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
 | New permission code | Seed into DB via migration — see CRITICAL RULE #11 |
+| Dashboard route gating | Golden path in `.cursor/rules/ui-access-contract-pattern.mdc` + `/rebuild-ui-access-contract` |
 
 **Skipping these rules = build failure and rejected PR.**
 
@@ -39,6 +40,7 @@
 11. **New permissions MUST have a migration** — every new permission code requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). Drift between DB values and TS constants causes silent bugs.
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
+14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
 
 ---
 
@@ -79,6 +81,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Any inline comment, JSDoc, SQL comment, config annotation | Comment the WHY not the WHAT — English only |
 | Any `.stories.tsx` file, new Cmx component | Follow Storybook patterns in `src/ui/` |
 | Any navigation add/modify (sidebar, routes, menu items) | Dual-write: `navigation.ts` + `sys_components_cd` migration |
+| Dashboard route/action/API access gating | `/rebuild-ui-access-contract` + `ui-access-contract-pattern.mdc` |
 
 ---
 
@@ -169,7 +172,7 @@ npm run build                      # Build (run after changes)
 
 ## Constants & Types (single source of truth)
 
-- **Constants live in `lib/constants/`** — one file per domain (`payment.ts`, `order-types.ts`). Define `as const` objects and derive types: `type X = (typeof CONST)[keyof typeof CONST]`
+- **Constants live in `lib/constants/`** — one file per domain (`payment.ts`, `order-types.ts`). **RBAC permission codes** → `lib/constants/permissions/{domain}-perm.ts`. Route contracts → `src/features/*/access/*-access.ts` (see `ui-access-contract-pattern.mdc`).
 - **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and key consts for single-import usage
 - **Do not duplicate** — same concept in one place only; other files re-export or import. Zod validation should align with the same constants
 - **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` + `lib/types/payment.ts`

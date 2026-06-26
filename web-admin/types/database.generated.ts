@@ -1,6 +1,3 @@
-/**
- *
- */
 export type Json =
   | string
   | number
@@ -9,9 +6,6 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-/**
- *
- */
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -3181,6 +3175,103 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_b2b_statement_payments_dtl: {
+        Row: {
+          amount: number
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string | null
+          currency_ex_rate: number | null
+          customer_id: string | null
+          id: string
+          idempotency_key: string | null
+          is_active: boolean
+          notes: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          statement_id: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          voucher_id: string | null
+          voucher_trx_line_id: string | null
+        }
+        Insert: {
+          amount: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string | null
+          currency_ex_rate?: number | null
+          customer_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          notes?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          statement_id: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+          voucher_trx_line_id?: string | null
+        }
+        Update: {
+          amount?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string | null
+          currency_ex_rate?: number | null
+          customer_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          notes?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          statement_id?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+          voucher_trx_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_b2b_stmt_pay_statement"
+            columns: ["statement_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_b2b_statements_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_b2b_stmt_pay_vch_line"
+            columns: ["voucher_trx_line_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_b2b_stmt_pay_voucher"
+            columns: ["voucher_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
         ]
       }
@@ -9134,6 +9225,13 @@ export type Database = {
           voucher_trx_line_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "org_fin_overpay_disp_res_fk"
+            columns: ["resolution_code"]
+            isOneToOne: false
+            referencedRelation: "sys_fin_overpay_res_cd"
+            referencedColumns: ["resolution_code"]
+          },
           {
             foreignKeyName: "org_order_overpay_disp_dtl_tenant_order_fk"
             columns: ["order_id", "tenant_org_id"]
@@ -20285,32 +20383,50 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          created_info: string | null
           document_type: string
           fiscal_year: number
+          is_active: boolean
           last_sequence: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
+          updated_info: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          created_info?: string | null
           document_type: string
           fiscal_year: number
+          is_active?: boolean
           last_sequence?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
+          updated_info?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          created_info?: string | null
           document_type?: string
           fiscal_year?: number
+          is_active?: boolean
           last_sequence?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
+          updated_info?: string | null
         }
         Relationships: [
           {
@@ -20425,6 +20541,7 @@ export type Database = {
           currency_ex_rate: number
           document_no: string | null
           document_type: string
+          e_invoice_status: string
           fiscal_year: number
           id: string
           is_active: boolean
@@ -20457,6 +20574,7 @@ export type Database = {
           currency_ex_rate?: number
           document_no?: string | null
           document_type: string
+          e_invoice_status?: string
           fiscal_year: number
           id?: string
           is_active?: boolean
@@ -20489,6 +20607,7 @@ export type Database = {
           currency_ex_rate?: number
           document_no?: string | null
           document_type?: string
+          e_invoice_status?: string
           fiscal_year?: number
           id?: string
           is_active?: boolean
@@ -21107,12 +21226,14 @@ export type Database = {
           created_info: string | null
           currency: string | null
           date_format: string | null
+          e_invoice_enabled_start_date: string | null
           email: string
           extra_price_pricing_mode: string
           feature_flags: Json | null
           first_day_of_week: number | null
           id: string
           is_active: boolean | null
+          is_e_invoice_enabled: boolean
           is_hq_test_demo: boolean
           language: string | null
           logo_url: string | null
@@ -21153,12 +21274,14 @@ export type Database = {
           created_info?: string | null
           currency?: string | null
           date_format?: string | null
+          e_invoice_enabled_start_date?: string | null
           email: string
           extra_price_pricing_mode?: string
           feature_flags?: Json | null
           first_day_of_week?: number | null
           id?: string
           is_active?: boolean | null
+          is_e_invoice_enabled?: boolean
           is_hq_test_demo?: boolean
           language?: string | null
           logo_url?: string | null
@@ -21199,12 +21322,14 @@ export type Database = {
           created_info?: string | null
           currency?: string | null
           date_format?: string | null
+          e_invoice_enabled_start_date?: string | null
           email?: string
           extra_price_pricing_mode?: string
           feature_flags?: Json | null
           first_day_of_week?: number | null
           id?: string
           is_active?: boolean | null
+          is_e_invoice_enabled?: boolean
           is_hq_test_demo?: boolean
           language?: string | null
           logo_url?: string | null
@@ -34133,9 +34258,6 @@ type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-/**
- *
- */
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
@@ -34165,9 +34287,6 @@ export type Tables<
       : never
     : never
 
-/**
- *
- */
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -34193,9 +34312,6 @@ export type TablesInsert<
       : never
     : never
 
-/**
- *
- */
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -34221,9 +34337,6 @@ export type TablesUpdate<
       : never
     : never
 
-/**
- *
- */
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -34241,9 +34354,6 @@ export type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
-/**
- *
- */
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]

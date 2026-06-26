@@ -6,6 +6,11 @@
  * - initiateRefund rejects above refundable balance
  * - approveRefund moves a refund to APPROVED
  * - approveRefund rejects when the refund is not awaiting approval
+ *
+ * @jest-environment node
+ *
+ * Node env required: the service builds refund numbers with `Prisma.sql`
+ * (fn_next_fin_doc_no), whose tag throws under the jsdom/browser Prisma build.
  */
 
 const mockTransaction = jest.fn();
@@ -13,10 +18,12 @@ const mockOrderFindFirstOrThrow = jest.fn();
 const mockRefundAggregate = jest.fn();
 const mockRefundCount = jest.fn();
 const mockRefundCreate = jest.fn();
+const mockRefundFindFirst = jest.fn();
 const mockRefundFindFirstOrThrow = jest.fn();
 const mockRefundUpdate = jest.fn();
 const mockRefundFindMany = jest.fn();
 const mockOutboxCreate = jest.fn();
+const mockQueryRaw = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -28,12 +35,21 @@ jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
 }));
 
+const mockTopUpWalletTx = jest.fn().mockResolvedValue({});
+const mockIssueCreditNoteTx = jest.fn().mockResolvedValue({ id: 'cn-tx-1' });
 jest.mock('@/lib/services/stored-value.service', () => ({
-  topUpWalletTx: jest.fn().mockResolvedValue({}),
+  topUpWalletTx: (...args: unknown[]) => mockTopUpWalletTx(...args),
   issueCreditNote: jest.fn().mockResolvedValue({ id: 'cn-1' }),
+  issueCreditNoteTx: (...args: unknown[]) => mockIssueCreditNoteTx(...args),
 }));
 
-import { approveRefund, initiateRefund } from '@/lib/services/order-refund.service';
+jest.mock('@/lib/services/order-financial-write.service', () => ({
+  recalculateOrderFinancialSnapshotTx: jest
+    .fn()
+    .mockResolvedValue({ paymentStatus: 'REFUNDED', outstandingAmount: 0 }),
+}));
+
+import { approveRefund, initiateRefund, processRefund } from '@/lib/services/order-refund.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const TENANT = 'tenant-ref-001';
@@ -82,6 +98,7 @@ function installTxMock() {
         aggregate: mockRefundAggregate,
         count: mockRefundCount,
         create: mockRefundCreate,
+        findFirst: mockRefundFindFirst,
         findFirstOrThrow: mockRefundFindFirstOrThrow,
         update: mockRefundUpdate,
         findMany: mockRefundFindMany,
@@ -92,6 +109,7 @@ function installTxMock() {
       org_domain_events_outbox: {
         create: mockOutboxCreate,
       },
+      $queryRaw: mockQueryRaw,
     };
 
     return fn(txMock);
@@ -104,6 +122,8 @@ describe('order-refund.service — initiateRefund', () => {
     installTxMock();
     mockRefundAggregate.mockResolvedValue({ _sum: { refund_amount: new Decimal('0') } });
     mockRefundFindMany.mockResolvedValue([]);
+    // Refund number now comes from the atomic fn_next_fin_doc_no via $queryRaw (F-R3).
+    mockQueryRaw.mockResolvedValue([{ doc_no: 'REF-000001' }]);
   });
 
   it('creates a refund with PENDING_APPROVAL status', async () => {
@@ -126,13 +146,16 @@ describe('order-refund.service — initiateRefund', () => {
     );
   });
 
-  it('generates sequential refund number', async () => {
+  it('mints the refund number atomically via fn_next_fin_doc_no (no count(*) race)', async () => {
     mockOrderFindFirstOrThrow.mockResolvedValue(makeOrder(100));
-    mockRefundCount.mockResolvedValue(4);
+    // The atomic finance doc-sequence returns the next formatted number.
+    mockQueryRaw.mockResolvedValue([{ doc_no: 'REF-000005' }]);
     mockRefundCreate.mockResolvedValue(makeRefundRecord());
 
     await initiateRefund(TENANT, baseParams);
 
+    // Number comes from the locked sequence, not org_order_refunds_dtl.count().
+    expect(mockRefundCount).not.toHaveBeenCalled();
     const createArg = mockRefundCreate.mock.calls[0][0];
     expect(createArg.data.refund_no).toBe('REF-000005');
   });
@@ -172,5 +195,87 @@ describe('order-refund.service — approveRefund', () => {
     mockRefundFindFirstOrThrow.mockRejectedValue(new Error('No refund found'));
 
     await expect(approveRefund(TENANT, REFUND, APPROVER)).rejects.toThrow();
+  });
+});
+
+// F-R1 (D-12 §4): keyed retries must replay the existing refund, not create a second.
+describe('order-refund.service — initiateRefund idempotency (F-R1)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    installTxMock();
+    mockRefundAggregate.mockResolvedValue({ _sum: { refund_amount: new Decimal('0') } });
+    mockRefundFindMany.mockResolvedValue([]);
+    mockRefundFindFirst.mockResolvedValue(null);
+  });
+
+  it('returns the existing refund and skips create when the idempotency key already exists', async () => {
+    const existing = { ...makeRefundRecord('APPROVED'), idempotency_key: 'idem-1' };
+    mockRefundFindFirst.mockResolvedValue(existing);
+
+    const result = await initiateRefund(TENANT, { ...baseParams, idempotencyKey: 'idem-1' });
+
+    expect(result).toBe(existing);
+    expect(mockRefundFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenant_org_id: TENANT, idempotency_key: 'idem-1' }),
+      })
+    );
+    expect(mockRefundCreate).not.toHaveBeenCalled(); // no duplicate row
+  });
+
+  it('proceeds to create when no prior refund matches the idempotency key', async () => {
+    mockOrderFindFirstOrThrow.mockResolvedValue(makeOrder(100));
+    mockRefundCount.mockResolvedValue(0);
+    mockRefundCreate.mockResolvedValue(makeRefundRecord());
+    mockRefundFindFirst.mockResolvedValue(null);
+
+    await initiateRefund(TENANT, { ...baseParams, idempotencyKey: 'idem-new' });
+
+    expect(mockRefundCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+// F-R2 (D-12 §4): processRefund must lock the row + issue stored value idempotently.
+describe('order-refund.service — processRefund concurrency + idempotency (F-R2)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    installTxMock();
+    mockOrderFindFirstOrThrow.mockResolvedValue(makeOrder(100));
+    mockRefundAggregate.mockResolvedValue({ _sum: { refund_amount: new Decimal('0') } });
+    mockQueryRaw.mockResolvedValue([{ id: REFUND }]); // lock acquired
+    mockRefundUpdate.mockResolvedValue(makeRefundRecord('PROCESSED'));
+  });
+
+  it('acquires a FOR UPDATE lock before issuing and aborts when the row is no longer APPROVED', async () => {
+    mockQueryRaw.mockResolvedValue([]); // lock returns no APPROVED row (already processed)
+
+    await expect(processRefund(TENANT, REFUND, APPROVER)).rejects.toThrow(/not awaiting processing/i);
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1);
+    expect(mockRefundFindFirstOrThrow).not.toHaveBeenCalled();
+    expect(mockTopUpWalletTx).not.toHaveBeenCalled();
+    expect(mockIssueCreditNoteTx).not.toHaveBeenCalled();
+  });
+
+  it('issues a CREDIT_NOTE via the tx-composed, idempotent writer with a per-refund key', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue({ ...makeRefundRecord('APPROVED'), refund_method_code: 'CREDIT_NOTE' });
+
+    await processRefund(TENANT, REFUND, APPROVER);
+
+    expect(mockIssueCreditNoteTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ idempotencyKey: `refund-${REFUND}-cn`, tenantId: TENANT })
+    );
+  });
+
+  it('tops up the WALLET only after acquiring the FOR UPDATE lock (the wallet-path guard)', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue({ ...makeRefundRecord('APPROVED'), refund_method_code: 'WALLET' });
+
+    await processRefund(TENANT, REFUND, APPROVER);
+
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1); // lock acquired before issuing
+    expect(mockTopUpWalletTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ tenantId: TENANT, amount: 30 })
+    );
   });
 });

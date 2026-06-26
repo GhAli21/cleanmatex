@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { PROMO_TYPES } from '@/lib/constants/order-financial';
 import type { PromoType } from '@/lib/constants/order-financial';
+import { applyPromoCodeTx, evaluatePromoCode } from './discount-service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -50,7 +51,14 @@ export async function getAutoApplyPromotions(tenantId: string, orderAmount: numb
 }
 
 /**
- * Validate a promo code before checkout. Returns the resolved discount amount.
+ * Validate a promo code for the **marketing-admin** preview path
+ * (`POST /api/v1/marketing/promotions/validate`).
+ *
+ * Thin adapter over the canonical {@link evaluatePromoCode} in
+ * `discount-service.ts` — the SAME evaluation the checkout flow uses — so the
+ * admin preview can never disagree with what checkout will actually accept.
+ * Returns the marketing `PromoValidation` shape for backward compatibility with
+ * this route.
  */
 export async function validatePromoCode(
   tenantId: string,
@@ -58,67 +66,37 @@ export async function validatePromoCode(
   customerId?: string,
   orderAmount = 0
 ): Promise<PromoValidation> {
-  const now = new Date();
+  const result = await evaluatePromoCode({ tenantId, code, customerId, orderTotal: orderAmount });
 
-  const promo = await withTenantContext(tenantId, () =>
-    prisma.org_promotions_mst.findFirst({
-      where: {
-        tenant_org_id: tenantId,
-        promo_code:    code,
-        is_active:     true,
-        rec_status:    1,
-        valid_from:    { lte: now },
-        OR: [{ valid_to: null }, { valid_to: { gte: now } }],
-      },
-    })
-  );
-
-  if (!promo) return { isValid: false, error: 'Promo code not found or expired' };
-
-  const minOrder = toNumber(promo.min_order_amount);
-  if (minOrder > 0 && orderAmount < minOrder) {
-    return { isValid: false, error: `Minimum order amount is ${minOrder}` };
+  if (!result.isValid || !result.promo) {
+    return { isValid: false, error: result.error };
   }
-
-  if (promo.max_uses !== null && promo.max_uses !== undefined) {
-    const used = await withTenantContext(tenantId, () =>
-      prisma.org_promotion_usage_dtl.count({
-        where: { tenant_org_id: tenantId, promo_code_id: promo.id },
-      })
-    );
-    if (used >= promo.max_uses!) return { isValid: false, error: 'Promo code usage limit reached' };
-  }
-
-  if (customerId && promo.max_uses_per_customer !== null && promo.max_uses_per_customer !== undefined) {
-    const usedByCustomer = await withTenantContext(tenantId, () =>
-      prisma.org_promotion_usage_dtl.count({
-        where: { tenant_org_id: tenantId, promo_code_id: promo.id, customer_id: customerId },
-      })
-    );
-    if (usedByCustomer >= promo.max_uses_per_customer!) {
-      return { isValid: false, error: 'You have already used this promo code the maximum number of times' };
-    }
-  }
-
-  const discount = calculatePromotionDiscount(promo.discount_type as PromoType, promo, orderAmount);
-  return { isValid: true, promotion: promo, discount };
+  return { isValid: true, promotion: result.promo, discount: result.discountAmount };
 }
 
 /**
  * Calculate the discount amount for a promotion against the given order total.
+ *
+ * Case-insensitive on `promoType` — the `discount_type` column is stored
+ * lower-case, so a value passed straight from the row must still match the
+ * upper-case `PROMO_TYPES` codes (otherwise a percentage promo silently yields 0).
+ *
+ * @remarks Retained for backward compatibility; the canonical promo-apply and
+ * preview discount math now lives in `discount-service` ({@link evaluatePromoCode}).
  */
 export function calculatePromotionDiscount(
   promoType: PromoType,
   promo: { discount_value?: Decimal | null; max_discount_amount?: Decimal | null },
   orderAmount: number
 ): number {
-  if (promoType === PROMO_TYPES.PERCENTAGE) {
+  const type = String(promoType).toUpperCase();
+  if (type === PROMO_TYPES.PERCENTAGE) {
     const pct  = toNumber(promo.discount_value);
     const calc = orderAmount * (pct / 100);
     const max  = toNumber(promo.max_discount_amount);
     return max > 0 ? Math.min(calc, max) : calc;
   }
-  if (promoType === PROMO_TYPES.FIXED_AMOUNT) {
+  if (type === PROMO_TYPES.FIXED_AMOUNT) {
     return Math.min(toNumber(promo.discount_value), orderAmount);
   }
   // BUY_X_GET_Y and FREE_ITEM require item-level logic — return 0 here (handled at item level)
@@ -127,6 +105,14 @@ export function calculatePromotionDiscount(
 
 /**
  * Apply a promotion within a transaction — writes usage record and increments counters.
+ *
+ * @deprecated Use {@link applyPromoCodeTx} from `discount-service.ts` — the
+ * canonical, hardened promo-apply path used by order submit. It re-checks
+ * `max_uses` **inside** the row lock (no TOCTOU), writes the idempotency key
+ * (DB-level dedupe via `uq_promo_usage_idempotency`), and has a reversal
+ * counterpart (`reversePromoUsageTx`). This function has **no internal
+ * callers**; it now delegates to `applyPromoCodeTx` so the two cannot drift.
+ * Do not add new callers — call `applyPromoCodeTx` directly.
  */
 export async function applyPromotionTx(
   tx: PrismaTransactionClient,
@@ -138,34 +124,16 @@ export async function applyPromotionTx(
     discountAmount: number;
     orderTotal:     number;
   }
-) {
+): Promise<void> {
   const { tenantId, promotionId, customerId, orderId, discountAmount, orderTotal } = params;
 
-  // Lock the promotion row for atomic usage counter update
-  const rows = await tx.$queryRaw<{ id: string; current_uses: number }[]>`
-    SELECT id, COALESCE(current_uses, 0) AS current_uses
-    FROM org_promotions_mst
-    WHERE tenant_org_id = ${tenantId}::uuid AND id = ${promotionId}::uuid
-    FOR UPDATE`;
-
-  if (!rows[0]) throw new Error('Promotion not found');
-
-  await tx.org_promotions_mst.update({
-    where: { id: promotionId },
-    data:  { current_uses: { increment: 1 }, updated_at: new Date() },
-  });
-
-  return tx.org_promotion_usage_dtl.create({
-    data: {
-      tenant_org_id:     tenantId,
-      promo_code_id:     promotionId,
-      customer_id:       customerId ?? null,
-      order_id:          orderId,
-      discount_amount:   discountAmount,
-      order_total_before: orderTotal + discountAmount,
-      order_total_after:  orderTotal,
-      used_at:           new Date(),
-    },
+  await applyPromoCodeTx(tx, {
+    promoCodeId:      promotionId,
+    orderId,
+    tenantOrgId:      tenantId,
+    customerId,
+    discountAmount,
+    orderTotalBefore: orderTotal,
   });
 }
 
@@ -201,8 +169,12 @@ export async function createPromotion(tenantId: string, data: {
         tenant_org_id:            tenantId,
         promo_name:               data.name,
         promo_name2:              data.name2 ?? null,
-        promo_code:               data.promoCode ?? null,
-        discount_type:            data.promoType,
+        // Codes are matched case-insensitively (looked up upper-cased), so
+        // store them upper-cased to guarantee a match at checkout/preview.
+        promo_code:               data.promoCode ? data.promoCode.toUpperCase() : null,
+        // `discount_type` column convention is lower-case (mirrors
+        // `PromoDiscountType`); `promo_type` stays the upper-case PROMO_TYPES code.
+        discount_type:            data.promoType.toLowerCase(),
         promo_type:               data.promoType,
         discount_value:           data.discountValue,
         max_discount_amount:      data.maxDiscountAmount ?? null,

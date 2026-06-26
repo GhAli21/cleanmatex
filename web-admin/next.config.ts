@@ -11,6 +11,26 @@ const nextConfig: NextConfig = {
   //outputFileTracingRoot: require("path").join(__dirname),
   outputFileTracingRoot: path.join(__dirname),
 
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/subscription',
+        destination: '/dashboard/tenant-admin/subscription',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/subscription/:path*',
+        destination: '/dashboard/tenant-admin/subscription/:path*',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/settings/subscription',
+        destination: '/dashboard/tenant-admin/subscription',
+        permanent: true,
+      },
+    ];
+  },
+
   outputFileTracingIncludes: {
     '/api/dev/platform-inventories/route': ['./data/platform/platform-info-inventory.json'],
   },

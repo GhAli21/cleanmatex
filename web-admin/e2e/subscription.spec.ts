@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Subscription Management Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Assume user is logged in - you may need to implement actual login flow
-    await page.goto('/dashboard/subscription');
+    await page.goto('/dashboard/tenant-admin/subscription');
   });
 
   test('displays subscription page with current plan', async ({ page }) => {
@@ -311,7 +311,7 @@ test.describe('Usage Widget on Dashboard', () => {
 
     // Click should navigate to subscription page
     await viewDetailsButton.first().click();
-    await expect(page).toHaveURL('/dashboard/subscription');
+    await expect(page).toHaveURL('/dashboard/tenant-admin/subscription');
   });
 
   test('shows upgrade button when approaching limits', async ({ page }) => {
@@ -320,7 +320,7 @@ test.describe('Usage Widget on Dashboard', () => {
     if (await upgradeButton.isVisible()) {
       // Should link to subscription page
       await upgradeButton.click();
-      await expect(page).toHaveURL('/dashboard/subscription');
+      await expect(page).toHaveURL('/dashboard/tenant-admin/subscription');
     }
   });
 

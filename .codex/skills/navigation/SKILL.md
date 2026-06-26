@@ -261,6 +261,19 @@ The `roles` array in `navigation.ts` and the `roles` JSONB column in `sys_compon
 },
 ```
 
+## Navigation ↔ access contract sync
+
+Menu-visible routes: **`navigation.ts` permissions MUST match** `*-access.ts` `page.permissions` (dual-write with `sys_components_cd`).
+
+When `*-access.ts` is missing or empty for an existing route, **`derive --apply` reads `navigation.ts`** to fill `page.permissions` and `featureFlags` — so update navigation **first**, then run derive.
+
+After nav + contract edits:
+
+```bash
+npm run check:ui-access-contract -- --route=/dashboard/... --wire
+npm run sync:ui-access-contract
+```
+
 ## References
 
 - Schema: `supabase/migrations/0058_sys_components_cd_navigation.sql`

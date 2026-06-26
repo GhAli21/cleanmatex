@@ -7,6 +7,7 @@ import type { OpenBalanceTarget } from '@/lib/types/customer-receipt-allocation'
 import {
   CUSTOMER_RECEIPT_ALLOCATION_LINE_ROLES,
   CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES,
+  RECEIPT_ALLOCATION_WARNING_CODES,
 } from '@/lib/types/customer-receipt-allocation';
 import type { ReceiptAllocationPolicyRow } from '@/lib/services/customer-receipt-allocation-policy.service';
 
@@ -135,9 +136,65 @@ describe('runAutoAllocationAlgorithm — edge cases (D-12 §3 hardening)', () =>
     expect(result.fallbackAllocation?.allocationAmount).toBe(20); // 30 - 10
   });
 
-  // NOTE (D-12 §4 finding): the `allow_partial_last_target=false` guard in
-  // runAutoAllocationAlgorithm is currently unreachable — its `isLastWithRemainder`
-  // (allocAmount < outstanding ⇒ remaining < outstanding) contradicts the same `if`'s
-  // `remaining > target.outstandingAmount`. Documented in 24_IMPLEMENTATION_STATUS.md §4;
-  // no test asserts the dead branch (would lock unreachable behavior).
+});
+
+describe('runAutoAllocationAlgorithm — allow_partial_last_target policy', () => {
+  // Prior to the F-R3/dead-branch fix this guard was unreachable (an extra
+  // `remaining > outstanding` clause contradicted `allocAmount < outstanding`).
+  // These tests lock the corrected behavior AND the unchanged default.
+
+  it('false: stops before part-paying the last target and routes the remainder to fallback', () => {
+    const result = runAutoAllocationAlgorithm(
+      15,
+      [makeTarget({ targetId: 'inv-a', outstandingAmount: 40 })],
+      makePolicy({ allow_partial_last_target: false }),
+      CUSTOMER_ID
+    );
+
+    // The partial-only target is NOT paid; the whole receipt goes to fallback.
+    expect(result.allocations.filter((a) => a.targetType === 'AR_INVOICE')).toHaveLength(0);
+    expect(result.fallbackAllocation?.targetType).toBe('CUSTOMER_ADVANCE');
+    expect(result.fallbackAllocation?.allocationAmount).toBe(15);
+    expect(result.remainingUnallocatedAmount).toBe(0);
+    expect(
+      result.warnings.some((w) => w.code === RECEIPT_ALLOCATION_WARNING_CODES.FALLBACK_REQUIRED)
+    ).toBe(true);
+  });
+
+  it('false: still fully pays targets the receipt can cover, only blocking the partial last one', () => {
+    const targets = [
+      makeTarget({ targetId: 'inv-a', dueDate: '2026-06-01', outstandingAmount: 10 }),
+      makeTarget({ targetId: 'inv-b', dueDate: '2026-06-02', outstandingAmount: 40 }),
+    ];
+    const result = runAutoAllocationAlgorithm(
+      25,
+      targets,
+      makePolicy({ allow_partial_last_target: false }),
+      CUSTOMER_ID
+    );
+
+    // inv-a is fully covered; inv-b would only be partial → skipped; 15 → fallback.
+    const toA = result.allocations.find((a) => a.targetId === 'inv-a');
+    expect(toA?.allocationAmount).toBe(10);
+    expect(result.allocations.find((a) => a.targetId === 'inv-b')).toBeUndefined();
+    expect(result.fallbackAllocation?.allocationAmount).toBe(15); // 25 - 10
+    expect(result.remainingUnallocatedAmount).toBe(0);
+  });
+
+  it('true (default): part-pays the last target instead of routing to fallback', () => {
+    const result = runAutoAllocationAlgorithm(
+      15,
+      [makeTarget({ targetId: 'inv-a', outstandingAmount: 40 })],
+      makePolicy({ allow_partial_last_target: true }),
+      CUSTOMER_ID
+    );
+
+    const toInvoice = result.allocations.find((a) => a.targetId === 'inv-a');
+    expect(toInvoice?.allocationAmount).toBe(15); // partial allocation allowed
+    expect(result.fallbackAllocation).toBeNull();
+    expect(result.remainingUnallocatedAmount).toBe(0);
+    expect(
+      result.warnings.some((w) => w.code === RECEIPT_ALLOCATION_WARNING_CODES.FALLBACK_REQUIRED)
+    ).toBe(false);
+  });
 });

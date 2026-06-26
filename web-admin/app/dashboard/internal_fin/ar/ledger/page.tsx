@@ -15,6 +15,8 @@ import {
   getArCustomerLedger,
 } from '@/lib/services/ar-invoice.service';
 import { ArLedgerTable } from '@features/ar/ui/ar-ledger-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_AR_LEDGER_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{
@@ -37,13 +39,15 @@ export default async function ArLedgerPage({ searchParams }: PageProps) {
 
   if (!customerId) {
     return (
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_LEDGER_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <CmxSummaryMessage type="info" title={t('missingCustomerTitle')} items={[t('missingCustomerBody')]} />
         <CmxButton asChild>
           <Link href="/dashboard/internal_fin/ar/customers">{t('browseCustomers')}</Link>
         </CmxButton>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const page = Number(resolved.page ?? '1');

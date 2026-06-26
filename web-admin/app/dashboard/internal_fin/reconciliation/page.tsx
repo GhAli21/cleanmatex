@@ -8,6 +8,8 @@
 import { getTranslations } from 'next-intl/server';
 import { listReconRunsAction } from '@/app/actions/billing/reconciliation-actions';
 import ReconciliationListClient from '@features/billing/ui/reconciliation-list-client';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_RECONCILIATION_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{ page?: string }>;
@@ -30,6 +32,7 @@ export default async function ReconciliationPage({ searchParams }: PageProps) {
 
   if (!result.success) {
     return (
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_RECONCILIATION_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold">{t('title')}</h1>
@@ -39,7 +42,8 @@ export default async function ReconciliationPage({ searchParams }: PageProps) {
           {result.error}
         </div>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const { items, total, pageSize } = result.data;

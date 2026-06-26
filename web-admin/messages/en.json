@@ -466,6 +466,7 @@
     "rolesAndPermissions": "Roles & Permissions",
     "workflowRoles": "Workflow Roles",
     "branding": "Branding",
+    "tenantAdmin": "Tenant Admin",
     "subscription": "Subscription",
     "help": "Help",
     "userProfile": "User Profile",

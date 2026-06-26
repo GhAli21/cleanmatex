@@ -8,6 +8,8 @@ import {
 } from '@/app/actions/finance/voucher-actions';
 import { VoucherDetailClient } from './voucher-detail-client';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS } from '@features/finance/vouchers/access/vouchers-access'
 
 interface PageProps {
   params: Promise<{ voucherId: string }>;
@@ -27,12 +29,14 @@ export default async function VoucherDetailPage({ params }: PageProps) {
   const canView = await hasPermissionServer('fin_vouchers:view');
   if (!canView) {
     return (
+    <RequireAnyPermission permissions={FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {tCommon('error')}
         </div>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const result = await getBizVoucherDetailAction(voucherId);

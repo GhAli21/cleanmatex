@@ -13,6 +13,7 @@ user-invocable: true
 3. **Understand multi-tenancy**: Use `/multitenancy` skill
 4. **Review database conventions**: Use `/database` skill
 5. **for frontend rules follow**: Use `/frontend` skill
+6. **for dashboard route/action/API access changes follow**: `/rebuild-ui-access-contract` + `.cursor/rules/ui-access-contract-pattern.mdc` (script-first `*-access.ts`)
 
 ## Implementation Checklist
 
@@ -31,8 +32,9 @@ user-invocable: true
 - [ ] Enable RLS policies
 - [ ] Add standard indexes
 - [ ] Update Prisma schema
-- [ ] **Permissions** — for every new permission code: create a migration that seeds it into the DB permissions table (a TypeScript-only permission is incomplete)
-- [ ] **Navigation** — for every new/modified nav entry: (a) update `web-admin/config/navigation.ts` AND (b) generate a `sys_components_cd` DB migration
+- [ ] **Permissions** — migration seeds DB; `{DOMAIN}_PERMISSIONS` in `lib/constants/permissions/{domain}-perm.ts`
+- [ ] **Navigation** — dual-write `navigation.ts` + `sys_components_cd` migration (before `derive --apply`)
+- [ ] **Access contract** — `/rebuild-ui-access-contract`: `scaffold` → `derive --apply` → `wire --fix` → `check --wire` → `sync` (do not hand-write full `*-access.ts`)
 
 ### Phase 3: Backend/API
 - [ ] Implement service layer with tenant context

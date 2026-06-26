@@ -1,10 +1,41 @@
 # ADR-047 — Overpayment Disposition (Explicit Excess Routing)
 
 **Date:** 2026-06-11  
-**Status:** Proposed — pending `Approved_By_Jh`  
+**Status:** ✅ **Accepted** (`Approved_By_Jh`) — implemented; see **Amendment (2026-06-26)** below.  
 **Project:** CleanMateX  
 **Scope:** Order Fin / Payment Modal V4 / Submit Order / BVM / Stored Value / Cash Drawer  
 **Depends on:** [ADR-046](./ADR-046-Payment-Method-Overpayment-Policy.md)
+
+---
+
+## Amendment (2026-06-26) — shipped vocabulary & schema
+
+The decision below was accepted and shipped. Two things diverged from the original
+proposal text and are reconciled here (the body is kept verbatim as the historical
+proposal — **defer to this amendment where they differ**):
+
+**1. Final disposition codes** — the shipped catalog (`sys_fin_overpay_res_cd`,
+seeded in `0357`; canonical TS in `lib/constants/settlement-catalog.ts`) uses the
+verbs below, not the working names in §Decision.3 / §API:
+
+| ADR (original) | Shipped code (`sys_fin_overpay_res_cd` / `OVERPAYMENT_RESOLUTIONS`) |
+|---|---|
+| `RETURN_CHANGE` | `RETURN_CASH_CHANGE` |
+| `TO_WALLET` | `SAVE_TO_CUSTOMER_WALLET` |
+| `TO_ADVANCE` | `SAVE_AS_CUSTOMER_ADVANCE` |
+| `TO_CREDIT_NOTE` | `SAVE_AS_CUSTOMER_CREDIT` |
+
+> Note: `RETURN_CASH_CHANGE` (overpayment resolution) is **distinct** from the
+> allocation-fallback code `RETURN_CHANGE` (`sys_fin_rcpt_fb_dest_cd`). See
+> [tech_settlement_catalogs.md → Vocabulary: do not confuse](../technical_docs/tech_settlement_catalogs.md).
+
+**2. Referential integrity** — the disposition resolution code is enforced by a
+**foreign key** to `sys_fin_overpay_res_cd(resolution_code)` (migration **`0378`**,
+`ON UPDATE/DELETE RESTRICT`), which replaced the original per-value `CHECK` constraint
+so new catalog codes (e.g. `SAVE_TO_CUSTOMER_WALLET`, added in `0368`) are valid
+without a CHECK rewrite. The audit table is `org_fin_overpay_disp_dtl` (post-`0360`
+rename; the ADR body's working name `org_order_overpay_disp_dtl` survives only in some
+legacy constraint-name prefixes — see [F-08 naming map](../technical_docs/tech_settlement_catalogs.md)).
 
 ---
 
@@ -232,4 +263,4 @@ Extend [test_guide.md](../Order_Payment_Model/test_guide.md) with disposition ma
 
 ## Approval
 
-- [ ] `Approved_By_Jh` — product sign-off on policy matrix and phased rollout
+- [x] `Approved_By_Jh` — product sign-off on policy matrix and phased rollout (Accepted; implemented — see Amendment 2026-06-26)

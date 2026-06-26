@@ -18,6 +18,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 import { useMessage } from '@ui/feedback';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_CUSTOMERS_NEW_ACCESS } from '@features/b2b/access/b2b-access'
 
 const COUNTRY_CODES = [
   { code: '+968', label: 'Oman', flag: '🇴🇲' },
@@ -133,7 +135,8 @@ export default function B2BCustomerCreatePage() {
   const flexRow = `flex ${isRTL ? 'flex-row-reverse' : ''}`;
 
   return (
-    <div className="space-y-6">
+    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_NEW_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6">
       <div className={flexRow + ' items-center justify-between gap-4'}>
         <div className={flexRow + ' items-center gap-3'}>
           <Button variant="ghost" size="icon" asChild>
@@ -267,5 +270,6 @@ export default function B2BCustomerCreatePage() {
         </CardContent>
       </Card>
     </div>
+    </RequireAnyPermission>
   );
 }

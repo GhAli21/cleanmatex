@@ -4,13 +4,14 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import {
   OUTBOX_EVENT_TYPES,
+  REFUND_DOC_TYPE_CODE,
   REFUND_METHODS,
   REFUND_REASON_CODES,
 } from '@/lib/constants/order-financial';
 import type { RefundMethod, RefundReasonCode } from '@/lib/types/order-financial';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
-import { topUpWalletTx, issueCreditNote } from './stored-value.service';
+import { topUpWalletTx, issueCreditNoteTx } from './stored-value.service';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -170,6 +171,17 @@ export async function initiateRefund(
   }
 
   return prisma.$transaction(async (tx) => {
+    // F-R1 (D-12 §4): idempotent replay. The DB unique index `uq_refund_idempotency`
+    // (tenant_org_id, idempotency_key) already prevents a duplicate row, but without
+    // this lookup a keyed retry would surface a raw unique-violation and roll back the
+    // whole tx. Return the existing refund so retries are graceful and side-effect-free.
+    if (idempotencyKey) {
+      const existing = await tx.org_order_refunds_dtl.findFirst({
+        where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey, is_active: true },
+      });
+      if (existing) return existing;
+    }
+
     const { order, refundableBalance } = await getRefundableBalanceSummaryTx(
       tx,
       tenantId,
@@ -270,10 +282,19 @@ export async function initiateRefund(
       }
     }
 
-    const count = await tx.org_order_refunds_dtl.count({
-      where: { tenant_org_id: tenantId },
-    });
-    const refundNo = `REF-${String(count + 1).padStart(6, '0')}`;
+    // Concurrency-safe refund number (F-R3): the prior `count(*)+1` approach
+    // raced — two concurrent refunds read the same count and minted the same
+    // REF- number. `fn_next_fin_doc_no` takes a row-level FOR UPDATE lock on
+    // the tenant's REFUND sequence and returns the formatted number atomically
+    // (same mechanism as AR invoice numbering). Seeded by migration with the
+    // `REF-` prefix; auto-created if missing.
+    const refundNoRows = await tx.$queryRaw<Array<{ doc_no: string | null }>>(Prisma.sql`
+      SELECT public.fn_next_fin_doc_no(${tenantId}::uuid, ${REFUND_DOC_TYPE_CODE}) AS doc_no
+    `);
+    const refundNo = refundNoRows[0]?.doc_no;
+    if (!refundNo) {
+      throw new Error('Failed to generate refund number.');
+    }
 
     const refund = await tx.org_order_refunds_dtl.create({
       data: {
@@ -387,6 +408,22 @@ export async function processRefund(
   processedBy?: string
 ) {
   return prisma.$transaction(async (tx) => {
+    // F-R2 (D-12 §4): lock the refund row FOR UPDATE before issuing any stored value.
+    // Without this, two concurrent processRefund calls could both read status APPROVED
+    // and both issue a wallet top-up / credit note (double-issue). The lock serializes
+    // them; the loser sees the row no longer APPROVED (it was moved to PROCESSED) and
+    // aborts. Pairs with the per-refund idempotency keys passed to the stored-value
+    // writers below (defense-in-depth skip-on-existing).
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM public.org_order_refunds_dtl
+      WHERE id = ${refundId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND refund_status = 'APPROVED'
+      FOR UPDATE`;
+    if (!locked[0]) {
+      throw new Error('Refund not found or not awaiting processing');
+    }
+
     const refund = await tx.org_order_refunds_dtl.findFirstOrThrow({
       where: { id: refundId, tenant_org_id: tenantId, refund_status: 'APPROVED' },
     });
@@ -409,6 +446,9 @@ export async function processRefund(
     }
 
     if (method === REFUND_METHODS.WALLET && customerId) {
+      // F-R2: the FOR UPDATE lock above is the dedupe guard for the wallet path
+      // (topUpWalletTx has no idempotency key); a post-commit retry sees the row
+      // no longer APPROVED and aborts before reaching here.
       await topUpWalletTx(tx, {
         tenantId,
         customerId,
@@ -419,13 +459,17 @@ export async function processRefund(
         currencyCode: refund.currency_code,
       });
     } else if (method === REFUND_METHODS.CREDIT_NOTE && customerId) {
-      await issueCreditNote(tenantId, {
+      // F-R2: use the tx-composed, idempotent variant so the credit note is atomic
+      // with the refund update AND a retry can't issue a second note.
+      await issueCreditNoteTx(tx, {
+        tenantId,
         customerId,
         amount,
         reason: `Refund for order ${order.order_no}`,
         orderId: order.id,
         currencyCode: refund.currency_code || order.currency_code || 'OMR',
         issuedBy: processedBy,
+        idempotencyKey: `refund-${refundId}-cn`,
       });
     }
     // CASH / ORIGINAL_METHOD remain operational reversals tracked through the

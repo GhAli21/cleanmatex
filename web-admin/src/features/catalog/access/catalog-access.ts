@@ -448,3 +448,5 @@ export const CATALOG_CUSTOMER_CATEGORIES_ACCESS =
 
 export const CATALOG_ORDER_SOURCES_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/order-sources')!
+export const CATALOG_CATALOG_ACCESS =
+  CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog')!

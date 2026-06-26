@@ -9,6 +9,8 @@ import { CmxKpiStatCard } from '@ui/data-display';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { listArCustomerBalances } from '@/lib/services/ar-invoice.service';
 import { ArCustomerBalancesTable } from '@features/ar/ui/ar-customer-balances-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_AR_CUSTOMERS_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{
@@ -43,7 +45,8 @@ export default async function ArCustomersPage({ searchParams }: PageProps) {
   const aggregateCredit = balances.data.reduce((sum, row) => sum + row.unapplied_credit_amount, 0);
 
   return (
-    <div className="space-y-6 p-6">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_CUSTOMERS_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
         <p className="text-sm text-slate-600">{t('subtitle')}</p>
@@ -69,5 +72,6 @@ export default async function ArCustomersPage({ searchParams }: PageProps) {
         </CmxCardContent>
       </CmxCard>
     </div>
+    </RequireAnyPermission>
   );
 }

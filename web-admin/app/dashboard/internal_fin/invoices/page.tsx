@@ -10,6 +10,8 @@ import {
 } from '@/lib/services/ar-invoice.service';
 import { ArInvoiceHubFilters } from '@features/ar/ui/ar-invoice-hub-filters';
 import { ArInvoicesHubTable } from '@features/ar/ui/ar-invoices-hub-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_INVOICES_ACCESS } from '@features/billing/access/billing-access'
 
 interface InvoicesSearchParams {
   page?: string;
@@ -87,7 +89,8 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
   if (sortOrder) exportParams.set('sort_order', sortOrder);
 
   return (
-    <div className="space-y-6 p-6">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50 p-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
@@ -121,5 +124,6 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
         sorting={sorting}
       />
     </div>
+    </RequireAnyPermission>
   );
 }

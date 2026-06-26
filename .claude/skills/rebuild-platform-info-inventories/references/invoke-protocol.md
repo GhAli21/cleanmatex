@@ -15,6 +15,7 @@ Reason: <short why>
 
 | You changed… | Mode | Scope |
 |--------------|------|-------|
+| `useHasPermission` → `useHasPermissionCode` (same code) | `refresh` | `surface=permission` — run `docs:extract-permissions` + rebuild inventories |
 | `*-access.ts` or page-access-registry | `refresh` | `surface=page`, `route=<path>` |
 | `navigation.ts` or nav migration | `refresh` | `surface=navigation` |
 | API `requirePermission` / auth guard | `refresh` | `surface=api`, `path=app/api/...` |

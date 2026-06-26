@@ -48,6 +48,7 @@ Central reference for platform-level configuration across the CleanMateX codebas
 > **Authority:** See [inventories/README.md](inventories/README.md). Regenerate with `npm run rebuild:platform-info-inventories`.
 
 - [Platform Inventories User Guide](inventories/user_guide.md) — Help UI for admins (`/dashboard/help/platform-inventories`)
+- [UI Access Contract User Guide](ui-access-contract/user_guide.md) — CLI for authoring contracts, registry, and gates (`npm run check:ui-access-contract`)
 - [platform-info-inventory.json](inventories/platform-info-inventory.json) — merged JSON (committed)
 - [GENERATED_GATE_MATRIX.md](inventories/GENERATED_GATE_MATRIX.md) — human gate matrix
 - [DRIFT_REPORT.md](inventories/DRIFT_REPORT.md) — declarative vs code drift

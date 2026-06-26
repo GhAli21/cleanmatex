@@ -57,7 +57,7 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
             <CmxCardDescription>Your subscription details and features</CmxCardDescription>
           </div>
           <CmxButton
-            onClick={() => router.push('/dashboard/subscription')}
+            onClick={() => router.push('/dashboard/tenant-admin/subscription')}
           >
             Manage Subscription
           </CmxButton>
@@ -165,7 +165,7 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
         <div className="flex flex-col sm:flex-row gap-3">
           <CmxButton
             className="w-full"
-            onClick={() => router.push('/dashboard/subscription')}
+            onClick={() => router.push('/dashboard/tenant-admin/subscription')}
           >
             View All Plans
           </CmxButton>
@@ -173,7 +173,7 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
             <CmxButton
               variant="outline"
               className="w-full"
-              onClick={() => router.push('/dashboard/subscription?action=cancel')}
+              onClick={() => router.push('/dashboard/tenant-admin/subscription?action=cancel')}
             >
               Cancel Subscription
             </CmxButton>

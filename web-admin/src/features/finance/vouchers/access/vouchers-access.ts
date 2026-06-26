@@ -170,3 +170,9 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Voucher detail route is the canonical place to review posting results and operational linked effects.'],
   },
 ];
+export const FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS =
+  VOUCHER_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/vouchers')!
+export const FEATURE_INTERNAL_FIN_VOUCHERS_NEW_ACCESS =
+  VOUCHER_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/vouchers/new')!
+export const FEATURE_INTERNAL_FIN_VOUCHERS_REPORTS_ACCESS =
+  VOUCHER_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/vouchers/reports')!

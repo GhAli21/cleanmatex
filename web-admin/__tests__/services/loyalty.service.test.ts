@@ -23,11 +23,21 @@ const mockLoyaltyTxnCreate          = jest.fn();
 const mockLoyaltyTxnFindFirst       = jest.fn();
 const mockOutboxCreate              = jest.fn();
 
+// tx-scoped reads used by processEarnPoints (it reads program + account off `tx`)
+const mockTxProgramFindFirst        = jest.fn();
+const mockTxAccountFindFirst        = jest.fn();
+const mockTxAccountCreate           = jest.fn();
+
 const mockTxQueryRaw = jest.fn();
 
 const mockTx = {
   $queryRaw:                   (...a: unknown[]) => mockTxQueryRaw(...a),
-  org_loyalty_accounts_mst:   { update: (...a: unknown[]) => mockLoyaltyAccountUpdate(...a) },
+  org_loyalty_programs_cf:    { findFirst: (...a: unknown[]) => mockTxProgramFindFirst(...a) },
+  org_loyalty_accounts_mst:   {
+    update:    (...a: unknown[]) => mockLoyaltyAccountUpdate(...a),
+    findFirst: (...a: unknown[]) => mockTxAccountFindFirst(...a),
+    create:    (...a: unknown[]) => mockTxAccountCreate(...a),
+  },
   org_loyalty_txn_dtl:        {
     // Phase 2 BVM Wiring: redeemPointsTx calls findFirst first for the
     // idempotency-skip check. Default returns null (no cached row) so
@@ -68,6 +78,7 @@ import {
   getCustomerTier,
   redeemPointsTx,
   queueEarnPoints,
+  processEarnPoints,
 } from '@/lib/services/loyalty.service';
 
 // ---------------------------------------------------------------------------
@@ -214,6 +225,55 @@ describe('loyalty.service — redeemPointsTx', () => {
           fin_voucher_trx_line_id: 'vch-line-5',
         }),
       }),
+    );
+  });
+});
+
+describe('loyalty.service — processEarnPoints (LOY-1 idempotency-skip)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const earnParams = {
+    tenantId:       TENANT,
+    customerId:     CUST,
+    orderId:        ORDER,
+    earnPoints:     50,
+    monetaryValue:  10,
+    idempotencyKey: IDEM_KEY,
+  };
+
+  it('returns the cached row and does NOT re-credit when the key already earned', async () => {
+    const cached = { id: 'loy-earn-existing', points: 50 };
+    mockLoyaltyTxnFindFirst.mockResolvedValueOnce(cached);
+
+    const result = await processEarnPoints(
+      mockTx as Parameters<typeof processEarnPoints>[0],
+      earnParams,
+    );
+
+    expect(result).toBe(cached);
+    // No program lookup, no account mutation, no second ledger row.
+    expect(mockTxProgramFindFirst).not.toHaveBeenCalled();
+    expect(mockLoyaltyAccountUpdate).not.toHaveBeenCalled();
+    expect(mockTxAccountCreate).not.toHaveBeenCalled();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('credits points and writes an EARN ledger row on first delivery', async () => {
+    mockLoyaltyTxnFindFirst.mockResolvedValueOnce(null);
+    mockTxProgramFindFirst.mockResolvedValue({ id: 'prog-1' });
+    mockTxAccountFindFirst.mockResolvedValue({ id: 'acct-1', points_balance: 100 });
+    mockLoyaltyAccountUpdate.mockResolvedValue({});
+    mockLoyaltyTxnCreate.mockResolvedValue({ id: 'loy-earn-new' });
+
+    await processEarnPoints(mockTx as Parameters<typeof processEarnPoints>[0], earnParams);
+
+    expect(mockLoyaltyAccountUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'acct-1' }, data: expect.objectContaining({ points_balance: 150 }) })
+    );
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ txn_type: 'EARN', points: 50, points_before: 100, points_after: 150 }),
+      })
     );
   });
 });

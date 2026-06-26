@@ -230,16 +230,16 @@ Reviewed the surfaces not opened in the original pass — see [10_FRONTEND_UX_FI
 **3. doc-19 🔵 hardening tests**
 - [x] `invoice-payment-wiring.handler.test.ts` (F-T2 / rule 7) — DONE 2026-06-25 (linkage regression lock)
 - [x] `statement-payment-wiring.handler.test.ts` (F-T2 / rule 8) — DONE (pairs with cluster-D fix)
-- [ ] `ar-allocate.idempotency.test.ts` (F-02 — lock the AR mechanism)
-- [ ] `cash-drawer-change.idempotency.test.ts` (F-07)
-- [ ] `order-financial-write.gateway-pending.test.ts` (rule 19/20)
-- [ ] extend `customer-receipt-allocation.service.test.ts` (rule 12)
-- [ ] `customer-receipt-allocation.fallback.test.ts` (rule 16)
+- [x] `ar-allocate.idempotency.test.ts` (F-02) — DONE 2026-06-25 (DB-integration; + D-12 linkage lock)
+- [x] `cash-drawer-change.idempotency.test.ts` (F-07) — DONE 2026-06-25 (mock handler; CASH_IN line-anchor guard)
+- [x] `order-financial-write.gateway-pending.test.ts` (rule 19/20) — DONE 2026-06-25 (buildWarningCodes pending/authorized)
+- [x] extend `customer-receipt-allocation.service.test.ts` (rule 12) — DONE 2026-06-25 (zero/partial/cap edge cases)
+- [x] `customer-receipt-allocation.fallback.test.ts` (rule 16) — DONE 2026-06-25 (fallback-destination matrix)
 
 **4. Remaining ❓ correctness review (deferred items)**
-- [ ] Refund-create idempotency + reverse-allocation accounting.
-- [ ] `voucher-reversal.service` unwind correctness (order-payment + cash + stored-value).
-- [ ] AR reverse/void accounting.
+- [x] Refund-create idempotency + reverse-allocation accounting — REVIEWED 2026-06-25 (findings F-R1/F-R2/F-R3; AR reverse-allocation CLEAN).
+- [x] `voucher-reversal.service` unwind correctness — REVIEWED 2026-06-25 (CLEAN; double-reverse blocked by transition table).
+- [x] AR reverse/void accounting — REVIEWED 2026-06-25 (CLEAN; withIdempotency + reversed_at/approval guards).
 
 **5. Anti-pattern audit (across the suite)**
 - [ ] Find other `*constants*`/`*catalog*` tests asserting only shape/uniqueness (the F-T1 false-positive class) → convert to real DB/migration parity.
@@ -291,3 +291,155 @@ Reviewed the surfaces not opened in the original pass — see [10_FRONTEND_UX_FI
   **Design note (important):** `collectPaymentTx` is NOT directly testable in the rollback harness — it opens its OWN `prisma.$transaction` (commits) and reads tenant settings via the Supabase SSR `createClient()` (no request context in node). Its idempotency semantics live entirely in the keyed sub-op `executeOverpaymentDispositionTx(tx,…)`, which IS rollback-composable and is the exact locus of the old F-10 collision (stable `${orderId}_collect_${collectedBy}` key shared across distinct collection events → second event silently deduped). The suite exercises that real DB path: (1) **distinct keys → two independent disposition rows that sum** (proves two collection events both apply — the F-10 fix), (2) **same-key replay → one row, second call returns the existing id** (genuine retry dedupes), (3) **different resolution codes under one base key stay distinct** (per-line key `${key}_op_${code}_${idx}` composition).
   **Validation:** `npm run test:db-integration` → **15/15** (7 finance-smoke + 5 reconciliation + 3 new); eslint 0; tsc unaffected (0). No migration.
   **Checklist tick:** §2 collect-payment.idempotency. **Note for §4:** the plain (non-overpayment) collection path has NO row-level idempotency guard — a genuine retry of a plain partial collection with the same explicit key would insert a second `org_order_payments_dtl` row (potential double-apply). Flagged for the §4 correctness review.
+
+- **2026-06-25 (later) — §3 doc-19 hardening tests DONE (5 artifacts, +21 unit / +2 db-integration).**
+  - `__tests__/db-integration/ar-allocate.idempotency.test.ts` (2, DB-level) — `allocateArPaymentTx`: same key → ONE allocation + **same allocationPaymentId** (D-12 linkage lock) + paid moved once; distinct keys → two allocations + paid reflects both. Harness note: the fn writes via the external tx but its final return reads the invoice on a NON-tx reader, so the bare invoice+customer seed is COMMITTED (reader finds it) while the allocation runs in a rolled-back tx; only the 2 seed rows are deleted in `finally`.
+  - `__tests__/services/cash-drawer-change.idempotency.test.ts` (9, mock handler — matches invoice/statement handler precedent) — CASH_IN carries `fin_voucher_trx_line_id` (the `uq_cd_mov_vch_line` anchor / DB idempotency guard); CASH_OUT change is written WITHOUT it (separate movement, no collision); no-change → only CASH_IN; session-not-OPEN throws; getLinkedEffect re-reads by the line anchor.
+  - `__tests__/services/order-financial-write.gateway-pending.test.ts` (4, pure) — `buildWarningCodes`: pending (gateway) amount → PENDING_PAYMENT_COUNTED_AS_PAID; authorized → AUTHORIZED_PAYMENT_COUNTED_AS_PAID; fully-COMPLETED → neither; mixed cash+gateway surfaced via the pending warning (pending legs are summed to pendingPaymentAmount, never totalPaidAmount).
+  - `customer-receipt-allocation.service.test.ts` EXTENDED (+3) — zero-outstanding target skipped → full excess to fallback; one target + remainder → fallback advance; `max_targets_per_allocation` cap respected, uncovered remainder → fallback.
+  - `__tests__/services/customer-receipt-allocation.fallback.test.ts` (5, pure) — fallback-destination matrix: CUSTOMER_ADVANCE / CUSTOMER_CREDIT / WALLET_TOPUP / RETURN_CHANGE(→advance default) / BLOCK_AND_REQUIRE_MANUAL_ACTION(→blocked, no line, BLOCKED warning).
+  - **§4 finding surfaced here:** the `allow_partial_last_target=false` guard in `runAutoAllocationAlgorithm` is UNREACHABLE — `isLastWithRemainder` (allocAmount<outstanding ⇒ remaining<outstanding) contradicts the same `if`'s `remaining > target.outstandingAmount`. No test locks the dead branch; carried into §4 review.
+  - **Validation:** full `npm test` → **1444 pass / 144 suites** (was 1423/141); `npm run test:db-integration` → **17 / 4 suites** (was 15/3); eslint 0 on all 5 files; `tsc --noEmit` → **0** (cleared a stale incremental-cache false count). No migration.
+  - **Checklist ticks:** §3 ar-allocate.idempotency, cash-drawer-change.idempotency, order-financial-write.gateway-pending, customer-receipt extend, customer-receipt-allocation.fallback. **All §3 doc-19 tests complete.**
+
+- **2026-06-25 (later) — §4 correctness review DONE (read-only; findings below).**
+  **CLEAN (no change needed):**
+  - **`voucher-reversal.service.reverseBizVoucher`** — locks the original FOR UPDATE; `validateStatusTransition(status, REVERSED)` blocks double-reverse because `ALLOWED_TRANSITIONS[REVERSED] = []` (already locked by `voucher-validation.test.ts` "blocks REVERSED → POSTED"); creates opposite-direction mirror lines (`reversed_line_id` linkage), marks original lines + header REVERSED, writes audit log + outbox. Sound. (Unwind of cash/stored-value happens when the mirror voucher is wired — staged correctly as NOT_WIRED.)
+  - **`ar-invoice.service.reverseArPaymentAllocationTx`** — `withIdempotency` keyed dedupe + explicit `allocation.reversed_at` guard (throws "already reversed"); correctly subtracts `allocated_amount` from invoice paid/outstanding, recomputes status, writes status-history + reversing ledger entry. Exemplary.
+  - **`ar-invoice.service.voidArInvoice`** — approval-gated (`approval_action_cd === APPROVE_VOID`), `withIdempotency`, sets status VOID + outstanding 0 + VOID ledger credit for prior outstanding + status-history + outbox. Re-void is harmless (outstanding already 0 ⇒ no duplicate ledger). Sound.
+  **FINDINGS (money path — flagged, NOT auto-fixed; sensitivity per CLAUDE.md):**
+  - **F-R1 (refund idempotency NOT enforced):** `order-refund.initiateRefund` *stores* `idempotency_key` but never looks it up before INSERT, so a retry with the same key creates a SECOND `org_order_refunds_dtl` row. The balance guard only sums `refund_status='PROCESSED'` refunds, so two rapid pre-processing calls can BOTH pass `refundableBalance`/`remainingForPayment` and both create rows → over-refund once processed. The column clearly intends dedupe (mirrors AR `withIdempotency`). **Recommended:** look up an existing refund by `(tenant_org_id, idempotency_key)` at the top of the tx and return it if present.
+  - **F-R2 (refund process double-issue):** `order-refund.processRefund` reads the refund via `findFirstOrThrow(status='APPROVED')` with NO `FOR UPDATE`, and issues WALLET top-up / CREDIT_NOTE WITHOUT an idempotency key. Concurrent or retried processing can double-issue stored value. **Recommended:** `SELECT … FOR UPDATE` the refund row (or status-CAS on the APPROVED→PROCESSED update) + pass an idempotency key into `topUpWalletTx`/`issueCreditNote`.
+  - **F-R3 (refund_no race):** `refund_no` is built from `count(*)+1` (not concurrency-safe, weak sequence). **Recommended:** use the scoped-sequence helper (as AR allocation does via `nextScopedSequence`).
+  - **F-AA1 (dead branch, from §3):** `runAutoAllocationAlgorithm` `allow_partial_last_target=false` guard is unreachable (`allocAmount<outstanding ⇒ remaining<outstanding` contradicts the same `if`'s `remaining > outstanding`). Behavior-preserving cleanup candidate; no money impact.
+  **Decision pending (user):** whether to fix F-R1/F-R2/F-R3 in this program (money path) or file as a separate hardening ticket. No code changed in §4.
+  **Checklist ticks:** §4 refund review, voucher-reversal review, AR reverse/void review (all reviewed; refund findings documented).
+
+- **2026-06-25 (later) — §4 refund fixes APPLIED (user-approved: F-R1 + F-R2; F-R3 deferred).**
+  - **F-R1 (initiateRefund idempotent replay):** discovered a DB unique index **`uq_refund_idempotency (tenant_org_id, idempotency_key)` already exists** — so duplicate rows were already DB-prevented; the real gap was a keyed retry throwing a raw unique-violation + rolling back the tx. Added a top-of-tx lookup that returns the existing refund on a key hit (graceful replay, no INSERT). No migration needed.
+  - **F-R2 (processRefund concurrency + idempotency):** added a `SELECT … FOR UPDATE` lock on the refund row (`WHERE refund_status = 'APPROVED'`) before any stored-value issue — serializes concurrent processing; the loser sees the row no longer APPROVED and aborts. Switched the credit-note path from the non-tx `issueCreditNote` (separate transaction, no idempotency) to **`issueCreditNoteTx(tx, { … idempotencyKey: refund-<id>-cn })`** — now atomic with the refund update + skip-on-existing. Wallet path relies on the lock (`topUpWalletTx` has no idempotency param — documented inline).
+  - **F-R3 (refund_no `count(*)+1` race):** DEFERRED per user.
+  - **Tests:** extended `refund.service.test.ts` (+5: F-R1 replay / no-match, F-R2 lock-abort / credit-note-key / wallet-after-lock) and repaired `refund-flow.test.ts` integration mock (`$queryRaw` + `issueCreditNoteTx`). The raw FOR UPDATE SQL was validated against the live DB (rolled back).
+  - **Validation:** full `npm test` → **1449 / 144 suites**; `npm run test:db-integration` → **17 / 4**; eslint 0; tsc 0. No migration (the unique index pre-existed).
+
+- **2026-06-25 (later) — §5 anti-pattern audit DONE → ✅ D-12 CLOSED.**
+  - **Audit result:** the F-T1 anti-pattern class (constants/catalog tests asserting only shape/uniqueness) had exactly ONE historical instance — the overpayment catalog test — and it was ALREADY remediated to migration-DDL parity in a prior phase (`settlement-catalog.test.ts`, see its inline note about the F-00 wallet blocker). The broad grep hits (reducers, helpers, warning-codes) are legitimate domain-logic shape assertions on NON-DB-backed constants, not anti-patterns.
+  - **Hardening added:** `__tests__/db-integration/settlement-catalog.parity.test.ts` (2 tests) — BIDIRECTIONAL exact parity between the TS `as const` catalogs and their live `sys_*_cd` tables: `OVERPAYMENT_RESOLUTIONS` ↔ `sys_fin_overpay_res_cd` (9 codes) and `CUSTOMER_RECEIPT_ALLOCATION_MODES` ↔ `sys_fin_rcpt_alloc_mode_cd` (4 modes). Catches drift in EITHER direction (DB code with no TS member, or TS member with no DB row) — stronger than finance-smoke's superset check and the migration-text parity. This is the canonical "shape → real DB parity" conversion.
+  - **Validation:** `npm run test:db-integration` → **19 / 5 suites** (added settlement-catalog.parity); eslint 0; tsc 0.
+  - **Checklist tick:** §5 anti-pattern audit.
+
+### ✅ D-12 (third pass) — COMPLETE (2026-06-25)
+
+All five D-12 work-streams are closed:
+- **§1 type-debt:** `tsc --noEmit` **0 errors** (43 → 0). Final cluster A closed by retiring legacy payment modals v3/enhanced-02 (`*.tsx.bak`) + the v4 `toCanonicalLegMethod`/`SettlementMethodCode` fix.
+- **§2 GA-class test:** `collect-payment.idempotency` (DB-integration, via the keyed `executeOverpaymentDispositionTx`).
+- **§3 doc-19 hardening:** ar-allocate.idempotency (DB), cash-drawer-change.idempotency (handler), order-financial-write.gateway-pending (pure), customer-receipt extend + fallback matrix.
+- **§4 correctness review:** voucher-reversal + AR reverse/void CLEAN; refund findings F-R1 + F-R2 FIXED (idempotent replay + FOR UPDATE lock + tx-composed idempotent credit-note); F-R3 + the unreachable-branch finding documented & deferred.
+- **§5 anti-pattern audit:** one historical instance already remediated; added bidirectional live-DB catalog parity.
+
+**Totals:** full `npm test` **1449 / 144 suites**; `npm run test:db-integration` **19 / 5 suites**; eslint 0; tsc 0. **No migration was needed for D-12** (the refund unique index pre-existed). Next free migration seq still **0385**.
+**Deferred (documented):** F-R3 refund_no sequence race; the unreachable `allow_partial_last_target=false` branch in `runAutoAllocationAlgorithm`.
+
+- **2026-06-25 (later) — F-05 §6 real tax decomposition DONE.**
+  - Pure engine in lib/payments/e-invoice.ts: buildTaxDecomposition(bases) emits STANDARD/EXEMPT/ZERO_RATED/OUT_OF_SCOPE from their own bases (clamps negatives/NaN); reconcileTaxDecomposition(decomp, expectedBase) is the decomposition-side fiscal check. buildFoundationTaxDecomposition now delegates (identical shape for STANDARD-only).
+  - Service: resolveOrderTaxDecomposition(client, tenantId, orderId) reads the per-category base columns the recalc maintains on org_orders_mst (taxable/exempt/zero_rated/out_of_scope), gated by resolveEInvoiceActivation (order created_at = order date). Not active → zeroed buckets, flat-VAT flow unchanged.
+  - Tests: e-invoice.foundation.test.ts +6 (real decomposition + reconcile + delegation); new DB-integration e-invoice-decomposition.db.test.ts (2): ENABLED+mixed-category → faithful buckets reconcile; DISABLED → zeroed (both rolled back, tenant flag flipped in-tx).
+  - Validation: full npm test 1455/144; db-integration 21/6; eslint 0; tsc 0. No migration (reads existing columns).
+  - **Seq correction:** migration 0385 is ALREADY taken (0385_permissions_help_platform_inventories.sql) — RESUME stale. Next free seq = **0386** (used by §7 e-invoice status column).
+
+- **2026-06-25 (later) — F-05 §7 e-invoice status persistence DONE (mig 0386 APPLIED L+R by user).**
+  - Migration supabase/migrations/0386_einvoice_status_column.sql: adds org_tax_documents_mst.e_invoice_status text NOT NULL DEFAULT NOT_APPLICABLE + CHECK chk_tax_doc_einv_status (7 codes mirroring E_INVOICE_STATUS). Additive, no rewrite; applied LOCAL + REMOTE by user.
+  - prisma/schema.prisma: e_invoice_status field added to org_tax_documents_mst; client regenerated.
+  - Pure helper resolveInitialEInvoiceStatus(active) in lib/payments/e-invoice.ts (active ? PENDING : NOT_APPLICABLE).
+  - Wiring: createTaxDocumentTx (tax-document-write.service) reads the order created_at + resolveEInvoiceActivation and stamps e_invoice_status on create. Later transitions (GENERATED/REPORTED/CLEARED/FAILED/CANCELLED) are jurisdiction-adapter driven (Phase 8 / future).
+  - Tests: e-invoice.foundation.test.ts +2 (resolveInitialEInvoiceStatus); new DB-integration tax-document-einvoice-status.db.test.ts (3): ENABLED→PENDING, DISABLED→NOT_APPLICABLE, live CHECK rejects out-of-catalog value.
+  - Validation: full npm test 1457/144; db-integration 24/7; eslint 0; tsc 0.
+  - **Next free migration seq = 0387.**
+
+- **2026-06-25 (later) — F-05 §8 ZATCA jurisdiction adapter DONE.**
+  - lib/payments/adapters/zatca.adapter.ts (pure, no server-only/DB): ZATCA_TAX_CATEGORY_CODES (STANDARD/EXEMPT/ZERO_RATED/OUT_OF_SCOPE → S/E/Z/O) + buildZatcaDocument(decomposition, ctx) → per-category S/E/Z/O lines (standard rate on S only; 0 on E/Z/O), reconciled totals (totalWithTax = taxable + tax), identity fields. Document SHAPE only; live submission/clearance (Phase 2 API, signing/QR/XML) is a tracked follow-up.
+  - Tests: zatca.adapter.test.ts (7): code mapping, standard-only, mixed, zero-base omission, totals reconcile, identity fields, rounding.
+  - Validation: full npm test 1464/145; db-integration 24/7; eslint 0; tsc 0; i18n parity OK.
+  - **F-05 is now COMPLETE in cleanmatex** (only cross-project HQ toggle UI + live ZATCA submission remain). See F-05-E-Invoicing-Foundation.md COMPLETION section.
+
+---
+
+## PROGRAM COMPLETE (2026-06-25)
+
+All remaining Order-Fin work finished in one plan-mode run (9 phases). D-12 third pass CLOSED + F-05 e-invoicing COMPLETE in cleanmatex.
+
+**Final validation gates (all green):**
+- tsc --noEmit: **0 errors** (43 -> 0)
+- full npm test: **1464 pass / 145 suites**
+- npm run test:db-integration: **24 pass / 7 suites**
+- eslint: **0** errors on changed files
+- npm run check:i18n: **parity OK**
+- npm run build: **GREEN** (compiled, all pages)
+
+**Migrations this program:** 0386 only (e_invoice_status), applied LOCAL + REMOTE by user. D-12 needed none. **Next free seq = 0387** (NOTE: 0385 was already taken by 0385_permissions_help_platform_inventories.sql; RESUME pointer was stale).
+
+**Remaining (out of program):** HQ enablement-toggle UI in cleanmatexsaas (cross-project); live ZATCA submission/clearance; deferred F-R3 (refund_no race) + unreachable allow_partial_last_target branch; process gates (finance sign-off, soak).
+
+
+## Deferred minor fixes — DONE (2026-06-26)
+
+Closed the two carry-over items left after PROGRAM COMPLETE:
+
+- **F-R3 (refund_no concurrency race):** `order-refund.service.ts` replaced the racy `org_order_refunds_dtl.count()+1` with the atomic `fn_next_fin_doc_no(tenant, 'REFUND')` (row-level FOR UPDATE lock) — same mechanism AR invoices use. New constant `REFUND_DOC_TYPE_CODE` in `lib/constants/order-financial.ts`. **Migration 0387_refund_doc_seq_numbering.sql** seeds (upserts) the per-tenant REFUND sequence with prefix `REF-`, padding 6, and last_no back-filled to the current max issued refund number (GREATEST guard, idempotent). Applied LOCAL + REMOTE. Verified: REFUND seq rows present, prefix `REF-`, padding 6.
+- **allow_partial_last_target dead branch:** `customer-receipt-allocation.service.ts` — removed the contradictory `remaining > target.outstandingAmount` clause that made the guard unreachable (it negated `allocAmount < outstanding`). The `false` policy now correctly stops before part-paying the last target and routes the remainder to fallback; the default `true` (DB default) path is unchanged.
+
+**Tests:** +3 regression tests in `customer-receipt-allocation.service.test.ts` (false→fallback, false-with-coverable-targets, true→partial) replacing the old "unreachable" NOTE; `refund.service.test.ts` + `refund-flow.test.ts` switched to `@jest-environment node` (the `Prisma.sql` tag throws under the jsdom Prisma build) and now assert the number is minted via $queryRaw with no `count()` call.
+
+**Validation:** affected suites green (refund 19/19 incl. allocation; refund-flow 5/5); eslint 0 on changed files; `tsc --noEmit` = 1 error total and it is the unrelated in-flight `@features/marketing/access/marketing-access` deletion vs `page-access-registry.ts` import (UI-access-contract refactor in the working tree), NOT introduced here. **Next free migration seq = 0388.**
+
+
+## Minor findings F-06 / F-08 / F-09 + gateway review — DONE (2026-06-26)
+
+Closed the remaining low-risk lettered findings and completed the gateway capture/callback exploratory review.
+
+- **F-09 (audit columns):** **migration 0388_tax_doc_seq_counters_audit_cols.sql** adds the missing standard audit columns to `org_tax_doc_seq_counters` — `created_info / updated_info / rec_status (def 1) / rec_order / rec_notes / is_active (def true)`. Additive (ADD COLUMN IF NOT EXISTS), no rewrite, no behavior change (the FOR UPDATE allocator does not read them). prisma/schema.prisma model synced. F-01 RLS already shipped in 0379, so the table now fully matches convention. **Create-only — STOP for user apply.**
+- **F-06 (ADR-047 doc drift):** `ADR/ADR-047-Overpayment-Disposition.md` status flipped Proposed → **Accepted** + approval box checked; added an **Amendment (2026-06-26)** mapping the original working vocabulary (RETURN_CHANGE / TO_WALLET / TO_ADVANCE / TO_CREDIT_NOTE) to the shipped catalog codes (RETURN_CASH_CHANGE / SAVE_TO_CUSTOMER_WALLET / SAVE_AS_CUSTOMER_ADVANCE / SAVE_AS_CUSTOMER_CREDIT) and noting the 0378 FK replaced the per-value CHECK. Doc now agrees with code.
+- **F-08 (naming drift):** added an **Object naming map** section to `technical_docs/tech_settlement_catalogs.md` documenting voucher full-word table vs `sys_fin_vch_*` abbrev vs `*_vch_trx_ln_*` constraint fragments, and the post-0360 `org_fin_overpay_disp_dtl` rename (legacy `org_order_overpay_disp_dtl_*` constraint prefixes left as-is). Per the finding: **no live objects renamed** — documentation only.
+
+**Gateway capture/callback review (exploratory ❓ item) — CLOSED, no bug:** there is **no automated gateway webhook/callback route** in the project (file search across app/ + lib/ returns none — by design). PAYMENT_GATEWAY legs are created in **PENDING** with `gateway_code` + `gateway_reference`, then settled by a **manual back-office assurance step** `verifyPaymentTx` (order-settlement.service.ts) exposed at `POST /api/v1/orders/[id]/payments/[paymentId]/verify`, permission-gated `orders:verify_payment`. That path is sound: composite-tenant WHERE, row `FOR UPDATE` lock, idempotent no-op on already-COMPLETED, rejects terminal states, recalcs the header snapshot + emits `PAYMENT_VERIFIED` outbox in-tx. **Conclusion:** the "callback" is a human verification action, not an async webhook. Live online-gateway (HYPERPAY/PAYTABS/STRIPE) webhook/auto-capture integration is **future work** — same class as live ZATCA submission — not a defect in the current model. **No code change.**
+
+**Validation:** doc + migration only (F-06/F-08 docs, F-09 additive migration + prisma model). No test/runtime change from the gateway review. **Next free migration seq = 0389.**
+
+
+## Exploratory deep-dives + 0388 applied — DONE (2026-06-26)
+
+- **Migration 0388 (F-09 audit cols) APPLIED LOCAL + REMOTE** by user; types regenerated. Verified all 6 columns present (rec_status smallint def 1, is_active bool def true, created_info/updated_info/rec_notes text, rec_order int). **Next free seq = 0389.**
+
+**Promotion / loyalty deep-dive (report ❓ item) — DONE.** Full review in Promotion_Loyalty_Offline_DeepDive_2026-06-26.md.
+- **Promotions:** the LIVE order path is `discount-service.ts` (`applyPromoCodeTx` — FOR UPDATE + **in-lock max_uses re-check** + `reversePromoUsageTx` unwind) — **sound**. `promotion-engine.service.ts`.`applyPromotionTx` is a **dead, weaker duplicate** (no live callers; no in-lock cap re-check; no idempotency_key) → **PR-1** recommend consolidation (documented, not auto-applied — tested module + live validate route). **PR-2** (Low): `uq_promo_usage_idempotency` exists but apply doesnt set the key — safe today via the submit `withIdempotency` envelope.
+- **Loyalty:** `redeemPointsTx` sound (idempotency-skip + FOR UPDATE). Gift cards sound (FOR UPDATE + key skip on redeem/credit). **LOY-1 FIXED:** `processEarnPoints` lacked the graceful idempotency-skip — a re-delivered LOYALTY_EARN (at-least-once outbox) hit `uq_loyalty_txn_idempotency`, threw, rolled back the worker tx and could WEDGE the event in a retry loop. Added the same top-of-fn findFirst skip `redeemPointsTx` uses (returns existing row, lets worker complete). Code-only, no migration. +2 regression tests; loyalty suite 14/14; eslint 0.
+
+**Mobile/offline POS deep-dive (report ❓ item) — CLOSED, nothing to fix.** No offline POS / offline financial-write capability exists: `public/sw.js` is **push-notifications only** (no cache/background-sync/IndexedDB queue); `message-queue.ts` is an in-memory toast queue. All order/payment writes are synchronous server-authoritative Prisma tx. The report concern (offline financial safety) is moot — there is no offline flow. Future offline-POS requirements (idempotent replay, cap/balance conflict resolution on sync, drawer reconciliation, server-authoritative doc numbering) listed in the deep-dive doc.
+
+**Process-gates guide GENERATED:** `Process_Gates_Guide.md` — repeatable runbook for the two non-code GA gates (Finance sign-off: 8 reconciliations + sample matrix + exit criteria; Soak: ≥2-week pilot incl. month-end + drawer-close, daily monitor signals, abort/rollback + exit criteria, sign-off log).
+
+**Validation:** loyalty 14/14; eslint 0 on changed files; tsc unchanged (still only the unrelated in-flight marketing-access error). Docs only otherwise. **Next free seq = 0389.**
+
+
+## Promo/loyalty findings PR-1 / PR-2 / adjustPointsTx — FIXED (2026-06-26)
+
+Closed the three documented deep-dive findings (all code-only, no migration):
+
+- **PR-1 (dead weaker applyPromotionTx):** promotion-engine.service.applyPromotionTx now DELEGATES to discount-service.applyPromoCodeTx (the canonical hardened path: in-lock max_uses re-check + idempotency key + reversal) and is tagged @deprecated — the two can no longer drift. Its test asserts the delegation contract; applyPromoCodeTx internals stay covered by discount-service.test.ts. The two validatePromoCode (checkout vs marketing-admin preview) have different contracts — kept both, cross-documented; full merge deferred (API-shape change).
+- **PR-2 (unleveraged promo idempotency_key):** applyPromoCodeTx now derives idempotency_key = orderId:promoCodeId, runs a post-FOR-UPDATE findFirst skip (concurrent applies for the same order serialise → second skips, no double increment), and writes the key — uq_promo_usage_idempotency (mig 0288) is now the hard DB backstop. Regression test added (skip-on-existing).
+- **adjustPointsTx non-deterministic key:** added optional idempotencyKey param (caller request-id → graceful replay skip); when omitted generates adj-<acct>-<crypto.randomUUID()> instead of Date.now() (removes same-ms collision risk on uq_loyalty_txn_idempotency). +2 loyalty tests.
+
+**Validation:** discount-service + promotion-engine + loyalty suites 34/34; integration create-with-payment-promo-gift + order-cancel + order-submit 23/23 (added findFirst to the promo-usage tx mock); eslint 0; tsc 0. No migration. Full review doc: Promotion_Loyalty_Offline_DeepDive_2026-06-26.md. **Next free seq = 0389.**
+
+
+## validatePromoCode merge (best-practice, no gaps) — DONE (2026-06-26)
+
+Fully merged the two validatePromoCode functions into one canonical evaluator + fixed three latent bugs it surfaced. Code-only, no migration.
+
+- **Single source of truth:** new evaluatePromoCode(params) in discount-service.ts (authoritative module). Both validatePromoCode are now thin adapters: checkout → ValidatePromoCodeResult, marketing-admin preview (promotion-engine) → PromoValidation. The preview can no longer disagree with what checkout accepts.
+- **Bug 1 (percentage=0 in marketing preview):** the preview compared lower-case discount_type (real DB storage: percentage/fixed_amount) to upper-case PROMO_TYPES.PERCENTAGE → always 0 for percentage promos. Unified discount calc is now CASE-INSENSITIVE (both calculatePromoDiscount and the retained calculatePromotionDiscount).
+- **Bug 2 (max-order mislabel):** the max_order_amount rejection returned errorCode MIN_ORDER_NOT_MET. Added MAX_ORDER_EXCEEDED to the ValidatePromoCodeResult union and the evaluator emits it.
+- **Bug 3 (per-customer cap counted voided):** the per-customer usage count now excludes voided_at rows (reversed promos no longer count against the limit).
+- **Consistency:** marketing path now uses the same strict liveness filter (is_active AND is_enabled AND rec_status=1), upper-cases the code on lookup, and uses the atomic current_uses counter for the global cap. createPromotion now stores promo_code upper-cased and discount_type lower-cased (matches lookup + column convention + mapPromoCodeToType lowercase expectation).
+
+**Tests:** new 16-case evaluatePromoCode suite in discount-service.test.ts (casing regression, all error codes incl. MAX_ORDER_EXCEEDED, voided-usage exclusion, code upper-casing); promotion-engine validate tests rewritten as adapter/delegation tests. discount+promotion-engine 32/32; integration+cancel+submit+loyalty+validate-promo 37/37; eslint 0; tsc 0. No migration. **Next free seq = 0389.**

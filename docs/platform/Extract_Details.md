@@ -30,7 +30,7 @@ All permission docs are under `docs/platform/permissions/`:
 - PLAN_LIMITS_REFERENCE, PLAN_LIMITS_USAGE, PLAN_CONSTRAINTS, SUBSCRIPTION_UI
 
 ### Phase 5: Extraction Scripts (5 scripts)
-- `scripts/docs/extract-permissions.ts` — RequirePermission, useHasPermission, requirePermission
+- `scripts/docs/extract-permissions.ts` — RequirePermission, useHasPermission, useHasPermissionCode, requirePermission
 - `scripts/docs/extract-settings-usage.ts` — setting codes and resolution calls
 - `scripts/docs/extract-feature-flags.ts` — feature flag checks
 - `scripts/docs/extract-api-auth-audit.ts` — API routes auth audit

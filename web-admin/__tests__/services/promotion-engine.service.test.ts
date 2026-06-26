@@ -19,13 +19,19 @@ const mockPromoFindMany    = jest.fn();
 const mockPromoFindFirst   = jest.fn();
 const mockUsageCount       = jest.fn();
 const mockUsageCreate      = jest.fn();
+const mockUsageFindFirst   = jest.fn();
 const mockPromoUpdate      = jest.fn();
 const mockTxQueryRaw       = jest.fn();
 
 const mockTx = {
   $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
   org_promotions_mst:       { update: (...a: unknown[]) => mockPromoUpdate(...a) },
-  org_promotion_usage_dtl:  { create: (...a: unknown[]) => mockUsageCreate(...a) },
+  org_promotion_usage_dtl:  {
+    // applyPromotionTx now delegates to discount-service.applyPromoCodeTx, which
+    // runs an idempotency-skip findFirst before create. Default: no prior usage.
+    findFirst: (...a: unknown[]) => mockUsageFindFirst(...a),
+    create:    (...a: unknown[]) => mockUsageCreate(...a),
+  },
 };
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -43,6 +49,17 @@ jest.mock('@/lib/db/prisma', () => ({
 
 jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
+}));
+
+// applyPromotionTx + validatePromoCode now delegate to discount-service (the
+// canonical hardened path / unified evaluator). Mock it so this suite tests the
+// delegation contract and does not pull discount-service's transitive
+// supabase/tenant-settings imports.
+const mockApplyPromoCodeTx = jest.fn();
+const mockEvaluatePromoCode = jest.fn();
+jest.mock('@/lib/services/discount-service', () => ({
+  applyPromoCodeTx: (...a: unknown[]) => mockApplyPromoCodeTx(...a),
+  evaluatePromoCode: (...a: unknown[]) => mockEvaluatePromoCode(...a),
 }));
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -105,42 +122,39 @@ describe('promotion-engine.service — getAutoApplyPromotions', () => {
   });
 });
 
-describe('promotion-engine.service — validatePromoCode', () => {
+describe('promotion-engine.service — validatePromoCode (adapts evaluatePromoCode → PromoValidation)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns isValid=true and discount for a valid code', async () => {
-    mockPromoFindFirst.mockResolvedValue(makePromo());
-    mockUsageCount.mockResolvedValue(0);
+  it('forwards to evaluatePromoCode and maps a valid result to PromoValidation', async () => {
+    const promo = makePromo();
+    mockEvaluatePromoCode.mockResolvedValue({ isValid: true, promo, discountAmount: 10 });
 
     const result = await validatePromoCode(TENANT, 'SUMMER10', CUST, 100);
-    expect(result.isValid).toBe(true);
-    expect(result.discount).toBeGreaterThan(0);
+
+    expect(mockEvaluatePromoCode).toHaveBeenCalledWith({
+      tenantId: TENANT, code: 'SUMMER10', customerId: CUST, orderTotal: 100,
+    });
+    expect(result).toEqual({ isValid: true, promotion: promo, discount: 10 });
   });
 
-  it('returns isValid=false when promo not found or expired', async () => {
-    mockPromoFindFirst.mockResolvedValue(null);
+  it('maps an invalid result to { isValid:false, error } (drops errorCode for this route)', async () => {
+    mockEvaluatePromoCode.mockResolvedValue({ isValid: false, errorCode: 'NOT_FOUND', error: 'Promo code not found or is no longer active' });
 
     const result = await validatePromoCode(TENANT, 'BADCODE');
+
     expect(result.isValid).toBe(false);
-    expect(result.error).toBeDefined();
+    expect(result.error).toMatch(/not found/i);
+    expect(result).not.toHaveProperty('promotion');
   });
 
-  it('returns isValid=false when min order amount not met', async () => {
-    mockPromoFindFirst.mockResolvedValue(
-      makePromo({ min_order_amount: new Decimal('200') })
+  it('defaults orderAmount to 0 when omitted', async () => {
+    mockEvaluatePromoCode.mockResolvedValue({ isValid: false, errorCode: 'MIN_ORDER_NOT_MET', error: 'too low' });
+
+    await validatePromoCode(TENANT, 'SUMMER10');
+
+    expect(mockEvaluatePromoCode).toHaveBeenCalledWith(
+      expect.objectContaining({ orderTotal: 0, customerId: undefined })
     );
-
-    const result = await validatePromoCode(TENANT, 'SUMMER10', CUST, 50);
-    expect(result.isValid).toBe(false);
-    expect(result.error).toMatch(/minimum/i);
-  });
-
-  it('returns isValid=false when global max_uses is exhausted', async () => {
-    mockPromoFindFirst.mockResolvedValue(makePromo({ max_uses: 10 }));
-    mockUsageCount.mockResolvedValue(10);
-
-    const result = await validatePromoCode(TENANT, 'SUMMER10', CUST, 100);
-    expect(result.isValid).toBe(false);
   });
 });
 
@@ -176,37 +190,36 @@ describe('promotion-engine.service — calculatePromotionDiscount', () => {
   });
 });
 
-describe('promotion-engine.service — applyPromotionTx', () => {
+describe('promotion-engine.service — applyPromotionTx (delegates to applyPromoCodeTx)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('increments usage counter and writes usage row', async () => {
-    mockTxQueryRaw.mockResolvedValue([{ id: PROMO, current_uses: 5 }]);
-    mockPromoUpdate.mockResolvedValue({});
-    mockUsageCreate.mockResolvedValue({ id: 'usage-1' });
+  it('forwards mapped params to the canonical hardened apply', async () => {
+    mockApplyPromoCodeTx.mockResolvedValue(undefined);
 
     await applyPromotionTx(mockTx as Parameters<typeof applyPromotionTx>[0], {
       tenantId: TENANT, promotionId: PROMO, customerId: CUST,
       orderId: ORDER, discountAmount: 10, orderTotal: 90,
     });
 
-    expect(mockPromoUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ current_uses: { increment: 1 } }) })
-    );
-    expect(mockUsageCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ promo_code_id: PROMO, order_id: ORDER, discount_amount: 10 }),
-      })
-    );
+    // promotionId→promoCodeId, tenantId→tenantOrgId, orderTotal→orderTotalBefore.
+    expect(mockApplyPromoCodeTx).toHaveBeenCalledWith(mockTx, {
+      promoCodeId: PROMO,
+      orderId: ORDER,
+      tenantOrgId: TENANT,
+      customerId: CUST,
+      discountAmount: 10,
+      orderTotalBefore: 90,
+    });
   });
 
-  it('throws when promotion row not found', async () => {
-    mockTxQueryRaw.mockResolvedValue([]); // no rows returned
+  it('propagates errors from the canonical apply (e.g. PROMO_NOT_FOUND)', async () => {
+    mockApplyPromoCodeTx.mockRejectedValueOnce(new Error('PROMO_NOT_FOUND'));
 
     await expect(
       applyPromotionTx(mockTx as Parameters<typeof applyPromotionTx>[0], {
         tenantId: TENANT, promotionId: 'missing', customerId: CUST,
         orderId: ORDER, discountAmount: 10, orderTotal: 90,
       })
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toThrow('PROMO_NOT_FOUND');
   });
 });

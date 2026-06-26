@@ -42,3 +42,7 @@ export const DRIVERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: DRIVER_NOTES,
   },
 ];
+export const DRIVERS_DRIVERS_ACCESS =
+  DRIVERS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/drivers')!
+export const DRIVERS_DRIVERS_ROUTES_ACCESS =
+  DRIVERS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/drivers/routes')!

@@ -12,7 +12,7 @@ user-invocable: true
 2. **Pagination must be server-side** (API-driven)
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
-5. **Use `/rebuild-ui-access-contract`** when changing dashboard route access, permission-gated actions, feature-flag gates, workflow-role gates, linked page APIs, or the permissions inspector popup
+5. **Use `/rebuild-ui-access-contract`** + `.cursor/rules/ui-access-contract-pattern.mdc` when changing dashboard gating (`lib/constants/permissions/`, `*-access.ts`, `page.tsx` + API gates, inspector)
 6. **Routes visible in the system menu MUST go through `/navigation` skill** — any new route, renamed route, moved route, or removed route that appears (or should appear) in the sidebar/system menu requires the **dual-write** workflow: update `web-admin/config/navigation.ts` AND generate a `sys_components_cd` migration. Load `/navigation` BEFORE touching `app/**/page.tsx` for a menu-visible route. See [Routes & Navigation Menu](#routes--navigation-menu) below.
 
 ## Folder Structure
@@ -227,6 +227,43 @@ When building or implementing a **report** (screen, component, page, tool):
 
 ❌ `orders-payments-print.tsx` — missing suffix
 ✅ `orders-payments-print-rprt.tsx` — correct
+
+## Dashboard `*-access.ts` (load `/rebuild-ui-access-contract` first)
+
+**Do not hand-author large `*-access.ts` blocks from memory.** Use scripts + golden path (`.cursor/rules/ui-access-contract-pattern.mdc`).
+
+### New dashboard route
+
+1. Permission migration + `lib/constants/permissions/{domain}-perm.ts` (if new codes)
+2. **`/navigation`** dual-write if menu-visible (`navigation.ts` + `sys_components_cd` migration)
+3. `app/dashboard/**/page.tsx` + feature UI
+4. Scripts (feature or route scope):
+
+```bash
+npm run scaffold:ui-access-contract -- --feature=<feature>
+npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
+npm run wire:ui-access-contract -- --feature=<feature> --fix
+npm run check:ui-access-contract -- --feature=<feature> --wire --verbose
+npm run sync:ui-access-contract
+```
+
+`derive` infers from: page/feature permission hooks, **`config/navigation.ts`** (when no page gate), `hasPermissionServer` in linked server actions, `/api/*` literals, `@/app/actions/*` modules.
+
+### Page gate on `page.tsx` (wire audit)
+
+| Pattern | When |
+|---------|------|
+| `RequireAnyPermission` + `FEATURE_ROUTE_ACCESS.page.permissions` | **Preferred** sync/client pages |
+| `hasPermissionServer` + `*.page.permissions` reference | `async` server pages, redirects |
+| `wire --fix` | Auto-wraps simple `return (...)` / `return <Component />` pages |
+
+Import: `RequireAnyPermission` from `@features/auth/ui/RequirePermission`; route export from `@features/<feature>/access/<feature>-access`.
+
+### After contract / gate changes
+
+`npm run sync:ui-access-contract` (or `rebuild:platform-info-inventories` if permission scans changed). See **`/rebuild-platform-info-inventories`** for drift.
+
+Full CLI: `docs/platform/ui-access-contract/user_guide.md`
 
 ## Additional Resources
 

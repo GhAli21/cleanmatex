@@ -276,6 +276,10 @@ The sidebar (`cmx-sidebar.tsx`) resolves each nav item's display label through t
 },
 ```
 
+## Navigation ↔ access contract sync
+
+`navigation.ts` `permissions` must match `*-access.ts` `page.permissions`. Update nav **before** `derive --apply` (derive reads `navigation.ts` when page has no gate).
+
 ## References
 
 - Schema: `supabase/migrations/0058_sys_components_cd_navigation.sql`

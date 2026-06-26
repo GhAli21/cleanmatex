@@ -785,3 +785,35 @@ export const BILLING_PAYMENT_DETAIL_ACCESS =
 
 export const BILLING_INVOICES_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices')!
+export const BILLING_INTERNAL_FIN_AR_AGING_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/aging')!
+export const BILLING_INTERNAL_FIN_AR_CREDITS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/credits')!
+export const BILLING_INTERNAL_FIN_AR_CUSTOMERS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/customers')!
+export const BILLING_INTERNAL_FIN_AR_CYCLES_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/cycles')!
+export const BILLING_INTERNAL_FIN_AR_DISPUTES_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/disputes')!
+export const BILLING_INTERNAL_FIN_AR_DUNNING_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/dunning')!
+export const BILLING_INTERNAL_FIN_AR_LEDGER_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/ledger')!
+export const BILLING_INTERNAL_FIN_AR_STATEMENTS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/statements')!
+export const BILLING_INTERNAL_FIN_AR_STATEMENTS_PRINT_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/statements/print')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print')!
+export const BILLING_INTERNAL_FIN_INVOICES_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices')!
+export const BILLING_INTERNAL_FIN_INVOICES_PRINT_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices/[id]/print')!
+export const BILLING_INTERNAL_FIN_INVOICES_NEW_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices/new')!
+export const BILLING_INTERNAL_FIN_RECONCILIATION_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/reconciliation')!
+export const BILLING_INTERNAL_FIN_REFUNDS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/refunds')!

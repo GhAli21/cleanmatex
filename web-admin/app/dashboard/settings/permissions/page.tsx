@@ -28,6 +28,8 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantPermission, PermissionsByCategory } from '@/lib/api/permissions'
 import { SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/settings-access'
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { SETTINGS_SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/settings-access'
 
 /**
  *
@@ -188,10 +190,12 @@ export default function PermissionsManagementPage() {
 
   if (loading) {
     return (
+    <RequireAnyPermission permissions={SETTINGS_SETTINGS_PERMISSIONS_ACCESS.page.permissions ?? []}>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    )
+    </RequireAnyPermission>
+  )
   }
 
   if (!isAdmin) {

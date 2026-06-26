@@ -3,13 +3,16 @@
 import { useTranslations } from 'next-intl';
 import { Boxes } from 'lucide-react';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { INVENTORY_INVENTORY_MACHINES_ACCESS } from '@features/inventory/access/inventory-access'
 
 /** Machines inventory — placeholder until machine registry UI ships. */
 export default function InventoryMachinesPage() {
   const t = useTranslations('inventory');
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <RequireAnyPermission permissions={INVENTORY_INVENTORY_MACHINES_ACCESS.page.permissions ?? []}>
+      <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Boxes className="h-8 w-8 text-blue-600" aria-hidden />
         <h1 className="text-2xl font-bold text-gray-900">{t('machinesTitle')}</h1>
@@ -21,5 +24,6 @@ export default function InventoryMachinesPage() {
         </CmxCardContent>
       </CmxCard>
     </div>
+    </RequireAnyPermission>
   );
 }

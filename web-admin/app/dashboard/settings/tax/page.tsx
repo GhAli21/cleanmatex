@@ -3,6 +3,8 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { TaxSetupClient } from '@features/settings/tax/ui/tax-setup-client';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { SETTINGS_SETTINGS_TAX_ACCESS } from '@features/settings/access/settings-access'
 
 /**
  *
@@ -44,7 +46,8 @@ export default async function TaxSetupPage() {
   }));
 
   return (
-    <div className="space-y-6 p-6">
+    <RequireAnyPermission permissions={SETTINGS_SETTINGS_TAX_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">{t('title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('description')}</p>
@@ -54,5 +57,6 @@ export default async function TaxSetupPage() {
         initialExemptions={serializedExemptions}
       />
     </div>
+    </RequireAnyPermission>
   );
 }

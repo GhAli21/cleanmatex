@@ -12,6 +12,7 @@ user-invocable: true
 2. **Pagination must be server-side** (API-driven)
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
+5. **Dashboard gating** — load `/rebuild-ui-access-contract`; script-first `*-access.ts` (`scaffold` → `derive --apply` → `wire --fix`); see `.cursor/rules/ui-access-contract-pattern.mdc`
 
 ## Folder Structure
 

@@ -243,3 +243,13 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
 
 export const B2B_CONTRACTS_ACCESS =
   B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/contracts')!
+export const B2B_B2B_CONTRACTS_ACCESS =
+  B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/contracts')!
+export const B2B_B2B_CUSTOMERS_ACCESS =
+  B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/customers')!
+export const B2B_B2B_CUSTOMERS_EDIT_ACCESS =
+  B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/customers/[id]/edit')!
+export const B2B_B2B_CUSTOMERS_NEW_ACCESS =
+  B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/customers/new')!
+export const B2B_B2B_STATEMENTS_ACCESS =
+  B2B_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/b2b/statements')!

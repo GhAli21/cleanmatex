@@ -12,6 +12,8 @@ import { CmxKpiStatCard } from '@ui/data-display';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getArCustomerStatement } from '@/lib/services/ar-invoice.service';
 import { ArStatementTable } from '@features/ar/ui/ar-statement-table';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_AR_STATEMENTS_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   searchParams?: Promise<{
@@ -35,13 +37,15 @@ export default async function ArStatementsPage({ searchParams }: PageProps) {
 
   if (!customerId) {
     return (
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_STATEMENTS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <CmxSummaryMessage type="info" title={t('missingCustomerTitle')} items={[t('missingCustomerBody')]} />
         <CmxButton asChild>
           <Link href="/dashboard/internal_fin/ar/customers">{t('browseCustomers')}</Link>
         </CmxButton>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const statement = await getArCustomerStatement(

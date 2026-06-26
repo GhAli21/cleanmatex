@@ -51,7 +51,7 @@ Strict drift (fail on new items): default for `npm run check:platform-info-inven
 
 Read-only browser for merged inventory data:
 
-- **Route:** `/dashboard/help/platform-inventories` (requires `admin:read`)
+- **Route:** `/dashboard/help/platform-inventories` (requires `help:platform_inventories`)
 - **User guide:** [user_guide.md](user_guide.md)
 - **API:** `GET /api/dev/platform-inventories?tab=contracts|permissions|flags|navigation|summary`
 - **Shield link:** Top bar permissions dialog → “View full inventory in Help” (passes `?route=` filter)
@@ -67,6 +67,6 @@ Read-only browser for merged inventory data:
 
 ## Related
 
+- **UI access contract CLI:** [ui-access-contract/user_guide.md](../ui-access-contract/user_guide.md) — `npm run check:ui-access-contract`
 - Access contract editing: `web-admin/src/features/*/access/*-access.ts` (declarative source)
 - Registry: `web-admin/src/features/access/page-access-registry.ts`
-- Deprecated skill alias: `/rebuild-ui-access-contract` → this skill

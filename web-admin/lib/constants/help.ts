@@ -1,6 +1,5 @@
-/** Help module permission codes (mirror DB sys_auth_permissions.code). */
-export const HELP_PERMISSIONS = {
-  PLATFORM_INVENTORIES: 'help:platform_inventories',
-} as const
-
-export type HelpPermissionCode = (typeof HELP_PERMISSIONS)[keyof typeof HELP_PERMISSIONS]
+/**
+ * @deprecated Import from `@/lib/constants/permissions/help` for RBAC codes.
+ * Kept for backward compatibility; new permission constants go under `lib/constants/permissions/`.
+ */
+export { HELP_PERMISSIONS, type HelpPermissionCode } from './permissions/help'

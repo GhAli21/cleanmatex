@@ -25,6 +25,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access'
 
 type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements';
 
@@ -147,11 +149,13 @@ export default function B2BCustomerViewPage() {
 
   if (loading) {
     return (
+    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
         <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
         <div className="h-64 bg-gray-200 rounded animate-pulse" />
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   if (error || !customer) {

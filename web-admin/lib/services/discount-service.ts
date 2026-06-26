@@ -32,40 +32,62 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 // Promo Code Validation
 // ============================================================================
 
+/** Raw promotion row as returned by Prisma. */
+type PromoRow = NonNullable<Awaited<ReturnType<typeof prisma.org_promotions_mst.findFirst>>>;
+
+/** Error codes a promo evaluation can produce (superset of both callers'). */
+export type PromoEvalErrorCode =
+  | 'NOT_FOUND'
+  | 'EXPIRED'
+  | 'MAX_USES_EXCEEDED'
+  | 'MIN_ORDER_NOT_MET'
+  | 'MAX_ORDER_EXCEEDED'
+  | 'CATEGORY_NOT_APPLICABLE'
+  | 'CUSTOMER_LIMIT_EXCEEDED';
+
+/** Canonical result of evaluating a promo code against an order context. */
+export interface PromoEvaluation {
+  isValid: boolean;
+  errorCode?: PromoEvalErrorCode;
+  error?: string;
+  /** The resolved promotion row (present whenever the code was found). */
+  promo?: PromoRow;
+  discountAmount?: number;
+}
+
 /**
- * Validate and retrieve promo code information
+ * Canonical promo-code evaluation — the **single source of truth** shared by
+ * the checkout validator ({@link validatePromoCode} → `ValidatePromoCodeResult`)
+ * and the marketing-admin preview (`promotion-engine.validatePromoCode` →
+ * `PromoValidation`). One implementation guarantees the preview and checkout
+ * never disagree on validity or discount.
+ *
+ * Runs inside `withTenantContext`; every query is also explicitly tenant-scoped.
+ * `tenantId` is passed in (callers resolve it from session or an authenticated
+ * route), so this is reusable outside a request context.
  */
-export async function validatePromoCode(
-  input: ValidatePromoCodeInput
-): Promise<ValidatePromoCodeResult> {
-  // Get tenant ID from session
-  const tenantId = await getTenantIdFromSession();
-  if (!tenantId) {
-    return {
-      isValid: false,
-      error: 'Unauthorized: Tenant ID required',
-      errorCode: 'UNAUTHORIZED',
-    };
-  }
+export async function evaluatePromoCode(params: {
+  tenantId: string;
+  code: string;
+  orderTotal: number;
+  customerId?: string;
+  serviceCategories?: string[];
+}): Promise<PromoEvaluation> {
+  const { tenantId, code, orderTotal, customerId, serviceCategories } = params;
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
-    try {
-      // Find promo code - middleware adds tenant_org_id automatically
-      const promoCode = await prisma.org_promotions_mst.findFirst({
-        where: {
-          promo_code: input.promo_code.toUpperCase(),
-          is_active: true,
-          is_enabled: true,
-        },
-      });
+    const promo = await prisma.org_promotions_mst.findFirst({
+      where: {
+        tenant_org_id: tenantId,
+        promo_code: code.toUpperCase(),
+        is_active: true,
+        is_enabled: true,
+        rec_status: 1,
+      },
+    });
 
-    if (!promoCode) {
-      return {
-        isValid: false,
-        error: 'Promo code not found or is no longer active',
-        errorCode: 'NOT_FOUND',
-      };
+    if (!promo) {
+      return { isValid: false, errorCode: 'NOT_FOUND', error: 'Promo code not found or is no longer active' };
     }
 
     const moneyCfg = await tenantSettingsService.getCurrencyConfig(tenantId);
@@ -76,136 +98,107 @@ export async function validatePromoCode(
         locale: 'en',
       });
 
-    // Check validity dates
+    // Validity window
     const now = new Date();
-    const validFrom = new Date(promoCode.valid_from);
-    const validTo = promoCode.valid_to ? new Date(promoCode.valid_to) : null;
-
+    const validFrom = new Date(promo.valid_from);
+    const validTo = promo.valid_to ? new Date(promo.valid_to) : null;
     if (now < validFrom) {
-      return {
-        isValid: false,
-        error: 'Promo code is not yet valid',
-        errorCode: 'EXPIRED',
-      };
+      return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code is not yet valid', promo };
     }
-
     if (validTo && now > validTo) {
-      return {
-        isValid: false,
-        error: 'Promo code has expired',
-        errorCode: 'EXPIRED',
-      };
+      return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code has expired', promo };
     }
 
-    // Check max uses
-    if (
-      promoCode.max_uses !== null &&
-      promoCode.current_uses !== null &&
-      promoCode.current_uses >= promoCode.max_uses
-    ) {
-      return {
-        isValid: false,
-        error: 'Promo code has reached maximum usage limit',
-        errorCode: 'MAX_USES_EXCEEDED',
-      };
+    // Global usage cap — uses the atomic `current_uses` counter, the same value
+    // the apply path enforces under lock (reversals decrement it).
+    if (promo.max_uses !== null && promo.current_uses !== null && promo.current_uses >= promo.max_uses) {
+      return { isValid: false, errorCode: 'MAX_USES_EXCEEDED', error: 'Promo code has reached maximum usage limit', promo };
     }
 
-    // Check minimum order amount
-    if (input.order_total < Number(promoCode.min_order_amount)) {
-      return {
-        isValid: false,
-        error: `Order total must be at least ${fmtMoney(Number(promoCode.min_order_amount))}`,
-        errorCode: 'MIN_ORDER_NOT_MET',
-      };
+    // Order-amount thresholds
+    const minOrder = Number(promo.min_order_amount ?? 0);
+    if (orderTotal < minOrder) {
+      return { isValid: false, errorCode: 'MIN_ORDER_NOT_MET', error: `Order total must be at least ${fmtMoney(minOrder)}`, promo };
+    }
+    if (promo.max_order_amount != null && orderTotal > Number(promo.max_order_amount)) {
+      return { isValid: false, errorCode: 'MAX_ORDER_EXCEEDED', error: `Promo code only valid for orders up to ${fmtMoney(Number(promo.max_order_amount))}`, promo };
     }
 
-    // Check maximum order amount
-    if (
-      promoCode.max_order_amount &&
-      input.order_total > Number(promoCode.max_order_amount)
-    ) {
-      return {
-        isValid: false,
-        error: `Promo code only valid for orders up to ${fmtMoney(Number(promoCode.max_order_amount))}`,
-        errorCode: 'MIN_ORDER_NOT_MET',
-      };
-    }
-
-    // Check applicable categories
-    if (
-      promoCode.applicable_categories &&
-      input.service_categories &&
-      input.service_categories.length > 0
-    ) {
-      const applicableCategories = promoCode.applicable_categories as string[];
-      const hasApplicableCategory = input.service_categories.some((cat) =>
-        applicableCategories.includes(cat)
-      );
-
-      if (!hasApplicableCategory) {
-        return {
-          isValid: false,
-          error: 'Promo code not applicable to selected services',
-          errorCode: 'CATEGORY_NOT_APPLICABLE',
-        };
+    // Applicable service categories (only enforced when the caller supplies them)
+    if (promo.applicable_categories && serviceCategories && serviceCategories.length > 0) {
+      const applicable = promo.applicable_categories as string[];
+      const hasMatch = serviceCategories.some((cat) => applicable.includes(cat));
+      if (!hasMatch) {
+        return { isValid: false, errorCode: 'CATEGORY_NOT_APPLICABLE', error: 'Promo code not applicable to selected services', promo };
       }
     }
 
-    // Check customer usage limit
-    if (input.customer_id && promoCode.max_uses_per_customer !== null) {
-      const customerUsageCount = await prisma.org_promotion_usage_dtl.count({
-        where: {
-          promo_code_id: promoCode.id,
-          customer_id: input.customer_id,
-        },
+    // Per-customer usage cap — excludes voided (reversed) usages.
+    if (customerId && promo.max_uses_per_customer !== null && promo.max_uses_per_customer !== undefined) {
+      const usedByCustomer = await prisma.org_promotion_usage_dtl.count({
+        where: { tenant_org_id: tenantId, promo_code_id: promo.id, customer_id: customerId, voided_at: null },
       });
-
-      if (customerUsageCount >= promoCode.max_uses_per_customer) {
-        return {
-          isValid: false,
-          error: 'You have reached the maximum usage limit for this promo code',
-          errorCode: 'CUSTOMER_LIMIT_EXCEEDED',
-        };
+      if (usedByCustomer >= promo.max_uses_per_customer) {
+        return { isValid: false, errorCode: 'CUSTOMER_LIMIT_EXCEEDED', error: 'You have reached the maximum usage limit for this promo code', promo };
       }
     }
 
-    // Calculate discount amount
     const discountAmount = calculatePromoDiscount(
-      input.order_total,
-      promoCode.discount_type as PromoDiscountType,
-      Number(promoCode.discount_value),
-      promoCode.max_discount_amount
-        ? Number(promoCode.max_discount_amount)
-        : undefined
+      orderTotal,
+      promo.discount_type,
+      Number(promo.discount_value),
+      promo.max_discount_amount != null ? Number(promo.max_discount_amount) : undefined,
     );
 
-      return {
-        isValid: true,
-        promoCode: mapPromoCodeToType(promoCode),
-        discountAmount,
-      };
-    } catch (error) {
-      logger.error('Error validating promo code', error as Error, { tenantId: undefined });
-      return {
-        isValid: false,
-        error: 'An error occurred while validating promo code',
-      };
-    }
+    return { isValid: true, promo, discountAmount };
   });
 }
 
 /**
- * Calculate promo code discount amount
+ * Validate and retrieve promo code information for the **checkout** flow.
+ * Thin adapter over {@link evaluatePromoCode}.
+ */
+export async function validatePromoCode(
+  input: ValidatePromoCodeInput
+): Promise<ValidatePromoCodeResult> {
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return { isValid: false, error: 'Unauthorized: Tenant ID required', errorCode: 'UNAUTHORIZED' };
+  }
+
+  try {
+    const result = await evaluatePromoCode({
+      tenantId,
+      code: input.promo_code,
+      orderTotal: input.order_total,
+      customerId: input.customer_id,
+      serviceCategories: input.service_categories,
+    });
+
+    if (!result.isValid || !result.promo) {
+      return { isValid: false, error: result.error, errorCode: result.errorCode };
+    }
+    return { isValid: true, promoCode: mapPromoCodeToType(result.promo), discountAmount: result.discountAmount };
+  } catch (error) {
+    logger.error('Error validating promo code', error as Error, { tenantId });
+    return { isValid: false, error: 'An error occurred while validating promo code' };
+  }
+}
+
+/**
+ * Calculate a promo discount amount. **Case-insensitive** on `discountType`:
+ * the `discount_type` column is stored lower-case (`percentage`/`fixed_amount`),
+ * but tolerate either case so a mis-cased value can never silently yield 0.
  */
 function calculatePromoDiscount(
   orderTotal: number,
-  discountType: PromoDiscountType,
+  discountType: string,
   discountValue: number,
   maxDiscountAmount?: number
 ): number {
   let discount = 0;
 
-  if (discountType === 'percentage') {
+  if (String(discountType).toLowerCase() === 'percentage') {
     discount = (orderTotal * discountValue) / 100;
     if (maxDiscountAmount && discount > maxDiscountAmount) {
       discount = maxDiscountAmount;
@@ -272,6 +265,20 @@ export async function applyPromoCodeTx(
   if (!locked.length) throw new Error('PROMO_NOT_FOUND');
 
   const row = locked[0];
+
+  // Idempotency (PR-2): one usage per (order, promo). The FOR UPDATE lock above
+  // serialises concurrent applies on the promo row, so a second caller for the
+  // same order sees the committed usage row here and skips — no double
+  // increment. `uq_promo_usage_idempotency (tenant_org_id, idempotency_key)`
+  // (migration 0288) is the hard DB backstop. Today this also runs inside the
+  // order-submit `withIdempotency` envelope; the key makes apply replay-safe on
+  // any future standalone path too.
+  const idempotencyKey = `${orderId}:${promoCodeId}`;
+  const existingUsage = await tx.org_promotion_usage_dtl.findFirst({
+    where: { tenant_org_id: tenantOrgId, idempotency_key: idempotencyKey },
+  });
+  if (existingUsage) return;
+
   if (row.max_uses !== null && row.current_uses >= row.max_uses) {
     throw new Error('PROMO_MAX_USES_EXCEEDED');
   }
@@ -286,6 +293,7 @@ export async function applyPromoCodeTx(
       discount_amount: discountAmount,
       order_total_before: orderTotalBefore,
       order_total_after: orderTotalBefore - discountAmount,
+      idempotency_key: idempotencyKey,
       used_at: new Date(),
       used_by: appliedBy,
     },

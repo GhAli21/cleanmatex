@@ -1,10 +1,8 @@
 'use client'
 
 import { Suspense } from 'react'
-import {
-  PLATFORM_INVENTORIES_PERMISSION,
-  PlatformInventoriesScreen,
-} from '@features/help/ui/platform-inventories-screen'
+import { PlatformInventoriesScreen } from '@features/help/ui/platform-inventories-screen'
+import { PLATFORM_INVENTORIES_PERMISSION } from '@features/help/access/help-access'
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { CmxSpinner } from '@ui/primitives'
 import { CmxEmptyState } from '@ui/data-display'

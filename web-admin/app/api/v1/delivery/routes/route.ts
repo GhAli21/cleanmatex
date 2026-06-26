@@ -13,6 +13,9 @@ import { getAuthContext } from '@/lib/middleware/require-permission';
  * @param request
  */
 export async function GET(request: NextRequest) {
+  const authCheck = await requirePermission('drivers:read')(request)
+  if (authCheck) return authCheck
+
   try {
     const authContext = await getAuthContext();
     if (!authContext) {

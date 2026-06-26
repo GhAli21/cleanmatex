@@ -12,6 +12,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access'
 
 /**
  *
@@ -41,11 +43,13 @@ export default function B2BCustomersPage() {
 
   if (isLoading) {
     return (
+    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
         <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
         <div className="h-64 bg-gray-200 rounded animate-pulse" />
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   return (

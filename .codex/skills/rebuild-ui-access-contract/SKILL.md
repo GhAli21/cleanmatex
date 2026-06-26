@@ -1,100 +1,87 @@
 ---
 name: rebuild-ui-access-contract
-description: "DEPRECATED — use /rebuild-platform-info-inventories (Mode: refresh, Scope: surface=page). Build or repair contract-first UI access for dashboard routes."
+description: Edit and validate page access contracts (*-access.ts, page-access-registry), RBAC constants, gates; sync platform inventories.
 user-invocable: true
 ---
 
-> **Deprecated.** Use **`/rebuild-platform-info-inventories`** instead.
->
-> - Page contract work: `Mode: refresh` · `Scope: surface=page` · `route=/dashboard/...`
-> - Full inventory rebuild: `Mode: rebuild-all`
->
-> Canonical skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md`
->
-> This alias remains for backward compatibility only. Do not add new references to PERMISSIONS_BY_SCREEN hand tables — use GENERATED inventories.
+# Rebuild UI Access Contract
 
-# Rebuild UI Access Contract (legacy alias)
+**Canonical skill:** `.claude/skills/rebuild-ui-access-contract/SKILL.md`  
+**Cursor/Codex rule:** `.cursor/rules/ui-access-contract-pattern.mdc`  
+**User guide:** `docs/platform/ui-access-contract/user_guide.md`
 
-Use this skill for `web-admin` dashboard route access work.
+## Golden path (no gaps)
 
-## Inputs
+```
+migration → lib/constants/permissions/{domain}-perm.ts → [nav dual-write] → scaffold → derive --apply → wire --fix → check --wire → sync
+```
 
-- Specific page mode: pass a concrete dashboard route path such as `/dashboard/b2b/contracts`
-- Full rebuild mode: omit the route path to rebuild all active `web-admin/app/dashboard/**/page.tsx` routes
+**Authoring `*-access.ts`:** script-first (`scaffold` + `derive --apply`) — not hand-written route blocks.
 
-## Use It When
+| Layer | Path |
+|-------|------|
+| RBAC codes | `web-admin/lib/constants/permissions/{domain}-perm.ts` |
+| Route contracts | `web-admin/src/features/*/access/*-access.ts` |
+| **Not** for codes | `src/features/*/access/*-permissions.ts` |
 
-- A dashboard page is added, renamed, or removed
-- A page gets a permission gate, feature flag, workflow-role gate, or tenant-role gate
-- A button, row action, modal, field, column, or tab becomes access-controlled
-- A page needs linked API dependency coverage or API permission documentation
-- The shield permissions inspector changes
-- Permissions/access docs need to reflect current UI behavior
+```bash
+npm run scaffold:ui-access-contract -- --feature=<feature>
+npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
+npm run wire:ui-access-contract -- --feature=<feature> --fix
+npm run register:ui-access-contract -- --fix
+```
 
-## Required Outcomes
+## Permission hooks
 
-1. Every active `web-admin/app/dashboard/**/page.tsx` route has a page access contract
-2. Every currently gated UI action on those routes is represented in a contract
-3. Page-linked APIs are represented via `apiDependencies` when the page uses explicit permission-gated APIs or server actions
-4. The route registry resolves the current page contract
-5. The shield popup reads contracts first for both `UI Access` and `API Access`
-6. Docs are updated:
-   - `docs/platform/permissions/PERMISSIONS_BY_SCREEN.md`
-   - `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`
-   - `docs/platform/permissions/PERMISSIONS_BY_API.md`
+- **Preferred page boundary:** `RequireAnyPermission` on `page.tsx`
+- **Full codes (especially `_` in action):** `useHasPermissionCode('resource:action')`
+- **Legacy:** `useHasPermission(resource, action)` — still valid; wire audit + extract both handle it
+- **Hook rename only:** run `docs:extract-permissions` + `rebuild:platform-info-inventories` (entry id unchanged)
 
-## Workflow
+## `derive` — legacy / incomplete contract from code
 
-1. Pick the rebuild mode
-   - page mode for one concrete dashboard route
-   - full mode for all active dashboard pages
-2. Discover existing access checks
-   - Search `web-admin/app/dashboard/**` and `web-admin/src/features/**`
-   - Inventory `RequirePermission`, `RequireAnyPermission`, `RequireAllPermissions`, `useHasPermission`, `useHasAnyPermission`, direct permission array checks, workflow-role checks, and feature-flag guards
-3. Discover page-linked APIs
-   - inspect direct page fetch calls and server actions
-   - inspect feature hooks and API client modules used by that page
-   - map them to explicit backend/server permission checks such as `requirePermission(...)` and `hasPermissionServer(...)`
-   - record auth-only APIs with no explicit permission requirement as notes
-   - when a page uses platform APIs through `rbacFetch` or `lib/api/*`, record them as linked dependencies with notes when permission enforcement is upstream and not visible in local `web-admin/app/api/**`
-4. Derive the page contract from existing code in this order
-   - explicit page/action permission checks
-   - workflow-role guards
-   - feature-flag guards
-   - navigation metadata only if no stronger page gate exists
-5. Add or repair feature-local contracts under `web-admin/src/features/<feature>/access/`
-   - keep `page`, `actions`, and `apiDependencies` on the page contract
-6. Register route contracts in `web-admin/src/features/access/page-access-registry.ts`
-7. Replace inline UI gate literals with contract reads where practical
-8. Keep the shield popup aligned with the selected page contract
-   - `UI Access` for page/actions
-   - `API Access` for linked APIs
-9. Update documentation for the chosen mode
-   - page mode updates the selected page rows and only its linked APIs
-   - full mode rebuilds the complete UI/API permissions inventories
-10. Run validation
+Dry-run default. Infers from wire scan + `extracted-permissions.json`:
 
-## Contract Rules
+| Field | Source |
+|-------|--------|
+| `page.permissions` | Page boundary gates; **`config/navigation.ts`** when no page gate |
+| `featureFlags` | `navigation.ts` |
+| `actions.*` | Permission hooks in feature UI; `hasPermissionServer` in server actions |
+| `apiDependencies` | `/api/*` literals; `@/app/actions/*` → `/app/actions/...` |
 
-- Shared primitives live in `web-admin/lib/auth/access-contracts.ts`
-- Registry lives in `web-admin/src/features/access/page-access-registry.ts`
-- Feature contracts live in `web-admin/src/features/*/access/`
-- Linked APIs live in `PageAccessContract.apiDependencies`
-- A page with no explicit permission gate still needs a contract
-- For intentionally open pages, use an empty `page` requirement and note that there is no explicit UI permission gate
-- A page can have linked APIs even when the page itself has no explicit UI permission requirement
-- API dependency entries must be explicit; do not rely on route-name guessing alone
-- Pages that use platform APIs may still declare `apiDependencies`; if local permission enforcement is not discoverable, leave `requirement` empty and explain that enforcement is upstream
-- Missing contract coverage for an active route is a defect
+```bash
+npm run derive:ui-access-contract -- --route=/dashboard/foo --verbose
+npm run derive:ui-access-contract -- --feature=marketing --apply --dry-run
+npm run derive:ui-access-contract -- --route=/dashboard/foo --apply --prune-stale
+npm run derive:ui-access-contract -- --route=/dashboard/foo --apply --force
+```
 
-## Validation
+| Flag | Effect |
+|------|--------|
+| `--apply` | Merge into `*-access.ts` |
+| `--prune-stale` | Comment stale actions/APIs not in scanned code |
+| `--force` | Replace `page.permissions` on conflict |
+| `--refresh-extract` | Refresh `extracted-permissions.json` first |
 
-- Coverage check for all active dashboard routes
-- Contract evaluation tests for permissions, wildcards, feature flags, workflow roles, empty permission contracts, and linked API dependencies where applicable
-- Search-based verification of linked API permission sources
-- Relevant frontend tests for changed pages/actions
-- `npm run build` in `web-admin`
+Skips `/api/auth/*` (global auth noise). Additive only unless `--prune-stale` or `--force`. See user guide § B3.
 
-## References
+## Commands
 
-- For the rollout checklist and documentation expectations, read `references/access-contract-rollout.md`
+```bash
+npm run check:ui-access-contract [-- --feature=... --route=... --wire --verbose]
+npm run features:ui-access-contract
+npm run scaffold:ui-access-contract
+npm run derive:ui-access-contract
+npm run wire:ui-access-contract
+npm run register:ui-access-contract
+npm run refresh:ui-access-contract -- --route=... --permissions=... --fix
+npm run sync:ui-access-contract
+npm run rebuild:ui-access-contract
+```
+
+Script: `scripts/docs/rebuild-ui-access-contract.ts`
+
+## Related
+
+- `/rebuild-platform-info-inventories` — refresh merged inventories after contract edits
+- `permissions-migration.mdc` — DB seed for new codes

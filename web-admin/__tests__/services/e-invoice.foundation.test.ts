@@ -9,8 +9,11 @@ import {
   isEInvoiceActive,
   validateFiscalTotal,
   buildFoundationTaxDecomposition,
+  buildTaxDecomposition,
+  reconcileTaxDecomposition,
+  resolveInitialEInvoiceStatus,
 } from '@/lib/payments/e-invoice';
-import { TAX_CATEGORY } from '@/lib/constants/e-invoice';
+import { TAX_CATEGORY, E_INVOICE_STATUS } from '@/lib/constants/e-invoice';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 
 describe('isEInvoiceActive — activation rule (ADR-052)', () => {
@@ -101,5 +104,58 @@ describe('buildFoundationTaxDecomposition — V1 STANDARD passthrough', () => {
     );
     const sum = Object.values(d).reduce((a, b) => a + b, 0);
     expect(sum).toBeCloseTo(99.99, 6);
+  });
+
+  it('delegates to buildTaxDecomposition (identical shape for a STANDARD-only base)', () => {
+    expect(buildFoundationTaxDecomposition(250)).toEqual(
+      buildTaxDecomposition({ standard: 250, exempt: 0, zeroRated: 0, outOfScope: 0 }),
+    );
+  });
+});
+
+describe('buildTaxDecomposition — real per-category decomposition (F-05 completion)', () => {
+  it('emits each category from its own base (mixed-category order)', () => {
+    const d = buildTaxDecomposition({ standard: 100, exempt: 20, zeroRated: 30, outOfScope: 5 });
+    expect(d[TAX_CATEGORY.STANDARD]).toBe(100);
+    expect(d[TAX_CATEGORY.EXEMPT]).toBe(20);
+    expect(d[TAX_CATEGORY.ZERO_RATED]).toBe(30);
+    expect(d[TAX_CATEGORY.OUT_OF_SCOPE]).toBe(5);
+  });
+
+  it('clamps negative / non-finite bases to zero', () => {
+    const d = buildTaxDecomposition({ standard: -10, exempt: Number.NaN, zeroRated: 30, outOfScope: 0 });
+    expect(d[TAX_CATEGORY.STANDARD]).toBe(0);
+    expect(d[TAX_CATEGORY.EXEMPT]).toBe(0);
+    expect(d[TAX_CATEGORY.ZERO_RATED]).toBe(30);
+  });
+});
+
+describe('reconcileTaxDecomposition — Σbuckets vs expected base', () => {
+  it('passes when the buckets sum to the expected base', () => {
+    const d = buildTaxDecomposition({ standard: 100, exempt: 20, zeroRated: 30, outOfScope: 5 });
+    const r = reconcileTaxDecomposition(d, 155);
+    expect(r.ok).toBe(true);
+    expect(r.difference).toBeCloseTo(0, 6);
+  });
+
+  it('passes within the money epsilon', () => {
+    const d = buildTaxDecomposition({ standard: 100.0005, exempt: 0, zeroRated: 0, outOfScope: 0 });
+    expect(reconcileTaxDecomposition(d, 100).ok).toBe(true);
+  });
+
+  it('fails and reports the signed difference when buckets drift from the base', () => {
+    const d = buildTaxDecomposition({ standard: 100, exempt: 0, zeroRated: 0, outOfScope: 0 });
+    const r = reconcileTaxDecomposition(d, 90);
+    expect(r.ok).toBe(false);
+    expect(r.difference).toBeCloseTo(10, 6); // Σbuckets(100) - expected(90)
+  });
+});
+
+describe('resolveInitialEInvoiceStatus — tax-doc initial status (mig 0386)', () => {
+  it('active order → PENDING', () => {
+    expect(resolveInitialEInvoiceStatus(true)).toBe(E_INVOICE_STATUS.PENDING);
+  });
+  it('inactive order → NOT_APPLICABLE', () => {
+    expect(resolveInitialEInvoiceStatus(false)).toBe(E_INVOICE_STATUS.NOT_APPLICABLE);
   });
 });

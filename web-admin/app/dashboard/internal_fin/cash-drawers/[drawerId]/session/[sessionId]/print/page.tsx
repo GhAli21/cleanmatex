@@ -8,6 +8,8 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { getSessionSummary } from '@/lib/services/cash-drawer.service';
 import { CashDrawerSessionPrintRprt } from '@features/billing/ui/cash-drawer-session-print-rprt';
 import { Decimal } from '@prisma/client/runtime/library';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS } from '@features/billing/access/billing-access'
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -76,7 +78,8 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
   }));
 
   return (
-    <CashDrawerSessionPrintRprt
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS.page.permissions ?? []}>
+      <CashDrawerSessionPrintRprt
       session={serializedSession}
       movements={serializedMovements}
       payments={serializedPayments}
@@ -88,5 +91,6 @@ export default async function CashDrawerSessionPrintPage({ params }: PageProps) 
         variance,
       }}
     />
+    </RequireAnyPermission>
   );
 }

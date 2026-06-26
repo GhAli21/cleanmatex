@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 import { createClient } from '@/lib/supabase/client';
 import { AlertCircle } from 'lucide-react';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_STATEMENTS_ACCESS } from '@features/b2b/access/b2b-access'
 
 /**
  *
@@ -28,7 +30,11 @@ export default function B2BStatementsPage() {
       const res = await fetch('/api/v1/b2b/overdue-statements');
       if (!res.ok) throw new Error('Failed to fetch overdue statements');
       const json = await res.json();
-      return (json.data ?? []) as Array<{
+      return (
+    <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
+      json.data ?? []
+    </RequireAnyPermission>
+  ) as Array<{
         id: string;
         statementNo: string;
         customerId: string;

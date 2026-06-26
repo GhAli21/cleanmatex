@@ -4,7 +4,7 @@ import {
   normalizePlatformInventoryTab,
   queryPlatformInventory,
 } from '@/lib/platform/platform-inventories-reader'
-import { HELP_PERMISSIONS } from '@/lib/constants/help'
+import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'
 import { logger } from '@/lib/utils/logger'
 
 /**

@@ -15,6 +15,8 @@ import { AR_STATUS_TRANSLATION_KEYS, AR_STATUS_BADGE_TONES } from '@/lib/constan
 import { getArInvoiceDetail } from '@/lib/services/ar-invoice.service';
 import { ArInvoiceDetailActions } from '@features/ar/ui/ar-invoice-detail-actions';
 import { ArInvoiceDetailTabs } from '@features/ar/ui/ar-invoice-detail-tabs';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_INVOICES_ACCESS } from '@features/billing/access/billing-access'
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -50,7 +52,8 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
   const statusKey = AR_STATUS_TRANSLATION_KEYS[invoice.status];
 
   return (
-    <div className="space-y-6 overflow-x-hidden p-6">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6 overflow-x-hidden p-6">
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50 p-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex items-center gap-3 rtl:flex-row-reverse">
@@ -132,5 +135,6 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
         <ArInvoiceDetailTabs detail={detail} />
       </div>
     </div>
+    </RequireAnyPermission>
   );
 }

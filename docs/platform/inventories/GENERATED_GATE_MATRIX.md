@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-25T14:10:31.840Z
-Git SHA: a4f470c8
+Generated: 2026-06-25T23:55:24.190Z
+Git SHA: 3b3eb630
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 145 |
+| Access contracts | 144 |
 | Permission usages | 234 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
@@ -63,7 +63,7 @@ Git SHA: a4f470c8
 | /dashboard/erp-lite/setup | ERP-Lite setup guide | erp_lite:view | erp_lite_enabled | 0 |
 | /dashboard/erp-lite/usage-maps | Usage Mapping Console | erp_lite_usage_map:view | erp_lite_enabled, erp_lite_usage_map_enabled | 0 |
 | /dashboard/help | Help | — | — | 0 |
-| /dashboard/help/platform-inventories | Platform Inventories | help:platform_inventories | — | 0 |
+| /dashboard/help/platform-inventories | Platform Inventories | — | — | 0 |
 | /dashboard/internal_fin | Internal Finance And Operations | — | — | 0 |
 | /dashboard/internal_fin/ar/aging | AR Aging | ar_aging:view | — | 0 |
 | /dashboard/internal_fin/ar/credits | AR Credits | ar_credits:view | — | 0 |
@@ -99,12 +99,12 @@ Git SHA: a4f470c8
 | /dashboard/jhtestui | JWT Test | — | — | 0 |
 | /dashboard/marketing | Marketing | promotions:read | — | 0 |
 | /dashboard/marketing/campaigns | Campaigns | notifications:manage | campaigns_enabled | 0 |
-| /dashboard/marketing/campaigns/[id] | Campaign Detail | notifications:manage | campaigns_enabled | 0 |
+| /dashboard/marketing/campaigns/[id] | Campaigns | notifications:manage | campaigns_enabled | 0 |
 | /dashboard/marketing/discount-rules | Discount Rules | discount_rules:read | — | 0 |
 | /dashboard/marketing/gift-cards | Gift Cards | gift_cards:read | — | 0 |
-| /dashboard/marketing/gift-cards/liability | Gift Card Liability | gift_cards:read | — | 0 |
-| /dashboard/marketing/loyalty | Loyalty Program | loyalty:view_config | — | 0 |
-| /dashboard/marketing/promos | Promo Codes | promotions:read | — | 0 |
+| /dashboard/marketing/gift-cards/liability | Liability | gift_cards:read | — | 0 |
+| /dashboard/marketing/loyalty | Loyalty | loyalty:view_config | — | 0 |
+| /dashboard/marketing/promos | Promos | promotions:read | — | 0 |
 | /dashboard/marketing/promotions | Promotions | promotions:view | — | 0 |
 | /dashboard/notifications | Notification Center | notifications:read | — | 0 |
 | /dashboard/notifications/delivery-log | Delivery Log | notifications:view_log | — | 0 |
@@ -149,7 +149,6 @@ Git SHA: a4f470c8
 | /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
 | /dashboard/settings/preferences | Settings Preferences | — | — | 0 |
 | /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |
-| /dashboard/settings/subscription | Settings Subscription | — | — | 0 |
 | /dashboard/settings/tax | Tax Setup | tax:view_config | — | 0 |
 | /dashboard/settings/tenant | Tenant Settings | — | — | 0 |
 | /dashboard/settings/users | Settings Users | — | — | 0 |
@@ -157,7 +156,7 @@ Git SHA: a4f470c8
 | /dashboard/settings/workflows | Workflows | — | — | 0 |
 | /dashboard/settings/workflows/[id]/edit | Edit Workflow | — | — | 0 |
 | /dashboard/settings/workflows/new | New Workflow | — | — | 0 |
-| /dashboard/subscription | Subscription | — | — | 0 |
+| /dashboard/tenant-admin/subscription | Subscription | — | — | 0 |
 | /dashboard/users | Users | — | — | 0 |
 | /dashboard/users/[userId] | User Details | — | — | 0 |
 | /dashboard/users/new | New User | — | — | 0 |

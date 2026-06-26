@@ -24,7 +24,7 @@ import type { LimitCheckResult } from '@/lib/types/tenant';
  */
 function createLimitExceededResponse(
   limitResult: LimitCheckResult,
-  upgradeUrl: string = '/dashboard/subscription/upgrade'
+  upgradeUrl: string = '/dashboard/tenant-admin/subscription'
 ): NextResponse {
   return NextResponse.json(
     {

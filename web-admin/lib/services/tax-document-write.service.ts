@@ -11,6 +11,8 @@ import {
   allocateTaxDocumentSequence,
   formatTaxDocumentNo,
 } from '@/lib/services/tax-document-sequence.service';
+import { resolveEInvoiceActivation } from '@/lib/services/e-invoice.service';
+import { resolveInitialEInvoiceStatus } from '@/lib/payments/e-invoice';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -30,6 +32,17 @@ export async function createTaxDocumentTx(
   const now = new Date();
   const fiscalYear = now.getFullYear();
 
+  // F-05/ADR-052 (mig 0386): stamp the initial e-invoice status from the order's
+  // activation window. PENDING when e-invoicing is active for the order's date,
+  // else NOT_APPLICABLE (existing flat-VAT flow — no behavior change for disabled
+  // tenants / pre-start-date orders). The order's created_at is the order date.
+  const order = await tx.org_orders_mst.findFirst({
+    where: { id: input.orderId, tenant_org_id: input.tenantId },
+    select: { created_at: true },
+  });
+  const activation = await resolveEInvoiceActivation(tx, input.tenantId, order?.created_at ?? now);
+  const eInvoiceStatus = resolveInitialEInvoiceStatus(activation.active);
+
   const doc = await tx.org_tax_documents_mst.create({
     data: {
       tenant_org_id:      input.tenantId,
@@ -37,6 +50,7 @@ export async function createTaxDocumentTx(
       document_type:      input.documentType,
       trigger_event:      input.triggerEvent,
       status:             TAX_DOCUMENT_STATUSES.DRAFT,
+      e_invoice_status:   eInvoiceStatus,
       fiscal_year:        fiscalYear,
       sequence_number:    0,
       total_amount:       input.totalAmount,

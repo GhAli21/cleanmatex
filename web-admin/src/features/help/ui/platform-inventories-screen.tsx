@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks/useDebounce'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { HELP_PERMISSIONS } from '@/lib/constants/help'
+import { HELP_PERMISSIONS } from '@features/help/access/help-access'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxButton } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
@@ -624,5 +624,3 @@ export function PlatformInventoriesScreen() {
     </div>
   )
 }
-
-export const PLATFORM_INVENTORIES_PERMISSION = HELP_PERMISSIONS.PLATFORM_INVENTORIES

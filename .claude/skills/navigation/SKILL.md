@@ -49,6 +49,19 @@ reference-original.md
 
 Read it only when the task requires detailed examples/templates.
 
+## Navigation ↔ access contract sync
+
+Menu-visible routes: **`navigation.ts` permissions MUST match** `*-access.ts` `page.permissions` (dual-write with `sys_components_cd`).
+
+When `*-access.ts` is missing or empty for an existing route, **`derive --apply` reads `navigation.ts`** to fill `page.permissions` and `featureFlags` — so update navigation **first**, then run derive.
+
+After nav + contract edits:
+
+```bash
+npm run check:ui-access-contract -- --route=/dashboard/... --wire
+npm run sync:ui-access-contract
+```
+
 ## Platform info inventories (conditional)
 
 After navigation dual-write (`navigation.ts` + `sys_components_cd` migration):

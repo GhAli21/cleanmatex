@@ -15,6 +15,8 @@ import { Button } from '@ui/primitives/button';
 import { createClient } from '@/lib/supabase/client';
 import { B2bCreateContractDialog } from '@/src/features/b2b/ui/b2b-create-contract-dialog';
 import { B2B_CONTRACTS_ACCESS } from '@features/b2b/access/b2b-access';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { B2B_B2B_CONTRACTS_ACCESS } from '@features/b2b/access/b2b-access'
 
 type ContractRow = {
   id: string;
@@ -53,7 +55,11 @@ export default function B2BContractsPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ContractRow[];
+      return (
+    <RequireAnyPermission permissions={B2B_B2B_CONTRACTS_ACCESS.page.permissions ?? []}>
+      data ?? []
+    </RequireAnyPermission>
+  ) as ContractRow[];
     },
     enabled: !!tenantId && !!currentTenant,
   });

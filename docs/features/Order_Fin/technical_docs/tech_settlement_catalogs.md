@@ -61,6 +61,25 @@ Error codes `RETURN_CHANGE_EXCEEDS_CAPACITY` / `RETURN_CHANGE_LEG_INVALID` refer
 
 ---
 
+## Object naming map (F-08)
+
+Abbreviation drift exists across voucher/disposition objects. This is **cosmetic
+only** — there are **no duplicate tables** and no functional effect. Live objects are
+**not** renamed (renaming PKs/FKs/constraints on fiscal tables is not worth the churn);
+this map is the canonical reference so the drift never reads as a bug.
+
+| Concept | Table (full word) | Catalog (abbrev) | Constraint-name fragment |
+|---|---|---|---|
+| Voucher transaction lines | `org_fin_voucher_trx_lines_dtl` | `sys_fin_vch_*` | `*_vch_trx_ln_*` |
+| Overpayment disposition (audit) | `org_fin_overpay_disp_dtl` | `sys_fin_overpay_res_cd` | some legacy `org_order_overpay_disp_dtl_*` prefixes (pre-`0360` rename residue) |
+
+- The audit table was renamed to `org_fin_overpay_disp_dtl` in `0360`; a few constraint
+  names still carry the old `org_order_overpay_disp_dtl_*` prefix. Constraint names are
+  internal identifiers — harmless, left as-is.
+- `vch` (catalog/constraint abbreviation) ≡ `voucher` (table full word). Same object family.
+
+---
+
 ## TypeScript constants
 
 | Export | DB source |

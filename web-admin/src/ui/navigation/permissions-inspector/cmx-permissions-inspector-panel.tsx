@@ -17,7 +17,7 @@ import {
 import { getAllPageAccessContracts, getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useDraggablePanel } from '@/lib/hooks/useDraggablePanel'
-import { HELP_PERMISSIONS } from '@/lib/constants/help'
+import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'
 import { CmxInput } from '@ui/primitives'
 import type { PermissionsInspectorTab } from './permissions-inspector-types'
 

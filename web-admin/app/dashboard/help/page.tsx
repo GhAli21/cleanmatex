@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { LifeBuoy, Book, MessageCircle, Mail, ExternalLink, Database } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
-import { HELP_PERMISSIONS } from '@/lib/constants/help';
+import { HELP_PERMISSIONS } from '@features/help/access/help-access';
 
 /**
  *

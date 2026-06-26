@@ -146,6 +146,26 @@ export async function POST(request: Request) {
 - [nestjs-standards.md](./nestjs-standards.md) - NestJS patterns (Phase 2)
 - [supabase-rules.md](./supabase-rules.md) - Supabase server-side usage
 
+## Access contracts & API gates (`*-access.ts`)
+
+Load **`/rebuild-ui-access-contract`** when adding or changing dashboard routes, server actions, or API permission enforcement.
+
+| Layer | Responsibility |
+|-------|----------------|
+| `*-access.ts` | Declares `page.permissions`, `actions`, `apiDependencies` |
+| `app/api/**/route.ts` | `requirePermission(code)(request)` for each local `/api/*` path in contract |
+| `app/actions/**` | `hasPermissionServer('resource:action')` per mutation; derive documents `/app/actions/...` |
+| `derive --apply` | Merges `/api/*` literals + server-action modules into `apiDependencies` |
+
+```bash
+# After API or action permission changes — refresh contract deps, then validate
+npm run derive:ui-access-contract -- --route=/dashboard/foo --apply
+npm run wire:ui-access-contract -- --route=/dashboard/foo --fix
+npm run check:ui-access-contract -- --route=/dashboard/foo --wire
+```
+
+Server-action-only features (no `/api/*` strings in UI): wire reports `API external/manual` for `/app/actions/...` — expected; enforcement is in the action file.
+
 ## Platform info inventories (conditional)
 
 After adding or changing API permission guards, `requireFeature`, or plan-limit middleware:

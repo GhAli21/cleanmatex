@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { LOYALTY_TXN_TYPES, OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
@@ -159,6 +160,18 @@ export async function processEarnPoints(
 ) {
   const { tenantId, customerId, orderId, earnPoints, idempotencyKey } = params;
 
+  // Idempotency-skip (mirrors redeemPointsTx). The outbox delivers LOYALTY_EARN
+  // at-least-once, so a re-delivery must not double-credit. The DB unique
+  // `uq_loyalty_txn_idempotency (tenant_org_id, idempotency_key)` already
+  // prevents a duplicate row, but without this graceful skip the second
+  // delivery throws a raw unique-violation that rolls back the worker tx and
+  // wedges the event in a retry loop. Returning the existing row lets the
+  // worker mark the event processed.
+  const existing = await tx.org_loyalty_txn_dtl.findFirst({
+    where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+  });
+  if (existing) return existing;
+
   // Fetch loyalty program (need program_id for account creation)
   const program = await tx.org_loyalty_programs_cf.findFirst({
     where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
@@ -208,18 +221,33 @@ export async function processEarnPoints(
 
 /**
  * Manually adjust a customer's loyalty point balance (admin action).
+ *
+ * Pass `idempotencyKey` (e.g. a request id) to make a retried adjustment a
+ * safe no-op replay. When omitted, a per-call random key is generated so two
+ * distinct adjustments never collide — `crypto.randomUUID()` replaces the old
+ * `Date.now()` key, which could collide for two adjustments in the same
+ * millisecond and trip `uq_loyalty_txn_idempotency`.
  */
 export async function adjustPointsTx(
   tx: PrismaTransactionClient,
   params: {
-    tenantId:   string;
-    customerId: string;
-    delta:      number;
-    notes?:     string;
-    adjustedBy: string;
+    tenantId:        string;
+    customerId:      string;
+    delta:           number;
+    notes?:          string;
+    adjustedBy:      string;
+    idempotencyKey?: string;
   }
 ) {
-  const { tenantId, customerId, delta, notes, adjustedBy } = params;
+  const { tenantId, customerId, delta, notes, adjustedBy, idempotencyKey } = params;
+
+  // Idempotency-skip when the caller supplies a key (mirrors redeem/earn).
+  if (idempotencyKey) {
+    const existing = await tx.org_loyalty_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   const rows = await tx.$queryRaw<{ id: string; points_balance: number }[]>`
     SELECT id, points_balance FROM org_loyalty_accounts_mst
@@ -247,7 +275,7 @@ export async function adjustPointsTx(
       points_before:   rows[0].points_balance,
       points_after:    newBalance,
       notes:           notes ?? null,
-      idempotency_key: `adj-${rows[0].id}-${Date.now()}`,
+      idempotency_key: idempotencyKey ?? `adj-${rows[0].id}-${randomUUID()}`,
       performed_by:    adjustedBy,
     },
   });

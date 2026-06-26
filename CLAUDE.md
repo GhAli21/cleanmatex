@@ -10,6 +10,7 @@
 | API route / service / backend | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
 | New feature | `/implementation` |
+| Dashboard route gating | `/rebuild-ui-access-contract` |
 | RBAC role create / update | `/update-rbac-role` |
 
 **If the skill is not loaded — do not write. Load it, then write.**
@@ -39,6 +40,7 @@
 11. **New permissions MUST have a migration** — every new permission code added to the system requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
+14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`. See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
 
 ---
 
@@ -79,7 +81,9 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
 | Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
+| Dashboard route/action/API access gating | `/rebuild-ui-access-contract` |
 | Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
+| Dashboard route gating (contract, page/API gates, inventories) | `/rebuild-ui-access-contract` |
 
 **How to enforce:**
 - Plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -109,7 +113,9 @@ npm run check:platform-info-inventories
 
 **Authority:** runtime code → declarative contracts → `docs/platform/inventories/platform-info-inventory.json` → `GENERATED_*.md` → legacy docs (link only).
 
-**Deprecated aliases:** `/rebuild-ui-access-contract`, `/rebuild-platform-inventories`, `/platform-gating` → use `/rebuild-platform-info-inventories`.
+**Page contract authoring:** load **`/rebuild-ui-access-contract`** — `npm run scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`; see `.cursor/rules/ui-access-contract-pattern.mdc` and `docs/platform/ui-access-contract/user_guide.md`.
+
+**Deprecated alias:** `/rebuild-platform-inventories`, `/platform-gating` → use `/rebuild-platform-info-inventories`.
 
 Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md` · Cursor rule: `.cursor/rules/rebuild-platform-info-inventories.mdc`
 
@@ -186,7 +192,7 @@ npm run build                      # Build (run after changes)
 
 ## Constants & Types (single source of truth)
 
-- **Constants live in `lib/constants/`** — one file per domain (`payment.ts`, `order-types.ts`). Define `as const` objects and derive types: `type X = (typeof CONST)[keyof typeof CONST]`
+- **Constants live in `lib/constants/`** — one file per domain (`payment.ts`, `order-types.ts`). **RBAC permission codes** → `lib/constants/permissions/{domain}-perm.ts` (`{DOMAIN}_PERMISSIONS`). Route contracts → `src/features/*/access/*-access.ts` (see `ui-access-contract-pattern.mdc`).
 - **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and key consts for single-import usage
 - **Do not duplicate** — same concept in one place only; other files re-export or import. Zod validation should align with the same constants
 - **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` + `lib/types/payment.ts`
@@ -282,7 +288,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `permissions-migration.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.

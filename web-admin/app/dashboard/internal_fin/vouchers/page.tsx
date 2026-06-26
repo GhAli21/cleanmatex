@@ -11,6 +11,8 @@ import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listBizVouchersAction } from '@/app/actions/finance/voucher-actions';
 import { VouchersListClient } from '@features/finance/vouchers/ui/vouchers-list-client';
 import type { VoucherListFilters } from '@/lib/types/voucher';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS } from '@features/finance/vouchers/access/vouchers-access'
 
 const PAGE_SIZE = 20;
 
@@ -31,12 +33,14 @@ export default async function VouchersPage({ searchParams }: PageProps) {
     await getAuthContext();
   } catch (error) {
     return (
+    <RequireAnyPermission permissions={FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error instanceof Error ? error.message : tCommon('error')}
         </div>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const canView = await hasPermissionServer('fin_vouchers:view');

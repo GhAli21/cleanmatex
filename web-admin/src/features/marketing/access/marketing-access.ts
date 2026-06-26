@@ -1,9 +1,5 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts';
 
-const MARKETING_NOTES = [
-  'Requires promotions:read / gift_cards:read / discount_rules:read permissions.',
-];
-
 export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/marketing',
@@ -12,131 +8,45 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['promotions:read'],
       requireAllPermissions: true,
     },
-    notes: MARKETING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/marketing/promos',
-    label: 'Promo Codes',
-    page: {
-      permissions: ['promotions:read'],
-      requireAllPermissions: true,
-    },
-    actions: {
-      create: {
-        label: 'Create promo code',
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
         requirement: {
-          permissions: ['promotions:write'],
+          permissions: ['notifications:manage'],
           requireAllPermissions: true,
         },
       },
-      edit: {
-        label: 'Edit promo code',
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
         requirement: {
-          permissions: ['promotions:write'],
+          permissions: ['notifications:manage'],
           requireAllPermissions: true,
         },
       },
-      archive: {
-        label: 'Archive promo code',
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
         requirement: {
-          permissions: ['promotions:write'],
+          permissions: ['notifications:manage'],
           requireAllPermissions: true,
         },
       },
-    },
-    notes: MARKETING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/marketing/gift-cards',
-    label: 'Gift Cards',
-    page: {
-      permissions: ['gift_cards:read'],
-      requireAllPermissions: true,
-    },
-    actions: {
-      issue: {
-        label: 'Issue gift card',
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
         requirement: {
-          permissions: ['gift_cards:issue'],
+          permissions: ['notifications:manage'],
           requireAllPermissions: true,
         },
       },
-      adjust: {
-        label: 'Adjust gift card balance',
-        requirement: {
-          permissions: ['gift_cards:adjust'],
-          requireAllPermissions: true,
-        },
-      },
-      cancel: {
-        label: 'Cancel gift card',
-        requirement: {
-          permissions: ['gift_cards:adjust'],
-          requireAllPermissions: true,
-        },
-      },
-    },
-    notes: MARKETING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/marketing/gift-cards/liability',
-    label: 'Gift Card Liability',
-    page: {
-      permissions: ['gift_cards:read'],
-      requireAllPermissions: true,
-    },
-    notes: MARKETING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/marketing/discount-rules',
-    label: 'Discount Rules',
-    page: {
-      permissions: ['discount_rules:read'],
-      requireAllPermissions: true,
-    },
-    actions: {
-      create: {
-        label: 'Create discount rule',
-        requirement: {
-          permissions: ['discount_rules:write'],
-          requireAllPermissions: true,
-        },
-      },
-      edit: {
-        label: 'Edit discount rule',
-        requirement: {
-          permissions: ['discount_rules:write'],
-          requireAllPermissions: true,
-        },
-      },
-      archive: {
-        label: 'Archive discount rule',
-        requirement: {
-          permissions: ['discount_rules:write'],
-          requireAllPermissions: true,
-        },
-      },
-    },
-    notes: MARKETING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/marketing/loyalty',
-    label: 'Loyalty Program',
-    page: {
-      permissions: ['loyalty:view_config'],
-      requireAllPermissions: true,
-    },
-    notes: ['Loyalty configuration route with explicit navigation-aligned permission gate.'],
-  },
-  {
-    routePattern: '/dashboard/marketing/promotions',
-    label: 'Promotions',
-    page: {
-      permissions: ['promotions:view'],
-      requireAllPermissions: true,
-    },
-    notes: ['Promotions route distinct from promo-code management.'],
-  },
+    ],
+},
   {
     routePattern: '/dashboard/marketing/campaigns',
     label: 'Campaigns',
@@ -146,33 +56,654 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['campaigns_enabled'],
       requireAllFeatureFlags: true,
     },
-    actions: {
-      create: {
-        label: 'Create campaign',
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
         requirement: {
           permissions: ['notifications:manage'],
           requireAllPermissions: true,
         },
       },
-      edit: {
-        label: 'Edit campaign',
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
         requirement: {
           permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
           requireAllPermissions: true,
         },
       },
     },
-    notes: ['Campaign management route aligned with navigation permissions.'],
-  },
+},
   {
     routePattern: '/dashboard/marketing/campaigns/[id]',
-    label: 'Campaign Detail',
+    label: 'Campaigns',
     page: {
       permissions: ['notifications:manage'],
       requireAllPermissions: true,
       featureFlags: ['campaigns_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ['Campaign detail route aligned with navigation permissions.'],
-  },
+    apiDependencies: [
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+},
+  {
+    routePattern: '/dashboard/marketing/discount-rules',
+    label: 'Discount Rules',
+    page: {
+      permissions: ['discount_rules:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: discount-rule-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/discount-rule-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
+  {
+    routePattern: '/dashboard/marketing/gift-cards',
+    label: 'Gift Cards',
+    page: {
+      permissions: ['gift_cards:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      activate: {
+        label: 'Activate',
+        requirement: {
+          permissions: ['gift_cards:activate'],
+          requireAllPermissions: true,
+        },
+      },
+      adjust: {
+        label: 'Adjust',
+        requirement: {
+          permissions: ['gift_cards:adjust'],
+          requireAllPermissions: true,
+        },
+      },
+      issue: {
+        label: 'Issue',
+        requirement: {
+          permissions: ['gift_cards:issue'],
+          requireAllPermissions: true,
+        },
+      },
+      sell: {
+        label: 'Sell',
+        requirement: {
+          permissions: ['gift_cards:sell'],
+          requireAllPermissions: true,
+        },
+      },
+      void: {
+        label: 'Void',
+        requirement: {
+          permissions: ['gift_cards:void'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: gift-card-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/gift-card-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+        requirement: {
+          permissions: ['gift_cards:activate', 'gift_cards:adjust', 'gift_cards:issue', 'gift_cards:sell', 'gift_cards:void'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+},
+  {
+    routePattern: '/dashboard/marketing/gift-cards/liability',
+    label: 'Liability',
+    page: {
+      permissions: ['gift_cards:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      activate: {
+        label: 'Activate',
+        requirement: {
+          permissions: ['gift_cards:activate'],
+          requireAllPermissions: true,
+        },
+      },
+      adjust: {
+        label: 'Adjust',
+        requirement: {
+          permissions: ['gift_cards:adjust'],
+          requireAllPermissions: true,
+        },
+      },
+      issue: {
+        label: 'Issue',
+        requirement: {
+          permissions: ['gift_cards:issue'],
+          requireAllPermissions: true,
+        },
+      },
+      sell: {
+        label: 'Sell',
+        requirement: {
+          permissions: ['gift_cards:sell'],
+          requireAllPermissions: true,
+        },
+      },
+      void: {
+        label: 'Void',
+        requirement: {
+          permissions: ['gift_cards:void'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: gift-card-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/gift-card-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+        requirement: {
+          permissions: ['gift_cards:activate', 'gift_cards:adjust', 'gift_cards:issue', 'gift_cards:sell', 'gift_cards:void'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+},
+  {
+    routePattern: '/dashboard/marketing/loyalty',
+    label: 'Loyalty',
+    page: {
+      permissions: ['loyalty:view_config'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: loyalty-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/loyalty-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
+  {
+    routePattern: '/dashboard/marketing/promos',
+    label: 'Promos',
+    page: {
+      permissions: ['promotions:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: promo-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/promo-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
+  {
+    routePattern: '/dashboard/marketing/promotions',
+    label: 'Promotions',
+    page: {
+      permissions: ['promotions:view'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Notifications Campaigns',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Campaigns [Id]',
+        method: 'GET',
+        path: '/api/v1/notifications/campaigns/[id]',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Status',
+        method: 'PATCH',
+        path: '/api/v1/notifications/campaigns/[id]/status',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Test',
+        method: 'POST',
+        path: '/api/v1/notifications/campaigns/[id]/test',
+        requirement: {
+          permissions: ['notifications:manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: promotions-actions',
+        method: 'POST',
+        path: '/app/actions/marketing/promotions-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      read: {
+        label: 'Read',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
 ];
+export const MARKETING_MARKETING_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing')!
+export const MARKETING_MARKETING_CAMPAIGNS_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/campaigns')!
+export const MARKETING_MARKETING_CAMPAIGNS_DETAIL_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/campaigns/[id]')!
+export const MARKETING_MARKETING_DISCOUNT_RULES_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/discount-rules')!
+export const MARKETING_MARKETING_GIFT_CARDS_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/gift-cards')!
+export const MARKETING_MARKETING_GIFT_CARDS_LIABILITY_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/gift-cards/liability')!
+export const MARKETING_MARKETING_LOYALTY_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/loyalty')!
+export const MARKETING_MARKETING_PROMOS_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/promos')!
+export const MARKETING_MARKETING_PROMOTIONS_ACCESS =
+  MARKETING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/marketing/promotions')!

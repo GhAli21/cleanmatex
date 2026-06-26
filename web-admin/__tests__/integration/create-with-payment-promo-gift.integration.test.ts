@@ -75,7 +75,7 @@ type AnyMock = (...args: any[]) => Promise<any>;
 
 interface CapturedTx {
   $queryRaw: MockFn;
-  org_promotion_usage_dtl: { create: AnyMock };
+  org_promotion_usage_dtl: { findFirst: AnyMock; create: AnyMock };
   org_promotions_mst: { update: AnyMock };
   /** Updated model name from migration 0257 */
   org_gift_card_txn_dtl: { create: AnyMock; findFirst: AnyMock };
@@ -123,7 +123,7 @@ function buildFakeTx(opts: {
   );
   return {
     $queryRaw,
-    org_promotion_usage_dtl: { create: jest.fn().mockResolvedValue({}) },
+    org_promotion_usage_dtl: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue({}) },
     org_promotions_mst: { update: jest.fn().mockResolvedValue({}) },
     org_gift_card_txn_dtl: { create: gcTxCreate, findFirst: gcTxFindFirst },
     org_gift_cards_mst: { findFirst: gcFindFirst, update: jest.fn().mockResolvedValue({}) },

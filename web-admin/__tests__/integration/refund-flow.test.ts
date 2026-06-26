@@ -1,10 +1,15 @@
-/// <reference types="jest" />
 /**
  * Integration test: refund flow — initiate → approve → process
  *
  * Verifies the three-step lifecycle against the current transactional refund
  * service shape.
+ *
+ * @jest-environment node
+ *
+ * Node env required: the service builds refund numbers with `Prisma.sql`
+ * (fn_next_fin_doc_no), whose tag throws under the jsdom/browser Prisma build.
  */
+/// <reference types="jest" />
 
 const mockTransaction = jest.fn();
 const mockOrderFind = jest.fn();
@@ -17,6 +22,7 @@ const mockRefundFindMany = jest.fn();
 const mockOutboxCreate = jest.fn();
 const mockTopUpWallet = jest.fn();
 const mockRecalculateSnapshot = jest.fn();
+const mockQueryRaw = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -33,6 +39,7 @@ jest.mock('@/lib/db/tenant-context', () => ({
 jest.mock('@/lib/services/stored-value.service', () => ({
   topUpWalletTx: (...args: unknown[]) => mockTopUpWallet(...args),
   issueCreditNote: jest.fn().mockResolvedValue({ id: 'cn-1' }),
+  issueCreditNoteTx: jest.fn().mockResolvedValue({ id: 'cn-tx-1' }),
 }));
 
 jest.mock('@/lib/services/order-financial-write.service', () => ({
@@ -91,6 +98,7 @@ function installTxMock() {
       org_domain_events_outbox: {
         create: mockOutboxCreate,
       },
+      $queryRaw: mockQueryRaw,
     };
 
     return fn(txMock);
@@ -111,7 +119,8 @@ describe('refund-flow integration — full lifecycle', () => {
 
   it('step 1: initiateRefund creates PENDING_APPROVAL record', async () => {
     mockOrderFind.mockResolvedValue(makeOrder(100));
-    mockRefundCount.mockResolvedValue(0);
+    // Refund number now minted atomically via fn_next_fin_doc_no ($queryRaw).
+    mockQueryRaw.mockResolvedValue([{ doc_no: 'REF-000001' }]);
     mockRefundCreate.mockResolvedValue(makeRefund('PENDING_APPROVAL'));
 
     const result = await initiateRefund(TENANT, {
@@ -154,6 +163,7 @@ describe('refund-flow integration — full lifecycle', () => {
     mockOrderFind.mockResolvedValue(order);
     mockRefundUpdate.mockResolvedValue({ ...refund, refund_status: 'PROCESSED' });
     mockOutboxCreate.mockResolvedValue({});
+    mockQueryRaw.mockResolvedValue([{ id: REFUND }]); // F-R2: FOR UPDATE lock acquired
 
     await processRefund(TENANT, REFUND, APPROVER);
 

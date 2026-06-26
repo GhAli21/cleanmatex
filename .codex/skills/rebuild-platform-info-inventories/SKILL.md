@@ -20,15 +20,16 @@ Orchestrates **scripts** that merge code scans + declarative sources into commit
 
 **Not a mandatory preload skill.** Invoke conditionally when the trigger table matches (see `references/invoke-protocol.md`).
 
+## Related skills (not deprecated)
+
+- **`/rebuild-ui-access-contract`** — author contracts (`lib/constants/permissions/`, `*-access.ts`, gates); then `npm run sync:ui-access-contract`
+
 ## Deprecated aliases
 
-Do not create new docs under these names:
-
-- `/rebuild-ui-access-contract` → use this skill (`refresh` mode, scope `surface=page`)
 - `/rebuild-platform-inventories` → this skill
 - `/platform-gating` → this skill
 
-Page access contract **editing** still lives in `web-admin/src/features/*/access/*-access.ts`; this skill **refreshes inventories** after those edits.
+Page access contract **editing** uses `/rebuild-ui-access-contract`; this skill **refreshes inventories** after those edits.
 
 ## Agent modes
 

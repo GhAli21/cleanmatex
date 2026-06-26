@@ -110,9 +110,18 @@ export function runAutoAllocationAlgorithm(
     const allocAmount = Math.min(remaining, target.outstandingAmount);
     if (allocAmount <= SETTLEMENT_MONEY_EPSILON) continue;
 
+    // Last eligible target the receipt can only partially cover
+    // (allocAmount < outstanding ⇔ remaining < outstanding). When the policy
+    // forbids a partial last target, stop here and leave the remainder
+    // unallocated so it flows to the fallback destination instead of
+    // part-paying this target.
+    // NOTE: a previous `&& remaining > target.outstandingAmount` clause made
+    // this guard unreachable (it contradicts `allocAmount < outstanding`);
+    // removing it makes `allow_partial_last_target = false` actually take
+    // effect. Default policy is `true`, so default behavior is unchanged.
     const isLastWithRemainder =
       sorted.indexOf(target) === sorted.length - 1 && allocAmount < target.outstandingAmount;
-    if (isLastWithRemainder && !policy.allow_partial_last_target && remaining > target.outstandingAmount) {
+    if (isLastWithRemainder && !policy.allow_partial_last_target) {
       warnings.push({
         code: RECEIPT_ALLOCATION_WARNING_CODES.FALLBACK_REQUIRED,
         message: 'Partial last target not allowed by policy',

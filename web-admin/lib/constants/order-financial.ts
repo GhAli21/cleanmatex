@@ -157,6 +157,14 @@ export const REFUND_SOURCE_TYPES = {
 /** Derived union for refund source type codes. */
 export type RefundSourceType = (typeof REFUND_SOURCE_TYPES)[keyof typeof REFUND_SOURCE_TYPES];
 
+/**
+ * Finance document-sequence type for refund numbers. Mirrors the
+ * `org_fin_doc_seq_mst.doc_type_code` value seeded by the refund-numbering
+ * migration. Refund numbers are issued atomically via `fn_next_fin_doc_no`
+ * (row-level `FOR UPDATE` lock) to avoid the `count(*)+1` concurrency race.
+ */
+export const REFUND_DOC_TYPE_CODE = 'REFUND' as const;
+
 /** Refund reason codes mirrored from `sys_refund_reason_codes_cd.reason_code`. */
 export const REFUND_REASON_CODES = {
   DUPLICATE: 'DUPLICATE',

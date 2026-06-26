@@ -11,6 +11,8 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { getDrawers } from '@/lib/services/cash-drawer.service';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS } from '@features/billing/access/billing-access'
 
 /**
  *
@@ -24,12 +26,14 @@ export default async function CashDrawersPage() {
     tenantId = auth.tenantId;
   } catch (error) {
     return (
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
         </div>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   let drawers: Awaited<ReturnType<typeof getDrawers>> = [];

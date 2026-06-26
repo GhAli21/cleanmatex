@@ -29,6 +29,8 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantRole } from '@/lib/api/roles'
 import { SETTINGS_ROLES_ACCESS } from '@features/settings/access/settings-access'
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { SETTINGS_SETTINGS_ROLES_ACCESS } from '@features/settings/access/settings-access'
 
 /**
  *
@@ -183,10 +185,12 @@ export default function RolesManagementPage() {
 
   if (loading) {
     return (
+    <RequireAnyPermission permissions={SETTINGS_SETTINGS_ROLES_ACCESS.page.permissions ?? []}>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    )
+    </RequireAnyPermission>
+  )
   }
 
   if (!isAdmin) {

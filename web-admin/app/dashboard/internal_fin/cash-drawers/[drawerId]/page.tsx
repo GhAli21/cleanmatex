@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { Decimal } from '@prisma/client/runtime/library';
 import CashDrawerDetailClient from '@features/billing/ui/cash-drawer-detail-client';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS } from '@features/billing/access/billing-access'
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -34,12 +36,14 @@ export default async function CashDrawerDetailPage({ params }: PageProps) {
     tenantId = auth.tenantId;
   } catch (error) {
     return (
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS.page.permissions ?? []}>
       <div className="p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
         </div>
       </div>
-    );
+    </RequireAnyPermission>
+  );
   }
 
   const drawer = await withTenantContext(tenantId, () =>

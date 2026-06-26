@@ -1,0 +1,287 @@
+---
+description: Golden-path dashboard gating — complete checklist with zero gaps (*-access.ts, registry, gates, constants, nav, validate)
+alwaysApply: true
+---
+
+# Dashboard Gating — Golden Path (No Gaps)
+
+A gated dashboard surface is **complete** only when every row below is satisfied. Partial work fails silently in RBAC, inventories, or wire audit.
+
+## Authority (what owns what)
+
+| # | Artifact | Path | Answers |
+|---|----------|------|---------|
+| 0 | **DB permission** | `supabase/migrations/*_permissions_*.sql` | Does this code exist for RBAC? |
+| 1 | **Code string** | `web-admin/lib/constants/permissions/{domain}-perm.ts` | Single TS spelling (= DB verbatim) |
+| 2 | **Access contract** | `web-admin/src/features/*/access/*-access.ts` | What does this **route/action/API** require? |
+| 3 | **Registry** | `web-admin/src/features/access/page-access-registry.ts` | Runtime inspector + merged registry |
+| 4 | **Page gate** | `web-admin/app/dashboard/**/page.tsx` | UI enforcement at route boundary |
+| 5 | **API gate** | `web-admin/app/api/**/route.ts` | Server enforcement per `apiDependencies` |
+| 6 | **Navigation** (if in sidebar) | `navigation.ts` + `sys_components_cd` migration | Menu visibility (`navigation-dual-write.mdc`) |
+
+**Never use as contract source:** `src/features/**/ui/*.tsx`, `lib/constants/` alone, or hardcoded strings only in page/API.
+
+**Ingest / inventories read:** `*-access.ts` + navigation — not UI folders.
+
+---
+
+## Golden path — new gated route (copy this order)
+
+```
+migration → lib/constants → [nav] → scaffold → derive --apply → wire --fix → check --wire → sync
+```
+
+Script-first contract authoring (preferred over hand-writing route blocks):
+
+```bash
+npm run scaffold:ui-access-contract -- --feature=<feature>
+npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
+npm run wire:ui-access-contract -- --feature=<feature> --fix
+npm run check:ui-access-contract -- --feature=<feature> --wire --verbose
+npm run sync:ui-access-contract
+```
+
+All npm scripts: `check`, `scaffold`, `derive`, `register`, `audit-wire`, `wire`, `refresh`, `sync`, `rebuild` — see `docs/platform/ui-access-contract/user_guide.md`.
+
+### Step 0 — New permission code? (skip if reusing existing DB code)
+
+1. Migration seeds `sys_auth_permissions_cd` + role defaults (`permissions-migration.mdc`)
+2. `lib/constants/permissions/{domain}-perm.ts` — value **identical** to DB (`constants-db-mirror.mdc`)
+3. Reuse the **same import** in contract, `page.tsx`, and `route.ts` — never a second spelling
+
+### Step 1 — Contract (`*-access.ts`) — **always required**
+
+Every `app/dashboard/**/page.tsx` needs a `routePattern` block:
+
+```ts
+import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'  // preferred for new work
+
+{
+  routePattern: '/dashboard/help/platform-inventories',
+  label: 'Platform Inventories',
+  page: {
+    permissions: [HELP_PERMISSIONS.PLATFORM_INVENTORIES],
+    requireAllPermissions: true,
+  },
+  actions: { /* per gated button/link on this route */ },
+  apiDependencies: [{
+    label: '…',
+    method: 'GET',
+    path: '/api/dev/platform-inventories',        // must match fetch path
+    requirement: { permissions: [HELP_PERMISSIONS.PLATFORM_INVENTORIES] },
+  }],
+  notes: ['…'],
+}
+```
+
+| Contract field | When required |
+|----------------|---------------|
+| `page.permissions` | Route needs permission to view |
+| `page: {}` + `notes` | Intentionally open page (document why) |
+| `actions.{key}` | Gated button/link **on this route** |
+| `apiDependencies` | Page calls local `/api/*` or documents platform API |
+| `page.featureFlags` | Route gated by feature flag |
+
+**Pick the correct file** (UI folder ≠ contract file):
+
+| Route prefix | Contract file |
+|--------------|---------------|
+| `/dashboard/help/*`, `/dashboard` | `core/access/core-access.ts` |
+| workflow segments (`preparation`, `processing`, `qa`, `ready`, …) | `orders/access/orders-access.ts` |
+| `/dashboard/internal_fin/vouchers/*` | `finance/vouchers/access/vouchers-access.ts` |
+| `/dashboard/{segment}/*` (typical) | `{segment}/access/{segment}-access.ts` |
+
+Optional (recommended for complex pages): single-route export at bottom of access file:
+
+```ts
+export const SETTINGS_WORKFLOW_ROLES_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((c) => c.routePattern === '/dashboard/settings/workflow-roles')!
+```
+
+### Step 2 — Registry — **required for every `*-access.ts` module**
+
+```ts
+// page-access-registry.ts — import + ...SPREAD
+import { CORE_ACCESS_CONTRACTS } from '@features/core/access/core-access'
+```
+
+```bash
+npm run register:ui-access-contract -- --fix   # when adding new access module
+```
+
+### Step 3 — Page gate — **on `page.tsx`, not only feature UI**
+
+```tsx
+// app/dashboard/.../page.tsx
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'
+// OR: import { SETTINGS_WORKFLOW_ROLES_ACCESS } from '…-access' and use .page.permissions
+
+export default function Page() {
+  return (
+    <RequireAnyPermission permissions={[HELP_PERMISSIONS.PLATFORM_INVENTORIES]} fallback={…}>
+      <FeatureScreen />
+    </RequireAnyPermission>
+  )
+}
+```
+
+**Hub pages** (e.g. `/dashboard/help`): contract documents `actions.openX`; parent `page.tsx` must gate the card/link with the **same** permissions.
+
+**Inside-route actions:** gate with `RequireAnyPermission` using `actions.{key}.requirement` permissions (or single-route export).
+
+### Permission hooks (page / client gates)
+
+| Pattern | When to use | Wire audit | Inventories extract |
+|---------|-------------|------------|---------------------|
+| `RequireAnyPermission` on `page.tsx` | **Preferred** route boundary | ✅ | via contract |
+| `useHasPermissionCode('resource:action')` | Full DB code; actions with `_` (e.g. `customers:receipt_allocate`) | ✅ | ✅ |
+| `useHasPermission(resource, action)` | Legacy two-arg (`invoices` + `update` → `invoices:update`) | ✅ | ✅ |
+| `RequirePermission` JSX (`resource` + `action`) | Legacy wrapper around `useHasPermission` | ✅ | via `RequirePermission` usage |
+| Hook only in deep `features/**/ui` (not imported by page) | ❌ avoid — wire audit cannot see it | ❌ | extract only |
+
+**Hook rename only** (`useHasPermission` → `useHasPermissionCode`, same code string): no `*-access.ts` change; run `npm run docs:extract-permissions` then `npm run rebuild:platform-info-inventories` (inventory entry id stays `file:line:permission`).
+
+**Legacy / incomplete contract:** `npm run derive:ui-access-contract -- --route=...` (dry-run) then `--apply` to merge `page.permissions`, missing `actions`, and missing `apiDependencies`.
+
+| Derive behavior | Detail |
+|-----------------|--------|
+| **Additive merge** | Adds missing `actions` / `apiDependencies`; does not overwrite existing keys |
+| **`--prune-stale`** | With `--apply`: comments stale contract entries not found in scanned code (never auto-deletes) |
+| **`--force`** | Replace `page.permissions` on conflict (review diff) |
+| **Conflict notes** | `--apply` without `--force` appends `[derive]` note when contract vs code disagree |
+| **HTTP APIs** | `/api/*` string literals + `submitJson`; skips `/api/auth/*` (global login/CSRF noise) |
+| **Server actions** | `@/app/actions/*` imports → `apiDependencies` path `/app/actions/...` + note; `hasPermissionServer` in action file |
+
+See `docs/platform/ui-access-contract/user_guide.md` § B3 for full flags and examples.
+
+### Step 4 — API gate — **each local `apiDependencies` path**
+
+```ts
+const authCheck = await requirePermission(HELP_PERMISSIONS.PLATFORM_INVENTORIES)(request)
+if (authCheck) return authCheck
+```
+
+`/tenant-api/*`: document in `apiDependencies` + `notes`; enforce in platform layer (not auto-fixed by CLI).
+
+### Step 5 — Navigation (only if sidebar/menu entry exists)
+
+Dual-write: `web-admin/config/navigation.ts` + `supabase/migrations/{seq}_nav_*.sql` (`navigation-dual-write.mdc`).  
+Align `permissions` / `featureFlag` with contract `page` / `actions`.
+
+### Step 6 — Validate (required before merge)
+
+```bash
+npm run check:ui-access-contract -- --route=/dashboard/your/route --wire --verbose
+npm run sync:ui-access-contract
+# PR / broad changes:
+npm run rebuild:ui-access-contract
+cd web-admin && npm run check:access-contracts
+```
+
+---
+
+## Constants layout — RBAC vs other constants
+
+Three layers — **never merge**:
+
+| Layer | Path | Holds |
+|-------|------|--------|
+| **RBAC permission codes** | `web-admin/lib/constants/permissions/{domain}-perm.ts` | `HELP_PERMISSIONS`, `MARKETING_PERMISSIONS`, … |
+| **Other domain constants** | `web-admin/lib/constants/{domain}.ts` | statuses, enums, flags — **not** RBAC codes |
+| Contract **types** | `web-admin/lib/auth/access-contracts.ts` | `PageAccessContract` |
+| Route **contracts** | `web-admin/src/features/*/access/*-access.ts` | `routePattern`, `page`, `actions`, `apiDependencies` |
+
+### ✅ Use `lib/constants/permissions/{domain}-perm.ts` (new RBAC codes)
+
+Keeps permission codes separate from `inventory.ts`, `payment.ts`, etc.
+
+```ts
+// lib/constants/permissions/help.ts
+export const HELP_PERMISSIONS = {
+  PLATFORM_INVENTORIES: 'help:platform_inventories',
+} as const
+export type HelpPermissionCode = (typeof HELP_PERMISSIONS)[keyof typeof HELP_PERMISSIONS]
+```
+
+| Rule | Detail |
+|------|--------|
+| **File** | `lib/constants/permissions/{domain}-perm.ts` |
+| **Export** | `export const {DOMAIN}_PERMISSIONS = { … } as const` |
+| **Import in** | `*-access.ts`, `page.tsx`, `app/api/**/route.ts` |
+| **Legacy** | flat `lib/constants/help.ts` may re-export — prefer `permissions/` for new code |
+
+### ❌ Do NOT use `src/features/*/access/*-permissions.ts` for codes
+
+| Reason | Detail |
+|--------|--------|
+| RBAC codes are **global** | `orders:read` is not owned by one feature folder |
+| Import direction | `app/api/` and `lib/` should not depend on `@features/…` for permission strings |
+| Split brain | Contract in `marketing-access.ts`, codes in `marketing-permissions.ts` — still need `*-access.ts` for routes; adds a third file with no ingest benefit |
+| Cross-feature use | `core-access.ts` would import from `features/help/access/` — wrong boundary |
+
+**`*-access.ts` stays the only contract file** under `src/features/*/access/`.
+
+### ❌ Do NOT use
+
+| Path | Why |
+|------|-----|
+| `lib/constants/access-contracts/` | Route contracts belong in `*-access.ts` |
+| RBAC codes in `lib/constants/inventory.ts` | Stock/inventory enums — different domain |
+| Permission only in constants, no `*-access.ts` | Missing from inventories + inspector |
+
+### Import chain (no gaps)
+
+```
+DB sys_auth_permissions_cd
+  → lib/constants/permissions/{domain}-perm.ts   ({DOMAIN}_PERMISSIONS)
+  → *-access.ts                              (import + use in page / actions / apiDependencies)
+  → page.tsx + app/api/.../route.ts          (same import)
+```
+
+Legacy: permission blocks inside `settlement-catalog.ts` etc. — **do not bulk-move**; new codes go in `permissions/`.
+
+---
+
+## Complete vs incomplete
+
+| Scenario | Complete when |
+|----------|----------------|
+| **New permission + new route** | Steps 0–6 all done |
+| **Existing permission, new route** | Steps 1–4 + 6 (no new migration if code exists) |
+| **Contract-only change** | Edit `*-access.ts` → check → sync |
+| **Open route (no perm)** | `page: {}` + `notes` in contract; no fake `RequireAnyPermission` |
+| **Auth-only API** | `apiDependencies` with `notes` explaining auth-only; no `requirePermission` mismatch in docs |
+| **UI in `features/foo/ui/`** | Contract still in route-mapped `*-access.ts`; gate on `page.tsx` |
+
+---
+
+## WRONG (always a gap)
+
+| Anti-pattern | Gap |
+|--------------|-----|
+| Permission only in `lib/constants/` | No inventory / no route mapping |
+| Gate only in `features/**/ui/*.tsx` not imported by `page.tsx` | Wire audit + convention miss |
+| `fetch('/api/…')` not in `apiDependencies` | Inventory / docs drift |
+| Hardcoded `'foo:read'` in page, different string in contract | Silent mismatch |
+| RBAC codes in wrong domain file (e.g. `inventory.ts`) | Confusion with non-RBAC constants |
+| `src/features/*/access/*-permissions.ts` for RBAC codes | APIs/`lib` must not import permission strings from `@features/` |
+| `lib/constants/access-contracts/` for route contracts | Wrong layer; not ingested |
+| New `*-access.ts` not in registry | Inspector omits contracts |
+| Sidebar link without nav dual-write | Menu vs RBAC drift |
+| New permission only in TS / contract, no migration | RBAC checks fail |
+
+---
+
+## Legacy note
+
+Many `*-access.ts` files use inline permission literals (e.g. `'promotions:read'`). **Do not refactor bulk.** For **new** routes: prefer `lib/constants` imports. Strings must still match DB exactly.
+
+---
+
+## References
+
+- `docs/platform/ui-access-contract/user_guide.md`
+- `web-admin/lib/auth/access-contracts.ts`
+- `permissions-migration.mdc` · `constants-db-mirror.mdc` · `navigation-dual-write.mdc`
+- `/rebuild-ui-access-contract`

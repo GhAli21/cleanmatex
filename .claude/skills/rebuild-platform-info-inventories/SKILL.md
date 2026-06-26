@@ -22,13 +22,10 @@ Orchestrates **scripts** that merge code scans + declarative sources into commit
 
 ## Deprecated aliases
 
-Do not create new docs under these names:
-
-- `/rebuild-ui-access-contract` → use this skill (`refresh` mode, scope `surface=page`)
-- `/rebuild-platform-inventories` → this skill
+- `/rebuild-platform-inventories` → this skill (`rebuild-all`)
 - `/platform-gating` → this skill
 
-Page access contract **editing** still lives in `web-admin/src/features/*/access/*-access.ts`; this skill **refreshes inventories** after those edits.
+**Page contract authoring:** use **`/rebuild-ui-access-contract`** — edits `*-access.ts` + registry, then `npm run sync:ui-access-contract` to refresh inventories.
 
 ## Agent modes
 
@@ -41,13 +38,18 @@ Page access contract **editing** still lives in `web-admin/src/features/*/access
 
 **Scope fields** (combine with mode): `surface`, `route`, `path`, `flagKey`, `permissionCode`, `settingCode`, `limitKey`.
 
+> **Agent scope is documentation only** — the orchestrator has no `--route` / `--surface` flags. Map scope to commands:
+> - `surface=permission` (hook rename) → `npm run docs:extract-permissions` then `npm run rebuild:platform-info-inventories`
+> - `surface=page`, `route=…` (contract edit) → `npm run sync:ui-access-contract` or `check:ui-access-contract -- --route=… --wire`
+
 Surfaces: `page`, `api`, `service`, `server_action`, `navigation`, `feature-flag`, `permission`, `plan-limit`, `plan-constraint`, `settings`.
 
 ## Workflow (agent)
 
 1. Identify trigger (see invoke-protocol) and pick **mode + scope**.
 2. Make code/contract changes first (access contracts, nav, migrations, flags).
-3. Run scripts — **never hand-edit** `GENERATED_*.md` or `platform-info-inventory.json`:
+3. After contract edits: `npm run sync:ui-access-contract` (or `rebuild:ui-access-contract` for full PR).
+4. Run scripts — **never hand-edit** `GENERATED_*.md` or `platform-info-inventory.json`:
    ```bash
    npm run rebuild:platform-info-inventories          # full
    npm run check:platform-info-inventories             # validate + Jest

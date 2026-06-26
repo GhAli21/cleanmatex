@@ -7,6 +7,8 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { ArInvoicePrintRprt } from '@features/ar/ui/ar-invoice-print-rprt';
 import type { ArInvoiceDetail } from '@/lib/types/ar-invoice';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { BILLING_INTERNAL_FIN_INVOICES_PRINT_ACCESS } from '@features/billing/access/billing-access'
 
 /**
  *
@@ -37,7 +39,8 @@ export default function ArInvoicePrintPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
+    <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_PRINT_ACCESS.page.permissions ?? []}>
+      <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -74,5 +77,6 @@ export default function ArInvoicePrintPage() {
         {data ? <ArInvoicePrintRprt detail={data} /> : null}
       </div>
     </div>
+    </RequireAnyPermission>
   );
 }
