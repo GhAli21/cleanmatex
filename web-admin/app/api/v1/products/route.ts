@@ -22,6 +22,7 @@ import type {
   BulkImportRequest,
   BulkExportRequest,
 } from '@/lib/types/catalog';
+import { PRODUCT_SEARCH_SCOPES } from '@/lib/constants/catalog';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,7 +68,8 @@ async function getAuthContext() {
  * Query Parameters:
  * - page: number (default: 1)
  * - limit: number (default: 20)
- * - search: string (search by code or name)
+ * - search: string (term matched per searchScope columns)
+ * - searchScope: 'name' | 'code' | 'all' (default all — name/name2/hint + code/sku)
  * - category: string (filter by category code)
  * - status: 'active' | 'inactive'
  * - sortBy: 'code' | 'name' | 'category' | 'createdAt' | 'price'
@@ -95,14 +97,21 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
+    const rawSearchScope = searchParams.get('searchScope');
+    const searchScope =
+      rawSearchScope && PRODUCT_SEARCH_SCOPES.includes(rawSearchScope as (typeof PRODUCT_SEARCH_SCOPES)[number])
+        ? (rawSearchScope as ProductSearchParams['searchScope'])
+        : undefined;
+
     // Parse query parameters
     const params: ProductSearchParams = {
       page: parseInt(searchParams.get('page') || '1', 10),
       limit: parseInt(searchParams.get('limit') || '20', 10),
       search: searchParams.get('search') || undefined,
+      searchScope,
       category: searchParams.get('category') || undefined,
       status: searchParams.get('status') as 'active' | 'inactive' | undefined,
-      sortBy: (searchParams.get('sortBy') as any) || 'createdAt',
+      sortBy: (searchParams.get('sortBy') as ProductSearchParams['sortBy']) || 'createdAt',
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
     };
 
@@ -125,6 +134,13 @@ export async function GET(request: NextRequest) {
     if (params.status && !['active', 'inactive'].includes(params.status)) {
       return NextResponse.json(
         { error: 'status must be active or inactive' },
+        { status: 400 }
+      );
+    }
+
+    if (rawSearchScope && !searchScope) {
+      return NextResponse.json(
+        { error: 'searchScope must be name, code, or all' },
         { status: 400 }
       );
     }

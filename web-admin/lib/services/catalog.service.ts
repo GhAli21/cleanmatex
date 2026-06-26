@@ -6,6 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { buildProductSearchOrFilter } from '@/lib/utils/product-search';
 import type {
   ServiceCategory,
   EnabledCategory,
@@ -26,8 +27,6 @@ import type {
   CSVTemplate,
   ProductStatistics,
 } from '@/lib/types/catalog';
-
-// Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
 
 // ==================================================================
 // SERVICE CATEGORIES
@@ -456,11 +455,15 @@ export async function searchProducts(
     query = query.eq('is_active', false);
   }
 
-  // Search by product code or name
+  // Search across name columns (and optionally code) per searchScope
   if (params.search) {
-    query = query.or(
-      `product_code.ilike.%${params.search}%,product_name.ilike.%${params.search}%,product_name2.ilike.%${params.search}%`
+    const orFilter = buildProductSearchOrFilter(
+      params.search,
+      params.searchScope ?? 'all'
     );
+    if (orFilter) {
+      query = query.or(orFilter);
+    }
   }
 
   // Sorting

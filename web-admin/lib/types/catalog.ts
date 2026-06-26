@@ -185,7 +185,8 @@ export interface ProductUpdateRequest extends Partial<ProductCreateRequest> {
 export interface ProductSearchParams {
   page?: number;
   limit?: number;
-  search?: string;                            // Search by code or name
+  search?: string;                            // Search term (columns depend on searchScope)
+  searchScope?: 'name' | 'code' | 'all';     // name = product_name, product_name2, hint_text
   category?: string;                          // Filter by category code
   status?: 'active' | 'inactive';
   sortBy?: 'code' | 'name' | 'category' | 'createdAt' | 'price';

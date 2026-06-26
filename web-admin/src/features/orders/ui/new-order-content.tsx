@@ -195,9 +195,7 @@ export function NewOrderContent() {
     const categoriesQuery = useCategories();
     const productsQuery = useProducts(state.state.selectedCategory);
 
-    // Suppress unused variable warnings — hooks are used for side effects / cache population
     void categoriesQuery;
-    void productsQuery;
 
     useEffect(() => {
         const { categories, selectedCategory } = state.state;
@@ -712,6 +710,15 @@ export function NewOrderContent() {
                                         items={state.state.items}
                                         express={state.state.express}
                                         currencyCode={currencyCode}
+                                        productSearch={productsQuery.productSearch}
+                                        onProductSearchChange={productsQuery.setProductSearch}
+                                        isSearchPending={productsQuery.isSearchPending}
+                                        productsTotal={productsQuery.productsTotal}
+                                        hasMoreProducts={productsQuery.hasNextPage ?? false}
+                                        isLoadingMore={productsQuery.isFetchingNextPage}
+                                        onLoadMore={() => {
+                                            void productsQuery.fetchNextPage();
+                                        }}
                                         onAddItem={handleAddItem}
                                         onRemoveItem={handleRemoveItem}
                                         onQuantityChange={handleQuantityChange}
