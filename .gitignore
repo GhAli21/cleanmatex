@@ -37,6 +37,12 @@ supabase/.temp/
 coverage/
 *.log
 jest.setup.js
+playwright-report/
+test-results/
+playwright/.auth/
+web-admin/playwright-report/
+web-admin/test-results/
+web-admin/playwright/.auth/
 
 # OS Files
 .DS_Store
