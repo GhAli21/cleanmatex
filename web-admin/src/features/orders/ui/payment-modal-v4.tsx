@@ -84,6 +84,7 @@ import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { useMoneyDerivations } from '@features/orders/hooks/use-money-derivations';
+import { derivePaymentValidationItems } from '@features/orders/hooks/payment-validation';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -2610,104 +2611,40 @@ export function PaymentModalV4({
     []
   );
 
-  const validationItems = useMemo(() => {
-    const items: string[] = [];
-
-    if (promoCodeValidating) {
-      items.push(t('promoCode.validating'));
-    }
-    if (giftCardValidating) {
-      items.push(t('giftCard.checking'));
-    }
-    if (overpaymentBlocksSubmit) {
-      if (payExtraIntent && validationPhase !== 'ready') {
-        items.push(t('validatePayment.requiredBeforeSubmit'));
-      } else {
-        items.push(t('rightRail.requiredAction.overpaymentMessage', {
-          amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
-        }));
-      }
-    }
-    if (errors.checkNumber?.message) {
-      items.push(String(errors.checkNumber.message));
-    }
-    if (errors.amountDiscount?.message) {
-      items.push(String(errors.amountDiscount.message));
-    }
-    if (errors.percentDiscount?.message) {
-      items.push(String(errors.percentDiscount.message));
-    }
-    if (pinRequired) {
-      items.push(t('giftCard.pinPendingError'));
-    }
-    if (hasCheckLegWithoutNumber) {
-      items.push(t('splitPayment.validation.checkNumberRequired'));
-    }
-    if (hasCheckLegWithInvalidDate) {
-      const invalidLeg = paymentLegs.find(
-        (leg) =>
-          leg.method === PAYMENT_METHODS.CHECK &&
-          (leg.amount ?? 0) > 0 &&
-          validateCheckDueDate(leg.checkDate)
-      );
-      if (invalidLeg) {
-        items.push(t(`splitPayment.${validateCheckDueDate(invalidLeg.checkDate)!}`));
-      }
-    }
-    legsMissingRequiredReference.forEach((leg) => {
-      items.push(
-        t('splitPayment.validation.referenceRequired', {
-          method: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
-        })
-      );
-    });
-    if (walletLegExceedsLiveBalance) {
-      items.push(
-        t('customerCredits.walletBalanceExceeded', {
-          amount: liveWalletBalanceDisplay,
-        })
-      );
-    }
-    if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
-      items.push(
-        t('customerCredits.storedValueBalanceExceeded', {
-          method: getOptionDisplayName(
-            getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
-            storedValueLegExceedance.leg.method
-          ),
-          amount: `${currencyCode} ${formatAmount(storedValueLegExceedance.cap)}`,
-        })
-      );
-    }
-    creditNoteLegsMissingReference.forEach(() => {
-      items.push(t('customerCredits.creditNoteRequired'));
-    });
-    terminalRequiredLegs.forEach(({ leg }) => {
-      items.push(
-        t('splitPayment.validation.terminalRequired', {
-          method: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
-        })
-      );
-    });
-    if (cashDrawerBlockingMessage) {
-      items.push(cashDrawerBlockingMessage);
-    }
-    if (invalidImmediateAmount) {
-      items.push(t('partialPayment.validation.amountMustBePositive'));
-    }
-    if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
-      items.push(t('remainder.validation.required'));
-    }
-    if (serverTotals?.creditLimit?.wouldExceed) {
-      if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
-        items.push(t('b2b.creditExceededWarn'));
-      } else if (serverTotals.creditLimit.mode !== 'warn') {
-        items.push(t('b2b.creditExceeded'));
-      }
-    }
-
-    return [...new Set(items)];
-  }, [
+  const validationItems = useMemo(() => derivePaymentValidationItems({
+    t,
+    currencyCode,
+    formatAmount,
+    getMethodOption,
+    getOptionDisplayName,
+    promoCodeValidating,
+    giftCardValidating,
+    overpaymentBlocksSubmit,
+    payExtraIntent,
+    validationPhase,
+    unresolvedOverpaymentAmount,
+    checkNumberError: errors.checkNumber?.message != null ? String(errors.checkNumber.message) : undefined,
+    amountDiscountError: errors.amountDiscount?.message != null ? String(errors.amountDiscount.message) : undefined,
+    percentDiscountError: errors.percentDiscount?.message != null ? String(errors.percentDiscount.message) : undefined,
+    pinRequired,
+    hasCheckLegWithoutNumber,
+    hasCheckLegWithInvalidDate,
+    paymentLegs,
+    legsMissingRequiredReference,
+    walletLegExceedsLiveBalance,
+    liveWalletBalanceDisplay,
+    storedValueLegExceedsBalance,
+    storedValueLegExceedance,
+    creditNoteLegsMissingReference,
+    terminalRequiredLegs,
+    cashDrawerBlockingMessage,
+    invalidImmediateAmount,
+    remainingBalance,
+    effectiveOutstandingPolicy,
+    creditLimitWouldExceed: Boolean(serverTotals?.creditLimit?.wouldExceed),
+    creditLimitMode: serverTotals?.creditLimit?.mode,
+    creditLimitOverride,
+  }), [
     creditLimitOverride,
     errors.amountDiscount?.message,
     effectiveOutstandingPolicy,

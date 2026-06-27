@@ -13,7 +13,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
 import { PreferencesPanel } from './preferences-panel';
 import { Package, Search } from 'lucide-react';
-import { CmxInput, CmxSwitch, Label } from '@ui/primitives';
+import { CmxInput, CmxSwitch, Label, CmxSelect } from '@ui/primitives';
 import { CmxButton } from '@ui/primitives';
 import { CmxPagination } from '@ui/navigation';
 
@@ -130,22 +130,35 @@ export const ProductGrid = memo(function ProductGrid({
       : t('noSearchResultsHint')
     : (t('noProductsHint') || 'No products in this category. Try selecting another category above.');
 
+  const showPaginationFooter =
+    productsTotal > 0 && onPageChange != null && onPageSizeChange != null;
+
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-lg border border-gray-200 p-3">
-        <div className={`flex flex-col gap-4 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-          <div className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
-              {t('selectItems')}
-            </h2>
-            {onProductSearchChange ? (
-              <div className="w-full sm:max-w-xs">
-                <label htmlFor="new-order-product-search" className="sr-only">
-                  {t('searchProductsLabel')}
-                </label>
-                <div className="relative">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/* Header panel */}
+        <div className="border-b border-gray-200 bg-gradient-to-b from-slate-50 to-white px-4 py-4 sm:px-5">
+          <h2
+            className={`mb-3 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}
+          >
+            {t('selectItems')}
+          </h2>
+
+          {onProductSearchChange ? (
+            <div
+              className={`rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+              role="search"
+              aria-label={t('searchProductsLabel')}
+            >
+              <div
+                className={`flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4 ${isRTL ? 'xl:flex-row-reverse' : ''}`}
+              >
+                <div className="relative min-w-0 flex-1 xl:max-w-md">
+                  <label htmlFor="new-order-product-search" className="sr-only">
+                    {t('searchProductsLabel')}
+                  </label>
                   <Search
-                    className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`}
+                    className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 ${isRTL ? 'right-3' : 'left-3'}`}
                     aria-hidden="true"
                   />
                   <CmxInput
@@ -154,66 +167,98 @@ export const ProductGrid = memo(function ProductGrid({
                     value={productSearch}
                     onChange={(event) => onProductSearchChange(event.target.value)}
                     placeholder={t('searchProductsPlaceholder')}
-                    className={isRTL ? 'pr-9' : 'pl-9'}
+                    className={`border-slate-200 bg-slate-50/50 focus:bg-white ${isRTL ? 'pr-9' : 'pl-9'}`}
                     aria-busy={isSearchPending}
                   />
                 </div>
-              </div>
-            ) : null}
-          </div>
 
-          {onSearchAllCategoriesChange ? (
-            <div
-              className={`flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-            >
-              <CmxSwitch
-                id="new-order-search-all-categories"
-                checked={searchAllCategories}
-                onCheckedChange={onSearchAllCategoriesChange}
-                aria-describedby="new-order-search-all-categories-help"
-              />
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <Label
-                  htmlFor="new-order-search-all-categories"
-                  className="cursor-pointer text-sm font-medium text-gray-900"
+                <div
+                  className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:shrink-0 ${isRTL ? 'sm:flex-row-reverse' : ''}`}
                 >
-                  {t('searchAllCategories')}
-                </Label>
-                <p
-                  id="new-order-search-all-categories-help"
-                  className="text-xs text-gray-500"
-                >
-                  {t('searchAllCategoriesHelp')}
-                </p>
+                  {onSearchAllCategoriesChange ? (
+                    <div
+                      className={`flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      <CmxSwitch
+                        id="new-order-search-all-categories"
+                        checked={searchAllCategories}
+                        onCheckedChange={onSearchAllCategoriesChange}
+                        aria-describedby="new-order-search-all-categories-help"
+                      />
+                      <div className="min-w-0">
+                        <Label
+                          htmlFor="new-order-search-all-categories"
+                          className="cursor-pointer text-sm font-medium text-slate-800 whitespace-nowrap"
+                        >
+                          {t('searchAllCategories')}
+                        </Label>
+                        <p
+                          id="new-order-search-all-categories-help"
+                          className="text-xs text-slate-500 sr-only sm:not-sr-only sm:max-w-[12rem] sm:leading-snug"
+                        >
+                          {t('searchAllCategoriesHelp')}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {onPageSizeChange ? (
+                    <div
+                      className={`flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      <span className="whitespace-nowrap font-medium">{tCommon('rowsPerPage')}</span>
+                      <CmxSelect
+                        fullWidth={false}
+                        size="sm"
+                        className="w-[4.5rem] border-slate-200 bg-white"
+                        options={ORDER_DEFAULTS.LIMITS.PRODUCTS_PAGE_SIZE_OPTIONS.map((size) => ({
+                          value: String(size),
+                          label: String(size),
+                        }))}
+                        value={String(pageSize)}
+                        onChange={(event) => onPageSizeChange(Number(event.target.value))}
+                        disabled={isFetching}
+                        aria-label={tCommon('rowsPerPage')}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
+
+              {isGlobalSearch ? (
+                <div className={`mt-3 flex ${isRTL ? 'justify-end' : 'justify-start'}`}>
+                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-800">
+                    {t('searchingAllCategories')}
+                  </span>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-
-          {isGlobalSearch ? (
-            <p className="text-sm font-medium text-blue-700">{t('searchingAllCategories')}</p>
           ) : null}
         </div>
 
-        {products.length === 0 ? (
-          <div className={`flex flex-col items-center justify-center py-12 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-gray-400" aria-hidden="true" />
+        {/* Content */}
+        <div className="p-3 sm:p-4">
+          {products.length === 0 ? (
+            <div
+              className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/40 py-12 px-4 ${isRTL ? 'text-right' : 'text-center'}`}
+            >
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
+                <Package className="h-8 w-8 text-slate-400" aria-hidden="true" />
+              </div>
+              <h3 className="mb-1 text-base font-semibold text-slate-800 sm:text-lg">
+                {productSearch.trim() ? t('noSearchResults') : t('noProductsAvailable')}
+              </h3>
+              <p className="mb-4 max-w-sm text-sm text-slate-500">{emptyHint}</p>
+              {productSearch.trim() && onProductSearchChange ? (
+                <CmxButton variant="outline" size="sm" onClick={() => onProductSearchChange('')}>
+                  {t('clearSearch')}
+                </CmxButton>
+              ) : null}
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1">
-              {productSearch.trim() ? t('noSearchResults') : t('noProductsAvailable')}
-            </h3>
-            <p className="text-sm text-gray-500 mb-4 max-w-sm">{emptyHint}</p>
-            {productSearch.trim() && onProductSearchChange ? (
-              <CmxButton variant="outline" size="sm" onClick={() => onProductSearchChange('')}>
-                {t('clearSearch')}
-              </CmxButton>
-            ) : null}
-          </div>
-        ) : (
-          <>
+          ) : (
             <div
               ref={gridRef}
-              className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 transition-opacity duration-150 ${isFetching ? 'opacity-70' : ''}`}
+              className={`grid grid-cols-2 gap-3 transition-opacity duration-150 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 ${isFetching ? 'opacity-70' : ''}`}
               aria-busy={isFetching}
             >
               {products.map((product) => {
@@ -238,24 +283,29 @@ export const ProductGrid = memo(function ProductGrid({
                 );
               })}
             </div>
-            {productsTotal > 0 && onPageChange && onPageSizeChange ? (
-              <div className="mt-4 border-t border-gray-100">
-                <CmxPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  pageSize={pageSize}
-                  totalItems={productsTotal}
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={onPageSizeChange}
-                  pageSizeOptions={[...ORDER_DEFAULTS.LIMITS.PRODUCTS_PAGE_SIZE_OPTIONS]}
-                  showWhenSinglePage
-                  disabled={isFetching}
-                  labels={{ rowsPerPage: tCommon('rowsPerPage') }}
-                />
-              </div>
-            ) : null}
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Footer panel */}
+        {showPaginationFooter ? (
+          <div className="border-t border-gray-200 bg-gradient-to-t from-slate-50 to-white px-2 py-1 sm:px-3">
+            <div className="rounded-lg border border-slate-200/80 bg-white px-1 shadow-sm sm:px-2">
+              <CmxPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={productsTotal}
+                onPageChange={handlePageChange}
+                onPageSizeChange={onPageSizeChange}
+                pageSizeOptions={[...ORDER_DEFAULTS.LIMITS.PRODUCTS_PAGE_SIZE_OPTIONS]}
+                showPageSizeSelector={false}
+                showWhenSinglePage
+                disabled={isFetching}
+                labels={{ rowsPerPage: tCommon('rowsPerPage') }}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div ref={prefsPanelRef}>
