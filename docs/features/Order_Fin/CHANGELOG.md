@@ -1,5 +1,35 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-06-27 — Payment Modal v4: `usePaymentEngine` extraction (Phase 0–1) + QA bug fixes
+
+**Program plan:** `~/.claude/plans/happy-doodling-volcano.md`  
+**Review / design:** `docs/features/Order_Fin/Payment_Modal_Review/Payment_Modal_v4_UX_Review_and_Engine_Plan.md`  
+**ADR:** `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md` (single headless engine, two views; rejects parallel modals)  
+**Scope:** No migration. **No payload-contract change.** Behavior-frozen refactor of `web-admin/src/features/orders/ui/payment-modal-v4.tsx` + two pre-existing UI bug fixes.
+
+### Shipped — Phase 0 (regression baseline)
+- ADR accepted: open in Simple, auto-escalate to Full via `needsAdvanced`; one engine, two views.
+- Baseline payload-fixture harness — 8 captured `{paymentData, payload}` scenarios under `web-admin/__tests__/features/orders/payment-payload-fixtures/` + skipped oracle test (activates in Phase 2F).
+
+### Shipped — Phase 1 (logic extraction, zero behavior change)
+- `hooks/use-money-derivations.ts` — leg aggregations + change/overpayment math (7 tests).
+- `hooks/payment-validation.ts` → `derivePaymentValidationItems` — submit-gate rules (10 tests).
+- `payment-modal-v4.right-rail.ts` → `deriveBalanceStatusLabel` / `deriveRequiredActionCopy` / `deriveRightRailWarningMessages` (13 tests).
+- `hooks/payment-needs-advanced.ts` → `computeNeedsAdvanced` — Simple→Full predicate (13 tests; wiring deferred to Phase 4).
+- Component ~250 lines lighter; all extractions are verbatim lifts wired with byte-identical memo deps.
+
+### Shipped — QA bug fixes (pre-existing, surfaced during fixture capture)
+- **Bug 2 + 3 FIXED** — allocation drawers rendered *behind* the extra-receipt dialog (CmxDialog renders inline with a shared `z-50` → stacking by DOM order). Reordered the drawers after the dialog in `payment-modal-v4.tsx`; restores the overpayment-allocation → submit flow.
+- **Bug 1 DIAGNOSED (no fix)** — pay-fully-by-gift-card → backend `OUTSTANDING_POLICY_REQUIRED`; root cause + fix recipe in `Payment_Modal_Review/Payment_Modal_v4_QA_Bugs_2026-06-27.md`.
+
+### Validation
+eslint clean · `tsc` clean on touched files (pre-existing repo errors only) · **production build green** · 114 payment-suite + 59 new-hook tests pass.
+
+### Migrations applied
+None (code-only).
+
+---
+
 ## 2026-06-05 — Order Financial v1.1 Full Alignment (Phases 1–9)
 
 **Plan:** `docs/features/Order_Fin/Fix_29_05_2026/order-fin-v1_1-full-alignment-implementation-plan.md`  
