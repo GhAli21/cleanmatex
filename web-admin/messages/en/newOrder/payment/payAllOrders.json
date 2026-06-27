@@ -1,0 +1,5 @@
+{
+  "label": "Pay all orders",
+  "enabled": "Paying all orders",
+  "disabled": "Paying current order only"
+}

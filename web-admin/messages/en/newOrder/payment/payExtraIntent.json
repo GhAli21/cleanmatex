@@ -1,0 +1,5 @@
+{
+  "label": "Customer is paying extra",
+  "help": "Turn on to collect more than the order total across all payment methods. You will choose where the extra goes before submitting.",
+  "disabledNoMethods": "No payment method on this order allows retained overpayment."
+}

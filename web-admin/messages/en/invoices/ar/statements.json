@@ -1,0 +1,24 @@
+{
+  "title": "Customer Statements",
+  "subtitle": "Render customer account statements from AR ledger movements.",
+  "tableTitle": "Statement Lines",
+  "missingCustomerTitle": "Customer required",
+  "missingCustomerBody": "Choose a customer from the AR customers page to generate a statement view.",
+  "browseCustomers": "Browse AR Customers",
+  "kpis": {
+    "opening": "Opening Balance",
+    "closing": "Closing Balance",
+    "lines": "Statement Lines"
+  },
+  "columns": {
+    "eventAt": "Event Date",
+    "kind": "Kind",
+    "reference": "Reference",
+    "description": "Description",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance"
+  },
+  "emptyTitle": "No statement lines",
+  "emptyDescription": "No ledger movements matched the selected statement period."
+}

@@ -1,0 +1,13 @@
+{
+  "title": "إيصال الدفع",
+  "invoiceNumber": "رقم الفاتورة",
+  "orderNumber": "رقم الطلب",
+  "date": "التاريخ",
+  "time": "الوقت",
+  "customer": "العميل",
+  "paymentMethod": "طريقة الدفع",
+  "print": "طباعة الإيصال",
+  "download": "تحميل",
+  "email": "إرسال بالبريد",
+  "whatsapp": "إرسال بالواتساب"
+}

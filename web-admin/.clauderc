@@ -55,6 +55,7 @@ i18n:
     - "All user-facing text must use translation keys"
     - "Search existing keys before adding new ones"
     - "Keep the en/ar locale trees aligned"
+    - "Use index.json inside a namespace folder when root keys must stay at that namespace level"
     - "Test RTL layout for Arabic"
     - "Use semantic keys: 'orders.create.title' not 'label1'"
 

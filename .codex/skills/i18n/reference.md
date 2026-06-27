@@ -11,14 +11,22 @@
 ```text
 web-admin/messages/en/common.json
 web-admin/messages/ar/common.json
-web-admin/messages/en/orders.json
-web-admin/messages/ar/orders.json
+web-admin/messages/en/orders/index.json
+web-admin/messages/en/orders/detail.json
+web-admin/messages/ar/orders/index.json
+web-admin/messages/ar/orders/detail.json
 ```
 
 ```json
-// web-admin/messages/en/orders.json
+// web-admin/messages/en/orders/index.json
 {
-  "title": "Orders",
+  "title": "Orders"
+}
+```
+
+```json
+// web-admin/messages/en/orders/detail.json
+{
   "status": {
     "pending": "Pending"
   }
@@ -26,9 +34,15 @@ web-admin/messages/ar/orders.json
 ```
 
 ```json
-// web-admin/messages/ar/orders.json
+// web-admin/messages/ar/orders/index.json
 {
-  "title": "الطلبات",
+  "title": "الطلبات"
+}
+```
+
+```json
+// web-admin/messages/ar/orders/detail.json
+{
   "status": {
     "pending": "قيد الانتظار"
   }
@@ -59,3 +73,4 @@ new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
 - Keep placeholders aligned across locales.
 - Do not import locale JSON directly in React code.
 - Fix duplicate namespace collisions by choosing either a file or a folder for that namespace root.
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level.

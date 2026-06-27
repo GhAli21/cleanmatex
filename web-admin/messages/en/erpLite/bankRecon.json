@@ -1,0 +1,136 @@
+{
+  "eyebrow": "ERP-Lite Treasury",
+  "title": "Bank Accounts and Reconciliation",
+  "subtitle": "Maintain bank accounts, statement batches, and reconciliation headers for the Phase 9 treasury foundation.",
+  "notices": {
+    "bank-account-created": "Bank account created successfully.",
+    "bank-statement-created": "Bank statement batch created successfully.",
+    "bank-statement-line-created": "Bank statement line created successfully.",
+    "bank-statement-imported": "Bank statement lines imported successfully.",
+    "bank-match-created": "Bank match created successfully.",
+    "bank-match-reversed": "Bank match reversed successfully.",
+    "bank-recon-created": "Bank reconciliation header created successfully.",
+    "bank-recon-closed": "Bank reconciliation closed successfully.",
+    "bank-recon-locked": "Bank reconciliation locked successfully."
+  },
+  "forms": {
+    "placeholders": {
+      "optionalSelect": "No branch override",
+      "optionalPeriod": "No period link",
+      "optionalRecon": "No reconciliation link"
+    },
+    "bankAccount": {
+      "title": "Create Bank Account",
+      "subtitle": "Link a tenant bank account to the governed GL bank account.",
+      "submit": "Create Bank Account",
+      "fields": {
+        "code": "Bank Code",
+        "name": "Account Name",
+        "name2": "Account Name (Arabic)",
+        "bankName": "Bank Name",
+        "accountNo": "Bank Account No",
+        "iban": "IBAN",
+        "branch": "Branch",
+        "glAccount": "GL Bank Account",
+        "currencyCode": "Currency Code",
+        "importMode": "Statement Import Mode"
+      }
+    },
+    "statement": {
+      "title": "Create Statement Batch",
+      "subtitle": "Register a bank statement header before statement-line import or matching.",
+      "submit": "Create Statement Batch",
+      "fields": {
+        "bankAccount": "Bank Account",
+        "dateFrom": "Statement From",
+        "dateTo": "Statement To",
+        "sourceFile": "Source File Name",
+        "openingBalance": "Opening Balance",
+        "closingBalance": "Closing Balance"
+      }
+    },
+    "statementLine": {
+      "title": "Create Statement Line",
+      "subtitle": "Add a manual statement line for matching and reconciliation review.",
+      "submit": "Create Statement Line",
+      "fields": {
+        "statement": "Statement Batch",
+        "bankAccount": "Bank Account",
+        "txnDate": "Transaction Date",
+        "valueDate": "Value Date",
+        "referenceNo": "Reference No",
+        "description": "Description",
+        "debitAmount": "Debit Amount",
+        "creditAmount": "Credit Amount",
+        "balanceAmount": "Balance Amount"
+      }
+    },
+    "statementImport": {
+      "title": "Bulk Import Statement Lines",
+      "subtitle": "Paste one statement line per row using the approved pipe-separated format.",
+      "submit": "Import Statement Lines",
+      "placeholder": "2026-04-01|REF-1001|Deposit from branch|125.5000|0||125.5000\n2026-04-02|REF-1002|Bank fee|0|5.0000||120.5000",
+      "hint": "Format: txn_date|reference_no|description|debit_amount|credit_amount|value_date(optional)|balance_amount(optional)",
+      "fields": {
+        "statement": "Statement Batch",
+        "rows": "Import Rows"
+      }
+    },
+    "match": {
+      "title": "Create Bank Match",
+      "subtitle": "Link an unmatched statement line to a posted AP payment and optional reconciliation header.",
+      "submit": "Create Bank Match",
+      "fields": {
+        "statementLine": "Statement Line",
+        "apPayment": "AP Payment",
+        "reconciliation": "Reconciliation",
+        "matchAmount": "Match Amount"
+      }
+    },
+    "recon": {
+      "title": "Create Reconciliation",
+      "subtitle": "Open a reconciliation header for a bank account and statement period.",
+      "submit": "Create Reconciliation",
+      "fields": {
+        "bankAccount": "Bank Account",
+        "period": "Accounting Period",
+        "reconDate": "Reconciliation Date",
+        "dateFrom": "Statement From",
+        "dateTo": "Statement To",
+        "glBalance": "GL Balance",
+        "stmtBalance": "Statement Balance",
+        "unmatchedAmount": "Unmatched Amount"
+      }
+    }
+  },
+  "lists": {
+    "bankAccounts": {
+      "title": "Recent Bank Accounts",
+      "subtitle": "Latest active bank accounts for this tenant.",
+      "empty": "No bank accounts created yet."
+    },
+    "statements": {
+      "title": "Recent Statement Batches",
+      "subtitle": "Latest imported or manual bank statement batches.",
+      "empty": "No bank statement batches created yet."
+    },
+    "recons": {
+      "title": "Recent Reconciliations",
+      "subtitle": "Latest bank reconciliation headers for this tenant.",
+      "empty": "No bank reconciliations created yet.",
+      "close": "Close Reconciliation",
+      "lock": "Lock Reconciliation"
+    },
+    "statementLines": {
+      "title": "Recent Statement Lines",
+      "subtitle": "Latest statement lines ready for matching review.",
+      "empty": "No statement lines created yet."
+    },
+    "matches": {
+      "title": "Recent Matches",
+      "subtitle": "Latest confirmed and reversed bank matches.",
+      "empty": "No bank matches created yet.",
+      "reverse": "Reverse Match"
+    }
+  }
+}

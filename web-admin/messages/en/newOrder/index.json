@@ -1,0 +1,12 @@
+{
+  "title": "New Order",
+  "addNewOrder": "Add New Order",
+  "selectCustomer": "Select Customer",
+  "quickDrop": "Quick Drop",
+  "notes": "Notes",
+  "readyBy": "Ready By",
+  "calculateReadyBy": "Calculate Ready By",
+  "estimatedTotal": "Estimated Total",
+  "submitOrder": "Submit Order",
+  "chooseBranch": "Please choose a branch"
+}

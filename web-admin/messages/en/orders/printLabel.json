@@ -1,0 +1,18 @@
+{
+  "title": "Print label",
+  "printLabel": "Print Label",
+  "printing": "Printing...",
+  "tbd": "TBD",
+  "label": {
+    "customer": "Customer",
+    "readyBy": "READY BY",
+    "scanToTrack": "Scan to Track",
+    "barcode": "Barcode",
+    "footerThankYou": "Thank you for choosing CleanMateX",
+    "footerInquiries": "For inquiries"
+  },
+  "errors": {
+    "allowPopups": "Please allow popups to print labels",
+    "noCodesAvailable": "No QR code or barcode available"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "title": "AR Ledger",
+  "subtitle": "Review customer receivable movements, allocations, and running balances.",
+  "tableTitle": "Customer AR Ledger",
+  "missingCustomerTitle": "Customer required",
+  "missingCustomerBody": "Choose a customer from the AR customers page to open the tenant-scoped ledger.",
+  "browseCustomers": "Browse AR Customers",
+  "kpis": {
+    "openInvoices": "Open Invoices",
+    "outstanding": "Outstanding",
+    "netBalance": "Net Balance"
+  },
+  "columns": {
+    "eventAt": "Event At",
+    "movement": "Movement",
+    "side": "Side",
+    "amount": "Amount",
+    "runningBalance": "Running Balance",
+    "reference": "Reference"
+  },
+  "sides": {
+    "DEBIT": "Debit",
+    "CREDIT": "Credit"
+  },
+  "emptyTitle": "No ledger entries",
+  "emptyDescription": "This customer does not have receivable ledger activity in the selected scope."
+}

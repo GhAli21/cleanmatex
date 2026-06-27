@@ -1,0 +1,17 @@
+{
+  "title": "Payment",
+  "amount": "Amount",
+  "totalAmount": "Total Amount",
+  "subtotal": "Subtotal",
+  "discount": "Discount",
+  "total": "Total",
+  "finalTotal": "Final Total",
+  "grandTotal": "Grand Total",
+  "savings": "Save",
+  "haveCoupon": "Have a coupon?",
+  "paymentNotesDialogTitle": "Edit payment notes",
+  "promoOrGiftCard": "Promo code or gift card",
+  "paymentNotes": "Payment notes",
+  "paymentNotesPlaceholder": "Optional payment-related notes...",
+  "voucherCreated": "Receipt Voucher {voucherNo} created"
+}

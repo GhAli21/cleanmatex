@@ -1,0 +1,23 @@
+{
+  "title": "Promo Code",
+  "label": "Promo Code",
+  "placeholder": "ENTER CODE",
+  "apply": "Apply",
+  "applied": "Promo code applied",
+  "remove": "Remove",
+  "discount": "Promo discount",
+  "validating": "Validating",
+  "addPromo": "Add Promo",
+  "errors": {
+    "notFound": "Promo code not found or is no longer active",
+    "expired": "Promo code has expired",
+    "notYetValid": "Promo code is not yet valid",
+    "maxUsesExceeded": "Promo code has reached maximum usage limit",
+    "minOrderNotMet": "Order total must be at least OMR {amount}",
+    "maxOrderExceeded": "Promo code only valid for orders up to OMR {amount}",
+    "categoryNotApplicable": "Promo code not applicable to selected services",
+    "customerLimitExceeded": "You have reached the maximum usage limit for this promo code",
+    "validationFailed": "Failed to validate promo code"
+  },
+  "success": "Promo code applied! You save OMR {amount}"
+}

@@ -1,0 +1,8 @@
+{
+  "invoiceNo": "Invoice #",
+  "orderNo": "Order ID",
+  "total": "Total",
+  "paid": "Paid",
+  "balance": "Balance",
+  "status": "Status"
+}

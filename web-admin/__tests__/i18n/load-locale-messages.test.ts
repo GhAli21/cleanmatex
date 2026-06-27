@@ -40,6 +40,30 @@ describe('loadLocaleMessages', () => {
     })
   })
 
+  it('merges index.json into the folder namespace root', async () => {
+    await fs.mkdir(path.join(tempRoot, 'messages', 'en', 'orders'), { recursive: true })
+    await fs.writeFile(
+      path.join(tempRoot, 'messages', 'en', 'orders', 'index.json'),
+      JSON.stringify({ title: 'Orders', search: 'Search orders' }, null, 2)
+    )
+    await fs.writeFile(
+      path.join(tempRoot, 'messages', 'en', 'orders', 'detail.json'),
+      JSON.stringify({ title: 'Order detail' }, null, 2)
+    )
+
+    process.chdir(tempRoot)
+
+    await expect(loadLocaleMessages('en')).resolves.toEqual({
+      orders: {
+        title: 'Orders',
+        search: 'Search orders',
+        detail: {
+          title: 'Order detail',
+        },
+      },
+    })
+  })
+
   it('falls back to the legacy monolith file when the split catalog is absent', async () => {
     await fs.mkdir(path.join(tempRoot, 'messages'), { recursive: true })
     await fs.writeFile(

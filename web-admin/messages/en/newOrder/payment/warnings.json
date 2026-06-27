@@ -1,0 +1,5 @@
+{
+  "BANK_TRANSFER_PENDING_CONFIRMATION": "Payment received. Bank transfer confirmation pending.",
+  "CHECK_PENDING_CONFIRMATION": "Payment received. Cheque clearance pending.",
+  "GATEWAY_PAYMENT_PROCESSING": "Online payment is processing. Order will update automatically."
+}

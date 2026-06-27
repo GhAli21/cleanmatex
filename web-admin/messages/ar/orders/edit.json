@@ -1,0 +1,31 @@
+{
+  "pageTitle": "تعديل الطلب #{orderNo}",
+  "lockAcquired": "تم قفل الطلب للتعديل",
+  "lockReleased": "تم فتح قفل الطلب",
+  "lockExpiresSoon": "ينتهي القفل في {minutes} دقيقة",
+  "lockedByOther": "يتم تعديل هذا الطلب حالياً بواسطة {userName}",
+  "cannotEdit": "لا يمكن تعديل الطلب",
+  "cannotEditReasons": {
+    "status": "حالة الطلب لا تسمح بالتعديل (فقط مسودة، استلام، أو تحضير مسموح)",
+    "preparationComplete": "تم إكمال تحضير الطلب",
+    "split": "لا يمكن تعديل الطلبات المقسمة",
+    "retail": "لا يمكن تعديل طلبات التجزئة بعد الإغلاق",
+    "featureDisabled": "ميزة تعديل الطلب معطلة",
+    "locked": "الطلب مقفل بواسطة مستخدم آخر"
+  },
+  "editModeLabel": "تعديل الطلب #{orderNo}",
+  "saveChanges": "حفظ التغييرات",
+  "cancelEdit": "إلغاء التعديل",
+  "saving": "جاري حفظ التغييرات...",
+  "noChangesToSave": "لا توجد تغييرات للحفظ",
+  "success": "تم تحديث الطلب بنجاح",
+  "error": "فشل تحديث الطلب",
+  "confirmCancel": "تجاهل التغييرات؟",
+  "confirmCancelMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد تجاهلها؟",
+  "confirmLeave": "المغادرة دون الحفظ؟",
+  "unsavedChanges": "لديك تغييرات غير محفوظة",
+  "lockStatusLabel": "حالة القفل",
+  "lockedBy": "مقفل بواسطة",
+  "expiresAt": "ينتهي في",
+  "extendLock": "تمديد القفل"
+}

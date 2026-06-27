@@ -1,0 +1,34 @@
+{
+  "title": "Period Management",
+  "subtitle": "Manage accounting periods that control posting eligibility.",
+  "empty": "No periods configured.",
+  "table": {
+    "title": "{count} Periods"
+  },
+  "columns": {
+    "code": "Period Code",
+    "name": "Name",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "status": "Status",
+    "closedAt": "Closed At",
+    "closedBy": "Closed By",
+    "actions": "Actions"
+  },
+  "precheck": {
+    "blocked": "Period cannot be closed until blockers are resolved.",
+    "error": "Precheck failed. Try again."
+  },
+  "close": {
+    "action": "Close period",
+    "dialogTitle": "Close period",
+    "confirmTitle": "Close period {code}?",
+    "confirmBody": "Review the checklist below before closing.",
+    "openLink": "Open",
+    "confirm": "Close period",
+    "cancel": "Cancel",
+    "acknowledge": "OK",
+    "success": "Period closed.",
+    "error": "Failed to close period."
+  }
+}

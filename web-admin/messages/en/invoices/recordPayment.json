@@ -1,0 +1,14 @@
+{
+  "title": "Record payment",
+  "amount": "Amount",
+  "paymentMethod": "Payment method",
+  "cash": "Cash",
+  "card": "Card (POS)",
+  "notes": "Notes",
+  "remaining": "remaining",
+  "submit": "Record payment",
+  "processing": "Processing...",
+  "cancel": "Reset",
+  "success": "Payment recorded successfully",
+  "error": "Please check the amount and try again"
+}

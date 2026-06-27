@@ -1,0 +1,4 @@
+{
+  "pageOf": "صفحة {page} من {totalPages}",
+  "showing": "عرض {from}–{to} من {total}"
+}

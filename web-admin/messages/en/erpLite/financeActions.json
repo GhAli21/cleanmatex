@@ -1,0 +1,17 @@
+{
+  "title": "Finance control audit",
+  "subtitle": "Read-only history of control actions such as period close (org_fin_post_action_tr).",
+  "empty": "No finance control actions recorded yet.",
+  "table": {
+    "title": "{count} actions"
+  },
+  "columns": {
+    "when": "When",
+    "domain": "Domain",
+    "action": "Action",
+    "result": "Result",
+    "prev": "Previous status",
+    "next": "New status",
+    "notes": "Notes"
+  }
+}

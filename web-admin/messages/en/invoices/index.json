@@ -1,0 +1,8 @@
+{
+  "title": "Invoices",
+  "subtitle": "Review invoices, payments, and outstanding balances",
+  "empty": "No invoices found",
+  "printReceiptVoucher": "Print Receipt Voucher",
+  "unappliedPayments": "Unapplied payments",
+  "applyToInvoice": "Apply to invoice"
+}

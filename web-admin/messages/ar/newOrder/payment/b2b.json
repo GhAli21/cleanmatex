@@ -1,0 +1,15 @@
+{
+  "title": "تفاصيل عملاء B2B",
+  "contract": "العقد",
+  "contractOptional": "لا يوجد (اختياري)",
+  "costCenter": "مركز التكلفة",
+  "costCenterPlaceholder": "اختياري",
+  "poNumber": "رقم أمر الشراء",
+  "poNumberPlaceholder": "اختياري",
+  "creditLimit": "حد الائتمان",
+  "creditUsed": "المستخدم",
+  "creditAvailable": "المتاح",
+  "creditExceeded": "إجمالي الطلب يتجاوز الائتمان المتاح. سيتم رفض الدفع.",
+  "creditExceededWarn": "الطلب يتجاوز الائتمان المتاح. يمكنك تجاوزه بتأكيد أدناه.",
+  "creditOverrideConfirm": "أؤكد تجاوز حد الائتمان"
+}

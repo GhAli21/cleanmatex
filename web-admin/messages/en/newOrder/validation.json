@@ -1,0 +1,10 @@
+{
+  "customerRequired": "Customer is required",
+  "atLeastOneItem": "Add at least one item",
+  "dateRequired": "Select ready or delivery date",
+  "paymentRequired": "Select payment method",
+  "readyByMustBeFuture": "Ready by date must be in the future",
+  "readyByTooFar": "Ready by date is more than 30 days away",
+  "readyByRequired": "Ready by date is required",
+  "readyToSubmit": "Ready to submit"
+}

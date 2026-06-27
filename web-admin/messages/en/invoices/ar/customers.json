@@ -1,0 +1,24 @@
+{
+  "title": "AR Customers",
+  "subtitle": "Review customer-level AR balances before drilling into ledgers and statements.",
+  "tableTitle": "Customer Balance Snapshot",
+  "kpis": {
+    "customers": "Customers",
+    "outstanding": "Outstanding",
+    "unappliedCredit": "Unapplied Credit"
+  },
+  "columns": {
+    "customer": "Customer",
+    "openInvoices": "Open Invoices",
+    "outstanding": "Outstanding",
+    "unappliedCredit": "Unapplied Credit",
+    "netBalance": "Net Balance",
+    "lastActivity": "Last Activity"
+  },
+  "actions": {
+    "ledger": "Ledger",
+    "statement": "Statement"
+  },
+  "emptyTitle": "No AR customers",
+  "emptyDescription": "No customers currently have AR invoices or AR ledger activity."
+}

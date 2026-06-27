@@ -1,0 +1,28 @@
+{
+  "title": "Bulk Status Update",
+  "subtitle": "{count, plural, one {Update status for # selected order} other {Update status for # selected orders}}",
+  "form": {
+    "newStatus": "New Status",
+    "selectStatus": "Select a status...",
+    "notes": "Notes",
+    "notesPlaceholder": "Add notes about this status change...",
+    "confirmationRequired": "Confirmation Required",
+    "confirmationMessage": "{count, plural, one {You are about to update # order to status: {status}} other {You are about to update # orders to status: {status}}}",
+    "updating": "Updating...",
+    "updateOrders": "Update Orders"
+  },
+  "results": {
+    "updateComplete": "Update Complete",
+    "successMessage": "{successCount, plural, one {Successfully updated # order} other {Successfully updated # orders}}",
+    "successWithFailures": "{successCount, plural, one {Successfully updated # order • {failureCount} failed} other {Successfully updated # orders • {failureCount} failed}}",
+    "failedUpdates": "Failed Updates",
+    "order": "Order",
+    "unknownError": "Unknown error"
+  },
+  "errors": {
+    "selectStatus": "Please select a status",
+    "noOrdersSelected": "No orders selected",
+    "tooManyOrders": "Cannot update more than 100 orders at once",
+    "updateFailed": "Failed to update orders"
+  }
+}

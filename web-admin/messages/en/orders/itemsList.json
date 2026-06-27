@@ -1,0 +1,13 @@
+{
+  "noItems": "No items in this order yet",
+  "itemsWillBeAdded": "Items will be added during preparation",
+  "item": "Item",
+  "color": "Color",
+  "brand": "Brand",
+  "stain": "Stain",
+  "damage": "Damage",
+  "stainNotes": "Stain Notes",
+  "damageNotes": "Damage Notes",
+  "notes": "Notes",
+  "totalItems": "Total Items"
+}

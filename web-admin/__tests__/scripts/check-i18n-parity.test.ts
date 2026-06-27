@@ -93,4 +93,31 @@ describe('check-i18n-parity', () => {
       ])
     )
   })
+
+  it('allows folder namespaces that use index.json for root keys', async () => {
+    await fs.mkdir(path.join(tempRoot, 'en', 'orders'), { recursive: true })
+    await fs.mkdir(path.join(tempRoot, 'ar', 'orders'), { recursive: true })
+
+    await fs.writeFile(
+      path.join(tempRoot, 'en', 'orders', 'index.json'),
+      JSON.stringify({ title: 'Orders' }, null, 2)
+    )
+    await fs.writeFile(
+      path.join(tempRoot, 'en', 'orders', 'detail.json'),
+      JSON.stringify({ title: 'Order detail' }, null, 2)
+    )
+    await fs.writeFile(
+      path.join(tempRoot, 'ar', 'orders', 'index.json'),
+      JSON.stringify({ title: 'الطلبات' }, null, 2)
+    )
+    await fs.writeFile(
+      path.join(tempRoot, 'ar', 'orders', 'detail.json'),
+      JSON.stringify({ title: 'تفاصيل الطلب' }, null, 2)
+    )
+
+    expect(validateLocaleCatalogs(tempRoot)).toEqual({
+      errors: [],
+      warnings: [],
+    })
+  })
 })

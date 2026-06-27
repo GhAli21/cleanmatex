@@ -7,6 +7,7 @@ import type { AbstractIntlMessages } from 'next-intl'
 
 const SUPPORTED_LOCALES = ['en', 'ar'] as const
 const DEFAULT_LOCALE = 'en'
+const INDEX_FILE_NAME = 'index'
 
 type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 type MessageNode = Record<string, unknown>
@@ -89,11 +90,15 @@ async function loadDirectoryMessages(
     }
 
     const fileNamespace = entry.name.replace(/\.json$/u, '')
+    const nextNamespaceSegments =
+      fileNamespace === INDEX_FILE_NAME
+        ? namespaceSegments
+        : [...namespaceSegments, fileNamespace]
     const fileMessages = await loadJsonFile(entryPath)
-    const namespacedMessages = wrapInNamespace(
-      [...namespaceSegments, fileNamespace],
-      fileMessages
-    )
+    const namespacedMessages =
+      nextNamespaceSegments.length > 0
+        ? wrapInNamespace(nextNamespaceSegments, fileMessages)
+        : fileMessages
 
     messages = mergeMessageTrees(messages, namespacedMessages)
   }

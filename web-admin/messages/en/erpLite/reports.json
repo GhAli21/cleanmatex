@@ -1,0 +1,108 @@
+{
+  "title": "Financial Reports",
+  "subtitle": "Journal-driven finance inquiry derived only from posted ERP-Lite journals.",
+  "summary": {
+    "totalDebit": "Total Debit",
+    "totalCredit": "Total Credit",
+    "netProfit": "Net Profit"
+  },
+  "columns": {
+    "journal": "Journal",
+    "postingDate": "Posting Date",
+    "event": "Event",
+    "account": "Account",
+    "side": "Side",
+    "amount": "Amount",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance"
+  },
+  "gl": {
+    "title": "General Ledger Inquiry",
+    "subtitle": "Latest posted journal lines for the current tenant.",
+    "empty": "No posted journal lines found.",
+    "emptyHint": "Adjust your filters or post transactions to see entries here.",
+    "filters": {
+      "journalNo": "Search journal #...",
+      "accountCode": "Search account code...",
+      "dateFrom": "From date",
+      "dateTo": "To date",
+      "allEvents": "All Events",
+      "allSides": "All Sides",
+      "side_debit": "Debit only",
+      "side_credit": "Credit only"
+    },
+    "summary": {
+      "rowCount": "Lines (filtered)",
+      "balanced": "Balanced",
+      "unbalanced": "Unbalanced"
+    },
+    "pagination": {
+      "rowsPerPage": "Rows per page",
+      "first": "First page",
+      "prev": "Previous page",
+      "next": "Next page",
+      "last": "Last page"
+    },
+    "detail": {
+      "eyebrow": "Journal Detail",
+      "panelLabel": "Journal detail panel",
+      "close": "Close detail panel",
+      "journalDate": "Journal Date",
+      "sourceDoc": "Source Document",
+      "currency": "Currency / Rate",
+      "postedAt": "Posted At",
+      "postedBy": "Posted By",
+      "narration": "Narration",
+      "lines": "Journal Lines",
+      "amountTxn": "Txn Amount",
+      "amountBase": "Base Amount",
+      "unbalanced": "Out of balance"
+    }
+  },
+  "trialBalance": {
+    "title": "Trial Balance",
+    "subtitle": "Balances derived from posted journal entries only.",
+    "empty": "No posted ledger balances found."
+  },
+  "profitAndLoss": {
+    "title": "Profit and Loss",
+    "subtitle": "Revenue and expense balances derived from posted journals.",
+    "empty": "No profit and loss balances found."
+  },
+  "balanceSheet": {
+    "title": "Balance Sheet",
+    "subtitle": "Asset, liability, and equity balances derived from posted journals.",
+    "empty": "No balance sheet balances found."
+  },
+  "arAging": {
+    "title": "AR Aging",
+    "subtitle": "Open customer invoices with successful ERP-Lite posting, grouped by aging bucket.",
+    "empty": "No open posted receivable balances found.",
+    "summary": {
+      "totalOutstanding": "Total Outstanding",
+      "customerCount": "Customers"
+    },
+    "columns": {
+      "customer": "Customer",
+      "invoice": "Invoice",
+      "dueDate": "Due Date",
+      "daysOverdue": "Days Overdue",
+      "outstanding": "Outstanding"
+    },
+    "buckets": {
+      "CURRENT": "Current",
+      "DUE_1_30": "1-30 Days",
+      "DUE_31_60": "31-60 Days",
+      "DUE_61_90": "61-90 Days",
+      "DUE_91_PLUS": "91+ Days"
+    }
+  },
+  "sections": {
+    "ASSETS": "Assets",
+    "LIABILITIES": "Liabilities",
+    "EQUITY": "Equity",
+    "REVENUE": "Revenue",
+    "EXPENSES": "Expenses"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "orderCreated": "تم إنشاء الطلب",
+  "orderUpdated": "تم تحديث الطلب",
+  "orderDeleted": "تم حذف الطلب",
+  "paymentSuccess": "تم الدفع بنجاح",
+  "paymentPending": "الدفع قيد الانتظار",
+  "validationError": "يرجى استكمال الحقول المطلوبة"
+}

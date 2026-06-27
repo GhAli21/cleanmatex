@@ -1,0 +1,18 @@
+{
+  "title": "Select Payment Method",
+  "cash": "Cash",
+  "card": "Card",
+  "check": "Check",
+  "invoice": "Invoice",
+  "payOnCollection": "Pay on Collection",
+  "bankTransfer": "Bank Transfer",
+  "mobilePayment": "Mobile Payment",
+  "paymentGateway": "Payment Gateway",
+  "hyperpay": "HyperPay",
+  "paytabs": "PayTabs",
+  "stripe": "Stripe",
+  "touchHintImmediate": "Immediate settlement",
+  "touchHintCashDrawer": "Cash drawer / immediate collection",
+  "noMethods": "No POS-ready real payment methods are configured.",
+  "defaultBadge": "Default"
+}

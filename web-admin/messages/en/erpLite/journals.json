@@ -1,0 +1,17 @@
+{
+  "title": "Journal register",
+  "subtitle": "Recent journals for this tenant. Open a row to view lines in General Ledger.",
+  "empty": "No journals found.",
+  "table": {
+    "title": "{count} journals"
+  },
+  "columns": {
+    "journalNo": "Journal #",
+    "postingDate": "Posting date",
+    "status": "Status",
+    "event": "Event",
+    "docNo": "Document",
+    "debit": "Debit",
+    "credit": "Credit"
+  }
+}

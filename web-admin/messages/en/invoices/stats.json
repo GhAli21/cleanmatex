@@ -1,0 +1,6 @@
+{
+  "total": "Total invoices",
+  "paid": "Paid",
+  "pending": "Pending / Partial",
+  "overdue": "Overdue"
+}

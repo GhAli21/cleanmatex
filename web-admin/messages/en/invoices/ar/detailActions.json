@@ -1,0 +1,91 @@
+{
+  "buttons": {
+    "edit": "Edit Summary",
+    "issue": "Issue Invoice",
+    "approve": "Approve Sensitive Action",
+    "allocate": "Allocate Payment",
+    "reverseAllocation": "Reverse Allocation",
+    "credit": "Create Credit Memo",
+    "debit": "Create Debit Note",
+    "writeOff": "Write Off",
+    "void": "Void Invoice"
+  },
+  "approval": {
+    "title": "Sensitive approval required",
+    "body": "A credit memo, debit note, write-off, or void approval is waiting before the next financial transition can complete."
+  },
+  "fields": {
+    "dueDate": "Due Date",
+    "paymentTerms": "Payment Terms",
+    "paymentMethod": "Payment Method Code",
+    "notes": "Notes",
+    "issueDate": "Issue Date",
+    "approvalAction": "Approval Action",
+    "approvalNotes": "Approval Notes",
+    "allocatedAmount": "Allocated Amount",
+    "allocationDate": "Allocation Date",
+    "paymentId": "Payment ID",
+    "voucherId": "Voucher ID",
+    "allocation": "Allocation",
+    "reverseDate": "Reversal Date",
+    "reason": "Reason",
+    "adjustmentAmount": "Adjustment Amount",
+    "requiresApproval": "Require sensitive approval"
+  },
+  "approvalActions": {
+    "APPROVE_CREDIT_MEMO": "Approve credit memo",
+    "APPROVE_DEBIT_NOTE": "Approve debit note",
+    "APPROVE_WRITE_OFF": "Approve write-off",
+    "APPROVE_VOID": "Approve void"
+  },
+  "edit": {
+    "title": "Edit Invoice Summary",
+    "description": "Update due date, payment terms, and settlement metadata while preserving the AR audit trail."
+  },
+  "issue": {
+    "title": "Issue AR Invoice",
+    "description": "Move this draft invoice into the AR ledger and open receivable aging."
+  },
+  "approve": {
+    "title": "Approve Sensitive Action",
+    "description": "Approve the pending credit, debit, write-off, or void action before it posts."
+  },
+  "allocate": {
+    "title": "Allocate Payment",
+    "description": "Apply a voucher or payment to this invoice and keep any excess as unapplied credit."
+  },
+  "reverse": {
+    "title": "Reverse Allocation",
+    "description": "Reverse a prior allocation and restore invoice balance and customer AR exposure."
+  },
+  "credit": {
+    "title": "Create Credit Memo",
+    "description": "Post or request approval for a customer credit against this invoice."
+  },
+  "debit": {
+    "title": "Create Debit Note",
+    "description": "Post or request approval for a debit adjustment that increases exposure."
+  },
+  "writeoff": {
+    "title": "Write Off Invoice",
+    "description": "Write off part or all of the remaining receivable with approval control."
+  },
+  "void": {
+    "title": "Void AR Invoice",
+    "description": "Void this invoice after the required approval has been completed."
+  },
+  "success": {
+    "edit": "Invoice summary updated.",
+    "issue": "Invoice issued successfully.",
+    "approve": "Sensitive action approved.",
+    "allocate": "Payment allocation posted.",
+    "reverse": "Payment allocation reversed.",
+    "credit": "Credit memo request created.",
+    "debit": "Debit note request created.",
+    "writeoff": "Write-off request created.",
+    "void": "Invoice voided successfully."
+  },
+  "errors": {
+    "actionFailed": "The AR action could not be completed."
+  }
+}

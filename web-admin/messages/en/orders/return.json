@@ -1,0 +1,20 @@
+{
+  "title": "Customer Return",
+  "description": "Customer has brought items back. Order will be cancelled and refund processed if paid.",
+  "reasonLabel": "Return reason",
+  "reasonPlaceholder": "Enter the reason for the customer return...",
+  "reasonHint": "Minimum {min} characters required",
+  "reasonMinLength": "Please enter at least {min} characters",
+  "reasonCodeLabel": "Reason code",
+  "reasonCodePlaceholder": "Select reason (optional)",
+  "reasonCodes": {
+    "changedMind": "Changed mind",
+    "qualityIssue": "Quality issue",
+    "wrongItems": "Wrong items",
+    "damaged": "Damaged",
+    "other": "Other"
+  },
+  "confirm": "Process Return",
+  "success": "Customer return processed successfully",
+  "error": "Failed to process customer return"
+}

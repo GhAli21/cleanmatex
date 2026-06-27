@@ -1,0 +1,25 @@
+{
+  "buttons": {
+    "startPreparation": "بدء التحضير",
+    "markAsReady": "تحديد كجاهز",
+    "outForDelivery": "خارج للتسليم",
+    "markAsDelivered": "تحديد كمسلم",
+    "cancelOrder": "إلغاء الطلب",
+    "customerReturn": "استلام إرجاع العميل",
+    "fixOrderData": "إصلاح بيانات الطلب",
+    "editOrder": "تعديل الطلب"
+  },
+  "success": {
+    "statusUpdated": "تم تحديث حالة الطلب إلى {status}"
+  },
+  "errors": {
+    "updateFailed": "فشل تحديث الحالة"
+  },
+  "dialog": {
+    "changeStatusTo": "تغيير الحالة إلى {status}؟",
+    "cannotChangeStatus": "لا يمكن تغيير الحالة",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "أضف أي ملاحظات حول تغيير الحالة هذا...",
+    "confirmChange": "تأكيد التغيير"
+  }
+}

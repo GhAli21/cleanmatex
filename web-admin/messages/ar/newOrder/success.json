@@ -1,0 +1,6 @@
+{
+  "orderCreated": "تم إنشاء الطلب {orderNo} بنجاح!",
+  "orderUpdated": "تم تحديث الطلب {orderNo} بنجاح!",
+  "customerUpdated": "تم تحديث العميل بنجاح",
+  "readyByCalculated": "تم حساب تاريخ الجاهزية بنجاح"
+}

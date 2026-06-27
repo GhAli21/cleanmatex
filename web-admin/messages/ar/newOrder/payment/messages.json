@@ -1,0 +1,15 @@
+{
+  "success": "تم الدفع بنجاح",
+  "failed": "فشل الدفع",
+  "processing": "جاري معالجة الدفع...",
+  "checkNumberRequired": "يرجى إدخال رقم الشيك",
+  "selectMethod": "يرجى اختيار طريقة الدفع",
+  "invalidAmount": "مبلغ الدفع غير صحيح",
+  "amountExceedsTotal": "مبلغ الدفع يتجاوز إجمالي الطلب",
+  "confirmSubmit": "تأكيد إرسال الدفع؟",
+  "paymentMethodNote": "طريقة الدفع: {method}",
+  "discardChanges": "لديك تغييرات دفع غير محفوظة. هل تريد إغلاق هذه النافذة والتخلص منها؟",
+  "readyToSubmit": "جاهز للإرسال",
+  "validationErrors": "يرجى إصلاح الأخطاء التالية",
+  "totalsAdjusted": "تغيّر إجمالي الطلب. تم تعديل مبالغ أقساط الدفع لتتوافق معه."
+}

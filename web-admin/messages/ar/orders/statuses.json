@@ -1,0 +1,11 @@
+{
+  "draft": "مسودة",
+  "intake": "الاستلام",
+  "preparation": "التحضير",
+  "processing": "قيد المعالجة",
+  "ready": "جاهز",
+  "outForDelivery": "في الطريق للتوصيل",
+  "delivered": "تم التسليم",
+  "closed": "مغلق",
+  "cancelled": "ملغى"
+}

@@ -1,0 +1,12 @@
+{
+  "date": "Date",
+  "amount": "Amount",
+  "method": "Method",
+  "kind": "Kind",
+  "kind_invoice": "Invoice",
+  "kind_deposit": "Deposit",
+  "kind_advance": "Advance",
+  "kind_pos": "POS",
+  "status": "Status",
+  "empty": "No payments recorded yet"
+}

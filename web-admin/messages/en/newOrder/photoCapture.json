@@ -1,0 +1,11 @@
+{
+  "title": "Capture Photo",
+  "capture": "Capture Photo",
+  "capturing": "Capturing...",
+  "retake": "Retake",
+  "usePhoto": "Use Photo",
+  "startingCamera": "Starting camera...",
+  "instructions": "Position the item in the frame and tap Capture Photo when ready.",
+  "maxPhotosReached": "Maximum {max} photos allowed.",
+  "photosCount": "{current} of {max} photos added"
+}

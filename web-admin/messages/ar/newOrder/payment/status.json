@@ -1,0 +1,8 @@
+{
+  "pending": "قيد الانتظار",
+  "processing": "جاري المعالجة",
+  "completed": "مكتمل",
+  "failed": "فشل",
+  "cancelled": "ملغى",
+  "refunded": "مسترد"
+}

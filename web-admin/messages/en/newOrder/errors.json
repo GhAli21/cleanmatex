@@ -1,0 +1,21 @@
+{
+  "selectCustomer": "Please select a customer",
+  "selectBranch": "Please select a branch before submitting the order.",
+  "addItems": "Please add at least one item to the order",
+  "mixedRetailServices": "Orders cannot mix retail items and service items. Please add only one type per order.",
+  "retailPayOnCollection": "Retail orders must be paid at POS. Please select Cash or Card.",
+  "failedToCalculateReadyBy": "Failed to calculate ready-by date. Please try again.",
+  "invalidCustomer": "Invalid customer selected. Please select a customer again.",
+  "invalidProductIds": "Some products have invalid IDs. Please refresh the page and try again.",
+  "invalidBranchId": "Invalid branch selected. Wrong branchId: \"{branchId}\". Please choose a branch again.",
+  "orderCreationFailed": "Failed to create order",
+  "unknownError": "An error occurred",
+  "failedToLoadCategories": "Failed to load categories. Please refresh the page.",
+  "failedToLoadProducts": "Failed to load products. Please try selecting a different category.",
+  "productsForbidden": "You don't have permission to view products. Contact your administrator.",
+  "failedToLoadData": "Failed to load data. Please refresh the page.",
+  "permissionDenied": "Jh001 You don't have permission to create orders. Please contact your administrator to grant you the \"{permission}\" permission.",
+  "networkError": "Network error. Please check your internet connection and try again.",
+  "timeoutError": "Request timed out. Please try again.",
+  "serverError": "A server error occurred. Please try again later or contact support if the problem persists."
+}

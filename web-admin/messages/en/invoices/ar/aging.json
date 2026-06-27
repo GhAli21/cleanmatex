@@ -1,0 +1,27 @@
+{
+  "title": "AR Aging",
+  "subtitle": "Track customer exposure by overdue aging buckets.",
+  "tableTitle": "Aging Buckets by Customer",
+  "infoTitle": "Shared aging logic",
+  "infoBody": "This screen reuses the finance reporting aging rules so AR stays aligned with ERP reporting.",
+  "kpis": {
+    "customers": "Customers",
+    "asOfDate": "As Of Date",
+    "totalOutstanding": "Outstanding Total"
+  },
+  "columns": {
+    "customer": "Customer",
+    "current": "Current",
+    "due_1_30": "1-30 Days",
+    "due_31_60": "31-60 Days",
+    "due_61_90": "61-90 Days",
+    "due_90_plus": "90+ Days",
+    "total": "Total"
+  },
+  "actions": {
+    "ledger": "Ledger",
+    "statement": "Statement"
+  },
+  "emptyTitle": "No aging data",
+  "emptyDescription": "No open receivables matched the selected aging period."
+}

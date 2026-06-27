@@ -1,0 +1,31 @@
+{
+  "pageTitle": "Edit Order #{orderNo}",
+  "lockAcquired": "Order locked for editing",
+  "lockReleased": "Order unlocked",
+  "lockExpiresSoon": "Lock expires in {minutes} minutes",
+  "lockedByOther": "This order is currently being edited by {userName}",
+  "cannotEdit": "Cannot edit order",
+  "cannotEditReasons": {
+    "status": "Order status does not allow editing (only DRAFT, INTAKE, or PREPARATION allowed)",
+    "preparationComplete": "Order preparation is complete",
+    "split": "Split orders cannot be edited",
+    "retail": "Retail orders cannot be edited after closing",
+    "featureDisabled": "Edit order feature is disabled",
+    "locked": "Order is locked by another user"
+  },
+  "editModeLabel": "Editing Order #{orderNo}",
+  "saveChanges": "Save Changes",
+  "cancelEdit": "Cancel Edit",
+  "saving": "Saving changes...",
+  "noChangesToSave": "No changes to save",
+  "success": "Order updated successfully",
+  "error": "Failed to update order",
+  "confirmCancel": "Discard changes?",
+  "confirmCancelMessage": "You have unsaved changes. Are you sure you want to discard them?",
+  "confirmLeave": "Leave without saving?",
+  "unsavedChanges": "You have unsaved changes",
+  "lockStatusLabel": "Lock Status",
+  "lockedBy": "Locked by",
+  "expiresAt": "Expires at",
+  "extendLock": "Extend Lock"
+}

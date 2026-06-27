@@ -1,0 +1,15 @@
+{
+  "title": "Add Custom Item",
+  "name": "Item Name",
+  "namePlaceholder": "Enter item name",
+  "name2": "Item Name (Arabic)",
+  "name2Placeholder": "Enter item name in Arabic",
+  "price": "Price ",
+  "quantity": "Quantity",
+  "notes": "Notes",
+  "notesPlaceholder": "Add any special instructions...",
+  "add": "Add Item",
+  "cancel": "Cancel",
+  "successAdd": "Custom item added successfully!",
+  "errorAdd": "Failed to add custom item."
+}

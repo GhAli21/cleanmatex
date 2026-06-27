@@ -1,0 +1,31 @@
+{
+  "title": "ERP-Lite setup guide",
+  "subtitle": "Track go-live steps locally on this device. Links open existing ERP-Lite screens.",
+  "stepsTitle": "Steps",
+  "openStep": "Go to step",
+  "markDone": "Mark done",
+  "markUndone": "Mark not done",
+  "persistHint": "Progress is stored in this browser only (localStorage).",
+  "steps": {
+    "readiness": {
+      "title": "Finance readiness",
+      "description": "Confirm governance assignment, template apply status, and mapping health."
+    },
+    "usageMaps": {
+      "title": "Usage maps",
+      "description": "Resolve required usage code bindings."
+    },
+    "periods": {
+      "title": "Periods",
+      "description": "Ensure an open accounting period exists for posting."
+    },
+    "coa": {
+      "title": "Chart of accounts",
+      "description": "Review accounts and posting flags."
+    },
+    "gl": {
+      "title": "General ledger",
+      "description": "Validate posted activity and journal detail."
+    }
+  }
+}

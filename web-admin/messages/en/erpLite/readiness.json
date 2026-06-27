@@ -1,0 +1,32 @@
+{
+  "title": "Finance Readiness",
+  "subtitle": "Check your tenant finance setup health before going live with automated posting.",
+  "kpi": {
+    "missingMappings": "Missing Required Mappings",
+    "ofRequired": "of {count} required",
+    "openExceptions": "Open Exceptions",
+    "openPeriods": "Open Periods",
+    "coaAccounts": "COA Accounts",
+    "postable": "postable"
+  },
+  "alerts": {
+    "noGovAssignment": "No governance package is assigned to this tenant. Posting will fail until a package is assigned by platform admin."
+  },
+  "sections": {
+    "templateStatus": "Template & Posting Status",
+    "mappingIssues": "{count} Mapping Issues Found"
+  },
+  "fields": {
+    "lastTemplate": "Last Template",
+    "lastApplyStatus": "Apply Status",
+    "lastAppliedAt": "Applied At",
+    "lastPostedAt": "Last Posted",
+    "lastFailedAt": "Last Failed"
+  },
+  "columns": {
+    "usageCode": "Usage Code",
+    "requiredType": "Required Type",
+    "mappedAccount": "Mapped Account",
+    "issue": "Issue"
+  }
+}

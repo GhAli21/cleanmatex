@@ -1,0 +1,21 @@
+{
+  "loading": "Loading timeline...",
+  "noHistory": "No history available",
+  "notes": "Notes",
+  "details": "Details",
+  "expandDetails": "Expand details",
+  "collapseDetails": "Collapse details",
+  "actions": {
+    "orderCreated": "Order Created",
+    "statusChanged": "Status Changed",
+    "fieldUpdated": "Field Updated",
+    "orderSplit": "Order Split",
+    "qaDecision": "QA Decision",
+    "processingStep": "Processing Step",
+    "issueCreated": "Issue Created",
+    "issueResolved": "Issue Resolved",
+    "orderCompleted": "Order Completed",
+    "voucherPostedAndWired": "Voucher Posted",
+    "arInvoiceIssued": "AR Invoice Issued"
+  }
+}

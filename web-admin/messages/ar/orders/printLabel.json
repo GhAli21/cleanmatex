@@ -1,0 +1,18 @@
+{
+  "title": "طباعة الملصق",
+  "printLabel": "طباعة الملصق",
+  "printing": "جاري الطباعة...",
+  "tbd": "لم يتم التحديد",
+  "label": {
+    "customer": "العميل",
+    "readyBy": "جاهز بحلول",
+    "scanToTrack": "امسح للمتابعة",
+    "barcode": "الرمز الشريطي",
+    "footerThankYou": "شكراً لاختيارك CleanMateX",
+    "footerInquiries": "للاستفسارات"
+  },
+  "errors": {
+    "allowPopups": "يرجى السماح بالنوافذ المنبثقة لطباعة الملصقات",
+    "noCodesAvailable": "لا يوجد رمز QR أو رمز شريطي متاح"
+  }
+}

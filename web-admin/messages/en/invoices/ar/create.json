@@ -1,0 +1,77 @@
+{
+  "title": "New AR Invoice",
+  "subtitle": "Create a manual or order-based accounts receivable invoice with tenant-safe validation.",
+  "wizardTitle": "AR Invoice Issuance Wizard",
+  "steps": {
+    "stepLabel": "Step {number}",
+    "basics": "Basics",
+    "source": "Source",
+    "review": "Review"
+  },
+  "modeOptions": {
+    "MANUAL": "Manual AR Invoice",
+    "FROM_ORDERS": "Create From Orders"
+  },
+  "fields": {
+    "mode": "Issuance Mode",
+    "customerId": "Customer ID",
+    "branchId": "Branch ID",
+    "currencyCode": "Currency Code",
+    "paymentTerms": "Payment Terms",
+    "paymentMethod": "Payment Method Code",
+    "invoiceDate": "Invoice Date",
+    "dueDate": "Due Date",
+    "orderIds": "Order IDs",
+    "lineDescription": "Line Description",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "discount": "Discount",
+    "tax": "Tax",
+    "subtotalPreview": "Subtotal",
+    "taxablePreview": "Taxable Amount",
+    "totalPreview": "Total Preview",
+    "notes": "Notes"
+  },
+  "manualLines": {
+    "title": "Manual Line Items",
+    "subtitle": "Build the invoice with reusable line items and live totals.",
+    "lineLabel": "Line {number}"
+  },
+  "orderBatch": {
+    "title": "Order Selection",
+    "subtitle": "Issue one AR invoice from multiple eligible orders.",
+    "hint": "Paste one order UUID per line or separate them with commas.",
+    "count": "{count} order(s) ready for issuance"
+  },
+  "review": {
+    "title": "Review and Issue",
+    "subtitle": "Validate the source, totals, and schedule before creating the invoice.",
+    "mode": "Mode",
+    "currency": "Currency",
+    "invoiceDate": "Invoice Date",
+    "dueDate": "Due Date",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "total": "Total"
+  },
+  "validation": {
+    "title": "Resolve these validation items before issuing"
+  },
+  "actions": {
+    "next": "Continue",
+    "create": "Create AR Invoice",
+    "createFromOrders": "Create Invoice From Orders",
+    "addLine": "Add Line",
+    "removeLine": "Remove Line"
+  },
+  "errors": {
+    "title": "Unable to create invoice",
+    "createFailed": "Failed to create the AR invoice.",
+    "customerRequired": "Customer ID is required for manual AR invoices.",
+    "currencyInvalid": "Currency code must be a valid 3-letter code.",
+    "orderIdsRequired": "Provide at least one order ID for order-based issuance.",
+    "lineDescriptionRequired": "Each manual line must have a description.",
+    "quantityInvalid": "Each manual line must have a quantity greater than zero."
+  }
+}

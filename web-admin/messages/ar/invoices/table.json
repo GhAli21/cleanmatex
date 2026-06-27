@@ -1,0 +1,28 @@
+{
+  "columns": {
+    "invoiceNo": "رقم الفاتورة",
+    "invoiceDate": "تاريخ الفاتورة",
+    "orderNo": "رقم الطلب",
+    "customer": "العميل",
+    "customerReference": "مرجع العميل",
+    "transDesc": "الوصف",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "vatAmount": "ض.ق.م",
+    "total": "الإجمالي",
+    "status": "الحالة",
+    "dueDate": "تاريخ الاستحقاق",
+    "paymentMethod": "الطريقة",
+    "paidAmount": "مدفوع",
+    "paidAt": "تاريخ الدفع",
+    "paidByName": "دفع بواسطة",
+    "balance": "الرصيد",
+    "handedToName": "تم التسليم لـ",
+    "handedToMobileNo": "جوال التسليم",
+    "currency": "العملة",
+    "createdAt": "تاريخ الإنشاء",
+    "actions": "إجراءات"
+  },
+  "noCustomer": "لا عميل"
+}

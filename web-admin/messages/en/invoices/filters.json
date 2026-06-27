@@ -1,0 +1,18 @@
+{
+  "search": "Search by invoice #, order #, customer, notes...",
+  "allStatuses": "All Statuses",
+  "allTypes": "All Types",
+  "retail": "Retail",
+  "b2b": "B2B",
+  "fromDate": "From Date",
+  "toDate": "To Date",
+  "statusOptions": {
+    "pending": "Pending",
+    "paid": "Paid",
+    "partial": "Partial",
+    "overdue": "Overdue",
+    "draft": "Draft",
+    "cancelled": "Cancelled",
+    "refunded": "Refunded"
+  }
+}

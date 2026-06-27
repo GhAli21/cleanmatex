@@ -1,0 +1,17 @@
+{
+  "noCustomer": "No linked customer",
+  "openLedger": "Open AR Ledger",
+  "summaryTitle": "AR Invoice Summary",
+  "kpis": {
+    "total": "Invoice Total",
+    "paid": "Paid to Date",
+    "outstanding": "Outstanding",
+    "dueDate": "Due Date"
+  },
+  "fields": {
+    "invoiceType": "Invoice Type",
+    "issueDate": "Issued At",
+    "approval": "Approval Action",
+    "paymentTerms": "Payment Terms"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "subtitle": "إدارة فواتير الذمم المدينة باستخدام حالات الفاتورة القياسية وتقدم السداد وعناصر تحكم جاهزة للتصدير.",
+  "actions": {
+    "export": "تصدير CSV"
+  },
+  "kpis": {
+    "draft": "مسودة",
+    "open": "مفتوحة",
+    "outstanding": "الرصيد المستحق"
+  },
+  "filters": {
+    "searchLabel": "بحث",
+    "searchPlaceholder": "ابحث برقم الفاتورة أو العميل أو رقم الطلب أو المرجع",
+    "status": "الحالة",
+    "invoiceType": "نوع الفاتورة",
+    "dateFrom": "تاريخ الفاتورة من",
+    "dateTo": "تاريخ الفاتورة إلى",
+    "allStatuses": "كل الحالات",
+    "allTypes": "كل الأنواع"
+  },
+  "statusOptions": {
+    "DRAFT": "مسودة",
+    "OPEN": "مفتوحة",
+    "PARTIALLY_PAID": "مسددة جزئياً",
+    "PAID": "مسددة",
+    "OVERDUE": "متأخرة",
+    "CANCELLED": "ملغاة",
+    "VOID": "باطلة",
+    "WRITTEN_OFF": "معدومة",
+    "DISPUTED": "متنازع عليها"
+  },
+  "invoiceTypeOptions": {
+    "MANUAL_AR": "ذمم يدوية",
+    "ORDER_CREDIT": "ائتمان طلب",
+    "B2B_ORDER": "طلب أعمال",
+    "B2B_STATEMENT": "كشف أعمال",
+    "CREDIT_MEMO": "إشعار دائن",
+    "DEBIT_NOTE": "إشعار مدين",
+    "PROFORMA": "فاتورة مبدئية"
+  },
+  "columns": {
+    "invoiceNo": "رقم الفاتورة",
+    "invoiceDate": "تاريخ الفاتورة",
+    "customer": "العميل",
+    "order": "الطلب",
+    "invoiceType": "نوع الفاتورة",
+    "status": "الحالة",
+    "total": "الإجمالي",
+    "paid": "المدفوع",
+    "outstanding": "المستحق",
+    "dueDate": "تاريخ الاستحقاق",
+    "issuedAt": "تاريخ الإصدار"
+  },
+  "emptyTitle": "لم يتم العثور على فواتير ذمم",
+  "emptyDescription": "عدّل الفلاتر أو أنشئ فاتورة ذمم جديدة لبدء تتبع الذمم المدينة."
+}

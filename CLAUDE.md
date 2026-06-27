@@ -210,6 +210,7 @@ npm run build                      # Build (run after changes)
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
 - Add/update translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`; keep both locale trees aligned
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
 

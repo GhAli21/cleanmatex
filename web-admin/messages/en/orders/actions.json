@@ -1,0 +1,25 @@
+{
+  "buttons": {
+    "startPreparation": "Start Preparation",
+    "markAsReady": "Mark as Ready",
+    "outForDelivery": "Out for Delivery",
+    "markAsDelivered": "Mark as Delivered",
+    "cancelOrder": "Cancel Order",
+    "customerReturn": "Customer Return",
+    "fixOrderData": "Fix order data",
+    "editOrder": "Edit Order"
+  },
+  "success": {
+    "statusUpdated": "Order status updated to {status}"
+  },
+  "errors": {
+    "updateFailed": "Failed to update status"
+  },
+  "dialog": {
+    "changeStatusTo": "Change Status to {status}?",
+    "cannotChangeStatus": "Cannot change status",
+    "notes": "Notes",
+    "notesPlaceholder": "Add any notes about this status change...",
+    "confirmChange": "Confirm Change"
+  }
+}

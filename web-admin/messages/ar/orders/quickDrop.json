@@ -1,0 +1,35 @@
+{
+  "customer": "العميل",
+  "customerPlaceholder": "البحث بالاسم أو الهاتف أو رقم العميل...",
+  "unnamed": "بدون اسم",
+  "selectCustomerToContinue": "اختر عميلاً من القائمة للمتابعة.",
+  "serviceCategory": "فئة الخدمة",
+  "selectService": "اختر الخدمة...",
+  "services": {
+    "washAndFold": "غسيل وكي",
+    "dryClean": "تنظيف جاف",
+    "ironOnly": "كي فقط",
+    "repairs": "إصلاحات",
+    "alterations": "تعديلات"
+  },
+  "bagCount": "عدد الأكياس",
+  "priority": "الأولوية",
+  "priorities": {
+    "normal": "عادي",
+    "urgent": "عاجل (+30% أسرع)",
+    "express": "سريع (+50% أسرع، +50% سعر)"
+  },
+  "customerNotes": "ملاحظات العميل",
+  "customerNotesPlaceholder": "تعليمات خاصة من العميل...",
+  "internalNotes": "ملاحظات داخلية",
+  "internalNotesPlaceholder": "ملاحظات الموظفين (غير مرئية للعميل)...",
+  "orderPhotos": "صور الطلب",
+  "photoUploadComingSoon": "سيتم تنفيذ رفع الصور في المرحلة القادمة",
+  "dragAndDropOrClick": "اسحب وأفلت أو انقر للرفع",
+  "creatingOrder": "جاري إنشاء الطلب...",
+  "createAndContinue": "إنشاء والمتابعة إلى التحضير",
+  "errors": {
+    "createFailed": "فشل إنشاء الطلب",
+    "unexpectedError": "حدث خطأ غير متوقع"
+  }
+}

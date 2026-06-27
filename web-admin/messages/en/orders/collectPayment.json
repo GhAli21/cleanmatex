@@ -1,0 +1,15 @@
+{
+  "title": "Collect Payment",
+  "collectButton": "Collect Payment",
+  "outstanding": "Outstanding: {amount}",
+  "paymentMethod": "Payment Method",
+  "amount": "Amount",
+  "cashTendered": "Cash Tendered",
+  "loadingMethods": "Loading payment methods…",
+  "loadMethodsError": "Failed to load payment methods",
+  "resolutionRequired": "Resolve excess amount before collecting",
+  "submit": "Collect",
+  "cancel": "Cancel",
+  "success": "Payment collected successfully",
+  "submitError": "Failed to collect payment"
+}

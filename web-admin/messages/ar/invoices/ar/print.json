@@ -1,0 +1,35 @@
+{
+  "title": "طباعة فاتورة الذمم",
+  "documentLabel": "فاتورة ذمم مدينة",
+  "noCustomer": "لا يوجد عميل مرتبط",
+  "fields": {
+    "status": "الحالة",
+    "invoiceDate": "تاريخ الفاتورة",
+    "dueDate": "تاريخ الاستحقاق",
+    "invoiceType": "نوع الفاتورة",
+    "paymentTerms": "شروط الدفع",
+    "approvalAction": "إجراء الاعتماد",
+    "order": "الطلب"
+  },
+  "sections": {
+    "customer": "العميل",
+    "summary": "ملخص الفاتورة"
+  },
+  "columns": {
+    "description": "الوصف",
+    "quantity": "الكمية",
+    "unitPrice": "سعر الوحدة",
+    "total": "الإجمالي"
+  },
+  "totals": {
+    "subtotal": "الإجمالي الفرعي",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "total": "الإجمالي",
+    "paid": "المدفوع",
+    "outstanding": "الرصيد المستحق"
+  },
+  "errors": {
+    "loadFailed": "تعذر تحميل بيانات طباعة فاتورة الذمم."
+  }
+}

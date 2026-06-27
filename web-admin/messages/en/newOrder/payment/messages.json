@@ -1,0 +1,15 @@
+{
+  "success": "Payment processed successfully",
+  "failed": "Payment failed",
+  "processing": "Processing payment...",
+  "checkNumberRequired": "Please enter check number",
+  "selectMethod": "Please select a payment method",
+  "invalidAmount": "Invalid payment amount",
+  "amountExceedsTotal": "Payment amount exceeds order total",
+  "confirmSubmit": "Confirm payment submission?",
+  "paymentMethodNote": "Payment method: {method}",
+  "discardChanges": "You have unsaved payment changes. Close this modal and discard them?",
+  "readyToSubmit": "Ready to submit",
+  "validationErrors": "Please fix the following errors",
+  "totalsAdjusted": "Order total changed. Payment leg amounts were adjusted to match."
+}

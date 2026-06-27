@@ -1,0 +1,21 @@
+{
+  "sectionTitle": "Edit items preferences",
+  "sectionHint": "Pick a category, add chips per piece, then use copy to apply preferences to other pieces of the same item.",
+  "copyAll": "Copy all",
+  "copyAllTooltip": "Copy all preferences on this piece to the other pieces of this item",
+  "copiedPreference": "Preference copied to other pieces",
+  "copiedAll": "All preferences copied to other pieces",
+  "loadingKinds": "Loading categories…",
+  "removeChip": "Remove preference",
+  "copyChip": "Copy preference to other pieces",
+  "noItemsForKind": "No catalog entries for this category",
+  "noColors": "No colors in catalog",
+  "useNotesTab": "Notes are edited on the Edit Item Notes tab.",
+  "notesOpenToolbar": "Choose “Notes” in the category row above — a text field opens on the card for this piece.",
+  "notesFieldLabel": "Piece notes",
+  "notesFieldPlaceholder": "Handling instructions, damage details, customer requests…",
+  "notesFieldHint": "Up to 1000 characters. You can also edit notes on the “Edit Item Notes” step.",
+  "unsupportedKind": "This preference type is not available here.",
+  "cardAriaLabel": "Preferences for {item}, piece {piece}",
+  "kindToolbarAria": "Preference categories"
+}

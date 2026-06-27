@@ -1,0 +1,28 @@
+{
+  "title": "تحديث الحالة بالجملة",
+  "subtitle": "{count, plural, one {تحديث الحالة لطلب محدد واحد} other {تحديث الحالة لـ # طلبات محددة}}",
+  "form": {
+    "newStatus": "الحالة الجديدة",
+    "selectStatus": "اختر الحالة...",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "أضف ملاحظات حول تغيير الحالة هذا...",
+    "confirmationRequired": "التأكيد مطلوب",
+    "confirmationMessage": "{count, plural, one {أنت على وشك تحديث طلب واحد إلى الحالة: {status}} other {أنت على وشك تحديث # طلبات إلى الحالة: {status}}}",
+    "updating": "جاري التحديث...",
+    "updateOrders": "تحديث الطلبات"
+  },
+  "results": {
+    "updateComplete": "اكتمل التحديث",
+    "successMessage": "{successCount, plural, one {تم تحديث طلب واحد بنجاح} other {تم تحديث # طلبات بنجاح}}",
+    "successWithFailures": "{successCount, plural, one {تم تحديث طلب واحد بنجاح • فشل {failureCount}} other {تم تحديث # طلبات بنجاح • فشل {failureCount}}}",
+    "failedUpdates": "التحديثات الفاشلة",
+    "order": "الطلب",
+    "unknownError": "خطأ غير معروف"
+  },
+  "errors": {
+    "selectStatus": "يرجى اختيار الحالة",
+    "noOrdersSelected": "لم يتم تحديد أي طلبات",
+    "tooManyOrders": "لا يمكن تحديث أكثر من 100 طلب في المرة الواحدة",
+    "updateFailed": "فشل تحديث الطلبات"
+  }
+}

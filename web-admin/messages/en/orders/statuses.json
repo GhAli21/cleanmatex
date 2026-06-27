@@ -1,0 +1,11 @@
+{
+  "draft": "Draft",
+  "intake": "Intake",
+  "preparation": "Preparation",
+  "processing": "Processing",
+  "ready": "Ready",
+  "outForDelivery": "Out for Delivery",
+  "delivered": "Delivered",
+  "closed": "Closed",
+  "cancelled": "Cancelled"
+}

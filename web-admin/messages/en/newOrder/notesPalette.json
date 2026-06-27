@@ -1,0 +1,30 @@
+{
+  "title": "Notes & Stains",
+  "saveNotes": "Save",
+  "commonNotes": "Common notes",
+  "colors": "Colors",
+  "more": "More",
+  "itemConditionsStains": "Item Conditions & Stains",
+  "customerOrderItemPiecesPreferences": "Customer/Order/Item/Pieces Preferences",
+  "all": "All",
+  "stains": "Stains",
+  "damage": "Damage",
+  "special": "Special",
+  "addItemFirst": "Add an item first to apply conditions",
+  "clickToApply": "Click to apply condition to the most recently added item",
+  "appliedConditions": "Applied Conditions",
+  "removeCondition": "Remove condition",
+  "noItemsAvailable": "No items available",
+  "loading": "Loading preferences...",
+  "kinds": {
+    "service_prefs": "Service Prefs",
+    "packing_prefs": "Packing",
+    "condition_stain": "Stains",
+    "condition_damag": "Damage",
+    "condition_special": "Special Care",
+    "condition_pattern": "Patterns",
+    "condition_material": "Material",
+    "color": "Colors",
+    "note": "Notes"
+  }
+}

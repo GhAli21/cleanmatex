@@ -28,6 +28,7 @@ const eslintConfig = [...nextVitals, {
     "types/database.ts",
     "types/database.generated.ts",
     "docs/typedoc/**",
+    "**/__scratch_*",
   ],
 }, {
   // JSDoc — warn on production code only; noisy rules off (TypeScript is source of truth)

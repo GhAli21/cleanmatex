@@ -1,0 +1,24 @@
+{
+  "title": "عملاء الذمم المدينة",
+  "subtitle": "راجع أرصدة العملاء قبل الانتقال إلى الدفاتر والكشوف.",
+  "tableTitle": "ملخص أرصدة العملاء",
+  "kpis": {
+    "customers": "العملاء",
+    "outstanding": "الرصيد المستحق",
+    "unappliedCredit": "الرصيد غير المطبق"
+  },
+  "columns": {
+    "customer": "العميل",
+    "openInvoices": "الفواتير المفتوحة",
+    "outstanding": "الرصيد المستحق",
+    "unappliedCredit": "الرصيد غير المطبق",
+    "netBalance": "صافي الرصيد",
+    "lastActivity": "آخر نشاط"
+  },
+  "actions": {
+    "ledger": "الدفتر",
+    "statement": "الكشف"
+  },
+  "emptyTitle": "لا يوجد عملاء ذمم",
+  "emptyDescription": "لا يوجد عملاء لديهم فواتير ذمم أو حركة دفتر ذمم حالياً."
+}

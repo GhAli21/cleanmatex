@@ -188,6 +188,7 @@ npm run build                      # Build (run after changes)
 - **Do NOT use raw `<button>`, `<input>`, `<select>`, `<form>`, `<dialog>`, `<table>`** in feature code — always use the Cmx wrapper.
 - **Do NOT import from `@/components/ui` or `@ui/compat`** — ESLint will fail the build.
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
 - **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` · `react-effects-patterns.md` · `react-rhf-and-table-lint.md` — run `cd web-admin && npx eslint . --quiet` before done; no `form.watch()`, no `setState` in `useEffect`, internal links → `next/link`

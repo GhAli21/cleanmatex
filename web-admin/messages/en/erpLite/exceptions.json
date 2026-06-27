@@ -1,0 +1,25 @@
+{
+  "title": "Exception Workbench",
+  "subtitle": "Review and resolve open posting exceptions.",
+  "groupHeading": "{type} · {count}",
+  "empty": "No open exceptions. Posting is clean.",
+  "table": {
+    "title": "{count} Open Exceptions"
+  },
+  "columns": {
+    "date": "Date",
+    "docType": "Doc Type",
+    "docNo": "Doc No",
+    "event": "Event",
+    "type": "Exception Type",
+    "status": "Status",
+    "error": "Error",
+    "attempt": "Attempt",
+    "links": "Shortcuts"
+  },
+  "links": {
+    "gl": "Open in GL",
+    "usageMaps": "Usage maps",
+    "periods": "Periods"
+  }
+}

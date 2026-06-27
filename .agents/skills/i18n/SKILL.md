@@ -12,10 +12,11 @@ user-invocable: true
 2. Reuse `common.*` for generic UI actions, statuses, labels, and feedback.
 3. Update both locale trees with identical file paths and identical leaf keys.
 4. A namespace may be a file or a folder, never both.
-5. Do not import locale JSON directly in components or feature code.
-6. Load locale messages on the server; consume them through `next-intl`.
-7. Run `npm run check:i18n` after translation changes.
-8. Preserve RTL behavior for Arabic surfaces.
+5. Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
+6. Do not import locale JSON directly in components or feature code.
+7. Load locale messages on the server; consume them through `next-intl`.
+8. Run `npm run check:i18n` after translation changes.
+9. Preserve RTL behavior for Arabic surfaces.
 
 ## Workflow Checklist
 
@@ -46,6 +47,7 @@ Rules:
 - Keep the physical `en` and `ar` trees aligned.
 - Keep `common` small and curated.
 - Use deeper nesting only when a namespace file becomes too large.
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
 
 ## Translation Usage
 

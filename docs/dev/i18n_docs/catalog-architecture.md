@@ -16,10 +16,10 @@ Examples:
 
 ```text
 web-admin/messages/en/common.json
-web-admin/messages/en/orders.json
+web-admin/messages/en/orders/index.json
 web-admin/messages/en/orders/detail.json
 web-admin/messages/ar/common.json
-web-admin/messages/ar/orders.json
+web-admin/messages/ar/orders/index.json
 web-admin/messages/ar/orders/detail.json
 ```
 
@@ -29,6 +29,7 @@ web-admin/messages/ar/orders/detail.json
 - Keep leaf-key sets aligned across both locales.
 - Preserve existing fully-qualified key paths unless a collision fix is required.
 - Keep `common` curated and small.
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
 - Do not import locale JSON directly in components or feature code.
 - Use the server-side locale loader and `next-intl` hooks/helpers.
 

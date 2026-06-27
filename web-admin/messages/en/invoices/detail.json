@@ -1,0 +1,9 @@
+{
+  "title": "Invoice {invoiceNo}",
+  "forOrder": "Linked to order {orderId}",
+  "noOrder": "No linked order",
+  "summary": "Invoice summary",
+  "paymentHistory": "Payment history",
+  "orderSummary": "Order summary",
+  "status": "Status"
+}

@@ -1,0 +1,6 @@
+{
+  "button": "Validate payment",
+  "requiredBeforeSubmit": "Validate payment and choose what to do with the extra amount before submitting.",
+  "noExcess": "Payment amounts match the order total. You can submit now.",
+  "excessFound": "Extra amount to route: {amount}"
+}

@@ -1,0 +1,20 @@
+{
+  "title": "استلام إرجاع العميل",
+  "description": "أعاد العميل العناصر. سيتم إلغاء الطلب ومعالجة الاسترداد إن كان مدفوعاً.",
+  "reasonLabel": "سبب الإرجاع",
+  "reasonPlaceholder": "أدخل سبب إرجاع العميل...",
+  "reasonHint": "الحد الأدنى {min} أحرف مطلوبة",
+  "reasonMinLength": "يرجى إدخال {min} أحرف على الأقل",
+  "reasonCodeLabel": "رمز السبب",
+  "reasonCodePlaceholder": "اختر السبب (اختياري)",
+  "reasonCodes": {
+    "changedMind": "غيّر رأيه",
+    "qualityIssue": "مشكلة جودة",
+    "wrongItems": "عناصر خاطئة",
+    "damaged": "تالف",
+    "other": "أخرى"
+  },
+  "confirm": "معالجة الإرجاع",
+  "success": "تمت معالجة إرجاع العميل بنجاح",
+  "error": "فشلت معالجة إرجاع العميل"
+}

@@ -1,0 +1,18 @@
+{
+  "search": "البحث برقم الفاتورة، الطلب، العميل، الملاحظات...",
+  "allStatuses": "كل الحالات",
+  "allTypes": "كل الأنواع",
+  "retail": "تجزئة",
+  "b2b": "B2B",
+  "fromDate": "من تاريخ",
+  "toDate": "إلى تاريخ",
+  "statusOptions": {
+    "pending": "قيد الانتظار",
+    "paid": "مدفوعة",
+    "partial": "جزئية",
+    "overdue": "متأخرة",
+    "draft": "مسودة",
+    "cancelled": "ملغاة",
+    "refunded": "مستردة"
+  }
+}

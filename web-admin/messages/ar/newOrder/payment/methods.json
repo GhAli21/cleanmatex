@@ -1,0 +1,18 @@
+{
+  "title": "اختر طريقة الدفع",
+  "cash": "نقداً",
+  "card": "بطاقة",
+  "check": "شيك",
+  "invoice": "فاتورة",
+  "payOnCollection": "دفع عند الاستلام",
+  "bankTransfer": "تحويل بنكي",
+  "mobilePayment": "دفع عبر الجوال",
+  "paymentGateway": "بوابة الدفع",
+  "hyperpay": "هايبر باي",
+  "paytabs": "باي تابز",
+  "stripe": "سترايب",
+  "touchHintImmediate": "تسوية فورية",
+  "touchHintCashDrawer": "درج نقد / تحصيل فوري",
+  "noMethods": "لا توجد طرق دفع فعلية مهيأة لنقطة البيع.",
+  "defaultBadge": "افتراضي"
+}

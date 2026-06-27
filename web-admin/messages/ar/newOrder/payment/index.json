@@ -1,0 +1,17 @@
+{
+  "title": "الدفع",
+  "amount": "المبلغ",
+  "totalAmount": "إجمالي المبلغ",
+  "subtotal": "المبلغ الجزئي",
+  "discount": "الخصم",
+  "total": "الإجمالي",
+  "finalTotal": "الإجمالي النهائي",
+  "grandTotal": "الإجمالي الكلي",
+  "savings": "وفّر",
+  "haveCoupon": "لديك قسيمة؟",
+  "paymentNotesDialogTitle": "تحرير ملاحظات الدفع",
+  "promoOrGiftCard": "كود خصم أو بطاقة هدية",
+  "paymentNotes": "ملاحظات الدفع",
+  "paymentNotesPlaceholder": "ملاحظات متعلقة بالدفع (اختياري)...",
+  "voucherCreated": "تم إنشاء سند القبض {voucherNo}"
+}

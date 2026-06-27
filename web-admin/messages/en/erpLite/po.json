@@ -1,0 +1,45 @@
+{
+  "eyebrow": "ERP-Lite PO",
+  "title": "Purchase Orders",
+  "subtitle": "Create supplier purchase orders on the tenant V2 procurement foundation.",
+  "notices": {
+    "po-created": "Purchase order created successfully."
+  },
+  "forms": {
+    "placeholders": {
+      "optionalSelect": "No branch override",
+      "optionalUsageCode": "Use the default expense usage"
+    },
+    "po": {
+      "title": "Create Purchase Order",
+      "subtitle": "Create a simple one-line purchase order ready for later receiving and AP traceability.",
+      "submit": "Create Purchase Order",
+      "fields": {
+        "supplier": "Supplier",
+        "poDate": "PO Date",
+        "expectedDate": "Expected Date",
+        "branch": "Branch",
+        "usageCode": "Usage Code",
+        "currencyCode": "Currency Code",
+        "subtotal": "Subtotal Amount",
+        "tax": "Tax Amount",
+        "description": "Description"
+      }
+    }
+  },
+  "lists": {
+    "po": {
+      "title": "Recent Purchase Orders",
+      "subtitle": "Latest supplier purchase orders for this tenant.",
+      "empty": "No purchase orders created yet.",
+      "columns": {
+        "no": "PO No",
+        "date": "Date",
+        "supplier": "Supplier",
+        "branch": "Branch",
+        "status": "Status",
+        "amount": "Amount"
+      }
+    }
+  }
+}

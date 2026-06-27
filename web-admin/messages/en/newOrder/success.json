@@ -1,0 +1,6 @@
+{
+  "orderCreated": "Order {orderNo} created successfully!",
+  "orderUpdated": "Order {orderNo} updated successfully!",
+  "customerUpdated": "Customer updated successfully",
+  "readyByCalculated": "Ready-by date calculated successfully"
+}

@@ -1,0 +1,28 @@
+{
+  "columns": {
+    "invoiceNo": "Invoice #",
+    "invoiceDate": "Invoice Date",
+    "orderNo": "Order #",
+    "customer": "Customer",
+    "customerReference": "Cust. Ref",
+    "transDesc": "Description",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "vatAmount": "VAT",
+    "total": "Total",
+    "status": "Status",
+    "dueDate": "Due Date",
+    "paymentMethod": "Method",
+    "paidAmount": "Paid",
+    "paidAt": "Paid At",
+    "paidByName": "Paid By",
+    "balance": "Balance",
+    "handedToName": "Handed To",
+    "handedToMobileNo": "Handed To Mobile",
+    "currency": "Currency",
+    "createdAt": "Created",
+    "actions": "Actions"
+  },
+  "noCustomer": "No customer"
+}

@@ -53,6 +53,7 @@
         "dist",
         ".next",
         "e2e",
+        "**/__scratch_*",
         "**/*.spec.ts",
         "**/*.test.ts"
     ]

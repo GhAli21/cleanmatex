@@ -1,0 +1,20 @@
+{
+  "title": "إلغاء الطلب",
+  "description": "سيتم إلغاء هذا الطلب. يرجى تقديم السبب (مطلوب للتدقيق).",
+  "reasonLabel": "سبب الإلغاء",
+  "reasonPlaceholder": "أدخل سبب إلغاء هذا الطلب...",
+  "reasonHint": "الحد الأدنى {min} أحرف مطلوبة",
+  "reasonMinLength": "يرجى إدخال {min} أحرف على الأقل",
+  "reasonCodeLabel": "رمز السبب",
+  "reasonCodePlaceholder": "اختر السبب (اختياري)",
+  "reasonCodes": {
+    "customerRequest": "طلب العميل",
+    "duplicate": "طلب مكرر",
+    "wrongAddress": "عنوان خاطئ",
+    "outOfStock": "نفاد المخزون",
+    "other": "أخرى"
+  },
+  "confirm": "إلغاء الطلب",
+  "success": "تم إلغاء الطلب بنجاح",
+  "error": "فشل إلغاء الطلب"
+}

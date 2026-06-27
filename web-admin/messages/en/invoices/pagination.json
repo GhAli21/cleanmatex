@@ -1,0 +1,4 @@
+{
+  "pageOf": "Page {page} of {totalPages}",
+  "showing": "Showing {from}–{to} of {total}"
+}

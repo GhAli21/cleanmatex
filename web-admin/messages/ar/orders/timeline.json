@@ -1,0 +1,21 @@
+{
+  "loading": "جاري تحميل الجدول الزمني...",
+  "noHistory": "لا يوجد تاريخ متاح",
+  "notes": "ملاحظات",
+  "details": "التفاصيل",
+  "expandDetails": "توسيع التفاصيل",
+  "collapseDetails": "طي التفاصيل",
+  "actions": {
+    "orderCreated": "تم إنشاء الطلب",
+    "statusChanged": "تم تغيير الحالة",
+    "fieldUpdated": "تم تحديث الحقل",
+    "orderSplit": "تم تقسيم الطلب",
+    "qaDecision": "قرار مراقبة الجودة",
+    "processingStep": "خطوة المعالجة",
+    "issueCreated": "تم إنشاء المشكلة",
+    "issueResolved": "تم حل المشكلة",
+    "orderCompleted": "اكتمل الطلب",
+    "voucherPostedAndWired": "تم ترحيل السند",
+    "arInvoiceIssued": "تم إصدار فاتورة الذمم"
+  }
+}

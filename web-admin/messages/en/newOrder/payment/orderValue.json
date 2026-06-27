@@ -1,0 +1,10 @@
+{
+  "grossValue": "Gross Value",
+  "grossValueHelp": "Original order value before cashier adjustments.",
+  "discounts": "Discounts",
+  "discountsHelp": "Reductions applied before tax and final payment.",
+  "taxes": "Taxes",
+  "taxesHelp": "Tax amounts included in the payable total.",
+  "finalTotal": "Final Order Total",
+  "finalTotalHelp": "Trusted checkout total used for settlement and remaining-balance logic."
+}

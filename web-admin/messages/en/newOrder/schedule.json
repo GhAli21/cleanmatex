@@ -1,0 +1,42 @@
+{
+  "title": "Ready / Delivery date",
+  "inStore": "In-Store",
+  "pickup": "Pickup",
+  "delivery": "Delivery",
+  "apply": "Apply",
+  "cancel": "Cancel",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "selectTime": "Select time",
+  "selectReadyDateTime": "Select Ready Date & Time",
+  "readyBy": "Ready By",
+  "at": "at",
+  "directInput": "Direct Input",
+  "calculateReadyBy": "Calculate Ready By",
+  "validation": {
+    "dateMustBeFuture": "Date must be in the future"
+  },
+  "monthNames": {
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
+  },
+  "dayNames": {
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
+  }
+}

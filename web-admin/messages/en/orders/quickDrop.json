@@ -1,0 +1,35 @@
+{
+  "customer": "Customer",
+  "customerPlaceholder": "Search name, phone, or customer no...",
+  "unnamed": "Unnamed",
+  "selectCustomerToContinue": "Select a customer from the list to continue.",
+  "serviceCategory": "Service Category",
+  "selectService": "Select service...",
+  "services": {
+    "washAndFold": "Wash & Fold",
+    "dryClean": "Dry Cleaning",
+    "ironOnly": "Iron Only",
+    "repairs": "Repairs",
+    "alterations": "Alterations"
+  },
+  "bagCount": "Bag Count",
+  "priority": "Priority",
+  "priorities": {
+    "normal": "Normal",
+    "urgent": "Urgent (+30% faster)",
+    "express": "Express (+50% faster, +50% price)"
+  },
+  "customerNotes": "Customer Notes",
+  "customerNotesPlaceholder": "Special instructions from customer...",
+  "internalNotes": "Internal Notes",
+  "internalNotesPlaceholder": "Staff notes (not visible to customer)...",
+  "orderPhotos": "Order Photos",
+  "photoUploadComingSoon": "Photo upload will be implemented in next phase",
+  "dragAndDropOrClick": "Drag and drop or click to upload",
+  "creatingOrder": "Creating Order...",
+  "createAndContinue": "Create & Continue to Preparation",
+  "errors": {
+    "createFailed": "Failed to create order",
+    "unexpectedError": "An unexpected error occurred"
+  }
+}

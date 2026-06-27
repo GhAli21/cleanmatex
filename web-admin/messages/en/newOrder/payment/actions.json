@@ -1,0 +1,11 @@
+{
+  "submit": "Submit",
+  "submitChargeOnly": "{submit} — {currency} {amount}",
+  "submitWithUnpaid": "{submit} — {currency} {payNow} · {unpaid}: {currency} {remaining}",
+  "submitPayment": "Submit Payment",
+  "processing": "Processing...",
+  "processPayment": "Process Payment",
+  "cancel": "Cancel",
+  "close": "Close",
+  "confirm": "Confirm"
+}

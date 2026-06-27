@@ -1,0 +1,11 @@
+{
+  "submit": "تأكيد",
+  "submitChargeOnly": "{submit} — {currency} {amount}",
+  "submitWithUnpaid": "{submit} — {currency} {payNow} · {unpaid}: {currency} {remaining}",
+  "submitPayment": "تأكيد الدفع",
+  "processing": "جاري المعالجة...",
+  "processPayment": "معالجة الدفع",
+  "cancel": "إلغاء",
+  "close": "إغلاق",
+  "confirm": "تأكيد"
+}

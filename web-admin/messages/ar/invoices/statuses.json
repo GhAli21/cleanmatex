@@ -1,0 +1,9 @@
+{
+  "pending": "قيد الانتظار",
+  "paid": "مدفوعة",
+  "partial": "جزئية",
+  "overdue": "متأخرة",
+  "draft": "مسودة",
+  "cancelled": "ملغاة",
+  "refunded": "مستردة"
+}

@@ -1,0 +1,32 @@
+{
+  "title": "جاهزية التمويل",
+  "subtitle": "تحقق من صحة إعداد تمويل المستأجر قبل تفعيل الترحيل التلقائي.",
+  "kpi": {
+    "missingMappings": "ربط مطلوب مفقود",
+    "ofRequired": "من {count} مطلوب",
+    "openExceptions": "استثناءات مفتوحة",
+    "openPeriods": "فترات مفتوحة",
+    "coaAccounts": "حسابات دليل الحسابات",
+    "postable": "قابل للترحيل"
+  },
+  "alerts": {
+    "noGovAssignment": "لا توجد حزمة حوكمة مخصصة لهذا المستأجر. سيفشل الترحيل حتى يقوم مسؤول المنصة بتعيين حزمة."
+  },
+  "sections": {
+    "templateStatus": "حالة القالب والترحيل",
+    "mappingIssues": "تم العثور على {count} مشكلة ربط"
+  },
+  "fields": {
+    "lastTemplate": "آخر قالب",
+    "lastApplyStatus": "حالة التطبيق",
+    "lastAppliedAt": "تاريخ التطبيق",
+    "lastPostedAt": "آخر ترحيل",
+    "lastFailedAt": "آخر فشل"
+  },
+  "columns": {
+    "usageCode": "رمز الاستخدام",
+    "requiredType": "النوع المطلوب",
+    "mappedAccount": "الحساب المرتبط",
+    "issue": "المشكلة"
+  }
+}

@@ -92,7 +92,7 @@ Invoices live under **`/dashboard/internal_fin/invoices`** for consistent inform
   - Shows:
     - Invoice number, linked order ID, total, paid amount, remaining balance, and status.
     - Simple stats: total, paid, pending/partial, overdue.
-  - i18n namespace: `invoices` in `messages/en.json` / `messages/ar.json`.
+  - i18n namespace: `invoices` in `web-admin/messages/en/**` / `web-admin/messages/ar/**`, preserving the same merged key paths at runtime.
 
 - `web-admin/app/dashboard/internal_fin/invoices/[id]/page.tsx`
   - Server Component, detail view for a single invoice:
@@ -155,7 +155,7 @@ For API-level or UI-level gating of future features (e.g., PDF export, B2B billi
   - Gateway methods (`HYPERPAY`, `PAYTABS`, `STRIPE`, etc.) are reserved for future phases and are currently handled as placeholders in `processPaymentByMethod`.
 
 - **i18n / RTL**
-  - All new strings live under the `invoices` namespace in `messages/en.json` and `messages/ar.json`.
+  - All new strings live under the `invoices` namespace in the split locale catalogs (`web-admin/messages/en/**` and `web-admin/messages/ar/**`), preserving the same merged key paths at runtime.
   - Amounts are formatted as OMR with 3 decimals, consistent with existing order/payment UI.
 
 - **Future Extensions**

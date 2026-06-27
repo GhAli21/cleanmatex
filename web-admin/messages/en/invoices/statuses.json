@@ -1,0 +1,9 @@
+{
+  "pending": "Pending",
+  "paid": "Paid",
+  "partial": "Partial",
+  "overdue": "Overdue",
+  "draft": "Draft",
+  "cancelled": "Cancelled",
+  "refunded": "Refunded"
+}

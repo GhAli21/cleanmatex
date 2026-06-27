@@ -1,0 +1,42 @@
+{
+  "title": "تاريخ الجاهزية / التوصيل",
+  "inStore": "في الفرع",
+  "pickup": "استلام",
+  "delivery": "توصيل",
+  "apply": "تطبيق",
+  "cancel": "إلغاء",
+  "today": "اليوم",
+  "tomorrow": "غداً",
+  "selectTime": "اختر الوقت",
+  "selectReadyDateTime": "اختر تاريخ ووقت الجاهزية",
+  "readyBy": "جاهز في",
+  "at": "في",
+  "directInput": "إدخال مباشر",
+  "calculateReadyBy": "حساب تاريخ الجاهزية",
+  "validation": {
+    "dateMustBeFuture": "يجب أن يكون التاريخ في المستقبل"
+  },
+  "monthNames": {
+    "january": "يناير",
+    "february": "فبراير",
+    "march": "مارس",
+    "april": "أبريل",
+    "may": "مايو",
+    "june": "يونيو",
+    "july": "يوليو",
+    "august": "أغسطس",
+    "september": "سبتمبر",
+    "october": "أكتوبر",
+    "november": "نوفمبر",
+    "december": "ديسمبر"
+  },
+  "dayNames": {
+    "sun": "أحد",
+    "mon": "إثنين",
+    "tue": "ثلاثاء",
+    "wed": "أربعاء",
+    "thu": "خميس",
+    "fri": "جمعة",
+    "sat": "سبت"
+  }
+}

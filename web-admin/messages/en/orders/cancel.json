@@ -1,0 +1,20 @@
+{
+  "title": "Cancel Order",
+  "description": "This order will be cancelled. Please provide a reason (required for audit).",
+  "reasonLabel": "Cancellation reason",
+  "reasonPlaceholder": "Enter the reason for cancelling this order...",
+  "reasonHint": "Minimum {min} characters required",
+  "reasonMinLength": "Please enter at least {min} characters",
+  "reasonCodeLabel": "Reason code",
+  "reasonCodePlaceholder": "Select reason (optional)",
+  "reasonCodes": {
+    "customerRequest": "Customer request",
+    "duplicate": "Duplicate order",
+    "wrongAddress": "Wrong address",
+    "outOfStock": "Out of stock",
+    "other": "Other"
+  },
+  "confirm": "Cancel Order",
+  "success": "Order cancelled successfully",
+  "error": "Failed to cancel order"
+}

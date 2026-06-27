@@ -14,6 +14,40 @@ const MESSAGES_DIR = path.join(__dirname, '..', 'messages');
 const LOCALES = ['en', 'ar'];
 const MAX_FILE_BYTES = 30 * 1024;
 const MAX_FILE_LINES = 500;
+const INDEX_FILE_NAME = 'index';
+const INTENTIONAL_SAME_VALUE_KEYS = new Set([
+  'auth.login.emailPlaceholder',
+  'b2b.customer',
+  'billing.receiptVoucher.create.amountPlaceholder',
+  'catalog.b2b',
+  'catalog.preferences.preferenceColorPlaceholder',
+  'catalog.preferences.rowNumberShort',
+  'catalog.vip',
+  'common.auditCard.notAvailable',
+  'customers.types.b2b',
+  'erpLite.exceptions.groupHeading',
+  'erpLite.eyebrow',
+  'erpLite.home.snapshot.none',
+  'erpLite.postAudit.columns.attempt',
+  'finance.vouchers.postPreview.lineNo',
+  'help.support.email',
+  'invoices.filters.b2b',
+  'navigation.financeAndAccounting',
+  'newOrder.orderSummary.paymentModalVersionOptions.v3',
+  'newOrder.payment.actions.submitChargeOnly',
+  'newOrder.payment.actions.submitWithUnpaid',
+  'newOrder.payment.giftCard.amountPlaceholder',
+  'newOrder.payment.manualDiscount.amountPlaceholder',
+  'newOrder.payment.manualDiscount.percentPlaceholder',
+  'notifications.campaigns.form.nameArPlaceholder',
+  'orders.preparation.productNameArabicPlaceholder',
+  'payments.create.amountPlaceholder',
+  'payments.refund.amountPlaceholder',
+  'payments.table.noReference',
+  'reports.export.csv',
+  'reports.export.excel',
+  'reports.export.pdf',
+]);
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -90,7 +124,39 @@ function listJsonFiles(rootDir, currentDir = rootDir) {
 function namespaceSegmentsForFile(relativeFilePath) {
   const parsed = path.posix.parse(relativeFilePath);
   const directorySegments = parsed.dir ? parsed.dir.split('/').filter(Boolean) : [];
-  return [...directorySegments, parsed.name];
+  const fileSegments = parsed.name === INDEX_FILE_NAME ? [] : [parsed.name];
+  return [...directorySegments, ...fileSegments];
+}
+
+function collectNamespaceCollisions(rootDir, currentDir = rootDir) {
+  const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+  const directoryNames = new Set(
+    entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+  );
+  const fileBaseNames = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => path.parse(entry.name).name)
+    .filter((name) => name !== INDEX_FILE_NAME);
+  const collisions = [];
+
+  for (const fileBaseName of fileBaseNames) {
+    if (directoryNames.has(fileBaseName)) {
+      const collisionPath = path
+        .relative(rootDir, path.join(currentDir, fileBaseName))
+        .replace(/\\/g, '/');
+      collisions.push(collisionPath);
+    }
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    collisions.push(...collectNamespaceCollisions(rootDir, path.join(currentDir, entry.name)));
+  }
+
+  return collisions.sort();
 }
 
 function collectLocaleCatalog(localeDir) {
@@ -99,8 +165,6 @@ function collectLocaleCatalog(localeDir) {
   }
 
   const files = listJsonFiles(localeDir);
-  const fileNamespaces = new Set();
-  const folderNamespaces = new Set();
   const leaves = new Map();
   const warnings = [];
 
@@ -108,12 +172,6 @@ function collectLocaleCatalog(localeDir) {
     const absoluteFilePath = path.join(localeDir, relativeFilePath);
     const namespaceSegments = namespaceSegmentsForFile(relativeFilePath);
     const namespaceRoot = namespaceSegments.join('.');
-
-    fileNamespaces.add(namespaceRoot);
-
-    for (let index = 1; index < namespaceSegments.length; index += 1) {
-      folderNamespaces.add(namespaceSegments.slice(0, index).join('.'));
-    }
 
     const stats = fs.statSync(absoluteFilePath);
     const fileContents = fs.readFileSync(absoluteFilePath, 'utf8');
@@ -142,7 +200,7 @@ function collectLocaleCatalog(localeDir) {
     }
   }
 
-  const collisions = [...fileNamespaces].filter((namespace) => folderNamespaces.has(namespace));
+  const collisions = collectNamespaceCollisions(localeDir);
 
   if (collisions.length > 0) {
     throw new Error(
@@ -230,7 +288,7 @@ function validateLocaleCatalogs(messagesDir = MESSAGES_DIR) {
         warnings.push(`Empty translation value for "${key}"`);
       }
 
-      if (trimmedEn === trimmedAr) {
+      if (trimmedEn === trimmedAr && !INTENTIONAL_SAME_VALUE_KEYS.has(key)) {
         warnings.push(`Same EN/AR value for "${key}"`);
       }
 

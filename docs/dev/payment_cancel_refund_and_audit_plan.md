@@ -235,7 +235,7 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 - `web-admin/app/dashboard/internal_fin/payments/[id]/payment-detail-client.tsx` — Refund button, Audit history section.
 - `web-admin/app/dashboard/internal_fin/payments/components/payments-table.tsx` — Refund action.
 - `web-admin/prisma/schema.prisma` — org_payment_audit_log model.
-- `web-admin/messages/en.json`, `web-admin/messages/ar.json` — payments.refund.*, payments.audit.*.
+- `web-admin/messages/en/**`, `web-admin/messages/ar/**` — `payments.refund.*`, `payments.audit.*` with the same merged runtime key paths.
 
 ---
 

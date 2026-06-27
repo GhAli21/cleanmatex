@@ -1,0 +1,21 @@
+{
+  "title": "Print Customer Statement",
+  "documentLabel": "Accounts Receivable Statement",
+  "fields": {
+    "period": "Statement Period",
+    "opening": "Opening Balance",
+    "closing": "Closing Balance"
+  },
+  "columns": {
+    "date": "Event Date",
+    "kind": "Kind",
+    "reference": "Reference",
+    "description": "Description",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance"
+  },
+  "errors": {
+    "loadFailed": "Failed to load printable customer statement data."
+  }
+}

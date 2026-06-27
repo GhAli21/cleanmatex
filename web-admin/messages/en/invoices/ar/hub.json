@@ -1,0 +1,56 @@
+{
+  "subtitle": "Manage AR invoices with canonical invoice status, payment progress, and export-ready controls.",
+  "actions": {
+    "export": "Export CSV"
+  },
+  "kpis": {
+    "draft": "Draft",
+    "open": "Open",
+    "outstanding": "Outstanding Amount"
+  },
+  "filters": {
+    "searchLabel": "Search",
+    "searchPlaceholder": "Search invoice #, customer, order #, or reference",
+    "status": "Status",
+    "invoiceType": "Invoice Type",
+    "dateFrom": "Invoice Date From",
+    "dateTo": "Invoice Date To",
+    "allStatuses": "All statuses",
+    "allTypes": "All types"
+  },
+  "statusOptions": {
+    "DRAFT": "Draft",
+    "OPEN": "Open",
+    "PARTIALLY_PAID": "Partially paid",
+    "PAID": "Paid",
+    "OVERDUE": "Overdue",
+    "CANCELLED": "Cancelled",
+    "VOID": "Void",
+    "WRITTEN_OFF": "Written off",
+    "DISPUTED": "Disputed"
+  },
+  "invoiceTypeOptions": {
+    "MANUAL_AR": "Manual AR",
+    "ORDER_CREDIT": "Order Credit",
+    "B2B_ORDER": "B2B Order",
+    "B2B_STATEMENT": "B2B Statement",
+    "CREDIT_MEMO": "Credit Memo",
+    "DEBIT_NOTE": "Debit Note",
+    "PROFORMA": "Proforma"
+  },
+  "columns": {
+    "invoiceNo": "Invoice #",
+    "invoiceDate": "Invoice Date",
+    "customer": "Customer",
+    "order": "Order",
+    "invoiceType": "Invoice Type",
+    "status": "Status",
+    "total": "Total",
+    "paid": "Paid",
+    "outstanding": "Outstanding",
+    "dueDate": "Due Date",
+    "issuedAt": "Issued At"
+  },
+  "emptyTitle": "No AR invoices found",
+  "emptyDescription": "Adjust the filters or create a new AR invoice to begin receivable tracking."
+}

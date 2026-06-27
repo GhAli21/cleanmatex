@@ -1,0 +1,18 @@
+{
+  "title": "Posting Audit Viewer",
+  "subtitle": "View all posting log entries and journal creation history.",
+  "empty": "No posting log entries found.",
+  "table": {
+    "title": "{total} Total Entries"
+  },
+  "columns": {
+    "date": "Date",
+    "docType": "Doc Type",
+    "docNo": "Doc No",
+    "event": "Event",
+    "attempt": "#",
+    "status": "Status",
+    "journal": "Journal",
+    "errorCode": "Error Code"
+  }
+}

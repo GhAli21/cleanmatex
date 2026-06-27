@@ -1,0 +1,7 @@
+{
+  "label": "Customer",
+  "selectPlaceholder": "Select customer",
+  "addCustomer": "Add customer",
+  "searchPlaceholder": "Search name or phone",
+  "helper": "Required to submit order. Tap to search and select."
+}

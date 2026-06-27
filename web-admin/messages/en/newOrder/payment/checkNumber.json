@@ -1,0 +1,5 @@
+{
+  "label": "Check Number",
+  "placeholder": "Enter check number",
+  "required": "Check number is required for check payments"
+}

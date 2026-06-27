@@ -1,0 +1,12 @@
+{
+  "date": "التاريخ",
+  "amount": "المبلغ",
+  "method": "الطريقة",
+  "kind": "النوع",
+  "kind_invoice": "فاتورة",
+  "kind_deposit": "عربون",
+  "kind_advance": "سلفة",
+  "kind_pos": "نقاط بيع",
+  "status": "الحالة",
+  "empty": "لا توجد مدفوعات مسجلة بعد"
+}

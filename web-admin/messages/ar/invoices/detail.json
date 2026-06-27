@@ -1,0 +1,9 @@
+{
+  "title": "فاتورة {invoiceNo}",
+  "forOrder": "مرتبطة بالطلب {orderId}",
+  "noOrder": "غير مرتبطة بطلب",
+  "summary": "ملخص الفاتورة",
+  "paymentHistory": "سجل المدفوعات",
+  "orderSummary": "ملخص الطلب",
+  "status": "الحالة"
+}

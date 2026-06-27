@@ -1,0 +1,8 @@
+{
+  "orderCreated": "Order has been created",
+  "orderUpdated": "Order has been updated",
+  "orderDeleted": "Order has been deleted",
+  "paymentSuccess": "Payment completed",
+  "paymentPending": "Payment is pending",
+  "validationError": "Please complete required fields"
+}

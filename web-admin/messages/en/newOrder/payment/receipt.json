@@ -1,0 +1,13 @@
+{
+  "title": "Payment Receipt",
+  "invoiceNumber": "Invoice #",
+  "orderNumber": "Order #",
+  "date": "Date",
+  "time": "Time",
+  "customer": "Customer",
+  "paymentMethod": "Payment Method",
+  "print": "Print Receipt",
+  "download": "Download",
+  "email": "Email Receipt",
+  "whatsapp": "Send via WhatsApp"
+}

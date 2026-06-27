@@ -1,0 +1,6 @@
+{
+  "upgradeTitle": "This ERP-Lite module is not enabled",
+  "upgradeDescription": "Your current plan or published platform policy does not enable this ERP-Lite area yet.",
+  "deniedTitle": "You do not have access to this ERP-Lite module",
+  "deniedDescription": "Ask your tenant administrator to grant the required ERP-Lite permission for this area."
+}

@@ -1,0 +1,10 @@
+{
+  "customerRequired": "العميل مطلوب",
+  "atLeastOneItem": "أضف عنصراً واحداً على الأقل",
+  "dateRequired": "اختر تاريخ الجاهزية أو التوصيل",
+  "paymentRequired": "اختر طريقة الدفع",
+  "readyByMustBeFuture": "يجب أن يكون تاريخ الجاهزية في المستقبل",
+  "readyByTooFar": "تاريخ الجاهزية يزيد عن 30 يوماً",
+  "readyByRequired": "تاريخ الجاهزية مطلوب",
+  "readyToSubmit": "جاهز للإرسال"
+}

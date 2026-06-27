@@ -20,16 +20,11 @@
  * error-mapping switch stay byte-equivalent to the original inline code. DOM refs
  * stay declared in the view (per the 2G "refs/scroll/focus stay in view" rule) and
  * are threaded in; this hook only uses `pinInputRef` to reproduce the existing
- * PIN-focus effect.
+ * PIN-focus effect. The one deliberate (behavior-equivalent) change vs the inline
+ * original: the `open`-reset runs at render-time (Pattern A) instead of in an
+ * effect, the clean fix the repo prescribes for `react-hooks/set-state-in-effect`.
  *
  * See `docs/features/Order_Fin/Payment_Modal_Review/`.
- */
-
-/* eslint-disable react-hooks/set-state-in-effect --
- * Behavior-frozen verbatim lift of the modal's gift-card reset/PIN/open-reset
- * effects. Render-time reset (the preferred pattern) is impractical here: the
- * code-changed reset must also call RHF `setValue`, which is unsafe during render.
- * Sanctioned last-resort per docs/dev/rules/react-effects-patterns.md §2.
  */
 
 import { useCallback, useEffect, useState, type RefObject } from 'react';
@@ -150,12 +145,17 @@ export function useGiftCardAndPromo({
     [t, tGiftCardErrors]
   );
 
-  // Reset gift card details when code changes
+  // Reset gift card details when the code changes. This effect legitimately
+  // writes to the RHF form store (an external system, per react-effects-patterns
+  // §5), so it stays an effect; the two co-located useState resets cannot move to
+  // render-time without racing the setValue writes, hence the scoped suppression.
   useEffect(() => {
     if (!giftCardNumber || appliedGiftCard) return;
     if (giftCardDetails?.number && giftCardDetails.number !== giftCardNumber && giftCardDetails.searchStr !== giftCardNumber) {
+      /* eslint-disable react-hooks/set-state-in-effect -- atomic with the setValue writes below */
       setGiftCardDetails(null);
       setGiftCardResult(null);
+      /* eslint-enable react-hooks/set-state-in-effect */
       setValue('giftCardAmount', 0);
       setValue('giftCardId', '');
     }
@@ -169,19 +169,26 @@ export function useGiftCardAndPromo({
     }, 60);
   }, [open, pinRequired, pinInputRef]);
 
-  // This slice's open-reset (each extracted hook owns its own reset).
-  useEffect(() => {
-    if (!open) return;
-    setPromoCodeResult(null);
-    setAppliedPromoCode(null);
-    setGiftCardResult(null);
-    setGiftCardDetails(null);
-    setAppliedGiftCard(null);
-    setGiftCardPin('');
-    setPinRequired(false);
-    setPinVisible(false);
-    setPinFieldError(null);
-  }, [open]);
+  // This slice's open-reset (each extracted hook owns its own reset). Done at
+  // render-time via the prev-open transition pattern (react-effects-patterns §2,
+  // Pattern A) rather than in an effect. Behavior-equivalent to the original
+  // effect: every atom's initial value already equals its reset value, so the
+  // only observable reset is when `open` flips true on a re-open.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setPromoCodeResult(null);
+      setAppliedPromoCode(null);
+      setGiftCardResult(null);
+      setGiftCardDetails(null);
+      setAppliedGiftCard(null);
+      setGiftCardPin('');
+      setPinRequired(false);
+      setPinVisible(false);
+      setPinFieldError(null);
+    }
+  }
 
   return {
     promoCodeValidating,

@@ -28,6 +28,7 @@ web-admin/messages/
 Rules:
 
 - A namespace may be a file or a folder, never both.
+- Use `index.json` inside a namespace folder when root keys must stay at that namespace level.
 - Do not import locale JSON directly in components or feature code.
 - Load messages on the server and consume them through `next-intl`.
 

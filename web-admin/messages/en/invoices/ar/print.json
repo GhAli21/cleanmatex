@@ -1,0 +1,35 @@
+{
+  "title": "Print AR Invoice",
+  "documentLabel": "Accounts Receivable Invoice",
+  "noCustomer": "No linked customer",
+  "fields": {
+    "status": "Status",
+    "invoiceDate": "Invoice Date",
+    "dueDate": "Due Date",
+    "invoiceType": "Invoice Type",
+    "paymentTerms": "Payment Terms",
+    "approvalAction": "Approval Action",
+    "order": "Linked Order"
+  },
+  "sections": {
+    "customer": "Bill To",
+    "summary": "Invoice Summary"
+  },
+  "columns": {
+    "description": "Description",
+    "quantity": "Qty",
+    "unitPrice": "Unit Price",
+    "total": "Total"
+  },
+  "totals": {
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax",
+    "total": "Invoice Total",
+    "paid": "Paid",
+    "outstanding": "Outstanding"
+  },
+  "errors": {
+    "loadFailed": "Failed to load printable AR invoice data."
+  }
+}

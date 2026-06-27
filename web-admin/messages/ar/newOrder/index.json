@@ -1,0 +1,12 @@
+{
+  "title": "طلب جديد",
+  "addNewOrder": "إضافة طلب جديد",
+  "selectCustomer": "اختر العميل",
+  "quickDrop": "إسقاط سريع",
+  "notes": "ملاحظات",
+  "readyBy": "جاهز بحلول",
+  "calculateReadyBy": "حساب تاريخ الجاهزية",
+  "estimatedTotal": "إجمالي مقدر",
+  "submitOrder": "إرسال الطلب",
+  "chooseBranch": "يرجى اختيار الفرع"
+}

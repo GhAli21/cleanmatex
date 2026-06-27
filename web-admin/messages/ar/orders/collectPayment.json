@@ -1,0 +1,15 @@
+{
+  "title": "تحصيل الدفع",
+  "collectButton": "تحصيل الدفع",
+  "outstanding": "المستحق: {amount}",
+  "paymentMethod": "طريقة الدفع",
+  "amount": "المبلغ",
+  "cashTendered": "المبلغ المدفوع نقداً",
+  "loadingMethods": "جاري تحميل طرق الدفع…",
+  "loadMethodsError": "فشل تحميل طرق الدفع",
+  "resolutionRequired": "يجب حل مبلغ الزيادة قبل التحصيل",
+  "submit": "تحصيل",
+  "cancel": "إلغاء",
+  "success": "تم تحصيل الدفع بنجاح",
+  "submitError": "فشل تحصيل الدفع"
+}

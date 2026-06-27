@@ -1,0 +1,192 @@
+{
+  "credits": {
+    "title": "AR Credits",
+    "subtitle": "Manage unapplied customer credits and reuse them against open receivables.",
+    "tableTitle": "Available Credit Sources",
+    "infoTitle": "Canonical credit source",
+    "infoBody": "These balances come from unapplied AR ledger credits created by overpayments and reversals.",
+    "mode": "Credit Operation",
+    "kpis": {
+      "creditSources": "Credit Sources",
+      "availableAmount": "Available Credit",
+      "customers": "Customers"
+    },
+    "columns": {
+      "customer": "Customer",
+      "sourceLedger": "Source Ledger",
+      "reference": "Reference",
+      "availableCredit": "Available Credit",
+      "lastCreditAt": "Last Credit At"
+    },
+    "emptyTitle": "No AR credits",
+    "emptyDescription": "No unapplied credits are available for allocation right now.",
+    "apply": {
+      "title": "Apply Credit",
+      "submit": "Apply Credit",
+      "success": "AR credit applied successfully.",
+      "error": "Failed to apply AR credit.",
+      "fields": {
+        "invoiceId": "Invoice ID",
+        "customerId": "Customer ID",
+        "sourceLedgerId": "Source Ledger ID",
+        "appliedAmount": "Applied Amount",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional allocation notes"
+      }
+    },
+    "reverse": {
+      "title": "Reverse Credit Application",
+      "submit": "Reverse Credit",
+      "success": "AR credit application reversed.",
+      "error": "Failed to reverse the credit application.",
+      "fields": {
+        "applicationId": "Credit Application ID",
+        "reason": "Reversal Reason",
+        "reasonPlaceholder": "Why is this credit application being reversed?"
+      }
+    }
+  },
+  "disputes": {
+    "title": "AR Disputes",
+    "subtitle": "Track disputed invoices, resolution outcomes, and receivable holds with full audit history.",
+    "tableTitle": "Dispute Register",
+    "infoTitle": "Disputes suspend the standard AR lifecycle",
+    "infoBody": "Opening a dispute moves the invoice into DISPUTED status until the case is resolved or cancelled.",
+    "mode": "Dispute Action",
+    "kpis": {
+      "open": "Open Cases",
+      "resolved": "Resolved Cases",
+      "amount": "Disputed Amount"
+    },
+    "columns": {
+      "disputeNo": "Dispute #",
+      "invoiceNo": "Invoice #",
+      "customer": "Customer",
+      "status": "Status",
+      "reason": "Reason",
+      "amount": "Amount"
+    },
+    "emptyTitle": "No disputes found",
+    "emptyDescription": "No AR disputes matched the selected scope.",
+    "create": {
+      "title": "Create Dispute",
+      "submit": "Open Dispute",
+      "success": "AR dispute created successfully.",
+      "fields": {
+        "invoiceId": "Invoice ID",
+        "customerId": "Customer ID",
+        "reasonCode": "Reason Code",
+        "title": "Dispute Title",
+        "description": "Case Description",
+        "amount": "Disputed Amount"
+      }
+    },
+    "resolve": {
+      "title": "Resolve Dispute",
+      "submit": "Resolve Dispute",
+      "success": "AR dispute resolved successfully.",
+      "fields": {
+        "disputeId": "Dispute ID",
+        "status": "Resolution Status",
+        "summary": "Resolution Summary"
+      }
+    },
+    "errors": {
+      "submit": "The dispute action could not be completed."
+    }
+  },
+  "dunning": {
+    "title": "AR Dunning",
+    "subtitle": "Run reminder, escalation, and credit hold actions against overdue receivables.",
+    "tableTitle": "Dunning Activity",
+    "infoTitle": "Execution log",
+    "infoBody": "Every reminder or hold action is logged here so collection activity stays auditable by customer and invoice.",
+    "kpis": {
+      "sent": "Sent",
+      "failed": "Failed",
+      "holds": "Credit Holds"
+    },
+    "columns": {
+      "customer": "Customer",
+      "invoice": "Invoice",
+      "stage": "Stage",
+      "action": "Action",
+      "status": "Status",
+      "executedAt": "Executed At",
+      "response": "Response"
+    },
+    "emptyTitle": "No dunning runs found",
+    "emptyDescription": "No dunning actions have been logged for this tenant scope yet.",
+    "run": {
+      "title": "Run Dunning Action",
+      "submit": "Run Action",
+      "success": "Dunning action executed successfully.",
+      "error": "Failed to execute the dunning action.",
+      "fields": {
+        "customerId": "Customer ID",
+        "invoiceId": "Invoice ID",
+        "stage": "Dunning Stage",
+        "action": "Dunning Action",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional reminder or collector note"
+      }
+    }
+  },
+  "cycles": {
+    "title": "Statement Cycles",
+    "subtitle": "Define consolidated statement billing cycles for B2B receivable operations.",
+    "tableTitle": "Statement Cycle Register",
+    "infoTitle": "Cycle scheduling",
+    "infoBody": "Cycle definitions determine which customers are grouped for statement-style invoice generation and when those runs occur.",
+    "mode": "Cycle Operation",
+    "yes": "Yes",
+    "no": "No",
+    "kpis": {
+      "active": "Active Cycles",
+      "monthly": "Monthly Cycles",
+      "nextRuns": "Cycles With Next Run"
+    },
+    "columns": {
+      "code": "Cycle Code",
+      "name": "Cycle Name",
+      "cadence": "Cadence",
+      "scope": "Customer Scope",
+      "terms": "Due Terms Days",
+      "nextRun": "Next Run At",
+      "active": "Active"
+    },
+    "emptyTitle": "No statement cycles found",
+    "emptyDescription": "Create a statement cycle to prepare consolidated B2B billing runs.",
+    "create": {
+      "title": "Create Statement Cycle",
+      "submit": "Create Cycle",
+      "success": "Statement cycle created successfully.",
+      "error": "Failed to create the statement cycle.",
+      "fields": {
+        "cycleCode": "Cycle Code",
+        "cycleName": "Cycle Name",
+        "cycleName2": "Cycle Name (Arabic)",
+        "cadence": "Cadence",
+        "scope": "Customer Scope",
+        "dayOfMonth": "Day Of Month",
+        "dayOfWeek": "Day Of Week",
+        "issueDayOffset": "Issue Day Offset",
+        "dueTermsDays": "Due Terms Days",
+        "isActive": "Active",
+        "customerIds": "Customer IDs",
+        "customerIdsPlaceholder": "Comma-separated or line-separated customer UUIDs for custom-list cycles"
+      }
+    },
+    "preview": {
+      "title": "Preview Cycle",
+      "submit": "Preview Cycle",
+      "success": "Statement cycle preview loaded.",
+      "error": "Failed to preview the statement cycle.",
+      "resultCount": "{count, plural, one {# customer matched this cycle.} other {# customers matched this cycle.}}",
+      "fields": {
+        "cycleId": "Cycle ID",
+        "asOfDate": "As Of Date"
+      }
+    }
+  }
+}

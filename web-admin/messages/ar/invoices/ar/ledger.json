@@ -1,0 +1,27 @@
+{
+  "title": "دفتر الذمم المدينة",
+  "subtitle": "راجع حركات ذمم العميل والتخصيصات والأرصدة الجارية.",
+  "tableTitle": "دفتر ذمم العميل",
+  "missingCustomerTitle": "العميل مطلوب",
+  "missingCustomerBody": "اختر عميلاً من صفحة عملاء الذمم لفتح الدفتر الخاص بالمستأجر.",
+  "browseCustomers": "استعراض عملاء الذمم",
+  "kpis": {
+    "openInvoices": "الفواتير المفتوحة",
+    "outstanding": "الرصيد المستحق",
+    "netBalance": "صافي الرصيد"
+  },
+  "columns": {
+    "eventAt": "تاريخ الحركة",
+    "movement": "الحركة",
+    "side": "الجانب",
+    "amount": "المبلغ",
+    "runningBalance": "الرصيد الجاري",
+    "reference": "المرجع"
+  },
+  "sides": {
+    "DEBIT": "مدين",
+    "CREDIT": "دائن"
+  },
+  "emptyTitle": "لا توجد قيود دفتر",
+  "emptyDescription": "لا توجد حركة دفتر ذمم لهذا العميل ضمن النطاق المحدد."
+}

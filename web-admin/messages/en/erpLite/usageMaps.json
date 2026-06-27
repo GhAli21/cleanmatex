@@ -1,0 +1,29 @@
+{
+  "title": "Usage Mapping Console",
+  "subtitle": "Map usage codes to tenant accounts for automated journal posting.",
+  "banner": "Align usage maps with Finance Readiness and the ERP-Lite home cockpit. Required codes with issues block clean posting.",
+  "linkHome": "ERP-Lite home",
+  "linkReadiness": "Finance readiness",
+  "filters": {
+    "showAll": "All maps",
+    "unresolvedOnly": "Unresolved issues only",
+    "requiredIssues": "Required with issues"
+  },
+  "required": "Required",
+  "optional": "Optional",
+  "empty": "No usage mappings found.",
+  "table": {
+    "title": "{count} Usage Maps"
+  },
+  "columns": {
+    "usageCode": "Usage Code",
+    "required": "Required",
+    "account": "Account",
+    "accType": "Account Type",
+    "requiredType": "Required Type",
+    "status": "Status",
+    "issue": "Issue",
+    "effectiveFrom": "Effective From",
+    "effectiveTo": "Effective To"
+  }
+}

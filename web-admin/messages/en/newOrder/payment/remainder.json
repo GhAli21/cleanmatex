@@ -1,0 +1,11 @@
+{
+  "title": "Remaining balance policy",
+  "fullPayment": "Full Payment",
+  "payOnCollection": "Pay on Collection",
+  "invoiceOutstanding": "Invoice Outstanding",
+  "deferredHint": "Deferred settlement",
+  "help": "When the pay-now amount is less than the total, choose how the remaining balance should be handled.",
+  "validation": {
+    "required": "Choose how the remaining balance should be handled."
+  }
+}

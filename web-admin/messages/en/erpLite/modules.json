@@ -1,0 +1,168 @@
+{
+  "coa": {
+    "title": "Chart of Accounts",
+    "subtitle": "Set up the governed account structure that later finance posting and reporting will use."
+  },
+  "gl": {
+    "title": "General Ledger",
+    "subtitle": "Review the shell for tenant-facing ledger inquiry and posting controls before the finance engine is implemented."
+  },
+  "reports": {
+    "title": "Financial Reports",
+    "subtitle": "Prepare the reporting space for trial balance, profit and loss, balance sheet, and finance inquiry screens."
+  },
+  "ar": {
+    "title": "AR Aging",
+    "subtitle": "Reserve the receivables workspace for customer balances, aging buckets, and follow-up review."
+  },
+  "expenses": {
+    "title": "Expenses",
+    "subtitle": "Reserve the expense and petty cash workspace for the basic v1 cost-control flows."
+  },
+  "bankRecon": {
+    "title": "Bank Reconciliation",
+    "subtitle": "Reserve the future bank matching and reconciliation workspace for the v2 treasury phase."
+  },
+  "ap": {
+    "title": "Accounts Payable",
+    "subtitle": "Reserve the supplier payable workspace for v2 invoice, payment, and aging flows."
+  },
+  "po": {
+    "title": "Purchase Orders",
+    "subtitle": "Reserve the procurement workspace for supplier ordering and receipt controls planned for v2."
+  },
+  "branchPl": {
+    "title": "Branch P&L",
+    "subtitle": "Branch profitability combines direct posted finance truth with the latest posted governed allocation run, while costing remains visible as a separate audited layer.",
+    "eyebrow": "ERP-Lite Branch P&L",
+    "notices": {
+      "allocation-rule-created": "Allocation rule created successfully.",
+      "allocation-run-created": "Allocation run draft created successfully.",
+      "allocation-line-created": "Allocation run line added successfully.",
+      "allocation-run-posted": "Allocation run posted successfully.",
+      "cost-component-created": "Cost component created successfully.",
+      "cost-run-created": "Cost run draft created successfully.",
+      "cost-run-detail-created": "Cost run detail added successfully.",
+      "cost-run-posted": "Cost run posted successfully."
+    },
+    "summary": {
+      "revenue": "Direct Revenue",
+      "expense": "Direct Expense",
+      "directProfit": "Direct Profit",
+      "allocatedProfit": "Final Profit After Allocations"
+    },
+    "list": {
+      "title": "Branch Profitability",
+      "subtitle": "This view preserves direct finance truth, then layers the latest posted governed allocation run on top of it.",
+      "empty": "No posted branch profitability data found.",
+      "columns": {
+        "branch": "Branch",
+        "revenue": "Revenue",
+        "expense": "Expense",
+        "directProfit": "Direct Profit",
+        "allocatedIn": "Allocated In",
+        "allocatedOut": "Allocated Out",
+        "finalProfit": "Final Profit"
+      }
+    },
+    "forms": {
+      "allocationRule": {
+        "title": "Create Allocation Rule",
+        "subtitle": "Define a governed branch profitability allocation rule without hiding direct finance truth.",
+        "submit": "Create Allocation Rule",
+        "fields": {
+          "code": "Rule Code",
+          "name": "Rule Name",
+          "name2": "Rule Name (Arabic)",
+          "basis": "Allocation Basis",
+          "effectiveFrom": "Effective From"
+        }
+      },
+      "allocationRun": {
+        "title": "Create Allocation Run",
+        "subtitle": "Open a draft allocation run before adding branch allocation lines.",
+        "submit": "Create Allocation Run",
+        "fields": {
+          "runDate": "Run Date"
+        }
+      },
+      "allocationLine": {
+        "title": "Add Allocation Line",
+        "subtitle": "Capture an auditable manual allocation line into a draft run.",
+        "submit": "Add Allocation Line",
+        "fields": {
+          "run": "Allocation Run",
+          "rule": "Allocation Rule",
+          "sourceBranch": "Source Branch",
+          "targetBranch": "Target Branch",
+          "sourceAmount": "Source Amount",
+          "allocAmount": "Allocated Amount"
+        }
+      },
+      "costComponent": {
+        "title": "Create Cost Component",
+        "subtitle": "Define the approved laundry cost component catalog for rerunnable cost runs.",
+        "submit": "Create Cost Component",
+        "fields": {
+          "code": "Component Code",
+          "name": "Component Name",
+          "name2": "Component Name (Arabic)",
+          "class": "Cost Class",
+          "basis": "Cost Basis"
+        }
+      },
+      "costRun": {
+        "title": "Create Cost Run",
+        "subtitle": "Open a draft cost run before loading detailed cost rows.",
+        "submit": "Create Cost Run",
+        "fields": {
+          "runDate": "Run Date"
+        }
+      },
+      "costRunDetail": {
+        "title": "Add Cost Run Detail",
+        "subtitle": "Record audited costing detail rows into a draft cost run.",
+        "submit": "Add Cost Detail",
+        "fields": {
+          "run": "Cost Run",
+          "component": "Cost Component",
+          "branch": "Branch",
+          "basisValue": "Basis Value",
+          "allocAmount": "Allocated Amount",
+          "unitCost": "Unit Cost",
+          "totalCost": "Total Cost"
+        }
+      }
+    },
+    "lists": {
+      "allocationRules": {
+        "title": "Allocation Rules",
+        "subtitle": "Active profitability allocation rules available for new draft runs.",
+        "empty": "No allocation rules created yet."
+      },
+      "allocationRuns": {
+        "title": "Allocation Runs",
+        "subtitle": "Draft and posted branch profitability allocation runs.",
+        "empty": "No allocation runs found.",
+        "lines": "lines",
+        "post": "Post Allocation Run"
+      },
+      "costRuns": {
+        "title": "Cost Runs",
+        "subtitle": "Draft and posted laundry cost runs with auditable totals.",
+        "empty": "No cost runs found.",
+        "lines": "lines",
+        "post": "Post Cost Run"
+      },
+      "costSummary": {
+        "title": "Latest Cost Summary",
+        "subtitle": "Branch totals from the latest posted cost run.",
+        "empty": "No posted cost summary found.",
+        "columns": {
+          "branch": "Branch",
+          "totalCost": "Total Cost"
+        }
+      }
+    }
+  }
+}
