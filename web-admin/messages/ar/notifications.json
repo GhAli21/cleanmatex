@@ -1,0 +1,126 @@
+{
+  "title": "الإشعارات",
+  "markAllRead": "تحديد الكل كمقروء",
+  "clearAll": "مسح الكل",
+  "noNotifications": "لا توجد إشعارات",
+  "types": {
+    "order": "طلب",
+    "payment": "دفع",
+    "system": "نظام",
+    "delivery": "توصيل"
+  },
+  "bell": {
+    "viewAll": "عرض جميع الإشعارات"
+  },
+  "center": {
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير المقروءة",
+      "orders": "الطلبات",
+      "payments": "المدفوعات",
+      "system": "النظام"
+    },
+    "empty": "أنت على اطلاع بكل شيء",
+    "emptyDesc": "لا توجد إشعارات لعرضها هنا",
+    "emptyUnread": "لا توجد إشعارات غير مقروءة",
+    "emptyUnreadDesc": "لقد قرأت جميع إشعاراتك",
+    "loadMore": "تحميل المزيد",
+    "prevPage": "السابق",
+    "nextPage": "التالي"
+  },
+  "item": {
+    "markRead": "تحديد كمقروء",
+    "viewDetails": "عرض التفاصيل",
+    "justNow": "الآن"
+  },
+  "settings": {
+    "title": "إعدادات الإشعارات",
+    "myPrefs": "تفضيلاتي",
+    "channelSettings": "إعدادات القنوات",
+    "enableChannel": "تلقّي الإشعارات عبر هذه القناة",
+    "marketingConsent": "الموافقة على الإشعارات التسويقية",
+    "quietHours": "تفعيل ساعات الهدوء",
+    "quietHoursStart": "البداية",
+    "quietHoursEnd": "النهاية",
+    "saved": "تم حفظ الإعدادات",
+    "saveFailed": "فشل حفظ الإعدادات",
+    "loadFailed": "فشل تحميل الإعدادات"
+  },
+  "deliveryLog": {
+    "title": "سجل التسليم",
+    "event": "الحدث",
+    "channel": "القناة",
+    "recipient": "المستلم",
+    "status": "الحالة",
+    "retries": "المحاولات",
+    "date": "التاريخ",
+    "error": "الخطأ",
+    "allChannels": "كل القنوات",
+    "allStatuses": "كل الحالات",
+    "refresh": "تحديث",
+    "empty": "لا توجد سجلات تسليم",
+    "loadFailed": "فشل تحميل سجل التسليم"
+  },
+  "campaigns": {
+    "title": "الحملات الإعلانية",
+    "create": "حملة جديدة",
+    "createTitle": "إنشاء حملة",
+    "sent": "أُرسل",
+    "empty": "لا توجد حملات بعد",
+    "emptyDesc": "أنشئ أول حملة بث للوصول إلى عملائك",
+    "filter": {
+      "all": "الكل"
+    },
+    "status": {
+      "DRAFT": "مسودة",
+      "PENDING_APPROVAL": "بانتظار الموافقة",
+      "APPROVED": "موافق عليها",
+      "SCHEDULED": "مجدولة",
+      "RUNNING": "جارية",
+      "COMPLETED": "مكتملة",
+      "PAUSED": "متوقفة",
+      "FAILED": "فاشلة",
+      "CANCELLED": "ملغاة"
+    },
+    "form": {
+      "name": "اسم الحملة",
+      "namePlaceholder": "مثال: عروض الصيف",
+      "nameAr": "اسم الحملة (بالعربية)",
+      "nameArPlaceholder": "مثال: حملة الصيف",
+      "channel": "القناة",
+      "description": "الرسالة / الوصف",
+      "descriptionPlaceholder": "ماذا تريد أن تقول لعملائك؟",
+      "targetUserIds": "معرّفات المستخدمين المستهدفين",
+      "targetUserIdsPlaceholder": "الصق معرّفات UUID للمستخدمين — واحد في كل سطر أو مفصولة بفواصل",
+      "targetUserIdsHint": "سيتلقى الرسالة المستخدمون الذين وافقوا على التواصل التسويقي فقط",
+      "scheduledAt": "جدولة لوقت لاحق",
+      "scheduledAtHint": "اتركه فارغاً للتشغيل الفوري بعد الموافقة",
+      "optional": "اختياري",
+      "cancel": "إلغاء",
+      "saveDraft": "حفظ كمسودة",
+      "saving": "جارٍ الحفظ…"
+    },
+    "detail": {
+      "total": "إجمالي المستهدفين",
+      "sent": "أُرسل",
+      "skipped": "تجاوز",
+      "failed": "فاشل",
+      "details": "تفاصيل الحملة",
+      "status": "الحالة",
+      "channel": "القناة",
+      "scheduledAt": "موعد الإرسال",
+      "startedAt": "بدأت في",
+      "completedAt": "اكتملت في",
+      "createdAt": "أُنشئت في",
+      "failedSample": "الفاشلة / المتجاوزة (عيّنة)",
+      "sendTest": "إرسال تجريبي",
+      "submitApproval": "إرسال للموافقة",
+      "approve": "الموافقة",
+      "launch": "إطلاق الآن",
+      "cancel": "إلغاء الحملة",
+      "testSent": "تم إرسال الإشعار التجريبي إلى حسابك",
+      "loadFailed": "فشل تحميل الحملة",
+      "transitioned": "تم تحديث حالة الحملة إلى {status}"
+    }
+  }
+}

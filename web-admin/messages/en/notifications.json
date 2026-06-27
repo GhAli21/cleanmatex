@@ -1,0 +1,126 @@
+{
+  "title": "Notifications",
+  "markAllRead": "Mark all as read",
+  "clearAll": "Clear all",
+  "noNotifications": "No notifications",
+  "types": {
+    "order": "Order",
+    "payment": "Payment",
+    "system": "System",
+    "delivery": "Delivery"
+  },
+  "bell": {
+    "viewAll": "View all notifications"
+  },
+  "center": {
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "orders": "Orders",
+      "payments": "Payments",
+      "system": "System"
+    },
+    "empty": "You're all caught up",
+    "emptyDesc": "No notifications to show here",
+    "emptyUnread": "No unread notifications",
+    "emptyUnreadDesc": "You've read all your notifications",
+    "loadMore": "Load more",
+    "prevPage": "Previous",
+    "nextPage": "Next"
+  },
+  "item": {
+    "markRead": "Mark as read",
+    "viewDetails": "View details",
+    "justNow": "Just now"
+  },
+  "settings": {
+    "title": "Notification Settings",
+    "myPrefs": "My Preferences",
+    "channelSettings": "Channel Settings",
+    "enableChannel": "Receive notifications via this channel",
+    "marketingConsent": "Marketing notification consent",
+    "quietHours": "Enable quiet hours",
+    "quietHoursStart": "Start",
+    "quietHoursEnd": "End",
+    "saved": "Settings saved",
+    "saveFailed": "Failed to save settings",
+    "loadFailed": "Failed to load settings"
+  },
+  "deliveryLog": {
+    "title": "Delivery Log",
+    "event": "Event",
+    "channel": "Channel",
+    "recipient": "Recipient",
+    "status": "Status",
+    "retries": "Retries",
+    "date": "Date",
+    "error": "Error",
+    "allChannels": "All channels",
+    "allStatuses": "All statuses",
+    "refresh": "Refresh",
+    "empty": "No delivery records found",
+    "loadFailed": "Failed to load delivery log"
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "create": "New Campaign",
+    "createTitle": "Create Campaign",
+    "sent": "sent",
+    "empty": "No campaigns yet",
+    "emptyDesc": "Create your first broadcast campaign to reach your customers",
+    "filter": {
+      "all": "All"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING_APPROVAL": "Pending Approval",
+      "APPROVED": "Approved",
+      "SCHEDULED": "Scheduled",
+      "RUNNING": "Running",
+      "COMPLETED": "Completed",
+      "PAUSED": "Paused",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "form": {
+      "name": "Campaign Name",
+      "namePlaceholder": "e.g. Summer Promotion",
+      "nameAr": "Campaign Name (Arabic)",
+      "nameArPlaceholder": "مثال: حملة الصيف",
+      "channel": "Channel",
+      "description": "Message / Description",
+      "descriptionPlaceholder": "What do you want to say to your customers?",
+      "targetUserIds": "Target User IDs",
+      "targetUserIdsPlaceholder": "Paste user UUIDs — one per line or comma-separated",
+      "targetUserIdsHint": "Only users who have given marketing consent will receive the message",
+      "scheduledAt": "Schedule for later",
+      "scheduledAtHint": "Leave empty to run immediately after approval",
+      "optional": "optional",
+      "cancel": "Cancel",
+      "saveDraft": "Save as Draft",
+      "saving": "Saving…"
+    },
+    "detail": {
+      "total": "Total Targets",
+      "sent": "Sent",
+      "skipped": "Skipped",
+      "failed": "Failed",
+      "details": "Campaign Details",
+      "status": "Status",
+      "channel": "Channel",
+      "scheduledAt": "Scheduled",
+      "startedAt": "Started",
+      "completedAt": "Completed",
+      "createdAt": "Created",
+      "failedSample": "Failed / Skipped (sample)",
+      "sendTest": "Send Test",
+      "submitApproval": "Submit for Approval",
+      "approve": "Approve",
+      "launch": "Launch Now",
+      "cancel": "Cancel Campaign",
+      "testSent": "Test notification dispatched to your account",
+      "loadFailed": "Failed to load campaign",
+      "transitioned": "Campaign status updated to {status}"
+    }
+  }
+}

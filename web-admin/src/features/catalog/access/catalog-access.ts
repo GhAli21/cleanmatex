@@ -1,14 +1,14 @@
-import type { PageAccessContract } from '@/lib/auth/access-contracts'
+import type { AccessRequirement, PageAccessContract } from '@/lib/auth/access-contracts'
 import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
 
 export const CATALOG_SECTION_PERMISSIONS = [ADMIN_PERMISSIONS.MANAGE] as const
 
 export { ADMIN_PERMISSIONS }
 
-const CATALOG_SECTION_PAGE = {
+const CATALOG_SECTION_PAGE: AccessRequirement = {
   permissions: [ADMIN_PERMISSIONS.MANAGE],
   requireAllPermissions: true,
-} as const
+}
 
 const CATALOG_CHILD_NOTES = [
   'Catalog section child route; page gate and nav parent require admin:manage. Linked APIs enforce access separately.',

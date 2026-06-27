@@ -6,21 +6,34 @@
  * @module ui/navigation
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Globe } from 'lucide-react'
-import { type Locale, setLocale as saveLocale, getLocaleFromLocalStorage } from '@/lib/utils/locale.client'
+import { useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { type Locale, setLocale as saveLocale } from '@/lib/utils/locale.client'
 import { useRTL } from '@/lib/hooks/useRTL'
 
 export function CmxLanguageSwitcher() {
-  const [locale, setLocale] = useState<Locale>(() => getLocaleFromLocalStorage())
+  const router = useRouter()
+  const currentLocale = useLocale() as Locale
+  const [locale, setLocale] = useState<Locale>(currentLocale)
   const [isOpen, setIsOpen] = useState(false)
   const isRTL = useRTL()
 
+  useEffect(() => {
+    setLocale(currentLocale)
+  }, [currentLocale])
+
   const switchLanguage = (newLocale: Locale) => {
+    if (newLocale === locale) {
+      setIsOpen(false)
+      return
+    }
+
     setLocale(newLocale)
     saveLocale(newLocale)
-    window.dispatchEvent(new CustomEvent('localeChange', { detail: newLocale }))
     setIsOpen(false)
+    router.refresh()
   }
 
   return (

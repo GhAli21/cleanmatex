@@ -30,11 +30,7 @@ export default function B2BStatementsPage() {
       const res = await fetch('/api/v1/b2b/overdue-statements');
       if (!res.ok) throw new Error('Failed to fetch overdue statements');
       const json = await res.json();
-      return (
-    <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
-      json.data ?? []
-    </RequireAnyPermission>
-  ) as Array<{
+      return (json.data ?? []) as Array<{
         id: string;
         statementNo: string;
         customerId: string;
@@ -73,140 +69,142 @@ export default function B2BStatementsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
-          {t('statements') || 'Statements'}
-        </h1>
-      </div>
+    <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">
+            {t('statements') || 'Statements'}
+          </h1>
+        </div>
 
-      {/* Overdue (Dunning) section */}
-      {overdueStatements && overdueStatements.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50/50">
+        {/* Overdue (Dunning) section */}
+        {overdueStatements && overdueStatements.length > 0 && (
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-900">
+                <AlertCircle className="h-5 w-5" />
+                {t('overdueStatements') || 'Overdue Statements'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-amber-200">
+                      <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
+                      <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
+                      <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
+                      <th className="text-left py-2 px-3">{t('daysOverdue') || 'Days Overdue'}</th>
+                      <th className="text-left py-2 px-3">{t('dunningAction') || 'Action'}</th>
+                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overdueStatements.map((s) => (
+                      <tr key={s.id} className="border-b border-amber-100 hover:bg-amber-50">
+                        <td className="py-2 px-3">{s.statementNo}</td>
+                        <td className="py-2 px-3">
+                          {s.dueDate ? new Date(s.dueDate).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3 font-medium">
+                          {s.balanceAmount != null ? Number(s.balanceAmount).toLocaleString() : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-amber-700">{s.daysOverdue}</td>
+                        <td className="py-2 px-3">
+                          {s.dunningLevel ? (
+                            <span className="text-xs font-medium text-amber-800">
+                              {s.dunningLevel.days}d → {s.dunningLevel.action}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="py-2 px-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
+                          >
+                            {t('view') || 'View'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-900">
-              <AlertCircle className="h-5 w-5" />
-              {t('overdueStatements') || 'Overdue Statements'}
-            </CardTitle>
+            <CardTitle>{t('statements') || 'Statements'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-amber-200">
-                    <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                    <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                    <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                    <th className="text-left py-2 px-3">{t('daysOverdue') || 'Days Overdue'}</th>
-                    <th className="text-left py-2 px-3">{t('dunningAction') || 'Action'}</th>
-                    <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {overdueStatements.map((s) => (
-                    <tr key={s.id} className="border-b border-amber-100 hover:bg-amber-50">
-                      <td className="py-2 px-3">{s.statementNo}</td>
-                      <td className="py-2 px-3">
-                        {s.dueDate ? new Date(s.dueDate).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3 font-medium">
-                        {s.balanceAmount != null ? Number(s.balanceAmount).toLocaleString() : '-'}
-                      </td>
-                      <td className="py-2 px-3 text-amber-700">{s.daysOverdue}</td>
-                      <td className="py-2 px-3">
-                        {s.dunningLevel ? (
-                          <span className="text-xs font-medium text-amber-800">
-                            {s.dunningLevel.days}d → {s.dunningLevel.action}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="py-2 px-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
-                        >
-                          {t('view') || 'View'}
-                        </Button>
-                      </td>
+            {!statements?.length ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-gray-500 mb-4">
+                  No statements yet. Generate a statement from a B2B customer detail page.
+                </p>
+                <Button
+                  variant="default"
+                  onClick={() => window.location.assign('/dashboard/b2b/customers')}
+                >
+                  {t('goToCustomers') || 'Go to B2B Customers'}
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
+                      <th className="text-left py-2 px-3">{t('periodFrom') || 'Period From'}</th>
+                      <th className="text-left py-2 px-3">{t('periodTo') || 'Period To'}</th>
+                      <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
+                      <th className="text-left py-2 px-3">{t('totalAmount') || 'Total'}</th>
+                      <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
+                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {statements.map((s) => (
+                      <tr key={s.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3">{s.statement_no}</td>
+                        <td className="py-2 px-3">
+                          {s.period_from ? new Date(s.period_from).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {s.period_to ? new Date(s.period_to).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {s.due_date ? new Date(s.due_date).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {s.total_amount != null ? Number(s.total_amount).toLocaleString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {s.balance_amount != null ? Number(s.balance_amount).toLocaleString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
+                          >
+                            {t('view') || 'View'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('statements') || 'Statements'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!statements?.length ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-gray-500 mb-4">
-                No statements yet. Generate a statement from a B2B customer detail page.
-              </p>
-              <Button
-                variant="default"
-                onClick={() => window.location.assign('/dashboard/b2b/customers')}
-              >
-                {t('goToCustomers') || 'Go to B2B Customers'}
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                    <th className="text-left py-2 px-3">{t('periodFrom') || 'Period From'}</th>
-                    <th className="text-left py-2 px-3">{t('periodTo') || 'Period To'}</th>
-                    <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                    <th className="text-left py-2 px-3">{t('totalAmount') || 'Total'}</th>
-                    <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                    <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statements.map((s) => (
-                    <tr key={s.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-3">{s.statement_no}</td>
-                      <td className="py-2 px-3">
-                        {s.period_from ? new Date(s.period_from).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {s.period_to ? new Date(s.period_to).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {s.due_date ? new Date(s.due_date).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {s.total_amount != null ? Number(s.total_amount).toLocaleString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {s.balance_amount != null ? Number(s.balance_amount).toLocaleString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
-                        >
-                          {t('view') || 'View'}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      </div>
+    </RequireAnyPermission>
   );
 }

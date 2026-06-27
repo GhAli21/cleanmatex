@@ -58,7 +58,7 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 ### Phase 4: Frontend
 - [ ] Create feature module in `src/features/<feature>/`
 - [ ] Implement UI components
-- [ ] Add i18n translations (en.json + ar.json)
+- [ ] Add i18n translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`
 - [ ] Support RTL layout
 - [ ] Use Cmx Design System components
 

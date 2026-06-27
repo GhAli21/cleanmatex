@@ -35,7 +35,7 @@ Windows:
 Root shortcut:
 
 ```bash
-npm run services:start
+npm run services:start:windows
 ```
 
 ### 3. Start the web admin
@@ -106,6 +106,12 @@ npm run test:e2e
 npm run check:i18n
 ```
 
+From repo root:
+
+```bash
+npm run check:i18n
+```
+
 From `cmx-api/`:
 
 ```bash
@@ -119,6 +125,7 @@ npm run test:e2e
 
 - Treat the codebase as multi-tenant by default. Tenant-scoped data must honor `tenant_org_id`.
 - English/Arabic support and RTL awareness are mandatory for user-facing work.
+- Locale catalogs live under `web-admin/messages/en/**` and `web-admin/messages/ar/**`; keep both locale trees aligned.
 - After frontend changes in `web-admin`, run `npm run build`.
 - Use the shared Supabase setup in `supabase/` for schema and database workflow.
 - Do not treat local reset scripts as a routine workflow. Use them only intentionally for controlled local development and never as the default recommendation in feature docs.

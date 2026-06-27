@@ -10,37 +10,30 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NextIntlClientProvider } from 'next-intl'
+import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl'
 import { AuthProvider } from '@/lib/auth/auth-context'
 import { TenantCurrencyProvider } from '@/lib/context/tenant-currency-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
 import { AlertDialogProvider } from '@ui/feedback'
 import { PermissionsInspectorProvider } from '@ui/navigation/permissions-inspector'
-import { type Locale, getLocaleFromLocalStorage } from '@/lib/utils/locale.client'
-import enMessages from '@/messages/en.json'
-import arMessages from '@/messages/ar.json'
-
-function getInitialClientLocale(initialLocale: Locale): Locale {
-  if (typeof window === 'undefined') {
-    return initialLocale
-  }
-
-  return getLocaleFromLocalStorage()
-}
+import { type Locale } from '@/lib/utils/locale.client'
 
 /**
  *
  * @param root0
  * @param root0.children
- * @param root0.initialLocale
+ * @param root0.locale
+ * @param root0.messages
  */
 export function AppProviders({
   children,
-  initialLocale = 'en'
+  locale = 'en',
+  messages,
 }: {
   children: ReactNode;
-  initialLocale?: Locale;
+  locale?: Locale;
+  messages: AbstractIntlMessages;
 }) {
   // Create QueryClient instance with default options
   const [queryClient] = useState(
@@ -56,28 +49,11 @@ export function AppProviders({
       })
   )
 
-  // Manage locale state with initial value from server
-  const [locale, setLocaleState] = useState<Locale>(() => getInitialClientLocale(initialLocale));
-
-  // Sync with localStorage and listen for locale changes
+  // Keep document language and direction aligned with the server-provided locale.
   useEffect(() => {
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
-
-    // Listen for locale change events from LanguageSwitcher
-    const handleLocaleChange = (event: CustomEvent<Locale>) => {
-      setLocaleState(event.detail);
-    };
-
-    window.addEventListener('localeChange', handleLocaleChange as EventListener);
-
-    return () => {
-      window.removeEventListener('localeChange', handleLocaleChange as EventListener);
-    };
   }, [locale]);
-
-  // Select messages based on current locale
-  const messages = locale === 'ar' ? arMessages : enMessages;
 
   // RTL-aware toast position
   const toastPosition = locale === 'ar' ? 'top-left' : 'top-right';

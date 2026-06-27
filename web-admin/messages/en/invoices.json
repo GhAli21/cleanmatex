@@ -1,0 +1,793 @@
+{
+  "title": "Invoices",
+  "subtitle": "Review invoices, payments, and outstanding balances",
+  "empty": "No invoices found",
+  "filters": {
+    "search": "Search by invoice #, order #, customer, notes...",
+    "allStatuses": "All Statuses",
+    "allTypes": "All Types",
+    "retail": "Retail",
+    "b2b": "B2B",
+    "fromDate": "From Date",
+    "toDate": "To Date",
+    "statusOptions": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "partial": "Partial",
+      "overdue": "Overdue",
+      "draft": "Draft",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
+  },
+  "columns": {
+    "invoiceNo": "Invoice #",
+    "orderNo": "Order ID",
+    "total": "Total",
+    "paid": "Paid",
+    "balance": "Balance",
+    "status": "Status"
+  },
+  "table": {
+    "columns": {
+      "invoiceNo": "Invoice #",
+      "invoiceDate": "Invoice Date",
+      "orderNo": "Order #",
+      "customer": "Customer",
+      "customerReference": "Cust. Ref",
+      "transDesc": "Description",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "tax": "Tax",
+      "vatAmount": "VAT",
+      "total": "Total",
+      "status": "Status",
+      "dueDate": "Due Date",
+      "paymentMethod": "Method",
+      "paidAmount": "Paid",
+      "paidAt": "Paid At",
+      "paidByName": "Paid By",
+      "balance": "Balance",
+      "handedToName": "Handed To",
+      "handedToMobileNo": "Handed To Mobile",
+      "currency": "Currency",
+      "createdAt": "Created",
+      "actions": "Actions"
+    },
+    "noCustomer": "No customer"
+  },
+  "pagination": {
+    "pageOf": "Page {page} of {totalPages}",
+    "showing": "Showing {from}–{to} of {total}"
+  },
+  "stats": {
+    "total": "Total invoices",
+    "paid": "Paid",
+    "pending": "Pending / Partial",
+    "overdue": "Overdue"
+  },
+  "statuses": {
+    "pending": "Pending",
+    "paid": "Paid",
+    "partial": "Partial",
+    "overdue": "Overdue",
+    "draft": "Draft",
+    "cancelled": "Cancelled",
+    "refunded": "Refunded"
+  },
+  "detail": {
+    "title": "Invoice {invoiceNo}",
+    "forOrder": "Linked to order {orderId}",
+    "noOrder": "No linked order",
+    "summary": "Invoice summary",
+    "paymentHistory": "Payment history",
+    "orderSummary": "Order summary",
+    "status": "Status"
+  },
+  "printReceiptVoucher": "Print Receipt Voucher",
+  "errors": {
+    "authFailed": "Authentication failed. Please log in again."
+  },
+  "history": {
+    "date": "Date",
+    "amount": "Amount",
+    "method": "Method",
+    "kind": "Kind",
+    "kind_invoice": "Invoice",
+    "kind_deposit": "Deposit",
+    "kind_advance": "Advance",
+    "kind_pos": "POS",
+    "status": "Status",
+    "empty": "No payments recorded yet"
+  },
+  "unappliedPayments": "Unapplied payments",
+  "applyToInvoice": "Apply to invoice",
+  "recordPayment": {
+    "title": "Record payment",
+    "amount": "Amount",
+    "paymentMethod": "Payment method",
+    "cash": "Cash",
+    "card": "Card (POS)",
+    "notes": "Notes",
+    "remaining": "remaining",
+    "submit": "Record payment",
+    "processing": "Processing...",
+    "cancel": "Reset",
+    "success": "Payment recorded successfully",
+    "error": "Please check the amount and try again"
+  },
+  "ar": {
+    "create": {
+      "title": "New AR Invoice",
+      "subtitle": "Create a manual or order-based accounts receivable invoice with tenant-safe validation.",
+      "wizardTitle": "AR Invoice Issuance Wizard",
+      "steps": {
+        "stepLabel": "Step {number}",
+        "basics": "Basics",
+        "source": "Source",
+        "review": "Review"
+      },
+      "modeOptions": {
+        "MANUAL": "Manual AR Invoice",
+        "FROM_ORDERS": "Create From Orders"
+      },
+      "fields": {
+        "mode": "Issuance Mode",
+        "customerId": "Customer ID",
+        "branchId": "Branch ID",
+        "currencyCode": "Currency Code",
+        "paymentTerms": "Payment Terms",
+        "paymentMethod": "Payment Method Code",
+        "invoiceDate": "Invoice Date",
+        "dueDate": "Due Date",
+        "orderIds": "Order IDs",
+        "lineDescription": "Line Description",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "discount": "Discount",
+        "tax": "Tax",
+        "subtotalPreview": "Subtotal",
+        "taxablePreview": "Taxable Amount",
+        "totalPreview": "Total Preview",
+        "notes": "Notes"
+      },
+      "manualLines": {
+        "title": "Manual Line Items",
+        "subtitle": "Build the invoice with reusable line items and live totals.",
+        "lineLabel": "Line {number}"
+      },
+      "orderBatch": {
+        "title": "Order Selection",
+        "subtitle": "Issue one AR invoice from multiple eligible orders.",
+        "hint": "Paste one order UUID per line or separate them with commas.",
+        "count": "{count} order(s) ready for issuance"
+      },
+      "review": {
+        "title": "Review and Issue",
+        "subtitle": "Validate the source, totals, and schedule before creating the invoice.",
+        "mode": "Mode",
+        "currency": "Currency",
+        "invoiceDate": "Invoice Date",
+        "dueDate": "Due Date",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "tax": "Tax",
+        "total": "Total"
+      },
+      "validation": {
+        "title": "Resolve these validation items before issuing"
+      },
+      "actions": {
+        "next": "Continue",
+        "create": "Create AR Invoice",
+        "createFromOrders": "Create Invoice From Orders",
+        "addLine": "Add Line",
+        "removeLine": "Remove Line"
+      },
+      "errors": {
+        "title": "Unable to create invoice",
+        "createFailed": "Failed to create the AR invoice.",
+        "customerRequired": "Customer ID is required for manual AR invoices.",
+        "currencyInvalid": "Currency code must be a valid 3-letter code.",
+        "orderIdsRequired": "Provide at least one order ID for order-based issuance.",
+        "lineDescriptionRequired": "Each manual line must have a description.",
+        "quantityInvalid": "Each manual line must have a quantity greater than zero."
+      }
+    },
+    "hub": {
+      "subtitle": "Manage AR invoices with canonical invoice status, payment progress, and export-ready controls.",
+      "actions": {
+        "export": "Export CSV"
+      },
+      "kpis": {
+        "draft": "Draft",
+        "open": "Open",
+        "outstanding": "Outstanding Amount"
+      },
+      "filters": {
+        "searchLabel": "Search",
+        "searchPlaceholder": "Search invoice #, customer, order #, or reference",
+        "status": "Status",
+        "invoiceType": "Invoice Type",
+        "dateFrom": "Invoice Date From",
+        "dateTo": "Invoice Date To",
+        "allStatuses": "All statuses",
+        "allTypes": "All types"
+      },
+      "statusOptions": {
+        "DRAFT": "Draft",
+        "OPEN": "Open",
+        "PARTIALLY_PAID": "Partially paid",
+        "PAID": "Paid",
+        "OVERDUE": "Overdue",
+        "CANCELLED": "Cancelled",
+        "VOID": "Void",
+        "WRITTEN_OFF": "Written off",
+        "DISPUTED": "Disputed"
+      },
+      "invoiceTypeOptions": {
+        "MANUAL_AR": "Manual AR",
+        "ORDER_CREDIT": "Order Credit",
+        "B2B_ORDER": "B2B Order",
+        "B2B_STATEMENT": "B2B Statement",
+        "CREDIT_MEMO": "Credit Memo",
+        "DEBIT_NOTE": "Debit Note",
+        "PROFORMA": "Proforma"
+      },
+      "columns": {
+        "invoiceNo": "Invoice #",
+        "invoiceDate": "Invoice Date",
+        "customer": "Customer",
+        "order": "Order",
+        "invoiceType": "Invoice Type",
+        "status": "Status",
+        "total": "Total",
+        "paid": "Paid",
+        "outstanding": "Outstanding",
+        "dueDate": "Due Date",
+        "issuedAt": "Issued At"
+      },
+      "emptyTitle": "No AR invoices found",
+      "emptyDescription": "Adjust the filters or create a new AR invoice to begin receivable tracking."
+    },
+    "detail": {
+      "noCustomer": "No linked customer",
+      "openLedger": "Open AR Ledger",
+      "summaryTitle": "AR Invoice Summary",
+      "kpis": {
+        "total": "Invoice Total",
+        "paid": "Paid to Date",
+        "outstanding": "Outstanding",
+        "dueDate": "Due Date"
+      },
+      "fields": {
+        "invoiceType": "Invoice Type",
+        "issueDate": "Issued At",
+        "approval": "Approval Action",
+        "paymentTerms": "Payment Terms"
+      }
+    },
+    "detailActions": {
+      "buttons": {
+        "edit": "Edit Summary",
+        "issue": "Issue Invoice",
+        "approve": "Approve Sensitive Action",
+        "allocate": "Allocate Payment",
+        "reverseAllocation": "Reverse Allocation",
+        "credit": "Create Credit Memo",
+        "debit": "Create Debit Note",
+        "writeOff": "Write Off",
+        "void": "Void Invoice"
+      },
+      "approval": {
+        "title": "Sensitive approval required",
+        "body": "A credit memo, debit note, write-off, or void approval is waiting before the next financial transition can complete."
+      },
+      "fields": {
+        "dueDate": "Due Date",
+        "paymentTerms": "Payment Terms",
+        "paymentMethod": "Payment Method Code",
+        "notes": "Notes",
+        "issueDate": "Issue Date",
+        "approvalAction": "Approval Action",
+        "approvalNotes": "Approval Notes",
+        "allocatedAmount": "Allocated Amount",
+        "allocationDate": "Allocation Date",
+        "paymentId": "Payment ID",
+        "voucherId": "Voucher ID",
+        "allocation": "Allocation",
+        "reverseDate": "Reversal Date",
+        "reason": "Reason",
+        "adjustmentAmount": "Adjustment Amount",
+        "requiresApproval": "Require sensitive approval"
+      },
+      "approvalActions": {
+        "APPROVE_CREDIT_MEMO": "Approve credit memo",
+        "APPROVE_DEBIT_NOTE": "Approve debit note",
+        "APPROVE_WRITE_OFF": "Approve write-off",
+        "APPROVE_VOID": "Approve void"
+      },
+      "edit": {
+        "title": "Edit Invoice Summary",
+        "description": "Update due date, payment terms, and settlement metadata while preserving the AR audit trail."
+      },
+      "issue": {
+        "title": "Issue AR Invoice",
+        "description": "Move this draft invoice into the AR ledger and open receivable aging."
+      },
+      "approve": {
+        "title": "Approve Sensitive Action",
+        "description": "Approve the pending credit, debit, write-off, or void action before it posts."
+      },
+      "allocate": {
+        "title": "Allocate Payment",
+        "description": "Apply a voucher or payment to this invoice and keep any excess as unapplied credit."
+      },
+      "reverse": {
+        "title": "Reverse Allocation",
+        "description": "Reverse a prior allocation and restore invoice balance and customer AR exposure."
+      },
+      "credit": {
+        "title": "Create Credit Memo",
+        "description": "Post or request approval for a customer credit against this invoice."
+      },
+      "debit": {
+        "title": "Create Debit Note",
+        "description": "Post or request approval for a debit adjustment that increases exposure."
+      },
+      "writeoff": {
+        "title": "Write Off Invoice",
+        "description": "Write off part or all of the remaining receivable with approval control."
+      },
+      "void": {
+        "title": "Void AR Invoice",
+        "description": "Void this invoice after the required approval has been completed."
+      },
+      "success": {
+        "edit": "Invoice summary updated.",
+        "issue": "Invoice issued successfully.",
+        "approve": "Sensitive action approved.",
+        "allocate": "Payment allocation posted.",
+        "reverse": "Payment allocation reversed.",
+        "credit": "Credit memo request created.",
+        "debit": "Debit note request created.",
+        "writeoff": "Write-off request created.",
+        "void": "Invoice voided successfully."
+      },
+      "errors": {
+        "actionFailed": "The AR action could not be completed."
+      }
+    },
+    "detailTabs": {
+      "lines": "Lines",
+      "orders": "Linked Orders",
+      "allocations": "Allocations",
+      "adjustments": "Adjustments",
+      "history": "History",
+      "ledger": "Ledger Impact",
+      "columns": {
+        "id": "ID",
+        "invoiceId": "Invoice ID",
+        "tenantOrgId": "Tenant Org ID",
+        "lineNo": "Line #",
+        "lineType": "Line Type",
+        "sourceType": "Source Type",
+        "sourceOrderId": "Source Order ID",
+        "sourceOrderItemId": "Source Order Item ID",
+        "description": "Description",
+        "description2": "Description (Arabic)",
+        "quantity": "Qty",
+        "unitPrice": "Unit Price",
+        "subtotalAmount": "Subtotal",
+        "discountAmount": "Discount",
+        "taxableAmount": "Taxable Amount",
+        "taxRate": "Tax Rate",
+        "taxAmount": "Tax Amount",
+        "total": "Total",
+        "currencyCode": "Currency",
+        "currencyExRate": "Exchange Rate",
+        "metadata": "Metadata",
+        "orderId": "Order ID",
+        "orderTotal": "Order Total",
+        "invoicedAmount": "Invoiced",
+        "paidBeforeAmount": "Paid Before",
+        "creditBeforeAmount": "Credit Before",
+        "outstandingAmount": "Outstanding",
+        "allocationPolicy": "Allocation Policy",
+        "paymentId": "Payment ID",
+        "voucherId": "Voucher ID",
+        "allocationNo": "Allocation #",
+        "outcome": "Outcome",
+        "allocatedAmount": "Allocated",
+        "unappliedCredit": "Unapplied Credit",
+        "appliedAt": "Applied At",
+        "reversedAt": "Reversed At",
+        "reversedBy": "Reversed By",
+        "reversalReason": "Reversal Reason",
+        "adjustmentNo": "Adjustment #",
+        "type": "Type",
+        "status": "Status",
+        "approvalAction": "Approval Action",
+        "approvedAt": "Approved At",
+        "approvedBy": "Approved By",
+        "amount": "Amount",
+        "reason": "Reason",
+        "changedAt": "Changed At",
+        "fromStatus": "From",
+        "toStatus": "To",
+        "action": "Action",
+        "createdBy": "Created By",
+        "customerId": "Customer ID",
+        "paymentAllocId": "Payment Allocation ID",
+        "adjustmentId": "Adjustment ID",
+        "entryNo": "Entry #",
+        "movement": "Movement",
+        "side": "Side",
+        "runningBalance": "Running Balance",
+        "refDocNo": "Reference Doc No."
+      },
+      "emptyLinesTitle": "No invoice lines",
+      "emptyLinesDescription": "This invoice does not have AR line details yet.",
+      "emptyOrdersTitle": "No linked orders",
+      "emptyOrdersDescription": "This invoice was not created from linked orders.",
+      "emptyAllocationsTitle": "No allocations",
+      "emptyAllocationsDescription": "Payments and credits will appear here after allocation.",
+      "emptyAdjustmentsTitle": "No adjustments",
+      "emptyAdjustmentsDescription": "Credit notes, debit notes, and write-offs will appear here.",
+      "emptyHistoryTitle": "No status history",
+      "emptyHistoryDescription": "Status transitions will be audited here.",
+      "emptyLedgerTitle": "No ledger impact",
+      "emptyLedgerDescription": "Ledger movement starts once the invoice is issued or adjusted."
+    },
+    "aging": {
+      "title": "AR Aging",
+      "subtitle": "Track customer exposure by overdue aging buckets.",
+      "tableTitle": "Aging Buckets by Customer",
+      "infoTitle": "Shared aging logic",
+      "infoBody": "This screen reuses the finance reporting aging rules so AR stays aligned with ERP reporting.",
+      "kpis": {
+        "customers": "Customers",
+        "asOfDate": "As Of Date",
+        "totalOutstanding": "Outstanding Total"
+      },
+      "columns": {
+        "customer": "Customer",
+        "current": "Current",
+        "due_1_30": "1-30 Days",
+        "due_31_60": "31-60 Days",
+        "due_61_90": "61-90 Days",
+        "due_90_plus": "90+ Days",
+        "total": "Total"
+      },
+      "actions": {
+        "ledger": "Ledger",
+        "statement": "Statement"
+      },
+      "emptyTitle": "No aging data",
+      "emptyDescription": "No open receivables matched the selected aging period."
+    },
+    "customers": {
+      "title": "AR Customers",
+      "subtitle": "Review customer-level AR balances before drilling into ledgers and statements.",
+      "tableTitle": "Customer Balance Snapshot",
+      "kpis": {
+        "customers": "Customers",
+        "outstanding": "Outstanding",
+        "unappliedCredit": "Unapplied Credit"
+      },
+      "columns": {
+        "customer": "Customer",
+        "openInvoices": "Open Invoices",
+        "outstanding": "Outstanding",
+        "unappliedCredit": "Unapplied Credit",
+        "netBalance": "Net Balance",
+        "lastActivity": "Last Activity"
+      },
+      "actions": {
+        "ledger": "Ledger",
+        "statement": "Statement"
+      },
+      "emptyTitle": "No AR customers",
+      "emptyDescription": "No customers currently have AR invoices or AR ledger activity."
+    },
+    "ledger": {
+      "title": "AR Ledger",
+      "subtitle": "Review customer receivable movements, allocations, and running balances.",
+      "tableTitle": "Customer AR Ledger",
+      "missingCustomerTitle": "Customer required",
+      "missingCustomerBody": "Choose a customer from the AR customers page to open the tenant-scoped ledger.",
+      "browseCustomers": "Browse AR Customers",
+      "kpis": {
+        "openInvoices": "Open Invoices",
+        "outstanding": "Outstanding",
+        "netBalance": "Net Balance"
+      },
+      "columns": {
+        "eventAt": "Event At",
+        "movement": "Movement",
+        "side": "Side",
+        "amount": "Amount",
+        "runningBalance": "Running Balance",
+        "reference": "Reference"
+      },
+      "sides": {
+        "DEBIT": "Debit",
+        "CREDIT": "Credit"
+      },
+      "emptyTitle": "No ledger entries",
+      "emptyDescription": "This customer does not have receivable ledger activity in the selected scope."
+    },
+    "statements": {
+      "title": "Customer Statements",
+      "subtitle": "Render customer account statements from AR ledger movements.",
+      "tableTitle": "Statement Lines",
+      "missingCustomerTitle": "Customer required",
+      "missingCustomerBody": "Choose a customer from the AR customers page to generate a statement view.",
+      "browseCustomers": "Browse AR Customers",
+      "kpis": {
+        "opening": "Opening Balance",
+        "closing": "Closing Balance",
+        "lines": "Statement Lines"
+      },
+      "columns": {
+        "eventAt": "Event Date",
+        "kind": "Kind",
+        "reference": "Reference",
+        "description": "Description",
+        "debit": "Debit",
+        "credit": "Credit",
+        "balance": "Balance"
+      },
+      "emptyTitle": "No statement lines",
+      "emptyDescription": "No ledger movements matched the selected statement period."
+    },
+    "v2": {
+      "credits": {
+        "title": "AR Credits",
+        "subtitle": "Manage unapplied customer credits and reuse them against open receivables.",
+        "tableTitle": "Available Credit Sources",
+        "infoTitle": "Canonical credit source",
+        "infoBody": "These balances come from unapplied AR ledger credits created by overpayments and reversals.",
+        "mode": "Credit Operation",
+        "kpis": {
+          "creditSources": "Credit Sources",
+          "availableAmount": "Available Credit",
+          "customers": "Customers"
+        },
+        "columns": {
+          "customer": "Customer",
+          "sourceLedger": "Source Ledger",
+          "reference": "Reference",
+          "availableCredit": "Available Credit",
+          "lastCreditAt": "Last Credit At"
+        },
+        "emptyTitle": "No AR credits",
+        "emptyDescription": "No unapplied credits are available for allocation right now.",
+        "apply": {
+          "title": "Apply Credit",
+          "submit": "Apply Credit",
+          "success": "AR credit applied successfully.",
+          "error": "Failed to apply AR credit.",
+          "fields": {
+            "invoiceId": "Invoice ID",
+            "customerId": "Customer ID",
+            "sourceLedgerId": "Source Ledger ID",
+            "appliedAmount": "Applied Amount",
+            "notes": "Notes",
+            "notesPlaceholder": "Optional allocation notes"
+          }
+        },
+        "reverse": {
+          "title": "Reverse Credit Application",
+          "submit": "Reverse Credit",
+          "success": "AR credit application reversed.",
+          "error": "Failed to reverse the credit application.",
+          "fields": {
+            "applicationId": "Credit Application ID",
+            "reason": "Reversal Reason",
+            "reasonPlaceholder": "Why is this credit application being reversed?"
+          }
+        }
+      },
+      "disputes": {
+        "title": "AR Disputes",
+        "subtitle": "Track disputed invoices, resolution outcomes, and receivable holds with full audit history.",
+        "tableTitle": "Dispute Register",
+        "infoTitle": "Disputes suspend the standard AR lifecycle",
+        "infoBody": "Opening a dispute moves the invoice into DISPUTED status until the case is resolved or cancelled.",
+        "mode": "Dispute Action",
+        "kpis": {
+          "open": "Open Cases",
+          "resolved": "Resolved Cases",
+          "amount": "Disputed Amount"
+        },
+        "columns": {
+          "disputeNo": "Dispute #",
+          "invoiceNo": "Invoice #",
+          "customer": "Customer",
+          "status": "Status",
+          "reason": "Reason",
+          "amount": "Amount"
+        },
+        "emptyTitle": "No disputes found",
+        "emptyDescription": "No AR disputes matched the selected scope.",
+        "create": {
+          "title": "Create Dispute",
+          "submit": "Open Dispute",
+          "success": "AR dispute created successfully.",
+          "fields": {
+            "invoiceId": "Invoice ID",
+            "customerId": "Customer ID",
+            "reasonCode": "Reason Code",
+            "title": "Dispute Title",
+            "description": "Case Description",
+            "amount": "Disputed Amount"
+          }
+        },
+        "resolve": {
+          "title": "Resolve Dispute",
+          "submit": "Resolve Dispute",
+          "success": "AR dispute resolved successfully.",
+          "fields": {
+            "disputeId": "Dispute ID",
+            "status": "Resolution Status",
+            "summary": "Resolution Summary"
+          }
+        },
+        "errors": {
+          "submit": "The dispute action could not be completed."
+        }
+      },
+      "dunning": {
+        "title": "AR Dunning",
+        "subtitle": "Run reminder, escalation, and credit hold actions against overdue receivables.",
+        "tableTitle": "Dunning Activity",
+        "infoTitle": "Execution log",
+        "infoBody": "Every reminder or hold action is logged here so collection activity stays auditable by customer and invoice.",
+        "kpis": {
+          "sent": "Sent",
+          "failed": "Failed",
+          "holds": "Credit Holds"
+        },
+        "columns": {
+          "customer": "Customer",
+          "invoice": "Invoice",
+          "stage": "Stage",
+          "action": "Action",
+          "status": "Status",
+          "executedAt": "Executed At",
+          "response": "Response"
+        },
+        "emptyTitle": "No dunning runs found",
+        "emptyDescription": "No dunning actions have been logged for this tenant scope yet.",
+        "run": {
+          "title": "Run Dunning Action",
+          "submit": "Run Action",
+          "success": "Dunning action executed successfully.",
+          "error": "Failed to execute the dunning action.",
+          "fields": {
+            "customerId": "Customer ID",
+            "invoiceId": "Invoice ID",
+            "stage": "Dunning Stage",
+            "action": "Dunning Action",
+            "notes": "Notes",
+            "notesPlaceholder": "Optional reminder or collector note"
+          }
+        }
+      },
+      "cycles": {
+        "title": "Statement Cycles",
+        "subtitle": "Define consolidated statement billing cycles for B2B receivable operations.",
+        "tableTitle": "Statement Cycle Register",
+        "infoTitle": "Cycle scheduling",
+        "infoBody": "Cycle definitions determine which customers are grouped for statement-style invoice generation and when those runs occur.",
+        "mode": "Cycle Operation",
+        "yes": "Yes",
+        "no": "No",
+        "kpis": {
+          "active": "Active Cycles",
+          "monthly": "Monthly Cycles",
+          "nextRuns": "Cycles With Next Run"
+        },
+        "columns": {
+          "code": "Cycle Code",
+          "name": "Cycle Name",
+          "cadence": "Cadence",
+          "scope": "Customer Scope",
+          "terms": "Due Terms Days",
+          "nextRun": "Next Run At",
+          "active": "Active"
+        },
+        "emptyTitle": "No statement cycles found",
+        "emptyDescription": "Create a statement cycle to prepare consolidated B2B billing runs.",
+        "create": {
+          "title": "Create Statement Cycle",
+          "submit": "Create Cycle",
+          "success": "Statement cycle created successfully.",
+          "error": "Failed to create the statement cycle.",
+          "fields": {
+            "cycleCode": "Cycle Code",
+            "cycleName": "Cycle Name",
+            "cycleName2": "Cycle Name (Arabic)",
+            "cadence": "Cadence",
+            "scope": "Customer Scope",
+            "dayOfMonth": "Day Of Month",
+            "dayOfWeek": "Day Of Week",
+            "issueDayOffset": "Issue Day Offset",
+            "dueTermsDays": "Due Terms Days",
+            "isActive": "Active",
+            "customerIds": "Customer IDs",
+            "customerIdsPlaceholder": "Comma-separated or line-separated customer UUIDs for custom-list cycles"
+          }
+        },
+        "preview": {
+          "title": "Preview Cycle",
+          "submit": "Preview Cycle",
+          "success": "Statement cycle preview loaded.",
+          "error": "Failed to preview the statement cycle.",
+          "resultCount": "{count, plural, one {# customer matched this cycle.} other {# customers matched this cycle.}}",
+          "fields": {
+            "cycleId": "Cycle ID",
+            "asOfDate": "As Of Date"
+          }
+        }
+      }
+    },
+    "print": {
+      "title": "Print AR Invoice",
+      "documentLabel": "Accounts Receivable Invoice",
+      "noCustomer": "No linked customer",
+      "fields": {
+        "status": "Status",
+        "invoiceDate": "Invoice Date",
+        "dueDate": "Due Date",
+        "invoiceType": "Invoice Type",
+        "paymentTerms": "Payment Terms",
+        "approvalAction": "Approval Action",
+        "order": "Linked Order"
+      },
+      "sections": {
+        "customer": "Bill To",
+        "summary": "Invoice Summary"
+      },
+      "columns": {
+        "description": "Description",
+        "quantity": "Qty",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      },
+      "totals": {
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "tax": "Tax",
+        "total": "Invoice Total",
+        "paid": "Paid",
+        "outstanding": "Outstanding"
+      },
+      "errors": {
+        "loadFailed": "Failed to load printable AR invoice data."
+      }
+    },
+    "statementPrint": {
+      "title": "Print Customer Statement",
+      "documentLabel": "Accounts Receivable Statement",
+      "fields": {
+        "period": "Statement Period",
+        "opening": "Opening Balance",
+        "closing": "Closing Balance"
+      },
+      "columns": {
+        "date": "Event Date",
+        "kind": "Kind",
+        "reference": "Reference",
+        "description": "Description",
+        "debit": "Debit",
+        "credit": "Credit",
+        "balance": "Balance"
+      },
+      "errors": {
+        "loadFailed": "Failed to load printable customer statement data."
+      }
+    }
+  }
+}

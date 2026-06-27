@@ -16,7 +16,6 @@ import { createClient } from '@/lib/supabase/client';
 import { B2bCreateContractDialog } from '@/src/features/b2b/ui/b2b-create-contract-dialog';
 import { B2B_CONTRACTS_ACCESS } from '@features/b2b/access/b2b-access';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
-import { B2B_B2B_CONTRACTS_ACCESS } from '@features/b2b/access/b2b-access'
 
 type ContractRow = {
   id: string;
@@ -55,11 +54,7 @@ export default function B2BContractsPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (
-    <RequireAnyPermission permissions={B2B_B2B_CONTRACTS_ACCESS.page.permissions ?? []}>
-      data ?? []
-    </RequireAnyPermission>
-  ) as ContractRow[];
+      return (data ?? []) as ContractRow[];
     },
     enabled: !!tenantId && !!currentTenant,
   });
@@ -109,91 +104,93 @@ export default function B2BContractsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">
-          {t('contracts') || 'Contracts'}
-        </h1>
+    <RequireAnyPermission permissions={B2B_CONTRACTS_ACCESS.page.permissions ?? []}>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-semibold">
+            {t('contracts') || 'Contracts'}
+          </h1>
+          {canCreate ? (
+            <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+              {t('createContract')}
+            </Button>
+          ) : null}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('contracts') || 'Contracts'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!contracts?.length ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-gray-500 mb-4 max-w-md">
+                  {contractsListEmptyHint}
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {canCreate ? (
+                    <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+                      {t('createContract')}
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant={canCreate ? 'outline' : 'default'}
+                    onClick={() => window.location.assign('/dashboard/b2b/customers')}
+                  >
+                    {t('goToCustomers') || 'Go to B2B Customers'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3">{t('contractNo') || 'Contract No'}</th>
+                      <th className="text-left py-2 px-3">{t('company')}</th>
+                      <th className="text-left py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
+                      <th className="text-left py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
+                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contracts.map((c) => (
+                      <tr key={c.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3">{c.contract_no}</td>
+                        <td className="py-2 px-3">
+                          {customerLabelById.get(c.customer_id) ?? '—'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {c.effective_from ? new Date(c.effective_from).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          {c.effective_to ? new Date(c.effective_to).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="py-2 px-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              window.location.assign(`/dashboard/b2b/customers/${c.customer_id}`)
+                            }
+                          >
+                            {t('view') || 'View Customer'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {canCreate ? (
-          <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
-            {t('createContract')}
-          </Button>
+          <B2bCreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />
         ) : null}
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('contracts') || 'Contracts'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!contracts?.length ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-gray-500 mb-4 max-w-md">
-                {contractsListEmptyHint}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {canCreate ? (
-                  <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
-                    {t('createContract')}
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant={canCreate ? 'outline' : 'default'}
-                  onClick={() => window.location.assign('/dashboard/b2b/customers')}
-                >
-                  {t('goToCustomers') || 'Go to B2B Customers'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3">{t('contractNo') || 'Contract No'}</th>
-                    <th className="text-left py-2 px-3">{t('company')}</th>
-                    <th className="text-left py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
-                    <th className="text-left py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
-                    <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contracts.map((c) => (
-                    <tr key={c.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 px-3">{c.contract_no}</td>
-                      <td className="py-2 px-3">
-                        {customerLabelById.get(c.customer_id) ?? '—'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {c.effective_from ? new Date(c.effective_from).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        {c.effective_to ? new Date(c.effective_to).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            window.location.assign(`/dashboard/b2b/customers/${c.customer_id}`)
-                          }
-                        >
-                          {t('view') || 'View Customer'}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {canCreate ? (
-        <B2bCreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />
-      ) : null}
-    </div>
+    </RequireAnyPermission>
   );
 }

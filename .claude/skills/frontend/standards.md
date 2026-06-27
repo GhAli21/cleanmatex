@@ -6,7 +6,7 @@ This document defines the **frontend standards** for CleanMateX and is fully ali
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
 - **Pagination Always should be Server-Side Pagination (API-Driven)**
 - use for common message keys for common messages keys, const tCommon = useTranslations('common');
-- when new key message search for exist messages keys and reuse or add new messages keys into en.json and ar.json
+- when adding locale text, search existing keys first and then update matching files under web-admin/messages/en/** and web-admin/messages/ar/**
 
 Authoritative folder structure:
 

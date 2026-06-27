@@ -1,0 +1,9 @@
+{
+  "saveSuccess": "تم الحفظ بنجاح",
+  "deleteSuccess": "تم الحذف بنجاح",
+  "updateSuccess": "تم التحديث بنجاح",
+  "createSuccess": "تم الإنشاء بنجاح",
+  "error": "حدث خطأ",
+  "confirmDelete": "هل أنت متأكد أنك تريد حذف هذا؟",
+  "noData": "لا توجد بيانات متاحة"
+}

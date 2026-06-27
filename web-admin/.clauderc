@@ -5,10 +5,11 @@ context: "Next.js Admin Dashboard for CleanMateX Laundry SaaS"
 
 # Important Files
 important_files:
-  - "app/[locale]/layout.tsx"           # Root layout
+  - "app/layout.tsx"                    # Root layout
   - "lib/api/client.ts"                 # API client
   - "src/ui/*"                         # UI design system (@ui)
-  - "messages/*.json"                   # i18n translations
+  - "messages/en/**/*.json"             # i18n translations (English)
+  - "messages/ar/**/*.json"             # i18n translations (Arabic)
   - "middleware.ts"                     # Next.js middleware
   - "next.config.js"                    # Next.js configuration
 
@@ -49,9 +50,11 @@ i18n:
     import { useTranslations } from 'next-intl';
     const t = useTranslations('orders');
     <h1>{t('title')}</h1>
-  files: "messages/en.json, messages/ar.json"
+  files: "messages/en/**/*.json, messages/ar/**/*.json"
   rules:
     - "All user-facing text must use translation keys"
+    - "Search existing keys before adding new ones"
+    - "Keep the en/ar locale trees aligned"
     - "Test RTL layout for Arabic"
     - "Use semantic keys: 'orders.create.title' not 'label1'"
 

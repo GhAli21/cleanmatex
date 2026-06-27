@@ -478,42 +478,18 @@ npm install next-intl
 import { getRequestConfig } from 'next-intl/server';
 
 export default getRequestConfig(async ({ locale }) => ({
-  messages: (await import(`./messages/${locale}.json`)).default,
+  messages: await loadLocaleMessages(locale),
 }));
 ```
 
-```json
-// messages/en.json
-{
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel"
-  },
-  "orders": {
-    "title": "Orders",
-    "create": "Create Order",
-    "status": {
-      "pending": "Pending",
-      "completed": "Completed"
-    }
-  }
-}
-
-// messages/ar.json
-{
-  "common": {
-    "save": "حفظ",
-    "cancel": "إلغاء"
-  },
-  "orders": {
-    "title": "الطلبات",
-    "create": "إنشاء طلب",
-    "status": {
-      "pending": "قيد الانتظار",
-      "completed": "مكتمل"
-    }
-  }
-}
+```text
+messages/
+  en/
+    common.json
+    orders.json
+  ar/
+    common.json
+    orders.json
 ```
 
 ### Using Translations

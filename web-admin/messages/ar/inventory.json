@@ -1,0 +1,149 @@
+{
+  "title": "مخزون المواد",
+  "labels": {
+    "itemCode": "رمز الصنف",
+    "itemName": "اسم الصنف",
+    "quantity": "الكمية",
+    "unit": "الوحدة",
+    "unitCost": "تكلفة الوحدة",
+    "sellPrice": "سعر البيع",
+    "stockValue": "قيمة المخزون",
+    "status": "الحالة",
+    "reorderPoint": "نقطة إعادة الطلب",
+    "storageLocation": "موقع التخزين",
+    "sku": "رمز التخزين",
+    "initialQty": "الكمية المبدئية",
+    "currentQty": "الكمية الحالية",
+    "adjustmentType": "نوع التعديل",
+    "reason": "السبب",
+    "date": "التاريخ",
+    "type": "النوع",
+    "before": "قبل",
+    "after": "بعد",
+    "performedBy": "المنفذ",
+    "reference": "المرجع",
+    "source": "المصدر",
+    "historyTable": "سجل معاملات المخزون",
+    "hintText": "نص التلميح",
+    "serviceCategoryCode": "الفئة",
+    "isRetailItem": "صنف تجزئة",
+    "defaultExpressSellPrice": "سعر الإسعاف",
+    "minSellPrice": "الحد الأدنى لسعر البيع",
+    "minStockLevel": "الحد الأدنى للمخزون",
+    "maxStockLevel": "الحد الأقصى للمخزون",
+    "lastPurchaseCost": "آخر تكلفة شراء",
+    "productGroup1": "المجموعة 1",
+    "productGroup2": "المجموعة 2",
+    "productGroup3": "المجموعة 3",
+    "minQuantity": "الحد الأدنى للكمية",
+    "piecesPerProduct": "قطع لكل منتج",
+    "turnaroundHh": "وقت التنفيذ (ساعات)",
+    "turnaroundHhExpress": "وقت الإسعاف (ساعات)",
+    "priceType": "نوع السعر",
+    "productType": "نوع المنتج",
+    "extraDays": "أيام إضافية",
+    "multiplierExpress": "مضاعف الإسعاف",
+    "productOrder": "ترتيب العرض",
+    "isTaxExempt": "معفى من الضريبة",
+    "productColor1": "اللون 1",
+    "productColor2": "اللون 2",
+    "productColor3": "اللون 3",
+    "productIcon": "الأيقونة",
+    "productImage": "رابط الصورة",
+    "recOrder": "ترتيب الفرز",
+    "recNotes": "ملاحظات"
+  },
+  "statuses": {
+    "inStock": "متوفر",
+    "lowStock": "مخزون منخفض",
+    "outOfStock": "نفد المخزون",
+    "overstock": "مخزون زائد",
+    "negativeStock": "مخزون سالب"
+  },
+  "units": {
+    "piece": "قطعة",
+    "liter": "لتر",
+    "kg": "كيلوغرام",
+    "gram": "غرام",
+    "box": "صندوق",
+    "bottle": "زجاجة",
+    "pack": "عبوة",
+    "roll": "لفة"
+  },
+  "actions": {
+    "addItem": "إضافة صنف",
+    "editItem": "تعديل صنف",
+    "editBranchStock": "مخزون الفرع",
+    "adjust": "تعديل",
+    "adjustStock": "تعديل المخزون",
+    "history": "السجل",
+    "deleteItem": "حذف صنف"
+  },
+  "adjustActions": {
+    "increase": "زيادة",
+    "decrease": "نقصان",
+    "set": "تعيين إلى"
+  },
+  "transactionTypes": {
+    "stockIn": "إدخال مخزون",
+    "stockOut": "إخراج مخزون",
+    "adjustment": "تسوية"
+  },
+  "referenceTypes": {
+    "order": "طلب",
+    "manual": "يدوي",
+    "purchase": "شراء"
+  },
+  "stats": {
+    "totalItems": "إجمالي الأصناف",
+    "lowStock": "مخزون منخفض",
+    "outOfStock": "نفد المخزون",
+    "negativeStock": "مخزون سالب",
+    "totalStockValue": "إجمالي قيمة المخزون",
+    "atBranch": "في {branch}",
+    "allBranches": "جميع الفروع"
+  },
+  "filters": {
+    "searchPlaceholder": "بحث بالاسم أو الرمز أو SKU...",
+    "allStatuses": "جميع الحالات",
+    "branch": "الفرع",
+    "allBranches": "جميع الفروع",
+    "selectBranch": "اختر الفرع..."
+  },
+  "pagination": {
+    "showing": "عرض {count} من {total}"
+  },
+  "messages": {
+    "noItems": "لا توجد أصناف في المخزون",
+    "noTransactions": "لا توجد حركات",
+    "selectBranch": "اختر فرعاً لعرض المخزون",
+    "noBranchConfigured": "لم يتم تكوين فرع. أضف فرعاً في الإعدادات لإدارة المخزون.",
+    "notStockedAtBranch": "غير مخزّن في هذا الفرع",
+    "confirmDelete": "هل أنت متأكد من حذف هذا الصنف؟",
+    "createFailed": "فشل في إنشاء الصنف",
+    "updateFailed": "فشل في تحديث الصنف",
+    "deleteFailed": "فشل في حذف الصنف",
+    "adjustFailed": "فشل في تعديل المخزون",
+    "branchRequired": "يرجى اختيار الفرع لتعديل المخزون",
+    "viewingBranchContext": "عرض المخزون لـ {branch}. القيم الخاصة بالفرع (رمز SKU، موقع التخزين) تتجاوز الإعدادات الافتراضية للمنتج.",
+    "productMasterDescription": "هذه الحقول تنطبق على المنتج عالمياً عبر جميع الفروع.",
+    "branchStockDescription": "تجاوزات خاصة بالفرع. اتركها فارغة لاستخدام إعدادات المنتج الافتراضية.",
+    "viewingProductFromOrder": "عرض مخزون المنتج من الطلب.",
+    "showAllItems": "عرض جميع الأصناف"
+  },
+  "placeholders": {
+    "reason": "مثال: إعادة تخزين من المورد، بضائع تالفة..."
+  },
+  "sections": {
+    "optional": "حقول إضافية",
+    "productMaster": "سجل المنتج الرئيسي",
+    "branchStock": "مخزون الفرع"
+  },
+  "validation": {
+    "nameRequired": "اسم الصنف مطلوب",
+    "quantityRequired": "الكمية يجب أن تكون أكبر من صفر",
+    "reasonRequired": "السبب مطلوب"
+  },
+  "machinesTitle": "الآلات",
+  "machinesComingSoon": "سجل الآلات وتتبع الصيانة سيتوفر هنا قريباً."
+}

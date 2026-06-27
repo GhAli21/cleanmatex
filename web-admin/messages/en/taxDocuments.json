@@ -1,0 +1,33 @@
+{
+  "status": {
+    "DRAFT": "Draft",
+    "ISSUED": "Issued",
+    "CANCELLED": "Cancelled",
+    "SUPERSEDED": "Superseded"
+  },
+  "type": {
+    "INVOICE": "Invoice",
+    "SIMPLIFIED_INVOICE": "Simplified Invoice",
+    "CREDIT_NOTE": "Credit Note",
+    "DEBIT_NOTE": "Debit Note"
+  },
+  "triggerEvent": {
+    "ON_ORDER_SUBMIT": "On order submit",
+    "ON_PAYMENT_CONFIRMATION": "On payment confirmation",
+    "ON_SERVICE_COMPLETION": "On service completion",
+    "ON_DELIVERY": "On delivery",
+    "ON_AR_INVOICE_ISSUE": "On AR invoice issue",
+    "LEGACY_BACKFILL": "Legacy backfill"
+  },
+  "documentNo": "Document no.",
+  "issuedAt": "Issued at",
+  "issuedBy": "Issued by",
+  "supersedes": "Supersedes",
+  "fiscalYear": "Fiscal year",
+  "sequenceNo": "Sequence no.",
+  "totalAmount": "Total amount",
+  "taxAmount": "Tax amount",
+  "notAvailable": "No tax document issued",
+  "configureTitle": "Tax Document Triggers",
+  "configureHint": "Configure which events automatically issue tax documents for your tenant."
+}

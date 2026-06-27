@@ -1,0 +1,36 @@
+{
+  "title": "تتبع طلبك",
+  "description": "شاهد حالة طلب الغسيل وتفاصيله بسهولة.",
+  "brandSubtitle": "كلين ميكس",
+  "loading": "جاري تحميل الطلب...",
+  "orderNumberLabel": "رقم الطلب",
+  "receivedAtLabel": "تم الاستلام",
+  "readyByLabel": "متوقع أن يكون جاهزًا",
+  "totalAmountLabel": "إجمالي المبلغ",
+  "itemsCountLabel": "عدد القطع",
+  "customerSection": {
+    "title": "العميل"
+  },
+  "itemsSection": {
+    "title": "عناصر الطلب",
+    "empty": "لا توجد عناصر في هذا الطلب.",
+    "unnamedItem": "عنصر",
+    "quantityLabel": "{quantity} قطع"
+  },
+  "timelineSection": {
+    "title": "الجدول الزمني للطلب"
+  },
+  "notesSection": {
+    "title": "ملاحظات العميل"
+  },
+  "errors": {
+    "notFound": "تعذر العثور على هذا الطلب. يرجى التحقق من الرابط مع محل الغسيل.",
+    "generic": "حدث خطأ أثناء تحميل الطلب. يرجى المحاولة مرة أخرى بعد قليل."
+  },
+  "actions": {
+    "confirmReceived": "لقد استلمت الملابس",
+    "confirmingReceived": "جاري التأكيد...",
+    "confirmReceivedSuccess": "شكرًا لك! تم تحديث حالة الطلب إلى تم الاستلام."
+  },
+  "footer": "مدعوم من CleanMateX – إدارة ذكية لمغسلتك."
+}

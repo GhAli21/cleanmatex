@@ -1,0 +1,149 @@
+{
+  "title": "Inventory Stock",
+  "labels": {
+    "itemCode": "Item Code",
+    "itemName": "Item Name",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "unitCost": "Unit Cost",
+    "sellPrice": "Sell Price",
+    "stockValue": "Stock Value",
+    "status": "Status",
+    "reorderPoint": "Reorder Point",
+    "storageLocation": "Storage Location",
+    "sku": "SKU",
+    "initialQty": "Initial Quantity",
+    "currentQty": "Current Quantity",
+    "adjustmentType": "Adjustment Type",
+    "reason": "Reason",
+    "date": "Date",
+    "type": "Type",
+    "before": "Before",
+    "after": "After",
+    "performedBy": "Performed By",
+    "reference": "Reference",
+    "source": "Source",
+    "historyTable": "Stock transaction history",
+    "hintText": "Hint Text",
+    "serviceCategoryCode": "Category",
+    "isRetailItem": "Retail Item",
+    "defaultExpressSellPrice": "Express Price",
+    "minSellPrice": "Min Sell Price",
+    "minStockLevel": "Min Stock Level",
+    "maxStockLevel": "Max Stock Level",
+    "lastPurchaseCost": "Last Purchase Cost",
+    "productGroup1": "Group 1",
+    "productGroup2": "Group 2",
+    "productGroup3": "Group 3",
+    "minQuantity": "Min Quantity",
+    "piecesPerProduct": "Pieces per Product",
+    "turnaroundHh": "Turnaround (hrs)",
+    "turnaroundHhExpress": "Express Turnaround (hrs)",
+    "priceType": "Price Type",
+    "productType": "Product Type",
+    "extraDays": "Extra Days",
+    "multiplierExpress": "Express Multiplier",
+    "productOrder": "Display Order",
+    "isTaxExempt": "Tax Exempt",
+    "productColor1": "Color 1",
+    "productColor2": "Color 2",
+    "productColor3": "Color 3",
+    "productIcon": "Icon",
+    "productImage": "Image URL",
+    "recOrder": "Sort Order",
+    "recNotes": "Notes"
+  },
+  "statuses": {
+    "inStock": "In Stock",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "overstock": "Overstock",
+    "negativeStock": "Negative Stock"
+  },
+  "units": {
+    "piece": "Piece",
+    "liter": "Liter",
+    "kg": "Kilogram",
+    "gram": "Gram",
+    "box": "Box",
+    "bottle": "Bottle",
+    "pack": "Pack",
+    "roll": "Roll"
+  },
+  "actions": {
+    "addItem": "Add Item",
+    "editItem": "Edit Item",
+    "editBranchStock": "Branch Stock",
+    "adjust": "Adjust",
+    "adjustStock": "Adjust Stock",
+    "history": "History",
+    "deleteItem": "Delete Item"
+  },
+  "adjustActions": {
+    "increase": "Increase",
+    "decrease": "Decrease",
+    "set": "Set To"
+  },
+  "transactionTypes": {
+    "stockIn": "Stock In",
+    "stockOut": "Stock Out",
+    "adjustment": "Adjustment"
+  },
+  "referenceTypes": {
+    "order": "Order",
+    "manual": "Manual",
+    "purchase": "Purchase"
+  },
+  "stats": {
+    "totalItems": "Total Items",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "negativeStock": "Negative Stock",
+    "totalStockValue": "Total Stock Value",
+    "atBranch": "at {branch}",
+    "allBranches": "All Branches"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by name, code, or SKU...",
+    "allStatuses": "All Statuses",
+    "branch": "Branch",
+    "allBranches": "All Branches",
+    "selectBranch": "Select branch..."
+  },
+  "pagination": {
+    "showing": "Showing {count} of {total}"
+  },
+  "messages": {
+    "noItems": "No inventory items found",
+    "noTransactions": "No transactions found",
+    "selectBranch": "Select a branch to view stock",
+    "noBranchConfigured": "No branch configured. Add a branch in Settings to manage inventory.",
+    "notStockedAtBranch": "Not stocked at this branch",
+    "confirmDelete": "Are you sure you want to delete this item?",
+    "createFailed": "Failed to create item",
+    "updateFailed": "Failed to update item",
+    "deleteFailed": "Failed to delete item",
+    "adjustFailed": "Failed to adjust stock",
+    "branchRequired": "Please select a branch to adjust stock",
+    "viewingBranchContext": "Viewing stock for {branch}. Branch-specific values (SKU, Storage Location) override product defaults.",
+    "productMasterDescription": "These fields apply globally to the product across all branches.",
+    "branchStockDescription": "Branch-specific overrides. Leave empty to use product defaults.",
+    "viewingProductFromOrder": "Viewing stock for product from order.",
+    "showAllItems": "Show all items"
+  },
+  "placeholders": {
+    "reason": "e.g. Restocked from supplier, damaged goods..."
+  },
+  "sections": {
+    "optional": "Additional Fields",
+    "productMaster": "Product Master",
+    "branchStock": "Branch Stock"
+  },
+  "validation": {
+    "nameRequired": "Item name is required",
+    "quantityRequired": "Quantity must be greater than 0",
+    "reasonRequired": "Reason is required"
+  },
+  "machinesTitle": "Machines",
+  "machinesComingSoon": "Machine registry and maintenance tracking will be available here soon."
+}

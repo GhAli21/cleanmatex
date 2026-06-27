@@ -1,0 +1,23 @@
+{
+  "title": "تسوية النقد",
+  "description": "تسوية نهاية اليوم: مقارنة المبالغ المتوقعة من النظام مع المبالغ الفعلية المعدودة.",
+  "date": "التاريخ",
+  "selectDate": "اختر التاريخ",
+  "expectedAmount": "المبلغ المتوقع",
+  "actualAmount": "المبلغ الفعلي",
+  "variance": "الفرق",
+  "notes": "ملاحظات",
+  "submit": "حفظ التسوية",
+  "reconcile": "تسوية",
+  "reconciled": "تمت التسوية",
+  "varianceNoted": "تم تسجيل الفرق",
+  "pending": "قيد الانتظار",
+  "reconciledBy": "تمت التسوية بواسطة",
+  "reconciledAt": "تاريخ التسوية",
+  "history": "السجل",
+  "noReconciliation": "لا توجد تسوية لهذا التاريخ بعد.",
+  "successMessage": "تم حفظ التسوية بنجاح.",
+  "errorMessage": "فشل حفظ التسوية.",
+  "method": "طريقة الدفع",
+  "status": "الحالة"
+}

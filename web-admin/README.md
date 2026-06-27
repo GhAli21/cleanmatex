@@ -66,8 +66,9 @@ This project uses the CleanMateX UI system, not ad hoc local component libraries
 
 All user-facing text must support English and Arabic.
 
-- Store messages in `messages/`
+- Store messages in `messages/en/**` and `messages/ar/**`
 - Reuse existing message keys before adding new ones
+- Keep the physical locale tree aligned across `en` and `ar`
 - Validate parity with `npm run check:i18n`
 - Ensure RTL support is preserved for Arabic flows
 

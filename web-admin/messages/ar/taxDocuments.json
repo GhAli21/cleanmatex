@@ -1,0 +1,33 @@
+{
+  "status": {
+    "DRAFT": "مسودة",
+    "ISSUED": "صادر",
+    "CANCELLED": "ملغى",
+    "SUPERSEDED": "مستبدل"
+  },
+  "type": {
+    "INVOICE": "فاتورة",
+    "SIMPLIFIED_INVOICE": "فاتورة مبسطة",
+    "CREDIT_NOTE": "إشعار دائن",
+    "DEBIT_NOTE": "إشعار مدين"
+  },
+  "triggerEvent": {
+    "ON_ORDER_SUBMIT": "عند تقديم الطلب",
+    "ON_PAYMENT_CONFIRMATION": "عند تأكيد الدفع",
+    "ON_SERVICE_COMPLETION": "عند إتمام الخدمة",
+    "ON_DELIVERY": "عند التسليم",
+    "ON_AR_INVOICE_ISSUE": "عند إصدار فاتورة الذمم المدينة",
+    "LEGACY_BACKFILL": "تعبئة تاريخية"
+  },
+  "documentNo": "رقم المستند",
+  "issuedAt": "تاريخ الإصدار",
+  "issuedBy": "صادر بواسطة",
+  "supersedes": "يستبدل",
+  "fiscalYear": "السنة المالية",
+  "sequenceNo": "رقم التسلسل",
+  "totalAmount": "المبلغ الإجمالي",
+  "taxAmount": "مبلغ الضريبة",
+  "notAvailable": "لم يصدر مستند ضريبي",
+  "configureTitle": "محفزات المستند الضريبي",
+  "configureHint": "قم بتكوين الأحداث التي تُصدر تلقائياً مستندات ضريبية لمنشأتك."
+}

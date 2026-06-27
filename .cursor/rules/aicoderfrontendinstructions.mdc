@@ -135,7 +135,7 @@ Do not invent other top-level paths like `@/components` or `@/core` unless they 
   const tCommon = useTranslations('common');
   ```
 
-- **Before adding UI text:** Search `messages/en.json` and `messages/ar.json`; reuse common keys; run `npm run check:i18n` after i18n changes
+- **Before adding UI text:** Search `web-admin/messages/en/**` and `web-admin/messages/ar/**`; reuse common keys; run `npm run check:i18n` after i18n changes
   
 - Any component that is:
   - Reused across multiple features

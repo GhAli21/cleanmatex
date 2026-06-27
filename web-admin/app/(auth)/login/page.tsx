@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useLocale, useTranslations } from 'next-intl'
@@ -40,6 +40,7 @@ function getLoginErrorMessage(error: unknown, fallbackMessage: string): string {
  * @returns Compact locale switcher for auth screens.
  */
 function LoginLanguageSwitcher() {
+  const router = useRouter()
   const locale = useLocale() as Locale
   const t = useTranslations('auth.login')
 
@@ -49,7 +50,7 @@ function LoginLanguageSwitcher() {
     }
 
     persistLocale(nextLocale)
-    window.dispatchEvent(new CustomEvent('localeChange', { detail: nextLocale }))
+    router.refresh()
   }
 
   return (

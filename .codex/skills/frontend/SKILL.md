@@ -147,7 +147,7 @@ export default function OrdersPage() {
 **CRITICAL:**
 - Always search for existing message keys before adding new ones
 - Use `tCommon()` for common keys like save, cancel, delete
-- Update BOTH `en.json` and `ar.json` when adding translations
+- Update matching files under `web-admin/messages/en/**` and `web-admin/messages/ar/**` when adding translations
 
 ### RTL Support
 

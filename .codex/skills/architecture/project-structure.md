@@ -6,4 +6,4 @@ See root tree for directories: Supabase, web-admin, cmx-api (planned/client API)
 Key files:
 - Supabase migration files such as `supabase/migrations/0001_core.sql`, `0002_rls_core.sql`, `0003_seed_core.sql`
 - `web-admin/lib/supabase.ts`
-- `web-admin/messages/{en,ar}.json`
+- `web-admin/messages/{en,ar}/**/*.json`

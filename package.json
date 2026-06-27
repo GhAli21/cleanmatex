@@ -21,6 +21,7 @@
     "docs:ingest-platform-info": "tsx scripts/docs/ingest/index.ts",
     "rebuild:platform-info-inventories": "tsx scripts/docs/rebuild-platform-info-inventories.ts full",
     "check:platform-info-inventories": "tsx scripts/docs/rebuild-platform-info-inventories.ts validate && npm run check:access-contracts --workspace=web-admin",
+    "check:i18n": "npm --workspace=web-admin run check:i18n && node scripts/check-i18n-guidance-drift.js",
     "check:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts check",
     "sync:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts sync",
     "rebuild:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts full",

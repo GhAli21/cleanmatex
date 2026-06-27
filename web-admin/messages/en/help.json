@@ -1,0 +1,106 @@
+{
+  "title": "Help & Support",
+  "subtitle": "Find answers to your questions and get support",
+  "documentation": {
+    "title": "Documentation",
+    "description": "Browse our comprehensive documentation and user guides",
+    "viewDocs": "View Documentation"
+  },
+  "support": {
+    "title": "Contact Support",
+    "description": "Get in touch with our support team",
+    "email": "support@cleanmatex.com"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "description": "Find quick answers to common questions",
+    "viewFAQ": "View FAQ"
+  },
+  "quickLinks": {
+    "title": "Quick Links",
+    "newOrder": "Create New Order",
+    "settings": "Settings",
+    "customers": "Manage Customers"
+  },
+  "status": {
+    "title": "System Status",
+    "message": "All systems are operational. If you experience any issues, please contact support."
+  },
+  "platformInventories": {
+    "title": "Platform Inventories",
+    "subtitle": "Read-only reference for access contracts, permissions, feature flags, navigation, settings, and drift",
+    "cardDescription": "Browse merged platform gating inventories (contracts, permissions, flags, navigation, drift).",
+    "openViewer": "Open Platform Inventories",
+    "backToHelp": "Back to Help",
+    "searchPlaceholder": "Search inventories…",
+    "loading": "Loading inventories…",
+    "generatedAt": "Generated",
+    "routeFilter": "Route filter",
+    "clearRouteFilter": "Clear filter",
+    "userGuide": "Help guide",
+    "exportCsv": "Export CSV",
+    "driftBanner": "{count} new drift item(s)",
+    "tabs": {
+      "contracts": "Access contracts",
+      "permissions": "Permissions",
+      "flags": "Feature flags",
+      "navigation": "Navigation",
+      "settings": "Settings",
+      "planLimits": "Plan limits",
+      "flagCatalog": "Flag catalog",
+      "drift": "Drift",
+      "summary": "Summary"
+    },
+    "columns": {
+      "routePattern": "Route",
+      "label": "Label",
+      "permissions": "Permissions",
+      "featureFlags": "Feature flags",
+      "actions": "Actions",
+      "sourceFile": "Source",
+      "permissionCode": "Permission",
+      "surface": "Surface",
+      "file": "File",
+      "line": "Line",
+      "route": "Route",
+      "flagKey": "Flag key",
+      "context": "Context",
+      "path": "Path",
+      "key": "Key",
+      "featureFlag": "Feature flag",
+      "settingCode": "Setting",
+      "limitKey": "Limit",
+      "pattern": "Pattern",
+      "flagName": "Name",
+      "planBindingType": "Binding",
+      "uiGroup": "Group",
+      "severity": "Severity",
+      "kind": "Kind",
+      "message": "Message",
+      "knownException": "Status"
+    },
+    "badges": {
+      "known": "Known",
+      "new": "New"
+    },
+    "empty": {
+      "title": "No rows found",
+      "description": "Try a different search term, tab, or clear the route filter."
+    },
+    "hints": {
+      "permissionsTab": "Code-scan audit only. For page-level gates, use the Access contracts tab — it is the authoritative source."
+    },
+    "contractDialog": {
+      "pagePermissions": "Page permissions",
+      "pageFlags": "Page feature flags",
+      "actions": "Gated actions",
+      "apiDependencies": "API dependencies",
+      "close": "Close"
+    },
+    "errors": {
+      "forbiddenTitle": "Access not granted",
+      "forbidden": "You need the help:platform_inventories permission to view platform inventories. Ask your tenant admin to grant it.",
+      "loadFailed": "Failed to load platform inventories."
+    }
+  }
+}

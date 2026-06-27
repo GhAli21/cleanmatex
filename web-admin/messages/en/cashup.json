@@ -1,0 +1,23 @@
+{
+  "title": "Cash Up",
+  "description": "End-of-day reconciliation: compare expected amounts from the system with actual counted amounts.",
+  "date": "Date",
+  "selectDate": "Select date",
+  "expectedAmount": "Expected amount",
+  "actualAmount": "Actual amount",
+  "variance": "Variance",
+  "notes": "Notes",
+  "submit": "Save reconciliation",
+  "reconcile": "Reconcile",
+  "reconciled": "Reconciled",
+  "varianceNoted": "Variance noted",
+  "pending": "Pending",
+  "reconciledBy": "Reconciled by",
+  "reconciledAt": "Reconciled at",
+  "history": "History",
+  "noReconciliation": "No reconciliation for this date yet.",
+  "successMessage": "Reconciliation saved successfully.",
+  "errorMessage": "Failed to save reconciliation.",
+  "method": "Payment method",
+  "status": "Status"
+}

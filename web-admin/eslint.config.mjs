@@ -99,6 +99,10 @@ const eslintConfig = [...nextVitals, {
           message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
         },
         {
+          group: ['@/messages', '@/messages/*'],
+          message: 'Do not import locale JSON directly. Load messages on the server with loadLocaleMessages() and consume text through next-intl.',
+        },
+        {
           // Phase 2 (BVM Wiring): the legacy route folder
           // (_legacy_create-with-payment) was retired. The rule stays so that
           // any future revival attempt is caught at lint time.

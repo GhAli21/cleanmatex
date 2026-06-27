@@ -44,7 +44,7 @@ When implementing any feature, add to the feature documentation a list of platfo
 - **New tenant setting** — Add to `sys_tenant_settings_cd` and seed data
 - **New feature flag** — Add to `sys_ff_*` if feature is gated
 - **New plan limit / constraint** — Add to plan limits if feature is tiered
-- **New i18n keys** — Add to `en.json` / `ar.json` (search existing first)
+- **New i18n keys** — Add to `web-admin/messages/en/**` / `web-admin/messages/ar/**` (search existing first)
 - **New API route(s)** — Document endpoint(s) and version
 - **Database migration(s)** — New tables, columns, indexes, RLS
 - **New constants / types** — Add to `lib/constants/` and `lib/types/`

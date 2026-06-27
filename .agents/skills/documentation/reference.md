@@ -48,7 +48,7 @@ When implementing any feature, add to the feature documentation a list of platfo
 - **settings** — use settings skill or same previous work
 - **feature flag** — Add to `sys_ff_*` if feature is gated
 - **plan limit / constraint** — Add to plan limits if feature is tiered
-- **i18n keys** — Add to `en.json` / `ar.json` (search existing first)
+- **i18n keys** — Add to `web-admin/messages/en/**` / `web-admin/messages/ar/**` (search existing first)
 - **API route(s)** — Document endpoint(s) and version
 - **Database migration(s)** — New tables, columns, indexes, RLS
 - **constants / types** — Add to `lib/constants/` and `lib/types/`

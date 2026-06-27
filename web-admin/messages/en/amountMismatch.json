@@ -1,0 +1,17 @@
+{
+  "title": "Amount Mismatch Detected",
+  "message": "The amounts have changed. Please refresh to get the correct values before informing the customer.",
+  "yourValue": "Your value",
+  "serverValue": "Server value",
+  "refreshPage": "Refresh Page",
+  "cancel": "Cancel",
+  "field": "Field",
+  "fields": {
+    "subtotal": "Subtotal",
+    "manualDiscount": "Manual discount",
+    "promoDiscount": "Promo discount",
+    "vatValue": "VAT",
+    "saleTotal": "Sale total",
+    "finalTotal": "Final total"
+  }
+}

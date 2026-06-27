@@ -23,7 +23,6 @@ import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import { getTaxProfilesAction } from '@/app/actions/settings/tax-actions';
-import type { ValidatePromoCodeResult, ValidateGiftCardResult, OrgCardBrandConfig } from '@/lib/types/payment';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import { taxService } from '@/lib/services/tax.service';
 import {
@@ -85,6 +84,13 @@ import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-c
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { useMoneyDerivations } from '@features/orders/hooks/use-money-derivations';
 import { derivePaymentValidationItems } from '@features/orders/hooks/payment-validation';
+import {
+  usePaymentCatalog,
+  IMMEDIATE_METHOD_CODES,
+  GATEWAY_METHOD_CODES,
+  type CheckoutSettlementOption,
+} from '@features/orders/hooks/use-payment-catalog';
+import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-promo';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -197,35 +203,6 @@ function B2BContractsSelect({
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
-type CheckoutSettlementOption = {
-  id: string;
-  payment_method_code: string;
-  payment_nature: string;
-  gateway_code: string | null;
-  display_name: string;
-  display_name2: string | null;
-  description: string | null;
-  description2: string | null;
-  requires_cash_drawer: boolean;
-  requires_terminal: boolean;
-  supports_overpayment: boolean;
-  supports_change_return: boolean;
-  requires_reference: boolean;
-  allowed_in_pos: boolean;
-  allowed_for_pay_now?: boolean | null;
-  allowed_for_pay_on_collection?: boolean | null;
-  allowed_for_invoice_payment?: boolean | null;
-  credit_application_type?: string | null;
-  available_balance?: number | null;
-  requires_credit_reference_selection?: boolean;
-  display_order?: number | null;
-};
-
-type CheckoutOptionsResponse = {
-  paymentMethods: CheckoutSettlementOption[];
-  customerCredits: CheckoutSettlementOption[];
-};
-
 type CashDrawerSessionOption = {
   id: string;
   session_no: string;
@@ -511,24 +488,6 @@ export function PaymentModalV4({
       ? PAYMENT_METHODS.INVOICE
       : PAYMENT_METHODS.PAY_ON_COLLECTION;
 
-  const resolveGiftCardError = useCallback(
-    (result: ValidateGiftCardResult): string => {
-      if (!result.errorCode) {
-        return result.error ?? t('giftCard.errors.validationFailed');
-      }
-      switch (result.errorCode) {
-        case 'EXPIRED':              return tGiftCardErrors('EXPIRED');
-        case 'INSUFFICIENT_BALANCE': return tGiftCardErrors('INSUFFICIENT_BALANCE');
-        case 'INVALID_PIN':          return tGiftCardErrors('INVALID_PIN');
-        case 'CARD_SUSPENDED':       return tGiftCardErrors('SUSPENDED');
-        case 'VOIDED':               return tGiftCardErrors('VOIDED');
-        case 'NOT_FOUND':            return tGiftCardErrors('INVALID_CODE');
-        default:                     return result.error ?? t('giftCard.errors.validationFailed');
-      }
-    },
-    [t, tGiftCardErrors]
-  );
-
   const { token: csrfToken } = useCSRFToken();
 
   const {
@@ -574,26 +533,8 @@ export function PaymentModalV4({
   const giftCardAmount  = watch('giftCardAmount');
   const outstandingPolicy = watch('outstandingPolicy');
 
-  // Promo code state
-  const [promoCodeValidating, setPromoCodeValidating] = useState(false);
-  const [promoCodeResult, setPromoCodeResult] = useState<ValidatePromoCodeResult | null>(null);
-  const [appliedPromoCode, setAppliedPromoCode] = useState<{
-    code: string; id: string; discount: number;
-  } | null>(null);
-
-  // Gift card state
-  const [giftCardValidating, setGiftCardValidating] = useState(false);
-  const [giftCardResult, setGiftCardResult] = useState<ValidateGiftCardResult | null>(null);
-  const [giftCardDetails, setGiftCardDetails] = useState<{
-    number: string; balance: number; status: string; expiryDate?: string; id?: string; searchStr?: string;
-  } | null>(null);
-  const [appliedGiftCard, setAppliedGiftCard] = useState<{
-    number: string; amount: number; balance: number; id: string;
-  } | null>(null);
-  const [giftCardPin, setGiftCardPin]     = useState('');
-  const [pinRequired, setPinRequired]     = useState(false);
-  const [pinVisible, setPinVisible]       = useState(false);
-  const [pinFieldError, setPinFieldError] = useState<string | null>(null);
+  // Gift-card + promo state lives in useGiftCardAndPromo (hook call below, once
+  // `setValue` and `pinInputRef` are in scope).
 
   // Discount draft state
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
@@ -702,62 +643,69 @@ export function PaymentModalV4({
     currencyCode: string; decimalPlaces: number; currencyExRate: number;
   } | null>(null);
 
-  // Active card brands for CARD leg dropdown
-  const { data: cardBrands = [] } = useQuery<OrgCardBrandConfig[]>({
-    queryKey: ['card-brands-active', tenantOrgId],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/settings/payments/card-brands');
-      if (!res.ok) return [];
-      const json = await res.json();
-      return ((json.data ?? []) as OrgCardBrandConfig[]).filter((b) => b.is_active);
-    },
-    enabled: open,
-    staleTime: 5 * 60 * 1000,
+  // Read-only payment catalog: card brands, branch terminals, and checkout
+  // settlement options (real methods + customer credits) + the getMethodOption
+  // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
+  const {
+    cardBrands,
+    branchPaymentTerminals,
+    checkoutMethods,
+    customerCreditOptions,
+    checkoutMethodsLoading,
+    realPaymentOptions,
+    creditMethodCodes,
+    getMethodOption,
+    getOptionDisplayName: getCheckoutOptionDisplayName,
+    getMethodHint,
+  } = usePaymentCatalog({
+    open,
+    tenantOrgId,
+    branchId,
+    customerId,
+    checkoutEligibilityAmount,
+    isRetailOnlyOrder,
+    isRTL,
+    t,
   });
 
-  type PaymentTerminalOption = {
-    id: string;
-    terminal_code: string;
-    terminal_name: string;
-    terminal_name2: string | null;
-    branch_id: string | null;
-    is_active: boolean;
-  };
-
-  const { data: paymentTerminals = [] } = useQuery<PaymentTerminalOption[]>({
-    queryKey: ['payment-terminals-checkout', tenantOrgId, branchId ?? ''],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/settings/payments/terminals');
-      if (!res.ok) return [];
-      const json = await res.json();
-      return ((json.data ?? []) as PaymentTerminalOption[]).filter((terminal) => terminal.is_active);
-    },
-    enabled: open,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const branchPaymentTerminals = useMemo(
-    () =>
-      paymentTerminals.filter(
-        (terminal) => !branchId || !terminal.branch_id || terminal.branch_id === branchId
-      ),
-    [branchId, paymentTerminals]
+  const walletCreditOption = customerCreditOptions.find(
+    (option) =>
+      option.credit_application_type === 'WALLET' ||
+      option.payment_method_code === 'WALLET'
   );
 
-  const { data: checkoutOptions, isLoading: checkoutMethodsLoading } = useQuery<CheckoutOptionsResponse>({
-    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', customerId ?? '', checkoutEligibilityAmount],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (branchId) params.set('branchId', branchId);
-      if (customerId) params.set('customerId', customerId);
-      params.set('amount', String(checkoutEligibilityAmount));
-      const res = await fetch(`/api/v1/orders/checkout-options?${params.toString()}`);
-      if (!res.ok) return { paymentMethods: [], customerCredits: [] };
-      const json = await res.json();
-      return (json.data ?? { paymentMethods: [], customerCredits: [] }) as CheckoutOptionsResponse;
-    },
-    enabled: open,
-    staleTime: 60_000,
+  // Gift-card + promo state, error mapping, and reset/PIN-focus effects (Phase 2B).
+  const {
+    promoCodeValidating,
+    setPromoCodeValidating,
+    promoCodeResult,
+    setPromoCodeResult,
+    appliedPromoCode,
+    setAppliedPromoCode,
+    giftCardValidating,
+    setGiftCardValidating,
+    giftCardResult,
+    setGiftCardResult,
+    giftCardDetails,
+    setGiftCardDetails,
+    appliedGiftCard,
+    setAppliedGiftCard,
+    giftCardPin,
+    setGiftCardPin,
+    pinRequired,
+    setPinRequired,
+    pinVisible,
+    setPinVisible,
+    pinFieldError,
+    setPinFieldError,
+    resolveGiftCardError,
+  } = useGiftCardAndPromo({
+    open,
+    giftCardNumber,
+    setValue,
+    pinInputRef,
+    t,
+    tGiftCardErrors,
   });
 
   const {
@@ -788,14 +736,6 @@ export function PaymentModalV4({
     enabled: open,
     staleTime: 30_000,
   });
-
-  const checkoutMethods = checkoutOptions?.paymentMethods ?? [];
-  const customerCreditOptions = checkoutOptions?.customerCredits ?? [];
-  const walletCreditOption = customerCreditOptions.find(
-    (option) =>
-      option.credit_application_type === 'WALLET' ||
-      option.payment_method_code === 'WALLET'
-  );
 
   const {
     data: storedValueSummary,
@@ -850,25 +790,6 @@ export function PaymentModalV4({
       });
     }
   }, [open, tenantOrgId, branchId, userId]);
-
-  // Reset gift card details when code changes
-  useEffect(() => {
-    if (!giftCardNumber || appliedGiftCard) return;
-    if (giftCardDetails?.number && giftCardDetails.number !== giftCardNumber && giftCardDetails.searchStr !== giftCardNumber) {
-      setGiftCardDetails(null);
-      setGiftCardResult(null);
-      setValue('giftCardAmount', 0);
-      setValue('giftCardId', '');
-    }
-  }, [giftCardNumber, giftCardDetails, appliedGiftCard, setValue]);
-
-  useEffect(() => {
-    if (!open || !pinRequired) return;
-    window.setTimeout(() => {
-      pinInputRef.current?.focus();
-      pinInputRef.current?.select();
-    }, 60);
-  }, [open, pinRequired]);
 
   useEffect(() => {
     if (paymentMethod !== PAYMENT_METHODS.CHECK) {
@@ -1000,15 +921,7 @@ export function PaymentModalV4({
         costCenterCode: '',
         poNumber: '',
       });
-      setPromoCodeResult(null);
-      setAppliedPromoCode(null);
-      setGiftCardResult(null);
-      setGiftCardDetails(null);
-      setAppliedGiftCard(null);
-      setGiftCardPin('');
-      setPinRequired(false);
-      setPinVisible(false);
-      setPinFieldError(null);
+      // Gift-card + promo state reset is owned by useGiftCardAndPromo.
       setSelectedCashDrawerSessionId('');
       setCashDrawerDialogOpen(false);
       setCashDrawerToOpenId('');
@@ -1164,35 +1077,6 @@ export function PaymentModalV4({
   const saleTotal = totals.saleTotal;
   const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
 
-  const IMMEDIATE_METHOD_CODES = [
-    PAYMENT_METHODS.CASH,
-    PAYMENT_METHODS.CARD,
-    PAYMENT_METHODS.CHECK,
-    PAYMENT_METHODS.BANK_TRANSFER,
-    PAYMENT_METHODS.MOBILE_PAYMENT,
-    PAYMENT_METHODS.PAYMENT_GATEWAY,
-  ] as const;
-
-  const GATEWAY_METHOD_CODES: string[] = [
-    PAYMENT_METHODS.PAYMENT_GATEWAY,
-    PAYMENT_METHODS.HYPERPAY,
-    PAYMENT_METHODS.PAYTABS,
-    PAYMENT_METHODS.STRIPE,
-  ];
-  const realPaymentOptions = useMemo(
-    () =>
-      checkoutMethods
-        .filter((method) => method.payment_nature === 'REAL_PAYMENT' && method.allowed_in_pos)
-        .filter((method) => !isRetailOnlyOrder || method.payment_method_code !== PAYMENT_METHODS.INVOICE)
-        .filter((method) => !isRetailOnlyOrder || method.payment_method_code !== PAYMENT_METHODS.PAY_ON_COLLECTION)
-        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
-    [checkoutMethods, isRetailOnlyOrder]
-  );
-
-  const creditMethodCodes = useMemo(
-    () => customerCreditOptions.map((option) => option.payment_method_code),
-    [customerCreditOptions]
-  );
   const liveWalletBalance = walletCreditOption
     ? storedValueSummary?.wallet.balance ?? walletCreditOption.available_balance ?? 0
     : 0;
@@ -1203,13 +1087,6 @@ export function PaymentModalV4({
   const walletHasAvailableBalance = liveWalletBalance > 0.001;
   const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
   const liveAdvanceBalance = storedValueSummary?.advance.balance ?? 0;
-
-  const optionByMethodKey = useMemo(() => {
-    const allOptions = [...realPaymentOptions, ...customerCreditOptions];
-    return new Map(
-      allOptions.map((option) => [`${option.payment_method_code}::${option.gateway_code ?? ''}`, option])
-    );
-  }, [customerCreditOptions, realPaymentOptions]);
 
   const getDrawerDisplayName = useCallback(
     (drawer: CashDrawerOption) => isRTL ? (drawer.drawer_name2 || drawer.drawer_name) : drawer.drawer_name,
@@ -1283,13 +1160,6 @@ export function PaymentModalV4({
     [cashDrawers]
   );
 
-  const getMethodOption = useCallback(
-    (methodCode: string, gatewayCode?: string | null) =>
-      optionByMethodKey.get(`${methodCode}::${gatewayCode ?? ''}`) ??
-      optionByMethodKey.get(`${methodCode}::`),
-    [optionByMethodKey]
-  );
-
   const getLegStoredValueCap = useCallback(
     (leg: PaymentLeg) => {
       const option = getMethodOption(leg.method, leg.gateway_code);
@@ -1306,20 +1176,6 @@ export function PaymentModalV4({
     },
     [getMethodOption, liveAdvanceBalance, liveWalletBalance, storedValueSummary?.creditNotes]
   );
-
-  const getOptionDisplayName = (option: CheckoutSettlementOption | undefined, fallbackMethodCode?: string) => {
-    if (option) {
-      return isRTL ? (option.display_name2 || option.display_name) : option.display_name;
-    }
-    return fallbackMethodCode ? getPaymentLabel(fallbackMethodCode) : '';
-  };
-
-  const getMethodHint = (option: CheckoutSettlementOption) => {
-    const description = isRTL ? (option.description2 || option.description) : (option.description || option.description2);
-    return description
-      ? `${option.payment_method_code} • ${description}`
-      : option.payment_method_code;
-  };
 
   const focusAmountEditor = useCallback(() => {
     expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
@@ -2203,7 +2059,7 @@ export function PaymentModalV4({
       if (legOption?.requires_terminal && !leg.terminalId?.trim()) {
         cmxMessage.error(
           t('splitPayment.validation.terminalRequired', {
-            method: getOptionDisplayName(legOption, leg.method),
+            method: getCheckoutOptionDisplayName(legOption, leg.method),
           })
         );
         return;
@@ -2241,7 +2097,7 @@ export function PaymentModalV4({
     if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
       cmxMessage.error(
         t('customerCredits.storedValueBalanceExceeded', {
-          method: getOptionDisplayName(
+          method: getCheckoutOptionDisplayName(
             getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
             storedValueLegExceedance.leg.method
           ),
@@ -2519,7 +2375,7 @@ export function PaymentModalV4({
     payExtraIntent,
   ]);
   const summaryMethodLabel = activeLeg
-    ? getOptionDisplayName(activeLegOption, activeLeg.method)
+    ? getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)
     : getPaymentLabel(paymentMethod || defaultPaymentMethod);
   const paymentLegsTotal = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
   const splitSidebarSettledTotal = paymentLegsTotal + giftCardSettlementAmount;
@@ -2617,7 +2473,7 @@ export function PaymentModalV4({
     currencyCode,
     formatAmount,
     getMethodOption,
-    getOptionDisplayName,
+    getOptionDisplayName: getCheckoutOptionDisplayName,
     promoCodeValidating,
     giftCardValidating,
     overpaymentBlocksSubmit,
@@ -2660,7 +2516,7 @@ export function PaymentModalV4({
     storedValueLegExceedsBalance,
     legsMissingRequiredReference,
     getMethodOption,
-    getOptionDisplayName,
+    getCheckoutOptionDisplayName,
     liveWalletBalanceDisplay,
     cashDrawerBlockingMessage,
     changeAmount,
@@ -2761,18 +2617,18 @@ export function PaymentModalV4({
   const realPaymentSummaryItems = useMemo<RightRailSummaryItem[]>(
     () =>
       realPaymentEntries.map(({ leg }) => ({
-        label: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
         value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
       })),
-    [realPaymentEntries, getOptionDisplayName, getMethodOption, currencyCode, formatAmount]
+    [realPaymentEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
   );
   const storedValueSummaryItems = useMemo<RightRailSummaryItem[]>(
     () =>
       customerCreditEntries.map(({ leg }) => ({
-        label: getOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
         value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
       })),
-    [customerCreditEntries, getOptionDisplayName, getMethodOption, currencyCode, formatAmount]
+    [customerCreditEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
   );
   const orderValueBreakdownModel = useMemo<OrderValueBreakdownModel>(
     () => {
@@ -3346,7 +3202,7 @@ export function PaymentModalV4({
                         <p className="text-xs text-slate-500">{t('methods.noMethods')}</p>
                       ) : (
                         realPaymentOptions.map((option) => {
-                          const optionLabel = getOptionDisplayName(option, option.payment_method_code);
+                          const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
                           const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
                           const selected = !!paymentLegs.find(
                             (leg) =>
@@ -3408,7 +3264,7 @@ export function PaymentModalV4({
                         <p className="text-xs text-slate-500">{t('customerCredits.empty')}</p>
                       ) : (
                         customerCreditOptions.map((option) => {
-                          const optionLabel = getOptionDisplayName(option, option.payment_method_code);
+                          const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
                           const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
                           const isWalletOption =
                             option.credit_application_type === 'WALLET' ||
@@ -3536,7 +3392,7 @@ export function PaymentModalV4({
                       ) : (
                         editableLegEntries.map(({ leg, index }) => {
                           const option = getMethodOption(leg.method, leg.gateway_code);
-                          const label = getOptionDisplayName(option, leg.method);
+                          const label = getCheckoutOptionDisplayName(option, leg.method);
                           const legRemainingCap = getRemainingToAllocate(
                             saleTotal,
                             paymentLegs,
@@ -3783,7 +3639,7 @@ export function PaymentModalV4({
                         isRTL={isRTL}
                         expandLabel={workbenchSectionToggleLabels.expandLabel}
                         collapseLabel={workbenchSectionToggleLabels.collapseLabel}
-                        title={`${t('sections.sectionB')} · ${t('sections.amountEditor')} · ${activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : t('workspace.editingAmount')}`}
+                        title={`${t('sections.sectionB')} · ${t('sections.amountEditor')} · ${activeLeg ? getCheckoutOptionDisplayName(activeLegOption, activeLeg.method) : t('workspace.editingAmount')}`}
                         headerAside={settlementLegEntries.length > 1 ? (
                           <CmxButton
                             type="button"
@@ -3950,7 +3806,7 @@ export function PaymentModalV4({
                         description={t('workspace.activeDescription')}
                         headerAside={activeLeg ? (
                           <Badge variant="secondary" className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700">
-                            {getOptionDisplayName(activeLegOption, activeLeg.method)}
+                            {getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)}
                           </Badge>
                         ) : undefined}
                         contentClassName="space-y-4 pt-4"
@@ -3987,7 +3843,7 @@ export function PaymentModalV4({
                                     <span className={`flex h-9 w-9 items-center justify-center rounded-xl border ${getMethodToneClasses(activeLeg.method).iconWrap}`}>
                                       {getPaymentIcon(activeLeg.method)}
                                     </span>
-                                    <p className="text-sm font-semibold text-slate-900">{getOptionDisplayName(activeLegOption, activeLeg.method)}</p>
+                                    <p className="text-sm font-semibold text-slate-900">{getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)}</p>
                                   </div>
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">

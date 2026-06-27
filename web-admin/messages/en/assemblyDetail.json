@@ -1,0 +1,9 @@
+{
+  "verifyItems": "Verify Items",
+  "quantity": "Quantity",
+  "ready": "Ready",
+  "hint": "Scan each item to verify all pieces are present before proceeding.",
+  "actionsTitle": "Assembly Actions",
+  "processing": "Processing...",
+  "complete": "Complete Assembly"
+}

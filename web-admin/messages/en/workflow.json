@@ -1,0 +1,290 @@
+{
+  "screens": {
+    "preparation": "Preparation",
+    "processing": "Processing",
+    "assembly": "Assembly",
+    "qa": "Quality Check",
+    "ready": "Ready",
+    "packing": "Packing",
+    "delivery": "Delivery"
+  },
+  "labels": {
+    "customer": "Customer",
+    "phone": "Phone",
+    "received": "Received",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {totalPages}"
+  },
+  "preparation": {
+    "description": "Quick Drop orders requiring itemization",
+    "empty": "No orders in preparation",
+    "bags": "{count} bags",
+    "pricePreview": {
+      "regionAria": "Order price preview",
+      "items": "Items",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "list": {
+      "searchPlaceholder": "Search order #, customer, phone…",
+      "sortBy": "Sort by",
+      "sortDirection": "Direction",
+      "sortOrderNo": "Order #",
+      "sortReceivedAt": "Received date",
+      "sortAsc": "Ascending",
+      "sortDesc": "Descending"
+    },
+    "detail": {
+      "summaryTitle": "Order summary",
+      "bagsLabel": "Bags"
+    },
+    "workflowContextTitle": "Workflow context",
+    "workflowFlags": {
+      "assemblyEnabled": "Assembly enabled",
+      "qaEnabled": "QA enabled",
+      "packingEnabled": "Packing enabled"
+    },
+    "workflowMetrics": {
+      "itemsCount": "Items"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "stats": {
+      "inPreparation": "In preparation",
+      "totalBags": "Total bags"
+    },
+    "actions": {
+      "continueItemization": "Continue Itemization",
+      "saveDraft": "Save Draft",
+      "completeAndContinue": "Complete & Continue",
+      "preparationCompleteNote": "Preparation complete",
+      "preparationCompleteSuccess": "Preparation completed"
+    }
+  },
+  "assembly": {
+    "description": "Orders ready for assembly",
+    "empty": "No orders in assembly",
+    "items": "items",
+    "actions": {
+      "assembleOrder": "Assemble Order"
+    },
+    "messages": {
+      "taskCreated": "Assembly task created",
+      "taskCreateFailed": "Failed to create assembly task"
+    },
+    "stats": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "qaPending": "QA Pending",
+      "completedToday": "Completed Today",
+      "openExceptions": "Open Exceptions"
+    }
+  },
+  "qa": {
+    "description": "Orders pending quality check",
+    "empty": "No orders pending QA",
+    "items": "items",
+    "actions": {
+      "open": "Quality Check",
+      "accept": "Accept",
+      "reject": "Reject",
+      "acceptAll": "Accept All Items",
+      "processing": "Processing...",
+      "backToQa": "Back to Quality Check"
+    },
+    "messages": {
+      "acceptSuccess": "QA approved",
+      "acceptFailed": "Failed to approve order",
+      "rejectSuccess": "Order returned to processing",
+      "rejectFailed": "Failed to reject order"
+    }
+  },
+  "ready": {
+    "description": "Orders ready for pickup or delivery",
+    "empty": "No orders ready",
+    "statusBadge": "Ready",
+    "rack": "Rack",
+    "total": "Total",
+    "itemsTitle": "Order Items",
+    "quantity": "Quantity",
+    "totalAmount": "Total Amount",
+    "searchPlaceholder": "Search by order #, name, phone, email...",
+    "sortBy": {
+      "orderNo": "Order #",
+      "receivedAt": "Order date",
+      "readyBy": "Ready by",
+      "total": "Total"
+    },
+    "sortOrder": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "paymentSection": {
+      "title": "Payment",
+      "paidInFull": "Paid in full",
+      "remainingDue": "Balance due",
+      "collectBeforeHandover": "Collect payment before handover",
+      "noInvoiceForPayment": "No invoice found for this order. Create an invoice from Billing → Invoices to record payment.",
+      "applyPaymentTo": "Apply payment to",
+      "invoiceOption": "Invoice {invoiceNo} — {remaining}",
+      "distributeAcrossInvoices": "Distribute across all invoices (oldest first)",
+      "applyToSelectedInvoice": "Apply to selected invoice",
+      "orPayPerInvoiceHint": "Alternatively, go to Billing → Invoices to record payments for each invoice separately."
+    },
+    "paymentStatus": {
+      "paid": "Paid",
+      "partial": "Partial",
+      "pending": "Pending"
+    },
+    "actions": {
+      "title": "Delivery Actions",
+      "open": "Open",
+      "backToReady": "Back to Ready",
+      "markDelivered": "Mark as Delivered",
+      "printReceipt": "Print Receipt",
+      "printReceiptThermal": "Print Receipt (80mm)",
+      "printReceiptA4": "Print Receipt (A4)",
+      "printOrderDetailsThermal": "Print Order Details (80mm)",
+      "printOrderDetailsA4": "Print Order Details (A4)",
+      "reportsA4Rprt": "A4 Reports",
+      "printInvoicesPaymentsA4Rprt": "Print Invoices & Payments (A4)",
+      "printPaymentsA4DescRprt": "Print Payments (A4, newest first)",
+      "printPaymentsA4AscRprt": "Print Payments (A4, oldest first)",
+      "printOrderHistoryA4Rprt": "Print Order History (A4)",
+      "processing": "Processing..."
+    },
+    "messages": {
+      "loadFailed": "Failed to load order",
+      "notFound": "Order not found",
+      "deliveredSuccess": "Order marked as delivered",
+      "deliveredFailed": "Failed to deliver order",
+      "blockersTitle": "Cannot complete action"
+    }
+  },
+  "packing": {
+    "description": "Orders pending packing",
+    "empty": "No orders in packing",
+    "items": "items",
+    "rack": "Rack",
+    "rackPlaceholder": "e.g., Rack A-12",
+    "itemsTitle": "Items to pack",
+    "quantity": "Quantity",
+    "readyQty": "Ready",
+    "totalQty": "Total quantity",
+    "workflowContextTitle": "Workflow context",
+    "metrics": {
+      "itemsCount": "Items",
+      "piecesTotal": "Pieces total"
+    },
+    "actions": {
+      "open": "Open Packing",
+      "back": "Back to Packing",
+      "title": "Packing Actions",
+      "saveRack": "Save Rack Location",
+      "complete": "Complete Packing",
+      "processing": "Processing..."
+    },
+    "messages": {
+      "loadFailed": "Failed to load order",
+      "notFound": "Order not found",
+      "rackRequired": "Rack location is required",
+      "rackSaved": "Rack location saved",
+      "rackSaveFailed": "Failed to save rack location",
+      "completeSuccess": "Packing completed",
+      "completeFailed": "Failed to complete packing",
+      "blockersTitle": "Cannot complete action"
+    }
+  },
+  "delivery": {
+    "description": "Orders out for delivery",
+    "empty": "No orders out for delivery",
+    "items": "Items",
+    "stats": {
+      "outForDelivery": "Out for delivery",
+      "completedToday": "Completed today"
+    },
+    "actions": {
+      "view": "View",
+      "markDelivered": "Mark delivered",
+      "backToDelivery": "Back to Delivery"
+    },
+    "routes": {
+      "createTitle": "Create route",
+      "createHint": "Select orders below, optionally enter a driver ID, then create a route.",
+      "driverIdLabel": "Driver ID (optional)",
+      "driverIdPlaceholder": "Paste driver user ID",
+      "selectedCount": "{count} selected",
+      "selectOrder": "Select order for route",
+      "listTitle": "Routes",
+      "empty": "No routes yet",
+      "fields": {
+        "status": "Status",
+        "stops": "Stops",
+        "driverId": "Driver",
+        "unassigned": "Unassigned"
+      },
+      "actions": {
+        "create": "Create route",
+        "creating": "Creating...",
+        "refresh": "Refresh"
+      },
+      "messages": {
+        "created": "Route created: {routeId}",
+        "createFailed": "Failed to create route"
+      }
+    },
+    "messages": {
+      "deliveredSuccess": "Order marked as delivered",
+      "deliveredFailed": "Failed to mark order as delivered"
+    }
+  },
+  "actions": {
+    "splitOrder": "Split Order",
+    "createIssue": "Create Issue",
+    "resolveIssue": "Resolve Issue",
+    "recordStep": "Record Step",
+    "markComplete": "Mark Complete",
+    "transitionStatus": "Change Status"
+  },
+  "statuses": {
+    "intake": "Intake",
+    "preparing": "Preparing",
+    "processing": "Processing",
+    "assembly": "Assembly",
+    "qa": "Quality Check",
+    "ready": "Ready",
+    "delivered": "Delivered"
+  },
+  "steps": {
+    "sorting": "Sorting",
+    "pretreatment": "Pretreatment",
+    "washing": "Washing",
+    "drying": "Drying",
+    "finishing": "Finishing"
+  },
+  "issues": {
+    "damage": "Damage",
+    "stain": "Stain",
+    "complaint": "Complaint",
+    "other": "Other"
+  },
+  "priorities": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "validation": {
+    "rackLocationRequired": "Rack location is required before moving to ready",
+    "transitionNotAllowed": "This transition is not allowed",
+    "qualityGateFailed": "Quality gates not passed"
+  },
+  "newOrder": {
+    "goToOrder": "Go to Order",
+    "goToPreparation": "Go to Preparation",
+    "goToProcessing": "Go to Processing",
+    "orderCreatedSuccess": "Order {orderNo} created successfully"
+  }
+}

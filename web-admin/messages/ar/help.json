@@ -1,0 +1,106 @@
+{
+  "title": "المساعدة والدعم",
+  "subtitle": "اعثر على إجابات لأسئلتك واحصل على الدعم",
+  "documentation": {
+    "title": "التوثيق",
+    "description": "تصفح التوثيق الشامل وأدلة المستخدم",
+    "viewDocs": "عرض التوثيق"
+  },
+  "support": {
+    "title": "اتصل بالدعم",
+    "description": "تواصل مع فريق الدعم",
+    "email": "support@cleanmatex.com"
+  },
+  "faq": {
+    "title": "الأسئلة الشائعة",
+    "description": "اعثر على إجابات سريعة للأسئلة الشائعة",
+    "viewFAQ": "عرض الأسئلة الشائعة"
+  },
+  "quickLinks": {
+    "title": "روابط سريعة",
+    "newOrder": "إنشاء طلب جديد",
+    "settings": "الإعدادات",
+    "customers": "إدارة العملاء"
+  },
+  "status": {
+    "title": "حالة النظام",
+    "message": "جميع الأنظمة تعمل. إذا واجهت أي مشكلة، يرجى التواصل مع الدعم."
+  },
+  "platformInventories": {
+    "title": "مخزون المنصة",
+    "subtitle": "مرجع للقراءة فقط لعقود الوصول والصلاحيات وعلامات الميزات والتنقل والإعدادات والانحراف",
+    "cardDescription": "تصفح مخزون بوابات المنصة المدمج (العقود، الصلاحيات، العلامات، التنقل، الانحراف).",
+    "openViewer": "فتح مخزون المنصة",
+    "backToHelp": "العودة إلى المساعدة",
+    "searchPlaceholder": "بحث في المخزون…",
+    "loading": "جاري تحميل المخزون…",
+    "generatedAt": "تاريخ التوليد",
+    "routeFilter": "تصفية المسار",
+    "clearRouteFilter": "مسح التصفية",
+    "userGuide": "دليل المساعدة",
+    "exportCsv": "تصدير CSV",
+    "driftBanner": "{count} عنصر انحراف جديد",
+    "tabs": {
+      "contracts": "عقود الوصول",
+      "permissions": "الصلاحيات",
+      "flags": "علامات الميزات",
+      "navigation": "التنقل",
+      "settings": "الإعدادات",
+      "planLimits": "حدود الخطة",
+      "flagCatalog": "كتالوج العلامات",
+      "drift": "الانحراف",
+      "summary": "ملخص"
+    },
+    "columns": {
+      "routePattern": "المسار",
+      "label": "التسمية",
+      "permissions": "الصلاحيات",
+      "featureFlags": "علامات الميزات",
+      "actions": "الإجراءات",
+      "sourceFile": "المصدر",
+      "permissionCode": "الصلاحية",
+      "surface": "السطح",
+      "file": "الملف",
+      "line": "السطر",
+      "route": "المسار",
+      "flagKey": "مفتاح العلامة",
+      "context": "السياق",
+      "path": "المسار",
+      "key": "المفتاح",
+      "featureFlag": "علامة الميزة",
+      "settingCode": "الإعداد",
+      "limitKey": "الحد",
+      "pattern": "النمط",
+      "flagName": "الاسم",
+      "planBindingType": "الربط",
+      "uiGroup": "المجموعة",
+      "severity": "الخطورة",
+      "kind": "النوع",
+      "message": "الرسالة",
+      "knownException": "الحالة"
+    },
+    "badges": {
+      "known": "معروف",
+      "new": "جديد"
+    },
+    "empty": {
+      "title": "لا توجد صفوف",
+      "description": "جرّب مصطلح بحث أو تبويبًا مختلفًا، أو امسح تصفية المسار."
+    },
+    "hints": {
+      "permissionsTab": "فحص مسح الكود فقط. لبوابات الصفحة، استخدم تبويب عقود الوصول — وهو المصدر الموثوق."
+    },
+    "contractDialog": {
+      "pagePermissions": "صلاحيات الصفحة",
+      "pageFlags": "علامات ميزات الصفحة",
+      "actions": "الإجراءات المحمية",
+      "apiDependencies": "تبعيات واجهة البرمجة",
+      "close": "إغلاق"
+    },
+    "errors": {
+      "forbiddenTitle": "لم يُمنح الوصول",
+      "forbidden": "تحتاج صلاحية help:platform_inventories لعرض مخزون المنصة. اطلب من مسؤول المستأجر منحها.",
+      "loadFailed": "فشل تحميل مخزون المنصة."
+    }
+  }
+}

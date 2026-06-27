@@ -247,7 +247,7 @@ The `roles` array in `navigation.ts` and the `roles` JSONB column in `sys_compon
    ```
 3. **New top-level section** — Add a new object to `NAVIGATION_SECTIONS` with `icon` (import from `lucide-react`), `path`, `roles`, and optionally `children`.
 4. **Display order** — Insert the new item in the correct position among siblings (same order as `display_order` in sys_components_cd).
-5. **i18n** — Prefer translation keys for labels; if using hardcoded labels, add keys to `messages/en.json` and `messages/ar.json` and use `t('catalog.customerCategories')` etc. where applicable.
+5. **i18n** — Prefer translation keys for labels; if using hardcoded labels, add keys to `web-admin/messages/en/navigation.json` and `web-admin/messages/ar/navigation.json` and use `t('catalog.customerCategories')` etc. where applicable.
 
 ### Example (child under catalog)
 

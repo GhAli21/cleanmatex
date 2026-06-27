@@ -1,0 +1,9 @@
+{
+  "required": "هذا الحقل مطلوب",
+  "invalidEmail": "عنوان بريد إلكتروني غير صالح",
+  "invalidPhone": "رقم هاتف غير صالح",
+  "minLength": "الحد الأدنى للطول هو {min} أحرف",
+  "maxLength": "الحد الأقصى للطول هو {max} أحرف",
+  "passwordMismatch": "كلمات المرور غير متطابقة",
+  "invalidFormat": "تنسيق غير صالح"
+}

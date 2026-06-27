@@ -126,7 +126,9 @@ export function useProducts(category: string | null) {
   const dispatch = useNewOrderDispatch();
   const [productSearch, setProductSearchState] = useState('');
   const [searchAllCategories, setSearchAllCategoriesState] = useState(false);
-  const [pageSize, setPageSizeState] = useState(ORDER_DEFAULTS.LIMITS.PRODUCTS_PER_CATEGORY);
+  const [pageSize, setPageSizeState] = useState<number>(
+    ORDER_DEFAULTS.LIMITS.PRODUCTS_PER_CATEGORY
+  );
   const [pagesByFilter, setPagesByFilter] = useState<Record<string, number>>({});
 
   const debouncedSearch = useDebouncedValue(

@@ -167,8 +167,10 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'List categories',
         method: 'GET',
         path: '/api/v1/categories',
-        notes: ['GET with ?enabled=true query filter.'],
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        notes: [
+          'GET with ?enabled=true query filter.',
+          'Auth-only local route; explicit permission requirement not recorded in local API inventory.',
+        ],
       },
       {
         label: 'List products',

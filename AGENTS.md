@@ -6,7 +6,7 @@
 |---|---|
 | SQL / migration / function | Apply **Database Quick Rules** (see below) |
 | Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below) |
-| i18n / translation | Add key to `messages/en.json` AND `messages/ar.json` |
+| i18n / translation | Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**` |
 | API route / service / backend | Use service layer, always filter by `tenant_org_id` |
 | Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
@@ -74,7 +74,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 |---|---|
 | Any SQL, migration, table, index, function | **Database Quick Rules** below |
 | Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only |
-| Any i18n key, translation, bilingual text | Add to `messages/en.json` + `messages/ar.json` |
+| Any i18n key, translation, bilingual text | Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**` |
 | Any API route, service, backend logic | Service layer, tenant_org_id filter mandatory |
 | Any query touching `org_*` tables | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | Any new feature implementation | Follow all CRITICAL RULES |

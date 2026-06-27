@@ -1,0 +1,36 @@
+{
+  "title": "Track Your Order",
+  "description": "View the latest status and details of your laundry order.",
+  "brandSubtitle": "CleanMateX",
+  "loading": "Loading your order...",
+  "orderNumberLabel": "Order Number",
+  "receivedAtLabel": "Received",
+  "readyByLabel": "Expected Ready",
+  "totalAmountLabel": "Total Amount",
+  "itemsCountLabel": "Items",
+  "customerSection": {
+    "title": "Customer"
+  },
+  "itemsSection": {
+    "title": "Order Items",
+    "empty": "No items found for this order.",
+    "unnamedItem": "Item",
+    "quantityLabel": "{quantity} pcs"
+  },
+  "timelineSection": {
+    "title": "Order Timeline"
+  },
+  "notesSection": {
+    "title": "Customer Notes"
+  },
+  "errors": {
+    "notFound": "We could not find this order. Please check the link with the laundry shop.",
+    "generic": "Something went wrong while loading your order. Please try again in a moment."
+  },
+  "actions": {
+    "confirmReceived": "I have received my clothes",
+    "confirmingReceived": "Confirming...",
+    "confirmReceivedSuccess": "Thank you! Your order has been marked as received."
+  },
+  "footer": "Powered by CleanMateX – Smart laundry management."
+}

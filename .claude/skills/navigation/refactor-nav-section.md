@@ -105,8 +105,8 @@ Use `CROSS JOIN` + `NOT EXISTS` — **never** `ON CONFLICT DO NOTHING` on `sys_a
 - [ ] Every `path` in `navigation.ts` matches `comp_path` in DB INSERT
 - [ ] `label` in `navigation.ts` matches `label` (EN) in DB INSERT
 - [ ] `label2` (AR) set in DB INSERT — never NULL on a new or renamed row
-- [ ] `messages/en.json` → `navigation` block updated with new label value
-- [ ] `messages/ar.json` → `navigation` block updated with new Arabic label value
+- [ ] `web-admin/messages/en/navigation.json` updated with the new label value
+- [ ] `web-admin/messages/ar/navigation.json` updated with the new Arabic label value
 - [ ] `NAV_TRANSLATION_KEY_MAP` in `cmx-sidebar.tsx` contains an entry for the key (add if missing)
 - [ ] `main_permission_code` exists in `sys_auth_permissions`
 - [ ] `parent_comp_id` resolution UPDATE present for every child
@@ -125,7 +125,7 @@ Use `CROSS JOIN` + `NOT EXISTS` — **never** `ON CONFLICT DO NOTHING` on `sys_a
 |---|---|
 | Only updating `navigation.ts`, not DB | Sidebar shows item; RBAC/API denies access |
 | Only updating DB, not `navigation.ts` | DB correct; sidebar never shows item |
-| Updating DB label but not `messages/en.json` + `messages/ar.json` | super_admin/tenant_admin still see the old label (they use the hardcoded fallback path, not the DB) |
+| Updating DB label but not `web-admin/messages/en/navigation.json` + `web-admin/messages/ar/navigation.json` | super_admin/tenant_admin still see the old label (they use the hardcoded fallback path, not the DB) |
 | Updating i18n files but not the DB `label`/`label2` | All other roles (admin, operator, viewer…) still see the old label |
 | Missing `label2`/`description2` in INSERT | Breaks Arabic UI for non-admin roles |
 | `ON CONFLICT DO NOTHING` on role-permission table | Silent partial-conflict failures |

@@ -1,138 +1,82 @@
 ---
 name: i18n
-description: EN/AR i18n and RTL rules for CleanMateXSAAS Platform HQ. Use only when adding/changing UI text, translation keys, RTL-aware layout, locale-aware formatting, or bilingual DB display.
+description: Internationalization for CleanMateX web-admin, including EN/AR locale catalogs, next-intl usage, and RTL-safe UI patterns.
 user-invocable: true
-version: 1.1.0
-effort: low
-references:
-  - @.claude/skills/i18n/reference.md
-  - @.claude/docs/frontend_standards.md
-  - @.claude/docs/ui_blueprint.md
-  - CLAUDE.md
-agents: []
 ---
 
-# i18n Skill — CleanMateXSAAS Platform HQ
+# Internationalization (i18n) & RTL
 
-## Purpose
+## CRITICAL Rules
 
-Apply bilingual English/Arabic support with next-intl and RTL-safe UI. Keep this skill compact; read `reference.md` only when examples are needed.
+1. Search existing keys first under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.
+2. Reuse `common.*` for generic UI actions, statuses, labels, and feedback.
+3. Update both locale trees with identical file paths and identical leaf keys.
+4. A namespace may be a file or a folder, never both.
+5. Do not import locale JSON directly in components or feature code.
+6. Load locale messages on the server; consume them through `next-intl`.
+7. Run `npm run check:i18n` after translation changes.
+8. Preserve RTL behavior for Arabic surfaces.
 
-## Hard Rules
+## Workflow Checklist
 
-1. Search existing keys in `platform-web/messages/` before adding new ones.
-2. Reuse `common.*` for shared actions, labels, statuses, and feedback.
-3. Add/update every new key in both `en.json` and `ar.json`.
-4. Do not hardcode user-facing strings in components.
-5. Preserve Arabic RTL layout behavior.
-6. Run `npm run check:i18n` after translation changes.
-7. If layout changed, verify Arabic forms, tables, navigation, modals, and dropdowns.
+1. Search the locale tree for an existing key before adding a new one.
+2. Add or update the matching locale files under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.
+3. Keep the namespace path stable unless you are fixing a real collision.
+4. Use `useTranslations('namespace')` or `getTranslations('namespace')`.
+5. Validate with `npm run check:i18n`.
 
-## Minimal Workflow
-
-```text
-1. Search existing keys.
-2. Reuse common or feature key if available.
-3. Add missing key to en.json and ar.json.
-4. Use tCommon for common keys and feature t() for feature keys.
-5. Add RTL classes only where direction matters.
-6. Run npm run check:i18n.
-7. Report keys, files, RTL impact, and validation result.
-```
-
-## Key Placement
-
-Common keys:
+## Locale Catalog Structure
 
 ```text
-save, cancel, delete, edit, create, update, search, filter, clearFilters,
-loading, error, success, actions, status, date, import, export, close,
-optional, required, itemCount, warningCount, errorCount
-```
-
-Feature namespaces:
-
-```text
-tenants, billing, analytics, platformSettings, support, errors
-```
-
-## Usage Pattern
-
-```typescript
-import { useTranslations } from 'next-intl';
-
-const tCommon = useTranslations('common');
-const t = useTranslations('tenants');
-
-<CmxButton>{tCommon('save')}</CmxButton>
-<h1>{t('title')}</h1>
+web-admin/messages/
+  en/
+    common.json
+    orders.json
+    workflow.json
+    reports.json
+  ar/
+    common.json
+    orders.json
+    workflow.json
+    reports.json
 ```
 
 Rules:
 
-- Shared label/action/status → `tCommon('key')`.
-- Feature-specific text → `t('key')`.
-- Shared errors → `useTranslations('errors')`.
-- Domain errors → feature namespace `errors.*`.
+- Keep the physical `en` and `ar` trees aligned.
+- Keep `common` small and curated.
+- Use deeper nesting only when a namespace file becomes too large.
 
-## Translation Pattern
-
-```json
-// en.json
-{ "tenants": { "createSuccess": "Tenant created successfully" } }
-```
-
-```json
-// ar.json
-{ "tenants": { "createSuccess": "تم إنشاء المستأجر بنجاح" } }
-```
-
-## RTL Rules
-
-```tsx
-<div className="text-left rtl:text-right" />
-<div className="ml-4 rtl:ml-0 rtl:mr-4" />
-<ChevronRight className="rtl:rotate-180" />
-```
-
-Rules:
-
-- Rotate only directional icons: arrows, chevrons, next/previous indicators.
-- Do not rotate universal icons: user, settings, calendar, status, warning.
-- Use `rtl:` utilities only where layout direction changes.
-
-## Bilingual DB Display
-
-DB bilingual convention:
-
-```text
-name / name2
-description / description2
-```
-
-Display by locale:
+## Translation Usage
 
 ```typescript
-const label = locale === 'ar' ? row.name2 : row.name;
+import { useTranslations } from 'next-intl'
+
+const tCommon = useTranslations('common')
+const tOrders = useTranslations('orders')
 ```
 
-Do not drop either language from API responses unless the contract explicitly allows it.
+## ICU And Placeholder Rules
+
+- Prefer ICU for dynamic counts and structured placeholders.
+- Placeholder names must match across locales.
+
+Example:
+
+```json
+"ordersSelected": "{count, plural, one {# order selected} other {# orders selected}}"
+```
+
+## Error Message Conventions
+
+- Generic errors: `common.errors.*`
+- Feature-specific errors: `<feature>.errors.*`
+- Parameterized strings: `"loadFailed": "Failed to load {resource}"`
 
 ## Validation
 
 ```bash
-cd platform-web
 npm run check:i18n
-```
-
-Run `npm run build` when UI/routing/layout changed.
-
-## Final Response Contract
-
-```text
-- Keys reused or added
-- Files changed
-- RTL impact
-- Validation result
-- Missing Arabic review or follow-up, if any
+cd web-admin && npx eslint . --quiet
+npm run build
 ```

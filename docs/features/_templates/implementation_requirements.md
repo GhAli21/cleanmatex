@@ -42,7 +42,8 @@ author: CleanMateX Team
 ## i18n Keys
 
 - `namespace.key` — Description
-- Search existing keys in `en.json` / `ar.json` before adding
+- Search existing keys under `web-admin/messages/en/**` and `web-admin/messages/ar/**` before adding
+- Keep the locale file tree and leaf-key sets aligned across both locales
 - See [i18n skill](../../../.claude/skills/i18n/SKILL.md)
 
 ## API Routes

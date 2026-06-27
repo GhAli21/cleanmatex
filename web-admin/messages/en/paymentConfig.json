@@ -1,0 +1,279 @@
+{
+  "title": "Payment Setup",
+  "subtitle": "Manage payment methods, card brands, branch overrides, terminals, and cash drawers.",
+  "tabs": {
+    "methods": "Methods",
+    "cardBrands": "Card Brands",
+    "branches": "Branches",
+    "terminals": "Terminals",
+    "cashDrawers": "Cash Drawers",
+    "channels": "Channels"
+  },
+  "common": {
+    "error": "Something went wrong",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "activate": "Activate"
+  },
+  "overview": {
+    "tenantCurrency": "Tenant currency",
+    "enabledMethods": "Enabled methods",
+    "activeTerminals": "Active terminals",
+    "openDrawers": "Open drawers"
+  },
+  "methods": {
+    "enable": "Enable payment method",
+    "configure": "Configure",
+    "saved": "Payment method saved successfully",
+    "deactivated": "Payment method deactivated",
+    "toggleError": "Failed to update payment method status",
+    "code": "Code",
+    "routing": "Routing",
+    "gatewayCode": "Gateway code",
+    "purposesAndRequirements": "Purposes and requirements",
+    "limits": "Limits and fees",
+    "paymentMethod": "Payment method",
+    "selectMethod": "Select a payment method",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Enter a display name",
+    "displayName2": "Display name (Arabic)",
+    "displayName2Placeholder": "Enter the Arabic display name",
+    "paymentNature": "Payment nature",
+    "name": "Name",
+    "enabled": "Enabled",
+    "nature": {
+      "REAL_PAYMENT": "Real payment",
+      "CREDIT_APPLICATION": "Credit application",
+      "AR_ALLOCATION": "AR allocation",
+      "DEFERRED_SETTLEMENT": "Deferred settlement",
+      "INTERNAL_ADJUSTMENT": "Internal adjustment"
+    },
+    "channels": {
+      "label": "Channels",
+      "pos": "POS",
+      "app": "Customer app",
+      "staff": "Staff app",
+      "admin": "Admin app"
+    },
+    "purposes": {
+      "payNow": "Pay now",
+      "payOnCollection": "Pay on collection",
+      "invoicePayment": "Invoice payment",
+      "refund": "Refund"
+    },
+    "sections": {
+      "general": "General",
+      "channels": "Channels and purposes",
+      "behavior": "Behavior",
+      "bvmRouting": "BVM Routing",
+      "limitsAndFees": "Limits and fees"
+    },
+    "settlementTypeCode": "Settlement type override",
+    "creditApplicationType": "Credit application type",
+    "defaultCreationStatus": "Default creation status",
+    "allowStatusOverride": "Allow status override",
+    "isUserIdRequired": "User ID required",
+    "inheritFromPlatform": "Inherit (platform default)",
+    "settlementTypeCodes": {
+      "PAY_IN_ADVANCE": "Pay in advance",
+      "PAY_ON_COLLECTION": "Pay on collection",
+      "PAY_ON_DELIVERY": "Pay on delivery",
+      "CREDIT_INVOICE": "Credit invoice"
+    },
+    "creditApplicationTypes": {
+      "GIFT_CARD": "Gift card",
+      "WALLET": "Wallet",
+      "CUSTOMER_ADVANCE": "Customer advance",
+      "CUSTOMER_CREDIT": "Customer credit",
+      "LOYALTY_CREDIT": "Loyalty credit"
+    },
+    "creationStatuses": {
+      "PENDING": "Pending",
+      "COMPLETED": "Completed"
+    },
+    "description": "Description",
+    "description2": "Description (Arabic)",
+    "displayOrder": "Display order",
+    "supportsPartialPayment": "Supports partial payment",
+    "supportsOverpayment": "Supports overpayment",
+    "supportsChangeReturn": "Supports change return",
+    "requiresReference": "Requires reference",
+    "requiresApproval": "Requires approval",
+    "requiresCashDrawer": "Requires open cash drawer",
+    "requiresTerminal": "Requires terminal",
+    "currencyCode": "Currency code",
+    "currencyLockedHint": "This currency is inherited from tenant settings and cannot be changed here.",
+    "minAmount": "Minimum amount",
+    "maxAmount": "Maximum amount",
+    "feeType": "Fee type",
+    "feeAmount": "Fee amount",
+    "feeRate": "Fee rate",
+    "feeTypes": {
+      "NONE": "No fee",
+      "FIXED": "Fixed amount",
+      "PERCENTAGE": "Percentage"
+    },
+    "empty": {
+      "title": "No payment methods enabled",
+      "description": "Enable a payment method to start accepting payments in this tenant."
+    },
+    "deactivateConfirm": {
+      "title": "Deactivate payment method?",
+      "description": "This payment method will no longer be available for new payments."
+    }
+  },
+  "branches": {
+    "saved": "Branch override saved successfully",
+    "overrideRemoved": "Branch override removed",
+    "noBranches": "No branches are available for payment overrides yet.",
+    "status": "Status",
+    "overridden": "Overridden",
+    "inherited": "Inherited",
+    "fromTenant": "Inherited from tenant",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "addOverride": "Add override",
+    "removeOverride": "Remove override",
+    "selectBranch": "Select branch",
+    "overrideFor": "Override settings for {method}",
+    "enableSection": "Enablement",
+    "isEnabled": "Enabled for this branch",
+    "channelsSection": "Channels",
+    "purposesSection": "Payment purposes",
+    "requirementsSection": "Requirements",
+    "allowedForPayNow": "Allow pay now",
+    "allowedForCollection": "Allow pay on collection",
+    "allowedForInvoice": "Allow invoice payments",
+    "allowedForRefund": "Allow refunds",
+    "purposes": "Purposes",
+    "requirements": "Requirements",
+    "cashDrawerRequired": "Cash drawer required",
+    "terminalRequired": "Terminal required"
+  },
+  "cardBrands": {
+    "saved": "Card brand saved successfully",
+    "activated": "Card brand enabled",
+    "deactivated": "Card brand disabled",
+    "editTitle": "Edit card brand",
+    "code": "Code",
+    "name": "Name",
+    "name2": "Name (Arabic)",
+    "description": "Description",
+    "description2": "Description (Arabic)",
+    "recOrder": "Display order",
+    "enabled": "Enabled",
+    "audit": "Audit",
+    "statusLabel": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "updatedBy": "Updated by",
+    "updatedAt": "Updated at",
+    "noDescription": "No description",
+    "empty": {
+      "title": "No card brands available",
+      "description": "Card brands will appear here after tenant payment setup is initialized."
+    }
+  },
+  "terminals": {
+    "saved": "Terminal saved successfully",
+    "add": "Add terminal",
+    "edit": "Edit terminal",
+    "code": "Code",
+    "name": "Name",
+    "name2": "Name (Arabic)",
+    "type": "Type",
+    "gateway": "Gateway",
+    "branch": "Branch",
+    "deviceDetails": "Device details",
+    "enabled": "Enabled",
+    "serialNo": "Serial number",
+    "merchantId": "Merchant ID",
+    "externalId": "External ID",
+    "unassignedBranch": "Unassigned",
+    "terminalType": {
+      "POS_CARD_TERMINAL": "POS card terminal",
+      "CASH_DRAWER": "Cash drawer",
+      "ONLINE_GATEWAY": "Online gateway",
+      "BANK_DEVICE": "Bank device",
+      "OTHER": "Other"
+    },
+    "empty": {
+      "title": "No terminals configured yet"
+    },
+    "deleteConfirm": {
+      "title": "Deactivate terminal?",
+      "description": "The terminal will be disabled and hidden from active payment operations."
+    }
+  },
+  "cashDrawers": {
+    "saved": "Cash drawer saved successfully",
+    "deactivated": "Cash drawer deactivated",
+    "add": "Add cash drawer",
+    "edit": "Edit cash drawer",
+    "code": "Code",
+    "name": "Name",
+    "name2": "Name (Arabic)",
+    "drawerType": "Drawer type",
+    "drawerTypeLabel": {
+      "COUNTER": "Counter",
+      "SAFE": "Safe",
+      "DRIVER_BAG": "Driver bag",
+      "TEMPORARY": "Temporary"
+    },
+    "currency": "Currency",
+    "selectCurrency": "Select currency",
+    "currencyLockedHint": "This currency comes from the tenant profile and is locked for drawers.",
+    "branch": "Branch",
+    "requirements": "Requirements",
+    "assignedTerminal": "Assigned terminal",
+    "unassignedTerminal": "No terminal assigned",
+    "maxCashLimit": "Maximum cash limit",
+    "requiresSession": "Requires session",
+    "openingFloatRequired": "Opening float required",
+    "sessionStatus": "Session status",
+    "noOpenSession": "No open session",
+    "openSince": "Open since {time}",
+    "viewSession": "View session",
+    "sessionOpen": "Session open",
+    "openedAt": "Opened at",
+    "openingFloat": "Opening float",
+    "expectedCash": "Expected cash",
+    "countedCash": "Counted cash",
+    "difference": "Difference",
+    "empty": {
+      "title": "No cash drawers configured yet"
+    },
+    "deactivateConfirm": {
+      "title": "Deactivate cash drawer?",
+      "description": "The cash drawer will be disabled for new cashier sessions."
+    }
+  },
+  "loyalty": {
+    "title": "Loyalty Program",
+    "description": "Configure your loyalty points program",
+    "config": {
+      "title": "Program Settings",
+      "earnRate": "Earn Rate (points per currency unit)",
+      "redeemRate": "Redeem Rate (points per currency unit)",
+      "minRedeemPoints": "Minimum Points to Redeem",
+      "maxRedeemPercent": "Max Redeem % Per Order",
+      "expiryDays": "Points Expiry (days, 0 = no expiry)",
+      "save": "Save Settings",
+      "saved": "Loyalty settings saved"
+    },
+    "tiers": {
+      "title": "Loyalty Tiers",
+      "add": "Add Tier",
+      "name": "Tier Name",
+      "minPoints": "Min Points",
+      "bonusMultiplier": "Bonus Multiplier",
+      "saved": "Tier saved",
+      "deleted": "Tier deleted",
+      "empty": "No tiers configured"
+    }
+  }
+}

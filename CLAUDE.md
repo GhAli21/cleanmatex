@@ -209,6 +209,7 @@ npm run build                      # Build (run after changes)
 - **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` — `npx eslint . --quiet` in web-admin before done. See also `react-effects-patterns.md`, `react-rhf-and-table-lint.md`
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
+- Add/update translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`; keep both locale trees aligned
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
 
@@ -362,4 +363,3 @@ docs/         # All documentation
   2. files changed
   3. validation results
   4. risks / follow-ups
-
