@@ -1500,6 +1500,7 @@ export function PaymentFullView({
     <>
       <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeWithGuard()}>
         <CmxDialogContent
+          data-testid="payment-modal-v4"
           className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-[28px] border border-slate-200/80 p-0 shadow-2xl"
           bodyPadding="none"
         >
@@ -1570,6 +1571,10 @@ export function PaymentFullView({
                             <CmxButton
                               key={methodKey}
                               type="button"
+                              data-testid={`payment-method-${methodKey
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]+/g, '-')
+                                .replace(/^-|-$/g, '')}`}
                               variant="outline"
                               size="lg"
                               onClick={() => handleMethodSelect(option)}
@@ -1675,6 +1680,7 @@ export function PaymentFullView({
                               )}
                               <CmxButton
                                 type="button"
+                                data-testid={`payment-credit-method-${option.payment_method_code.toLowerCase()}`}
                                 variant="outline"
                                 size="lg"
                                 disabled={disabled}
@@ -1722,7 +1728,11 @@ export function PaymentFullView({
                     </CmxCardContent>
                   </CmxCard>
 
-                  <CmxCard ref={legsCardRef} className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                  <CmxCard
+                    ref={legsCardRef}
+                    data-testid="payment-legs-panel"
+                    className="overflow-hidden border-slate-200 bg-white/95 shadow-sm"
+                  >
                     <CmxCardHeader className="border-b border-slate-100 pb-2">
                       <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <CmxCardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -1758,6 +1768,8 @@ export function PaymentFullView({
                           return (
                           <div
                             key={`payment-leg-summary-${index}`}
+                            data-testid={`payment-leg-summary-${index}`}
+                            data-active={activeLegIndex === index ? 'true' : 'false'}
                             className={`flex items-stretch gap-2 rounded-2xl border transition ${
                               activeLegIndex === index
                                 ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white shadow-sm'
@@ -1795,6 +1807,7 @@ export function PaymentFullView({
                               type="button"
                               variant="outline"
                               size="xs"
+                              data-testid={`payment-leg-fill-${index}`}
                               disabled={!canFillLeg}
                               aria-label={t('splitPayment.fillRemaining')}
                               onClick={() => fillLegRemaining(index)}
@@ -1822,6 +1835,7 @@ export function PaymentFullView({
                           type="button"
                           variant="ghost"
                           size="sm"
+                          data-testid="payment-remove-active-leg"
                           onClick={() => removeLegAt(activeLegIndex)}
                           className="w-full justify-center text-red-600"
                         >
@@ -1883,24 +1897,32 @@ export function PaymentFullView({
                   >
                       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
-                          <p className="mt-2 text-xl font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
+                          <div data-testid="payment-balance-remaining">
+                            <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
+                            <p className="mt-2 text-xl font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
+                          </div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <p className="text-xs font-semibold text-slate-500">{t('workspace.change') || 'Change'}</p>
-                          <p className={`mt-2 text-xl font-bold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
-                            {currencyCode} {formatAmount(displayChangeAmount)}
-                          </p>
+                          <div data-testid="payment-balance-change">
+                            <p className="text-xs font-semibold text-slate-500">{t('workspace.change') || 'Change'}</p>
+                            <p className={`mt-2 text-xl font-bold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
+                              {currencyCode} {formatAmount(displayChangeAmount)}
+                            </p>
+                          </div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
-                          <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
+                          <div data-testid="payment-balance-total-due">
+                            <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
+                            <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
+                          </div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <p className="text-xs font-semibold text-slate-500">{t('rightRail.overpaidAmount')}</p>
-                          <p className={`mt-2 text-xl font-bold tabular-nums ${unresolvedOverpaymentAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
-                            {currencyCode} {formatAmount(unresolvedOverpaymentAmount)}
-                          </p>
+                          <div data-testid="payment-balance-overpaid">
+                            <p className="text-xs font-semibold text-slate-500">{t('rightRail.overpaidAmount')}</p>
+                            <p className={`mt-2 text-xl font-bold tabular-nums ${unresolvedOverpaymentAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
+                              {currencyCode} {formatAmount(unresolvedOverpaymentAmount)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                   </PaymentWorkbenchSection>
@@ -1999,6 +2021,7 @@ export function PaymentFullView({
                             type="button"
                             variant="outline"
                             size="sm"
+                            data-testid="payment-cycle-active-leg"
                             onClick={cycleActiveLeg}
                             className="rounded-xl border-slate-200 text-slate-700"
                           >
@@ -2016,6 +2039,7 @@ export function PaymentFullView({
                               <div className="min-w-0 flex-1 px-3">
                                 <CmxMoneyField
                                   ref={amountInputRef}
+                                  data-testid="payment-amount-editor"
                                   draftValue={activeAmountDraft}
                                   value={
                                     activeLeg?.method === PAYMENT_METHODS.CASH
@@ -2075,13 +2099,19 @@ export function PaymentFullView({
                             {activeLeg?.method === PAYMENT_METHODS.CASH ? (
                               <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 sm:grid-cols-3">
                                 <span>
-                                  {t('rightRail.appliedAmount')}: {currencyCode} {formatAmount(activeLeg.amount ?? 0)}
+                                  <span data-testid="payment-active-applied-amount">
+                                    {t('rightRail.appliedAmount')}: {currencyCode} {formatAmount(activeLeg.amount ?? 0)}
+                                  </span>
                                 </span>
                                 <span>
-                                  {t('rightRail.cashTendered')}: {currencyCode} {formatAmount(activeLeg.cashTendered ?? activeLeg.amount ?? 0)}
+                                  <span data-testid="payment-active-cash-tendered">
+                                    {t('rightRail.cashTendered')}: {currencyCode} {formatAmount(activeLeg.cashTendered ?? activeLeg.amount ?? 0)}
+                                  </span>
                                 </span>
                                 <span>
-                                  {t('rightRail.changeReturned')}: {currencyCode} {formatAmount(activeLegChangeReturned)}
+                                  <span data-testid="payment-active-change-returned">
+                                    {t('rightRail.changeReturned')}: {currencyCode} {formatAmount(activeLegChangeReturned)}
+                                  </span>
                                 </span>
                               </div>
                             ) : null}
@@ -2545,6 +2575,7 @@ export function PaymentFullView({
                                     render={({ field }) => (
                                       <CmxInput
                                         ref={amountDiscountInputRef}
+                                        data-testid="payment-discount-amount"
                                         label={t('manualDiscount.amount')}
                                         value={amountDiscountFocused ? amountDiscountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
                                         dir="ltr"
@@ -3593,6 +3624,7 @@ export function PaymentFullView({
                   </CmxButton>
                   <CmxButton
                     type="button"
+                    data-testid="payment-submit-button"
                     loading={loading}
                     disabled={submitBusy}
                     // eslint-disable-next-line react-hooks/refs
@@ -3710,7 +3742,7 @@ export function PaymentFullView({
           if (!nextOpen) setPendingSubmission(null);
         }}
       >
-        <CmxDialogContent className="max-w-lg">
+        <CmxDialogContent data-testid="payment-submit-confirm" className="max-w-lg">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('submitConfirm.title')}</CmxDialogTitle>
           </CmxDialogHeader>
@@ -3782,7 +3814,12 @@ export function PaymentFullView({
             >
               {tCommon('cancel')}
             </CmxButton>
-            <CmxButton type="button" onClick={handleConfirmPaymentSubmit} disabled={!pendingSubmission}>
+            <CmxButton
+              type="button"
+              data-testid="payment-submit-confirm-button"
+              onClick={handleConfirmPaymentSubmit}
+              disabled={!pendingSubmission}
+            >
               {t('submitConfirm.confirm')}
             </CmxButton>
           </CmxDialogFooter>
