@@ -87,6 +87,7 @@ import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-pr
 import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
+import { usePaymentEngine } from '@features/orders/hooks/use-payment-engine';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -512,18 +513,11 @@ export function PaymentModalV4({
   const giftCardAmount  = watch('giftCardAmount');
   const outstandingPolicy = watch('outstandingPolicy');
 
-  // Gift-card + promo state lives in useGiftCardAndPromo (hook call below, once
-  // `setValue` and `pinInputRef` are in scope).
-
   // Discount draft state
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
 
-  // Tax + server-totals state lives in usePaymentTotals (hook call below).
-
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
-  // Leg editor state (paymentLegs, activeLegIndex, activeAmountDraft) is owned by usePaymentLegs (hook call below).
-  const [cashOverRemainingNotice, setCashOverRemainingNotice] = useState<string | null>(null);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
@@ -531,12 +525,9 @@ export function PaymentModalV4({
     paymentData: PaymentFormData;
     payload: NewOrderPaymentPayload;
   } | null>(null);
-  // Cash-drawer session state (selected/dialog/toOpen/openingBalance/openingSession/
-  // requestError) is owned by useCashDrawer (hook call below).
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
-  // paymentLegs + the payExtraIntentRef / activeLegDraftSyncKeyRef / allocationBaselineRef
-  // refs are owned by usePaymentLegs (hook call below).
+
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
   const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
@@ -569,125 +560,16 @@ export function PaymentModalV4({
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
   const formatAmount  = (n: number) => n.toFixed(decimalPlaces);
 
-  // Dependency-ordered slices: gift/promo → totals → catalog. Totals reads the
-  // applied promo/gift; catalog's checkout-options query key reads totals'
-  // checkoutEligibilityAmount; walletCreditOption derives from catalog output.
-
-  // Gift-card + promo state, error mapping, and reset/PIN-focus effects (Phase 2B).
-  const {
-    promoCodeValidating,
-    setPromoCodeValidating,
-    promoCodeResult,
-    setPromoCodeResult,
-    appliedPromoCode,
-    setAppliedPromoCode,
-    giftCardValidating,
-    setGiftCardValidating,
-    giftCardResult,
-    setGiftCardResult,
-    giftCardDetails,
-    setGiftCardDetails,
-    appliedGiftCard,
-    setAppliedGiftCard,
-    giftCardPin,
-    setGiftCardPin,
-    pinRequired,
-    setPinRequired,
-    pinVisible,
-    setPinVisible,
-    pinFieldError,
-    setPinFieldError,
-    resolveGiftCardError,
-  } = useGiftCardAndPromo({
-    open,
-    giftCardNumber,
-    setValue,
-    pinInputRef,
-    t,
-    tGiftCardErrors,
-  });
-
-  // Server-driven totals + tax breakdown (Phase 2C). Behavior-frozen.
-  const {
-    serverTotals,
-    totalsLoading,
-    totals,
-    saleTotal,
-    taxProfileEntries,
-    displayTaxBreakdown,
-    profilesTaxAmount,
-    checkoutEligibilityAmount,
-  } = usePaymentTotals({
-    open,
-    items,
-    tenantOrgId,
-    branchId,
-    customerId,
-    isExpress,
-    total,
-    checkoutAmount,
-    percentDiscount,
-    amountDiscount,
-    serviceCategories,
-    appliedPromoCode,
-    appliedGiftCard,
-    decimalPlaces,
-    csrfToken,
-    t,
-  });
-
-  // Read-only payment catalog: card brands, branch terminals, and checkout
-  // settlement options (real methods + customer credits) + the getMethodOption
-  // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
-  const {
-    cardBrands,
-    branchPaymentTerminals,
-    checkoutMethods,
-    customerCreditOptions,
-    checkoutMethodsLoading,
-    realPaymentOptions,
-    creditMethodCodes,
-    getMethodOption,
-    getOptionDisplayName: getCheckoutOptionDisplayName,
-    getMethodHint,
-  } = usePaymentCatalog({
-    open,
-    tenantOrgId,
-    branchId,
-    customerId,
-    checkoutEligibilityAmount,
-    isRetailOnlyOrder,
-    isRTL,
-    t,
-  });
-
-  const walletCreditOption = customerCreditOptions.find(
-    (option) =>
-      option.credit_application_type === 'WALLET' ||
-      option.payment_method_code === 'WALLET'
-  );
-
-  // The active cash-drawers query is owned by useCashDrawer (hook call below).
-
-  const {
-    data: storedValueSummary,
-    isLoading: storedValueLoading,
-    isFetching: storedValueFetching,
-    refetch: refetchStoredValueSummary,
-  } = useQuery<StoredValueSummaryResponse | null>({
-    queryKey: ['customer-stored-value-summary', tenantOrgId, customerId ?? ''],
-    queryFn: async () => {
-      if (!customerId) return null;
-      const res = await fetch(`/api/v1/customers/${customerId}/stored-value`);
-      if (!res.ok) {
-        throw new Error('FAILED_TO_FETCH_STORED_VALUE_SUMMARY');
-      }
-      const json = await res.json();
-      return (json.data ?? null) as StoredValueSummaryResponse | null;
-    },
-    enabled: open && !!customerId,
-    staleTime: 15_000,
-  });
+  // Amount-editor focus helper (view-owned ref/scroll/focus). Threaded into the
+  // engine so leg/credit-note handlers can refocus the amount editor.
+  const focusAmountEditor = useCallback(() => {
+    expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
+    window.setTimeout(() => {
+      amountEditorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      amountInputRef.current?.focus();
+      amountInputRef.current?.select();
+    }, 50);
+  }, [expandSection]);
 
   // Load currency config on open (tax rate + default tax profiles load in usePaymentTotals).
   useEffect(() => {
@@ -699,10 +581,6 @@ export function PaymentModalV4({
       });
     }
   }, [open, tenantOrgId, branchId, userId]);
-
-  // The check-field sync effect + the default-method effect read paymentLegs /
-  // activeLegIndex (now owned by usePaymentLegs); both are registered right after the
-  // usePaymentLegs call below.
 
   // Reset all state when modal opens
   useEffect(() => {
@@ -741,64 +619,188 @@ export function PaymentModalV4({
     }
   }, [open, reset, defaultPaymentMethod, defaultOutstandingPolicy, initialPaymentNotes]);
 
-  const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-
-  const liveWalletBalance = walletCreditOption
-    ? storedValueSummary?.wallet.balance ?? walletCreditOption.available_balance ?? 0
-    : 0;
-  const liveWalletCurrencyCode =
-    storedValueSummary?.wallet.currencyCode ??
-    currencyCode;
-  const walletBalanceLoaded = !!walletCreditOption && !storedValueLoading;
-  const walletHasAvailableBalance = liveWalletBalance > 0.001;
-  const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
-  const liveAdvanceBalance = storedValueSummary?.advance.balance ?? 0;
-
-  // Cash-drawer display/session/preferred-drawer helpers are owned by useCashDrawer.
-
-  const getLegStoredValueCap = useCallback(
-    (leg: PaymentLeg) => {
-      const option = getMethodOption(leg.method, leg.gateway_code);
-      const creditNoteBalance = leg.creditReferenceId
-        ? storedValueSummary?.creditNotes.find((note) => note.id === leg.creditReferenceId)?.remaining_balance
-        : undefined;
-      return getStoredValueCapForLeg(leg.method, {
-        walletBalance: leg.method === 'WALLET' ? liveWalletBalance : undefined,
-        advanceBalance: leg.method === 'ADVANCE' ? liveAdvanceBalance : undefined,
-        creditNoteBalance: leg.method === 'CREDIT_NOTE' ? creditNoteBalance : undefined,
-        loyaltyBalance:
-          leg.method === 'LOYALTY_POINTS' ? option?.available_balance ?? undefined : undefined,
-      });
-    },
-    [getMethodOption, liveAdvanceBalance, liveWalletBalance, storedValueSummary?.creditNotes]
-  );
-
-  const focusAmountEditor = useCallback(() => {
-    expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
-    window.setTimeout(() => {
-      amountEditorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      amountInputRef.current?.focus();
-      amountInputRef.current?.select();
-    }, 50);
-  }, [expandSection]);
-
-  // Payment-leg state, mutators, reconciliation + draft-sync effects, and the
-  // additive addLeg / quickTender seams (Phase 2D). Placed after getMethodOption
-  // (catalog), getLegStoredValueCap + focusAmountEditor (component), and
-  // saleTotal/giftCardSettlementAmount are in scope, and before useMoneyDerivations
-  // (which reads paymentLegs). The component keeps the post-payExtra
-  // `payExtraIntentRef.current = payExtraIntent` bridge below.
-  const legs = usePaymentLegs({
+  // Composition engine (Phase 2G-1): the 7 concern slices + every cross-slice
+  // derivation + the non-DOM handlers + the payExtraIntentRef bridge. Behavior-frozen.
+  const engine = usePaymentEngine({
     open,
-    getMethodOption,
-    getLegStoredValueCap,
-    focusAmountEditor,
-    saleTotal,
-    giftCardSettlementAmount,
+    items,
+    tenantOrgId,
+    branchId,
+    customerId,
+    customerType,
+    isExpress,
+    isRetailOnlyOrder,
+    isB2BCustomer,
+    total,
+    checkoutAmount,
+    userId,
+    serviceCategories,
+    loading,
+    defaultPaymentMethod,
+    defaultOutstandingPolicy,
+    isRTL,
+    csrfToken,
+    setValue,
+    errors,
+    paymentMethod,
+    percentDiscount,
+    amountDiscount,
+    promoCode,
+    giftCardNumber,
+    giftCardAmount,
+    outstandingPolicy,
+    currencyConfig,
+    currencyCode,
     decimalPlaces,
+    formatAmount,
+    focusAmountEditor,
+    pinInputRef,
+    giftCardDetailsRef,
+    giftCardAmountInputRef,
+    creditLimitOverride,
+    isDirtySinceOpen,
     setIsDirtySinceOpen,
+    pendingCreditNoteOption,
+    setPendingCreditNoteOption,
+    setCreditNotePickerOpen,
     t,
+    tGiftCardErrors,
   });
+  const {
+    catalog,
+    giftPromo,
+    totals: totalsSlice,
+    legs,
+    derivations,
+    payExtra,
+    cashDrawer,
+    walletCreditOption,
+    storedValueSummary,
+    storedValueLoading,
+    storedValueFetching,
+    refetchStoredValueSummary,
+    giftCardSettlementAmount,
+    liveWalletBalance,
+    liveWalletCurrencyCode,
+    walletBalanceLoaded,
+    walletHasAvailableBalance,
+    liveWalletBalanceDisplay,
+    liveAdvanceBalance,
+    getLegStoredValueCap,
+    notifyIfLegAmountCapped,
+    cashOverRemainingNotice,
+    canAllocateOverpayment,
+    canDisposeOverpayment,
+    canWalletOverpayment,
+    canAdvanceOverpayment,
+    canCreditOverpayment,
+    canCreditNoteOverpayment,
+    canSaveAdvanceOverpayment,
+    canSaveCreditOverpayment,
+    checkoutExcessLegs,
+    canEnablePayExtra,
+    primaryCashLegRef,
+    payExtraResetFingerprint,
+    allocation,
+    payExtraIntent,
+    setPayExtraIntent,
+    validationPhase,
+    extraReceiptDialogOpen,
+    setExtraReceiptDialogOpen,
+    runValidatePayment,
+    confirmExtraReceiptSelection,
+    unresolvedOverpaymentAmount,
+    extraReceiptDialogExcessAmount,
+    overpaymentNeedsResolution,
+    overpaymentResolutionPayload,
+    overpaymentBlocksSubmit,
+    editableLegEntries,
+    legacyDisplayChangeAmount,
+    displayChangeAmount,
+    netCashRetainedAmount,
+    primaryMethodOption,
+    cashDrawerRequired,
+    effectiveOutstandingPolicy,
+    activeLegRemainingCap,
+    showDeferredExplanation,
+    showGiftCardWorkspace,
+    hasCheckLegWithoutNumber,
+    hasCheckLegWithInvalidDate,
+    creditNoteLegsMissingReference,
+    terminalRequiredLegs,
+    legsMissingRequiredReference,
+    activeLegOption,
+    activeLegChangeReturned,
+    paymentLegsTotal,
+    splitSidebarSettledTotal,
+    invalidImmediateAmount,
+    appliedBadgeCount,
+    validationItems,
+    submitBusy,
+    submitHasBlockingIssues,
+    rightRailState,
+    handleCreditNoteSelect,
+    handleMethodSelect,
+    handleCustomerCreditSelect,
+    handleValidatePromoCode,
+    handleClearPromoCode,
+    handleFetchGiftCardDetails,
+    handleApplyGiftCard,
+    handleClearGiftCard,
+    handleOutstandingPolicyChange,
+    handleKeypadPress,
+    cycleActiveLeg,
+    fillLegRemaining,
+  } = engine;
+
+  // Re-destructure the grouped slices into the modal's local names (JSX unchanged).
+  const {
+    cardBrands,
+    branchPaymentTerminals,
+    checkoutMethods,
+    customerCreditOptions,
+    checkoutMethodsLoading,
+    realPaymentOptions,
+    creditMethodCodes,
+    getMethodOption,
+    getOptionDisplayName: getCheckoutOptionDisplayName,
+    getMethodHint,
+  } = catalog;
+  const {
+    promoCodeValidating,
+    setPromoCodeValidating,
+    promoCodeResult,
+    setPromoCodeResult,
+    appliedPromoCode,
+    setAppliedPromoCode,
+    giftCardValidating,
+    setGiftCardValidating,
+    giftCardResult,
+    setGiftCardResult,
+    giftCardDetails,
+    setGiftCardDetails,
+    appliedGiftCard,
+    setAppliedGiftCard,
+    giftCardPin,
+    setGiftCardPin,
+    pinRequired,
+    setPinRequired,
+    pinVisible,
+    setPinVisible,
+    pinFieldError,
+    setPinFieldError,
+    resolveGiftCardError,
+  } = giftPromo;
+  const {
+    serverTotals,
+    totalsLoading,
+    totals,
+    saleTotal,
+    taxProfileEntries,
+    displayTaxBreakdown,
+    profilesTaxAmount,
+    checkoutEligibilityAmount,
+  } = totalsSlice;
   const {
     paymentLegs,
     setPaymentLegs,
@@ -812,222 +814,6 @@ export function PaymentModalV4({
     upsertSettlementLeg,
     payExtraIntentRef,
   } = legs;
-
-  // Sync the check-* form fields from the active/first check leg. Reads paymentLegs /
-  // activeLegIndex (owned by usePaymentLegs), so it registers after the hook call.
-  useEffect(() => {
-    if (paymentMethod !== PAYMENT_METHODS.CHECK) {
-      setValue('checkNumber', '', { shouldValidate: false, shouldDirty: false });
-      setValue('checkBank', '', { shouldValidate: false, shouldDirty: false });
-      setValue('checkDate', '', { shouldValidate: false, shouldDirty: false });
-      return;
-    }
-
-    const activeCheckLeg =
-      paymentLegs[activeLegIndex]?.method === PAYMENT_METHODS.CHECK
-        ? paymentLegs[activeLegIndex]
-        : paymentLegs.find((leg) => leg.method === PAYMENT_METHODS.CHECK);
-
-    setValue('checkNumber', activeCheckLeg?.checkNumber ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-    setValue('checkBank', activeCheckLeg?.checkBank ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-    setValue('checkDate', activeCheckLeg?.checkDate ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-  }, [activeLegIndex, paymentLegs, paymentMethod, setValue]);
-
-  // Keep the form's default method/policy aligned until the cashier touches the modal.
-  // Reads paymentLegs.length (owned by usePaymentLegs), so it registers after the hook.
-  useEffect(() => {
-    if (!open || isDirtySinceOpen || paymentLegs.length > 0) {
-      return;
-    }
-
-    if (paymentMethod !== defaultPaymentMethod) {
-      setValue('paymentMethod', defaultPaymentMethod, { shouldDirty: false });
-    }
-
-    if (outstandingPolicy !== defaultOutstandingPolicy) {
-      setValue('outstandingPolicy', defaultOutstandingPolicy, { shouldDirty: false });
-    }
-  }, [
-    defaultOutstandingPolicy,
-    defaultPaymentMethod,
-    isDirtySinceOpen,
-    open,
-    outstandingPolicy,
-    paymentLegs.length,
-    paymentMethod,
-    setValue,
-  ]);
-
-  const handleCreditNoteSelect = useCallback(
-    (noteId: string) => {
-      const option = pendingCreditNoteOption;
-      if (!option) return;
-      const note = storedValueSummary?.creditNotes.find((entry) => entry.id === noteId);
-      if (!note) return;
-
-      setCreditNotePickerOpen(false);
-      setPendingCreditNoteOption(null);
-      setIsDirtySinceOpen(true);
-      setPaymentLegs((prev) => {
-        const existingIndex = prev.findIndex(
-          (leg) => leg.method === 'CREDIT_NOTE' && leg.creditReferenceId === noteId
-        );
-        const fallbackIndex = prev.findIndex((leg) => leg.method === 'CREDIT_NOTE');
-        const targetIndex =
-          existingIndex >= 0 ? existingIndex : fallbackIndex >= 0 ? fallbackIndex : prev.length;
-        const amount = getSuggestedStoredValueAmount(
-          note.remaining_balance,
-          prev,
-          saleTotal,
-          giftCardSettlementAmount,
-          decimalPlaces,
-          targetIndex < prev.length ? targetIndex : undefined
-        );
-        const nextLeg: PaymentLeg = {
-          legRef:
-            existingIndex >= 0
-              ? prev[existingIndex].legRef ?? crypto.randomUUID()
-              : fallbackIndex >= 0
-                ? prev[fallbackIndex].legRef ?? crypto.randomUUID()
-                : crypto.randomUUID(),
-          method: 'CREDIT_NOTE',
-          amount,
-          creditReferenceId: noteId,
-        };
-
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...updated[existingIndex], ...nextLeg };
-          setActiveLegIndex(existingIndex);
-          return updated;
-        }
-        if (fallbackIndex >= 0) {
-          const updated = [...prev];
-          updated[fallbackIndex] = { ...updated[fallbackIndex], ...nextLeg };
-          setActiveLegIndex(fallbackIndex);
-          return updated;
-        }
-        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
-          setActiveLegIndex(0);
-          return [{ ...prev[0], ...nextLeg }];
-        }
-        setActiveLegIndex(prev.length);
-        return [...prev, nextLeg];
-      });
-      focusAmountEditor();
-    },
-    [
-      decimalPlaces,
-      focusAmountEditor,
-      giftCardSettlementAmount,
-      pendingCreditNoteOption,
-      saleTotal,
-      storedValueSummary?.creditNotes,
-    ]
-  );
-
-  const handleMethodSelect = useCallback(
-    (option: CheckoutSettlementOption) => {
-      setValue('paymentMethod', toCanonicalLegMethod(option.payment_method_code as PaymentMethodCode), { shouldDirty: true });
-      const existingIndex = paymentLegs.findIndex(
-        (leg) =>
-          leg.method === option.payment_method_code &&
-          (leg.gateway_code ?? '') === (option.gateway_code ?? '')
-      );
-      const suggestedAmount = getSuggestedDefaultLegAmount(
-        paymentLegs,
-        existingIndex >= 0 ? existingIndex : undefined,
-        saleTotal,
-        giftCardSettlementAmount,
-        decimalPlaces
-      );
-      upsertSettlementLeg(option, suggestedAmount);
-    },
-    [decimalPlaces, giftCardSettlementAmount, paymentLegs, setValue, saleTotal, upsertSettlementLeg]
-  );
-
-  const handleCustomerCreditSelect = useCallback(
-    (option: CheckoutSettlementOption) => {
-      if (option.payment_method_code === 'CREDIT_NOTE') {
-        if (storedValueLoading) {
-          cmxMessage.info(t('customerCredits.loadingBalance'));
-          return;
-        }
-        if (!storedValueSummary?.creditNotes.length) {
-          cmxMessage.info(t('customerCredits.creditNotePickerEmpty'));
-          return;
-        }
-        setPendingCreditNoteOption(option);
-        setCreditNotePickerOpen(true);
-        return;
-      }
-      if (option.requires_credit_reference_selection) {
-        cmxMessage.info(t('customerCredits.referenceSelectionHint'));
-        return;
-      }
-      const availableBalance =
-        option.credit_application_type === 'WALLET' ||
-        option.payment_method_code === 'WALLET'
-          ? liveWalletBalance
-          : option.payment_method_code === 'ADVANCE'
-            ? liveAdvanceBalance
-            : option.available_balance ?? 0;
-      const existingIndex = paymentLegs.findIndex(
-        (leg) => leg.method === option.payment_method_code
-      );
-      const suggestedAmount = getSuggestedStoredValueAmount(
-        availableBalance,
-        paymentLegs,
-        saleTotal,
-        giftCardSettlementAmount,
-        decimalPlaces,
-        existingIndex >= 0 ? existingIndex : undefined
-      );
-      upsertSettlementLeg(option, suggestedAmount);
-    },
-    [
-      decimalPlaces,
-      giftCardSettlementAmount,
-      liveAdvanceBalance,
-      liveWalletBalance,
-      paymentLegs,
-      saleTotal,
-      storedValueLoading,
-      storedValueSummary?.creditNotes.length,
-      t,
-      upsertSettlementLeg,
-    ]
-  );
-
-  // The totals-change reconciliation effect is owned by usePaymentLegs (it caps leg
-  // amounts when saleTotal / giftCard change after legs exist).
-
-  const sanitizeAmountDiscountDraft = useCallback(
-    (raw: string): string => {
-      let s = raw.replace(/[^\d.]/g, '');
-      if (s.startsWith('.')) s = `0${s}`;
-      const di = s.indexOf('.');
-      if (di !== -1) {
-        s = s.slice(0, di + 1) + s.slice(di + 1).replace(/\./g, '');
-        const frac = s.slice(di + 1);
-        if (frac.length > decimalPlaces) {
-          s = s.slice(0, di + 1 + decimalPlaces);
-        }
-      }
-      return s;
-    },
-    [decimalPlaces]
-  );
-
   const {
     settlementLegEntries,
     realPaymentEntries,
@@ -1050,210 +836,7 @@ export function PaymentModalV4({
     cashChangeCapacity,
     legacyUnresolvedOverpaymentAmount,
     amountAppliedToOrder,
-  } = useMoneyDerivations({
-    paymentLegs,
-    immediateMethodCodes: IMMEDIATE_METHOD_CODES,
-    creditMethodCodes,
-    getMethodOption,
-    getLegStoredValueCap,
-    saleTotal,
-    giftCardSettlementAmount,
-    decimalPlaces,
-  });
-
-  const notifyIfLegAmountCapped = useCallback(
-    (leg: PaymentLeg, rawAmount: number, cappedAmount: number) => {
-      const option = getMethodOption(leg.method, leg.gateway_code);
-      const policy = resolvePaymentOverpaymentPolicy({
-        paymentMethodCode: leg.method,
-        supportsChangeReturn: option?.supports_change_return,
-        supportsOverpayment: option?.supports_overpayment,
-        requiresCashDrawer: option?.requires_cash_drawer,
-      });
-
-      if (
-        policy.isCash &&
-        !policy.supportsChangeReturn &&
-        wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)
-      ) {
-        setCashOverRemainingNotice(
-          t('splitPayment.validation.cashOverRemainingNotAllowed', {
-            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
-          })
-        );
-        return;
-      }
-
-      setCashOverRemainingNotice(null);
-    },
-    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, t]
-  );
-
-  // Money derivations (remainingBalance, changeAmount, canReturnChangeFromCash,
-  // cashChangeAmount, cashChangeCapacity, legacyUnresolvedOverpaymentAmount,
-  // amountAppliedToOrder) are provided by useMoneyDerivations above.
-
-  const canAllocateOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE
-  );
-  const canDisposeOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.DISPOSE
-  );
-  const canWalletOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_WALLET
-  );
-  const canAdvanceOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_ADVANCE
-  );
-  const canCreditOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT
-  );
-  const canCreditNoteOverpayment = useHasPermissionCode(
-    OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT_NOTE
-  );
-  const canSaveAdvanceOverpayment = canDisposeOverpayment || canAdvanceOverpayment;
-  const canSaveCreditOverpayment =
-    canDisposeOverpayment || canCreditOverpayment || canCreditNoteOverpayment;
-
-  const checkoutExcessLegs = useMemo(
-    () =>
-      settlementLegEntries.map(({ leg }) => {
-        const option = getMethodOption(leg.method, leg.gateway_code);
-        return {
-          paymentMethodCode: leg.method,
-          amount: leg.amount ?? 0,
-          tenderedAmount:
-            leg.method === PAYMENT_METHODS.CASH ? (leg.cashTendered ?? leg.amount) : undefined,
-          supportsChangeReturn: option?.supports_change_return === true,
-        };
-      }),
-    [getMethodOption, settlementLegEntries]
-  );
-
-  const canEnablePayExtra = useMemo(
-    () =>
-      !checkoutMethodsLoading &&
-      checkoutMethods.some(
-        (option) =>
-          option.supports_overpayment === true ||
-          (option.payment_method_code === PAYMENT_METHODS.CASH &&
-            option.supports_change_return === true)
-      ),
-    [checkoutMethods, checkoutMethodsLoading]
-  );
-
-  const primaryCashLegRef = useMemo(() => {
-    const cashEntry = settlementLegEntries.find(({ leg }) => leg.method === PAYMENT_METHODS.CASH);
-    return cashEntry?.leg.legRef ?? null;
-  }, [settlementLegEntries]);
-
-  const payExtraResetFingerprint = useMemo(
-    () =>
-      settlementLegEntries
-        .map(({ leg }) => `${leg.method}:${leg.amount}:${leg.cashTendered ?? ''}`)
-        .join('|'),
-    [settlementLegEntries]
-  );
-
-  const payExtra = usePayExtraCheckout({
-    customerId,
-    branchId,
-    currencyCode,
-    excessAmount: legacyUnresolvedOverpaymentAmount,
-    legacyUnresolvedExcess: legacyUnresolvedOverpaymentAmount,
-    saleTotal,
-    immediateSettlementAmount: totalSettledNowAmount,
-    legs: checkoutExcessLegs,
-    primaryCashLegRef,
-    receiptAmount: totalSettledNowAmount,
-    currentOrderAllocationAmount: amountAppliedToOrder,
-    sourceType: 'ORDER_PAYMENT_MODAL',
-    paymentMethodCode: paymentMethod,
-    moneyEpsilon,
-    confirmedToastMessage: t('extraReceipt.allocation.confirmedToast'),
-    remainingUnallocatedErrorMessage: t('extraReceipt.allocation.remainingUnallocatedError'),
-    resetDeps: [payExtraResetFingerprint, totalSettledNowAmount],
-  });
-
-  const allocation = payExtra;
-  const {
-    payExtraIntent,
-    setPayExtraIntent,
-    validationPhase,
-    extraReceiptDialogOpen,
-    setExtraReceiptDialogOpen,
-    runValidatePayment,
-    confirmExtraReceiptSelection,
-  } = payExtra;
-  payExtraIntentRef.current = payExtraIntent;
-
-  const unresolvedOverpaymentAmount = payExtra.unresolvedExcessAmount;
-  const extraReceiptDialogExcessAmount = payExtra.extraReceiptDialogExcessAmount;
-  const overpaymentNeedsResolution = payExtra.overpaymentNeedsResolution;
-  const overpaymentResolutionPayload = payExtra.overpaymentResolutionPayload;
-  const overpaymentBlocksSubmit = payExtra.overpaymentBlocksSubmit;
-
-  const editableLegEntries = useMemo(() => {
-    const entries = paymentLegs.map((leg, index) => ({ leg, index }));
-    if (payExtraIntent) {
-      return entries;
-    }
-    const nonZero = entries.filter(({ leg }) => (leg.amount ?? 0) > 0);
-    return nonZero.length > 0 ? nonZero : entries;
-  }, [paymentLegs, payExtraIntent]);
-
-  const legacyDisplayChangeAmount = getDisplayChangeAmount(
-    cashChangeAmount,
-    canReturnChangeFromCash,
-    moneyEpsilon
-  );
-  const displayChangeAmount = payExtraIntent
-    ? payExtra.checkoutMetrics.changeResolvedAmount
-    : legacyDisplayChangeAmount;
-
-  useEffect(() => {
-    if (!open) return;
-    payExtra.resetPayExtraState();
-    allocation.setAutoDrawerOpen(false);
-    allocation.setManualDrawerOpen(false);
-  }, [open]);
-
-  const netCashRetainedAmount = payExtraIntent
-    ? Math.max(0, cashTenderedAmount - displayChangeAmount)
-    : getNetCashRetainedAmount(
-        cashTenderedAmount,
-        cashChangeAmount,
-        canReturnChangeFromCash,
-        moneyEpsilon
-      );
-  const primaryMethodOption = getMethodOption(paymentMethod);
-  const cashDrawerRequired = useMemo(() => {
-    const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
-      const option = getMethodOption(leg.method, leg.gateway_code);
-      return !!option?.requires_cash_drawer;
-    });
-
-    if (selectedLegRequiresDrawer) {
-      return true;
-    }
-
-    return paymentLegs.length === 0 && !!primaryMethodOption?.requires_cash_drawer;
-  }, [getMethodOption, paymentLegs.length, primaryMethodOption, settlementLegEntries]);
-
-  // Cash-drawer session state, query, blocking message, and open-session flow
-  // (Phase 2E). Placed after `cashDrawerRequired` (derived from legs/derivations,
-  // threaded in); the DOM refs `cashDrawerCardRef`/`cashDrawerSelectorCardRef` stay in
-  // the view for blocked-submit scroll/focus.
-  const cashDrawer = useCashDrawer({
-    open,
-    tenantOrgId,
-    branchId,
-    userId,
-    isRTL,
-    csrfToken,
-    t,
-    cashDrawerRequired,
-  });
+  } = derivations;
   const {
     cashDrawers,
     cashDrawersLoading,
@@ -1281,299 +864,23 @@ export function PaymentModalV4({
     handleCreateCashDrawerSession,
   } = cashDrawer;
 
-  // Promo handlers
-  const handleValidatePromoCode = async () => {
-    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
-    if (!promoCode?.trim()) return;
-    setPromoCodeValidating(true);
-    setPromoCodeResult(null);
-    try {
-      const result = await validatePromoCodeAction(tenantOrgId, {
-        promo_code: promoCode,
-        order_total: total,
-        customer_id: customerId,
-        service_categories: serviceCategories,
-      });
-      setPromoCodeResult(result);
-      if (result.isValid && result.promoCode && result.discountAmount) {
-        const applied = { code: promoCode, id: result.promoCode.id, discount: result.discountAmount };
-        setAppliedPromoCode(applied);
-        setValue('promoCode', promoCode);
-        setValue('promoCodeId', result.promoCode.id);
-        setValue('promoDiscount', result.discountAmount);
-      }
-    } catch {
-      setPromoCodeResult({ isValid: false, error: t('promoCode.errors.validationFailed') });
-    } finally {
-      setPromoCodeValidating(false);
-    }
-  };
 
-  const handleClearPromoCode = () => {
-    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
-    setValue('promoCode', '');
-    setValue('promoCodeId', '');
-    setValue('promoDiscount', 0);
-    setPromoCodeResult(null);
-    setAppliedPromoCode(null);
-  };
-
-  // Gift card handlers
-  const handleFetchGiftCardDetails = async () => {
-    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
-    if (!giftCardNumber?.trim()) return;
-    if (pinRequired && !giftCardPin.trim()) {
-      setPinFieldError(t('giftCard.pinPendingError'));
-      window.setTimeout(() => {
-        pinInputRef.current?.focus();
-        pinInputRef.current?.select();
-      }, 60);
-      return;
-    }
-
-    setGiftCardValidating(true);
-    setGiftCardResult(null);
-    setGiftCardDetails(null);
-    try {
-      const result = await validateGiftCardAction({
-        gift_card_code: giftCardNumber,
-        ...(giftCardPin.trim() ? { card_pin: giftCardPin.trim() } : {}),
-      });
-
-      if (!result.isValid && result.errorCode === 'INVALID_PIN' && !giftCardPin.trim()) {
-        setPinRequired(true);
-        setPinFieldError(t('giftCard.pinPendingError'));
-        window.setTimeout(() => {
-          pinInputRef.current?.focus();
-          pinInputRef.current?.select();
-        }, 60);
-        return;
-      }
-      if (!result.isValid && result.errorCode === 'INVALID_PIN' && giftCardPin.trim()) {
-        setPinFieldError(resolveGiftCardError(result));
-        return;
-      }
-
-      setGiftCardResult(result);
-      if (result.isValid && result.giftCard && result.availableBalance != null) {
-        setPinRequired(false);
-        const details = {
-          number: result.giftCard.gift_card_code,
-          balance: result.availableBalance,
-          status: result.giftCard.status,
-          expiryDate: result.giftCard.expiry_date,
-          id: result.giftCard.id,
-          searchStr: giftCardNumber,
-        };
-        setGiftCardDetails(details);
-        const defaultAmount = getSuggestedStoredValueAmount(
-          result.availableBalance,
-          paymentLegs,
-          saleTotal,
-          giftCardSettlementAmount,
-          decimalPlaces
-        );
-        setValue('giftCardAmount', defaultAmount);
-        setValue('giftCardId', result.giftCard.id ?? '');
-        window.setTimeout(() => {
-          giftCardDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          giftCardAmountInputRef.current?.focus();
-          giftCardAmountInputRef.current?.select();
-        }, 80);
-      }
-    } catch {
-      setGiftCardResult({ isValid: false, error: t('giftCard.errors.validationFailed') });
-    } finally {
-      setGiftCardValidating(false);
-    }
-  };
-
-  const handleApplyGiftCard = () => {
-    if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
-    const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount = getSuggestedStoredValueAmount(
-      giftCardDetails.balance,
-      paymentLegs,
-      saleTotal,
-      giftCardSettlementAmount,
-      decimalPlaces
-    );
-    if (amountToUse <= 0) { cmxMessage.error(t('giftCard.errors.amountRequired')); return; }
-    if (amountToUse > maxAmount) {
-      cmxMessage.error(t('giftCard.errors.maxAmountExceeded'));
-      setValue('giftCardAmount', maxAmount);
-      return;
-    }
-    setAppliedGiftCard({ number: giftCardDetails.number, amount: amountToUse, balance: giftCardDetails.balance, id: giftCardDetails.id ?? '' });
-    setValue('giftCardNumber', giftCardDetails.number);
-    setValue('giftCardAmount', amountToUse);
-    setValue('giftCardId', giftCardDetails.id ?? '');
-  };
-
-  const handleClearGiftCard = () => {
-    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
-    setValue('giftCardNumber', '');
-    setValue('giftCardAmount', 0);
-    setValue('giftCardId', '');
-    setGiftCardResult(null);
-    setGiftCardDetails(null);
-    setAppliedGiftCard(null);
-    setGiftCardPin('');
-    setPinRequired(false);
-    setPinVisible(false);
-    setPinFieldError(null);
-  };
-
-  // Submit handler
-  const onSubmitForm = (data: PaymentFormData) => {
-    if (totalsLoading) {
-      cmxMessage.info(t('calculating'));
-      return;
-    }
-
-    if (!serverTotals && items.length > 0) {
-      cmxMessage.error(t('errors.invalidAmount'));
-      return;
-    }
-
-    if (pinRequired) {
-      setPinFieldError(t('giftCard.pinPendingError'));
-      pinInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      pinInputRef.current?.focus();
-      return;
-    }
-
-    const submissionData: PaymentFormData = {
-      ...data,
-      giftCardNumber: appliedGiftCard ? appliedGiftCard.number : undefined,
-      giftCardAmount: appliedGiftCard ? appliedGiftCard.amount : undefined,
-      giftCardId: appliedGiftCard ? giftCardDetails?.id : undefined,
-    } as PaymentFormData;
-
-    for (const { leg } of settlementLegEntries) {
-      if (!leg.amount || leg.amount <= 0) {
-        cmxMessage.error(t('splitPayment.validation.amountMustBePositive'));
-        return;
-      }
-      if (leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()) {
-        cmxMessage.error(t('splitPayment.validation.checkNumberRequired'));
-        return;
-      }
-      if (leg.method === PAYMENT_METHODS.CHECK && (leg.amount ?? 0) > 0) {
-        const checkDateIssue = validateCheckDueDate(leg.checkDate);
-        if (checkDateIssue) {
-          cmxMessage.error(t(`splitPayment.${checkDateIssue}`));
-          return;
+  const sanitizeAmountDiscountDraft = useCallback(
+    (raw: string): string => {
+      let s = raw.replace(/[^\d.]/g, '');
+      if (s.startsWith('.')) s = `0${s}`;
+      const di = s.indexOf('.');
+      if (di !== -1) {
+        s = s.slice(0, di + 1) + s.slice(di + 1).replace(/\./g, '');
+        const frac = s.slice(di + 1);
+        if (frac.length > decimalPlaces) {
+          s = s.slice(0, di + 1 + decimalPlaces);
         }
       }
-      if (leg.method === 'CREDIT_NOTE' && !leg.creditReferenceId?.trim()) {
-        cmxMessage.error(t('customerCredits.creditNoteRequired'));
-        return;
-      }
-      const legOption = getMethodOption(leg.method, leg.gateway_code);
-      if (legOption?.requires_terminal && !leg.terminalId?.trim()) {
-        cmxMessage.error(
-          t('splitPayment.validation.terminalRequired', {
-            method: getCheckoutOptionDisplayName(legOption, leg.method),
-          })
-        );
-        return;
-      }
-    }
-
-    if (settlementLegEntries.length > 1) {
-      const legSum = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
-      if (Math.abs(legSum - settledNowAmount) > 0.001) {
-        cmxMessage.error(t('splitPayment.validation.sumMismatch'));
-        return;
-      }
-    }
-
-    if (overpaymentBlocksSubmit) {
-      cmxMessage.error(
-        payExtraIntent && validationPhase !== 'ready'
-          ? t('validatePayment.requiredBeforeSubmit')
-          : t('rightRail.requiredAction.overpaymentMessage', {
-              amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
-            })
-      );
-      return;
-    }
-
-    if (walletLegExceedsLiveBalance) {
-      cmxMessage.error(
-        t('customerCredits.walletBalanceExceeded', {
-          amount: liveWalletBalanceDisplay,
-        })
-      );
-      return;
-    }
-
-    if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
-      cmxMessage.error(
-        t('customerCredits.storedValueBalanceExceeded', {
-          method: getCheckoutOptionDisplayName(
-            getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
-            storedValueLegExceedance.leg.method
-          ),
-          amount: `${currencyCode} ${formatAmount(storedValueLegExceedance.cap)}`,
-        })
-      );
-      return;
-    }
-
-    if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
-      cmxMessage.error(t('remainder.validation.required'));
-      return;
-    }
-
-    if (cashDrawerRequired && cashDrawerBlockingMessage) {
-      scrollAndFocusTarget(cashDrawerCardRef.current);
-      cmxMessage.error(cashDrawerBlockingMessage);
-      return;
-    }
-
-    // Pure payload assembly (Phase 2F — use-payment-submit). The validation guards
-    // above, the safeParse below, and the confirm/onSubmit flow stay in the view.
-    const payload = buildPaymentPayload({
-      settledNowAmount,
-      totals,
-      saleTotal,
-      currencyConfig,
-      effectiveOutstandingPolicy,
-      creditLimitOverride,
-      cashDrawerRequired,
-      selectedCashDrawerSessionId,
-      taxProfileEntries,
-      settlementLegEntries,
-      paymentLegs,
-      overpaymentResolutionPayload,
-      extraReceiptMode: allocation.extraReceiptMode,
-      unresolvedOverpaymentAmount,
-      allocationPreviewId: allocation.allocationPreviewId,
-    });
-    const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
-    if (!parsed.success) {
-      const first = parsed.error.issues[0];
-      cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
-      return;
-    }
-    if (invalidImmediateAmount) {
-      cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
-      return;
-    }
-    setPendingSubmission({
-      paymentData: submissionData,
-      payload: {
-      ...parsed.data,
-      creditLimitOverride: creditLimitOverride || undefined,
-      ...(cashDrawerRequired && selectedCashDrawerSessionId && {
-        cashDrawerSessionId: selectedCashDrawerSessionId,
-      }),
-      },
-    });
-    setSubmitConfirmOpen(true);
-  };
+      return s;
+    },
+    [decimalPlaces]
+  );
 
   // Payment icon helper
   const getPaymentIcon = (id: string) => {
@@ -1670,94 +977,9 @@ export function PaymentModalV4({
     }
   };
 
-  const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
-  // activeLeg is provided by usePaymentLegs (destructured above).
-  const activeLegRemainingCap = useMemo(() => {
-    if (!activeLeg) return 0;
-    return getRemainingToAllocate(
-      saleTotal,
-      paymentLegs,
-      giftCardSettlementAmount,
-      activeLegIndex,
-      decimalPlaces
-    );
-  }, [activeLeg, activeLegIndex, decimalPlaces, giftCardSettlementAmount, paymentLegs, saleTotal]);
-  const effectiveOutstandingPolicy = deriveOutstandingPolicy(
-    totalSettledNowAmount,
-    saleTotal,
-    (outstandingPolicy as OutstandingPolicy | undefined) ?? defaultOutstandingPolicy
-  );
-  const showDeferredExplanation =
-    settlementLegEntries.length === 0 &&
-    (paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE);
-  const showGiftCardWorkspace =
-    !NEW_ORDER_PROMO_GIFT_DISABLED &&
-    !appliedGiftCard &&
-    (pinRequired || !!giftCardDetails);
-  const hasCheckLegWithoutNumber = paymentLegs.some(
-    (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
-  );
-  const hasCheckLegWithInvalidDate = useMemo(
-    () =>
-      paymentLegs.some((leg) => {
-        if (leg.method !== PAYMENT_METHODS.CHECK || !(leg.amount ?? 0)) return false;
-        return !!validateCheckDueDate(leg.checkDate);
-      }),
-    [paymentLegs]
-  );
-  const creditNoteLegsMissingReference = useMemo(
-    () =>
-      settlementLegEntries.filter(
-        ({ leg }) => leg.method === 'CREDIT_NOTE' && !leg.creditReferenceId?.trim()
-      ),
-    [settlementLegEntries]
-  );
-  const terminalRequiredLegs = useMemo(
-    () =>
-      settlementLegEntries.filter(({ leg }) => {
-        const option = getMethodOption(leg.method, leg.gateway_code);
-        return option?.requires_terminal && !leg.terminalId?.trim();
-      }),
-    [getMethodOption, settlementLegEntries]
-  );
-  const legsMissingRequiredReference = useMemo(
-    () =>
-      paymentLegs.filter((leg) => {
-        const option = getMethodOption(leg.method, leg.gateway_code);
-        return (
-          (leg.amount ?? 0) > moneyEpsilon &&
-          option?.requires_reference === true &&
-          !legHasRequiredPaymentReference(leg, true)
-        );
-      }),
-    [getMethodOption, moneyEpsilon, paymentLegs]
-  );
-  const activeLegOption = activeLeg
-    ? getMethodOption(activeLeg.method, activeLeg.gateway_code)
-    : undefined;
-  const activeLegChangeReturned = useMemo(() => {
-    if (!activeLeg || activeLeg.method !== PAYMENT_METHODS.CASH) return 0;
-    if (payExtraIntent) {
-      return displayChangeAmount;
-    }
-    return deriveChangeReturnedAmount(
-      activeLeg.cashTendered ?? activeLeg.amount ?? 0,
-      activeLeg.amount ?? 0,
-      activeLegOption?.supports_change_return === true,
-      moneyEpsilon
-    );
-  }, [
-    activeLeg,
-    activeLegOption?.supports_change_return,
-    displayChangeAmount,
-    moneyEpsilon,
-    payExtraIntent,
-  ]);
   const summaryMethodLabel = activeLeg
     ? getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)
     : getPaymentLabel(paymentMethod || defaultPaymentMethod);
-  const paymentLegsTotal = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
-  const splitSidebarSettledTotal = paymentLegsTotal + giftCardSettlementAmount;
   const allocationStatusLabel =
     unresolvedOverpaymentAmount > moneyEpsilon
       ? t('splitPayment.over')
@@ -1766,67 +988,7 @@ export function PaymentModalV4({
         : t('splitPayment.allocated');
   const customerHeaderName = customerDisplayName?.trim() || t('customerCard.walkInCustomer');
   const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
-  const invalidImmediateAmount =
-    paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
-    paymentMethod !== PAYMENT_METHODS.INVOICE &&
-    totalSettledNowAmount <= 0;
-  const cycleActiveLeg = useCallback(() => {
-    if (editableLegEntries.length <= 1) return;
-    setActiveLegIndex((prev) => {
-      const currentPosition = editableLegEntries.findIndex((entry) => entry.index === prev);
-      const nextPosition = currentPosition >= 0
-        ? (currentPosition + 1) % editableLegEntries.length
-        : 0;
-      return editableLegEntries[nextPosition]?.index ?? prev;
-    });
-    focusAmountEditor();
-  }, [editableLegEntries, focusAmountEditor]);
 
-  const fillLegRemaining = useCallback(
-    (legIndex: number) => {
-      const targetLeg = paymentLegs[legIndex];
-      if (!targetLeg) return;
-
-      const fillAmount = getSuggestedDefaultLegAmount(
-        paymentLegs,
-        legIndex,
-        saleTotal,
-        giftCardSettlementAmount,
-        decimalPlaces
-      );
-      const cappedAmount = capPaymentLegAmount(
-        fillAmount,
-        paymentLegs,
-        legIndex,
-        saleTotal,
-        giftCardSettlementAmount,
-        decimalPlaces,
-        getLegStoredValueCap(targetLeg)
-      );
-
-      if (cappedAmount <= moneyEpsilon) {
-        cmxMessage.info(t('splitPayment.noRemainingToFill'));
-        return;
-      }
-
-      setIsDirtySinceOpen(true);
-      setActiveLegIndex(legIndex);
-      updateLeg(legIndex, 'amount', cappedAmount);
-      setActiveAmountDraft(formatDecimalDraft(cappedAmount, decimalPlaces));
-      focusAmountEditor();
-    },
-    [
-      decimalPlaces,
-      focusAmountEditor,
-      getLegStoredValueCap,
-      giftCardSettlementAmount,
-      moneyEpsilon,
-      paymentLegs,
-      saleTotal,
-      t,
-      updateLeg,
-    ]
-  );
 
   const scrollAndFocusTarget = useCallback(
     (
@@ -1845,314 +1007,6 @@ export function PaymentModalV4({
       }, 90);
     },
     []
-  );
-
-  const validationItems = useMemo(() => derivePaymentValidationItems({
-    t,
-    currencyCode,
-    formatAmount,
-    getMethodOption,
-    getOptionDisplayName: getCheckoutOptionDisplayName,
-    promoCodeValidating,
-    giftCardValidating,
-    overpaymentBlocksSubmit,
-    payExtraIntent,
-    validationPhase,
-    unresolvedOverpaymentAmount,
-    checkNumberError: errors.checkNumber?.message != null ? String(errors.checkNumber.message) : undefined,
-    amountDiscountError: errors.amountDiscount?.message != null ? String(errors.amountDiscount.message) : undefined,
-    percentDiscountError: errors.percentDiscount?.message != null ? String(errors.percentDiscount.message) : undefined,
-    pinRequired,
-    hasCheckLegWithoutNumber,
-    hasCheckLegWithInvalidDate,
-    paymentLegs,
-    legsMissingRequiredReference,
-    walletLegExceedsLiveBalance,
-    liveWalletBalanceDisplay,
-    storedValueLegExceedsBalance,
-    storedValueLegExceedance,
-    creditNoteLegsMissingReference,
-    terminalRequiredLegs,
-    cashDrawerBlockingMessage,
-    invalidImmediateAmount,
-    remainingBalance,
-    effectiveOutstandingPolicy,
-    creditLimitWouldExceed: Boolean(serverTotals?.creditLimit?.wouldExceed),
-    creditLimitMode: serverTotals?.creditLimit?.mode,
-    creditLimitOverride,
-  }), [
-    creditLimitOverride,
-    errors.amountDiscount?.message,
-    effectiveOutstandingPolicy,
-    errors.checkNumber?.message,
-    errors.percentDiscount?.message,
-    giftCardValidating,
-    hasCheckLegWithoutNumber,
-    hasCheckLegWithInvalidDate,
-    creditNoteLegsMissingReference,
-    terminalRequiredLegs,
-    storedValueLegExceedance,
-    storedValueLegExceedsBalance,
-    legsMissingRequiredReference,
-    getMethodOption,
-    getCheckoutOptionDisplayName,
-    liveWalletBalanceDisplay,
-    cashDrawerBlockingMessage,
-    changeAmount,
-    currencyCode,
-    paymentMethod,
-    formatAmount,
-    pinRequired,
-    promoCodeValidating,
-    overpaymentBlocksSubmit,
-    payExtraIntent,
-    validationPhase,
-    unresolvedOverpaymentAmount,
-    remainingBalance,
-    serverTotals?.creditLimit?.mode,
-    serverTotals?.creditLimit?.wouldExceed,
-    totalSettledNowAmount,
-    t,
-    walletLegExceedsLiveBalance,
-  ]);
-
-  const submitBusy = loading || totalsLoading || (items.length > 0 && !serverTotals);
-  const submitHasBlockingIssues = validationItems.length > 0;
-  const rightRailState: PaymentModalRightRailState = useMemo(
-    () =>
-      derivePaymentModalRightRailState({
-        hasBlockingIssues: submitHasBlockingIssues,
-        changeAmount: payExtraIntent ? displayChangeAmount : changeAmount,
-        remainingBalance,
-        effectiveOutstandingPolicy,
-        epsilon: moneyEpsilon,
-        cashDrawerBlockingMessage,
-        creditLimitWouldExceed: !!serverTotals?.creditLimit?.wouldExceed,
-        creditLimitMode: serverTotals?.creditLimit?.mode,
-        creditLimitOverride,
-        pinRequired,
-        hasCheckLegWithoutNumber,
-        walletLegExceedsLiveBalance,
-        invalidImmediateAmount,
-        canReturnChangeFromCash,
-        currencyExRate: currencyConfig?.currencyExRate,
-        roundingAmount: 0,
-      }),
-    [
-      submitHasBlockingIssues,
-      payExtraIntent,
-      displayChangeAmount,
-      changeAmount,
-      remainingBalance,
-      effectiveOutstandingPolicy,
-      moneyEpsilon,
-      cashDrawerBlockingMessage,
-      serverTotals?.creditLimit?.wouldExceed,
-      serverTotals?.creditLimit?.mode,
-      creditLimitOverride,
-      pinRequired,
-      hasCheckLegWithoutNumber,
-      walletLegExceedsLiveBalance,
-      invalidImmediateAmount,
-      canReturnChangeFromCash,
-      currencyConfig?.currencyExRate,
-    ]
-  );
-  const balanceStatusLabel = useMemo(
-    () => deriveBalanceStatusLabel(rightRailState.balanceStatus, t),
-    [rightRailState.balanceStatus, t]
-  );
-  const requiredActionCopy = useMemo(
-    () =>
-      deriveRequiredActionCopy({
-        t,
-        requiredAction: rightRailState.requiredAction,
-        overpaymentBlocksSubmit,
-        payExtraIntent,
-        validationPhase,
-        currencyCode,
-        formatAmount,
-        unresolvedOverpaymentAmount,
-        cashDrawerBlockingMessage,
-        creditLimitMode: serverTotals?.creditLimit?.mode,
-        liveWalletBalanceDisplay,
-        firstValidationItem: validationItems[0],
-      }),
-    [
-      overpaymentBlocksSubmit,
-      payExtraIntent,
-      validationPhase,
-      rightRailState.requiredAction,
-      t,
-      currencyCode,
-      formatAmount,
-      unresolvedOverpaymentAmount,
-      cashDrawerBlockingMessage,
-      serverTotals?.creditLimit?.mode,
-      liveWalletBalanceDisplay,
-      validationItems,
-    ]
-  );
-  const realPaymentSummaryItems = useMemo<RightRailSummaryItem[]>(
-    () =>
-      realPaymentEntries.map(({ leg }) => ({
-        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
-        value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
-      })),
-    [realPaymentEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
-  );
-  const storedValueSummaryItems = useMemo<RightRailSummaryItem[]>(
-    () =>
-      customerCreditEntries.map(({ leg }) => ({
-        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
-        value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
-      })),
-    [customerCreditEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
-  );
-  const orderValueBreakdownModel = useMemo<OrderValueBreakdownModel>(
-    () => {
-      const grossRows: OrderValueBreakdownRow[] = [
-        {
-          id: 'subtotal',
-          label: t('summary.subtotal'),
-          value: `${currencyCode} ${formatAmount(totals.subtotal)}`,
-        },
-      ];
-      const discountRows: OrderValueBreakdownRow[] = [];
-      const taxRows: OrderValueBreakdownRow[] = [];
-
-      if ((totals.autoRuleDiscount ?? 0) > moneyEpsilon) {
-        discountRows.push({
-          id: 'rules-discount',
-          label: t('summary.rulesDiscount'),
-          value: `-${currencyCode} ${formatAmount(totals.autoRuleDiscount ?? 0)}`,
-          negative: true,
-        });
-      }
-
-      if (totals.manualDiscount > moneyEpsilon) {
-        discountRows.push({
-          id: 'manual-discount',
-          label: t('summary.manualDiscount'),
-          value: `-${currencyCode} ${formatAmount(totals.manualDiscount)}`,
-          negative: true,
-        });
-      }
-
-      if (totals.promoDiscount > moneyEpsilon) {
-        discountRows.push({
-          id: 'promo-discount',
-          label: t('summary.promoDiscount'),
-          value: `-${currencyCode} ${formatAmount(totals.promoDiscount)}`,
-          negative: true,
-        });
-      }
-
-      displayTaxBreakdown.forEach((entry, index) => {
-        if (entry.taxAmount <= moneyEpsilon) {
-          return;
-        }
-        const entryLabel = isRTL ? (entry.label2 || entry.label) : entry.label;
-        taxRows.push({
-          id: `tax-${entry.profileId ?? entry.taxType}-${index}`,
-          label: `${entryLabel} (${entry.rate.toFixed(2)}%)`,
-          value: `${currencyCode} ${formatAmount(entry.taxAmount)}`,
-        });
-      });
-
-      if (displayTaxBreakdown.length > 1 && profilesTaxAmount > moneyEpsilon) {
-        taxRows.push({
-          id: 'tax-total',
-          label: t('tax.totalTax'),
-          value: `${currencyCode} ${formatAmount(profilesTaxAmount)}`,
-        });
-      }
-
-      const totalRow: OrderValueBreakdownRow = {
-        id: 'order-total',
-        label: t('rightRail.orderTotal'),
-        value: `${currencyCode} ${formatAmount(saleTotal)}`,
-      };
-
-      return {
-        grossRows,
-        discountRows,
-        taxRows,
-        totalRow,
-      };
-    },
-    [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
-  );
-  const warningMessages = useMemo(
-    () => deriveRightRailWarningMessages(rightRailState.warningCodes, t),
-    [rightRailState.warningCodes, t]
-  );
-
-  const hasDiscountBreakdown =
-    totals.manualDiscount > moneyEpsilon ||
-    totals.promoDiscount > moneyEpsilon ||
-    (totals.autoRuleDiscount ?? 0) > moneyEpsilon ||
-    !!appliedPromoCode ||
-    !!appliedGiftCard;
-  const visiblePaymentSectionIds = useMemo(
-    () =>
-      new Set(
-        deriveVisiblePaymentSections({
-          hasActivePaymentLeg: !!activeLeg,
-          showDeferredExplanation,
-          discountsEnabled: true,
-          hasDiscountsApplied: hasDiscountBreakdown,
-          hasPromoActivity: !!promoCode?.trim() || !!appliedPromoCode,
-          hasGiftCardActivity:
-            !!giftCardNumber?.trim() ||
-            !!giftCardDetails ||
-            !!appliedGiftCard ||
-            pinRequired,
-          hasCashLeg: cashDrawerRequired,
-          showBalancePolicy: rightRailState.showBalancePolicy,
-        }).map((section) => section.id)
-      ),
-    [
-      activeLeg,
-      appliedGiftCard,
-      appliedPromoCode,
-      cashDrawerRequired,
-      giftCardDetails,
-      giftCardNumber,
-      hasDiscountBreakdown,
-      pinRequired,
-      promoCode,
-      rightRailState.showBalancePolicy,
-      showDeferredExplanation,
-    ]
-  );
-  const inspectorTabIds = useMemo(
-    () =>
-      derivePaymentInspectorTabs({
-        hasTaxBreakdown: displayTaxBreakdown.length > 0,
-        hasDiscountBreakdown,
-        hasWarnings: warningMessages.length > 0,
-        isB2B: customerType === 'b2b' && !!customerId,
-      }),
-    [
-      customerId,
-      customerType,
-      displayTaxBreakdown.length,
-      hasDiscountBreakdown,
-      warningMessages.length,
-    ]
-  );
-  const showAmountEditorSection = visiblePaymentSectionIds.has(
-    PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR
-  );
-  const showDiscountsCreditsSection = visiblePaymentSectionIds.has(
-    PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS
-  );
-  const showCashDrawerWorkbenchSection = visiblePaymentSectionIds.has(
-    PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER
-  );
-  const showBalancePolicySection = visiblePaymentSectionIds.has(
-    PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
   );
 
   const scrollToWorkbenchSection = useCallback(
@@ -2390,6 +1244,203 @@ export function PaymentModalV4({
     cmxMessage.error(t('messages.validationErrors'));
   }, [focusFirstBlockingIssue, paymentMethod, t, validationItems]);
 
+  const balanceStatusLabel = useMemo(
+    () => deriveBalanceStatusLabel(rightRailState.balanceStatus, t),
+    [rightRailState.balanceStatus, t]
+  );
+  const requiredActionCopy = useMemo(
+    () =>
+      deriveRequiredActionCopy({
+        t,
+        requiredAction: rightRailState.requiredAction,
+        overpaymentBlocksSubmit,
+        payExtraIntent,
+        validationPhase,
+        currencyCode,
+        formatAmount,
+        unresolvedOverpaymentAmount,
+        cashDrawerBlockingMessage,
+        creditLimitMode: serverTotals?.creditLimit?.mode,
+        liveWalletBalanceDisplay,
+        firstValidationItem: validationItems[0],
+      }),
+    [
+      overpaymentBlocksSubmit,
+      payExtraIntent,
+      validationPhase,
+      rightRailState.requiredAction,
+      t,
+      currencyCode,
+      formatAmount,
+      unresolvedOverpaymentAmount,
+      cashDrawerBlockingMessage,
+      serverTotals?.creditLimit?.mode,
+      liveWalletBalanceDisplay,
+      validationItems,
+    ]
+  );
+  const realPaymentSummaryItems = useMemo<RightRailSummaryItem[]>(
+    () =>
+      realPaymentEntries.map(({ leg }) => ({
+        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
+      })),
+    [realPaymentEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
+  );
+  const storedValueSummaryItems = useMemo<RightRailSummaryItem[]>(
+    () =>
+      customerCreditEntries.map(({ leg }) => ({
+        label: getCheckoutOptionDisplayName(getMethodOption(leg.method, leg.gateway_code), leg.method),
+        value: `${currencyCode} ${formatAmount(leg.amount || 0)}`,
+      })),
+    [customerCreditEntries, getCheckoutOptionDisplayName, getMethodOption, currencyCode, formatAmount]
+  );
+  const orderValueBreakdownModel = useMemo<OrderValueBreakdownModel>(
+    () => {
+      const grossRows: OrderValueBreakdownRow[] = [
+        {
+          id: 'subtotal',
+          label: t('summary.subtotal'),
+          value: `${currencyCode} ${formatAmount(totals.subtotal)}`,
+        },
+      ];
+      const discountRows: OrderValueBreakdownRow[] = [];
+      const taxRows: OrderValueBreakdownRow[] = [];
+
+      if ((totals.autoRuleDiscount ?? 0) > moneyEpsilon) {
+        discountRows.push({
+          id: 'rules-discount',
+          label: t('summary.rulesDiscount'),
+          value: `-${currencyCode} ${formatAmount(totals.autoRuleDiscount ?? 0)}`,
+          negative: true,
+        });
+      }
+
+      if (totals.manualDiscount > moneyEpsilon) {
+        discountRows.push({
+          id: 'manual-discount',
+          label: t('summary.manualDiscount'),
+          value: `-${currencyCode} ${formatAmount(totals.manualDiscount)}`,
+          negative: true,
+        });
+      }
+
+      if (totals.promoDiscount > moneyEpsilon) {
+        discountRows.push({
+          id: 'promo-discount',
+          label: t('summary.promoDiscount'),
+          value: `-${currencyCode} ${formatAmount(totals.promoDiscount)}`,
+          negative: true,
+        });
+      }
+
+      displayTaxBreakdown.forEach((entry, index) => {
+        if (entry.taxAmount <= moneyEpsilon) {
+          return;
+        }
+        const entryLabel = isRTL ? (entry.label2 || entry.label) : entry.label;
+        taxRows.push({
+          id: `tax-${entry.profileId ?? entry.taxType}-${index}`,
+          label: `${entryLabel} (${entry.rate.toFixed(2)}%)`,
+          value: `${currencyCode} ${formatAmount(entry.taxAmount)}`,
+        });
+      });
+
+      if (displayTaxBreakdown.length > 1 && profilesTaxAmount > moneyEpsilon) {
+        taxRows.push({
+          id: 'tax-total',
+          label: t('tax.totalTax'),
+          value: `${currencyCode} ${formatAmount(profilesTaxAmount)}`,
+        });
+      }
+
+      const totalRow: OrderValueBreakdownRow = {
+        id: 'order-total',
+        label: t('rightRail.orderTotal'),
+        value: `${currencyCode} ${formatAmount(saleTotal)}`,
+      };
+
+      return {
+        grossRows,
+        discountRows,
+        taxRows,
+        totalRow,
+      };
+    },
+    [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
+  );
+  const warningMessages = useMemo(
+    () => deriveRightRailWarningMessages(rightRailState.warningCodes, t),
+    [rightRailState.warningCodes, t]
+  );
+
+  const hasDiscountBreakdown =
+    totals.manualDiscount > moneyEpsilon ||
+    totals.promoDiscount > moneyEpsilon ||
+    (totals.autoRuleDiscount ?? 0) > moneyEpsilon ||
+    !!appliedPromoCode ||
+    !!appliedGiftCard;
+  const visiblePaymentSectionIds = useMemo(
+    () =>
+      new Set(
+        deriveVisiblePaymentSections({
+          hasActivePaymentLeg: !!activeLeg,
+          showDeferredExplanation,
+          discountsEnabled: true,
+          hasDiscountsApplied: hasDiscountBreakdown,
+          hasPromoActivity: !!promoCode?.trim() || !!appliedPromoCode,
+          hasGiftCardActivity:
+            !!giftCardNumber?.trim() ||
+            !!giftCardDetails ||
+            !!appliedGiftCard ||
+            pinRequired,
+          hasCashLeg: cashDrawerRequired,
+          showBalancePolicy: rightRailState.showBalancePolicy,
+        }).map((section) => section.id)
+      ),
+    [
+      activeLeg,
+      appliedGiftCard,
+      appliedPromoCode,
+      cashDrawerRequired,
+      giftCardDetails,
+      giftCardNumber,
+      hasDiscountBreakdown,
+      pinRequired,
+      promoCode,
+      rightRailState.showBalancePolicy,
+      showDeferredExplanation,
+    ]
+  );
+  const inspectorTabIds = useMemo(
+    () =>
+      derivePaymentInspectorTabs({
+        hasTaxBreakdown: displayTaxBreakdown.length > 0,
+        hasDiscountBreakdown,
+        hasWarnings: warningMessages.length > 0,
+        isB2B: customerType === 'b2b' && !!customerId,
+      }),
+    [
+      customerId,
+      customerType,
+      displayTaxBreakdown.length,
+      hasDiscountBreakdown,
+      warningMessages.length,
+    ]
+  );
+  const showAmountEditorSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR
+  );
+  const showDiscountsCreditsSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS
+  );
+  const showCashDrawerWorkbenchSection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER
+  );
+  const showBalancePolicySection = visiblePaymentSectionIds.has(
+    PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
+  );
+
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
     if (remainingBalance > epsilon) {
@@ -2408,71 +1459,155 @@ export function PaymentModalV4({
     });
   }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, settledNowAmount]);
 
-  const handleOutstandingPolicyChange = useCallback((policy: OutstandingPolicy) => {
-    setIsDirtySinceOpen(true);
-    setValue('outstandingPolicy', policy, { shouldDirty: true });
+  const onSubmitForm = (data: PaymentFormData) => {
+    if (totalsLoading) {
+      cmxMessage.info(t('calculating'));
+      return;
+    }
 
-    if (paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE) {
-      setValue(
-        'paymentMethod',
-        policy === 'CREDIT_INVOICE' ? PAYMENT_METHODS.INVOICE : PAYMENT_METHODS.PAY_ON_COLLECTION,
-        { shouldDirty: true }
+    if (!serverTotals && items.length > 0) {
+      cmxMessage.error(t('errors.invalidAmount'));
+      return;
+    }
+
+    if (pinRequired) {
+      setPinFieldError(t('giftCard.pinPendingError'));
+      pinInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      pinInputRef.current?.focus();
+      return;
+    }
+
+    const submissionData: PaymentFormData = {
+      ...data,
+      giftCardNumber: appliedGiftCard ? appliedGiftCard.number : undefined,
+      giftCardAmount: appliedGiftCard ? appliedGiftCard.amount : undefined,
+      giftCardId: appliedGiftCard ? giftCardDetails?.id : undefined,
+    } as PaymentFormData;
+
+    for (const { leg } of settlementLegEntries) {
+      if (!leg.amount || leg.amount <= 0) {
+        cmxMessage.error(t('splitPayment.validation.amountMustBePositive'));
+        return;
+      }
+      if (leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()) {
+        cmxMessage.error(t('splitPayment.validation.checkNumberRequired'));
+        return;
+      }
+      if (leg.method === PAYMENT_METHODS.CHECK && (leg.amount ?? 0) > 0) {
+        const checkDateIssue = validateCheckDueDate(leg.checkDate);
+        if (checkDateIssue) {
+          cmxMessage.error(t(`splitPayment.${checkDateIssue}`));
+          return;
+        }
+      }
+      if (leg.method === 'CREDIT_NOTE' && !leg.creditReferenceId?.trim()) {
+        cmxMessage.error(t('customerCredits.creditNoteRequired'));
+        return;
+      }
+      const legOption = getMethodOption(leg.method, leg.gateway_code);
+      if (legOption?.requires_terminal && !leg.terminalId?.trim()) {
+        cmxMessage.error(
+          t('splitPayment.validation.terminalRequired', {
+            method: getCheckoutOptionDisplayName(legOption, leg.method),
+          })
+        );
+        return;
+      }
+    }
+
+    if (settlementLegEntries.length > 1) {
+      const legSum = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
+      if (Math.abs(legSum - settledNowAmount) > 0.001) {
+        cmxMessage.error(t('splitPayment.validation.sumMismatch'));
+        return;
+      }
+    }
+
+    if (overpaymentBlocksSubmit) {
+      cmxMessage.error(
+        payExtraIntent && validationPhase !== 'ready'
+          ? t('validatePayment.requiredBeforeSubmit')
+          : t('rightRail.requiredAction.overpaymentMessage', {
+              amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
+            })
       );
+      return;
     }
-  }, [paymentMethod, setValue]);
 
-  // The active-leg amount-editor draft-sync effect is owned by usePaymentLegs.
+    if (walletLegExceedsLiveBalance) {
+      cmxMessage.error(
+        t('customerCredits.walletBalanceExceeded', {
+          amount: liveWalletBalanceDisplay,
+        })
+      );
+      return;
+    }
 
-  const handleKeypadPress = useCallback((key: PaymentKeypadKey) => {
-    if (!activeLeg) return;
-    const nextDraft = applyKeypadInput(
-      activeAmountDraft,
-      key,
-      decimalPlaces
-    );
-    const nextAmount = parseDecimalDraft(nextDraft);
-    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
-    const policy = resolvePaymentOverpaymentPolicy({
-      paymentMethodCode: activeLeg.method,
-      supportsChangeReturn: option?.supports_change_return,
-      supportsOverpayment: option?.supports_overpayment,
-      requiresCashDrawer: option?.requires_cash_drawer,
-    });
-    const cappedAmount = deriveLegAppliedAmount({
-      rawAmount: nextAmount,
-      paymentLegs,
-      legIndex: activeLegIndex,
+    if (storedValueLegExceedsBalance && storedValueLegExceedance && !walletLegExceedsLiveBalance) {
+      cmxMessage.error(
+        t('customerCredits.storedValueBalanceExceeded', {
+          method: getCheckoutOptionDisplayName(
+            getMethodOption(storedValueLegExceedance.leg.method, storedValueLegExceedance.leg.gateway_code),
+            storedValueLegExceedance.leg.method
+          ),
+          amount: `${currencyCode} ${formatAmount(storedValueLegExceedance.cap)}`,
+        })
+      );
+      return;
+    }
+
+    if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
+      cmxMessage.error(t('remainder.validation.required'));
+      return;
+    }
+
+    if (cashDrawerRequired && cashDrawerBlockingMessage) {
+      scrollAndFocusTarget(cashDrawerCardRef.current);
+      cmxMessage.error(cashDrawerBlockingMessage);
+      return;
+    }
+
+    // Pure payload assembly (Phase 2F — use-payment-submit). The validation guards
+    // above, the safeParse below, and the confirm/onSubmit flow stay in the view.
+    const payload = buildPaymentPayload({
+      settledNowAmount,
+      totals,
       saleTotal,
-      giftCardAmount: giftCardSettlementAmount,
-      decimalPlaces,
-      walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-      supportsOverpayment:
-        payExtraIntent && policy.isCash && policy.supportsChangeReturn
-          ? true
-          : !policy.isCash && policy.supportsOverpayment,
+      currencyConfig,
+      effectiveOutstandingPolicy,
+      creditLimitOverride,
+      cashDrawerRequired,
+      selectedCashDrawerSessionId,
+      taxProfileEntries,
+      settlementLegEntries,
+      paymentLegs,
+      overpaymentResolutionPayload,
+      extraReceiptMode: allocation.extraReceiptMode,
+      unresolvedOverpaymentAmount,
+      allocationPreviewId: allocation.allocationPreviewId,
     });
-    setActiveAmountDraft(
-      nextAmount > cappedAmount && !(policy.isCash && policy.supportsChangeReturn)
-        ? formatDecimalDraft(cappedAmount, decimalPlaces)
-        : nextDraft
-    );
-    if (activeLeg) {
-      notifyIfLegAmountCapped(activeLeg, nextAmount, cappedAmount);
+    const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
+      return;
     }
-    updateLeg(activeLegIndex, 'amount', nextAmount);
-  }, [
-    activeAmountDraft,
-    activeLeg,
-    activeLegIndex,
-    decimalPlaces,
-    getLegStoredValueCap,
-    getMethodOption,
-    giftCardSettlementAmount,
-    notifyIfLegAmountCapped,
-    paymentLegs,
-    saleTotal,
-    updateLeg,
-  ]);
+    if (invalidImmediateAmount) {
+      cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
+      return;
+    }
+    setPendingSubmission({
+      paymentData: submissionData,
+      payload: {
+      ...parsed.data,
+      creditLimitOverride: creditLimitOverride || undefined,
+      ...(cashDrawerRequired && selectedCashDrawerSessionId && {
+        cashDrawerSessionId: selectedCashDrawerSessionId,
+      }),
+      },
+    });
+    setSubmitConfirmOpen(true);
+  };
 
   const closeWithGuard = useCallback(() => {
     if (!isDirtySinceOpen) {
