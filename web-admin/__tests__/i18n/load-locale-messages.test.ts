@@ -91,4 +91,18 @@ describe('loadLocaleMessages', () => {
       common: { loading: 'Loading' },
     })
   })
+
+  it('finds locale catalogs when the process runs from the repo root above web-admin', async () => {
+    await fs.mkdir(path.join(tempRoot, 'web-admin', 'messages', 'en'), { recursive: true })
+    await fs.writeFile(
+      path.join(tempRoot, 'web-admin', 'messages', 'en', 'common.json'),
+      JSON.stringify({ dashboard: 'Dashboard' }, null, 2)
+    )
+
+    process.chdir(tempRoot)
+
+    await expect(loadLocaleMessages('en')).resolves.toEqual({
+      common: { dashboard: 'Dashboard' },
+    })
+  })
 })

@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
   },
 
   outputFileTracingIncludes: {
+    '/*': ['./messages/**/*.json', './messages/*.json'],
     '/api/dev/platform-inventories/route': ['./data/platform/platform-info-inventory.json'],
   },
 
