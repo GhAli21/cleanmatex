@@ -10,6 +10,11 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-r
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxSelect } from '../primitives/cmx-select'
 
+interface CmxPaginationLabels {
+  rowsPerPage?: string
+  noItems?: string
+}
+
 interface CmxPaginationProps {
   currentPage: number
   totalPages: number
@@ -25,6 +30,8 @@ interface CmxPaginationProps {
    * (page buttons are omitted). Useful for data tables that always show a footer.
    */
   showWhenSinglePage?: boolean
+  labels?: CmxPaginationLabels
+  disabled?: boolean
 }
 
 export function CmxPagination({
@@ -38,7 +45,11 @@ export function CmxPagination({
   showPageSizeSelector = true,
   showInfo = true,
   showWhenSinglePage = false,
+  labels,
+  disabled = false,
 }: CmxPaginationProps) {
+  const rowsPerPageLabel = labels?.rowsPerPage ?? 'Rows per page:'
+  const noItemsLabel = labels?.noItems ?? 'No items'
   const startItem = (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalItems)
 
@@ -48,7 +59,7 @@ export function CmxPagination({
         {showPageSizeSelector && (
           <div className="flex items-center gap-2 text-sm">
             <span className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-              Rows per page:
+              {rowsPerPageLabel}
             </span>
             <CmxSelect
               fullWidth={false}
@@ -60,6 +71,7 @@ export function CmxPagination({
               }))}
               value={String(pageSize)}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              disabled={disabled}
             />
           </div>
         )}
@@ -70,7 +82,7 @@ export function CmxPagination({
                 {startItem}-{endItem} of {totalItems}
               </>
             ) : (
-              'No items'
+              noItemsLabel
             )}
           </div>
         )}
@@ -112,7 +124,7 @@ export function CmxPagination({
       {showPageSizeSelector && (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-            Rows per page:
+            {rowsPerPageLabel}
           </span>
           <CmxSelect
             fullWidth={false}
@@ -124,6 +136,7 @@ export function CmxPagination({
             }))}
             value={String(pageSize)}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            disabled={disabled}
           />
         </div>
       )}
@@ -147,7 +160,7 @@ export function CmxPagination({
           variant="ghost"
           size="sm"
           onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
+          disabled={disabled || currentPage === 1}
           className="h-8 w-8 p-0"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -157,7 +170,7 @@ export function CmxPagination({
           variant="ghost"
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
+          disabled={disabled || currentPage === 1}
           className="h-8 w-8 p-0"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -175,6 +188,7 @@ export function CmxPagination({
                   variant={page === currentPage ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => onPageChange(page as number)}
+                  disabled={disabled}
                   className="h-8 w-8 p-0"
                 >
                   {page}
@@ -188,7 +202,7 @@ export function CmxPagination({
           variant="ghost"
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          disabled={disabled || currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
           <ChevronRight className="h-4 w-4" />
@@ -198,7 +212,7 @@ export function CmxPagination({
           variant="ghost"
           size="sm"
           onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
+          disabled={disabled || currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
           <ChevronsRight className="h-4 w-4" />

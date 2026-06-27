@@ -1,6 +1,6 @@
 {
   "paymentData": {
-    "paymentMethod": "CASH",
+    "paymentMethod": "CARD",
     "checkNumber": "",
     "checkBank": "",
     "checkDate": "",
@@ -16,18 +16,18 @@
     "poNumber": ""
   },
   "payload": {
-    "amountToCharge": 1.926,
+    "amountToCharge": 30,
     "totals": {
-      "subtotal": 1.8,
+      "subtotal": 1,
       "manualDiscount": 0,
       "promoDiscount": 0,
-      "afterDiscounts": 1.8,
+      "afterDiscounts": 1,
       "taxRate": 0,
-      "taxAmount": 0.036,
+      "taxAmount": 0.02,
       "vatTaxPercent": 5,
-      "vatValue": 0.09,
+      "vatValue": 0.05,
       "giftCardApplied": 0,
-      "saleTotal": 1.926
+      "saleTotal": 1.07
     },
     "outstandingPolicy": "NONE",
     "currencyCode": "OMR",
@@ -40,10 +40,28 @@
     "paymentLegs": [
       {
         "method": "CASH",
-        "amount": 1.926,
-        "cashTendered": 1.926,
-        "legRef": "2e02aecb-41ba-4c9f-8cb5-1a74214c49f4"
+        "amount": 10,
+        "cashTendered": 10,
+        "legRef": "6c15609e-f18a-457f-a384-2273c2d84ac2"
+      },
+      {
+        "method": "CARD",
+        "amount": 20,
+        "card_brand_code": "VISA",
+        "card_last4": "1212",
+        "auth_code": "t12121",
+        "legRef": "b0e7aaaf-0124-4015-b36d-f750732129be"
       }
-    ]
+    ],
+    "overpaymentResolution": {
+      "excessAmount": 28.93,
+      "lines": [
+        {
+          "resolutionCode": "AUTO_ALLOCATE_TO_CUSTOMER_BALANCES",
+          "amount": 28.93,
+          "allocationPreviewId": "70c94764-ac0b-4c86-a913-23119d4a7d42"
+        }
+      ]
+    }
   }
 }

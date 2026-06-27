@@ -5,8 +5,8 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNewOrderDispatch } from '../ui/context/new-order-context';
 import type { ServiceCategory, Product } from '../model/new-order-types';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
@@ -18,6 +18,8 @@ interface ProductsPageResult {
   total: number;
   totalPages: number;
 }
+
+const EMPTY_PRODUCTS: Product[] = [];
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -46,21 +48,25 @@ async function fetchCategories(): Promise<ServiceCategory[]> {
 }
 
 /**
- * Fetch one page of products for a category (search + pagination).
+ * Fetch one page of products (search + pagination; category optional for global search).
  */
 async function fetchProductsPage(
-  category: string,
   page: number,
-  search?: string
+  pageSize: number,
+  search?: string,
+  category?: string
 ): Promise<ProductsPageResult> {
   const params = new URLSearchParams({
-    category,
     status: 'active',
-    limit: String(ORDER_DEFAULTS.LIMITS.PRODUCTS_PER_CATEGORY),
+    limit: String(pageSize),
     page: String(page),
     sortBy: 'name',
     sortOrder: 'asc',
   });
+
+  if (category) {
+    params.set('category', category);
+  }
 
   const trimmedSearch = search?.trim();
   if (trimmedSearch) {
@@ -113,59 +119,103 @@ export function useCategories() {
 }
 
 /**
- * Hook to fetch products for selected category (search + load more).
+ * Hook to fetch products for selected category (search, pagination, optional global search).
  * @param category
  */
 export function useProducts(category: string | null) {
   const dispatch = useNewOrderDispatch();
-  const [searchByCategory, setSearchByCategory] = useState<Record<string, string>>({});
+  const [productSearch, setProductSearchState] = useState('');
+  const [searchAllCategories, setSearchAllCategoriesState] = useState(false);
+  const [pageSize, setPageSizeState] = useState(ORDER_DEFAULTS.LIMITS.PRODUCTS_PER_CATEGORY);
+  const [pagesByFilter, setPagesByFilter] = useState<Record<string, number>>({});
 
-  const productSearch = category ? (searchByCategory[category] ?? '') : '';
   const debouncedSearch = useDebouncedValue(
     productSearch,
     ORDER_DEFAULTS.DEBOUNCE_MS.SEARCH
   );
 
-  const setProductSearch = useCallback(
-    (value: string) => {
-      if (!category) {
-        return;
-      }
-      setSearchByCategory((prev) => ({ ...prev, [category]: value }));
+  const isGlobalSearch = searchAllCategories && debouncedSearch.trim().length > 0;
+  const browseCategory = isGlobalSearch ? undefined : category ?? undefined;
+
+  const filterKey = [
+    browseCategory ?? '__all__',
+    debouncedSearch,
+    searchAllCategories,
+    pageSize,
+  ].join('|');
+
+  const currentPage = pagesByFilter[filterKey] ?? 1;
+
+  const setCurrentPage = useCallback(
+    (page: number) => {
+      setPagesByFilter((prev) => ({ ...prev, [filterKey]: page }));
     },
-    [category]
+    [filterKey]
   );
 
-  const query = useInfiniteQuery({
-    queryKey: ['products', category, debouncedSearch],
-    queryFn: ({ pageParam }) =>
-      fetchProductsPage(category!, pageParam, debouncedSearch),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) =>
-      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+  const setProductSearch = useCallback((value: string) => {
+    setProductSearchState(value);
+  }, []);
+
+  const setSearchAllCategories = useCallback((value: boolean) => {
+    setSearchAllCategoriesState(value);
+  }, []);
+
+  const setPageSize = useCallback((size: number) => {
+    setPageSizeState(size);
+  }, []);
+
+  const query = useQuery({
+    queryKey: [
+      'products',
+      browseCategory ?? '__all__',
+      debouncedSearch,
+      searchAllCategories,
+      currentPage,
+      pageSize,
+    ],
+    queryFn: async () => {
+      let pageToFetch = currentPage;
+      let result = await fetchProductsPage(
+        pageToFetch,
+        pageSize,
+        debouncedSearch,
+        browseCategory
+      );
+      if (pageToFetch > result.totalPages && result.totalPages > 0) {
+        pageToFetch = result.totalPages;
+        result = await fetchProductsPage(
+          pageToFetch,
+          pageSize,
+          debouncedSearch,
+          browseCategory
+        );
+      }
+      return result;
+    },
     enabled: !!category,
     retry: ORDER_DEFAULTS.RETRY.COUNT,
     retryDelay: (attemptIndex) => ORDER_DEFAULTS.RETRY.DELAYS[attemptIndex] || 2000,
     staleTime: ORDER_DEFAULTS.CACHE.PRODUCTS_STALE_TIME,
+    placeholderData: keepPreviousData,
   });
 
-  const flattenedProducts = useMemo(
-    () => query.data?.pages.flatMap((page) => page.products) ?? [],
-    [query.data?.pages]
-  );
-  const productsTotal = query.data?.pages[0]?.total ?? 0;
+  const products = query.data?.products ?? EMPTY_PRODUCTS;
+  const productsTotal = query.data?.total ?? 0;
+  const totalPages = query.data?.totalPages ?? 0;
+  const resolvedCurrentPage = query.data?.page ?? currentPage;
   const isSearchPending = productSearch !== debouncedSearch;
 
   useEffect(() => {
-    dispatch({ type: 'SET_PRODUCTS', payload: flattenedProducts });
-  }, [dispatch, flattenedProducts]);
+    dispatch({ type: 'SET_PRODUCTS', payload: products });
+  }, [dispatch, products]);
 
   useEffect(() => {
     dispatch({
       type: 'SET_PRODUCTS_LOADING',
-      payload: query.isLoading || (query.isFetching && !query.isFetchingNextPage),
+      payload: query.isLoading && !query.data,
     });
-  }, [dispatch, query.isLoading, query.isFetching, query.isFetchingNextPage]);
+  }, [dispatch, query.isLoading, query.data]);
 
   useEffect(() => {
     if (!category) {
@@ -175,11 +225,22 @@ export function useProducts(category: string | null) {
   }, [dispatch, category]);
 
   return {
-    ...query,
     productSearch,
     setProductSearch,
+    searchAllCategories,
+    setSearchAllCategories,
+    isGlobalSearch,
+    products,
     productsTotal,
-    loadedCount: flattenedProducts.length,
+    totalPages,
+    currentPage: resolvedCurrentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    isFetching: query.isFetching,
     isSearchPending,
+    isError: query.isError,
+    error: query.error,
+    isInitialLoading: query.isLoading && !query.data,
   };
 }

@@ -33,9 +33,12 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/products',
         requirement: {
-          permissions: ['catalog:read'],
+          permissions: ['products:read'],
           requireAllPermissions: true,
         },
+        notes: [
+          'Runtime also accepts catalog:read via requireAnyPermission; products:read is the DB-backed code.',
+        ],
       },
       {
         label: 'Export products',

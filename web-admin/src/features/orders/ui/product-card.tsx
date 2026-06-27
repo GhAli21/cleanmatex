@@ -32,6 +32,7 @@ interface ProductCardProps {
   price: number;
   express: boolean;
   currencyCode?: string;
+  categoryLabel?: string;
   onAdd: () => void;
   onIncrement: () => void;
   onDecrement: () => void;
@@ -55,6 +56,7 @@ export function ProductCard({
   price,
   express,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
+  categoryLabel,
   onAdd,
   onIncrement,
   onDecrement,
@@ -107,6 +109,13 @@ export function ProductCard({
           <i className="mdi mdi-hanger text-3xl text-gray-400" />
         )}
       </div>
+
+      {/* Category badge (global search) */}
+      {categoryLabel ? (
+        <p className={`text-[10px] font-medium uppercase tracking-wide text-gray-500 mb-0.5 line-clamp-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {categoryLabel}
+        </p>
+      ) : null}
 
       {/* Product Name */}
       <h3 className={`font-medium text-xs mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>

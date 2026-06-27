@@ -365,11 +365,7 @@ export function NewOrderModals() {
         <ActivePaymentModal
           open={state.state.modals.payment}
           onClose={() => state.closeModal('payment')}
-          onSubmit={(paymentData, payload) => {
-            // Jh TEMP — Phase 0 fixture capture; remove before commit
-            console.log('PAYMENT_FIXTURE\n' + JSON.stringify({ paymentData, payload }, null, 2));
-            handlePaymentSubmit(paymentData, payload);
-          }}
+          onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
           checkoutAmount={totals.subtotal + totals.servicePrefCharge + totals.packingPrefCharge}
           items={paymentItems}

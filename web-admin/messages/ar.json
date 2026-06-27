@@ -78,6 +78,7 @@
     "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}",
     "copied": "تم النسخ",
     "pieces": "قطع",
+    "rowsPerPage": "صفوف لكل صفحة",
     "currency": "العملة",
     "auditCard": {
       "title": "معلومات التدقيق",
@@ -4968,8 +4969,10 @@
       "noProductsHint": "لا توجد منتجات في هذه الفئة. جرب اختيار فئة أخرى أعلاه.",
       "searchProductsLabel": "بحث المنتجات بالاسم",
       "searchProductsPlaceholder": "الاسم بالإنجليزية أو العربية…",
-      "showingProductsCount": "عرض {loaded} من {total}",
-      "loadMoreProducts": "تحميل المزيد من المنتجات",
+      "searchAllCategories": "البحث في جميع الفئات",
+      "searchAllCategoriesHelp": "عند البحث، يشمل المنتجات من كل فئة خدمة",
+      "searchingAllCategories": "البحث في جميع الفئات",
+      "noGlobalSearchResultsHint": "لم يتم العثور على منتجات في جميع الفئات. جرّب اسماً آخر أو أوقف \"البحث في جميع الفئات\".",
       "noSearchResults": "لا توجد منتجات مطابقة",
       "noSearchResultsHint": "جرّب كلمة بحث أخرى أو امسح البحث لتصفح جميع العناصر.",
       "clearSearch": "مسح البحث",
@@ -5208,6 +5211,7 @@
       "failedToCalculateReadyBy": "فشل حساب تاريخ الجاهزية. يرجى المحاولة مرة أخرى.",
       "failedToLoadCategories": "فشل تحميل الفئات. يرجى تحديث الصفحة.",
       "failedToLoadProducts": "فشل تحميل المنتجات. يرجى محاولة اختيار فئة مختلفة.",
+      "productsForbidden": "ليس لديك صلاحية عرض المنتجات. تواصل مع المسؤول.",
       "failedToLoadData": "فشل تحميل البيانات. يرجى تحديث الصفحة."
     },
     "success": {

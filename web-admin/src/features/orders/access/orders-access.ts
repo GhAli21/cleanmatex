@@ -174,7 +174,13 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'List products',
         method: 'GET',
         path: '/api/v1/products',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        requirement: {
+          permissions: ['products:read'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'New Order grid: searchScope=name; optional global search omits category param; page/limit from client pagination.',
+        ],
       },
       {
         label: 'Preview auto receipt allocation',

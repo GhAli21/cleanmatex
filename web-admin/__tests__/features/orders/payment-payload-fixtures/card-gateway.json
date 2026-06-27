@@ -1,4 +1,3 @@
-PAYMENT_FIXTURE
 {
   "paymentData": {
     "paymentMethod": "CARD",

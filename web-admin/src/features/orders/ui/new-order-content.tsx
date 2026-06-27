@@ -197,6 +197,30 @@ export function NewOrderContent() {
 
     void categoriesQuery;
 
+    const getCategoryLabel = useCallback(
+        (code: string | null): string | undefined => {
+            if (!code) return undefined;
+            const cat = state.state.categories.find((c) => c.service_category_code === code);
+            if (cat) {
+                return getBilingual(cat.ctg_name, cat.ctg_name2) || code;
+            }
+            return code;
+        },
+        [state.state.categories, getBilingual]
+    );
+
+    useEffect(() => {
+        if (!productsQuery.isError || !productsQuery.error) return;
+        const message = productsQuery.error instanceof Error ? productsQuery.error.message : String(productsQuery.error);
+        if (message.includes('403')) {
+            cmxMessage.error(t('errors.productsForbidden'));
+        } else if (message.includes('504') || message.toLowerCase().includes('timeout')) {
+            cmxMessage.error(t('errors.timeoutError'));
+        } else {
+            cmxMessage.error(t('errors.failedToLoadProducts'));
+        }
+    }, [productsQuery.isError, productsQuery.error, t]);
+
     useEffect(() => {
         const { categories, selectedCategory } = state.state;
         const firstCode = categories[0]?.service_category_code;
@@ -702,7 +726,7 @@ export function NewOrderContent() {
                     <div className={`flex-1 min-h-0 overflow-y-auto transition-opacity duration-200 ease-out ${!isDesktop && state.state.items.length > 0 ? 'pb-28' : ''}`}>
                         {activeTab === 'select' && (
                             <div className="p-4 sm:p-6 pt-2">
-                                {state.state.productsLoading ? (
+                                {productsQuery.isInitialLoading ? (
                                     <ProductGridSkeleton />
                                 ) : (
                                     <ProductGrid
@@ -713,12 +737,17 @@ export function NewOrderContent() {
                                         productSearch={productsQuery.productSearch}
                                         onProductSearchChange={productsQuery.setProductSearch}
                                         isSearchPending={productsQuery.isSearchPending}
+                                        searchAllCategories={productsQuery.searchAllCategories}
+                                        onSearchAllCategoriesChange={productsQuery.setSearchAllCategories}
+                                        isGlobalSearch={productsQuery.isGlobalSearch}
                                         productsTotal={productsQuery.productsTotal}
-                                        hasMoreProducts={productsQuery.hasNextPage ?? false}
-                                        isLoadingMore={productsQuery.isFetchingNextPage}
-                                        onLoadMore={() => {
-                                            void productsQuery.fetchNextPage();
-                                        }}
+                                        totalPages={productsQuery.totalPages}
+                                        currentPage={productsQuery.currentPage}
+                                        pageSize={productsQuery.pageSize}
+                                        onPageChange={productsQuery.setCurrentPage}
+                                        onPageSizeChange={productsQuery.setPageSize}
+                                        isFetching={productsQuery.isFetching}
+                                        getCategoryLabel={getCategoryLabel}
                                         onAddItem={handleAddItem}
                                         onRemoveItem={handleRemoveItem}
                                         onQuantityChange={handleQuantityChange}
