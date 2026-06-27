@@ -88,9 +88,10 @@ import { derivePaymentValidationItems } from '@features/orders/hooks/payment-val
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
+  deriveBalanceStatusLabel,
+  deriveRequiredActionCopy,
+  deriveRightRailWarningMessages,
   RIGHT_RAIL_BALANCE_STATUS,
-  RIGHT_RAIL_REQUIRED_ACTION,
-  RIGHT_RAIL_WARNING,
   type PaymentModalRightRailState,
 } from './payment-modal-v4.right-rail';
 import {
@@ -2722,99 +2723,41 @@ export function PaymentModalV4({
       currencyConfig?.currencyExRate,
     ]
   );
-  const balanceStatusLabel = useMemo(() => {
-    switch (rightRailState.balanceStatus) {
-      case RIGHT_RAIL_BALANCE_STATUS.BLOCKED:
-        return t('rightRail.statuses.blocked');
-      case RIGHT_RAIL_BALANCE_STATUS.OVERPAID:
-        return t('rightRail.statuses.overpaid');
-      case RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED:
-        return t('rightRail.statuses.fullySettled');
-      case RIGHT_RAIL_BALANCE_STATUS.PAY_ON_COLLECTION:
-        return t('rightRail.statuses.payOnCollection');
-      case RIGHT_RAIL_BALANCE_STATUS.INVOICE_OUTSTANDING:
-        return t('rightRail.statuses.invoiceOutstanding');
-      default:
-        return t('rightRail.statuses.paymentRequired');
-    }
-  }, [rightRailState.balanceStatus, t]);
-  const requiredActionCopy = useMemo(() => {
-    if (overpaymentBlocksSubmit && payExtraIntent && validationPhase !== 'ready') {
-      return {
-        title: t('validatePayment.button'),
-        message: t('validatePayment.requiredBeforeSubmit'),
-      };
-    }
-
-    switch (rightRailState.requiredAction) {
-      case RIGHT_RAIL_REQUIRED_ACTION.OVERPAYMENT:
-        return {
-          title: t('rightRail.requiredAction.overpaymentTitle'),
-          message: t('rightRail.requiredAction.overpaymentMessage', {
-            amount: `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`,
-          }),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.CASH_DRAWER:
-        return {
-          title: t('rightRail.requiredAction.cashDrawerTitle'),
-          message: cashDrawerBlockingMessage ?? t('rightRail.requiredAction.cashDrawerFallback'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT:
-        return {
-          title: t('rightRail.requiredAction.creditLimitTitle'),
-          message: serverTotals?.creditLimit?.mode === 'warn'
-            ? t('rightRail.requiredAction.creditLimitWarn')
-            : t('rightRail.requiredAction.creditLimitBlock'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.GIFT_CARD_PIN:
-        return {
-          title: t('rightRail.requiredAction.giftCardPinTitle'),
-          message: t('giftCard.pinPendingError'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.CHECK_DETAILS:
-        return {
-          title: t('rightRail.requiredAction.checkTitle'),
-          message: t('splitPayment.validation.checkNumberRequired'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.STORED_VALUE:
-        return {
-          title: t('rightRail.requiredAction.storedValueTitle'),
-          message: t('customerCredits.walletBalanceExceeded', {
-            amount: liveWalletBalanceDisplay,
-          }),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.PAYMENT_AMOUNT:
-        return {
-          title: t('rightRail.requiredAction.paymentAmountTitle'),
-          message: t('partialPayment.validation.amountMustBePositive'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.REMAINING_POLICY:
-        return {
-          title: t('rightRail.requiredAction.remainingPolicyTitle'),
-          message: t('remainder.validation.required'),
-        };
-      case RIGHT_RAIL_REQUIRED_ACTION.GENERIC:
-        return {
-          title: t('rightRail.requiredAction.genericTitle'),
-          message: validationItems[0] ?? t('messages.validationErrors'),
-        };
-      default:
-        return null;
-    }
-  }, [
-    overpaymentBlocksSubmit,
-    payExtraIntent,
-    validationPhase,
-    rightRailState.requiredAction,
-    t,
-    currencyCode,
-    formatAmount,
-    unresolvedOverpaymentAmount,
-    cashDrawerBlockingMessage,
-    serverTotals?.creditLimit?.mode,
-    liveWalletBalanceDisplay,
-    validationItems,
-  ]);
+  const balanceStatusLabel = useMemo(
+    () => deriveBalanceStatusLabel(rightRailState.balanceStatus, t),
+    [rightRailState.balanceStatus, t]
+  );
+  const requiredActionCopy = useMemo(
+    () =>
+      deriveRequiredActionCopy({
+        t,
+        requiredAction: rightRailState.requiredAction,
+        overpaymentBlocksSubmit,
+        payExtraIntent,
+        validationPhase,
+        currencyCode,
+        formatAmount,
+        unresolvedOverpaymentAmount,
+        cashDrawerBlockingMessage,
+        creditLimitMode: serverTotals?.creditLimit?.mode,
+        liveWalletBalanceDisplay,
+        firstValidationItem: validationItems[0],
+      }),
+    [
+      overpaymentBlocksSubmit,
+      payExtraIntent,
+      validationPhase,
+      rightRailState.requiredAction,
+      t,
+      currencyCode,
+      formatAmount,
+      unresolvedOverpaymentAmount,
+      cashDrawerBlockingMessage,
+      serverTotals?.creditLimit?.mode,
+      liveWalletBalanceDisplay,
+      validationItems,
+    ]
+  );
   const realPaymentSummaryItems = useMemo<RightRailSummaryItem[]>(
     () =>
       realPaymentEntries.map(({ leg }) => ({
@@ -2905,17 +2848,10 @@ export function PaymentModalV4({
     },
     [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
   );
-  const warningMessages = useMemo(() => {
-    const warnings: string[] = [];
-
-    rightRailState.warningCodes.forEach((warningCode) => {
-      if (warningCode === RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE) {
-        warnings.push(t('rightRail.warningMessages.creditLimitOverride'));
-      }
-    });
-
-    return warnings;
-  }, [rightRailState.warningCodes, t]);
+  const warningMessages = useMemo(
+    () => deriveRightRailWarningMessages(rightRailState.warningCodes, t),
+    [rightRailState.warningCodes, t]
+  );
 
   const hasDiscountBreakdown =
     totals.manualDiscount > moneyEpsilon ||

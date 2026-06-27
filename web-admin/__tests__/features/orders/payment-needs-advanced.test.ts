@@ -1,8 +1,8 @@
 import {
   computeNeedsAdvanced,
   NEEDS_ADVANCED_REASON,
-  type NeedsAdvancedInput,
 } from '@features/orders/hooks/payment-needs-advanced';
+import type { NeedsAdvancedInput } from '@features/orders/hooks/payment-needs-advanced';
 
 const baseSimple: NeedsAdvancedInput = {
   settlementLegCount: 1,

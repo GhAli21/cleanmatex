@@ -1,10 +1,10 @@
 import { renderHook } from '@testing-library/react';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
-import {
-  useMoneyDerivations,
-  type MoneyDerivationMethodOption,
-  type UseMoneyDerivationsParams,
+import { useMoneyDerivations } from '@features/orders/hooks/use-money-derivations';
+import type {
+  MoneyDerivationMethodOption,
+  UseMoneyDerivationsParams,
 } from '@features/orders/hooks/use-money-derivations';
 
 const CASH = PAYMENT_METHODS.CASH;

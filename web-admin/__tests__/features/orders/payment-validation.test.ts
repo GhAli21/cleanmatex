@@ -1,7 +1,5 @@
-import {
-  derivePaymentValidationItems,
-  type PaymentValidationItemsContext,
-} from '@features/orders/hooks/payment-validation';
+import { derivePaymentValidationItems } from '@features/orders/hooks/payment-validation';
+import type { PaymentValidationItemsContext } from '@features/orders/hooks/payment-validation';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 
 type Option = { label?: string };

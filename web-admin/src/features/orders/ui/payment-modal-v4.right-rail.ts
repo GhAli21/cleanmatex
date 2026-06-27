@@ -223,3 +223,160 @@ function deriveRequiredAction(
 
   return RIGHT_RAIL_REQUIRED_ACTION.GENERIC;
 }
+
+/**
+ * Minimal translate signature compatible with next-intl's `useTranslations`.
+ */
+export type RightRailTranslate = (
+  key: string,
+  params?: Record<string, string | number>
+) => string;
+
+/**
+ * Maps a balance status to its cashier-facing label.
+ *
+ * @param balanceStatus Derived right-rail balance status.
+ * @param t Translate function.
+ * @returns Localized status label.
+ */
+export function deriveBalanceStatusLabel(
+  balanceStatus: RightRailBalanceStatus,
+  t: RightRailTranslate
+): string {
+  switch (balanceStatus) {
+    case RIGHT_RAIL_BALANCE_STATUS.BLOCKED:
+      return t('rightRail.statuses.blocked');
+    case RIGHT_RAIL_BALANCE_STATUS.OVERPAID:
+      return t('rightRail.statuses.overpaid');
+    case RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED:
+      return t('rightRail.statuses.fullySettled');
+    case RIGHT_RAIL_BALANCE_STATUS.PAY_ON_COLLECTION:
+      return t('rightRail.statuses.payOnCollection');
+    case RIGHT_RAIL_BALANCE_STATUS.INVOICE_OUTSTANDING:
+      return t('rightRail.statuses.invoiceOutstanding');
+    default:
+      return t('rightRail.statuses.paymentRequired');
+  }
+}
+
+/**
+ * Title/message pair shown in the prominent required-action surface.
+ */
+export interface RequiredActionCopy {
+  title: string;
+  message: string;
+}
+
+/**
+ * Inputs for the required-action copy builder — all already-derived modal state.
+ */
+export interface RequiredActionCopyContext {
+  t: RightRailTranslate;
+  requiredAction: RightRailRequiredActionKind | null;
+  overpaymentBlocksSubmit: boolean;
+  payExtraIntent: boolean;
+  validationPhase: 'editing' | 'ready';
+  currencyCode: string;
+  formatAmount: (value: number) => string;
+  unresolvedOverpaymentAmount: number;
+  cashDrawerBlockingMessage: string | null;
+  creditLimitMode?: 'warn' | 'block';
+  liveWalletBalanceDisplay: string;
+  /** `validationItems[0]` — used as the GENERIC fallback message. */
+  firstValidationItem?: string;
+}
+
+/**
+ * Builds the title/message for the prominent required-action card.
+ *
+ * @param ctx Already-derived modal state + translate/format helpers.
+ * @returns Title/message copy, or null when no action surface is needed.
+ */
+export function deriveRequiredActionCopy(
+  ctx: RequiredActionCopyContext
+): RequiredActionCopy | null {
+  const { t } = ctx;
+  if (ctx.overpaymentBlocksSubmit && ctx.payExtraIntent && ctx.validationPhase !== 'ready') {
+    return {
+      title: t('validatePayment.button'),
+      message: t('validatePayment.requiredBeforeSubmit'),
+    };
+  }
+
+  switch (ctx.requiredAction) {
+    case RIGHT_RAIL_REQUIRED_ACTION.OVERPAYMENT:
+      return {
+        title: t('rightRail.requiredAction.overpaymentTitle'),
+        message: t('rightRail.requiredAction.overpaymentMessage', {
+          amount: `${ctx.currencyCode} ${ctx.formatAmount(ctx.unresolvedOverpaymentAmount)}`,
+        }),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.CASH_DRAWER:
+      return {
+        title: t('rightRail.requiredAction.cashDrawerTitle'),
+        message: ctx.cashDrawerBlockingMessage ?? t('rightRail.requiredAction.cashDrawerFallback'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT:
+      return {
+        title: t('rightRail.requiredAction.creditLimitTitle'),
+        message:
+          ctx.creditLimitMode === 'warn'
+            ? t('rightRail.requiredAction.creditLimitWarn')
+            : t('rightRail.requiredAction.creditLimitBlock'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.GIFT_CARD_PIN:
+      return {
+        title: t('rightRail.requiredAction.giftCardPinTitle'),
+        message: t('giftCard.pinPendingError'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.CHECK_DETAILS:
+      return {
+        title: t('rightRail.requiredAction.checkTitle'),
+        message: t('splitPayment.validation.checkNumberRequired'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.STORED_VALUE:
+      return {
+        title: t('rightRail.requiredAction.storedValueTitle'),
+        message: t('customerCredits.walletBalanceExceeded', {
+          amount: ctx.liveWalletBalanceDisplay,
+        }),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.PAYMENT_AMOUNT:
+      return {
+        title: t('rightRail.requiredAction.paymentAmountTitle'),
+        message: t('partialPayment.validation.amountMustBePositive'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.REMAINING_POLICY:
+      return {
+        title: t('rightRail.requiredAction.remainingPolicyTitle'),
+        message: t('remainder.validation.required'),
+      };
+    case RIGHT_RAIL_REQUIRED_ACTION.GENERIC:
+      return {
+        title: t('rightRail.requiredAction.genericTitle'),
+        message: ctx.firstValidationItem ?? t('messages.validationErrors'),
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Maps non-blocking warning codes to cashier-facing messages.
+ *
+ * @param warningCodes Derived non-blocking warning codes.
+ * @param t Translate function.
+ * @returns Localized warning messages.
+ */
+export function deriveRightRailWarningMessages(
+  warningCodes: RightRailWarningCode[],
+  t: RightRailTranslate
+): string[] {
+  const warnings: string[] = [];
+  warningCodes.forEach((warningCode) => {
+    if (warningCode === RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE) {
+      warnings.push(t('rightRail.warningMessages.creditLimitOverride'));
+    }
+  });
+  return warnings;
+}
