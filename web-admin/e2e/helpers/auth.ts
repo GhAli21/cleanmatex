@@ -3,6 +3,29 @@ import { expect, test, type Page } from '@playwright/test'
 const AUTH_PATH_SEGMENTS = ['/login', '/auth']
 const APP_ERROR_TEXT = /Application error: a server-side exception has occurred/i
 
+export function requireAuthenticatedE2EConfig(): void {
+  const missing = [
+    !process.env.E2E_LOGIN_EMAIL ? 'E2E_LOGIN_EMAIL' : null,
+    !process.env.E2E_LOGIN_PASSWORD ? 'E2E_LOGIN_PASSWORD' : null,
+  ].filter(Boolean)
+
+  if (missing.length === 0) {
+    return
+  }
+
+  throw new Error(
+    [
+      'This E2E test requires an authenticated tenant session.',
+      `Missing env vars: ${missing.join(', ')}.`,
+      'If you are using PowerShell, use $env:NAME="value" instead of set NAME=value.',
+      'Example:',
+      '$env:E2E_LOGIN_EMAIL="admin@demo-laundry.example"',
+      '$env:E2E_LOGIN_PASSWORD="Admin123"',
+      '$env:PLAYWRIGHT_BASE_URL="https://cmx.cleanmatex.com"',
+    ].join('\n'),
+  )
+}
+
 export function isAuthRedirectUrl(url: string): boolean {
   return AUTH_PATH_SEGMENTS.some((segment) => url.includes(segment))
 }

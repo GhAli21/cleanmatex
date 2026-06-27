@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
@@ -43,13 +43,11 @@ import {
   deriveLegAppliedAmount,
   deriveOutstandingPolicy,
   formatDecimalDraft,
-  getPreferredCashDrawerStorageKey,
   getDisplayChangeAmount,
   getNetCashRetainedAmount,
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
-  resolvePreferredCashDrawerSessionId,
   parseDecimalDraft,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
@@ -65,7 +63,6 @@ import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-p
 import {
   ExtraReceiptHandlingCard,
 } from './payment-modal/allocation/extra-receipt-handling-card';
-import { buildOverpaymentResolutionPayload } from './payment-modal/allocation/build-overpayment-resolution';
 import { getExtraReceiptResolutionSummary } from './payment-modal/allocation/extra-receipt-resolution-summary';
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
@@ -77,7 +74,7 @@ import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-ext
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
-import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
+import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { useMoneyDerivations } from '@features/orders/hooks/use-money-derivations';
 import { derivePaymentValidationItems } from '@features/orders/hooks/payment-validation';
 import {
@@ -89,6 +86,7 @@ import {
 import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-promo';
 import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
+import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -201,24 +199,7 @@ function B2BContractsSelect({
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
-type CashDrawerSessionOption = {
-  id: string;
-  session_no: string;
-  opened_at: string | null;
-  opening_float_amount: number;
-};
-
-type CashDrawerOption = {
-  id: string;
-  branch_id: string | null;
-  drawer_name: string;
-  drawer_name2: string | null;
-  drawer_type: string;
-  currency_code: string;
-  requires_session: boolean;
-  opening_float_required: boolean;
-  currentSession: CashDrawerSessionOption | null;
-};
+// CashDrawerOption / CashDrawerSessionOption types moved to use-cash-drawer.
 
 type StoredValueSummaryResponse = {
   wallet: {
@@ -550,12 +531,8 @@ export function PaymentModalV4({
     paymentData: PaymentFormData;
     payload: NewOrderPaymentPayload;
   } | null>(null);
-  const [selectedCashDrawerSessionId, setSelectedCashDrawerSessionId] = useState('');
-  const [cashDrawerDialogOpen, setCashDrawerDialogOpen] = useState(false);
-  const [cashDrawerToOpenId, setCashDrawerToOpenId] = useState('');
-  const [openingBalanceValue, setOpeningBalanceValue] = useState(0);
-  const [openingDrawerSession, setOpeningDrawerSession] = useState(false);
-  const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
+  // Cash-drawer session state (selected/dialog/toOpen/openingBalance/openingSession/
+  // requestError) is owned by useCashDrawer (hook call below).
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
   // paymentLegs + the payExtraIntentRef / activeLegDraftSyncKeyRef / allocationBaselineRef
@@ -690,34 +667,7 @@ export function PaymentModalV4({
       option.payment_method_code === 'WALLET'
   );
 
-  const {
-    data: cashDrawers = [],
-    isLoading: cashDrawersLoading,
-    isFetching: cashDrawersFetching,
-    error: cashDrawersError,
-    refetch: refetchCashDrawers,
-  } = useQuery<CashDrawerOption[]>({
-    queryKey: ['cash-drawers-checkout', tenantOrgId, branchId ?? ''],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (branchId) params.set('branchId', branchId);
-
-      const res = await fetch(`/api/v1/cash-drawers?${params.toString()}`);
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok || !json.success) {
-        throw new Error(
-          typeof json.error === 'string' && json.error.trim().length > 0
-            ? json.error
-            : 'FAILED_TO_LOAD_CASH_DRAWERS'
-        );
-      }
-
-      return (json.data ?? []) as CashDrawerOption[];
-    },
-    enabled: open,
-    staleTime: 30_000,
-  });
+  // The active cash-drawers query is owned by useCashDrawer (hook call below).
 
   const {
     data: storedValueSummary,
@@ -778,12 +728,7 @@ export function PaymentModalV4({
         poNumber: '',
       });
       // Gift-card + promo state reset is owned by useGiftCardAndPromo.
-      setSelectedCashDrawerSessionId('');
-      setCashDrawerDialogOpen(false);
-      setCashDrawerToOpenId('');
-      setOpeningBalanceValue(0);
-      setOpeningDrawerSession(false);
-      setCashDrawerRequestError(null);
+      // Cash-drawer session state reset is owned by useCashDrawer (render-time Pattern A).
       setCreditLimitOverride(false);
       // activeLegIndex + paymentLegs resets are owned by usePaymentLegs (render-time
       // Pattern A); allocationBaselineRef is nulled by the hook's reconciliation effect.
@@ -809,77 +754,7 @@ export function PaymentModalV4({
   const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
   const liveAdvanceBalance = storedValueSummary?.advance.balance ?? 0;
 
-  const getDrawerDisplayName = useCallback(
-    (drawer: CashDrawerOption) => isRTL ? (drawer.drawer_name2 || drawer.drawer_name) : drawer.drawer_name,
-    [isRTL]
-  );
-
-  const formatCashDrawerOpenedAt = useCallback(
-    (openedAt: string | null) => {
-      if (!openedAt) {
-        return '—';
-      }
-      return new Intl.DateTimeFormat(isRTL ? 'ar' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(new Date(openedAt));
-    },
-    [isRTL]
-  );
-
-  const cashDrawerSessionChoices = useMemo(
-    () =>
-      cashDrawers.flatMap((drawer) =>
-        drawer.currentSession
-          ? [{ drawer, session: drawer.currentSession }]
-          : []
-      ),
-    [cashDrawers]
-  );
-  const preferredCashDrawerStorageKey = useMemo(
-    () => getPreferredCashDrawerStorageKey({ tenantOrgId, branchId, userId }),
-    [branchId, tenantOrgId, userId]
-  );
-
-  const readPreferredCashDrawerId = useCallback(() => {
-    if (!preferredCashDrawerStorageKey || typeof window === 'undefined') {
-      return null;
-    }
-
-    try {
-      return window.localStorage.getItem(preferredCashDrawerStorageKey);
-    } catch {
-      return null;
-    }
-  }, [preferredCashDrawerStorageKey]);
-
-  const persistPreferredCashDrawerId = useCallback(
-    (cashDrawerId: string | null | undefined) => {
-      if (!preferredCashDrawerStorageKey || typeof window === 'undefined') {
-        return;
-      }
-
-      try {
-        const normalizedCashDrawerId = cashDrawerId?.trim();
-        if (normalizedCashDrawerId) {
-          window.localStorage.setItem(preferredCashDrawerStorageKey, normalizedCashDrawerId);
-          return;
-        }
-        window.localStorage.removeItem(preferredCashDrawerStorageKey);
-      } catch {
-        // Browser storage can be disabled; drawer validation still protects submission.
-      }
-    },
-    [preferredCashDrawerStorageKey]
-  );
-
-  const canOpenNewCashDrawerSession = useMemo(
-    () => cashDrawers.some((drawer) => !drawer.currentSession),
-    [cashDrawers]
-  );
+  // Cash-drawer display/session/preferred-drawer helpers are owned by useCashDrawer.
 
   const getLegStoredValueCap = useCallback(
     (leg: PaymentLeg) => {
@@ -1365,159 +1240,46 @@ export function PaymentModalV4({
     return paymentLegs.length === 0 && !!primaryMethodOption?.requires_cash_drawer;
   }, [getMethodOption, paymentLegs.length, primaryMethodOption, settlementLegEntries]);
 
-  const selectedCashDrawerChoice = useMemo(
-    () =>
-      cashDrawerSessionChoices.find(
-        ({ session }) => session.id === selectedCashDrawerSessionId
-      ) ?? null,
-    [cashDrawerSessionChoices, selectedCashDrawerSessionId]
-  );
-
-  const cashDrawerBlockingMessage = useMemo(() => {
-    if (!cashDrawerRequired) {
-      return null;
-    }
-
-    if (cashDrawersLoading || cashDrawersFetching) {
-      return t('cashDrawer.messages.loading');
-    }
-
-    if (cashDrawerRequestError) {
-      return cashDrawerRequestError;
-    }
-
-    if (cashDrawersError instanceof Error) {
-      return cashDrawersError.message || t('cashDrawer.messages.loadFailed');
-    }
-
-    if (cashDrawers.length === 0) {
-      return t('cashDrawer.messages.noDrawersConfigured');
-    }
-
-    if (cashDrawerSessionChoices.length === 0) {
-      return t('cashDrawer.messages.noOpenSession');
-    }
-
-    if (!selectedCashDrawerSessionId) {
-      return t('cashDrawer.messages.sessionRequired');
-    }
-
-    return null;
-  }, [
+  // Cash-drawer session state, query, blocking message, and open-session flow
+  // (Phase 2E). Placed after `cashDrawerRequired` (derived from legs/derivations,
+  // threaded in); the DOM refs `cashDrawerCardRef`/`cashDrawerSelectorCardRef` stay in
+  // the view for blocked-submit scroll/focus.
+  const cashDrawer = useCashDrawer({
+    open,
+    tenantOrgId,
+    branchId,
+    userId,
+    isRTL,
+    csrfToken,
+    t,
     cashDrawerRequired,
+  });
+  const {
+    cashDrawers,
     cashDrawersLoading,
     cashDrawersFetching,
-    cashDrawerRequestError,
-    cashDrawersError,
-    cashDrawers.length,
-    cashDrawerSessionChoices.length,
+    refetchCashDrawers,
     selectedCashDrawerSessionId,
-    t,
-  ]);
-
-  useEffect(() => {
-    if (!cashDrawerRequired) {
-      if (selectedCashDrawerSessionId) {
-        setSelectedCashDrawerSessionId('');
-      }
-      return;
-    }
-
-    if (selectedCashDrawerSessionId) {
-      const selectedStillExists = cashDrawerSessionChoices.some(
-        ({ session }) => session.id === selectedCashDrawerSessionId
-      );
-      if (!selectedStillExists) {
-        setSelectedCashDrawerSessionId('');
-      }
-      return;
-    }
-
-    const preferredSessionId = resolvePreferredCashDrawerSessionId(
-      cashDrawerSessionChoices,
-      readPreferredCashDrawerId()
-    );
-
-    if (preferredSessionId) {
-      setSelectedCashDrawerSessionId(preferredSessionId);
-      return;
-    }
-
-    if (cashDrawerSessionChoices.length === 1) {
-      setSelectedCashDrawerSessionId(cashDrawerSessionChoices[0].session.id);
-    }
-  }, [cashDrawerRequired, cashDrawerSessionChoices, readPreferredCashDrawerId, selectedCashDrawerSessionId]);
-
-  const handleOpenCashDrawerDialog = useCallback(() => {
-    const savedPreferredDrawerId = readPreferredCashDrawerId();
-    const savedPreferredDrawer = cashDrawers.find(
-      (drawer) => drawer.id === savedPreferredDrawerId
-    );
-    const preferredDrawerId =
-      selectedCashDrawerChoice?.drawer.id ??
-      savedPreferredDrawer?.id ??
-      cashDrawers.find((drawer) => !drawer.currentSession)?.id ??
-      cashDrawers[0]?.id ??
-      '';
-
-    setCashDrawerToOpenId(preferredDrawerId);
-    setOpeningBalanceValue(0);
-    setCashDrawerRequestError(null);
-    setCashDrawerDialogOpen(true);
-  }, [cashDrawers, readPreferredCashDrawerId, selectedCashDrawerChoice]);
-
-  const handleCreateCashDrawerSession = useCallback(async () => {
-    if (!cashDrawerToOpenId) {
-      const message = t('cashDrawer.messages.selectDrawer');
-      setCashDrawerRequestError(message);
-      cmxMessage.error(message);
-      return;
-    }
-
-    setOpeningDrawerSession(true);
-    setCashDrawerRequestError(null);
-
-    try {
-      const res = await fetch(`/api/v1/cash-drawers/${cashDrawerToOpenId}/open-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCSRFHeader(csrfToken),
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          openingBalance: openingBalanceValue,
-        }),
-      });
-
-      const json = await res.json().catch(() => ({}));
-      const message =
-        typeof json.error === 'string' && json.error.trim().length > 0
-          ? json.error
-          : t('cashDrawer.messages.openFailed');
-
-      if (!res.ok || !json.success) {
-        setCashDrawerRequestError(message);
-        cmxMessage.error(message);
-        return;
-      }
-
-      const createdSession = json.data as CashDrawerSessionOption;
-      setSelectedCashDrawerSessionId(createdSession.id);
-      persistPreferredCashDrawerId(cashDrawerToOpenId);
-      setCashDrawerDialogOpen(false);
-      setCashDrawerToOpenId('');
-      setOpeningBalanceValue(0);
-      await refetchCashDrawers();
-      cmxMessage.success(t('cashDrawer.messages.sessionOpened'));
-    } catch {
-      const message = t('cashDrawer.messages.openFailed');
-      setCashDrawerRequestError(message);
-      cmxMessage.error(message);
-    } finally {
-      setOpeningDrawerSession(false);
-    }
-  }, [cashDrawerToOpenId, csrfToken, openingBalanceValue, persistPreferredCashDrawerId, refetchCashDrawers, t]);
+    setSelectedCashDrawerSessionId,
+    cashDrawerDialogOpen,
+    setCashDrawerDialogOpen,
+    cashDrawerToOpenId,
+    setCashDrawerToOpenId,
+    openingBalanceValue,
+    setOpeningBalanceValue,
+    openingDrawerSession,
+    cashDrawerRequestError,
+    setCashDrawerRequestError,
+    cashDrawerSessionChoices,
+    selectedCashDrawerChoice,
+    canOpenNewCashDrawerSession,
+    cashDrawerBlockingMessage,
+    getDrawerDisplayName,
+    formatCashDrawerOpenedAt,
+    persistPreferredCashDrawerId,
+    handleOpenCashDrawerDialog,
+    handleCreateCashDrawerSession,
+  } = cashDrawer;
 
   // Promo handlers
   const handleValidatePromoCode = async () => {
@@ -1771,61 +1533,25 @@ export function PaymentModalV4({
       return;
     }
 
-    const legsWithRefs = ensurePaymentLegRefs(
-      settlementLegEntries.length > 0
-        ? settlementLegEntries.map(({ leg }) => leg)
-        : paymentLegs
-    );
-
-    const submitCashLegRef =
-      legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef ?? null;
-
-    const submitOverpaymentResolution =
-      overpaymentResolutionPayload ??
-      buildOverpaymentResolutionPayload(
-        allocation.extraReceiptMode,
-        unresolvedOverpaymentAmount,
-        {
-          allocationPreviewId: allocation.allocationPreviewId,
-          cashLegRef: submitCashLegRef,
-        }
-      );
-
-    const payload = {
-      amountToCharge: settledNowAmount,
-      totals: {
-        subtotal: totals.subtotal,
-        manualDiscount: totals.manualDiscount,
-        promoDiscount: totals.promoDiscount,
-        afterDiscounts: totals.afterDiscounts,
-        taxRate: totals.taxRate,
-        taxAmount: totals.taxAmount,
-        vatTaxPercent: totals.vatTaxPercent,
-        vatValue: totals.vatValue,
-        giftCardApplied: totals.giftCardApplied,
-        saleTotal,
-      },
-      ...(currencyConfig && {
-        currencyCode: currencyConfig.currencyCode,
-        currencyExRate: currencyConfig.currencyExRate,
-      }),
-      outstandingPolicy: effectiveOutstandingPolicy,
-      creditLimitOverride: creditLimitOverride || undefined,
-      ...(cashDrawerRequired && selectedCashDrawerSessionId && {
-        cashDrawerSessionId: selectedCashDrawerSessionId,
-      }),
-      ...(taxProfileEntries.some((entry) => entry.enabled) && {
-        taxProfileIds: taxProfileEntries
-          .filter((entry) => entry.enabled)
-          .map((entry) => entry.id),
-      }),
-      ...(settlementLegEntries.length > 0 && {
-        paymentLegs: legsWithRefs,
-      }),
-      ...(submitOverpaymentResolution && {
-        overpaymentResolution: submitOverpaymentResolution,
-      }),
-    };
+    // Pure payload assembly (Phase 2F — use-payment-submit). The validation guards
+    // above, the safeParse below, and the confirm/onSubmit flow stay in the view.
+    const payload = buildPaymentPayload({
+      settledNowAmount,
+      totals,
+      saleTotal,
+      currencyConfig,
+      effectiveOutstandingPolicy,
+      creditLimitOverride,
+      cashDrawerRequired,
+      selectedCashDrawerSessionId,
+      taxProfileEntries,
+      settlementLegEntries,
+      paymentLegs,
+      overpaymentResolutionPayload,
+      extraReceiptMode: allocation.extraReceiptMode,
+      unresolvedOverpaymentAmount,
+      allocationPreviewId: allocation.allocationPreviewId,
+    });
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
     if (!parsed.success) {
       const first = parsed.error.issues[0];

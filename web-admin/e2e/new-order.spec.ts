@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { gotoProtectedRoute } from './helpers/auth'
+import { gotoProtectedRoute, requireAuthenticatedE2EConfig } from './helpers/auth'
 
 async function selectDemoCustomer(page: Page): Promise<void> {
   await page.getByRole('button', { name: /Select Customer/i }).first().click()
@@ -37,6 +37,8 @@ async function setReadyByTomorrow(page: Page): Promise<void> {
 
 test.describe('New Order Page', () => {
   test('builds a draft order and opens the payment workbench', async ({ page }) => {
+    requireAuthenticatedE2EConfig()
+
     await gotoProtectedRoute(page, '/dashboard/orders/new')
 
     await expect(page.getByRole('heading', { name: 'New Order' })).toBeVisible({
@@ -50,9 +52,7 @@ test.describe('New Order Page', () => {
     await expect(page.locator('body')).toContainText('Jh Test dev21', { timeout: 15_000 })
 
     await firstAddButton.click()
-    await expect(page.getByRole('tab', { name: /Order Items \(1\)/i })).toBeVisible({
-      timeout: 15_000,
-    })
+    await expect(page.locator('body')).toContainText('Bathrobe/Robe', { timeout: 15_000 })
     await expect(page.locator('body')).toContainText('1 total pieces', { timeout: 15_000 })
     await expect(page.locator('body')).toContainText('1.800 OMR', { timeout: 15_000 })
 
