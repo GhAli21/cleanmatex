@@ -22,9 +22,7 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
-import { getTaxProfilesAction } from '@/app/actions/settings/tax-actions';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
-import { taxService } from '@/lib/services/tax.service';
 import {
   newOrderPaymentPayloadSchema,
   toCanonicalLegMethod,
@@ -41,7 +39,6 @@ import type { PaymentMethodCode } from '@/lib/constants/order-types';
 import {
   applyKeypadInput,
   capPaymentLegAmount,
-  deriveCashTenderedAmount,
   deriveChangeReturnedAmount,
   deriveLegAppliedAmount,
   deriveOutstandingPolicy,
@@ -52,7 +49,6 @@ import {
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
-  reconcilePaymentLegAmounts,
   resolvePreferredCashDrawerSessionId,
   parseDecimalDraft,
   sanitizeDecimalDraft,
@@ -91,6 +87,8 @@ import {
   type CheckoutSettlementOption,
 } from '@features/orders/hooks/use-payment-catalog';
 import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-promo';
+import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
+import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -540,24 +538,10 @@ export function PaymentModalV4({
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
 
-  // Tax state
-  const [taxRate, setTaxRate] = useState<number>(0.06);
-
-  /** Server tax profile row kept local to the modal because it only feeds the payment preview. */
-  type TaxProfileEntry = {
-    id: string;
-    name: string;
-    name2: string | null;
-    tax_type: string;
-    rate: number;
-    is_compound: boolean;
-    enabled: boolean;
-  };
-  const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
+  // Tax + server-totals state lives in usePaymentTotals (hook call below).
 
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
-  const [activeLegIndex, setActiveLegIndex] = useState(0);
-  const [activeAmountDraft, setActiveAmountDraft] = useState('');
+  // Leg editor state (paymentLegs, activeLegIndex, activeAmountDraft) is owned by usePaymentLegs (hook call below).
   const [cashOverRemainingNotice, setCashOverRemainingNotice] = useState<string | null>(null);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -574,47 +558,8 @@ export function PaymentModalV4({
   const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
-  const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
-  /** Latest pay-extra intent for leg upsert/update callbacks defined before usePayExtraCheckout. */
-  const payExtraIntentRef = useRef(false);
-  /** Normalized tax line used to render cashier-facing totals consistently across preview sources. */
-  type TaxBreakdownLine = {
-    taxType: 'VAT' | 'GST' | 'CUSTOM';
-    label: string;
-    label2: string | null;
-    rate: number;
-    isCompound: boolean;
-    baseAmount: number;
-    taxAmount: number;
-    profileId?: string;
-  };
-
-  const [serverTotals, setServerTotals] = useState<{
-    subtotal: number;
-    manualDiscount: number;
-    autoRuleDiscount: number;
-    promoDiscount: number;
-    afterDiscounts: number;
-    additionalTaxAmount: number;
-    vatValue: number;
-    giftCardApplied: number;
-    saleTotal: number;
-    vatTaxPercent: number;
-    taxBreakdown: TaxBreakdownLine[];
-    creditLimit?: {
-      currentBalance: number;
-      creditLimit: number;
-      available: number;
-      wouldExceed: boolean;
-      mode?: 'warn' | 'block';
-    };
-  } | null>(null);
-
-  const [totalsLoading, setTotalsLoading] = useState(false);
-  const checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total;
-  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeLegDraftSyncKeyRef = useRef<string | null>(null);
-  const allocationBaselineRef = useRef<{ saleTotal: number; giftCard: number } | null>(null);
+  // paymentLegs + the payExtraIntentRef / activeLegDraftSyncKeyRef / allocationBaselineRef
+  // refs are owned by usePaymentLegs (hook call below).
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
   const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
@@ -643,36 +588,13 @@ export function PaymentModalV4({
     currencyCode: string; decimalPlaces: number; currencyExRate: number;
   } | null>(null);
 
-  // Read-only payment catalog: card brands, branch terminals, and checkout
-  // settlement options (real methods + customer credits) + the getMethodOption
-  // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
-  const {
-    cardBrands,
-    branchPaymentTerminals,
-    checkoutMethods,
-    customerCreditOptions,
-    checkoutMethodsLoading,
-    realPaymentOptions,
-    creditMethodCodes,
-    getMethodOption,
-    getOptionDisplayName: getCheckoutOptionDisplayName,
-    getMethodHint,
-  } = usePaymentCatalog({
-    open,
-    tenantOrgId,
-    branchId,
-    customerId,
-    checkoutEligibilityAmount,
-    isRetailOnlyOrder,
-    isRTL,
-    t,
-  });
+  const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
+  const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
+  const formatAmount  = (n: number) => n.toFixed(decimalPlaces);
 
-  const walletCreditOption = customerCreditOptions.find(
-    (option) =>
-      option.credit_application_type === 'WALLET' ||
-      option.payment_method_code === 'WALLET'
-  );
+  // Dependency-ordered slices: gift/promo → totals → catalog. Totals reads the
+  // applied promo/gift; catalog's checkout-options query key reads totals'
+  // checkoutEligibilityAmount; walletCreditOption derives from catalog output.
 
   // Gift-card + promo state, error mapping, and reset/PIN-focus effects (Phase 2B).
   const {
@@ -707,6 +629,66 @@ export function PaymentModalV4({
     t,
     tGiftCardErrors,
   });
+
+  // Server-driven totals + tax breakdown (Phase 2C). Behavior-frozen.
+  const {
+    serverTotals,
+    totalsLoading,
+    totals,
+    saleTotal,
+    taxProfileEntries,
+    displayTaxBreakdown,
+    profilesTaxAmount,
+    checkoutEligibilityAmount,
+  } = usePaymentTotals({
+    open,
+    items,
+    tenantOrgId,
+    branchId,
+    customerId,
+    isExpress,
+    total,
+    checkoutAmount,
+    percentDiscount,
+    amountDiscount,
+    serviceCategories,
+    appliedPromoCode,
+    appliedGiftCard,
+    decimalPlaces,
+    csrfToken,
+    t,
+  });
+
+  // Read-only payment catalog: card brands, branch terminals, and checkout
+  // settlement options (real methods + customer credits) + the getMethodOption
+  // resolver. Extracted to use-payment-catalog (Phase 2A); behavior-frozen.
+  const {
+    cardBrands,
+    branchPaymentTerminals,
+    checkoutMethods,
+    customerCreditOptions,
+    checkoutMethodsLoading,
+    realPaymentOptions,
+    creditMethodCodes,
+    getMethodOption,
+    getOptionDisplayName: getCheckoutOptionDisplayName,
+    getMethodHint,
+  } = usePaymentCatalog({
+    open,
+    tenantOrgId,
+    branchId,
+    customerId,
+    checkoutEligibilityAmount,
+    isRetailOnlyOrder,
+    isRTL,
+    t,
+  });
+
+  const walletCreditOption = customerCreditOptions.find(
+    (option) =>
+      option.credit_application_type === 'WALLET' ||
+      option.payment_method_code === 'WALLET'
+  );
 
   const {
     data: cashDrawers = [],
@@ -757,146 +739,20 @@ export function PaymentModalV4({
     staleTime: 15_000,
   });
 
-  // Load tax rate, currency, and default tax profiles on open
+  // Load currency config on open (tax rate + default tax profiles load in usePaymentTotals).
   useEffect(() => {
     if (open && tenantOrgId) {
-      taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
-        setTaxRate(rate);
-      }).catch(() => {
-        setTaxRate(0.05);
-      });
       getCurrencyConfigAction(tenantOrgId, branchId, userId).then(config => {
         setCurrencyConfig(config);
       }).catch(() => {
         setCurrencyConfig({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: 3, currencyExRate: 1 });
       });
-      getTaxProfilesAction().then(res => {
-        if (res.success && res.data) {
-          const defaultActive = res.data
-            .filter(p => p.is_default && p.is_active)
-            .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
-          setTaxProfileEntries(defaultActive.map(p => ({
-            id: p.id,
-            name: p.name,
-            name2: p.name2,
-            tax_type: p.tax_type,
-            rate: Number(p.rate),
-            is_compound: p.is_compound,
-            enabled: true,
-          })));
-        }
-      }).catch(() => {
-        setTaxProfileEntries([]);
-      });
     }
   }, [open, tenantOrgId, branchId, userId]);
 
-  useEffect(() => {
-    if (paymentMethod !== PAYMENT_METHODS.CHECK) {
-      setValue('checkNumber', '', { shouldValidate: false, shouldDirty: false });
-      setValue('checkBank', '', { shouldValidate: false, shouldDirty: false });
-      setValue('checkDate', '', { shouldValidate: false, shouldDirty: false });
-      return;
-    }
-
-    const activeCheckLeg =
-      paymentLegs[activeLegIndex]?.method === PAYMENT_METHODS.CHECK
-        ? paymentLegs[activeLegIndex]
-        : paymentLegs.find((leg) => leg.method === PAYMENT_METHODS.CHECK);
-
-    setValue('checkNumber', activeCheckLeg?.checkNumber ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-    setValue('checkBank', activeCheckLeg?.checkBank ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-    setValue('checkDate', activeCheckLeg?.checkDate ?? '', {
-      shouldValidate: false,
-      shouldDirty: false,
-    });
-  }, [activeLegIndex, paymentLegs, paymentMethod, setValue]);
-
-  // Preview-payment fetch (debounced 300ms)
-  const fetchPreview = useCallback(async () => {
-    if (!open || items.length === 0 || !tenantOrgId) return;
-    setTotalsLoading(true);
-    try {
-      const res = await fetch('/api/v1/orders/preview-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfToken) },
-        credentials: 'include',
-        body: JSON.stringify({
-          items,
-          branchId: branchId || undefined,
-          customerId: customerId || undefined,
-          isExpress,
-          percentDiscount: percentDiscount ?? 0,
-          amountDiscount: amountDiscount ?? 0,
-          serviceCategories: serviceCategories && serviceCategories.length > 0 ? serviceCategories : undefined,
-          taxProfileIds: taxProfileEntries.filter((entry) => entry.enabled).map((entry) => entry.id),
-          ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
-            promoCode: appliedPromoCode?.code || undefined,
-            giftCardNumber: appliedGiftCard?.number || undefined,
-            giftCardAmount: appliedGiftCard?.amount || undefined,
-            giftCardId: appliedGiftCard?.id || undefined,
-          }),
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        const d = json.data;
-        setServerTotals({
-          subtotal: d.subtotal,
-          manualDiscount: d.manualDiscount,
-          autoRuleDiscount: typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
-          promoDiscount: d.promoDiscount,
-          afterDiscounts: d.afterDiscounts,
-          additionalTaxAmount: d.additionalTaxAmount ?? 0,
-          vatValue: d.vatValue,
-          giftCardApplied: d.giftCardApplied,
-          saleTotal: d.saleTotal,
-          vatTaxPercent: d.vatTaxPercent ?? 0,
-          taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
-          ...(d.creditLimit && { creditLimit: d.creditLimit }),
-        });
-      } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
-        setServerTotals(null);
-        cmxMessage.error(json.error ?? t('errors.productNotFound'));
-      } else if (!res.ok && json.error) {
-        setServerTotals(null);
-        const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
-        const msg =
-          details && Array.isArray(details) && details.length > 0
-            ? details.map((d) => {
-                const path = (d.path ?? []).join('.');
-                return path ? `${path}: ${d.message ?? ''}` : (d.message ?? '');
-              }).join('. ')
-            : (json.error as string);
-        cmxMessage.error(msg);
-      }
-    } catch {
-      setServerTotals(null);
-    } finally {
-      setTotalsLoading(false);
-    }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
-
-  useEffect(() => {
-    if (!open || items.length === 0) {
-      setServerTotals(null);
-      return;
-    }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchPreview();
-      debounceRef.current = null;
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [open, items, fetchPreview]);
+  // The check-field sync effect + the default-method effect read paymentLegs /
+  // activeLegIndex (now owned by usePaymentLegs); both are registered right after the
+  // usePaymentLegs call below.
 
   // Reset all state when modal opens
   useEffect(() => {
@@ -929,152 +785,17 @@ export function PaymentModalV4({
       setOpeningDrawerSession(false);
       setCashDrawerRequestError(null);
       setCreditLimitOverride(false);
-      setActiveLegIndex(0);
+      // activeLegIndex + paymentLegs resets are owned by usePaymentLegs (render-time
+      // Pattern A); allocationBaselineRef is nulled by the hook's reconciliation effect.
       setAmountDiscountFocused(false);
       setAmountDiscountDraft('');
       setIsDirtySinceOpen(false);
       setConfirmCloseOpen(false);
       setSubmitConfirmOpen(false);
       setPendingSubmission(null);
-      setPaymentLegs([]);
-      setTaxProfileEntries([]);
-      allocationBaselineRef.current = null;
     }
   }, [open, reset, defaultPaymentMethod, defaultOutstandingPolicy, initialPaymentNotes]);
 
-  useEffect(() => {
-    if (!open || isDirtySinceOpen || paymentLegs.length > 0) {
-      return;
-    }
-
-    if (paymentMethod !== defaultPaymentMethod) {
-      setValue('paymentMethod', defaultPaymentMethod, { shouldDirty: false });
-    }
-
-    if (outstandingPolicy !== defaultOutstandingPolicy) {
-      setValue('outstandingPolicy', defaultOutstandingPolicy, { shouldDirty: false });
-    }
-  }, [
-    defaultOutstandingPolicy,
-    defaultPaymentMethod,
-    isDirtySinceOpen,
-    open,
-    outstandingPolicy,
-    paymentLegs.length,
-    paymentMethod,
-    setValue,
-  ]);
-
-  const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
-  const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
-  const formatAmount  = (n: number) => n.toFixed(decimalPlaces);
-
-  const afterDiscountsForTax = useMemo(() => {
-    if (serverTotals) return serverTotals.afterDiscounts;
-    const subtotal = total;
-    const manualDiscount =
-      percentDiscount > 0
-        ? Math.min((subtotal * percentDiscount) / 100, subtotal)
-        : Math.min(amountDiscount, subtotal);
-    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
-    return Math.max(0, subtotal - manualDiscount - promoDiscount);
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
-
-  const fallbackTaxBreakdown = useMemo<TaxBreakdownLine[]>(() => {
-    const selectedProfiles = taxProfileEntries.filter((entry) => entry.enabled);
-    if (selectedProfiles.length > 0) {
-      let accumulatedPriorTax = 0;
-      return selectedProfiles.map((entry) => {
-        const taxableBase = entry.is_compound ? afterDiscountsForTax + accumulatedPriorTax : afterDiscountsForTax;
-        const taxAmount = parseFloat((taxableBase * (entry.rate / 100)).toFixed(decimalPlaces));
-        accumulatedPriorTax += taxAmount;
-        return {
-          taxType: entry.tax_type as 'VAT' | 'GST' | 'CUSTOM',
-          label: entry.name,
-          label2: entry.name2,
-          rate: entry.rate,
-          isCompound: entry.is_compound,
-          baseAmount: taxableBase,
-          taxAmount,
-          profileId: entry.id,
-        };
-      });
-    }
-
-    if (taxRate > 0) {
-      return [{
-        taxType: 'VAT',
-        label: 'VAT',
-        label2: 'ضريبة القيمة المضافة',
-        rate: taxRate * 100,
-        isCompound: false,
-        baseAmount: afterDiscountsForTax,
-        taxAmount: parseFloat((afterDiscountsForTax * taxRate).toFixed(decimalPlaces)),
-      }];
-    }
-
-    return [];
-  }, [taxProfileEntries, afterDiscountsForTax, decimalPlaces, taxRate]);
-
-  const displayTaxBreakdown =
-    serverTotals?.taxBreakdown?.length
-      ? serverTotals.taxBreakdown
-      : totalsLoading || (items.length > 0 && !serverTotals)
-        ? []
-        : fallbackTaxBreakdown;
-  const profilesTaxAmount = useMemo(
-    () => parseFloat(displayTaxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0).toFixed(decimalPlaces)),
-    [displayTaxBreakdown, decimalPlaces]
-  );
-
-  const totals = useMemo(() => {
-    if (serverTotals) {
-      const serverTaxTotal = serverTotals.taxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0);
-      return {
-        ...serverTotals,
-        taxRate: 0,
-        taxAmount: serverTotals.additionalTaxAmount ?? 0,
-        totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,
-      };
-    }
-    const subtotal = total;
-    const manualDiscount =
-      percentDiscount > 0
-        ? Math.min((subtotal * percentDiscount) / 100, subtotal)
-        : Math.min(amountDiscount, subtotal);
-    const promoDiscount  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
-    const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
-    const vatValue = parseFloat(
-      fallbackTaxBreakdown
-        .filter((line) => line.taxType === 'VAT' || line.taxType === 'GST')
-        .reduce((sum, line) => sum + line.taxAmount, 0)
-        .toFixed(decimalPlaces)
-    );
-    const taxAmount = parseFloat(
-      fallbackTaxBreakdown
-        .filter((line) => line.taxType === 'CUSTOM')
-        .reduce((sum, line) => sum + line.taxAmount, 0)
-        .toFixed(decimalPlaces)
-    );
-    const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
-    const saleTotal      = Math.max(0, afterDiscounts + profilesTaxAmount);
-    return {
-      subtotal,
-      manualDiscount,
-      autoRuleDiscount: 0,
-      promoDiscount,
-      afterDiscounts,
-      taxRate: 0,
-      taxAmount,
-      vatTaxPercent: fallbackTaxBreakdown.find((line) => line.taxType === 'VAT' || line.taxType === 'GST')?.rate ?? (taxRate * 100),
-      vatValue,
-      giftCardApplied,
-      saleTotal,
-      totalSavings: subtotal + taxAmount + vatValue - saleTotal,
-    };
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
-
-  const saleTotal = totals.saleTotal;
   const giftCardSettlementAmount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
 
   const liveWalletBalance = walletCreditOption
@@ -1186,137 +907,90 @@ export function PaymentModalV4({
     }, 50);
   }, [expandSection]);
 
-  const removeLegAt = useCallback((idx: number) => {
-    setIsDirtySinceOpen(true);
-    setPaymentLegs((prev) => {
-      const next = prev.filter((_, currentIdx) => currentIdx !== idx);
-      return next;
+  // Payment-leg state, mutators, reconciliation + draft-sync effects, and the
+  // additive addLeg / quickTender seams (Phase 2D). Placed after getMethodOption
+  // (catalog), getLegStoredValueCap + focusAmountEditor (component), and
+  // saleTotal/giftCardSettlementAmount are in scope, and before useMoneyDerivations
+  // (which reads paymentLegs). The component keeps the post-payExtra
+  // `payExtraIntentRef.current = payExtraIntent` bridge below.
+  const legs = usePaymentLegs({
+    open,
+    getMethodOption,
+    getLegStoredValueCap,
+    focusAmountEditor,
+    saleTotal,
+    giftCardSettlementAmount,
+    decimalPlaces,
+    setIsDirtySinceOpen,
+    t,
+  });
+  const {
+    paymentLegs,
+    setPaymentLegs,
+    activeLegIndex,
+    setActiveLegIndex,
+    activeAmountDraft,
+    setActiveAmountDraft,
+    activeLeg,
+    removeLegAt,
+    updateLeg,
+    upsertSettlementLeg,
+    payExtraIntentRef,
+  } = legs;
+
+  // Sync the check-* form fields from the active/first check leg. Reads paymentLegs /
+  // activeLegIndex (owned by usePaymentLegs), so it registers after the hook call.
+  useEffect(() => {
+    if (paymentMethod !== PAYMENT_METHODS.CHECK) {
+      setValue('checkNumber', '', { shouldValidate: false, shouldDirty: false });
+      setValue('checkBank', '', { shouldValidate: false, shouldDirty: false });
+      setValue('checkDate', '', { shouldValidate: false, shouldDirty: false });
+      return;
+    }
+
+    const activeCheckLeg =
+      paymentLegs[activeLegIndex]?.method === PAYMENT_METHODS.CHECK
+        ? paymentLegs[activeLegIndex]
+        : paymentLegs.find((leg) => leg.method === PAYMENT_METHODS.CHECK);
+
+    setValue('checkNumber', activeCheckLeg?.checkNumber ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
     });
-    setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
-  }, []);
-
-  const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
-    setIsDirtySinceOpen(true);
-    setPaymentLegs((prev) => {
-      const target = prev[idx];
-      if (!target) return prev;
-      const updated = [...prev];
-
-      if (key === 'amount' && typeof value === 'number') {
-        const option = getMethodOption(target.method, target.gateway_code);
-        const policy = resolvePaymentOverpaymentPolicy({
-          paymentMethodCode: target.method,
-          supportsChangeReturn: option?.supports_change_return,
-          supportsOverpayment: option?.supports_overpayment,
-          requiresCashDrawer: option?.requires_cash_drawer,
-        });
-        const appliedAmount = deriveLegAppliedAmount({
-          rawAmount: value,
-          paymentLegs: prev,
-          legIndex: idx,
-          saleTotal,
-          giftCardAmount: giftCardSettlementAmount,
-          decimalPlaces,
-          walletBalance: getLegStoredValueCap(target),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
-        });
-        const cashTendered = policy.isCash
-          ? deriveCashTenderedAmount(value, appliedAmount, policy.supportsChangeReturn, decimalPlaces)
-          : undefined;
-
-        updated[idx] = {
-          ...target,
-          amount: appliedAmount,
-          ...(policy.isCash ? { cashTendered } : { cashTendered: undefined }),
-        };
-        return updated;
-      }
-
-      updated[idx] = { ...updated[idx], [key]: value };
-      return updated;
+    setValue('checkBank', activeCheckLeg?.checkBank ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
     });
-  }, [decimalPlaces, getLegStoredValueCap, getMethodOption, giftCardSettlementAmount, saleTotal]);
+    setValue('checkDate', activeCheckLeg?.checkDate ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
+    });
+  }, [activeLegIndex, paymentLegs, paymentMethod, setValue]);
 
-  const upsertSettlementLeg = useCallback(
-    (option: CheckoutSettlementOption, defaultAmount: number) => {
-      setIsDirtySinceOpen(true);
-      setPaymentLegs((prev) => {
-        const existingIndex = prev.findIndex(
-          (leg) =>
-            leg.method === option.payment_method_code &&
-            (leg.gateway_code ?? '') === (option.gateway_code ?? '')
-        );
-        const targetIndex = existingIndex >= 0 ? existingIndex : prev.length;
-        const policy = resolvePaymentOverpaymentPolicy({
-          paymentMethodCode: option.payment_method_code,
-          supportsChangeReturn: option.supports_change_return,
-          supportsOverpayment: option.supports_overpayment,
-          requiresCashDrawer: option.requires_cash_drawer,
-        });
-        const nextAmount = deriveLegAppliedAmount({
-          rawAmount: defaultAmount,
-          paymentLegs: prev,
-          legIndex: targetIndex,
-          saleTotal,
-          giftCardAmount: giftCardSettlementAmount,
-          decimalPlaces,
-          walletBalance: getLegStoredValueCap({
-            method: option.payment_method_code as PaymentLeg['method'],
-            amount: defaultAmount,
-            ...(existingIndex >= 0 ? prev[existingIndex] : {}),
-          }),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
-        });
-        const nextLeg: PaymentLeg = {
-          legRef: existingIndex >= 0 ? prev[existingIndex].legRef ?? crypto.randomUUID() : crypto.randomUUID(),
-          method: option.payment_method_code as PaymentLeg['method'],
-          amount: nextAmount,
-          ...(policy.isCash ? { cashTendered: nextAmount } : {}),
-          ...(GATEWAY_METHOD_CODES.includes(option.payment_method_code)
-            ? { gateway_code: option.gateway_code ?? undefined }
-            : {}),
-        };
+  // Keep the form's default method/policy aligned until the cashier touches the modal.
+  // Reads paymentLegs.length (owned by usePaymentLegs), so it registers after the hook.
+  useEffect(() => {
+    if (!open || isDirtySinceOpen || paymentLegs.length > 0) {
+      return;
+    }
 
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            ...nextLeg,
-            amount: nextAmount,
-          };
-          setActiveLegIndex(existingIndex);
-          return updated;
-        }
+    if (paymentMethod !== defaultPaymentMethod) {
+      setValue('paymentMethod', defaultPaymentMethod, { shouldDirty: false });
+    }
 
-        const legEpsilon = Math.pow(10, -(decimalPlaces + 1));
-        const allPlaceholdersZero =
-          prev.length > 0 && prev.every((leg) => (leg.amount ?? 0) <= legEpsilon);
-
-        if (allPlaceholdersZero || (prev.length === 1 && (prev[0].amount ?? 0) <= legEpsilon)) {
-          setActiveLegIndex(0);
-          return [nextLeg];
-        }
-
-        setActiveLegIndex(prev.length);
-        return [...prev, nextLeg];
-      });
-      focusAmountEditor();
-    },
-    [
-      GATEWAY_METHOD_CODES,
-      decimalPlaces,
-      focusAmountEditor,
-      getLegStoredValueCap,
-      giftCardSettlementAmount,
-      saleTotal,
-    ]
-  );
+    if (outstandingPolicy !== defaultOutstandingPolicy) {
+      setValue('outstandingPolicy', defaultOutstandingPolicy, { shouldDirty: false });
+    }
+  }, [
+    defaultOutstandingPolicy,
+    defaultPaymentMethod,
+    isDirtySinceOpen,
+    open,
+    outstandingPolicy,
+    paymentLegs.length,
+    paymentMethod,
+    setValue,
+  ]);
 
   const handleCreditNoteSelect = useCallback(
     (noteId: string) => {
@@ -1459,29 +1133,8 @@ export function PaymentModalV4({
     ]
   );
 
-  useEffect(() => {
-    if (!open) {
-      allocationBaselineRef.current = null;
-      return;
-    }
-
-    const epsilon = Math.pow(10, -(decimalPlaces + 1));
-    const previous = allocationBaselineRef.current;
-
-    if (previous !== null && paymentLegs.length > 0) {
-      const saleTotalChanged = Math.abs(previous.saleTotal - saleTotal) > epsilon;
-      const giftCardChanged = Math.abs(previous.giftCard - giftCardSettlementAmount) > epsilon;
-
-      if (saleTotalChanged || giftCardChanged) {
-        setPaymentLegs((prevLegs) =>
-          reconcilePaymentLegAmounts(prevLegs, saleTotal, giftCardSettlementAmount, decimalPlaces)
-        );
-        cmxMessage.info(t('messages.totalsAdjusted'));
-      }
-    }
-
-    allocationBaselineRef.current = { saleTotal, giftCard: giftCardSettlementAmount };
-  }, [decimalPlaces, giftCardSettlementAmount, open, paymentLegs.length, saleTotal, t]);
+  // The totals-change reconciliation effect is owned by usePaymentLegs (it caps leg
+  // amounts when saleTotal / giftCard change after legs exist).
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -2292,7 +1945,7 @@ export function PaymentModalV4({
   };
 
   const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
-  const activeLeg = paymentLegs[activeLegIndex] ?? null;
+  // activeLeg is provided by usePaymentLegs (destructured above).
   const activeLegRemainingCap = useMemo(() => {
     if (!activeLeg) return 0;
     return getRemainingToAllocate(
@@ -3042,33 +2695,7 @@ export function PaymentModalV4({
     }
   }, [paymentMethod, setValue]);
 
-  useEffect(() => {
-    if (!activeLeg) {
-      activeLegDraftSyncKeyRef.current = null;
-      setActiveAmountDraft('');
-      return;
-    }
-
-    const activeLegDraftSyncKey = `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`;
-    const draftSourceAmount =
-      activeLeg.method === PAYMENT_METHODS.CASH
-        ? activeLeg.cashTendered ?? activeLeg.amount ?? 0
-        : activeLeg.amount ?? 0;
-    const normalizedLegDraft = formatDecimalDraft(draftSourceAmount, decimalPlaces);
-    const normalizedCurrentDraft = sanitizeDecimalDraft(activeAmountDraft, decimalPlaces);
-    const currentDraftAmount = parseDecimalDraft(normalizedCurrentDraft);
-    const legAmount = draftSourceAmount;
-    const sameLeg = activeLegDraftSyncKeyRef.current === activeLegDraftSyncKey;
-    const draftMatchesSameLegAmount = sameLeg && currentDraftAmount === legAmount;
-
-    activeLegDraftSyncKeyRef.current = activeLegDraftSyncKey;
-
-    if (draftMatchesSameLegAmount) {
-      return;
-    }
-
-    setActiveAmountDraft(normalizedLegDraft);
-  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces]);
+  // The active-leg amount-editor draft-sync effect is owned by usePaymentLegs.
 
   const handleKeypadPress = useCallback((key: PaymentKeypadKey) => {
     if (!activeLeg) return;

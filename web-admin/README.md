@@ -40,6 +40,7 @@ npm run lint
 npm run typecheck
 npm run test
 npm run test:e2e
+npm run test:e2e:smoke
 npm run check:i18n
 ```
 
@@ -79,6 +80,7 @@ Available test layers:
 - `npm run test`: unit and component tests
 - `npm run test:tenant-isolation`: tenant isolation-focused tests
 - `npm run test:e2e`: Playwright end-to-end tests
+- `npm run test:e2e:smoke`: targeted dashboard smoke for the main protected routes; set `E2E_LOGIN_EMAIL` and `E2E_LOGIN_PASSWORD` to exercise authenticated screens, otherwise the smoke validates clean login redirects
 
 ## Related Documentation
 

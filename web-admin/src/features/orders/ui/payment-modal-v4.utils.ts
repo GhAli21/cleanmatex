@@ -1,4 +1,4 @@
-import type { OutstandingPolicy } from '@/lib/validations/new-order-payment-schemas';
+import type { OutstandingPolicy, PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import {
   sanitizeMoneyDraft as sanitizeDecimalDraft,
   parseMoneyDraft as parseDecimalDraft,
@@ -666,4 +666,116 @@ export function parseGatewayReturnState(raw: string | null | undefined): Record<
   } catch {
     return null;
   }
+}
+
+/**
+ * Overpayment/change policy a {@link quickTender} caller resolves for the target leg
+ * (from `resolvePaymentOverpaymentPolicy`). Structural so callers pass the already-
+ * resolved policy rather than re-deriving it inside the pure function.
+ */
+export interface QuickTenderPolicy {
+  isCash: boolean;
+  supportsChangeReturn: boolean;
+  supportsOverpayment: boolean;
+}
+
+/**
+ * Inputs for the pure {@link quickTender} helper.
+ */
+export interface QuickTenderInput {
+  /** `'exact'` settles the remaining cap; `'change'` sets a cash change-to-return (#2). */
+  kind: 'exact' | 'change';
+  /** Desired change-to-return; required (and only honored) when `kind === 'change'`. */
+  changeValue?: number;
+  /** The target leg. */
+  leg: PaymentLeg;
+  /** All current legs (for the remaining-to-allocate cap). */
+  legs: PaymentLeg[];
+  /** Index of the target leg within `legs`. */
+  legIndex: number;
+  saleTotal: number;
+  giftCardSettlementAmount: number;
+  decimalPlaces: number;
+  /** Stored-value cap for the leg (`getLegStoredValueCap(leg)`), when applicable. */
+  storedValueCap?: number;
+  /** Resolved overpayment/change policy for the target leg. */
+  policy: QuickTenderPolicy;
+}
+
+/**
+ * Result of {@link quickTender}: the amount to apply and (for cash legs) the tender.
+ */
+export interface QuickTenderResult {
+  appliedAmount: number;
+  cashTendered?: number;
+}
+
+/**
+ * Pure quick-tender resolver — input assistance only, never a gate bypass.
+ *
+ * The applied amount is ALWAYS routed through the same leg-capping gate the keypad
+ * uses ({@link deriveLegAppliedAmount} in capping mode), so it can never exceed the
+ * remaining-to-allocate cap (nor the stored-value cap) and therefore never silently
+ * bypasses overpayment / `payExtra` routing. For cash legs the change-entry variant
+ * (#2) only adds the requested change-to-return on top of the applied amount as extra
+ * tender (and only when the method supports returning change); applied is untouched.
+ *
+ * Lives in the utils module (not the hook) so it is jest-testable without pulling in
+ * the hook's `cmxMessage` import chain. The `usePaymentLegs` hook re-exports it.
+ *
+ * @param input - {@link QuickTenderInput}.
+ * @returns {@link QuickTenderResult} — `{ appliedAmount, cashTendered? }`.
+ */
+export function quickTender({
+  kind,
+  changeValue,
+  legs,
+  legIndex,
+  saleTotal,
+  giftCardSettlementAmount,
+  decimalPlaces,
+  storedValueCap,
+  policy,
+}: QuickTenderInput): QuickTenderResult {
+  // Remaining order balance this leg may settle, excluding its own current amount.
+  const remaining = getRemainingToAllocate(
+    saleTotal,
+    legs,
+    giftCardSettlementAmount,
+    legIndex,
+    decimalPlaces
+  );
+
+  // Gate-preserving: capped to remaining (and the stored-value cap, if any). Both
+  // `exact` and `change` settle the leg at the remaining cap — change-entry never
+  // raises the applied amount, only the cash tendered.
+  const appliedAmount = deriveLegAppliedAmount({
+    rawAmount: remaining,
+    paymentLegs: legs,
+    legIndex,
+    saleTotal,
+    giftCardAmount: giftCardSettlementAmount,
+    decimalPlaces,
+    walletBalance: storedValueCap,
+    supportsOverpayment: false,
+  });
+
+  if (!policy.isCash) {
+    // Non-cash "exact" (and any non-cash kind) == the remaining cap; no tender/change.
+    return { appliedAmount };
+  }
+
+  // Cash: direct-change-entry (#2) adds the requested change on top of the applied
+  // amount as extra tender, but only when the method can return change; otherwise it
+  // clamps to exact (tendered == applied, no change).
+  const wantsChange =
+    kind === 'change' && policy.supportsChangeReturn && (changeValue ?? 0) > 0;
+  const rawTendered = wantsChange ? appliedAmount + (changeValue ?? 0) : appliedAmount;
+  const cashTendered = deriveCashTenderedAmount(
+    rawTendered,
+    appliedAmount,
+    policy.supportsChangeReturn,
+    decimalPlaces
+  );
+  return { appliedAmount, cashTendered };
 }
