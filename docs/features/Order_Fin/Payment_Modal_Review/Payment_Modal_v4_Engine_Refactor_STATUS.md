@@ -30,3 +30,56 @@ eslint clean · `tsc` clean on touched files · production build green · 114 pa
 
 ## Payload fixtures — purpose
 The 8 baseline fixtures are the **Phase 2F automated oracle**, not a Phase-1 manual task: once `buildPaymentPayload` is extracted (2F), the oracle test replays each fixture's recorded inputs through it and asserts deep-equality with the recorded payload (deterministic, CI-runnable). Phase 1 is already verified by verbatim lifts + tests + build.
+
+---
+
+# Phase 2A — Execution Spec (ready to run in a fresh session)
+
+> **Mandatory first step:** load the `/frontend` skill before writing any code. No DB/nav/permission/API change in this phase. Mirror the existing extracted-hook style in `web-admin/src/features/orders/hooks/use-money-derivations.ts` and `.../payment-validation.ts` (pure where possible, `'use client'`, JSDoc, behavior-frozen verbatim lifts).
+
+**Goal:** extract the **catalog** concern from `web-admin/src/features/orders/ui/payment-modal-v4.tsx` into `web-admin/src/features/orders/hooks/use-payment-catalog.ts`, with **zero behavior change**, and **add `isError` + `refetch`** to the checkout-options query (enables finding 1.9, the method-list error/retry state, in Phase 3).
+
+### Key gotcha (discovered, do not re-derive)
+`checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total` — the checkout-options query key depends on **totals**. So **catalog ← totals**: the hook must receive `checkoutEligibilityAmount` as an **input param** (computed in the component, which still owns `serverTotals` until Phase 2C). Do not move `serverTotals`/`checkoutEligibilityAmount` into this hook.
+
+### This is a 12-region, non-contiguous extraction
+Catalog lines are physically interleaved with **cash-drawer** and **stored-value** code that MUST stay in the component. Line numbers below are pre-extraction approximations — re-grep each symbol before editing.
+
+**Relocate into the hook (export the types):**
+- Types: `CheckoutSettlementOption` (~:200–222), `CheckoutOptionsResponse` (~:224–227), `PaymentTerminalOption` (~:718–725). NOTE: `CheckoutSettlementOption` is referenced in ~15 places in the component → component imports it back from the hook.
+- Module constants: `IMMEDIATE_METHOD_CODES` (~:1167–1174), `GATEWAY_METHOD_CODES` (~:1176–1181).
+- Queries: `cardBrands` (~:706–716), `paymentTerminals` (~:727–737) + `branchPaymentTerminals` (~:739–745), `checkoutOptions` (~:747–761, add `isError`+`refetch`).
+- Derived: `checkoutMethods` (~:792), `customerCreditOptions` (~:793), `realPaymentOptions` (~:1182–1190), `creditMethodCodes` (~:1192–1195), `optionByMethodKey` (~:1207–1212), `getMethodOption` (~:1286–1291), `getOptionDisplayName` (~:1310–1315), `getMethodHint` (~:1317–1322).
+
+**Leave in the component (different concerns):** `cashDrawers` query (~:763–790) and all cash-drawer helpers; `storedValueSummary` query (~:800+) and `liveWalletBalance`/`getLegStoredValueCap`/`walletCreditOption` (stored-value); `currencyConfig`. The component derives `walletCreditOption` from the hook's returned `customerCreditOptions`.
+
+### Hook contract
+```ts
+usePaymentCatalog({
+  open, tenantOrgId, branchId, customerId,
+  checkoutEligibilityAmount,   // threaded from serverTotals in the component
+  isRetailOnlyOrder, isRTL,
+}): {
+  cardBrands, paymentTerminals, branchPaymentTerminals,
+  checkoutMethods, customerCreditOptions,
+  checkoutMethodsLoading, checkoutOptionsIsError, refetchCheckoutOptions,   // NEW: isError + refetch
+  realPaymentOptions, creditMethodCodes, optionByMethodKey,
+  getMethodOption, getOptionDisplayName, getMethodHint,
+}
+```
+- `getOptionDisplayName` / `getMethodHint` use `getPaymentLabel` (keep that import in BOTH hook and component — also used by `summaryMethodLabel`).
+- Component re-wires ~20 consumers to the destructured hook outputs, and feeds `getMethodOption` into the existing `useMoneyDerivations(...)` + `derivePaymentValidationItems(...)` call sites (already parameterized for it).
+
+### Validation gate (all must pass)
+1. `cd web-admin && npx eslint <touched files> --quiet` → clean (watch for now-unused imports: `useQuery`, `OrgCardBrandConfig`, `getPaymentLabel`, `PAYMENT_METHODS` — only remove if truly unused in the component after the cut).
+2. `npx tsc --noEmit` → no NEW errors in touched files (repo has ~12 pre-existing unrelated errors: b2b pages, catalog/orders-access, use-category-products — ignore those).
+3. `npx jest __tests__/features/orders/...` payment suites → green (114 baseline).
+4. `npm run build` → green.
+5. **Collect-Payment smoke:** confirm `order-collect-payment-modal.tsx` still builds (it shares `usePayExtraCheckout`, not catalog, but verify no fallout).
+6. Per-step closeout: update this STATUS table + CHANGELOG; `/documentation` at phase end.
+
+### Test note
+Test files in this repo must use **separate `import type { … }`** lines (the babel-jest transform rejects inline `import { type X }`). Query/effect hooks like this one get typecheck + build + manual coverage, not brittle network unit tests (per the program test strategy).
+
+### After 2A
+Next is **2B gift card/promo**, then **2C totals** (which finally lets the component stop computing `checkoutEligibilityAmount` inline once totals is a hook). See the program plan for the full 2A–2G order.
