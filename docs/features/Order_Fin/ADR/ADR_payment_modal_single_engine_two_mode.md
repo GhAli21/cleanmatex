@@ -30,6 +30,8 @@ We explicitly **reject** building two independent modals.
 
 Open in **Simple**; flip to **Full** (and block manual return to Simple) when **any** hold:
 
+**Be Flexible in implementation because maybe one or more of this conditions maybe change or disabled in the future**
+
 1. More than one settlement leg (split payment).
 2. A customer advance / stored credit is being applied.
 3. B2B credit-invoice / AR policy (`outstandingPolicy === 'CREDIT_INVOICE'` or B2B customer).
@@ -41,6 +43,7 @@ Open in **Simple**; flip to **Full** (and block manual return to Simple) when **
 9. FX / rounding is active (exchange rate ≠ 1 or non-zero rounding).
 
 Exact-cash or a single card swipe with none of the above **stays Simple**.
+Manual escalation to Full mode is always permitted via a toggle button, but returning to Simple mode is disabled if any needsAdvanced conditions are met.
 
 ## Consequences
 
@@ -49,6 +52,7 @@ Exact-cash or a single card swipe with none of the above **stays Simple**.
 - State survives mode switches (engine owns state, not the views).
 - Each sub-hook is independently unit-testable — impossible today.
 - No logic fork; the `.bak` maintenance trap is not repeated.
+- The input values (like a partially typed amount in the keypad) must also survive the mode switch. If a user types "50" in Simple mode, and then clicks "Advanced" to split the payment, that "50" must persist in the Full view.
 
 **Negative / risks**
 - Large refactor of payment-critical code → mitigated by **engine-first, zero-behavior-change** extraction, a **baseline payload fixtures** regression oracle, and incremental dependency-ordered sub-phases (each green before the next).
