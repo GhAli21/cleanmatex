@@ -15,7 +15,6 @@ import type { ExtraReceiptHandlingMode } from '@features/orders/ui/payment-modal
  */
 export type OverpaymentAllocationSourceType =
   | 'ORDER_PAYMENT_MODAL'
-  | 'LATER_COLLECTION'
   | 'CUSTOMER_RECEIPT';
 
 /**

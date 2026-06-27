@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Banknote, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { computeCollectionOverpaymentMetrics } from '@/lib/payments/collection-overpayment';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
@@ -14,7 +16,10 @@ import {
 } from '@/lib/constants/settlement-catalog';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput, Label } from '@ui/primitives';
+import { CmxMoneyField } from '@ui/primitives';
+import { CmxSkeleton } from '@ui/primitives';
 import { LoadingButton } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -25,6 +30,7 @@ import {
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { showErrorToast, showSuccessToast } from '@ui/components/cmx-toast';
 import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
+import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { ExtraReceiptHandlingCard } from '@features/orders/ui/payment-modal/allocation/extra-receipt-handling-card';
 import { AutoAllocationPreviewDrawer } from '@features/orders/ui/payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from '@features/orders/ui/payment-modal/allocation/manual-allocation-drawer';
@@ -85,7 +91,10 @@ export function OrderCollectPaymentModal({
   const tPayment = useTranslations('newOrder.payment');
   const tExtra = useTranslations('newOrder.payment.extraReceipt');
   const isRTL = useRTL();
-  const { formatMoneyWithCode } = useTenantCurrency();
+  const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency();
+  const { currentTenant, user } = useAuth();
+  const tenantOrgId = currentTenant?.tenant_id ?? '';
+  const userId = user?.id;
   const { token: csrfToken } = useCSRFToken();
   const canCollect = useHasPermissionCode('orders:collect_payment');
   const canAllocate = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE);
@@ -106,6 +115,51 @@ export function OrderCollectPaymentModal({
 
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
+  const cashDrawerRequired = !!selectedMethod?.requires_cash_drawer;
+
+  // Inline cash-drawer session management (shared with the new-order payment modal).
+  // The selected cash method must be bound to an open drawer session before the API
+  // will accept the collection; this lets the cashier select/open one in place.
+  const cashDrawer = useCashDrawer({
+    open,
+    tenantOrgId,
+    branchId: branchId ?? undefined,
+    userId,
+    isRTL,
+    csrfToken,
+    t: tPayment,
+    cashDrawerRequired,
+  });
+  const {
+    cashDrawers,
+    cashDrawersLoading,
+    cashDrawersFetching,
+    refetchCashDrawers,
+    selectedCashDrawerSessionId,
+    setSelectedCashDrawerSessionId,
+    cashDrawerDialogOpen,
+    setCashDrawerDialogOpen,
+    cashDrawerToOpenId,
+    setCashDrawerToOpenId,
+    openingBalanceValue,
+    setOpeningBalanceValue,
+    openingDrawerSession,
+    cashDrawerRequestError,
+    setCashDrawerRequestError,
+    cashDrawerSessionChoices,
+    selectedCashDrawerChoice,
+    canOpenNewCashDrawerSession,
+    cashDrawerBlockingMessage,
+    getDrawerDisplayName,
+    persistPreferredCashDrawerId,
+    handleOpenCashDrawerDialog,
+    handleCreateCashDrawerSession,
+  } = cashDrawer;
+
+  const cashDrawerBlocksSubmit = cashDrawerRequired && !!cashDrawerBlockingMessage;
+
+  // Change to return to the customer when cash tendered exceeds the collected amount.
+  const changeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
 
   // formatMoneyWithCode takes only the amount (tenant currency); the modal
   // strips the code to render a bare number. Passing currencyCode as a 2nd arg
@@ -165,7 +219,10 @@ export function OrderCollectPaymentModal({
     legs: checkoutLegs,
     receiptAmount: amount,
     currentOrderAllocationAmount: Math.min(amount, outstandingAmount),
-    sourceType: 'LATER_COLLECTION',
+    // Later collection of an order receivable is an order-scoped payment (sourceOrderId
+    // is set), so it posts under the order-payment voucher source — the only order-scoped
+    // value the auto-allocation schema accepts (CUSTOMER_RECEIPT is account-level).
+    sourceType: 'ORDER_PAYMENT_MODAL',
     sourceOrderId: orderId,
     paymentMethodCode: selectedMethod?.payment_method_code ?? PAYMENT_METHODS.CASH,
     confirmedToastMessage: tExtra('allocation.confirmedToast'),
@@ -262,6 +319,10 @@ export function OrderCollectPaymentModal({
       );
       return;
     }
+    if (cashDrawerBlocksSubmit) {
+      showErrorToast(cashDrawerBlockingMessage ?? tPayment('cashDrawer.errors.noOpenSession'));
+      return;
+    }
     setSubmitting(true);
     try {
       const legsWithRefs = ensurePaymentLegRefs([
@@ -295,6 +356,9 @@ export function OrderCollectPaymentModal({
             },
           ],
           customerId: customerId ?? undefined,
+          ...(cashDrawerRequired && selectedCashDrawerSessionId
+            ? { cashDrawerSessionId: selectedCashDrawerSessionId }
+            : {}),
           ...(submitResolution ? { overpaymentResolution: submitResolution } : {}),
           // F-10: per-event idempotency key. Random suffix guards against two
           // distinct rapid collections landing in the same millisecond (which
@@ -304,13 +368,19 @@ export function OrderCollectPaymentModal({
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        const errorCode = typeof json.errorCode === 'string' ? json.errorCode : '';
+        // Match on errorCode, falling back to a raw `error` that is itself a code
+        // (the API sometimes returns the code in `error` with no `errorCode`).
+        const errorCode =
+          (typeof json.errorCode === 'string' && json.errorCode) ||
+          (typeof json.error === 'string' ? json.error : '');
         const mapped =
           errorCode === 'OVERPAYMENT_RESOLUTION_REQUIRED'
             ? tPayment('validatePayment.requiredBeforeSubmit')
             : errorCode === 'OVERPAYMENT_RESOLUTION_NOT_ALLOWED'
               ? tPayment('extraReceipt.allocation.manualBlockedReturn')
-              : null;
+              : errorCode === 'CASH_DRAWER_SESSION_REQUIRED'
+                ? tPayment('cashDrawer.errors.noOpenSession')
+                : null;
         throw new Error(mapped ?? json.error ?? t('submitError'));
       }
       showSuccessToast(t('success'));
@@ -327,6 +397,13 @@ export function OrderCollectPaymentModal({
     return null;
   }
 
+  const requiredMark = (
+    <span className="text-red-500" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  );
+
   return (
     <>
       <CmxDialog open={open} onOpenChange={onOpenChange}>
@@ -336,19 +413,39 @@ export function OrderCollectPaymentModal({
           </CmxDialogHeader>
 
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              {t('outstanding', { amount: formatMoneyWithCode(outstandingAmount) })}
-            </p>
+            <div className={`rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className={`flex items-baseline justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-sm text-muted-foreground">{t('outstandingLabel')}</span>
+                <span className="text-lg font-bold tabular-nums text-slate-900">
+                  {formatMoneyWithCode(outstandingAmount)}
+                </span>
+              </div>
+            </div>
 
             {methodsLoading ? (
-              <p className="text-sm text-muted-foreground">{t('loadingMethods')}</p>
+              <div className="space-y-3">
+                <CmxSkeleton className="h-10 w-full" />
+                <CmxSkeleton className="h-10 w-full" />
+              </div>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label>{t('paymentMethod')}</Label>
+                  <Label>
+                    {t('paymentMethod')}
+                    {requiredMark}
+                  </Label>
                   <CmxSelectDropdown value={selectedMethodId} onValueChange={setSelectedMethodId}>
-                    <CmxSelectDropdownTrigger className="w-full">
-                      <CmxSelectDropdownValue placeholder={t('paymentMethod')} />
+                    <CmxSelectDropdownTrigger className="w-full" aria-required="true">
+                      <CmxSelectDropdownValue
+                        displayValue={
+                          selectedMethod
+                            ? (isRTL && selectedMethod.display_name2
+                                ? selectedMethod.display_name2
+                                : selectedMethod.display_name)
+                            : undefined
+                        }
+                        placeholder={t('paymentMethod')}
+                      />
                     </CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
                       {methods.map((method) => (
@@ -361,13 +458,28 @@ export function OrderCollectPaymentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="collect-amount">{t('amount')}</Label>
+                  <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <Label htmlFor="collect-amount" className="m-0">
+                      {t('amount')}
+                      {requiredMark}
+                    </Label>
+                    <CmxButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto px-2 py-0.5 text-xs font-medium text-cyan-700"
+                      onClick={() => setAmount(outstandingAmount)}
+                    >
+                      {t('fullOutstanding')}
+                    </CmxButton>
+                  </div>
                   <CmxInput
                     id="collect-amount"
                     type="number"
                     min={0}
                     step="0.001"
                     value={amount}
+                    aria-required="true"
                     onChange={(e) => setAmount(Number(e.target.value))}
                   />
                 </div>
@@ -383,6 +495,123 @@ export function OrderCollectPaymentModal({
                       value={cashTendered ?? amount}
                       onChange={(e) => setCashTendered(Number(e.target.value))}
                     />
+                  </div>
+                ) : null}
+
+                {isCash && changeDue > SETTLEMENT_MONEY_EPSILON ? (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className={`flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    <span className="text-emerald-700">{t('changeDue')}</span>
+                    <span className="font-semibold tabular-nums text-emerald-800">
+                      {formatMoneyWithCode(changeDue)}
+                    </span>
+                  </div>
+                ) : null}
+
+                {cashDrawerRequired ? (
+                  <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                    <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Label className="m-0 flex items-center gap-1.5">
+                        <Banknote className="h-4 w-4 text-cyan-700" />
+                        {tPayment('cashDrawer.title')}
+                      </Label>
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedCashDrawerChoice
+                          ? tPayment('cashDrawer.boundBadge')
+                          : tPayment('cashDrawer.pendingBadge')}
+                      </Badge>
+                    </div>
+                    <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {tPayment('cashDrawer.subtitle')}
+                    </p>
+
+                    {cashDrawersLoading ? (
+                      <CmxSkeleton className="h-16 w-full" />
+                    ) : (
+                      <>
+                        {cashDrawerSessionChoices.length > 1 ? (
+                          <CmxSelectDropdown
+                            value={selectedCashDrawerSessionId}
+                            onValueChange={(value) => {
+                              setSelectedCashDrawerSessionId(value);
+                              const selectedChoice = cashDrawerSessionChoices.find(
+                                ({ session }) => session.id === value
+                              );
+                              persistPreferredCashDrawerId(selectedChoice?.drawer.id);
+                              setCashDrawerRequestError(null);
+                            }}
+                            emptyLabel={tPayment('cashDrawer.selectPlaceholder')}
+                          >
+                            <CmxSelectDropdownTrigger className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
+                              <CmxSelectDropdownValue
+                                displayValue={
+                                  selectedCashDrawerChoice
+                                    ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
+                                    : tPayment('cashDrawer.selectPlaceholder')
+                                }
+                                placeholder={tPayment('cashDrawer.selectPlaceholder')}
+                              />
+                            </CmxSelectDropdownTrigger>
+                            <CmxSelectDropdownContent>
+                              {cashDrawerSessionChoices.map(({ drawer, session }) => (
+                                <CmxSelectDropdownItem key={session.id} value={session.id}>
+                                  {`${getDrawerDisplayName(drawer)} • ${session.session_no}`}
+                                </CmxSelectDropdownItem>
+                              ))}
+                            </CmxSelectDropdownContent>
+                          </CmxSelectDropdown>
+                        ) : selectedCashDrawerChoice ? (
+                          <div className={`rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <span className="font-medium text-slate-900">
+                              {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
+                            </span>
+                            {` • ${selectedCashDrawerChoice.session.session_no}`}
+                          </div>
+                        ) : null}
+
+                        {cashDrawerBlockingMessage ? (
+                          <div
+                            role="alert"
+                            aria-live="polite"
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                          >
+                            {cashDrawerBlockingMessage}
+                          </div>
+                        ) : null}
+
+                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <CmxButton
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void refetchCashDrawers()}
+                            disabled={cashDrawersFetching}
+                            className="rounded-lg"
+                          >
+                            {cashDrawersFetching ? (
+                              <Loader2 className="me-1 h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="me-1 h-4 w-4" />
+                            )}
+                            {tPayment('cashDrawer.refresh')}
+                          </CmxButton>
+                          <CmxButton
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleOpenCashDrawerDialog}
+                            disabled={!canOpenNewCashDrawerSession}
+                            className="rounded-lg"
+                          >
+                            <Plus className="me-1 h-4 w-4" />
+                            {tPayment('cashDrawer.openSession')}
+                          </CmxButton>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : null}
 
@@ -432,10 +661,87 @@ export function OrderCollectPaymentModal({
             </CmxButton>
             <LoadingButton
               loading={submitting}
-              disabled={methodsLoading || !selectedMethod || needsResolution}
+              disabled={methodsLoading || !selectedMethod || needsResolution || cashDrawerBlocksSubmit}
               onClick={handleSubmit}
             >
               {t('submit')}
+            </LoadingButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog open={cashDrawerDialogOpen} onOpenChange={setCashDrawerDialogOpen}>
+        <CmxDialogContent className="max-w-md">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{tPayment('cashDrawer.dialogTitle')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">{tPayment('cashDrawer.dialogDescription')}</p>
+
+            {cashDrawerRequestError ? (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {cashDrawerRequestError}
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label>{tPayment('cashDrawer.drawerLabel')}</Label>
+              <CmxSelectDropdown
+                value={cashDrawerToOpenId}
+                onValueChange={(value) => {
+                  setCashDrawerToOpenId(value);
+                  setCashDrawerRequestError(null);
+                }}
+                emptyLabel={tPayment('cashDrawer.drawerPlaceholder')}
+              >
+                <CmxSelectDropdownTrigger className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <CmxSelectDropdownValue
+                    displayValue={(() => {
+                      const selectedDrawer = cashDrawers.find((drawer) => drawer.id === cashDrawerToOpenId);
+                      return selectedDrawer
+                        ? getDrawerDisplayName(selectedDrawer)
+                        : tPayment('cashDrawer.drawerPlaceholder');
+                    })()}
+                    placeholder={tPayment('cashDrawer.drawerPlaceholder')}
+                  />
+                </CmxSelectDropdownTrigger>
+                <CmxSelectDropdownContent>
+                  {cashDrawers
+                    .filter((drawer) => !drawer.currentSession)
+                    .map((drawer) => (
+                      <CmxSelectDropdownItem key={drawer.id} value={drawer.id}>
+                        {getDrawerDisplayName(drawer)}
+                      </CmxSelectDropdownItem>
+                    ))}
+                </CmxSelectDropdownContent>
+              </CmxSelectDropdown>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{tPayment('cashDrawer.openingBalanceLabel')}</Label>
+              <CmxMoneyField
+                value={openingBalanceValue}
+                decimalPlaces={decimalPlaces}
+                showZero
+                aria-label={tPayment('cashDrawer.openingBalanceLabel')}
+                placeholder={formatAmount(0)}
+                onValueChange={(value) => {
+                  setOpeningBalanceValue(value);
+                  setCashDrawerRequestError(null);
+                }}
+              />
+            </div>
+          </div>
+          <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
+              {t('cancel')}
+            </CmxButton>
+            <LoadingButton
+              loading={openingDrawerSession}
+              disabled={openingDrawerSession || !cashDrawerToOpenId}
+              onClick={() => void handleCreateCashDrawerSession()}
+            >
+              {tPayment('cashDrawer.openSession')}
             </LoadingButton>
           </CmxDialogFooter>
         </CmxDialogContent>
