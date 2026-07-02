@@ -608,6 +608,7 @@ export function PaymentFullView({
     handleCustomerCreditSelect,
     handleValidatePromoCode,
     handleClearPromoCode,
+    handleClearPromoCodeError,
     handleFetchGiftCardDetails,
     handleApplyGiftCard,
     handleClearGiftCard,
@@ -841,9 +842,12 @@ export function PaymentFullView({
     }
   };
 
-  const summaryMethodLabel = activeLeg
-    ? getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)
-    : getPaymentLabel(paymentMethod || defaultPaymentMethod);
+  const summaryMethodLabel =
+    paymentLegs.length > 1
+      ? t('submitConfirm.splitPayment')
+      : activeLeg
+        ? getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)
+        : getPaymentLabel(paymentMethod || defaultPaymentMethod);
   const allocationStatusLabel =
     unresolvedOverpaymentAmount > moneyEpsilon
       ? t('splitPayment.over')
@@ -852,6 +856,25 @@ export function PaymentFullView({
         : t('splitPayment.allocated');
   const customerHeaderName = customerDisplayName?.trim() || t('customerCard.walkInCustomer');
   const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
+
+  const promoErrorMessage = useMemo(() => {
+    if (!promoCodeResult || promoCodeResult.isValid) return null;
+    const { errorCode, thresholdAmount } = promoCodeResult;
+    if (errorCode === 'MIN_ORDER_NOT_MET' && thresholdAmount != null) {
+      return t('promoCode.errors.minOrderNotMet', { amount: `${currencyCode} ${formatAmount(thresholdAmount)}` });
+    }
+    if (errorCode === 'MAX_ORDER_EXCEEDED' && thresholdAmount != null) {
+      return t('promoCode.errors.maxOrderExceeded', { amount: `${currencyCode} ${formatAmount(thresholdAmount)}` });
+    }
+    const codeMap: Partial<Record<string, string>> = {
+      NOT_FOUND:               t('promoCode.errors.notFound'),
+      EXPIRED:                 t('promoCode.errors.expired'),
+      MAX_USES_EXCEEDED:       t('promoCode.errors.maxUsesExceeded'),
+      CATEGORY_NOT_APPLICABLE: t('promoCode.errors.categoryNotApplicable'),
+      CUSTOMER_LIMIT_EXCEEDED: t('promoCode.errors.customerLimitExceeded'),
+    };
+    return (errorCode && codeMap[errorCode]) ?? promoCodeResult.error ?? t('promoCode.errors.validationFailed');
+  }, [promoCodeResult, currencyCode, formatAmount, t]);
 
 
 
@@ -2209,7 +2232,7 @@ export function PaymentFullView({
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  onClick={handleBlockedSubmitAttempt}
+                                  onClick={focusFirstBlockingIssue}
                                   className="shrink-0 rounded-xl border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
                                 >
                                   {t('workspace.fixAction')}
@@ -2460,7 +2483,7 @@ export function PaymentFullView({
                                         value={activeLeg.gateway_code ?? ''}
                                         dir="ltr"
                                         placeholder="—"
-                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_code', event.target.value || undefined)}
+                                        readOnly
                                       />
                                       <CmxInput
                                         label={
@@ -2649,7 +2672,18 @@ export function PaymentFullView({
                                             <CmxInput
                                               {...field}
                                               value={field.value || ''}
-                                              onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                                              onChange={(event) => {
+                                                field.onChange(event.target.value.toUpperCase());
+                                                if (promoCodeResult && !promoCodeResult.isValid) {
+                                                  handleClearPromoCodeError();
+                                                }
+                                              }}
+                                              onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                  event.preventDefault();
+                                                  void handleValidatePromoCode();
+                                                }
+                                              }}
                                               placeholder={t('promoCode.placeholder')}
                                               disabled={promoCodeValidating}
                                             />
@@ -2664,9 +2698,9 @@ export function PaymentFullView({
                                           {promoCodeValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : t('promoCode.apply')}
                                         </CmxButton>
                                       </div>
-                                      {promoCodeResult && !promoCodeResult.isValid ? (
+                                      {promoErrorMessage ? (
                                         <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                          {promoCodeResult.error}
+                                          {promoErrorMessage}
                                         </p>
                                       ) : null}
                                     </div>
@@ -3627,9 +3661,14 @@ export function PaymentFullView({
                     data-testid="payment-submit-button"
                     loading={loading}
                     disabled={submitBusy}
+                    aria-disabled={submitHasBlockingIssues || submitBusy}
                     // eslint-disable-next-line react-hooks/refs
                     onClick={submitHasBlockingIssues ? handleBlockedSubmitAttempt : handleSubmit(onSubmitForm, onInvalidForm)}
-                    className="flex-1 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 font-bold shadow-sm"
+                    className={`flex-1 rounded-2xl font-bold shadow-sm ${
+                      submitHasBlockingIssues
+                        ? 'cursor-not-allowed bg-slate-300 text-slate-500 opacity-60 hover:bg-slate-300'
+                        : 'bg-gradient-to-r from-teal-600 to-cyan-700'
+                    }`}
                     size="lg"
                   >
                     {submitButtonLabel}

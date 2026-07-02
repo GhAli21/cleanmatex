@@ -176,7 +176,13 @@ export async function validatePromoCode(
     });
 
     if (!result.isValid || !result.promo) {
-      return { isValid: false, error: result.error, errorCode: result.errorCode };
+      const thresholdAmount =
+        result.errorCode === 'MIN_ORDER_NOT_MET'
+          ? Number(result.promo?.min_order_amount ?? 0)
+          : result.errorCode === 'MAX_ORDER_EXCEEDED'
+            ? Number(result.promo?.max_order_amount ?? 0)
+            : undefined;
+      return { isValid: false, error: result.error, errorCode: result.errorCode, thresholdAmount };
     }
     return { isValid: true, promoCode: mapPromoCodeToType(result.promo), discountAmount: result.discountAmount };
   } catch (error) {

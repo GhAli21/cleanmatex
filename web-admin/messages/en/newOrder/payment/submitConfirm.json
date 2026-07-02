@@ -2,6 +2,7 @@
   "title": "Confirm payment submission",
   "description": "Review the payment result before submitting this order.",
   "paymentMethod": "Payment Method",
+  "splitPayment": "Split Payment",
   "extraRouting": "Extra amount routing",
   "remainingNotice": "{amount} will remain unpaid after this payment.",
   "confirm": "Confirm & Submit"

@@ -467,6 +467,8 @@ export interface ValidatePromoCodeResult {
     | 'CATEGORY_NOT_APPLICABLE'
     | 'CUSTOMER_LIMIT_EXCEEDED'
     | 'UNAUTHORIZED';
+  /** Raw threshold amount for MIN_ORDER_NOT_MET / MAX_ORDER_EXCEEDED — used by the view for i18n formatting. */
+  thresholdAmount?: number;
 }
 
 // ============================================================================

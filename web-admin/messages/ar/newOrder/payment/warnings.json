@@ -1,5 +1,6 @@
 {
   "BANK_TRANSFER_PENDING_CONFIRMATION": "تم استلام الدفعة. في انتظار تأكيد التحويل البنكي.",
   "CHECK_PENDING_CONFIRMATION": "تم استلام الدفعة. في انتظار مقاصة الشيك.",
-  "GATEWAY_PAYMENT_PROCESSING": "الدفع الإلكتروني قيد المعالجة. سيتم تحديث الطلب تلقائياً."
+  "GATEWAY_PAYMENT_PROCESSING": "الدفع الإلكتروني قيد المعالجة. سيتم تحديث الطلب تلقائياً.",
+  "PAYMENT_GATEWAY_PENDING_CONFIRMATION": "تم استلام الدفعة. في انتظار تأكيد بوابة الدفع."
 }

@@ -13,8 +13,8 @@
     "expired": "Promo code has expired",
     "notYetValid": "Promo code is not yet valid",
     "maxUsesExceeded": "Promo code has reached maximum usage limit",
-    "minOrderNotMet": "Order total must be at least OMR {amount}",
-    "maxOrderExceeded": "Promo code only valid for orders up to OMR {amount}",
+    "minOrderNotMet": "Order total must be at least {amount}",
+    "maxOrderExceeded": "Promo code only valid for orders up to {amount}",
     "categoryNotApplicable": "Promo code not applicable to selected services",
     "customerLimitExceeded": "You have reached the maximum usage limit for this promo code",
     "validationFailed": "Failed to validate promo code"

@@ -13,8 +13,8 @@
     "expired": "انتهت صلاحية كود الخصم",
     "notYetValid": "كود الخصم غير صالح بعد",
     "maxUsesExceeded": "تم الوصول إلى الحد الأقصى لاستخدام كود الخصم",
-    "minOrderNotMet": "إجمالي الطلب يجب أن يكون على الأقل {amount} ريال عماني",
-    "maxOrderExceeded": "كود الخصم صالح فقط للطلبات حتى {amount} ريال عماني",
+    "minOrderNotMet": "إجمالي الطلب يجب أن يكون على الأقل {amount}",
+    "maxOrderExceeded": "كود الخصم صالح فقط للطلبات حتى {amount}",
     "categoryNotApplicable": "كود الخصم غير قابل للتطبيق على الخدمات المحددة",
     "customerLimitExceeded": "لقد وصلت إلى الحد الأقصى لاستخدام هذا الكود",
     "validationFailed": "فشل التحقق من كود الخصم"

@@ -897,6 +897,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     setAppliedPromoCode(null);
   };
 
+  const handleClearPromoCodeError = () => {
+    setPromoCodeResult(null);
+  };
+
   // Gift card handlers
   const handleFetchGiftCardDetails = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
@@ -1471,6 +1475,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     handleCustomerCreditSelect,
     handleValidatePromoCode,
     handleClearPromoCode,
+    handleClearPromoCodeError,
     handleFetchGiftCardDetails,
     handleApplyGiftCard,
     handleClearGiftCard,
