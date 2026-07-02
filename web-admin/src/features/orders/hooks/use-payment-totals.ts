@@ -178,6 +178,10 @@ export function usePaymentTotals({
   const [serverTotals, setServerTotals] = useState<ServerTotals | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the promo code that was sent in the last successful preview fetch.
+  // When appliedPromoCode.code differs, serverTotals.promoDiscount is stale and
+  // we fall back to the client-side validation amount to avoid a 0-flash.
+  const lastFetchedPromoCodeRef = useRef<string | null>(null);
 
   const checkoutEligibilityAmount = serverTotals?.saleTotal ?? checkoutAmount ?? total;
 
@@ -256,6 +260,10 @@ export function usePaymentTotals({
       const json = await res.json();
       if (json.success && json.data) {
         const d = json.data;
+        // Record the promo code that was used in this fetch so the totals memo
+        // can detect when serverTotals.promoDiscount is stale (promo changed but
+        // the preview hasn't re-fetched yet).
+        lastFetchedPromoCodeRef.current = appliedPromoCode?.code ?? null;
         setServerTotals({
           subtotal: d.subtotal,
           manualDiscount: d.manualDiscount,
@@ -366,9 +374,18 @@ export function usePaymentTotals({
 
   const totals = useMemo(() => {
     if (serverTotals) {
+      // If the applied promo code differs from what was used in the last preview fetch,
+      // serverTotals.promoDiscount is stale (the debounce hasn't fired yet). Use the
+      // client-side validation amount to avoid a zero-flash in the inspector.
+      const currentPromoCode = !NEW_ORDER_PROMO_GIFT_DISABLED ? (appliedPromoCode?.code ?? null) : null;
+      const promoIsStale = currentPromoCode !== lastFetchedPromoCodeRef.current;
+      const effectivePromoDiscount = promoIsStale
+        ? (!NEW_ORDER_PROMO_GIFT_DISABLED ? (appliedPromoCode?.discount ?? 0) : 0)
+        : serverTotals.promoDiscount;
       const serverTaxTotal = serverTotals.taxBreakdown.reduce((sum, line) => sum + line.taxAmount, 0);
       return {
         ...serverTotals,
+        promoDiscount: effectivePromoDiscount,
         taxRate: 0,
         taxAmount: serverTotals.additionalTaxAmount ?? 0,
         totalSavings: serverTotals.subtotal + serverTaxTotal - serverTotals.saleTotal,

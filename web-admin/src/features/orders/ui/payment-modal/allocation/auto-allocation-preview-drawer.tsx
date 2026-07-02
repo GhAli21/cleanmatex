@@ -128,7 +128,7 @@ export function AutoAllocationPreviewDrawer({
             disabled={
               !preview ||
               preview.remainingUnallocatedAmount > 0.001 ||
-              preview.allocations.length === 0
+              (preview.allocations.length === 0 && !preview.fallbackAllocation)
             }
             onClick={onConfirm}
           >

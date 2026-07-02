@@ -92,3 +92,28 @@ Confirm → `validationPhase = 'ready'` → submit proceeds. No state-machine ch
 - Working scenarios captured cleanly: cash-exact, cash-with-change, split, card.
 - gift-card-full, overpayment-allocation, gift-card-pin: capture their baseline payloads **after**
   Bug 1 is fixed and after re-testing the (now-fixed) allocation flow.
+
+---
+
+## 2D Manual QA bugs (2026-07-02)
+
+Found during the full 2D guide run by the user. All fixed in the same session.
+
+| ID | Case | Status | Fix location |
+|----|------|--------|--------------|
+| C4 | Confirm window showed only last-selected method for split | ✅ Fixed | `payment-full-view.tsx` — `summaryMethodLabel` |
+| C6 | "Fix now" banner didn't focus check-number field | ✅ Fixed | `payment-full-view.tsx` — direct `focusFirstBlockingIssue()` call |
+| C12-1 | Gateway Code field was editable | ✅ Fixed | `payment-full-view.tsx` — `readOnly` on `CmxInput` |
+| C12-2 | `payment_terminal_id` null in voucher lines (read-mapper bug) | ✅ Fixed | `voucher-biz.service.ts:275` — `l.payment_terminal_id ?? null` (was hardcoded `null`) |
+| C12-3 | Missing i18n key `PAYMENT_GATEWAY_PENDING_CONFIRMATION` | ✅ Fixed | `messages/en+ar/newOrder/payment/warnings.json` |
+| C14 | Credit note submit → DB constraint crash `chk_org_order_credit_apps_type` | ✅ Fixed | Migration 0392 — dropped wrong CHECK, added FK |
+| C16-1 | Pressing Enter in promo field didn't apply | ✅ Fixed | `payment-full-view.tsx` — `onKeyDown` handler |
+| C16-2 | Promo error showed `[object Object]` instead of amount | ✅ Fixed | `payment-full-view.tsx`, `discount-service.ts`, `lib/types/payment.ts` |
+| C16-3 | Promo error not cleared when user retypes | ✅ Fixed | `use-payment-engine.ts` — `handleClearPromoCodeError` |
+| C16-4 | Wrong (0) promo discount in Financial Inspector after applying promo | ✅ Fixed | `use-payment-totals.ts` — `lastFetchedPromoCodeRef` stale guard |
+| C17-1.1 | "Return as cash change" didn't work | ✅ Fixed | `order-collect-payment-modal.tsx` (frontend) + `order-settlement.service.ts` (backend) |
+| C17-1.3 | `CUSTOMER_ADVANCE` appeared in auto-allocation preview table | ✅ Fixed | `customer-receipt-allocation.service.ts` + `auto-allocation-preview-drawer.tsx` |
+| C18 | Newly created B2B invoice showed OVERDUE immediately | ✅ Fixed | `lib/constants/ar-invoice.ts` — `deriveArInvoiceStatus` date-string comparison |
+| Submit | Submit button had no visible disabled state | ✅ Fixed | `payment-full-view.tsx` — slate-grey class + `aria-disabled` |
+
+**Phase-3 UX improvements queued (not bugs):** C17-1.2 (Adjust → jump to amount editor), C17-1.4 (alloc table total row), C17-1.5 (manual alloc typography), C17-05 (direct-disposition options — Return as cash change / Save as advance / Add to wallet / Save as credit — should resolve inline without a follow-on screen; only Auto-allocate and Manual allocate genuinely need a sub-drawer), C5 (cash coin rounding), C10 (cycle leg discoverability).

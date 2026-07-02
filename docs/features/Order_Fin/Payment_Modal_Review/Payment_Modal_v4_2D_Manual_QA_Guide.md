@@ -142,7 +142,7 @@ the totals-reconciliation toast, the active-leg draft-sync, the open-reset, and 
 1. "Gateway Code" should be visible only and should not allow edit.
    > ✅ **FIXED (2026-07-02):** Gateway Code `CmxInput` is now `readOnly` — `onChange` handler removed from `payment-full-view.tsx`.
 2. terminal id not saved in voucher lines details ( SC-C12-02 ).
-   > ⏳ **PENDING INVESTIGATION:** `PAYMENT_TERMINAL_ID` is null in voucher transaction lines. Likely the `terminal_id` from the payment leg is not threaded into the voucher detail write path in `payment-service.ts`. Needs running-app + DB inspection.
+   > ✅ **FIXED (2026-07-02):** Root cause was a read-mapper bug in `lib/services/voucher-biz.service.ts`. The WRITE path was already correct: `order-submit-orchestrator.service.ts:849` passes `payment_terminal_id: leg.terminalId` → `voucher-line.service.ts:155` writes `input.payment_terminal_id ?? null` to `org_fin_voucher_trx_lines_dtl`. The bug was the READ mapper (line 275) hardcoded `payment_terminal_id: null` instead of `l.payment_terminal_id ?? null`, so the stored value was discarded whenever the voucher detail was fetched. Fixed: changed to `l.payment_terminal_id ?? null`. tsc 0 · 107/107 settlement+voucher tests pass.
 3. if gateway the toast message key missing MISSING_MESSAGE: newOrder.payment.warnings.PAYMENT_GATEWAY_PENDING_CONFIRMATION "newOrder.payment.warnings.PAYMENT_GATEWAY_PENDING_CONFIRMATION" .
    > ✅ **FIXED (2026-07-02):** Added `PAYMENT_GATEWAY_PENDING_CONFIRMATION` key to `messages/en/newOrder/payment/warnings.json` ("Payment received. Gateway confirmation is pending.") and the AR equivalent.
 
@@ -207,7 +207,7 @@ ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Postgr
 3. good If the promo code it invalid "Promo code not found or is no longer active" , but when clear the promo code field the error not cleared ??? .
    > ✅ **FIXED (2026-07-02):** Added `handleClearPromoCodeError` to `use-payment-engine.ts` (sets `promoCodeResult` to null). Promo input `onChange` now calls it whenever the user modifies the field while a failed-validation error is showing.
 4. Wrong Promo discount value in Section G · Financial Inspector ( see SC-C16-03 ) .
-   > ⏳ **PENDING INVESTIGATION:** Financial inspector may be reading a stale or pre-applied discount value. Needs investigation in the right-rail / inspector section of `payment-full-view.tsx`.
+   > ✅ **FIXED (2026-07-02):** Root cause was a stale-serverTotals flash. `serverTotals` is loaded before the promo is applied, so `serverTotals.promoDiscount = 0` remains in the inspector for the ~300ms debounce window after the user validates a promo. Fixed in `use-payment-totals.ts`: added `lastFetchedPromoCodeRef` to track the promo code used in the last successful preview fetch. In the `totals` memo, when `appliedPromoCode.code` differs from `lastFetchedPromoCodeRef.current` (server is stale), the client-side validation discount is used instead of the stale server value. Once the debounced preview re-fetches with the promo code, the server-authoritative value takes over.
 5. in Section G · Financial Inspector In Discounts tab if discount come from discount rules it should show row for each rule so can know how much discount get from which rule (see SC-C16-02) .
    > 📋 **NEW FEATURE REQUEST:** Per-rule discount breakdown in the financial inspector Discounts tab. Currently shows an aggregated total. Needs design + implementation.
 6. in Discounts Rules Config Setup there is flags (Stack with Promo Code, Stack with Other Rules) make sure its used when applying (see SC-C16-04 ) ???
@@ -225,17 +225,17 @@ ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Postgr
 - My Notes and error: 
 1. In the window of validate "Extra amount to route":
  1.1. When choose "Return as cash change" It doesn't do that ???
-      > ⏳ **PENDING BUG:** "Return as cash change" option in the extra-receipt dialog does not actually return the cash. Needs investigation in the overpayment resolution handler in `payment-full-view.tsx` (`confirmExtraReceiptSelection`).
+      > ✅ **FIXED (2026-07-02) — Two-part fix:** (A) Frontend (`order-collect-payment-modal.tsx`): added stable `cashLegRef` UUID via `useState` initializer and passed it as `primaryCashLegRef` to `usePayExtraCheckout`. Root cause: without it, `buildOverpaymentResolutionPayload` received `cashLegRef: undefined` → returned `undefined` → `confirmExtraReceiptSelection()` returned `false` → dialog never confirmed. (B) Backend (`order-settlement.service.ts`): `collectPaymentTx` synthesized a `PaymentLeg[]` array from `resolvedLegs`, correlating the cash leg's `legRef` from the resolution line, and threaded it into `validateOverpaymentResolution` context. Root cause: the validator's `RETURN_CASH_CHANGE` branch did `context.paymentLegs?.find(leg => leg.legRef === line.legRef)` — without `paymentLegs`, it threw `RETURN_CHANGE_LEG_INVALID`.
  1.2. When choose "Adjust payment amounts" It should jump to the payment legs to allow the user to choose which leg to change the amount, if there is only one payment leg then jump to the amount field.
       > 📋 **UX IMPROVEMENT (Phase 3):** After choosing "Adjust payment amounts", automatically close the dialog and scroll/focus to the payment workspace (or directly to the amount editor if only one leg). Queue for Phase 3 UX pass.
  1.3. When choose "Auto allocate to open balances" in "Auto allocation preview" Why CUSTOMER_ADVANCE in the list of Allocation to be deduced ( see SC-C17-02 ) ??? .
-      > ⏳ **PENDING INVESTIGATION:** `CUSTOMER_ADVANCE` should not appear in auto-allocation targets — it is a debit balance, not an open receivable. Needs investigation in the auto-allocation logic to filter out advance-type credit balances.
+      > ✅ **FIXED (2026-07-02) — Two-part fix:** (A) `runAutoAllocationAlgorithm` in `customer-receipt-allocation.service.ts`: removed the erroneous `allocations.push(fallbackAllocation)` line — the `CUSTOMER_ADVANCE` fallback was being pushed into the `allocations` array (which drives the preview table) alongside real receivable targets. Fallback is now tracked in `fallbackAllocation` only and shown separately. (B) `auto-allocation-preview-drawer.tsx`: Confirm button `disabled` condition changed from `preview.allocations.length === 0` to `preview.allocations.length === 0 && !preview.fallbackAllocation` — when all excess goes to fallback and `allocations` is empty, the button was incorrectly disabled.
  1.4. When choose "Auto allocate to open balances" in "Auto allocation preview" Show total of those viewed amounts ( see SC-C17-03 ) ??? .
       > 📋 **UX IMPROVEMENT (Phase 3):** Add a summary total row at the bottom of the auto-allocation preview list. Queue for Phase 3 UX pass.
  1.5. When choose "Manual allocation" in "Manual allocation Screen" Make It More Clear Font ( see SC-C17-04) .
       > 📋 **UX IMPROVEMENT (Phase 3):** Improve typography/contrast in the manual allocation screen. Queue for Phase 3 UX pass.
 2. See Screenshot C17-05 why not use that same windows.
-   > 📌 **INFO NEEDED:** Screenshot C17-05 needs to be reviewed to understand the reference window. Please describe which flow it shows so we can evaluate whether to adopt that layout.
+   > 📋 **UX IMPROVEMENT (Phase 3) — Now understood:** The screenshot shows the "Extra amount to route: OMR 20.000" dialog listing all 7 disposition options (Adjust payment amounts, Return as cash change, Auto allocate, Manual allocate, Save as customer advance, Add to customer wallet, Save as customer credit). The user's question is: for the simpler single-step options (Return as cash change, Save as customer advance, Add to customer wallet, Save as customer credit), why does the flow leave this dialog and open a separate additional drawer/window after Confirm, rather than completing the action inline? Suggested UX: these four "direct-disposition" options have no sub-steps — selecting one and clicking Confirm should resolve the overpayment immediately without an extra screen. Only "Auto allocate" (needs preview drawer) and "Manual allocate" (needs manual-entry drawer) genuinely require a follow-on screen. "Adjust payment amounts" closes the dialog and focuses the workspace (no extra window needed). Queue for Phase 3 UX pass: evaluate which options can be made single-click confirmations inside this dialog vs. which legitimately need a follow-on screen.
 
 ### C18 — B2B credit invoice / deferred policy
 1. Choose **Invoice / Pay-on-collection** (no immediate settlement) or set outstanding policy to credit.
@@ -244,7 +244,7 @@ ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Postgr
 - [ yes] Pass
 - My Notes:
 1. Why the created invoice as OVERDUE , AR invoice ARI-000019 (OVERDUE).
-   > ⏳ **PENDING INVESTIGATION:** New B2B invoices should not be OVERDUE immediately on creation. Likely `due_date` is being set to `created_at` or order date instead of `created_at + credit_days` from the B2B contract/customer settings. Needs investigation in `ar-invoice.service.ts` due-date computation.
+   > ✅ **FIXED (2026-07-02):** Root cause in `lib/constants/ar-invoice.ts` → `deriveArInvoiceStatus`. The `isPastDue` check compared `dueDate` (a `Date` object parsed at midnight UTC) against `new Date()` (current timestamp), so invoices due today always fired `dueDate < now` the moment the clock passed midnight UTC. Fixed by comparing date-string slices: `dueDate.toISOString().slice(0,10) < new Date().toISOString().slice(0,10)`. Invoices due today now show `OPEN`, not `OVERDUE`. 19/19 ar-invoice tests pass.
 
 ### C19 — Decimal precision (3-dp currency)
 1. Repeat C2 and C3 in a **BHD/KWD/OMR** (3-dp) tenant/currency.
@@ -263,6 +263,7 @@ For 2–3 of the above scenarios (at least: cash-with-change, a split, and a gif
   `creditReferenceId` to match what the UI showed. **Nothing about the payload shape should differ from
   pre-2D behavior** — 2D was a behavior-frozen lift.
 - [ ] Pass
+- create testing table (cmx_tmp_testing_log) to store that Payload and testing data so we can review even you you can use that data to check test results.
 
 ---
 

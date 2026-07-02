@@ -383,7 +383,12 @@ export function deriveArInvoiceStatus(params: {
   const paidAmount = Number(params.paidAmount ?? 0);
   const outstanding = Math.max(0, totalAmount - paidAmount);
   const dueDate = params.dueDate ? new Date(params.dueDate) : null;
-  const isPastDue = !!dueDate && !Number.isNaN(dueDate.getTime()) && dueDate < new Date();
+  // Compare date-only strings (UTC) so that invoices due today are OPEN, not OVERDUE.
+  // A datetime vs. timestamp comparison would flip today's invoices to OVERDUE immediately.
+  const isPastDue =
+    !!dueDate &&
+    !Number.isNaN(dueDate.getTime()) &&
+    dueDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
 
   if (currentStatus === AR_INVOICE_STATUSES.DRAFT) {
     return AR_INVOICE_STATUSES.DRAFT;

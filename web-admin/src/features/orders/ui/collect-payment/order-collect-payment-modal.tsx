@@ -112,6 +112,8 @@ export function OrderCollectPaymentModal({
   const [amount, setAmount] = useState(outstandingAmount);
   const [cashTendered, setCashTendered] = useState<number | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
+  // Stable UUID for the cash leg — threaded into RETURN_CASH_CHANGE resolution payloads.
+  const [cashLegRef] = useState<string>(() => crypto.randomUUID());
 
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
@@ -217,6 +219,7 @@ export function OrderCollectPaymentModal({
     saleTotal: outstandingAmount,
     immediateSettlementAmount: amount,
     legs: checkoutLegs,
+    primaryCashLegRef: isCash ? cashLegRef : null,
     receiptAmount: amount,
     currentOrderAllocationAmount: Math.min(amount, outstandingAmount),
     // Later collection of an order receivable is an order-scoped payment (sourceOrderId

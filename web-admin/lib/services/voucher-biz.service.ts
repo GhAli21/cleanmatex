@@ -272,7 +272,7 @@ export async function getBizVoucherById(
       order_payment_id:        l.order_payment_id ?? null,
       cash_drawer_mvt_id:      l.cash_drawer_mvt_id ?? null,
       org_payment_method_id:   null,
-      payment_terminal_id:     null,
+      payment_terminal_id:     l.payment_terminal_id ?? null,
       cash_drawer_session_id:  l.cash_drawer_session_id ?? null,
       card_brand_code:         l.card_brand_code ?? null,
       card_last4:              l.card_last4 ?? null,

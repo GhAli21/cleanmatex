@@ -14799,6 +14799,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_credit_apps_dtl_type"
+            columns: ["credit_type"]
+            isOneToOne: false
+            referencedRelation: "sys_credit_app_types_cd"
+            referencedColumns: ["credit_app_type"]
+          },
+          {
             foreignKeyName: "org_order_credit_apps_dtl_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
             isOneToOne: false

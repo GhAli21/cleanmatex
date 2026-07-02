@@ -34,8 +34,15 @@ import {
   getDispositionLinesExcludingAllocation,
   resolutionIncludesAllocation,
 } from '@/lib/services/customer-receipt-excess-executor.service';
-import type { OverpaymentResolutionInput } from '@/lib/validations/new-order-payment-schemas';
-import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
+import type {
+  OverpaymentResolutionInput,
+  PaymentLeg,
+} from '@/lib/validations/new-order-payment-schemas';
+import {
+  OVERPAYMENT_RESOLUTIONS,
+  SETTLEMENT_MONEY_EPSILON,
+} from '@/lib/constants/settlement-catalog';
+import { PAYMENT_METHODS } from '@/lib/constants/payment';
 
 /** Prisma transaction client shared with submit-order's atomic settlement flow. */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -716,6 +723,27 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       if (!overpaymentResolution) {
         throw new Error('OVERPAYMENT_RESOLUTION_REQUIRED');
       }
+
+      // Synthesize PaymentLeg context for RETURN_CASH_CHANGE validation.
+      // Collect-payment legs use paymentMethodId (no legRef), so the shared
+      // validator cannot cross-reference them directly. Map the cash resolved leg
+      // to the legRef from the resolution line so the capacity/identity checks pass.
+      const cashChangeRef = (() => {
+        const line = overpaymentResolution.lines.find(
+          (l) => l.resolutionCode === OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE
+        );
+        return line && 'legRef' in line ? (line as { legRef: string }).legRef : null;
+      })();
+      const syntheticPaymentLegs: PaymentLeg[] | undefined = cashChangeRef
+        ? resolvedLegs.map((leg) => ({
+            method: leg.paymentMethodCode as PaymentLeg['method'],
+            amount: leg.amount,
+            cashTendered: leg.cashTendered,
+            legRef:
+              leg.paymentMethodCode === PAYMENT_METHODS.CASH ? cashChangeRef : undefined,
+          }))
+        : undefined;
+
       await validateOverpaymentResolution(
         {
           orderId,
@@ -754,7 +782,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           hasAllowedRetainedOverpayment: overpaymentMetrics.hasAllowedRetainedOverpayment,
         },
         overpaymentResolution,
-        { customerId, tenantId }
+        { customerId, tenantId, paymentLegs: syntheticPaymentLegs }
       );
     }
 

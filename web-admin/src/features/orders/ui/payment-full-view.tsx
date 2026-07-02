@@ -2001,19 +2001,13 @@ export function PaymentFullView({
                   />
 
                   {payExtraIntent ? (
-                    <div className="space-y-3">
-                      <PaymentValidateButton
-                        onClick={runValidatePayment}
-                        disabled={!canEnablePayExtra}
-                      />
-                      <PayExtraWorkbenchHint
-                        visible={
-                          allocation.extraReceiptMode === 'adjust_legs' &&
-                          validationPhase !== 'ready'
-                        }
-                        isRTL={isRTL}
-                      />
-                    </div>
+                    <PayExtraWorkbenchHint
+                      visible={
+                        allocation.extraReceiptMode === 'adjust_legs' &&
+                        validationPhase !== 'ready'
+                      }
+                      isRTL={isRTL}
+                    />
                   ) : null}
 
                   {showDeferredExplanation ? (
@@ -3652,10 +3646,21 @@ export function PaymentFullView({
                     className="w-full"
                   />
                 ) : null}
-                <div className={`flex w-full gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div
+                  className={`flex w-full flex-col gap-3 ${
+                    isRTL ? 'md:flex-row-reverse' : 'md:flex-row'
+                  }`}
+                >
                   <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
                     {tCommon('cancel')}
                   </CmxButton>
+                  {payExtraIntent ? (
+                    <PaymentValidateButton
+                      onClick={runValidatePayment}
+                      disabled={!canEnablePayExtra}
+                      className="w-full rounded-2xl"
+                    />
+                  ) : null}
                   <CmxButton
                     type="button"
                     data-testid="payment-submit-button"

@@ -177,7 +177,8 @@ export function runAutoAllocationAlgorithm(
       allocationAmount: fallback.allocationAmount,
       isPartial: false,
     };
-    allocations.push(fallbackAllocation);
+    // Fallback is tracked in fallbackAllocation only — NOT pushed into allocations.
+    // The preview table shows receivable targets; the fallback is shown separately.
     remaining = 0;
   }
 
