@@ -14,5 +14,9 @@
   "touchHintImmediate": "تسوية فورية",
   "touchHintCashDrawer": "درج نقد / تحصيل فوري",
   "noMethods": "لا توجد طرق دفع فعلية مهيأة لنقطة البيع.",
+  "noMethodsGuidance": "قم بتهيئة طرق الدفع من إعدادات المدفوعات لبدء التحصيل.",
+  "configureLink": "فتح إعدادات المدفوعات",
+  "loadFailedTitle": "تعذر تحميل طرق الدفع",
+  "loadFailedDescription": "حدث خطأ أثناء تحميل طرق الدفع. حاول مرة أخرى.",
   "defaultBadge": "افتراضي"
 }

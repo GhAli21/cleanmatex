@@ -105,7 +105,8 @@ export function ManualAllocationDrawer({
           <p className={`text-sm text-slate-600 ${textAlign}`}>{t('noOpenBalances')}</p>
         ) : (
           <div className="space-y-3">
-            <p className={`text-sm text-slate-600 ${textAlign}`}>
+            {/* QA C17-1.5: clearer type hierarchy + contrast in the manual screen. */}
+            <p className={`text-sm font-medium text-slate-700 ${textAlign}`}>
               {t('manualHint', {
                 excess: `${currencyCode} ${formatAmount(excessAmount)}`,
                 remaining: `${currencyCode} ${formatAmount(remaining)}`,
@@ -115,17 +116,19 @@ export function ManualAllocationDrawer({
               {targets.map((target) => (
                 <div
                   key={target.targetId}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5"
                 >
                   <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <div className={textAlign}>
-                      <p className="text-sm font-semibold text-slate-900">{target.documentNo}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-base font-semibold text-slate-900">{target.documentNo}</p>
+                      <p className="mt-0.5 text-sm text-slate-600">
                         {target.targetType} · {t('outstanding')}{' '}
-                        {currencyCode} {formatAmount(target.outstandingAmount)}
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          {currencyCode} {formatAmount(target.outstandingAmount)}
+                        </span>
                       </p>
                     </div>
-                    <div className="w-28 shrink-0">
+                    <div className="w-32 shrink-0">
                       <Label htmlFor={`alloc-${target.targetId}`} className="sr-only">
                         {target.documentNo}
                       </Label>

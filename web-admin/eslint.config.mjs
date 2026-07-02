@@ -29,6 +29,9 @@ const eslintConfig = [...nextVitals, {
     "types/database.generated.ts",
     "docs/typedoc/**",
     "**/__scratch_*",
+    // Playwright artifacts — generated bundles inside trace viewers, never source
+    "playwright-report/**",
+    "test-results/**",
   ],
 }, {
   // JSDoc — warn on production code only; noisy rules off (TypeScript is source of truth)

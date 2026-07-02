@@ -1,5 +1,29 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-07-03 — Payment Modal v4: Phase 3 — Full-view UX quick wins (finance frozen)
+
+**Program plan:** `docs/features/Order_Fin/Payment_Modal_Review/happy-doodling-volcano.md`  
+**Scope:** No migration. **No payload-contract change** (oracle 8/8 green; `use-payment-engine` / `use-payment-legs` / `use-payment-submit` / validation untouched). UX-only reshape of `payment-full-view.tsx` + allocation drawers + section defaults.
+
+### Shipped
+- **Dedupe (1.1/1.7):** Section A → single Remaining hero line (e2e testids preserved); Section C trio → lone "after this payment" delta; right-rail duplicated status row deleted; single rose blocker surface (amber Section-C banner removed).
+- **Quick tender (1.2):** pure `deriveQuickTenderChips` + `deriveQuickTenderDenominations` (currency-derived note ladders; 13 tests) + reusable `PaymentQuickTenderChips` (+ Storybook stories) above the keypad; Exact → `fillLegRemaining`, tender chips → the same capped `updateLeg` path as the keypad.
+- **Progressive disclosure (1.8):** only Sections A+B default-expanded; new pure `deriveAutoExpandPaymentSections` (7 tests) re-opens workspace/drawer/policy/discounts contextually (render-time Pattern A, no lint disables).
+- **Method list three-state (1.9):** loading skeletons / error+Retry (consumes the 2A `checkoutOptionsIsError`/`refetchCheckoutOptions` seam) / empty guidance + settings link, via `CmxEmptyState`.
+- **a11y (1.4/1.11):** polite sr-only live region announcing balance-status transitions; `required` semantics replace literal `*` labels; 44px touch targets; hint contrast slate-500.
+- **Visual system (1.6/1.10 + polish):** gradient reserved for the submit CTA; slate/rose palette normalization; RTL-gated uppercase micro-labels; radius scale; FULLY_SETTLED reduced-motion transition; initial focus on the amount editor; inline add-method dropdown; ~24 hardcoded EN fallbacks stripped.
+- **C17 QA items:** adjust_legs closes the extra-receipt dialog and focuses the editor/workspace; auto-allocation preview total row; manual-allocation typography pass; direct-disposition flow evaluated — already confirms inline, no change.
+- **i18n:** new `newOrder/payment/quickTender.json` + `a11y.json`, methods/workspace/allocation keys, `common.retry` — EN+AR aligned.
+- **Tooling:** `playwright-report/**` + `test-results/**` added to eslint ignores (generated trace bundles).
+
+### Validation
+eslint 0 (repo-wide) · tsc 0 · jest **1573/1573** (155 suites, +16) incl. the 8-fixture payload oracle · production build ✓ · `check:i18n` ✓.
+
+### Migrations applied
+None (code-only).
+
+---
+
 ## 2026-06-27 — Payment Modal v4: `usePaymentEngine` extraction (Phase 0–1) + QA bug fixes
 
 **Program plan:** `~/.claude/plans/happy-doodling-volcano.md`  

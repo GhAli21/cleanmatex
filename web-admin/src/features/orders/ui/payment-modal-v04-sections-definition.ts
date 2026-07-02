@@ -112,7 +112,7 @@ export const PAYMENT_MODAL_V04_SECTIONS = [
     id: PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE,
     labelKey: 'sections.paymentWorkspace',
     order: 30,
-    defaultExpanded: true,
+    defaultExpanded: false,
     collapsible: true,
   },
   {
@@ -126,7 +126,7 @@ export const PAYMENT_MODAL_V04_SECTIONS = [
     id: PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER,
     labelKey: 'sections.cashDrawer',
     order: 50,
-    defaultExpanded: true,
+    defaultExpanded: false,
     collapsible: true,
   },
   {
@@ -140,7 +140,7 @@ export const PAYMENT_MODAL_V04_SECTIONS = [
     id: PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY,
     labelKey: 'sections.balancePolicy',
     order: 70,
-    defaultExpanded: true,
+    defaultExpanded: false,
     collapsible: true,
   },
 ] as const satisfies readonly PaymentModalSectionDefinition[];
@@ -196,6 +196,51 @@ export function deriveVisiblePaymentSections(
         return true;
     }
   }).sort((left, right) => left.order - right.order);
+}
+
+/**
+ * Contextual auto-expand inputs (UX finding 1.8). Only A (snapshot) + B (amount)
+ * are default-expanded; the deriver below re-opens collapsed sections the moment
+ * they become operationally relevant, without ever re-collapsing a section the
+ * operator closed by hand.
+ */
+export interface PaymentModalSectionAutoExpandContext {
+  /** A blocking "required action" exists or the active leg needs detail fields. */
+  workspaceNeedsAttention: boolean;
+  /** A cash leg requires a drawer session that is not yet resolved. */
+  cashDrawerBlocking: boolean;
+  /** The balance-policy section is visible and a remaining balance needs a policy. */
+  balancePolicyRelevant: boolean;
+  /** Gift-card / promo activity started (PIN pending, code typed, applied). */
+  discountsCreditsActive: boolean;
+}
+
+/**
+ * Derives which collapsed workbench sections should auto-expand for the current
+ * state. Pure so default-expansion policy stays unit-testable next to the
+ * visibility deriver (`deriveVisiblePaymentSections`).
+ *
+ * @param context Already-derived modal flags relevant to expansion.
+ * @returns Ordered section ids that should be expanded (idempotent — callers
+ * pass them through `expandSection`, which no-ops when already open).
+ */
+export function deriveAutoExpandPaymentSections(
+  context: PaymentModalSectionAutoExpandContext
+): PaymentModalSectionId[] {
+  const ids: PaymentModalSectionId[] = [];
+  if (context.workspaceNeedsAttention) {
+    ids.push(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
+  }
+  if (context.discountsCreditsActive) {
+    ids.push(PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS);
+  }
+  if (context.cashDrawerBlocking) {
+    ids.push(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER);
+  }
+  if (context.balancePolicyRelevant) {
+    ids.push(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
+  }
+  return ids;
 }
 
 /**

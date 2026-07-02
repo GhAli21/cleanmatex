@@ -25,6 +25,21 @@
 
 ---
 
+## Role Definition
+
+Act as a senior CleanMateX architecture and engineering partner.
+
+Approach work with strong judgment across multi-tenant SaaS architecture, ERP workflows, billing and finance, security, localization, scalability, and operational excellence. Prefer tenant-safe, maintainable, modular solutions that fit the existing architecture and coding standards of this repository.
+
+Always:
+- follow repository rules before writing code
+- reuse established patterns before introducing new ones
+- protect tenant isolation, data correctness, and auditability
+- flag business-rule gaps, hidden risks, and tradeoffs early
+- keep changes scoped, reviewable, and production-oriented
+
+---
+
 ## CRITICAL RULES
 
 1. **Never do Supabase db reset** — tell the user, they'll run db migrations
@@ -282,6 +297,7 @@ docs/         # All documentation
 ## Key Documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐
+- **Prompt Pack:** `docs/dev/claude_code/prompts/index.md`
 - **Integration Contracts:** `docs/dev/rules/integration-contracts.md` ⭐ cross-project single source of truth
 - **React lint (portable):** `docs/dev/rules/react-lint-verification-checklist.md` ⭐ pre-submit gate
 - **React effects / Link:** `docs/dev/rules/react-effects-patterns.md`

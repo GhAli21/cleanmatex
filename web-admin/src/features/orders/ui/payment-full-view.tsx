@@ -12,6 +12,7 @@ import {
   ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info, RefreshCw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import {
@@ -40,8 +41,13 @@ import {
   validateCheckDueDate,
   legHasRequiredPaymentReference,
   deriveLegAppliedAmount,
+  deriveQuickTenderChips,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
+import {
+  PaymentQuickTenderChips,
+  type PaymentQuickTenderChipItem,
+} from './payment-modal/quick-tender-chips';
 import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
 import {
   ExtraReceiptHandlingCard,
@@ -70,6 +76,7 @@ import {
   RIGHT_RAIL_BALANCE_STATUS,
 } from './payment-modal-v4.right-rail';
 import {
+  deriveAutoExpandPaymentSections,
   derivePaymentInspectorTabs,
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
@@ -103,6 +110,7 @@ import {
   CmxSelectDropdownItem,
 } from '@ui/forms';
 import { CmxTabsPanel, type CmxTabItem } from '@ui/navigation';
+import { CmxEmptyState } from '@ui/data-display';
 import { showErrorToast } from '@ui/components/cmx-toast';
 
 // ---------------------------------------------------------------------------
@@ -122,12 +130,12 @@ function SummaryRow({
   negative?: boolean;
 }) {
   return (
-    <div className={`flex justify-between items-center gap-2 ${bold ? 'font-bold border-t border-gray-100 pt-1.5 mt-1' : ''}`}>
-      <span className={`text-sm ${bold ? 'text-gray-900' : 'text-gray-600'}`}>{label}</span>
+    <div className={`flex justify-between items-center gap-2 ${bold ? 'font-bold border-t border-slate-100 pt-1.5 mt-1' : ''}`}>
+      <span className={`text-sm ${bold ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
       {loading ? (
         <CmxSkeleton className="h-4 w-20" />
       ) : (
-        <span className={`text-sm tabular-nums ${bold ? 'text-gray-900' : negative ? 'text-red-700' : 'text-gray-900'} font-medium`}>
+        <span className={`text-sm tabular-nums ${bold ? 'text-slate-900' : negative ? 'text-rose-700' : 'text-slate-900'} font-medium`}>
           {value}
         </span>
       )}
@@ -164,8 +172,8 @@ function FinalOrderTotalPanel({
   isRTL: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-teal-50 p-4 shadow-sm">
-      <p className={`text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4 shadow-sm">
+      <p className={`text-xs font-semibold ${isRTL ? "" : "uppercase tracking-[0.14em]"} text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}>
         {title}
       </p>
       <p className={`mt-3 text-2xl font-bold tabular-nums text-slate-950 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -274,12 +282,12 @@ function B2BContractsSelect({
     enabled: !!customerId,
   });
 
-  const noneLabel = t('b2b.contractOptional') || 'None (optional)';
+  const noneLabel = t('b2b.contractOptional');
 
   return (
     <div>
-      <label className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-        {t('b2b.contract') || 'Contract'}
+      <label className={`block text-sm font-medium text-slate-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {t('b2b.contract')}
       </label>
       <Controller
         name="b2bContractId"
@@ -292,7 +300,7 @@ function B2BContractsSelect({
               value={field.value || ''}
               onValueChange={(v) => field.onChange(v || undefined)}
               isLoading={isLoading}
-              emptyLabel={t('b2b.contractOptional') || 'None (optional)'}
+              emptyLabel={t('b2b.contractOptional')}
             >
               <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
                 <CmxSelectDropdownValue
@@ -392,6 +400,10 @@ export function PaymentFullView({
   const tCommon = useTranslations('common');
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
+  // Uppercase/letter-spacing is meaningless (and harmful) for Arabic script —
+  // gate the micro-label treatment behind LTR (UX review polish item).
+  const labelCase = isRTL ? '' : 'uppercase tracking-[0.14em]';
+  const labelCaseWide = isRTL ? '' : 'uppercase tracking-[0.18em]';
 
   // Destructure RHF methods from the shell-owned form.
   const { control, handleSubmit, formState: { errors }, setValue, watch } = form;
@@ -452,7 +464,6 @@ export function PaymentFullView({
   const paymentWorkspaceSectionRef = useRef<HTMLDivElement | null>(null);
   const financialInspectorSectionRef = useRef<HTMLDivElement | null>(null);
   const balancePolicySectionRef = useRef<HTMLDivElement | null>(null);
-  const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
@@ -625,6 +636,8 @@ export function PaymentFullView({
     checkoutMethods,
     customerCreditOptions,
     checkoutMethodsLoading,
+    checkoutOptionsIsError,
+    refetchCheckoutOptions,
     realPaymentOptions,
     creditMethodCodes,
     getMethodOption,
@@ -802,42 +815,42 @@ export function PaymentFullView({
       case PAYMENT_METHODS.PAY_ON_COLLECTION:
         return {
           iconWrap: 'bg-teal-100 text-teal-700 border-teal-200',
-          selected: 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm',
+          selected: 'border-teal-500 bg-teal-50 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.CASH:
         return {
           iconWrap: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-          selected: 'border-emerald-500 bg-gradient-to-r from-emerald-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-emerald-500 bg-emerald-50/70 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.CARD:
         return {
           iconWrap: 'bg-blue-100 text-blue-700 border-blue-200',
-          selected: 'border-sky-500 bg-gradient-to-r from-sky-50 to-cyan-50 text-slate-900 shadow-sm',
+          selected: 'border-sky-500 bg-sky-50 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.CHECK:
         return {
           iconWrap: 'bg-amber-100 text-amber-700 border-amber-200',
-          selected: 'border-amber-500 bg-gradient-to-r from-amber-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-amber-500 bg-amber-50/70 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.BANK_TRANSFER:
         return {
           iconWrap: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-          selected: 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-indigo-500 bg-indigo-50/70 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.MOBILE_PAYMENT:
         return {
           iconWrap: 'bg-violet-100 text-violet-700 border-violet-200',
-          selected: 'border-violet-500 bg-gradient-to-r from-violet-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-violet-500 bg-violet-50/70 text-slate-900 shadow-sm',
         };
       case PAYMENT_METHODS.INVOICE:
         return {
           iconWrap: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-          selected: 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm',
         };
       default:
         return {
           iconWrap: 'bg-slate-100 text-slate-700 border-slate-200',
-          selected: 'border-slate-400 bg-gradient-to-r from-slate-50 to-white text-slate-900 shadow-sm',
+          selected: 'border-slate-400 bg-slate-50 text-slate-900 shadow-sm',
         };
     }
   };
@@ -1347,6 +1360,110 @@ export function PaymentFullView({
     });
   }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, settledNowAmount]);
 
+  // Quick-tender fast lane (finding 1.2): chip values come from the pure
+  // deriver; selection routes through the SAME capped `updateLeg` write path as
+  // the keypad (never bypasses overpayment / pay-extra gates). Exact reuses
+  // `fillLegRemaining` — the existing remaining-cap action for every method.
+  const quickTenderChipItems = useMemo<PaymentQuickTenderChipItem[]>(() => {
+    if (!activeLeg) return [];
+    return deriveQuickTenderChips({
+      remaining: activeLegRemainingCap,
+      currencyCode,
+      decimalPlaces,
+      isCash: activeLeg.method === PAYMENT_METHODS.CASH,
+      epsilon: moneyEpsilon,
+    }).map((chip) =>
+      chip.kind === 'exact'
+        ? {
+            ...chip,
+            label: t('quickTender.exact'),
+            ariaLabel: t('quickTender.exactAria', {
+              amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
+            }),
+          }
+        : {
+            ...chip,
+            label: formatAmount(chip.tenderAmount ?? 0),
+            ariaLabel: t('quickTender.tenderAria', {
+              amount: `${currencyCode} ${formatAmount(chip.tenderAmount ?? 0)}`,
+            }),
+          }
+    );
+  }, [activeLeg, activeLegRemainingCap, currencyCode, decimalPlaces, formatAmount, moneyEpsilon, t]);
+
+  const handleQuickTenderSelect = useCallback(
+    (item: PaymentQuickTenderChipItem) => {
+      if (!activeLeg) return;
+      if (item.kind === 'exact') {
+        fillLegRemaining(activeLegIndex);
+        return;
+      }
+      if (typeof item.tenderAmount !== 'number') return;
+      updateLeg(activeLegIndex, 'amount', item.tenderAmount);
+      setActiveAmountDraft(formatDecimalDraft(item.tenderAmount, decimalPlaces));
+      focusAmountEditor();
+    },
+    [
+      activeLeg,
+      activeLegIndex,
+      decimalPlaces,
+      fillLegRemaining,
+      focusAmountEditor,
+      setActiveAmountDraft,
+      updateLeg,
+    ]
+  );
+
+  // Contextual auto-expand (finding 1.8): sections default-collapsed now, but
+  // re-open the moment they become operationally relevant. Render-time guarded
+  // (Pattern A) — `expandSection` no-ops when already open, and a section the
+  // operator collapsed stays collapsed until its signal changes again.
+  const activeLegNeedsDetails = Boolean(
+    activeLeg &&
+      (activeLegOption?.requires_terminal ||
+        activeLegOption?.requires_reference ||
+        activeLeg.method === PAYMENT_METHODS.CHECK ||
+        activeLeg.method === 'CREDIT_NOTE')
+  );
+  const autoExpandSectionIds = deriveAutoExpandPaymentSections({
+    workspaceNeedsAttention: Boolean(requiredActionCopy) || activeLegNeedsDetails,
+    cashDrawerBlocking: Boolean(cashDrawerRequired && cashDrawerBlockingMessage),
+    balancePolicyRelevant: showBalancePolicySection && remainingBalance > moneyEpsilon,
+    discountsCreditsActive:
+      pinRequired || !!appliedGiftCard || !!appliedPromoCode || !!giftCardDetails,
+  });
+  const autoExpandSignature = autoExpandSectionIds.join('|');
+  const [prevAutoExpandSignature, setPrevAutoExpandSignature] = useState('');
+  if (autoExpandSignature !== prevAutoExpandSignature) {
+    setPrevAutoExpandSignature(autoExpandSignature);
+    for (const sectionId of autoExpandSectionIds) {
+      expandSection(sectionId);
+    }
+  }
+
+  // Balance-status transition announcer (finding 1.4): a polite live region
+  // driven by the right-rail status machine, so screen readers hear
+  // "Fully settled — change X" the moment the state flips.
+  const balanceStatusAnnouncement =
+    rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED &&
+    displayChangeAmount > moneyEpsilon
+      ? t('a11y.settledWithChange', {
+          amount: `${currencyCode} ${formatAmount(displayChangeAmount)}`,
+        })
+      : balanceStatusLabel;
+
+  // Initial focus (polish): place focus on the amount editor when the modal
+  // opens with an editable leg, instead of the focus trap's first tabbable.
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      if (amountInputRef.current && !amountInputRef.current.disabled) {
+        amountInputRef.current.focus();
+        amountInputRef.current.select();
+      }
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   const onSubmitForm = (data: PaymentFormData) => {
     if (totalsLoading) {
@@ -1524,14 +1641,14 @@ export function PaymentFullView({
       <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeWithGuard()}>
         <CmxDialogContent
           data-testid="payment-modal-v4"
-          className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-[28px] border border-slate-200/80 p-0 shadow-2xl"
+          className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-2xl border border-slate-200/80 p-0 shadow-2xl"
           bodyPadding="none"
         >
           <div
             ref={focusTrapRef}
             className="relative flex h-full flex-col bg-[rgb(var(--cmx-background-rgb,255_255_255))]"
           >
-            <CmxDialogHeader className="flex items-center justify-between border-b bg-gradient-to-r from-slate-50 via-white to-cyan-50">
+            <CmxDialogHeader className="flex items-center justify-between border-b bg-white">
               <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
                 {isExpress && <Badge variant="secondary" className="text-xs">{t('expressLabel')}</Badge>}
@@ -1561,23 +1678,54 @@ export function PaymentFullView({
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3 pt-3">
                 <div className="space-y-3">
-                  <div ref={methodsAnchorRef}>
+                  <div>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-slate-100 pb-3">
-                      <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold ${labelCaseWide} text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         {t('methods.title')}
                         <Info className="h-3.5 w-3.5 text-slate-400" />
                       </CmxCardTitle>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3">
+                      {/* Finding 1.9: three distinct states — loading (skeletons),
+                          API failure (retry), genuinely-empty (guidance + settings link). */}
                       {checkoutMethodsLoading ? (
                         <div className="space-y-2">
                           <CmxSkeleton className="h-14 w-full" />
                           <CmxSkeleton className="h-14 w-full" />
                           <CmxSkeleton className="h-14 w-full" />
                         </div>
+                      ) : checkoutOptionsIsError ? (
+                        <CmxEmptyState
+                          icon={<CircleAlert className="h-8 w-8 text-rose-500" />}
+                          title={t('methods.loadFailedTitle')}
+                          description={t('methods.loadFailedDescription')}
+                          action={
+                            <CmxButton
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void refetchCheckoutOptions()}
+                              className="min-h-[44px] rounded-xl"
+                            >
+                              <RefreshCw className="me-2 h-4 w-4" />
+                              {tCommon('retry')}
+                            </CmxButton>
+                          }
+                        />
                       ) : realPaymentOptions.length === 0 ? (
-                        <p className="text-xs text-slate-500">{t('methods.noMethods')}</p>
+                        <CmxEmptyState
+                          icon={<CreditCard className="h-8 w-8 text-slate-400" />}
+                          title={t('methods.noMethods')}
+                          description={t('methods.noMethodsGuidance')}
+                          action={
+                            <CmxButton asChild type="button" variant="outline" size="sm" className="min-h-[44px] rounded-xl">
+                              <Link href="/dashboard/settings/payments">
+                                {t('methods.configureLink')}
+                              </Link>
+                            </CmxButton>
+                          }
+                        />
                       ) : (
                         realPaymentOptions.map((option) => {
                           const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
@@ -1618,10 +1766,10 @@ export function PaymentFullView({
                                   </span>
                                   <span className="mt-1 text-sm text-slate-600">
                                     {description || (option.requires_cash_drawer
-                                      ? (t('methods.touchHintCashDrawer') || 'Cash drawer / immediate collection')
-                                      : (t('methods.touchHintImmediate') || 'Immediate settlement'))}
+                                      ? t('methods.touchHintCashDrawer')
+                                      : t('methods.touchHintImmediate'))}
                                   </span>
-                                  <span className="mt-1 text-xs font-medium text-slate-400">
+                                  <span className="mt-1 text-xs font-medium text-slate-500">
                                     {getMethodHint(option)}
                                   </span>
                                 </span>
@@ -1636,7 +1784,7 @@ export function PaymentFullView({
 
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-slate-100 pb-2">
-                      <CmxCardTitle className={`text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CmxCardTitle className={`text-xs font-semibold ${labelCaseWide} text-slate-500 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <Wallet className="h-4 w-4" />
                         {t('customerCredits.title')}
                       </CmxCardTitle>
@@ -1708,7 +1856,7 @@ export function PaymentFullView({
                                 size="lg"
                                 disabled={disabled}
                                 onClick={() => handleCustomerCreditSelect(option)}
-                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                               >
                                 <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
                                   <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
@@ -1735,7 +1883,7 @@ export function PaymentFullView({
                                       </span>
                                     )}
                                     {isWalletOption && walletLegExceedsLiveBalance && (
-                                      <span className="mt-1 text-xs font-medium text-red-600">
+                                      <span className="mt-1 text-xs font-medium text-rose-600">
                                         {t('customerCredits.walletBalanceExceeded', {
                                           amount: liveWalletBalanceDisplay,
                                         })}
@@ -1758,7 +1906,7 @@ export function PaymentFullView({
                   >
                     <CmxCardHeader className="border-b border-slate-100 pb-2">
                       <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <CmxCardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <CmxCardTitle className={`text-xs font-semibold ${labelCaseWide} text-slate-500`}>
                           {t('splitPayment.title')}
                           {editableLegEntries.length > 0 && (
                             <Badge variant="secondary" className="ms-2 rounded-full bg-slate-100 text-slate-600">
@@ -1775,7 +1923,7 @@ export function PaymentFullView({
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-2">
                       {editableLegEntries.length === 0 ? (
-                        <p className="text-xs text-slate-500">{t('workspace.addSplitHint') || 'Select an immediate method to start collecting payment.'}</p>
+                        <p className="text-xs text-slate-500">{t('workspace.addSplitHint')}</p>
                       ) : (
                         editableLegEntries.map(({ leg, index }) => {
                           const option = getMethodOption(leg.method, leg.gateway_code);
@@ -1795,7 +1943,7 @@ export function PaymentFullView({
                             data-active={activeLegIndex === index ? 'true' : 'false'}
                             className={`flex items-stretch gap-2 rounded-2xl border transition ${
                               activeLegIndex === index
-                                ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white shadow-sm'
+                                ? 'border-cyan-500 bg-cyan-50/70 shadow-sm'
                                 : 'border-slate-200 bg-white hover:border-slate-300'
                             }`}
                           >
@@ -1834,7 +1982,7 @@ export function PaymentFullView({
                               disabled={!canFillLeg}
                               aria-label={t('splitPayment.fillRemaining')}
                               onClick={() => fillLegRemaining(index)}
-                              className="my-2 me-2 shrink-0 rounded-xl border-cyan-200 px-2.5 text-cyan-700"
+                              className="my-2 me-2 min-h-[44px] shrink-0 rounded-xl border-cyan-200 px-2.5 text-cyan-700"
                             >
                               {t('splitPayment.fillRemaining')}
                             </CmxButton>
@@ -1842,17 +1990,42 @@ export function PaymentFullView({
                         );
                         })
                       )}
-                      <CmxButton
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          methodsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      {/* Polish: inline method picker next to the legs list — replaces
+                          the old scroll-to-top context jump. Selection routes through
+                          the same handleMethodSelect as the method cards. */}
+                      <CmxSelectDropdown
+                        value=""
+                        onValueChange={(methodKey) => {
+                          if (!methodKey) return;
+                          const option = realPaymentOptions.find(
+                            (candidate) =>
+                              `${candidate.payment_method_code}::${candidate.gateway_code ?? ''}` === methodKey
+                          );
+                          if (option) handleMethodSelect(option);
                         }}
-                        className="w-full justify-center rounded-2xl border-dashed border-slate-300 bg-white text-slate-600 hover:border-cyan-400 hover:text-cyan-700"
+                        emptyLabel={t('methods.noMethods')}
                       >
-                        <Plus className="me-2 h-4 w-4" />
-                        {t('splitPayment.addMethod')}
-                      </CmxButton>
+                        <CmxSelectDropdownTrigger
+                          dir={isRTL ? 'rtl' : 'ltr'}
+                          aria-label={t('splitPayment.addMethod')}
+                          className="min-h-[44px] w-full justify-center rounded-2xl border-dashed border-slate-300 bg-white text-slate-600 hover:border-cyan-400 hover:text-cyan-700"
+                        >
+                          <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Plus className="h-4 w-4" />
+                            {t('splitPayment.addMethod')}
+                          </span>
+                        </CmxSelectDropdownTrigger>
+                        <CmxSelectDropdownContent>
+                          {realPaymentOptions.map((option) => {
+                            const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                            return (
+                              <CmxSelectDropdownItem key={methodKey} value={methodKey}>
+                                {getCheckoutOptionDisplayName(option, option.payment_method_code)}
+                              </CmxSelectDropdownItem>
+                            );
+                          })}
+                        </CmxSelectDropdownContent>
+                      </CmxSelectDropdown>
                       {activeLeg && (
                         <CmxButton
                           type="button"
@@ -1860,7 +2033,7 @@ export function PaymentFullView({
                           size="sm"
                           data-testid="payment-remove-active-leg"
                           onClick={() => removeLegAt(activeLegIndex)}
-                          className="w-full justify-center text-red-600"
+                          className="w-full justify-center text-rose-600"
                         >
                           <Trash2 className="mr-1 h-4 w-4" />
                           {t('splitPayment.remove')}
@@ -1897,7 +2070,7 @@ export function PaymentFullView({
                     expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT)}
                     collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT)}
                     onToggle={toggleSection}
-                    cardClassName="border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/60"
+                    cardClassName="border-cyan-100 bg-white"
                     headerClassName="border-cyan-100"
                     titleClassName="text-sm text-cyan-900"
                     isRTL={isRTL}
@@ -1918,34 +2091,34 @@ export function PaymentFullView({
                     )}
                     contentClassName="pt-4"
                   >
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div data-testid="payment-balance-remaining">
-                            <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
-                            <p className="mt-2 text-xl font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
-                          </div>
+                      {/* Finding 1.1: one hero metric (Remaining) + compact companions.
+                          The right-rail Balance Result stays the source of truth. */}
+                      <div className={`flex flex-wrap items-end justify-between gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div data-testid="payment-balance-remaining" className={isRTL ? 'text-right' : 'text-left'}>
+                          <p className="text-xs font-semibold text-slate-500">{t('workspace.remaining')}</p>
+                          <p className={`mt-1 text-3xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {currencyCode} {formatAmount(remainingBalance)}
+                          </p>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div data-testid="payment-balance-change">
-                            <p className="text-xs font-semibold text-slate-500">{t('workspace.change') || 'Change'}</p>
-                            <p className={`mt-2 text-xl font-bold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
+                        <div className={`flex flex-wrap items-end gap-x-6 gap-y-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div data-testid="payment-balance-total-due" className={isRTL ? 'text-right' : 'text-left'}>
+                            <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue')}</p>
+                            <p className="mt-1 text-sm font-semibold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
+                          </div>
+                          <div data-testid="payment-balance-change" className={isRTL ? 'text-right' : 'text-left'}>
+                            <p className="text-xs font-semibold text-slate-500">{t('workspace.change')}</p>
+                            <p className={`mt-1 text-sm font-semibold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}>
                               {currencyCode} {formatAmount(displayChangeAmount)}
                             </p>
                           </div>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div data-testid="payment-balance-total-due">
-                            <p className="text-xs font-semibold text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
-                            <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(saleTotal)}</p>
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div data-testid="payment-balance-overpaid">
-                            <p className="text-xs font-semibold text-slate-500">{t('rightRail.overpaidAmount')}</p>
-                            <p className={`mt-2 text-xl font-bold tabular-nums ${unresolvedOverpaymentAmount > moneyEpsilon ? 'text-rose-600' : 'text-slate-900'}`}>
-                              {currencyCode} {formatAmount(unresolvedOverpaymentAmount)}
-                            </p>
-                          </div>
+                          {unresolvedOverpaymentAmount > moneyEpsilon ? (
+                            <div data-testid="payment-balance-overpaid" className={isRTL ? 'text-right' : 'text-left'}>
+                              <p className="text-xs font-semibold text-rose-600">{t('rightRail.overpaidAmount')}</p>
+                              <p className="mt-1 text-sm font-semibold tabular-nums text-rose-600">
+                                {currencyCode} {formatAmount(unresolvedOverpaymentAmount)}
+                              </p>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                   </PaymentWorkbenchSection>
@@ -2013,8 +2186,8 @@ export function PaymentFullView({
                   {showDeferredExplanation ? (
                     <CmxCard>
                       <CmxCardContent className="pt-5">
-                        <p className="text-lg font-semibold text-slate-900">{t('workspace.noImmediateTitle') || 'No pay-now amount selected'}</p>
-                        <p className="mt-2 text-sm text-slate-600">{t('workspace.noImmediateDescription') || 'This order will be submitted entirely as deferred settlement using the selected remaining-balance policy.'}</p>
+                        <p className="text-lg font-semibold text-slate-900">{t('workspace.noImmediateTitle')}</p>
+                        <p className="mt-2 text-sm text-slate-600">{t('workspace.noImmediateDescription')}</p>
                       </CmxCardContent>
                     </CmxCard>
                   ) : (
@@ -2065,7 +2238,7 @@ export function PaymentFullView({
                                   }
                                   decimalPlaces={decimalPlaces}
                                   showZero
-                                  aria-label={t('workspace.editingAmount') || 'Editing amount'}
+                                  aria-label={t('workspace.editingAmount')}
                                   onValueChange={(value, draft) => {
                                     if (!activeLeg) return;
                                     setActiveAmountDraft(draft);
@@ -2101,7 +2274,7 @@ export function PaymentFullView({
                             {activeLeg?.method === 'WALLET' && (
                               <div className={`rounded-xl border px-3 py-2 text-xs ${
                                 walletLegExceedsLiveBalance
-                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  ? 'border-rose-200 bg-rose-50 text-rose-700'
                                   : 'border-cyan-200 bg-cyan-50 text-cyan-800'
                               }`}>
                                 {walletLegExceedsLiveBalance
@@ -2140,7 +2313,7 @@ export function PaymentFullView({
                               />
                             ) : null}
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
-                              {t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}
+                              {t('workspace.keypadHint')}
                             </p>
                             {activeLeg ? (
                               <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -2155,14 +2328,20 @@ export function PaymentFullView({
                                   size="xs"
                                   disabled={activeLegRemainingCap <= moneyEpsilon}
                                   onClick={() => fillLegRemaining(activeLegIndex)}
-                                  className="shrink-0 rounded-lg border-cyan-200 text-cyan-700"
+                                  className="min-h-[44px] shrink-0 rounded-lg border-cyan-200 text-cyan-700"
                                 >
                                   {t('splitPayment.fillRemaining')}
                                 </CmxButton>
                               </div>
                             ) : null}
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 space-y-3">
+                            <PaymentQuickTenderChips
+                              items={quickTenderChipItems}
+                              onSelect={handleQuickTenderSelect}
+                              disabled={!activeLeg || submitBusy}
+                              isRTL={isRTL}
+                            />
                             <CmxKeypad
                               keys={KEYPAD_PAYMENT_4COL}
                               disabled={!activeLeg}
@@ -2173,7 +2352,7 @@ export function PaymentFullView({
                               getKeyVariant={PAYMENT_KEY_VARIANT}
                               getKeyClassName={PAYMENT_KEY_CLASS}
                               getKeyAriaLabel={(key) => {
-                                if (key === 'backspace') return t('workspace.backspace') || 'Backspace';
+                                if (key === 'backspace') return t('workspace.backspace');
                                 if (key === 'clear') return tCommon('clear');
                                 return undefined;
                               }}
@@ -2193,7 +2372,7 @@ export function PaymentFullView({
                         expanded={isSectionExpanded(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE)}
                         collapsible={isSectionCollapsible(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE)}
                         onToggle={toggleSection}
-                        cardClassName="min-h-[360px] border-cyan-100 bg-gradient-to-br from-white via-slate-50 to-cyan-50/50"
+                        cardClassName="min-h-[360px] border-cyan-100 bg-white"
                         headerClassName="border-cyan-100"
                         isRTL={isRTL}
                         expandLabel={workbenchSectionToggleLabels.expandLabel}
@@ -2212,53 +2391,18 @@ export function PaymentFullView({
                         ) : undefined}
                         contentClassName="space-y-4 pt-4"
                       >
-                          {requiredActionCopy ? (
-                            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                              <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                                <div className="min-w-0">
-                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                                    <CircleAlert className="h-4 w-4 shrink-0" />
-                                    {requiredActionCopy.title}
-                                  </p>
-                                  <p className="mt-1 text-sm text-amber-800">{requiredActionCopy.message}</p>
-                                </div>
-                                <CmxButton
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={focusFirstBlockingIssue}
-                                  className="shrink-0 rounded-xl border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
-                                >
-                                  {t('workspace.fixAction')}
-                                </CmxButton>
-                              </div>
-                            </div>
-                          ) : null}
-
+                          {/* Finding 1.7: the blocking "required action" renders ONLY in the
+                              right rail (rose), next to the disabled CTA — the amber duplicate
+                              that lived here is gone. Finding 1.1: the selected-leg / amount
+                              cards duplicated the header badge and the amount editor, so only
+                              the live "after this payment" delta remains. */}
                           {activeLeg ? (
                             <>
-                              <div className="grid gap-3 md:grid-cols-3">
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.selectedLeg')}</p>
-                                  <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                    <span className={`flex h-9 w-9 items-center justify-center rounded-xl border ${getMethodToneClasses(activeLeg.method).iconWrap}`}>
-                                      {getPaymentIcon(activeLeg.method)}
-                                    </span>
-                                    <p className="text-sm font-semibold text-slate-900">{getCheckoutOptionDisplayName(activeLegOption, activeLeg.method)}</p>
-                                  </div>
-                                </div>
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.amountBeingEdited')}</p>
-                                  <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">
-                                    {currencyCode} {formatAmount(activeLeg.amount || 0)}
-                                  </p>
-                                </div>
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t('workspace.afterThisPayment')}</p>
-                                  <p className={`mt-2 text-2xl font-bold tabular-nums ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                    {currencyCode} {formatAmount(remainingBalance)}
-                                  </p>
-                                </div>
+                              <div className={`flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <p className={`text-xs font-semibold text-slate-500 ${!isRTL ? 'uppercase tracking-[0.14em]' : ''}`}>{t('workspace.afterThisPayment')}</p>
+                                <p className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                  {currencyCode} {formatAmount(remainingBalance)}
+                                </p>
                               </div>
 
                               <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -2302,7 +2446,9 @@ export function PaymentFullView({
                                   {activeLegOption?.requires_terminal && (
                                     <div>
                                       <label className="mb-1 block text-xs font-medium text-slate-600">
-                                        {`${t('splitPayment.paymentTerminal')} *`}
+                                        {t('splitPayment.paymentTerminal')}
+                                        <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
+                                        <span className="sr-only">{t('workspace.requiredField')}</span>
                                       </label>
                                       <CmxSelectDropdown
                                         value={activeLeg.terminalId ?? ''}
@@ -2336,7 +2482,7 @@ export function PaymentFullView({
                                         </CmxSelectDropdownContent>
                                       </CmxSelectDropdown>
                                       {!activeLeg.terminalId?.trim() ? (
-                                        <p className="mt-1 text-xs text-red-600">
+                                        <p className="mt-1 text-xs text-rose-600">
                                           {t('splitPayment.validation.terminalRequiredField')}
                                         </p>
                                       ) : null}
@@ -2380,11 +2526,8 @@ export function PaymentFullView({
                                         onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
                                       />
                                       <CmxInput
-                                        label={
-                                          activeLegOption?.requires_reference
-                                            ? `${t('splitPayment.authCode')} *`
-                                            : t('splitPayment.authCode')
-                                        }
+                                        label={t('splitPayment.authCode')}
+                                        required={activeLegOption?.requires_reference}
                                         value={activeLeg.auth_code ?? ''}
                                         dir="ltr"
                                         placeholder="—"
@@ -2403,7 +2546,8 @@ export function PaymentFullView({
                                     <div className="grid gap-3 md:grid-cols-3">
                                       <CmxInput
                                         ref={checkNumberInputRef}
-                                        label={`${t('splitPayment.checkNumber')} *`}
+                                        label={t('splitPayment.checkNumber')}
+                                        required
                                         value={activeLeg.checkNumber ?? ''}
                                         dir="ltr"
                                         error={errors.checkNumber?.message}
@@ -2452,11 +2596,8 @@ export function PaymentFullView({
 
                                   {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
                                     <CmxInput
-                                      label={
-                                        activeLegOption?.requires_reference
-                                          ? `${t('splitPayment.bankReference')} *`
-                                          : t('splitPayment.bankReference')
-                                      }
+                                      label={t('splitPayment.bankReference')}
+                                      required={activeLegOption?.requires_reference}
                                       value={activeLeg.bank_reference ?? ''}
                                       dir="ltr"
                                       placeholder="—"
@@ -2480,11 +2621,8 @@ export function PaymentFullView({
                                         readOnly
                                       />
                                       <CmxInput
-                                        label={
-                                          activeLegOption?.requires_reference
-                                            ? `${t('splitPayment.gatewayTransactionId')} *`
-                                            : t('splitPayment.gatewayTransactionId')
-                                        }
+                                        label={t('splitPayment.gatewayTransactionId')}
+                                        required={activeLegOption?.requires_reference}
                                         value={activeLeg.gateway_transaction_id ?? ''}
                                         dir="ltr"
                                         placeholder="—"
@@ -2497,11 +2635,8 @@ export function PaymentFullView({
                                         onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
                                       />
                                       <CmxInput
-                                        label={
-                                          activeLegOption?.requires_reference
-                                            ? `${t('splitPayment.gatewayReference')} *`
-                                            : t('splitPayment.gatewayReference')
-                                        }
+                                        label={t('splitPayment.gatewayReference')}
+                                        required={activeLegOption?.requires_reference}
                                         value={activeLeg.gateway_reference ?? ''}
                                         dir="ltr"
                                         placeholder="—"
@@ -2534,7 +2669,7 @@ export function PaymentFullView({
                               </div>
                             </>
                           ) : (
-                            <div className="grid min-h-[240px] place-items-center rounded-3xl border border-dashed border-cyan-200 bg-white/70 p-6 text-center">
+                            <div className="grid min-h-[240px] place-items-center rounded-2xl border border-dashed border-cyan-200 bg-white/70 p-6 text-center">
                               <div className="max-w-md">
                                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
                                   <CreditCard className="h-6 w-6" />
@@ -2639,7 +2774,7 @@ export function PaymentFullView({
                                   />
                                 </div>
                                 {(errors.percentDiscount || errors.amountDiscount) ? (
-                                  <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  <p className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                                     {errors.percentDiscount?.message || errors.amountDiscount?.message}
                                   </p>
                                 ) : null}
@@ -2693,7 +2828,7 @@ export function PaymentFullView({
                                         </CmxButton>
                                       </div>
                                       {promoErrorMessage ? (
-                                        <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        <p className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                                           {promoErrorMessage}
                                         </p>
                                       ) : null}
@@ -2745,14 +2880,14 @@ export function PaymentFullView({
                                         </CmxButton>
                                       </div>
                                       {giftCardResult && !giftCardResult.isValid ? (
-                                        <p className={`text-xs text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        <p className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                                           {resolveGiftCardError(giftCardResult)}
                                         </p>
                                       ) : null}
                                       {showGiftCardWorkspace ? (
                                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
                                           <div className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-2">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-500">
+                                            <p className={`text-xs font-semibold ${labelCase} text-purple-500`}>
                                               {t('giftCard.cardCode')}
                                             </p>
                                             <p className="mt-1 break-all text-sm font-semibold text-slate-900" dir="ltr">
@@ -2784,7 +2919,7 @@ export function PaymentFullView({
                                                   type={pinVisible ? 'text' : 'password'}
                                                   dir="ltr"
                                                   error={pinFieldError ?? undefined}
-                                                  className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : ''}`}
+                                                  className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-rose-400' : ''}`}
                                                   onChange={(event) => {
                                                     setGiftCardPin(event.target.value);
                                                     setPinFieldError(null);
@@ -2803,7 +2938,7 @@ export function PaymentFullView({
                                                   size="sm"
                                                   className="h-9 shrink-0"
                                                   onClick={() => setPinVisible((value) => !value)}
-                                                  aria-label={pinVisible ? (t('giftCard.hidePin') || 'Hide PIN') : (t('giftCard.showPin') || 'Show PIN')}
+                                                  aria-label={pinVisible ? t('giftCard.hidePin') : t('giftCard.showPin')}
                                                 >
                                                   {pinVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                 </CmxButton>
@@ -2949,7 +3084,7 @@ export function PaymentFullView({
                           ) : (
                             <>
                               {cashDrawerRequestError ? (
-                                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                                   {cashDrawerRequestError}
                                 </div>
                               ) : null}
@@ -2958,7 +3093,7 @@ export function PaymentFullView({
                                 <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                                   {cashDrawerSessionChoices.length > 1 ? (
                                     <div className="space-y-2">
-                                      <label className={`block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                      <label className={`block text-xs font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                                         {t('cashDrawer.selectLabel')}
                                       </label>
                                       <CmxSelectDropdown
@@ -3141,7 +3276,7 @@ export function PaymentFullView({
                                               <p className="truncate text-xs font-medium text-slate-700">
                                                 {isRTL ? (entry.label2 || entry.label) : entry.label}
                                               </p>
-                                              <p className="text-xs text-slate-400">
+                                              <p className="text-xs text-slate-500">
                                                 {t('tax.rate')}: {entry.rate.toFixed(2)}%
                                               </p>
                                             </div>
@@ -3230,9 +3365,9 @@ export function PaymentFullView({
                                             render={({ field }) => (
                                               <CmxInput
                                                 {...field}
-                                                label={t('b2b.costCenter') || 'Cost Center'}
+                                                label={t('b2b.costCenter')}
                                                 dir="ltr"
-                                                placeholder={t('b2b.costCenterPlaceholder') || 'Optional'}
+                                                placeholder={t('b2b.costCenterPlaceholder')}
                                               />
                                             )}
                                           />
@@ -3242,9 +3377,9 @@ export function PaymentFullView({
                                             render={({ field }) => (
                                               <CmxInput
                                                 {...field}
-                                                label={t('b2b.poNumber') || 'PO Number'}
+                                                label={t('b2b.poNumber')}
                                                 dir="ltr"
-                                                placeholder={t('b2b.poNumberPlaceholder') || 'Optional'}
+                                                placeholder={t('b2b.poNumberPlaceholder')}
                                               />
                                             )}
                                           />
@@ -3256,10 +3391,10 @@ export function PaymentFullView({
                                           >
                                             <p className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                               <CircleAlert className="h-4 w-4 text-amber-600" />
-                                              {t('b2b.creditLimit') || 'Credit Limit'}
+                                              {t('b2b.creditLimit')}
                                             </p>
                                             <p className="mt-1 text-xs text-slate-600">
-                                              {t('b2b.creditUsed') || 'Used'}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable') || 'Available'}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
+                                              {t('b2b.creditUsed')}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable')}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
                                             </p>
                                             {serverTotals.creditLimit.wouldExceed && serverTotals.creditLimit.mode === 'warn' ? (
                                               <div className="mt-2">
@@ -3267,7 +3402,7 @@ export function PaymentFullView({
                                                   ref={creditLimitOverrideRef}
                                                   checked={creditLimitOverride}
                                                   onChange={(event) => setCreditLimitOverride(event.target.checked)}
-                                                  label={t('b2b.creditOverrideConfirm') || 'I confirm override of credit limit'}
+                                                  label={t('b2b.creditOverrideConfirm')}
                                                 />
                                               </div>
                                             ) : null}
@@ -3294,7 +3429,7 @@ export function PaymentFullView({
                                       dir={isRTL ? 'rtl' : 'ltr'}
                                       rows={4}
                                       className="min-h-28 resize-none"
-                                      placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
+                                      placeholder={t('paymentNotesPlaceholder')}
                                     />
                                   )}
                                 />
@@ -3350,7 +3485,7 @@ export function PaymentFullView({
                               onClick={() => handleOutstandingPolicyChange(option.policy)}
                               className={`h-auto w-full justify-start rounded-2xl border px-4 py-3 text-left ${
                                 effectiveOutstandingPolicy === option.policy
-                                  ? 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm'
+                                  ? 'border-teal-500 bg-teal-50 text-slate-900 shadow-sm'
                                   : 'border-slate-200 bg-white text-slate-700'
                               } ${isRTL ? 'text-right' : ''}`}
                             >
@@ -3430,7 +3565,7 @@ export function PaymentFullView({
                           <CmxCardTitle className="text-sm text-slate-900">{t('rightRail.balanceResult')}</CmxCardTitle>
                           <Badge
                             variant="secondary"
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${
                               rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.BLOCKED
                                 ? 'bg-rose-100 text-rose-700'
                                 : rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.OVERPAID
@@ -3471,14 +3606,12 @@ export function PaymentFullView({
                             negative
                           />
                         ) : null}
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {t('rightRail.status')}
-                          </p>
-                          <p className={`mt-1 text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            {balanceStatusLabel}
-                          </p>
-                        </div>
+                        {/* Finding 1.4: polite live region driven by the balance-status
+                            machine; the visible status already lives in the header badge
+                            (the duplicated status row was removed — finding 1.1). */}
+                        <p role="status" aria-live="polite" className="sr-only">
+                          {balanceStatusAnnouncement}
+                        </p>
                       </CmxCardContent>
                     </CmxCard>
                   </div>
@@ -3514,7 +3647,7 @@ export function PaymentFullView({
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-4 pt-4">
                       <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className={`text-[11px] font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                           {t('rightRail.realPaymentsReceived')}
                         </p>
                         {realPaymentSummaryItems.length > 0 ? (
@@ -3528,7 +3661,7 @@ export function PaymentFullView({
                         )}
                       </div>
                       <div className="space-y-2">
-                        <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className={`text-[11px] font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                           {t('rightRail.creditsApplied')}
                         </p>
                         {storedValueSummaryItems.length > 0 || appliedGiftCard ? (
@@ -3697,7 +3830,7 @@ export function PaymentFullView({
             <p className="text-sm text-slate-600">{t('cashDrawer.dialogDescription')}</p>
 
             {cashDrawerRequestError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {cashDrawerRequestError}
               </div>
             )}
@@ -3764,7 +3897,6 @@ export function PaymentFullView({
               type="button"
               onClick={() => void handleCreateCashDrawerSession()}
               disabled={openingDrawerSession || !cashDrawerToOpenId}
-              className="bg-gradient-to-r from-teal-600 to-cyan-700"
             >
               {openingDrawerSession ? (
                 <>
@@ -3886,9 +4018,9 @@ export function PaymentFullView({
 
       <CmxConfirmDialog
         open={confirmCloseOpen}
-        title={tCommon('confirm') || 'Confirm'}
-        description={t('messages.discardChanges') || 'You have unsaved payment changes. Close this modal and discard them?'}
-        confirmLabel={tCommon('close') || 'Close'}
+        title={tCommon('confirm')}
+        description={t('messages.discardChanges')}
+        confirmLabel={tCommon('close')}
         cancelLabel={tCommon('cancel')}
         onCancel={() => setConfirmCloseOpen(false)}
         onConfirm={() => {
@@ -3913,6 +4045,18 @@ export function PaymentFullView({
             mode !== OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES
           ) {
             allocation.resetAllocationState();
+          }
+          // QA C17-1.2: "Adjust payment amounts" has no confirm step — close the
+          // dialog and put the operator on the thing they need to change (the
+          // amount editor when only one leg exists, the legs workspace otherwise).
+          if (mode === 'adjust_legs') {
+            setExtraReceiptDialogOpen(false);
+            if (editableLegEntries.length === 1) {
+              setActiveLegIndex(editableLegEntries[0].index);
+              focusAmountEditor();
+            } else {
+              scrollToWorkbenchSection(PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE);
+            }
           }
         }}
         onOpenAutoAllocate={

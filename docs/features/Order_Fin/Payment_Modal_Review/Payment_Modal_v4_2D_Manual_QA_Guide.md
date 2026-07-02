@@ -263,7 +263,10 @@ For 2–3 of the above scenarios (at least: cash-with-change, a split, and a gif
   `creditReferenceId` to match what the UI showed. **Nothing about the payload shape should differ from
   pre-2D behavior** — 2D was a behavior-frozen lift.
 - [ ] Pass
-- create testing table (cmx_tmp_testing_log) to store that Payload and testing data so we can review even you you can use that data to check test results.
+
+-----
+
+- What if you create testing table for tracing (cmx_tmp_testing_log) to store that Payload and testing data so we can review even you you can use that data to check test results.
 
 ---
 

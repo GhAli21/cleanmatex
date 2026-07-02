@@ -25,5 +25,6 @@
   "helperMethod": "اختر الطريقة",
   "helperAmount": "عدّل المبلغ",
   "helperCredits": "طبّق الأرصدة",
-  "remainingForLeg": "يمكنك توزيع حتى {amount} على هذا القسط."
+  "remainingForLeg": "يمكنك توزيع حتى {amount} على هذا القسط.",
+  "requiredField": "(مطلوب)"
 }

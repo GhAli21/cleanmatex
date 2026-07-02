@@ -45,6 +45,7 @@
     "manualOverAllocated": "Over-allocated by {amount}. Reduce so the total matches the extra.",
     "cancel": "Cancel",
     "confirmAllocation": "Confirm allocation",
+    "totalAllocated": "Total allocated",
     "confirmedToast": "Allocation confirmed. You can submit the order now.",
     "remainingUnallocatedError": "Allocation must fully cover the excess amount."
   }

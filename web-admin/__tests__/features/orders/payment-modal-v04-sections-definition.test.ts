@@ -1,5 +1,6 @@
 import {
   buildInitialWorkbenchSectionExpandedState,
+  deriveAutoExpandPaymentSections,
   derivePaymentInspectorTabs,
   deriveVisiblePaymentSections,
   PAYMENT_MODAL_INSPECTOR_TAB_IDS,
@@ -7,6 +8,7 @@ import {
   PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL,
   PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT,
   PAYMENT_MODAL_V04_SECTIONS,
+  type PaymentModalSectionAutoExpandContext,
   type PaymentModalSectionVisibilityContext,
 } from '@features/orders/ui/payment-modal-v04-sections-definition';
 
@@ -35,12 +37,16 @@ describe('payment-modal-v04 section definitions', () => {
     expect(PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL).toBe(true);
   });
 
-  it('seeds expanded state from section defaults', () => {
+  it('seeds expanded state from section defaults (Phase 3: only A + B open)', () => {
     const state = buildInitialWorkbenchSectionExpandedState();
 
     expect(state[PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT]).toBe(true);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR]).toBe(true);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE]).toBe(false);
     expect(state[PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS]).toBe(false);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER]).toBe(false);
     expect(state[PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR]).toBe(false);
+    expect(state[PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY]).toBe(false);
   });
 
   it('marks every center workbench section as collapsible', () => {
@@ -154,6 +160,72 @@ describe('payment-modal-v04 section definitions', () => {
     expect(tabs).toEqual([
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.ORDER_VALUE,
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.PAYMENT_NOTES,
+    ]);
+  });
+});
+
+describe('deriveAutoExpandPaymentSections (Phase 3 contextual expansion)', () => {
+  function makeAutoExpandContext(
+    overrides: Partial<PaymentModalSectionAutoExpandContext> = {}
+  ): PaymentModalSectionAutoExpandContext {
+    return {
+      workspaceNeedsAttention: false,
+      cashDrawerBlocking: false,
+      balancePolicyRelevant: false,
+      discountsCreditsActive: false,
+      ...overrides,
+    };
+  }
+
+  it('expands nothing when no signal is active', () => {
+    expect(deriveAutoExpandPaymentSections(makeAutoExpandContext())).toEqual([]);
+  });
+
+  it('expands the workspace when a required action or leg details need attention', () => {
+    expect(
+      deriveAutoExpandPaymentSections(
+        makeAutoExpandContext({ workspaceNeedsAttention: true })
+      )
+    ).toEqual([PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE]);
+  });
+
+  it('expands the cash drawer only while its session blocks submit', () => {
+    expect(
+      deriveAutoExpandPaymentSections(makeAutoExpandContext({ cashDrawerBlocking: true }))
+    ).toEqual([PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER]);
+  });
+
+  it('expands balance policy when a remaining balance needs a policy', () => {
+    expect(
+      deriveAutoExpandPaymentSections(
+        makeAutoExpandContext({ balancePolicyRelevant: true })
+      )
+    ).toEqual([PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY]);
+  });
+
+  it('expands discounts/credits on gift-card or promo activity', () => {
+    expect(
+      deriveAutoExpandPaymentSections(
+        makeAutoExpandContext({ discountsCreditsActive: true })
+      )
+    ).toEqual([PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS]);
+  });
+
+  it('returns every active signal in workbench order', () => {
+    expect(
+      deriveAutoExpandPaymentSections(
+        makeAutoExpandContext({
+          workspaceNeedsAttention: true,
+          cashDrawerBlocking: true,
+          balancePolicyRelevant: true,
+          discountsCreditsActive: true,
+        })
+      )
+    ).toEqual([
+      PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE,
+      PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS,
+      PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER,
+      PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY,
     ]);
   });
 });

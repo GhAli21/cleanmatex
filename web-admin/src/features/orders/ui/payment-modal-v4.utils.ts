@@ -726,6 +726,109 @@ export interface QuickTenderResult {
  * @param input - {@link QuickTenderInput}.
  * @returns {@link QuickTenderResult} — `{ appliedAmount, cashTendered? }`.
  */
+/**
+ * A single quick-tender chip (UX finding 1.2 — the cash fast lane).
+ *
+ * `exact` settles the remaining cap (valid for every method); `tender` chips are
+ * cash-only shortcuts for "the customer handed a note": the value is applied via
+ * the SAME capped path as the keypad/amount field, so applied never exceeds the
+ * remaining-to-allocate cap — the surplus becomes tendered cash/change.
+ */
+export interface QuickTenderChipModel {
+  /** Stable id for keys/testids, e.g. `exact`, `next-5`, `note-50`. */
+  id: string;
+  kind: 'exact' | 'tender';
+  /** Cash handed over for `tender` chips; absent for `exact`. */
+  tenderAmount?: number;
+}
+
+/**
+ * Common cash-note ladders by currency (program decision: currency-derived
+ * defaults, no tenant setting). High-unit 3-dp GCC currencies use smaller note
+ * values; everything else uses the generic 5→100 ladder.
+ *
+ * @param currencyCode ISO currency code (e.g. `OMR`, `SAR`).
+ * @returns Ascending denomination values for quick-tender chips.
+ */
+export function deriveQuickTenderDenominations(currencyCode: string): number[] {
+  switch (currencyCode?.toUpperCase?.()) {
+    case 'OMR':
+    case 'BHD':
+    case 'KWD':
+      return [1, 5, 10, 20, 50];
+    case 'SAR':
+    case 'AED':
+    case 'QAR':
+      return [10, 50, 100, 200, 500];
+    default:
+      return [5, 10, 20, 50, 100];
+  }
+}
+
+/**
+ * Inputs for {@link deriveQuickTenderChips}.
+ */
+export interface DeriveQuickTenderChipsInput {
+  /** Remaining-to-allocate cap for the active leg (its own amount excluded). */
+  remaining: number;
+  currencyCode: string;
+  decimalPlaces: number;
+  /** Whether the active leg is cash (tender chips are cash-only). */
+  isCash: boolean;
+  epsilon?: number;
+}
+
+/**
+ * Pure chip-row deriver for the quick-tender fast lane: `[Exact] [Next d1]
+ * [Next d2] [note] [note]` (cash) or `[Exact]` (non-cash). Values are decimal-
+ * rounded, deduped, and strictly greater than the exact amount so every chip is
+ * a meaningful one-tap action. Returns `[]` when nothing remains to settle.
+ *
+ * @param input - {@link DeriveQuickTenderChipsInput}.
+ * @returns Chips ordered `exact` first, then ascending tender values (max 5).
+ */
+export function deriveQuickTenderChips({
+  remaining,
+  currencyCode,
+  decimalPlaces,
+  isCash,
+  epsilon = 0.001,
+}: DeriveQuickTenderChipsInput): QuickTenderChipModel[] {
+  if (!(remaining > epsilon)) return [];
+
+  const chips: QuickTenderChipModel[] = [{ id: 'exact', kind: 'exact' }];
+  if (!isCash) return chips;
+
+  const round = (value: number) => Number(value.toFixed(decimalPlaces));
+  const exactValue = round(remaining);
+  const denominations = deriveQuickTenderDenominations(currencyCode);
+  const seen = new Set<number>([exactValue]);
+  const tenderValues: number[] = [];
+
+  const pushTender = (value: number) => {
+    const rounded = round(value);
+    if (rounded - exactValue <= epsilon) return; // no-op vs Exact
+    if (seen.has(rounded)) return;
+    seen.add(rounded);
+    tenderValues.push(rounded);
+  };
+
+  // Round-up chips for the two smallest denominations ("Next 5", "Next 10").
+  for (const denomination of denominations.slice(0, 2)) {
+    pushTender(Math.ceil((remaining - epsilon) / denomination) * denomination);
+  }
+  // Flat-note chips for the two largest denominations (e.g. 50, 100).
+  for (const denomination of denominations.slice(-2)) {
+    pushTender(denomination);
+  }
+
+  tenderValues.sort((left, right) => left - right);
+  for (const value of tenderValues.slice(0, 4)) {
+    chips.push({ id: `tender-${value}`, kind: 'tender', tenderAmount: value });
+  }
+  return chips;
+}
+
 export function quickTender({
   kind,
   changeValue,

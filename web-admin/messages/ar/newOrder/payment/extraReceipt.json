@@ -45,6 +45,7 @@
     "manualOverAllocated": "تم تخصيص مبلغ زائد بمقدار {amount}. قلّله ليطابق المبلغ الإضافي.",
     "cancel": "إلغاء",
     "confirmAllocation": "تأكيد التخصيص",
+    "totalAllocated": "إجمالي المخصص",
     "confirmedToast": "تم تأكيد التخصيص. يمكنك إرسال الطلب الآن.",
     "remainingUnallocatedError": "يجب أن يغطي التخصيص مبلغ الفائض بالكامل."
   }

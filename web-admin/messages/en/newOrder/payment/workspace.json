@@ -25,5 +25,6 @@
   "helperMethod": "Choose method",
   "helperAmount": "Edit amount",
   "helperCredits": "Apply credits",
-  "remainingForLeg": "You can allocate up to {amount} on this payment leg."
+  "remainingForLeg": "You can allocate up to {amount} on this payment leg.",
+  "requiredField": "(required)"
 }

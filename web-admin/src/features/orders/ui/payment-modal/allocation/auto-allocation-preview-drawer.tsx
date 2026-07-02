@@ -87,6 +87,23 @@ export function AutoAllocationPreviewDrawer({
                     </tr>
                   ))}
                 </tbody>
+                {/* QA C17-1.4: summary total of the previewed allocation lines. */}
+                <tfoot className="border-t border-slate-200 bg-slate-50">
+                  <tr>
+                    <td className={`px-3 py-2 text-sm font-semibold text-slate-900 ${textAlign}`}>
+                      {t('totalAllocated')}
+                    </td>
+                    <td
+                      data-testid="auto-allocation-total"
+                      className={`px-3 py-2 text-sm font-semibold tabular-nums text-slate-900 ${isRTL ? 'text-left' : 'text-right'}`}
+                    >
+                      {currencyCode}{' '}
+                      {formatAmount(
+                        preview.allocations.reduce((sum, line) => sum + line.allocationAmount, 0)
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
             {preview.remainingUnallocatedAmount > 0.001 ? (

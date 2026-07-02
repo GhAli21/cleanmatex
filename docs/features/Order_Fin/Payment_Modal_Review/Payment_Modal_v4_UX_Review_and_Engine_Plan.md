@@ -3,7 +3,7 @@
 **Date:** 2026-06-26
 **Author:** Architecture/UX review session (Claude Opus 4.8)
 **Scope:** `web-admin/src/features/orders/ui/payment-modal-v4.tsx` and its supporting modules
-**Status:** Review + design sketch. **No code changed yet.** Next step is a reviewed decision (ADR) or the first pure-hook extraction.
+**Status (2026-07-03):** Phases 0–3 implemented. Engine extracted (`usePaymentEngine`, Phases 1–2G), view split (`payment-full-view.tsx` + thin shell), and the Phase 3 UX quick wins shipped: findings **1.1, 1.2, 1.4, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11** + polish items (RTL uppercase gating, radius scale, FULLY_SETTLED transition, initial focus, inline add-method, i18n fallback cleanup). Still open: **1.3** (keyboard shortcuts — Phase 5) and **1.5** (tablet layout — Phase 6); Simple mode = Phase 4. Progress tracker: `happy-doodling-volcano.md`.
 
 ---
 

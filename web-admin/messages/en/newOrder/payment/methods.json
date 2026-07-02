@@ -14,5 +14,9 @@
   "touchHintImmediate": "Immediate settlement",
   "touchHintCashDrawer": "Cash drawer / immediate collection",
   "noMethods": "No POS-ready real payment methods are configured.",
+  "noMethodsGuidance": "Configure payment methods in Payments settings to start collecting.",
+  "configureLink": "Open payments settings",
+  "loadFailedTitle": "Couldn't load payment methods",
+  "loadFailedDescription": "Something went wrong while loading payment methods. Try again.",
   "defaultBadge": "Default"
 }
