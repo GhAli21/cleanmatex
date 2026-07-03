@@ -27,6 +27,7 @@ import {
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
+import { PAYMENT_MODAL_MODE, type PaymentModalMode } from './payment-modal-v4.utils';
 import { PaymentFullView } from './payment-full-view';
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,11 @@ interface PaymentModalProps {
   isRetailOnlyOrder?: boolean;
   loading?: boolean;
   initialPaymentNotes?: string;
+  /**
+   * Face the modal opens with (Phase 4 — single engine, two modes). Defaults
+   * to Simple; the engine auto-escalates to Full when `needsAdvanced` trips.
+   */
+  initialPaymentMode?: PaymentModalMode;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +85,7 @@ interface PaymentModalProps {
  * @param root0.isRetailOnlyOrder Marks retail-only orders for payment method rules.
  * @param root0.loading Disables submit while the parent order flow is busy.
  * @param root0.initialPaymentNotes Existing payment notes restored when reopening.
+ * @param root0.initialPaymentMode Face the modal opens with (defaults to Simple).
  * @param root0.checkoutAmount
  * @returns Payment modal JSX for the active order.
  */
@@ -101,6 +108,7 @@ export function PaymentModalV4({
   isRetailOnlyOrder = false,
   loading = false,
   initialPaymentNotes = '',
+  initialPaymentMode = PAYMENT_MODAL_MODE.SIMPLE,
 }: PaymentModalProps) {
   const isB2BCustomer = customerType === 'b2b';
   const defaultOutstandingPolicy: OutstandingPolicy = isRetailOnlyOrder
@@ -211,6 +219,7 @@ export function PaymentModalV4({
       isRetailOnlyOrder={isRetailOnlyOrder}
       loading={loading}
       initialPaymentNotes={initialPaymentNotes}
+      initialMode={initialPaymentMode}
       onClose={onClose}
       onSubmit={onSubmit}
     />

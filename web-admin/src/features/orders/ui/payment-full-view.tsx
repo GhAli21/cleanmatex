@@ -42,12 +42,19 @@ import {
   legHasRequiredPaymentReference,
   deriveLegAppliedAmount,
   deriveQuickTenderChips,
+  deriveSimpleModeMethodOptions,
+  PAYMENT_MODAL_MODE,
+  type PaymentModalMode,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
 import {
   PaymentQuickTenderChips,
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
+import { PaymentModeToggle } from './payment-modal/payment-mode-toggle';
+import { SummaryRow } from './payment-modal/summary-row';
+import { PaymentDockedSummaryBar } from './payment-modal/docked-summary-bar';
+import { PaymentSimpleView } from './payment-simple-view';
 import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
 import {
   ExtraReceiptHandlingCard,
@@ -63,6 +70,7 @@ import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workb
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
+import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
 import {
   usePaymentEngine,
   type PaymentEngineItem,
@@ -113,35 +121,8 @@ import { CmxTabsPanel, type CmxTabItem } from '@ui/navigation';
 import { CmxEmptyState } from '@ui/data-display';
 import { showErrorToast } from '@ui/components/cmx-toast';
 
-// ---------------------------------------------------------------------------
-// SummaryRow helper — label + right-aligned value with skeleton fallback
-// ---------------------------------------------------------------------------
-function SummaryRow({
-  label,
-  value,
-  loading,
-  bold,
-  negative,
-}: {
-  label: string;
-  value: string;
-  loading?: boolean;
-  bold?: boolean;
-  negative?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between items-center gap-2 ${bold ? 'font-bold border-t border-slate-100 pt-1.5 mt-1' : ''}`}>
-      <span className={`text-sm ${bold ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
-      {loading ? (
-        <CmxSkeleton className="h-4 w-20" />
-      ) : (
-        <span className={`text-sm tabular-nums ${bold ? 'text-slate-900' : negative ? 'text-rose-700' : 'text-slate-900'} font-medium`}>
-          {value}
-        </span>
-      )}
-    </div>
-  );
-}
+// SummaryRow extracted to './payment-modal/summary-row' in Phase 4 — shared by
+// the Full right rail, the submit-confirm summary, and the Simple receipt card.
 
 type RightRailSummaryItem = {
   label: string;
@@ -360,6 +341,11 @@ interface PaymentFullViewProps {
   isRetailOnlyOrder: boolean;
   loading: boolean;
   initialPaymentNotes?: string;
+  /**
+   * Face the modal opens with (Phase 4). Defaults to Simple per the locked
+   * program decision; the engine's `needsAdvanced` auto-escalates to Full.
+   */
+  initialMode?: PaymentModalMode;
   // ---- callbacks ----
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
@@ -393,6 +379,7 @@ export function PaymentFullView({
   isRetailOnlyOrder = false,
   loading = false,
   initialPaymentNotes = '',
+  initialMode = PAYMENT_MODAL_MODE.SIMPLE,
   onClose,
   onSubmit,
 }: PaymentFullViewProps) {
@@ -444,6 +431,14 @@ export function PaymentFullView({
   const [creditNotePickerOpen, setCreditNotePickerOpen] = useState(false);
   const [pendingCreditNoteOption, setPendingCreditNoteOption] = useState<CheckoutSettlementOption | null>(null);
 
+  // Phase 4 — Simple/Full face state. One engine, two faces: the mode only
+  // swaps the dialog body; header, footer CTA, and confirm dialogs are shared,
+  // and every slice keeps its state across flips (it lives in the engine).
+  const [mode, setMode] = useState<PaymentModalMode>(initialMode);
+  const [autoEscalated, setAutoEscalated] = useState(false);
+  // Phase 6 — below `xl` the receipt rail becomes a slide-over panel.
+  const [railOpen, setRailOpen] = useState(false);
+
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
   const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
@@ -491,8 +486,11 @@ export function PaymentFullView({
       setConfirmCloseOpen(false);
       setSubmitConfirmOpen(false);
       setPendingSubmission(null);
+      setMode(initialMode);
+      setAutoEscalated(false);
+      setRailOpen(false);
     }
-  }, [open]);
+  }, [open, initialMode]);
 
   // Composition engine (Phase 2G-1): the 7 concern slices + every cross-slice
   // derivation + the non-DOM handlers + the payExtraIntentRef bridge. Behavior-frozen.
@@ -614,6 +612,8 @@ export function PaymentFullView({
     submitBusy,
     submitHasBlockingIssues,
     rightRailState,
+    needsAdvanced,
+    needsAdvancedReasons,
     handleCreditNoteSelect,
     handleMethodSelect,
     handleCustomerCreditSelect,
@@ -742,6 +742,48 @@ export function PaymentFullView({
     handleCreateCashDrawerSession,
   } = cashDrawer;
 
+  // Phase 4 auto-escalation (render-time Pattern A): the moment any advanced
+  // condition trips (`computeNeedsAdvanced` in the engine), Simple flips to
+  // Full and the banner explains why. The guard self-clears — after the flip
+  // the condition is false, and the manual Simple segment stays disabled while
+  // `needsAdvanced` holds, so this can never oscillate.
+  if (open && mode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) {
+    setMode(PAYMENT_MODAL_MODE.FULL);
+    setAutoEscalated(true);
+  }
+
+  /**
+   * Manual Simple ⇄ Advanced switch. Returning to Simple is refused while
+   * `needsAdvanced` holds (the toggle also disables the segment) — the modal
+   * never silently drops advanced state.
+   */
+  const handleModeChange = useCallback(
+    (nextMode: PaymentModalMode) => {
+      if (nextMode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) return;
+      setMode(nextMode);
+      setAutoEscalated(false);
+    },
+    [needsAdvanced]
+  );
+
+  // Preserve focus across face switches: when the previously-focused control
+  // unmounted with the old face, land on the shared amount editor (both faces
+  // attach `amountInputRef`; only one is mounted at a time).
+  const prevModeRef = useRef(mode);
+  useEffect(() => {
+    if (prevModeRef.current === mode) return;
+    prevModeRef.current = mode;
+    const timer = window.setTimeout(() => {
+      const activeElement = document.activeElement;
+      if (!activeElement || activeElement === document.body) {
+        if (amountInputRef.current && !amountInputRef.current.disabled) {
+          amountInputRef.current.focus();
+          amountInputRef.current.select();
+        }
+      }
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [mode]);
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -1414,6 +1456,107 @@ export function PaymentFullView({
     ]
   );
 
+  // Shared amount-editor write path (Phase 4): one capped `updateLeg` handler
+  // for both faces — behavior identical to the previous inline Full-view
+  // lambda, so Simple can never introduce a second money path.
+  const handleAmountValueChange = useCallback(
+    (value: number | null, draft: string) => {
+      if (!activeLeg) return;
+      setActiveAmountDraft(draft);
+      const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: activeLeg.method,
+        supportsChangeReturn: option?.supports_change_return,
+        supportsOverpayment: option?.supports_overpayment,
+        requiresCashDrawer: option?.requires_cash_drawer,
+      });
+      const cappedAmount = deriveLegAppliedAmount({
+        rawAmount: value,
+        paymentLegs,
+        legIndex: activeLegIndex,
+        saleTotal,
+        giftCardAmount: giftCardSettlementAmount,
+        decimalPlaces,
+        walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
+        supportsOverpayment:
+          payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
+            ? true
+            : !policy.isCash && policy.supportsOverpayment,
+      });
+      notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
+      updateLeg(activeLegIndex, 'amount', value);
+    },
+    [
+      activeLeg,
+      activeLegIndex,
+      decimalPlaces,
+      getLegStoredValueCap,
+      getMethodOption,
+      giftCardSettlementAmount,
+      notifyIfLegAmountCapped,
+      paymentLegs,
+      payExtraIntentRef,
+      saleTotal,
+      setActiveAmountDraft,
+      updateLeg,
+    ]
+  );
+
+  // ---- Simple-face derivations + handlers (Phase 4) ----
+  const simpleMethodOptions = useMemo(
+    () => deriveSimpleModeMethodOptions(realPaymentOptions),
+    [realPaymentOptions]
+  );
+  const simpleAmountValue =
+    activeLeg?.method === PAYMENT_METHODS.CASH
+      ? activeLeg.cashTendered ?? activeLeg.amount ?? null
+      : activeLeg?.amount ?? null;
+  const cashDrawerDisplay = selectedCashDrawerChoice
+    ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
+    : null;
+  const simplePolicyLabel =
+    effectiveOutstandingPolicy === 'PAY_ON_COLLECTION'
+      ? t('remainder.payOnCollection')
+      : effectiveOutstandingPolicy === 'CREDIT_INVOICE'
+        ? t('remainder.invoiceOutstanding')
+        : t('remainder.fullPayment');
+
+  const handleSimpleMoreOptions = useCallback(() => {
+    setMode(PAYMENT_MODAL_MODE.FULL);
+    setAutoEscalated(false);
+  }, []);
+  const handleSimpleManageDrawer = useCallback(() => {
+    setMode(PAYMENT_MODAL_MODE.FULL);
+    setAutoEscalated(false);
+    window.setTimeout(() => {
+      expandSection(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER);
+      cashDrawerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, [expandSection]);
+  const handleSimpleChangePolicy = useCallback(() => {
+    setMode(PAYMENT_MODAL_MODE.FULL);
+    setAutoEscalated(false);
+    window.setTimeout(() => {
+      expandSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
+      balancePolicySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, [expandSection]);
+  const handleSimpleTerminalChange = useCallback(
+    (terminalId: string | undefined) => {
+      updateLeg(activeLegIndex, 'terminalId', terminalId);
+    },
+    [activeLegIndex, updateLeg]
+  );
+  // Program rule: a blocked submit in Simple escalates to Full so the cashier
+  // can see and fix the blocker, then reuses the Full focus-first-issue flow.
+  const handleSimpleBlockedSubmitAttempt = useCallback(() => {
+    setMode(PAYMENT_MODAL_MODE.FULL);
+    if (needsAdvanced) setAutoEscalated(true);
+    window.setTimeout(() => {
+      handleBlockedSubmitAttempt();
+    }, 150);
+  }, [handleBlockedSubmitAttempt, needsAdvanced]);
+
   // Contextual auto-expand (finding 1.8): sections default-collapsed now, but
   // re-open the moment they become operationally relevant. Render-time guarded
   // (Pattern A) — `expandSection` no-ops when already open, and a section the
@@ -1631,6 +1774,26 @@ export function PaymentFullView({
     onSubmit(paymentData, payload);
   }, [onSubmit, pendingSubmission]);
 
+  // Phase 5 — guardrailed shortcuts (Enter/F2/Ctrl+Enter). Fires the SAME CTA
+  // gate; disabled while busy / blocked / any nested dialog is open / focus is
+  // in an editable control (see use-payment-shortcuts.ts for the locked matrix).
+  usePaymentShortcuts({
+    enabled: open,
+    submitBusy,
+    blocked: submitHasBlockingIssues,
+    dialogOpen:
+      confirmCloseOpen ||
+      submitConfirmOpen ||
+      cashDrawerDialogOpen ||
+      creditNotePickerOpen ||
+      extraReceiptDialogOpen ||
+      allocation.autoDrawerOpen ||
+      allocation.manualDrawerOpen,
+    onSubmit: () => {
+      handleSubmit(onSubmitForm, onInvalidForm)();
+    },
+  });
+
   if (!open) return null;
 
   // ---------------------------------------------------------------------------
@@ -1654,18 +1817,93 @@ export function PaymentFullView({
                 {isExpress && <Badge variant="secondary" className="text-xs">{t('expressLabel')}</Badge>}
                 <Badge variant="secondary" className="text-xs">{currencyCode}</Badge>
               </div>
-              <CmxButton type="button" variant="ghost" size="sm" onClick={closeWithGuard} aria-label={tCommon('close')}>
-                <X className="h-5 w-5" />
-              </CmxButton>
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <PaymentModeToggle
+                  mode={mode}
+                  onModeChange={handleModeChange}
+                  simpleDisabled={needsAdvanced}
+                  simpleDisabledReason={t('mode.simpleDisabledHint')}
+                  simpleLabel={t('mode.simple')}
+                  fullLabel={t('mode.advanced')}
+                  groupLabel={t('mode.toggleLabel')}
+                  isRTL={isRTL}
+                />
+                <CmxButton type="button" variant="ghost" size="sm" onClick={closeWithGuard} aria-label={tCommon('close')}>
+                  <X className="h-5 w-5" />
+                </CmxButton>
+              </div>
             </CmxDialogHeader>
+
+            {/* Phase 4 escalation banner — explains an automatic Simple → Full
+                flip; polite live region so the switch is announced. */}
+            {mode === PAYMENT_MODAL_MODE.FULL && autoEscalated && needsAdvancedReasons.length > 0 ? (
+              <div
+                role="status"
+                aria-live="polite"
+                data-testid="payment-escalation-banner"
+                className={`flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+              >
+                <CircleAlert className="h-4 w-4 shrink-0 text-amber-600" />
+                <p className="min-w-0">
+                  <span className="font-semibold">{t('mode.escalatedTitle')}</span>
+                  {' — '}
+                  {needsAdvancedReasons
+                    .slice(0, 3)
+                    .map((reason) => t(`mode.reasons.${reason}`))
+                    .join(' · ')}
+                </p>
+              </div>
+            ) : null}
 
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
-              <div className="mx-auto grid min-h-full max-w-[1880px] items-start gap-4 xl:grid-cols-[320px_minmax(720px,1fr)_360px]">
-                <aside className="min-w-0">
+              {mode === PAYMENT_MODAL_MODE.SIMPLE ? (
+                <PaymentSimpleView
+                  currencyCode={currencyCode}
+                  decimalPlaces={decimalPlaces}
+                  formatAmount={formatAmount}
+                  moneyEpsilon={moneyEpsilon}
+                  totalsLoading={totalsLoading}
+                  submitBusy={submitBusy}
+                  methodsLoading={checkoutMethodsLoading}
+                  methodOptions={simpleMethodOptions}
+                  paymentLegs={paymentLegs}
+                  activeLeg={activeLeg}
+                  activeLegIndex={activeLegIndex}
+                  getOptionDisplayName={getCheckoutOptionDisplayName}
+                  onMethodSelect={handleMethodSelect}
+                  onMoreOptions={handleSimpleMoreOptions}
+                  amountInputRef={amountInputRef}
+                  activeAmountDraft={activeAmountDraft}
+                  amountValue={simpleAmountValue}
+                  onAmountValueChange={handleAmountValueChange}
+                  quickTenderItems={quickTenderChipItems}
+                  onQuickTenderSelect={handleQuickTenderSelect}
+                  onKeypadPress={handleKeypadPress}
+                  requiresTerminal={Boolean(activeLegOption?.requires_terminal)}
+                  branchPaymentTerminals={branchPaymentTerminals}
+                  onTerminalChange={handleSimpleTerminalChange}
+                  cashDrawerRequired={cashDrawerRequired}
+                  cashDrawerDisplay={cashDrawerDisplay}
+                  onManageCashDrawer={handleSimpleManageDrawer}
+                  saleTotal={saleTotal}
+                  amountAppliedToOrder={amountAppliedToOrder}
+                  displayChangeAmount={displayChangeAmount}
+                  remainingBalance={remainingBalance}
+                  settled={rightRailState.balanceStatus === RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED}
+                  balanceStatusLabel={balanceStatusLabel}
+                  balanceStatusAnnouncement={balanceStatusAnnouncement}
+                  policyLabel={simplePolicyLabel}
+                  onChangeBalancePolicy={handleSimpleChangePolicy}
+                />
+              ) : (
+              <div className="mx-auto grid min-h-full max-w-[1880px] items-start gap-4 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(720px,1fr)_360px]">
+                {/* Phase 6: on md–xl the tools column scrolls internally so the
+                    workbench (keypad, chips, CTA) stays above the fold. */}
+                <aside className="min-w-0 md:sticky md:top-0 md:max-h-[calc(94vh-16rem)] md:self-start md:overflow-y-auto xl:static xl:max-h-none xl:overflow-visible">
                   <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-cyan-100 pb-3">
                       <CmxCardTitle className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
@@ -2239,32 +2477,7 @@ export function PaymentFullView({
                                   decimalPlaces={decimalPlaces}
                                   showZero
                                   aria-label={t('workspace.editingAmount')}
-                                  onValueChange={(value, draft) => {
-                                    if (!activeLeg) return;
-                                    setActiveAmountDraft(draft);
-                                    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
-                                    const policy = resolvePaymentOverpaymentPolicy({
-                                      paymentMethodCode: activeLeg.method,
-                                      supportsChangeReturn: option?.supports_change_return,
-                                      supportsOverpayment: option?.supports_overpayment,
-                                      requiresCashDrawer: option?.requires_cash_drawer,
-                                    });
-                                    const cappedAmount = deriveLegAppliedAmount({
-                                      rawAmount: value,
-                                      paymentLegs,
-                                      legIndex: activeLegIndex,
-                                      saleTotal,
-                                      giftCardAmount: giftCardSettlementAmount,
-                                      decimalPlaces,
-                                      walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-                                      supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
-                                    });
-                                    notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
-                                    updateLeg(activeLegIndex, 'amount', value);
-                                  }}
+                                  onValueChange={handleAmountValueChange}
                                   placeholder={formatAmount(0)}
                                   disabled={!activeLeg}
                                   className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
@@ -3502,13 +3715,44 @@ export function PaymentFullView({
                   </CmxCard>
                 </section>
 
+                {/* Phase 6: below xl the receipt rail is a slide-over; the
+                    backdrop closes it. At xl+ these overrides reset to the
+                    original in-grid column. */}
+                {railOpen ? (
+                  <button
+                    type="button"
+                    aria-label={tCommon('close')}
+                    data-testid="payment-rail-backdrop"
+                    onClick={() => setRailOpen(false)}
+                    className="fixed inset-0 z-40 bg-slate-900/40 xl:hidden"
+                  />
+                ) : null}
                 <aside
-                  className={`min-w-0 ${
+                  data-testid="payment-receipt-rail"
+                  className={`fixed inset-y-0 end-0 z-50 w-[min(92vw,380px)] overflow-y-auto bg-slate-50 p-3 shadow-2xl transition-transform duration-300 motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:min-w-0 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none ${
+                    railOpen
+                      ? 'translate-x-0'
+                      : isRTL
+                        ? '-translate-x-full'
+                        : 'translate-x-full'
+                  } ${
                     PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
                       ? 'xl:sticky xl:top-0 xl:z-10 xl:flex xl:max-h-[calc(94vh-11rem)] xl:flex-col xl:self-start'
                       : ''
                   }`}
                 >
+                  <div className={`mb-2 flex justify-end xl:hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <CmxButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRailOpen(false)}
+                      aria-label={tCommon('close')}
+                      className="min-h-[44px] rounded-xl text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </CmxButton>
+                  </div>
                   <CmxCard
                     className={`overflow-hidden border-cyan-100 bg-white/95 shadow-sm ${
                       PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? 'flex min-h-0 flex-1 flex-col' : ''
@@ -3758,19 +4002,35 @@ export function PaymentFullView({
                   </CmxCard>
                 </aside>
               </div>
+              )}
             </div>
 
               <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
-                {PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? (
-                  <div className="w-full xl:hidden">
-                    <FinalOrderTotalPanel
-                      value={orderValueBreakdownModel.totalRow.value}
-                      title={t('orderValue.finalTotal')}
-                      help={t('orderValue.finalTotalHelp')}
-                      isRTL={isRTL}
-                    />
-                  </div>
-                ) : null}
+                {/* Phase 6 docked bar: Final Total + Change stay visible beside
+                    the CTA below xl (the rail is a slide-over there). */}
+                <div className={`flex w-full items-stretch gap-2 xl:hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <PaymentDockedSummaryBar
+                    finalTotalLabel={t('orderValue.finalTotal')}
+                    finalTotalValue={orderValueBreakdownModel.totalRow.value}
+                    changeLabel={t('mode.simpleView.change')}
+                    changeValue={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
+                    showChange={displayChangeAmount > moneyEpsilon}
+                    isRTL={isRTL}
+                    className="min-w-0 flex-1"
+                  />
+                  {mode === PAYMENT_MODAL_MODE.FULL ? (
+                    <CmxButton
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="payment-rail-toggle"
+                      onClick={() => setRailOpen(true)}
+                      className="min-h-[44px] shrink-0 rounded-xl border-slate-300 text-slate-700"
+                    >
+                      {t('sections.receiptBrain')}
+                    </CmxButton>
+                  ) : null}
+                </div>
                 {validationItems.length > 0 ? (
                   <CmxSummaryMessage
                     type="warning"
@@ -3800,8 +4060,14 @@ export function PaymentFullView({
                     loading={loading}
                     disabled={submitBusy}
                     aria-disabled={submitHasBlockingIssues || submitBusy}
-                    // eslint-disable-next-line react-hooks/refs
-                    onClick={submitHasBlockingIssues ? handleBlockedSubmitAttempt : handleSubmit(onSubmitForm, onInvalidForm)}
+                    onClick={
+                      submitHasBlockingIssues
+                        ? mode === PAYMENT_MODAL_MODE.SIMPLE
+                          ? handleSimpleBlockedSubmitAttempt
+                          : handleBlockedSubmitAttempt
+                        : // eslint-disable-next-line react-hooks/refs -- RHF handleSubmit reads form refs; event-time only
+                          handleSubmit(onSubmitForm, onInvalidForm)
+                    }
                     className={`flex-1 rounded-2xl font-bold shadow-sm ${
                       submitHasBlockingIssues
                         ? 'cursor-not-allowed bg-slate-300 text-slate-500 opacity-60 hover:bg-slate-300'

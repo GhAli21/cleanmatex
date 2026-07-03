@@ -1,5 +1,32 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-07-03 — Payment Modal v4: Phases 4–7 — Simple mode, shortcuts, tablet, docs (PROGRAM COMPLETE)
+
+**Program plan:** `docs/features/Order_Fin/Payment_Modal_Review/happy-doodling-volcano.md`
+**Scope:** No migration. **No payload-contract change** (oracle 8/8 green; `buildPaymentPayload` / engine finance logic untouched). Completes the single-engine-two-faces program.
+
+### Phase 4 — Simple mode + auto-escalation
+- `ui/payment-simple-view.tsx` — presentational cash/card fast lane swapped inside the same dialog chrome (shared header/footer/CTA/confirm dialogs → one submit contract); mode state lives in `payment-full-view.tsx` (the mounted container) so all engine/RHF/ref state survives Simple ⇄ Full flips.
+- `engine.needsAdvanced` (2G-1 seam) now consumed: render-time Pattern A escalation + amber status banner with translated reasons; manual Simple segment disabled while advanced conditions hold (new reusable `PaymentModeToggle` + stories); blocked submit in Simple escalates to Full + focus-first-blocking; focus preserved via the shared `amountInputRef`.
+- One money path: `handleAmountValueChange` extracted verbatim from the Full inline lambda and shared by both faces; Simple-safe method chips via pure `deriveSimpleModeMethodOptions` (+7 tests); `SummaryRow` extracted to `payment-modal/summary-row.tsx` (+ stories); `initialPaymentMode` threaded shell → container, default `'simple'`, wired in `new-order-modals.tsx`; i18n `newOrder/payment/mode.json` EN+AR.
+
+### Phase 5 — keyboard shortcuts (finding 1.3)
+- `hooks/use-payment-shortcuts.ts`: Enter/F2/Ctrl(⌘)+Enter fire the SAME footer-CTA gate; pure `resolvePaymentShortcutAction` guard matrix (+6 tests) — disabled while busy / validation-blocked / any nested dialog or allocation drawer open / focus in editable controls; plain Enter defers to focused buttons/links.
+
+### Phase 6 — responsive / tablet (finding 1.5)
+- `md–xl` 2-pane grid with sticky internally-scrolling tools column; `<xl` receipt rail becomes a slide-over (footer toggle, backdrop, RTL-aware, reduced-motion safe); new reusable `PaymentDockedSummaryBar` (+ stories) docks Final Total + Change beside the CTA below `xl` for both faces. No new i18n keys.
+
+### Phase 7 — documentation
+- New `Payment_Modal_v4_Engine_Architecture.md` (engine slice map, Simple/Full mode guide, shortcut matrix, tablet layout, prd-rules feature-doc checklist — permissions/navigation/settings/flags/plan-limits/API/migrations/env all none/unchanged); review doc → Implemented; STATUS + Progress Tracker refreshed.
+
+### Validation
+eslint 0 (repo-wide) · tsc 0 · jest **1586/1586** (157 suites, +13) incl. the 8-fixture payload oracle · production build ✓ · `check:i18n` ✓. **Pending manual (running app):** Simple/escalation scenarios, tablet visual pass.
+
+### Migrations applied
+None (code-only). Next seq remains 0393.
+
+---
+
 ## 2026-07-03 — Payment Modal v4: Phase 3 — Full-view UX quick wins (finance frozen)
 
 **Program plan:** `docs/features/Order_Fin/Payment_Modal_Review/happy-doodling-volcano.md`  

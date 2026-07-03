@@ -1,0 +1,31 @@
+{
+  "simple": "بسيط",
+  "advanced": "متقدم",
+  "toggleLabel": "طريقة عرض الدفع",
+  "simpleDisabledHint": "خيارات متقدمة قيد الاستخدام — الوضع البسيط غير متاح حتى يتم إلغاؤها",
+  "escalatedTitle": "تم التبديل إلى الوضع المتقدم",
+  "reasons": {
+    "SPLIT_PAYMENT": "دفع مقسّم قيد الاستخدام",
+    "CUSTOMER_CREDIT": "تم تطبيق رصيد العميل",
+    "B2B_CREDIT_INVOICE": "فاتورة آجلة (أعمال)",
+    "GIFT_CARD_OR_PROMO": "تم تطبيق بطاقة هدايا أو رمز ترويجي",
+    "OVERPAYMENT_ROUTING": "المبلغ الزائد يحتاج إلى وجهة",
+    "GIFT_CARD_PIN": "مطلوب رمز PIN لبطاقة الهدايا",
+    "DRAWER_AMBIGUOUS": "أكثر من جلسة درج نقدي مفتوحة",
+    "DRAWER_BLOCKED": "مطلوب جلسة درج نقدي",
+    "CURRENCY_ROUNDING": "سعر صرف أو تقريب عملة نشط"
+  },
+  "simpleView": {
+    "methodLabel": "طريقة الدفع",
+    "amountLabel": "المبلغ",
+    "moreOptions": "خيارات إضافية",
+    "pickMethodHint": "اختر طريقة دفع لبدء إدخال المبلغ.",
+    "showKeypad": "إظهار لوحة الأرقام",
+    "hideKeypad": "إخفاء لوحة الأرقام",
+    "receiptTitle": "الإيصال",
+    "change": "الباقي",
+    "remaining": "المتبقي",
+    "manage": "إدارة",
+    "changePolicy": "تغيير"
+  }
+}

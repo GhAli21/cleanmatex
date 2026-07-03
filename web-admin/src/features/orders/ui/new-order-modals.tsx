@@ -48,6 +48,8 @@ type PaymentModalComponentProps = {
   isRetailOnlyOrder?: boolean;
   loading?: boolean;
   initialPaymentNotes?: string;
+  /** Phase 4 — face the payment modal opens with ('simple' auto-escalates to 'full'). */
+  initialPaymentMode?: 'simple' | 'full';
 };
 
 // Lazy load heavy modals for code splitting
@@ -390,6 +392,7 @@ export function NewOrderModals() {
           isRetailOnlyOrder={isRetailOnlyOrder}
           loading={state.state.loading}
           initialPaymentNotes={state.state.paymentNotes ?? ''}
+          initialPaymentMode="simple"
         />
       )}
 

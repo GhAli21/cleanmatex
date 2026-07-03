@@ -1,4 +1,5 @@
 import type { OutstandingPolicy, PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import {
   sanitizeMoneyDraft as sanitizeDecimalDraft,
   parseMoneyDraft as parseDecimalDraft,
@@ -881,4 +882,84 @@ export function quickTender({
     decimalPlaces
   );
   return { appliedAmount, cashTendered };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Simple / Full mode (single engine, two faces)
+// ---------------------------------------------------------------------------
+
+/**
+ * The two faces of Payment Modal v4 (ADR: single engine, two modes). The modal
+ * opens in Simple and auto-escalates to Full when `computeNeedsAdvanced` trips.
+ */
+export const PAYMENT_MODAL_MODE = {
+  SIMPLE: 'simple',
+  FULL: 'full',
+} as const;
+
+/**
+ * Union of payment-modal mode values.
+ */
+export type PaymentModalMode =
+  (typeof PAYMENT_MODAL_MODE)[keyof typeof PAYMENT_MODAL_MODE];
+
+/**
+ * Method codes that are operable inside Simple mode without the Full
+ * workbench: cash plus card/gateway tenders. Everything else (check, bank
+ * transfer, credit notes, wallet, deferred/invoice policies) needs detail
+ * fields or routing that only the Full workspace renders. Codes mirror the DB
+ * (`PAYMENT_METHODS`) — never reformat them.
+ */
+const SIMPLE_MODE_METHOD_CODES: readonly string[] = [
+  PAYMENT_METHODS.CASH,
+  PAYMENT_METHODS.CARD,
+  PAYMENT_METHODS.MOBILE_PAYMENT,
+  PAYMENT_METHODS.PAYMENT_GATEWAY,
+  PAYMENT_METHODS.HYPERPAY,
+  PAYMENT_METHODS.PAYTABS,
+  PAYMENT_METHODS.STRIPE,
+];
+
+/**
+ * Maximum method chips the Simple face shows; the rest sit behind the
+ * "More options" chip, which switches to Full mode.
+ */
+export const SIMPLE_MODE_METHOD_CHIP_LIMIT = 3;
+
+/**
+ * Structural pick of `CheckoutSettlementOption` used by
+ * {@link deriveSimpleModeMethodOptions}, so the pure helper stays decoupled
+ * from the catalog hook's client import chain (jest-safe).
+ */
+export interface SimpleModeMethodOptionLike {
+  payment_method_code: string;
+  /** Options that demand a reference (auth code, bank ref) need Full mode. */
+  requires_reference?: boolean | null;
+}
+
+/**
+ * Pure Simple-mode method-chip deriver: keeps only tenders a cashier can
+ * complete on the Simple face (cash + card/gateway, no reference-detail
+ * requirements), orders cash first (catalog order otherwise, stable), and caps
+ * the row at {@link SIMPLE_MODE_METHOD_CHIP_LIMIT}. Selecting anything outside
+ * this set goes through "More options" → Full mode; a leg that later demands
+ * detail (terminal, references) either renders its compact field in Simple or
+ * blocks submit, which escalates to Full.
+ *
+ * @param options Catalog settlement options (already tenant/branch filtered).
+ * @returns Chip options for the Simple face, cash first, at most the cap.
+ */
+export function deriveSimpleModeMethodOptions<T extends SimpleModeMethodOptionLike>(
+  options: T[]
+): T[] {
+  const safe = options.filter(
+    (option) =>
+      SIMPLE_MODE_METHOD_CODES.includes(option.payment_method_code) &&
+      !option.requires_reference
+  );
+  const cashFirst = [
+    ...safe.filter((option) => option.payment_method_code === PAYMENT_METHODS.CASH),
+    ...safe.filter((option) => option.payment_method_code !== PAYMENT_METHODS.CASH),
+  ];
+  return cashFirst.slice(0, SIMPLE_MODE_METHOD_CHIP_LIMIT);
 }

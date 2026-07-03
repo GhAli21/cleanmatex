@@ -1,0 +1,454 @@
+'use client';
+
+/**
+ * Payment Modal V4 — Simple face (Phase 4, single engine two modes).
+ *
+ * The ~80% cash/card fast lane: method chips, one hero amount editor,
+ * quick-tender chips, an optional keypad, and a compact receipt card. Purely
+ * presentational — every value and handler comes from the engine via
+ * `PaymentFullView` (the mounted container that owns mode state), so this face
+ * can never fork finance logic or the submit payload. Anything advanced
+ * (splits, gift cards, B2B/AR, overpayment routing, drawer conflicts) trips
+ * `computeNeedsAdvanced` in the engine and the container escalates to the Full
+ * face with all state intact.
+ *
+ * See `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md`.
+ */
+
+import { useState, type RefObject } from 'react';
+import { useTranslations } from 'next-intl';
+import { Banknote, CreditCard, EllipsisVertical, Keyboard } from 'lucide-react';
+import { useRTL } from '@/lib/hooks/useRTL';
+import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import type {
+  CheckoutSettlementOption,
+  PaymentTerminalOption,
+} from '@features/orders/hooks/use-payment-catalog';
+import { CmxButton, CmxMoneyField, CmxSkeleton } from '@ui/primitives';
+import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+} from '@ui/forms';
+import { CmxKeypad, KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
+import { SummaryRow } from './payment-modal/summary-row';
+import {
+  PaymentQuickTenderChips,
+  type PaymentQuickTenderChipItem,
+} from './payment-modal/quick-tender-chips';
+import type { PaymentKeypadKey } from './payment-modal-v4.utils';
+
+/**
+ * Props for {@link PaymentSimpleView}. Values and handlers are threaded from
+ * the container (`payment-full-view.tsx`), which owns the engine call.
+ */
+export interface PaymentSimpleViewProps {
+  currencyCode: string;
+  decimalPlaces: number;
+  formatAmount: (n: number) => string;
+  moneyEpsilon: number;
+  totalsLoading: boolean;
+  submitBusy: boolean;
+  // ---- method chips ----
+  methodsLoading: boolean;
+  /** Pre-filtered Simple-safe options (`deriveSimpleModeMethodOptions`). */
+  methodOptions: CheckoutSettlementOption[];
+  paymentLegs: PaymentLeg[];
+  activeLeg: PaymentLeg | undefined;
+  activeLegIndex: number;
+  getOptionDisplayName: (
+    option: CheckoutSettlementOption | null | undefined,
+    fallback: string
+  ) => string;
+  onMethodSelect: (option: CheckoutSettlementOption) => void;
+  /** Switches to the Full face (advanced methods, credits, discounts…). */
+  onMoreOptions: () => void;
+  // ---- amount editor ----
+  amountInputRef: RefObject<HTMLInputElement | null>;
+  activeAmountDraft: string;
+  amountValue: number | null;
+  onAmountValueChange: (value: number | null, draft: string) => void;
+  quickTenderItems: PaymentQuickTenderChipItem[];
+  onQuickTenderSelect: (item: PaymentQuickTenderChipItem) => void;
+  onKeypadPress: (key: PaymentKeypadKey) => void;
+  // ---- terminal (card/gateway legs that require one) ----
+  requiresTerminal: boolean;
+  branchPaymentTerminals: PaymentTerminalOption[];
+  onTerminalChange: (terminalId: string | undefined) => void;
+  // ---- cash drawer (bound line only; blocked/ambiguous escalate upstream) ----
+  cashDrawerRequired: boolean;
+  /** Resolved "Drawer • session" display, or null while unbound. */
+  cashDrawerDisplay: string | null;
+  onManageCashDrawer: () => void;
+  // ---- receipt ----
+  saleTotal: number;
+  amountAppliedToOrder: number;
+  displayChangeAmount: number;
+  remainingBalance: number;
+  settled: boolean;
+  balanceStatusLabel: string;
+  balanceStatusAnnouncement: string;
+  // ---- remaining-balance policy ----
+  policyLabel: string;
+  onChangeBalancePolicy: () => void;
+}
+
+/**
+ * Renders the Simple payment face inside the shared modal chrome (header,
+ * footer CTA, and confirm dialogs stay in the container so both faces share
+ * one submit contract).
+ *
+ * @param props - {@link PaymentSimpleViewProps}.
+ * @returns The Simple-mode dialog body.
+ */
+export function PaymentSimpleView(props: PaymentSimpleViewProps) {
+  const {
+    currencyCode,
+    decimalPlaces,
+    formatAmount,
+    moneyEpsilon,
+    totalsLoading,
+    submitBusy,
+    methodsLoading,
+    methodOptions,
+    paymentLegs,
+    activeLeg,
+    activeLegIndex,
+    getOptionDisplayName,
+    onMethodSelect,
+    onMoreOptions,
+    amountInputRef,
+    activeAmountDraft,
+    amountValue,
+    onAmountValueChange,
+    quickTenderItems,
+    onQuickTenderSelect,
+    onKeypadPress,
+    requiresTerminal,
+    branchPaymentTerminals,
+    onTerminalChange,
+    cashDrawerRequired,
+    cashDrawerDisplay,
+    onManageCashDrawer,
+    saleTotal,
+    amountAppliedToOrder,
+    displayChangeAmount,
+    remainingBalance,
+    settled,
+    balanceStatusLabel,
+    balanceStatusAnnouncement,
+    policyLabel,
+    onChangeBalancePolicy,
+  } = props;
+
+  const t = useTranslations('newOrder.payment');
+  const tCommon = useTranslations('common');
+  const isRTL = useRTL();
+  const [showKeypad, setShowKeypad] = useState(false);
+
+  const activeTerminal = activeLeg?.terminalId
+    ? branchPaymentTerminals.find((terminal) => terminal.id === activeLeg.terminalId)
+    : undefined;
+
+  return (
+    <div
+      data-testid="payment-simple-view"
+      className="mx-auto grid w-full max-w-[1100px] items-start gap-4 md:grid-cols-[minmax(420px,1.4fr)_minmax(300px,1fr)]"
+    >
+      {/* ---- PAY column ---- */}
+      <CmxCard className="border-slate-200 bg-white shadow-sm">
+        <CmxCardContent className="space-y-5 pt-5">
+          {/* Method chips */}
+          <div>
+            <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('mode.simpleView.methodLabel')}
+            </p>
+            {methodsLoading ? (
+              <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <CmxSkeleton className="h-12 w-28" />
+                <CmxSkeleton className="h-12 w-28" />
+              </div>
+            ) : (
+              <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {methodOptions.map((option) => {
+                  const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                  const selected = paymentLegs.some(
+                    (leg) => `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                  );
+                  return (
+                    <CmxButton
+                      key={methodKey}
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      data-testid={`payment-simple-method-${methodKey
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '')}`}
+                      aria-pressed={selected}
+                      onClick={() => onMethodSelect(option)}
+                      className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
+                        selected
+                          ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                      } ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      {option.payment_method_code === PAYMENT_METHODS.CASH ? (
+                        <Banknote className="me-2 h-4 w-4" />
+                      ) : (
+                        <CreditCard className="me-2 h-4 w-4" />
+                      )}
+                      {getOptionDisplayName(option, option.payment_method_code)}
+                    </CmxButton>
+                  );
+                })}
+                <CmxButton
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  data-testid="payment-simple-more-options"
+                  onClick={onMoreOptions}
+                  className={`min-h-[48px] rounded-2xl border-dashed border-slate-300 px-4 font-semibold text-slate-600 hover:border-cyan-300 hover:text-cyan-800 ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  <EllipsisVertical className="me-2 h-4 w-4" />
+                  {t('mode.simpleView.moreOptions')}
+                </CmxButton>
+              </div>
+            )}
+          </div>
+
+          {/* Amount hero */}
+          <div>
+            <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('mode.simpleView.amountLabel')}
+            </p>
+            <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
+              <div className="flex min-w-[88px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-lg font-semibold text-cyan-700">
+                {currencyCode}
+              </div>
+              <div className="min-w-0 flex-1 px-3">
+                <CmxMoneyField
+                  ref={amountInputRef}
+                  data-testid="payment-amount-editor"
+                  draftValue={activeAmountDraft}
+                  value={amountValue}
+                  decimalPlaces={decimalPlaces}
+                  showZero
+                  aria-label={t('workspace.editingAmount')}
+                  onValueChange={onAmountValueChange}
+                  placeholder={formatAmount(0)}
+                  disabled={!activeLeg}
+                  className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            {!activeLeg ? (
+              <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('mode.simpleView.pickMethodHint')}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Quick tender + keypad toggle */}
+          <div className="space-y-3">
+            <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <PaymentQuickTenderChips
+                items={quickTenderItems}
+                onSelect={onQuickTenderSelect}
+                disabled={!activeLeg || submitBusy}
+                isRTL={isRTL}
+              />
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                data-testid="payment-simple-keypad-toggle"
+                aria-pressed={showKeypad}
+                onClick={() => setShowKeypad((prev) => !prev)}
+                className="min-h-[44px] rounded-xl text-slate-600"
+              >
+                <Keyboard className="me-2 h-4 w-4" />
+                {showKeypad ? t('mode.simpleView.hideKeypad') : t('mode.simpleView.showKeypad')}
+              </CmxButton>
+            </div>
+            {showKeypad ? (
+              <div className="max-w-md">
+                <CmxKeypad
+                  keys={KEYPAD_PAYMENT_4COL}
+                  disabled={!activeLeg}
+                  onKeyPress={onKeypadPress}
+                  onKeyLongPress={(key) => {
+                    if (key === 'backspace') onKeypadPress('clear');
+                  }}
+                  getKeyVariant={PAYMENT_KEY_VARIANT}
+                  getKeyClassName={PAYMENT_KEY_CLASS}
+                  getKeyAriaLabel={(key) => {
+                    if (key === 'backspace') return t('workspace.backspace');
+                    if (key === 'clear') return tCommon('clear');
+                    return undefined;
+                  }}
+                  renderKeyLabel={(key) => {
+                    if (key === 'backspace') return '⌫';
+                    if (key === 'clear') return tCommon('clear');
+                    return key;
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {/* Terminal (card/gateway legs that require one) */}
+          {activeLeg && requiresTerminal ? (
+            <div className="max-w-md">
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                {t('splitPayment.paymentTerminal')}
+                <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
+                <span className="sr-only">{t('workspace.requiredField')}</span>
+              </label>
+              <CmxSelectDropdown
+                value={activeLeg.terminalId ?? ''}
+                onValueChange={(value) => onTerminalChange(value || undefined)}
+              >
+                <CmxSelectDropdownTrigger data-testid="payment-simple-terminal">
+                  <CmxSelectDropdownValue
+                    displayValue={
+                      activeLeg.terminalId
+                        ? activeTerminal
+                          ? (isRTL
+                              ? activeTerminal.terminal_name2 || activeTerminal.terminal_name
+                              : activeTerminal.terminal_name)
+                          : activeLeg.terminalId
+                        : ''
+                    }
+                    placeholder={t('splitPayment.paymentTerminalPlaceholder')}
+                  />
+                </CmxSelectDropdownTrigger>
+                <CmxSelectDropdownContent>
+                  <CmxSelectDropdownItem value="">
+                    {t('splitPayment.paymentTerminalPlaceholder')}
+                  </CmxSelectDropdownItem>
+                  {branchPaymentTerminals.map((terminal) => (
+                    <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
+                      {isRTL
+                        ? terminal.terminal_name2 || terminal.terminal_name
+                        : terminal.terminal_name}
+                    </CmxSelectDropdownItem>
+                  ))}
+                </CmxSelectDropdownContent>
+              </CmxSelectDropdown>
+              {!activeLeg.terminalId?.trim() ? (
+                <p className="mt-1 text-xs text-rose-600">
+                  {t('splitPayment.validation.terminalRequiredField')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Cash drawer bound line */}
+          {cashDrawerRequired ? (
+            <div
+              data-testid="payment-simple-cash-drawer"
+              className={`flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              <p className="min-w-0 truncate text-xs text-slate-600">
+                <span className="font-semibold text-slate-700">{t('cashDrawer.title')}</span>
+                {' · '}
+                {cashDrawerDisplay ?? t('cashDrawer.pendingBadge')}
+              </p>
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onManageCashDrawer}
+                className="min-h-[44px] shrink-0 rounded-lg text-cyan-700"
+              >
+                {t('mode.simpleView.manage')}
+              </CmxButton>
+            </div>
+          ) : null}
+
+          {/* Remaining-balance policy line */}
+          {remainingBalance > moneyEpsilon ? (
+            <div
+              data-testid="payment-simple-policy"
+              className={`flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              <p className="min-w-0 text-xs text-amber-900">
+                <span className="font-semibold">
+                  {t('mode.simpleView.remaining')}: {currencyCode} {formatAmount(remainingBalance)}
+                </span>
+                {' · '}
+                {policyLabel}
+              </p>
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onChangeBalancePolicy}
+                className="min-h-[44px] shrink-0 rounded-lg text-amber-800"
+              >
+                {t('mode.simpleView.changePolicy')}
+              </CmxButton>
+            </div>
+          ) : null}
+        </CmxCardContent>
+      </CmxCard>
+
+      {/* ---- RECEIPT column ---- */}
+      <CmxCard className="border-slate-200 bg-white shadow-sm">
+        <CmxCardContent className="space-y-1.5 pt-5">
+          <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('mode.simpleView.receiptTitle')}
+          </p>
+          <SummaryRow
+            label={t('rightRail.orderTotal')}
+            value={`${currencyCode} ${formatAmount(saleTotal)}`}
+            loading={totalsLoading}
+          />
+          <SummaryRow
+            label={t('rightRail.totalSettledNow')}
+            value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`}
+            loading={totalsLoading}
+          />
+          {remainingBalance > moneyEpsilon ? (
+            <SummaryRow
+              label={t('rightRail.remainingBalance')}
+              value={`${currencyCode} ${formatAmount(remainingBalance)}`}
+              loading={totalsLoading}
+              negative
+            />
+          ) : null}
+          <div className={`mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-sm font-bold text-slate-900">
+              {t('mode.simpleView.change')}
+            </span>
+            <span
+              data-testid="payment-simple-change"
+              className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${
+                displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'
+              }`}
+            >
+              {currencyCode} {formatAmount(displayChangeAmount)}
+            </span>
+          </div>
+          <p
+            data-testid="payment-simple-status"
+            className={`mt-1 text-sm font-medium ${settled ? 'text-emerald-700' : 'text-slate-600'} ${isRTL ? 'text-right' : 'text-left'}`}
+          >
+            {settled ? '✓ ' : ''}
+            {balanceStatusLabel}
+          </p>
+          {/* Polite live region (finding 1.4 pattern) — announces settle/change
+              transitions without double-reading the visible status line. */}
+          <p role="status" aria-live="polite" className="sr-only">
+            {balanceStatusAnnouncement}
+          </p>
+        </CmxCardContent>
+      </CmxCard>
+    </div>
+  );
+}

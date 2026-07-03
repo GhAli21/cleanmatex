@@ -1,0 +1,31 @@
+{
+  "simple": "Simple",
+  "advanced": "Advanced",
+  "toggleLabel": "Payment view",
+  "simpleDisabledHint": "Advanced options are in use — Simple mode is unavailable until they are cleared",
+  "escalatedTitle": "Switched to Advanced mode",
+  "reasons": {
+    "SPLIT_PAYMENT": "split payment in use",
+    "CUSTOMER_CREDIT": "customer credit applied",
+    "B2B_CREDIT_INVOICE": "B2B credit invoice",
+    "GIFT_CARD_OR_PROMO": "gift card or promo applied",
+    "OVERPAYMENT_ROUTING": "overpayment needs a destination",
+    "GIFT_CARD_PIN": "gift card PIN required",
+    "DRAWER_AMBIGUOUS": "multiple cash drawer sessions open",
+    "DRAWER_BLOCKED": "cash drawer session required",
+    "CURRENCY_ROUNDING": "currency exchange or rounding active"
+  },
+  "simpleView": {
+    "methodLabel": "Method",
+    "amountLabel": "Amount",
+    "moreOptions": "More options",
+    "pickMethodHint": "Choose a payment method to start entering the amount.",
+    "showKeypad": "Show keypad",
+    "hideKeypad": "Hide keypad",
+    "receiptTitle": "Receipt",
+    "change": "Change",
+    "remaining": "Remaining",
+    "manage": "Manage",
+    "changePolicy": "Change"
+  }
+}
