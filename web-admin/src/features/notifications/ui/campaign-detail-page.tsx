@@ -127,7 +127,7 @@ export function CampaignDetailPage({ id }: Props) {
 
   const formatDate = useCallback((iso: string | null) => {
     if (!iso) return '—'
-    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM')
+    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar' : 'en')
   }, [locale])
 
   // ── Skeleton ──────────────────────────────────────────────────────────────

@@ -1390,3 +1390,9 @@ The RESUME doc rule is unambiguous: *"Audit shows ANY external reader of `status
 - Sweep = **221/221** pass (unchanged — no code touched in Sub-item 7).
 - `npm run check:i18n` → **green**.
 - `git status` for `supabase/migrations/` → no new migration on disk (correct; no DDL was written or applied).
+
+---
+
+## 2026-07-04 — Order-Fin Remediation Program COMPLETE
+
+All 8 phases of `Order_Fin_Remediation_2026-07/PLAN.md` executed (validation findings FN-01…FN-13 + full `org_payments_dtl_tr` retirement). Gates: tsc 0 · eslint 0 · jest 1602/1602 · build ✓ · i18n ✓ · inventories drift 0. Migrations `0393`/`0394`/`0395` created — **awaiting user review + apply (local → remote)**. Resolution map: `Order_Fin_Validation_Report_2026-07-03/16_RESOLUTION_ADDENDUM.md`. Next free migration seq after apply: **0396**.

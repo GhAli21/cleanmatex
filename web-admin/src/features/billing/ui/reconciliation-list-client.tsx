@@ -65,7 +65,7 @@ interface ReconciliationListClientProps {
 
 function fmtDate(locale: string, iso: string | null | undefined): string {
   if (!iso) return EM_DASH;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
@@ -75,7 +75,7 @@ function fmtPeriod(locale: string, from: string | null, to: string | null): stri
   if (!from && !to) return EM_DASH;
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
       year: 'numeric', month: 'short', day: 'numeric',
     }).format(new Date(iso));
   };

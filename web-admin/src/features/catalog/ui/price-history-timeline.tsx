@@ -122,7 +122,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString(isRTL ? 'ar-OM' : 'en-US', {
+    return new Date(dateString).toLocaleString(isRTL ? 'ar' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

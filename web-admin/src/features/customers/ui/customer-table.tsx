@@ -63,7 +63,7 @@ export default function CustomerTable({
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return t('never')
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-US', {
+    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

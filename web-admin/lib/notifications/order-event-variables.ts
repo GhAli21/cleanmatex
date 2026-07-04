@@ -9,7 +9,7 @@ function formatReadyByLabel(readyByAt: string | Date | null | undefined, locale 
   const date = readyByAt instanceof Date ? readyByAt : new Date(readyByAt);
   if (Number.isNaN(date.getTime())) return 'Pending';
 
-  return date.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return date.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
     year:   'numeric',
     month:  'long',
     day:    'numeric',

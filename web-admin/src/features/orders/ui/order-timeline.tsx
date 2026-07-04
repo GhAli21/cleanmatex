@@ -121,7 +121,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+    return new Date(timestamp).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });

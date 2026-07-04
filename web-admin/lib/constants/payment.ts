@@ -204,7 +204,9 @@ export const ORDER_PAYMENT_STATUSES = {
   CANCELLED: 'CANCELLED',
   REFUNDED:  'REFUNDED',
 } as const;
-export type OrderPaymentStatus = (typeof ORDER_PAYMENT_STATUSES)[keyof typeof ORDER_PAYMENT_STATUSES];
+/** Row-level `org_order_payments_dtl.payment_status` union — distinct from the
+ * header-level OrderPaymentStatus in lib/constants/order-financial.ts (FN-09). */
+export type OrderPaymentRowStatus = (typeof ORDER_PAYMENT_STATUSES)[keyof typeof ORDER_PAYMENT_STATUSES];
 
 export const REFUND_STATUSES = {
   PENDING:   'PENDING',

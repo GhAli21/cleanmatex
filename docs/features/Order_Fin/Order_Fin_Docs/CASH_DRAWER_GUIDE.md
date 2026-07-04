@@ -59,3 +59,9 @@ cash_drawer_session_id: opt.requiresCashDrawer ? (cashDrawerSessionId ?? null) :
 ```
 
 The `cashDrawerSessionId` is passed by the client when creating an order with payment.
+
+---
+
+## Cash Up module retired (Remediation 2026-07 Phase 5)
+
+The legacy Cash Up screen (`/dashboard/internal_fin/cashup`) computed expected cash from the dropped legacy payments ledger and was removed (nav migration `0394`). Cash truth = drawer sessions + movements on this guide's model, reconciled via the D-09 cash-drawer reconciliation report (`/dashboard/reports/reconciliation`).

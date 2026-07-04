@@ -42,8 +42,10 @@ describe('formatMoneyAmountWithCode', () => {
 });
 
 describe('resolveMoneyIntlLocale', () => {
-  it('maps en and ar', () => {
-    expect(resolveMoneyIntlLocale('en')).toBe('en-OM');
-    expect(resolveMoneyIntlLocale('ar')).toBe('ar-OM');
+  // FN-11 (Remediation Phase 7): region-neutral — a hardcoded region
+  // mis-formats money/dates for non-Omani tenants.
+  it('maps en and ar to region-neutral locales', () => {
+    expect(resolveMoneyIntlLocale('en')).toBe('en');
+    expect(resolveMoneyIntlLocale('ar')).toBe('ar');
   });
 });

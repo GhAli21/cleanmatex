@@ -447,6 +447,9 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Receipt Vouchers',
         path: '/dashboard/internal_fin/vouchers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        // Mirrors the page contract gate (vouchers-access.ts) — users without
+        // it are blocked at page level, so the sidebar hides it too.
+        permissions: ['fin_vouchers:view'],
       },
       // 'billing_payments' removed (Order-Fin remediation Phase 3): the
       // internal_fin/payments screens operated on the deprecated

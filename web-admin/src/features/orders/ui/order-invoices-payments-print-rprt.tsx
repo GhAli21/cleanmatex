@@ -43,7 +43,7 @@ interface OrderInvoicesPaymentsPrintRprtProps {
 function formatDate(dateStr: string | undefined, locale: string): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  return d.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',

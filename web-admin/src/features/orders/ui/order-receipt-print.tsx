@@ -44,7 +44,7 @@ export function OrderReceiptPrint({ order, layout, discountLines = [] }: OrderRe
   const formattedReadyBy = useMemo(() => {
     if (!order.readyBy) return '';
     const date = new Date(order.readyBy);
-    return date.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+    return date.toLocaleString(locale === 'ar' ? 'ar' : 'en', {
       year: 'numeric',
       month: 'short',
       day: '2-digit',

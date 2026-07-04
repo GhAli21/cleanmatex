@@ -1,3 +1,5 @@
+> **✅ RESOLVED 2026-07-04** — all gate items closed by the remediation program; see [16_RESOLUTION_ADDENDUM.md](./16_RESOLUTION_ADDENDUM.md). Remaining user actions: review + apply migrations 0393/0394/0395.
+
 # 12 — Must-Fix Items (GA gate)
 
 Ordered. Items 1–4 gate release of the order-financial surface; 5–6 are release-process gates already owned by the user.

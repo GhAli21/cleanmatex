@@ -21,7 +21,7 @@ interface B2BStatementsPrintRprtProps {
 function formatDate(dateStr: string | null | undefined, locale: string): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  return d.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',

@@ -4,7 +4,7 @@
  *
  * Exercises the `create-with-payment` route's multi-leg path:
  *   - Two legs (CASH 60 + CARD 40) sum to saleTotal 100
- *   - Each leg calls recordPaymentTransaction independently inside the TX
+ *   - Each leg is persisted independently inside the submit TX
  *   - Server-side sum parity check passes
  *   - Deferred method isolation: PAY_ON_COLLECTION alone works; mixing with CASH fails
  *

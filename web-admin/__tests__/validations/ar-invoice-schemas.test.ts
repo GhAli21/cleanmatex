@@ -10,13 +10,22 @@ import {
 } from '@/lib/validations/ar-invoice-schemas';
 
 describe('ar-invoice-schemas', () => {
-  it('rejects payment allocation without a payment or voucher reference', () => {
-    const result = allocateArPaymentSchema.safeParse({
+  it('accepts allocation with a voucher reference and rejects a legacy payment_id key', () => {
+    // AR allocations are voucher-referenced only — the legacy payment-row
+    // reference was removed with the dropped payments ledger (ADR-002 / 0395).
+    const withVoucher = allocateArPaymentSchema.safeParse({
+      voucher_id: '550e8400-e29b-41d4-a716-446655440000',
       allocated_amount: 12.5,
       applied_at: '2026-05-22',
     });
+    expect(withVoucher.success).toBe(true);
 
-    expect(result.success).toBe(false);
+    const legacyKey = allocateArPaymentSchema.strict().safeParse({
+      payment_id: '550e8400-e29b-41d4-a716-446655440000',
+      allocated_amount: 12.5,
+      applied_at: '2026-05-22',
+    });
+    expect(legacyKey.success).toBe(false);
   });
 
   it('accepts reversal payloads with reason and reversal date', () => {

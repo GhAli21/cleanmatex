@@ -693,13 +693,13 @@ export type AmountMismatchDifferences = Partial<
 import type {
   PaymentNature, FeeType, TerminalType, DrawerType,
   CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
-  CreditType, OrderPaymentStatus, RefundStatus,
+  CreditType, OrderPaymentRowStatus, RefundStatus,
 } from '../constants/payment';
 
 export type {
   PaymentNature, FeeType, TerminalType, DrawerType,
   CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
-  CreditType, OrderPaymentStatus, RefundStatus,
+  CreditType, OrderPaymentRowStatus, RefundStatus,
 };
 
 /** Typed gateway credential shapes — secrets masked after first save */
@@ -934,7 +934,7 @@ export interface OrgOrderPayment {
   cash_drawer_session_id: string | null;
   payment_method_code: string;
   payment_method_name_snapshot: string | null;
-  payment_status: OrderPaymentStatus;
+  payment_status: OrderPaymentRowStatus;
   amount: number;
   currency_code: string;
   tendered_amount: number | null;

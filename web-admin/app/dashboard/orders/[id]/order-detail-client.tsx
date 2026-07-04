@@ -583,7 +583,7 @@ export function OrderDetailClient({
               {order.received_at && (
                 <p className={`flex items-center gap-1 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Clock className="h-4 w-4" />
-                  {new Date(String(order.received_at)).toLocaleString(moneyLocale === 'ar' ? 'ar-OM' : 'en-OM')}
+                  {new Date(String(order.received_at)).toLocaleString(moneyLocale === 'ar' ? 'ar' : 'en')}
                 </p>
               )}
             </div>

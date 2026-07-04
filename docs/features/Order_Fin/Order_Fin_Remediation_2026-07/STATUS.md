@@ -1,21 +1,21 @@
 # Order Financial Remediation Program — STATUS
 
 **Plan:** [PLAN.md](./PLAN.md) · **Findings source:** `../Order_Fin_Validation_Report_2026-07-03/`
-**Started:** — (not started) · **Last update:** 2026-07-03 (program planned)
+**Started:** 2026-07-03 · **Completed:** 2026-07-04 — ✅ **ALL 8 PHASES DONE** (migrations 0393/0394/0395 ⛔ await user apply)
 
 ## Phase tracker
 
 | Phase | Scope | Status | Gates | Docs refreshed (PLAN §doc-tasks) | Migration |
 |---|---|---|---|---|---|
-| 0 | Pre-flight verification (4 counts, local+remote; seq check) | ⬜ NOT STARTED | — | ⬜ STATUS pre-flight table | — |
-| 1 | Canonical read fn + repoint Payments tab/prints/voucher-linkage + print RBAC + cancel interim guard | ⬜ | — | ⬜ tech_api · tech_data_model · ORDER_FINANCIAL_PLATFORM · QA guides | none |
-| 2 | Payments report → canonical + money-position tile | ⬜ | — | ⬜ RECONCILIATION_GUIDE · tech_api · developer_guide | none |
-| 3 | Write-path migration (ready/customers/b2b → AR/receipts) + retire internal_fin/payments + nav dual-write | ⬜ | — | ⬜ inventories regen (nav+page) · access-contract docs · developer_guide · ORDER_FINANCIAL_PLATFORM · prd-rules checklist | nav removal (⛔ user applies) |
-| 4 | Cancellation disposition flow (`unwindOrderFinancialsTx`, dialog, canonical promo/gift reversal) + ADR | ⬜ | — | ⬜ new Cancellation ADR · ORDER_FINANCIAL_PLATFORM · STORED_VALUE_GUIDE · user guide · QA guides | none expected |
-| 5 | 🔥 `org_payments_dtl_tr` full demolition (code + Prisma + drop migration + audit-log + oip.payment_id) | ⬜ | — | ⬜ ADR-002→Removed · new Single-Payment-Read-Model ADR · tech_data_model · tech_api · CASH_DRAWER_GUIDE · repo-wide doc grep · IMPLEMENTATION_STATUS/current_status/progress_summary | drop migration (⛔ user applies) |
-| 6 | FN-03 fiscal comparand + multi-currency fixture + epsilon | ⬜ | — | ⬜ TAX_ENGINE_GUIDE · F-05 doc + ADR-052 amendment · tech_data_model | none |
-| 7 | FN-11 locale formatting + FN-12 perm registry + FN-09/10/13 hygiene | ⬜ | — | ⬜ unification audit doc · developer_guide formatter rule · inventories refresh (api+page) | none |
-| 8 | ADR renumber + new ADRs + resolution addendum + close-out | ⬜ | — | ⬜ ADR index/renumber + link fixes · 16_RESOLUTION_ADDENDUM in validation report · final status docs · memory | none |
+| 0 | Pre-flight verification | 🟡 PROVISIONAL (guards in 0395) | — | ✅ pre-flight table | — |
+| 1 | Canonical read fn + repoint + print RBAC + cancel interim guard | ✅ DONE | jest 1594 · build ✓ | ✅ | none |
+| 2 | Payments report → canonical + money-position tile | ✅ DONE | jest 1601 · build ✓ | ✅ | none |
+| 3 | Write-path migration + retire internal_fin/payments + nav dual-write | ✅ DONE | jest 1601 · build ✓ · inventories PASS | ✅ | 0393 ⛔ user applies |
+| 4 | Cancellation disposition flow + ADR-053 | ✅ DONE | jest 1612 · build ✓ | ✅ | none |
+| 5 | 🔥 full ledger demolition (code+Prisma+drop mig) | ✅ DONE | jest 1597 · build ✓ · grep-zero | ✅ | 0394+0395 ⛔ user applies |
+| 6 | FN-03 comparand + multi-currency fixture + epsilon | ✅ DONE | jest 1602 · build ✓ | ✅ | none |
+| 7 | FN-11 locale sweep + FN-12 registries + FN-09/10/13 | ✅ DONE | jest 1602 · build ✓ | ✅ | none |
+| 8 | ADR renumber + 16_RESOLUTION_ADDENDUM + close-out | ✅ DONE | docs-only | ✅ | none |
 
 > Doc-task detail per phase lives in [PLAN.md §Documentation update / refresh tasks](./PLAN.md#documentation-update--refresh-tasks-mandatory-per-phase). A phase may not be marked ✅ while its Docs column is ⬜. Phases 3 and 5 additionally gate on `npm run check:platform-info-inventories`.
 
@@ -46,7 +46,9 @@
 
 | Seq | File | Created | Reviewed | Applied local | Applied remote |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| 0393 | `0393_nav_retire_billing_payments.sql` | ✅ 2026-07-04 | ⛔ pending user | ❌ | ❌ |
+| 0394 | `0394_nav_retire_billing_cashup.sql` | ✅ 2026-07-04 | ⛔ pending user | ❌ | ❌ |
+| 0395 | `0395_drop_org_payments_dtl_tr.sql` (ABORT guards) | ✅ 2026-07-04 | ⛔ pending user | ❌ | ❌ |
 
 ## Session log
 
@@ -84,5 +86,21 @@
   - New `lib/services/order-cancel-financials.service.ts` — `unwindOrderFinancialsOnCancel`: CAS-guarded APPLIED→REVERSED credit reversal restoring gift/wallet/advance/credit-note to source ledgers (LOYALTY → warning), disposition routing for real payments (REFUND → per-payment keyed `initiateRefund` with `reason=CANCELLED`/`method=ORIGINAL_METHOD`; STORE_CREDIT → one keyed credit note for net collected; KEEP_ON_ACCOUNT → audit-only), promo-usage reversal, snapshot recalc, outbox audit event `ORDER_CANCEL_FINANCIAL_UNWIND` (new constant; history consumer intentionally ignores it — no migration).
   - `workflow-service-enhanced.ts` — interim hard block replaced by the disposition gate (`CANCEL_DISPOSITION_REQUIRED`; KEEP_ON_ACCOUNT gated by `orders:approve_refund` via `hasPermissionServer`); unwind wired on BOTH old and new workflow paths; unwind failure surfaces `CANCEL_UNWIND_FAILED` (retry-safe).
   - `cancel-order-dialog.tsx` — fetches canonical paid via `/orders/[id]/state` on open; amount-aware 3-option disposition chooser (amber fieldset, EN/AR, RTL); submit blocked until the paid check resolves.
-  - i18n `orders.cancel.disposition.*` (EN+AR). ADR: `ADR-FIN-053-order-cancellation-financial-disposition.md`. Docs: STORED_VALUE_GUIDE + QA guide Phase-4 addendum.
-  - Tests: `order-cancel-financials.service.test.ts` (9) + `workflow-cancel-guard.test.ts` rewritten (7) + tenant-isolation suite updated. **Full jest 1612/1612.** eslint 0 (set-state-in-effect fixed via close-reset pattern) · tsc 0 (refund reason/method now constants) · i18n ✅ · build RUNNING.
+  - i18n `orders.cancel.disposition.*` (EN+AR). ADR: `ADR-053-Order-Cancellation-Financial-Disposition.md`. Docs: STORED_VALUE_GUIDE + QA guide Phase-4 addendum.
+  - Tests: `order-cancel-financials.service.test.ts` (9) + `workflow-cancel-guard.test.ts` rewritten (7) + tenant-isolation suite updated. **Full jest 1612/1612.** eslint 0 (set-state-in-effect fixed via close-reset pattern) · tsc 0 (refund reason/method now constants) · i18n ✅ · build exit 0. **Phase 4 ✅ COMPLETE.**
+- **2026-07-04 (exec 2, cont.)** — **Phase 5 code COMPLETE (full demolition):**
+  - **Migrations created (⛔ user review + apply, local then remote):** `0394_nav_retire_billing_cashup.sql` (soft-retire) + `0395_drop_org_payments_dtl_tr.sql` (ABORT guards: `_tr` rows=0, audit rows=0, `oip.payment_id` all-NULL; drops FK `fk_payment_audit_payment` → table `org_payment_audit_log` → FK `fk_oip_pay` + column `payment_id` → table `org_payments_dtl_tr`; RESTRICT-only, manifest header).
+  - **Deleted:** `payment-service.ts` (whole), `payment-audit.service.ts`, `cashup-service.ts` + cashup actions/UI/page (+nav+contract), `order-cancel-service.ts`, `order-return-service.ts`, `payment-crud-schemas.ts`, `payment-stats-cards.tsx`, deprecated `refundToGiftCard(Tx)` wrappers, `getVoucherDataByPaymentId` (+action), voucher list `_tr` include/payment_id, delete-order `_tr` deleteMany, legacy tests (payment-service, order-cancel-service, order-return-service).
+  - **AR voucher-only allocations:** `allocateArPaymentSchema` payment_id removed; `ar-invoice.service.ts` fully payment_id-free (creates/events/ledger metadata/reversals ×13 sites); `ArInvoicePaymentAllocation.payment_id` removed; AR UI allocation dialog voucher-only + allocations tab column dropped; `ar-credit.service` lookup adjusted; schema test rewritten (voucher accepted, legacy key rejected via `.strict()`).
+  - **Prisma:** models `org_payments_dtl_tr` + `org_payment_audit_log` removed (+17 back-relations); `org_invoice_payments_dtl.payment_id` + `idx_oip_pay` removed; **stale-drift fix:** cash-drawer-movements relation repointed to `org_order_payments_dtl` (the table its DB FK `fk_org_cdm_order_payment` actually references). `prisma validate` + `generate` ✅.
+  - **Types:** `PaymentTransaction`/`PaymentTransactionMetadata`/`CreatePaymentTransactionInput`/`ProcessPayment*`/`RefundPayment*`/`PaymentList*`/`PaymentStats`/`CashUp*` blocks removed from `lib/types/payment.ts`; lowercase `PAYMENT_STATUSES`+`PaymentStatus` removed from constants (FN-08 done early).
+  - **"Never existed" sweep:** `grep org_payments_dtl_tr` over app/lib/src/config/prisma/__tests__ = **0 hits** (name survives only in historical migrations + ADR/docs).
+  - **Drift fix (user commit 46e72b9e surfaced):** `billing_vouchers` nav entry now mirrors the contract gate `fin_vouchers:view`; inventories rebuilt → drift 0/0.
+  - **ADRs/docs:** ADR-002 → Implemented/REMOVED + completion section; new `ADR-055-Single-Payment-Read-Model.md`; tech_data_model, CASH_DRAWER_GUIDE, QA guide Phase-5 addendum.
+  - **Gates:** tsc 0 · eslint 0 · **full jest 1597/1597** · i18n ✅ · inventories drift 0 · build RUNNING (result to be logged).
+- **2026-07-04 (exec 3)** — **Phases 6+7+8 COMPLETE → PROGRAM DONE.**
+  - **P6:** FN-03 comparand wired (engine reads linked `org_tax_documents_mst.total_amount` in-tx; stale comments fixed); `projectBaseCurrencyAmount` exported + fixture suite (5 tests, R-07); open-balance epsilons → `SETTLEMENT_MONEY_EPSILON` (R-08). TAX_ENGINE_GUIDE updated.
+  - **P7:** FN-11 repo-wide region-neutral locale sweep (36 files incl. shared `format-money` + its test contract); FN-12 `orders-perm.ts` + `finance-perm.ts` registries (literals stay at gate sites — extractor constraint documented); FN-09 `OrderPaymentRowStatus` rename; FN-10 `CREDIT_APPLICATION_STATUSES.APPLIED`; FN-13 verified already fixed; orphaned AR `paymentId` i18n keys removed EN+AR.
+  - **P8:** ADR governance — decision pack → `ADR-PACK-nnn-*` (30 files), canonical `ADR-nnn` authoritative, new ADRs folded in as **ADR-053** (cancellation disposition) + **ADR-055** (single payment read model; 054 = user's POS sessions); `ADR/README.md` regenerated (55 canonical + 30 pack + 1 special); no live links broken (verified). `16_RESOLUTION_ADDENDUM.md` added to the validation report (+README index + must-fix banner); IMPLEMENTATION_STATUS updated.
+  - **Final gates:** tsc 0 · eslint 0 · **jest 1602/1602 (162 suites)** · build exit 0 · i18n ✅ · inventories drift 0/0 · contracts sync PASS.
+  - **User actions remaining:** review + apply migrations **0393 / 0394 / 0395** (local → remote; 0395 re-verifies the empty-table premise via ABORT guards); optional: re-run Phase-0 counts before 0395; commit.

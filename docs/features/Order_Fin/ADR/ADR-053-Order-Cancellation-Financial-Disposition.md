@@ -1,4 +1,4 @@
-# ADR-FIN-053 — Order Cancellation Financial Disposition
+# ADR-053 — Order Cancellation Financial Disposition
 
 **Status:** Accepted
 **Area:** Order Financial Platform / Cancellation

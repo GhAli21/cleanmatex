@@ -5,7 +5,7 @@
  * jsdom bundle throws; same pattern as finance-reconciliation-report tests.)
  *
  * FN-01 reporting seam lock — `getPaymentsReport` must aggregate the canonical
- * `org_order_payments_dtl` ledger (never `org_payments_dtl_tr`, ADR-002):
+ * `org_order_payments_dtl` ledger (never the legacy payments ledger dropped by migration 0395; ADR-002):
  * collected money = COMPLETED/CAPTURED/SETTLED rows only; refunds counted from
  * `org_order_refunds_dtl`; status filter values are canonical buckets.
  *

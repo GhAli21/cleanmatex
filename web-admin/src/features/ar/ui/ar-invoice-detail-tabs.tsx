@@ -22,7 +22,7 @@ interface ArInvoiceDetailTabsProps {
 }
 
 function formatCurrency(amount: number, currencyCode: string, locale: string) {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     style: 'currency',
     currency: currencyCode,
     minimumFractionDigits: 2,
@@ -32,7 +32,7 @@ function formatCurrency(amount: number, currencyCode: string, locale: string) {
 
 function formatDateTime(value: string | undefined, locale: string) {
   if (!value) return '—';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -43,7 +43,7 @@ function formatDateTime(value: string | undefined, locale: string) {
 
 function formatNumber(value: number | undefined, locale: string) {
   if (value == null) return '—';
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 4,
   }).format(value);

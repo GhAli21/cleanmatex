@@ -25,7 +25,7 @@ export interface FormatMoneyOptions {
  * @param locale
  */
 export function resolveMoneyIntlLocale(locale?: MoneyLocale): string {
-  return locale === 'ar' ? 'ar-OM' : 'en-OM';
+  return locale === 'ar' ? 'ar' : 'en';
 }
 
 function clampDecimalPlaces(decimalPlaces: number): number {

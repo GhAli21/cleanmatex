@@ -69,3 +69,9 @@ additionalTax = additionalTaxAmountParam  // if provided
 ```
 
 Stored in `org_order_taxes_dtl` with a separate row (taxType='CUSTOM').
+
+---
+
+## Fiscal-total check live (Remediation 2026-07 Phase 6 — FN-03)
+
+The snapshot recalc now reads the linked `org_tax_documents_mst.total_amount` and fires `TAX_DOCUMENT_TOTAL_MISMATCH` when it differs from the recomputed order total by more than 0.001 (spec §16.1). No linked document → no check, no false positives. Per-category tax-base decomposition remains a separate, still-open e-invoicing work item (ADR-052).

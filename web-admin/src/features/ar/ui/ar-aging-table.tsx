@@ -15,7 +15,7 @@ interface ArAgingTableProps {
 }
 
 function formatCurrency(amount: number, currencyCode: string, locale: string) {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     style: 'currency',
     currency: currencyCode,
     minimumFractionDigits: 2,

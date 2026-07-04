@@ -16,7 +16,7 @@ interface VoucherLinkedEffectsPanelProps {
 }
 
 function formatAmount(amount: { toString(): string }, locale: string) {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   }).format(Number(amount));

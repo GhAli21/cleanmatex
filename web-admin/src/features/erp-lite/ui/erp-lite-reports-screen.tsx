@@ -38,7 +38,7 @@ function groupStatementRows(rows: ErpLiteStatementRow[]) {
 }
 
 function getNumberLocale(locale: string) {
-  return locale === 'ar' ? 'ar-OM' : 'en-OM'
+  return locale === 'ar' ? 'ar' : 'en'
 }
 
 /**

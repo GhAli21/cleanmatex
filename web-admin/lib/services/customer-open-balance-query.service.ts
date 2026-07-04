@@ -11,6 +11,7 @@ import {
   CUSTOMER_RECEIPT_ALLOCATION_TARGET_TYPES,
 } from '@/lib/types/customer-receipt-allocation';
 import { STATEMENT_STATUSES } from '@/lib/constants/b2b';
+import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 import type { ReceiptAllocationPolicyRow } from '@/lib/services/customer-receipt-allocation-policy.service';
 
 /**
@@ -81,7 +82,7 @@ export async function loadCustomerOpenBalanceTargets(
       const outstanding =
         toNumber(invoice.outstanding_amount) ||
         Math.max(0, toNumber(invoice.total) - toNumber(invoice.paid_amount));
-      if (outstanding <= 0.001) continue;
+      if (outstanding <= SETTLEMENT_MONEY_EPSILON) continue;
       if (policy.require_same_currency && invoice.currency_code !== currencyCode) continue;
       if (!policy.allow_cross_branch_allocation && branchId && invoice.branch_id && invoice.branch_id !== branchId) {
         continue;
@@ -127,7 +128,7 @@ export async function loadCustomerOpenBalanceTargets(
       const outstanding =
         toNumber(row.outstanding_amount) ||
         Math.max(0, toNumber(row.total) - toNumber(row.paid_amount));
-      if (outstanding > 0.001) {
+      if (outstanding > SETTLEMENT_MONEY_EPSILON) {
         orderIdsWithOpenInvoice.add(row.order_id);
       }
     }
@@ -160,7 +161,7 @@ export async function loadCustomerOpenBalanceTargets(
       if (order.cancelled_at) continue;
       if (orderIdsWithOpenInvoice.has(order.id)) continue;
       const outstanding = toNumber(order.outstanding_amount);
-      if (outstanding <= 0.001) continue;
+      if (outstanding <= SETTLEMENT_MONEY_EPSILON) continue;
       const orderCurrency = order.currency_code ?? currencyCode;
       if (policy.require_same_currency && orderCurrency !== currencyCode) continue;
       if (!policy.allow_cross_branch_allocation && branchId && order.branch_id && order.branch_id !== branchId) {
@@ -217,7 +218,7 @@ export async function loadCustomerOpenBalanceTargets(
     `;
 
     for (const statement of statements) {
-      if (statement.balance_amount <= 0.001) continue;
+      if (statement.balance_amount <= SETTLEMENT_MONEY_EPSILON) continue;
       const statementCurrency = statement.currency_cd ?? currencyCode;
       if (policy.require_same_currency && statementCurrency !== currencyCode) continue;
 

@@ -55,7 +55,7 @@ interface CashDrawerSessionPrintRprtProps {
 
 function formatDate(iso: string | null, locale: string): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(iso).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
     year:   'numeric',
     month:  'short',
     day:    '2-digit',

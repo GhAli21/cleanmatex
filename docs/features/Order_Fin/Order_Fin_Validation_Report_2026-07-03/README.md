@@ -26,6 +26,7 @@ Third full-pass validation of the CleanMateX order financial flow (after the 202
 | [13_RECOMMENDED_DIRECTION.md](./13_RECOMMENDED_DIRECTION.md) | Practical, standards-aligned direction |
 | [14_ARCHITECTURAL_AND_ADR_RECOMMENDATIONS.md](./14_ARCHITECTURAL_AND_ADR_RECOMMENDATIONS.md) | ADRs to add/update |
 | [15_OPEN_QUESTIONS.md](./15_OPEN_QUESTIONS.md) | Decisions needed from the user/business |
+| [16_RESOLUTION_ADDENDUM.md](./16_RESOLUTION_ADDENDUM.md) | ✅ 2026-07-04 — every finding resolved by the remediation program (FN→phase map) |
 
 ## Relationship to prior reports
 

@@ -275,3 +275,7 @@ All monetary columns use `DECIMAL(19, 4)`. No `FLOAT` or `NUMERIC` without preci
 ## Deprecated Ledger Status (Remediation 2026-07)
 
 `org_payments_dtl_tr` is deprecated (ADR-002) and **empty**; the canonical order-payment ledger is `org_order_payments_dtl` (+ voucher trx lines). As of Remediation Phase 1, no order-detail UI or order print reads `_tr`; remaining readers (tenant payments report, cash-up, legacy invoice/customer payment flows, `internal_fin/payments` screens) are removed in Phases 2–3, and the table itself (plus `org_payment_audit_log` and `org_invoice_payments_dtl.payment_id`) is dropped in Phase 5. See `../Order_Fin_Remediation_2026-07/PLAN.md`.
+
+## Legacy ledger DROPPED (Remediation 2026-07 Phase 5)
+
+Migration `0395_drop_org_payments_dtl_tr.sql` (guarded, RESTRICT-only) removed `org_payments_dtl_tr`, `org_payment_audit_log`, and `org_invoice_payments_dtl.payment_id` (AR allocations are voucher-referenced only). Canonical payment truth: `org_order_payments_dtl` + `org_fin_voucher_trx_lines_dtl` + AR/receipt/stored-value ledgers. See ADR-002 (completed) + ADR-055.

@@ -17,7 +17,7 @@ interface VoucherLineTableProps {
 function formatDecimal(value: number | null | undefined, locale: string) {
   if (value == null) return '—';
 
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   }).format(value);
@@ -26,7 +26,7 @@ function formatDecimal(value: number | null | undefined, locale: string) {
 function formatDateTime(value: Date | string | null | undefined, locale: string) {
   if (!value) return '—';
 
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

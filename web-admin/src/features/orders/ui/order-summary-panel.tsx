@@ -337,7 +337,7 @@ function OrderSummaryPanelComponent({
                   </span>
                   <Clock className="w-3 h-3 text-gray-500 shrink-0" />
                   <span className={`text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', {
+                    {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar' : 'en-US', {
                       hour: '2-digit', minute: '2-digit', hour12: true,
                     })}
                   </span>

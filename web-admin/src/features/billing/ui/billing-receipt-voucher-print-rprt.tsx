@@ -58,7 +58,7 @@ interface BillingReceiptVoucherPrintRprtProps {
 function formatDate(date: Date | string | null | undefined, locale: string): string {
   if (!date) return '—';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',

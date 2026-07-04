@@ -227,3 +227,10 @@ for the GA process gates (finance sign-off + soak, see `Process_Gates_Guide.md`)
 3. **Cancel order with applied wallet/advance/gift-card/credit-note:** balances return to the source ledger exactly once (retry the cancel → no double restore); credit applications show REVERSED in the Financial tab; snapshot totals recompute (credit no longer counted).
 4. **Loyalty-credit order:** cancellation completes with a warning naming the application that needs manual restore.
 5. **Unwind failure:** if the unwind fails after the status flipped, the UI shows "cancelled but financial unwind failed — retry"; repeating the cancellation completes the unwind without duplicates.
+
+## Addendum — Remediation 2026-07 Phase 5 (legacy ledger demolition)
+
+1. **Sidebar:** "Cash Up" is gone (after migration 0394); `/dashboard/internal_fin/cashup` returns 404.
+2. **AR manual allocation:** the dialog takes a voucher reference only (no payment-id field); the allocations tab shows Voucher ID, not Payment ID.
+3. **After migrations 0393–0395 are applied:** `org_payments_dtl_tr`, `org_payment_audit_log` no longer exist; `org_invoice_payments_dtl` has no `payment_id` column. Run the verification queries in each migration footer.
+4. **Regression sweep:** order details (both views), payments report, money-position cards, vouchers list/detail, ready handover, customer/B2B advance sections, and cancel-with-disposition all function with no references to the removed screens.

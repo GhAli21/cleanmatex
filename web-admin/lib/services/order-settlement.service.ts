@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 import { prisma } from '@/lib/db/prisma';
 import {
+  CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
   OUTBOX_EVENT_TYPES,
   PAYMENT_NATURE,
@@ -333,7 +334,7 @@ export async function settleOrderTx(
             order_id:         orderId,
             currency_code:    currencyCode,
             credit_type:      creditType,
-            application_status: 'APPLIED',
+            application_status: CREDIT_APPLICATION_STATUSES.APPLIED,
             credit_source_id: creditReferenceId ?? null,
             applied_amount:   amount,
             reference_no:     leg.reference ?? null,

@@ -38,7 +38,7 @@ export function getDirClass(ltrClass: string, rtlClass: string): string {
  */
 export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
   const currentLocale = locale || getCurrentLocale()
-  return new Intl.NumberFormat(currentLocale === 'ar' ? 'ar-OM' : 'en-OM').format(num)
+  return new Intl.NumberFormat(currentLocale === 'ar' ? 'ar' : 'en').format(num)
 }
 
 /**
@@ -81,7 +81,7 @@ export function formatDate(
   }
 
   return new Intl.DateTimeFormat(
-    currentLocale === 'ar' ? 'ar-OM' : 'en-OM',
+    currentLocale === 'ar' ? 'ar' : 'en',
     defaultOptions
   ).format(dateObj)
 }
@@ -96,7 +96,7 @@ export function formatTime(
   const currentLocale = locale || getCurrentLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
-  return new Intl.DateTimeFormat(currentLocale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(currentLocale === 'ar' ? 'ar' : 'en', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(dateObj)
@@ -112,7 +112,7 @@ export function formatDateTime(
   const currentLocale = locale || getCurrentLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
-  return new Intl.DateTimeFormat(currentLocale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(currentLocale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

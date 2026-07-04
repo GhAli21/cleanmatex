@@ -53,7 +53,7 @@ export function PrintLabelButton({ order }: PrintLabelButtonProps) {
     const customerName = `${firstName} ${lastName}`.trim();
 
     const readyByFormatted = order.ready_by
-      ? new Date(order.ready_by).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      ? new Date(order.ready_by).toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
           day: '2-digit',
           month: 'short',
           year: 'numeric',

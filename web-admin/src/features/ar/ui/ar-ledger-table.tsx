@@ -14,7 +14,7 @@ interface ArLedgerTableProps {
 }
 
 function formatCurrency(amount: number, currencyCode: string, locale: string) {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
     style: 'currency',
     currency: currencyCode,
     minimumFractionDigits: 2,
@@ -23,7 +23,7 @@ function formatCurrency(amount: number, currencyCode: string, locale: string) {
 }
 
 function formatDateTime(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

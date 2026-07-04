@@ -325,7 +325,7 @@ function ReadyDatePickerModalOpen({
           <div className={`p-3 bg-blue-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
             <p className="text-xs text-gray-600 mb-1">{t('readyBy')}:</p>
             <p className="font-bold text-sm text-blue-700">
-              {selectedDate.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-US', {
+              {selectedDate.toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US', {
                 weekday: 'short',
                 month: 'short',
                 day: 'numeric',

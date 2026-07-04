@@ -3,12 +3,12 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-07-04T03:07:33.265Z
+Generated: 2026-07-04T04:18:53.106Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
 | advanced_analytics | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 669 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
-| advanced_analytics | navigation | config/navigation.ts | 514 | //featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
+| advanced_analytics | navigation | config/navigation.ts | 525 | //featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 540 | {plan.feature_flags.api_access && ( |
 | api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 670 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
 | b2b_contracts | screen | src/features/billing/ui/invoice-filters-bar.tsx | 25 | const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS); |
@@ -17,40 +17,40 @@ Generated: 2026-07-04T03:07:33.265Z
 | b2b_contracts | navigation | config/navigation.ts | 290 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 298 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 306 | //featureFlag: 'b2b_contracts', |
-| campaigns_enabled | navigation | config/navigation.ts | 772 | featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED, |
+| campaigns_enabled | navigation | config/navigation.ts | 783 | featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED, |
 | driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 534 | {plan.feature_flags.driver_app && ( |
 | driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 667 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
 | driver_app | navigation | config/navigation.ts | 201 | featureFlag: FLAG_KEYS.DRIVER_APP, |
 | driver_app | navigation | config/navigation.ts | 209 | featureFlag: FLAG_KEYS.DRIVER_APP, |
 | driver_app | navigation | config/navigation.ts | 217 | featureFlag: FLAG_KEYS.DRIVER_APP, |
-| erp_lite_ap_enabled | navigation | config/navigation.ts | 676 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
-| erp_lite_ar_enabled | navigation | config/navigation.ts | 668 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
-| erp_lite_bank_recon_enabled | navigation | config/navigation.ts | 700 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
-| erp_lite_branch_pl_enabled | navigation | config/navigation.ts | 708 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
+| erp_lite_ap_enabled | navigation | config/navigation.ts | 687 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
+| erp_lite_ar_enabled | navigation | config/navigation.ts | 679 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
+| erp_lite_bank_recon_enabled | navigation | config/navigation.ts | 711 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
+| erp_lite_branch_pl_enabled | navigation | config/navigation.ts | 719 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
 | erp_lite_enabled | service | lib/services/erp-lite-feature-guard.ts | 11 | await requireFeature(tenantId, FEATURE_FLAG_KEYS.ERP_LITE_ENABLED); |
-| erp_lite_enabled | navigation | config/navigation.ts | 571 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 579 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 588 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 596 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 604 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 612 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 620 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 628 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 636 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 644 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 652 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 660 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 668 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 676 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 684 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 692 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 700 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 708 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 716 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_expenses_enabled | navigation | config/navigation.ts | 692 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
-| erp_lite_gl_enabled | navigation | config/navigation.ts | 644 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_gl_enabled | navigation | config/navigation.ts | 652 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_po_enabled | navigation | config/navigation.ts | 684 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 582 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 590 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 599 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 607 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 615 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 623 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 631 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 639 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 647 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 655 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 663 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 671 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 679 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 687 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 695 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 703 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 711 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 719 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 727 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_expenses_enabled | navigation | config/navigation.ts | 703 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
+| erp_lite_gl_enabled | navigation | config/navigation.ts | 655 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_gl_enabled | navigation | config/navigation.ts | 663 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_po_enabled | navigation | config/navigation.ts | 695 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
 | getFeatureFlags | api | app/api/feature-flags/route.ts | 23 | const flags = await Promise.race([getFeatureFlags(tenantId), timeoutPromise]) |
 | getFeatureFlags | api | app/api/navigation/route.ts | 88 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
 | getFeatureFlags | api | app/api/navigation/route.ts | 125 | const featureFlags = await getFeatureFlags(authContext.tenantId) |
@@ -78,6 +78,6 @@ Generated: 2026-07-04T03:07:33.265Z
 | tax_inclusive_pricing | screen | src/features/settings/ui/branch-settings-screen.tsx | 38 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | tax_inclusive_pricing | screen | src/features/settings/ui/tenant-settings-screen.tsx | 28 | const taxInclusiveEnabled = useFeature(FEATURE_FLAG_KEYS.TAX_INCLUSIVE_PRICING); |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
-| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 71 | const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags(); |
+| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 72 | const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags(); |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 531 | {plan.feature_flags.whatsapp_receipts && ( |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 666 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

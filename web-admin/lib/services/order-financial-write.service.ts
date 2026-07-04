@@ -76,7 +76,16 @@ function round4(value: number): number {
   return Math.round((value + Number.EPSILON) * 10000) / 10000;
 }
 
-function projectBaseCurrencyAmount(amount: number, currencyExRate: number): number {
+/**
+ * Project a tenant-currency amount into the base currency at the order's
+ * exchange rate, rounded to the 4-dp money precision. A missing/invalid rate
+ * projects to 0 (surfaced elsewhere; never a NaN write). Exported for the
+ * multi-currency regression fixture.
+ * @param amount tenant-currency amount
+ * @param currencyExRate order exchange rate (tenant → base)
+ * @returns base-currency amount at DECIMAL(19,4) precision
+ */
+export function projectBaseCurrencyAmount(amount: number, currencyExRate: number): number {
   if (!Number.isFinite(currencyExRate) || currencyExRate <= 0) return 0;
   return round4(amount * currencyExRate);
 }
@@ -734,6 +743,17 @@ export async function recalculateOrderFinancialSnapshotTx(
   `;
   const disposedOverpaymentAmount = Number(disposedOverpaymentRows[0]?.total ?? 0);
 
+  // Fiscal-total comparand (spec §16.1): when the order is linked to a tax
+  // document, its stored fiscal total must equal the recomputed order total.
+  const linkedTaxDocument = order.tax_document_id
+    ? await tx.org_tax_documents_mst.findFirst({
+        where: { id: order.tax_document_id, tenant_org_id: tenantId, is_active: true },
+        select: { total_amount: true },
+      })
+    : null;
+  const taxDocumentTotalAmount =
+    linkedTaxDocument != null ? toNumber(linkedTaxDocument.total_amount) : null;
+
   const {
     refundedAmount,
     realPaymentRefundedAmount,
@@ -813,13 +833,11 @@ export async function recalculateOrderFinancialSnapshotTx(
     arInvoiceOutstandingAmount: arInvoice?.outstanding_amount != null ? toNumber(arInvoice.outstanding_amount) : null,
     arReceivableAmount,
     // Tax-document fiscal total must equal `order.total_amount` (spec §16.1).
-    // The stored fiscal total lives on `org_tax_documents_mst` (Phase 7); until
-    // that table ships we cannot read a real comparand, so the helper returns
-    // `false` rather than reusing AR receivable as a proxy (which previously
-    // fired this warning on every partially-paid CREDIT_INVOICE order).
+    // Comparand read from the linked `org_tax_documents_mst` row above
+    // (FN-03, Order-Fin remediation Phase 6) — no linked document → no check.
     hasTaxDocumentAmountMismatch: evaluateTaxDocumentTotalMismatch({
       taxDocumentId: order.tax_document_id,
-      taxDocumentTotalAmount: null,
+      taxDocumentTotalAmount,
       orderTotalAmount: totalAmount,
     }),
     hasUnclassifiedRefundSource,

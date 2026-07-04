@@ -419,10 +419,10 @@ export function OrderDetailsFullClient({
   const formatMasterValue = (key: string, value: unknown): string => {
     if (value == null) return '—';
     if (typeof value === 'boolean') return value ? (t.commonYes ?? 'Yes') : (t.commonNo ?? 'No');
-    if (value instanceof Date) return value.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM');
+    if (value instanceof Date) return value.toLocaleString(locale === 'ar' ? 'ar' : 'en');
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}/.test(value)) {
       try {
-        return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM');
+        return new Date(value).toLocaleString(locale === 'ar' ? 'ar' : 'en');
       } catch {
         return String(value);
       }
@@ -772,7 +772,7 @@ export function OrderDetailsFullClient({
                     )}
                     {paymentDueDate && (
                       <WRow label={t.paymentDueDate ?? 'Payment Due Date'} value={
-                        (() => { try { return new Date(paymentDueDate).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM'); } catch { return paymentDueDate; } })()
+                        (() => { try { return new Date(paymentDueDate).toLocaleDateString(locale === 'ar' ? 'ar' : 'en'); } catch { return paymentDueDate; } })()
                       } />
                     )}
                     {totalCreditApplied > 0 && (
@@ -1484,7 +1484,7 @@ export function OrderDetailsFullClient({
             </div>
             {order.received_at && (
               <p className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {new Date(order.received_at as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                {new Date(order.received_at as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
                   dateStyle: 'medium',
                   timeStyle: 'short',
                 })}
@@ -1495,7 +1495,7 @@ export function OrderDetailsFullClient({
                 <Clock className="w-4 h-4" />
                 {t.received}:{' '}
                 {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
-                  locale === 'ar' ? 'ar-OM' : 'en-OM',
+                  locale === 'ar' ? 'ar' : 'en',
                   { dateStyle: 'medium', timeStyle: 'short' }
                 )}
               </span>
@@ -1503,7 +1503,7 @@ export function OrderDetailsFullClient({
                 <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Package className="w-4 h-4" />
                   {t.readyBy}:{' '}
-                  {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                  {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}
@@ -1723,7 +1723,7 @@ export function OrderDetailsFullClient({
                   <span className="text-gray-500">{t.received}: </span>
                   <span className="font-medium text-gray-900">
                     {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
-                      locale === 'ar' ? 'ar-OM' : 'en-OM',
+                      locale === 'ar' ? 'ar' : 'en',
                       { dateStyle: 'medium', timeStyle: 'short' }
                     )}
                   </span>
@@ -1735,7 +1735,7 @@ export function OrderDetailsFullClient({
                   <div>
                     <span className="text-gray-500">{t.readyBy}: </span>
                     <span className="font-medium text-gray-900">
-                      {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                      {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
                         dateStyle: 'medium',
                         timeStyle: 'short',
                       })}

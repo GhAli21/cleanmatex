@@ -8,12 +8,12 @@
  *   - The `TAX_DOCUMENT_TOTAL_MISMATCH` warning fires only when a tax document
  *     exists AND its stored fiscal total drifts from the order sale total.
  *
- * Until Phase 7 (`org_tax_documents_mst` master table) ships, there is no
- * stored fiscal total to compare against — `taxDocumentTotalAmount` will be
- * `null`. In that interim, this helper returns `false` so the warning does
- * not produce false positives (the previous comparand of AR receivable vs.
- * sale total produced a warning on every partially-paid CREDIT_INVOICE
- * order, which is incorrect).
+ * The comparand is read from the linked `org_tax_documents_mst.total_amount`
+ * inside the snapshot recalc (FN-03, Order-Fin remediation Phase 6). When no
+ * document is linked — or the row is missing — `taxDocumentTotalAmount` is
+ * `null` and this helper returns `false` so the warning never false-positives
+ * (the pre-0341 comparand of AR receivable vs. sale total fired on every
+ * partially-paid CREDIT_INVOICE order, which was incorrect).
  *
  * @see docs/features/Order_Fin/Fix_29_05_2026/order-fin-v1_1-full-alignment-implementation-plan.md
  * @see docs/features/Order_Fin/Fix_29_05_2026/Order_Fin_Current_Code_vs_Calculation_Rules_Comparison.md (P0 entry)
