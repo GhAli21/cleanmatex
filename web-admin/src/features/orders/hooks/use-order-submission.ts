@@ -43,6 +43,46 @@ const FIELD_LABELS: Record<string, string> = {
   productId: 'Product',
 };
 
+type PosSessionEnsureResult = {
+    type: 'CREATED' | 'CURRENT';
+    session: { id: string };
+};
+
+async function ensurePosSessionForOrderEntry(input: {
+    branchId: string;
+    csrfToken: string | null;
+    submitIdempotencyKey: string;
+}): Promise<string> {
+    const response = await fetch('/api/v1/pos-sessions/ensure-for-order-entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getCSRFHeader(input.csrfToken),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            branchId: input.branchId,
+            idempotencyKey: `${input.submitIdempotencyKey}:pos-session`,
+            sourceChannel: 'pos_order_entry',
+        }),
+    });
+
+    const json = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        data?: PosSessionEnsureResult;
+        error?: string;
+        errorCode?: string;
+    };
+
+    if (!response.ok || !json.success || !json.data?.session?.id) {
+        const error = new Error(json.error || 'POS_SESSION_ENSURE_FAILED');
+        Object.assign(error, { code: json.errorCode || 'POS_SESSION_ENSURE_FAILED' });
+        throw error;
+    }
+
+    return json.data.session.id;
+}
+
 /**
  * Format API validation error into a readable message for the user
  * @param json
@@ -193,6 +233,42 @@ export function useOrderSubmission() {
                     }
                 }
 
+                let posSessionId: string | undefined;
+                if (!isEditMode) {
+                    if (!state.state.branchId) {
+                        cmxMessage.error(t('errors.selectBranch'));
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
+
+                    try {
+                        posSessionId = await ensurePosSessionForOrderEntry({
+                            branchId: state.state.branchId,
+                            csrfToken,
+                            submitIdempotencyKey: idempotencyKeyRef.current,
+                        });
+                    } catch (error) {
+                        const code = error instanceof Error && 'code' in error
+                            ? String((error as Error & { code?: string }).code)
+                            : '';
+                        const message =
+                            code === 'POS_SESSION_BRANCH_CONFLICT'
+                                ? t('errors.posSessionBranchConflict')
+                                : code === 'POS_SESSION_OPEN_NOT_FOUND'
+                                  ? t('errors.posSessionOpenNotFound')
+                                  : code === 'POS_SESSION_TERMINAL_BRANCH_MISMATCH'
+                                    ? t('errors.posSessionTerminalBranchMismatch')
+                                    : error instanceof Error && error.message
+                                      ? error.message
+                                      : t('errors.posSessionEnsureFailed');
+                        cmxMessage.error(message);
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
+                }
+
                 const createWithPaymentBody = {
                     customerId: state.state.customer?.id || '',
                     orderTypeId: 'POS',
@@ -312,6 +388,9 @@ export function useOrderSubmission() {
                     }),
                     ...(payload.cashDrawerSessionId && {
                         cashDrawerSessionId: payload.cashDrawerSessionId,
+                    }),
+                    ...(posSessionId && {
+                        posSessionId,
                     }),
                     ...(paymentData.b2bContractId && { b2bContractId: paymentData.b2bContractId }),
                     ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),

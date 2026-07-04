@@ -15,4 +15,4 @@ Block/deprecate `org_payments_dtl_tr` for new development. `org_fin_voucher_trx_
 
 ## Consequences / Implementation Rule
 
-If historical rows exist, migrate them or keep them read-only. No new writes should target `org_payments_dtl_tr`.
+If historical rows exist, migrate them or keep them read-only. No new writes should target `org_payments_dtl_tr`. (the table is empty now)

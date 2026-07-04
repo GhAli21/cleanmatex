@@ -1,13 +1,17 @@
 /**
  * Server Action: Ready Order Payment Context
  *
- * Fetches payment summary, primary invoice, and payment history
- * for the ready/handover flow.
+ * Fetches payment summary, primary invoice, and payment history for the
+ * ready/handover flow — all from the canonical financial model
+ * (`org_orders_mst` snapshot columns + `org_order_payments_dtl`; ADR-002 —
+ * the deprecated the legacy payments ledger ledger is never read).
  */
 
 'use server';
 
-import { getPaymentStatus, getPaymentsForOrder } from '@/lib/services/payment-service';
+import { prisma } from '@/lib/db/prisma';
+import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+import { getOrderPaymentsCanonical } from '@/lib/services/order-financial-summary.service';
 import { getInvoicesForOrder } from '@/lib/services/invoice-service';
 
 /**
@@ -40,11 +44,41 @@ export async function getReadyOrderPaymentContext(
   orderId: string
 ): Promise<{ success: boolean; data?: ReadyOrderPaymentContext; error?: string }> {
   try {
-    const [paymentSummary, invoices, payments] = await Promise.all([
-      getPaymentStatus(orderId),
+    const tenantId = await getTenantIdFromSession();
+    if (!tenantId) {
+      return { success: false, error: 'Unauthorized: Tenant ID required' };
+    }
+
+    const [order, invoices, payments] = await Promise.all([
+      withTenantContext(tenantId, () =>
+        prisma.org_orders_mst.findFirst({
+          where: { id: orderId, tenant_org_id: tenantId },
+          select: {
+            payment_status: true,
+            total_amount: true,
+            total_paid_amount: true,
+            total_credit_applied_amount: true,
+            outstanding_amount: true,
+          },
+        })
+      ),
       getInvoicesForOrder(orderId),
-      getPaymentsForOrder(orderId),
+      getOrderPaymentsCanonical(tenantId, orderId),
     ]);
+
+    if (!order) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    // "Paid" for handover = real payments + applied stored-value credit; the
+    // remaining balance is the canonical outstanding amount.
+    const paymentSummary = {
+      status: order.payment_status ?? '',
+      total: Number(order.total_amount ?? 0),
+      paid:
+        Number(order.total_paid_amount ?? 0) + Number(order.total_credit_applied_amount ?? 0),
+      remaining: Number(order.outstanding_amount ?? 0),
+    };
 
     const primaryInvoice = invoices?.[0]
       ? {
@@ -55,24 +89,13 @@ export async function getReadyOrderPaymentContext(
         }
       : null;
 
-    const mappedPayments = payments.map((p) => {
-      const rawPaidAt = p.paid_at as string | Date | null | undefined;
-      let paidAtIso: string;
-      if (rawPaidAt instanceof Date) {
-        paidAtIso = rawPaidAt.toISOString();
-      } else if (typeof rawPaidAt === 'string') {
-        paidAtIso = rawPaidAt;
-      } else {
-        paidAtIso = '';
-      }
-      return {
-        id: p.id,
-        paid_amount: Number(p.paid_amount),
-        payment_method_code: p.payment_method_code ?? '',
-        paid_at: paidAtIso,
-        status: p.status ?? 'completed',
-      };
-    });
+    const mappedPayments = payments.map((p) => ({
+      id: p.id,
+      paid_amount: p.amount,
+      payment_method_code: p.payment_method_code ?? '',
+      paid_at: p.paid_at ?? p.created_at,
+      status: p.payment_status ?? '',
+    }));
 
     return {
       success: true,

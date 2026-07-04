@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-06-27T00:13:29.406Z
+Generated: 2026-07-04T03:07:33.265Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -17,6 +17,6 @@ Generated: 2026-06-27T00:13:29.406Z
 | getFeatureFlags | lib/services/feature-flags.service.ts | 337 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/feature-flags.service.ts | 360 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 221 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 422 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 263 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 456 | const flags = await getFeatureFlags(tenantId); |
 | pdf_invoices | lib/services/feature-flags.service.ts | 406 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

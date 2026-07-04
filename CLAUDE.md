@@ -10,7 +10,7 @@
 | API route / service / backend | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
 | New feature | `/implementation` |
-| Dashboard route gating | `/rebuild-ui-access-contract` |
+| Dashboard route gating | `/refill-ui-access-contract-permissions` And `/rebuild-ui-access-contract` |
 | RBAC role create / update | `/update-rbac-role` |
 
 **If the skill is not loaded — do not write. Load it, then write.**
@@ -61,7 +61,7 @@ Communication style:
 11. **New permissions MUST have a migration** — every new permission code added to the system requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
-14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`. See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
+14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`; `src/features/[feature name]/access/[feature name]-access.ts` ; `src/features/access/page-access-registry.ts` . See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
 
 ---
 
@@ -102,7 +102,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
 | Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
-| Dashboard route/action/API access gating | `/rebuild-ui-access-contract` |
+| Dashboard route/action/API access gating | `/refill-ui-access-contract-permissions`|
 | Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
 | Dashboard route gating (contract, page/API gates, inventories) | `/rebuild-ui-access-contract` |
 

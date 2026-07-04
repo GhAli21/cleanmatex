@@ -65,3 +65,9 @@ if (existing) return; // already redeemed for this order
 | `INSUFFICIENT_BALANCE` | Wallet/advance balance < requested amount |
 | Credit note not found | Credit note not active or wrong tenant |
 | Insufficient credit note balance | note.remaining_balance < amount |
+
+---
+
+## Cancellation restores (Remediation 2026-07 Phase 4 — ADR-FIN-053)
+
+When an order is cancelled, `unwindOrderFinancialsOnCancel` reverses every APPLIED credit application back to its source ledger (gift card refund, wallet top-up, advance re-issue, fresh credit note), CAS-guarded so retries never double-restore. Collected real payments follow the operator's disposition: REFUND (maker-checker refund per payment), STORE_CREDIT (one credit note for the net collected amount), or KEEP_ON_ACCOUNT (approval-gated retention). `LOYALTY_POINTS` applications are flipped to REVERSED with a manual-restore warning. Audit: outbox event `ORDER_CANCEL_FINANCIAL_UNWIND`.

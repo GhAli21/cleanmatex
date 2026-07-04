@@ -24,6 +24,8 @@
   "noAdvancePayments": "No advance payments",
   "advanceRecorded": "Advance recorded successfully",
   "unappliedAdvanceCount": "{count} unapplied advance payment(s)",
+  "receiveAccountPayment": "Receive payment (account receipt)",
+  "receiveAccountPaymentHint": "Take money on account via the customer account receipt — it records the method, cash drawer, and receipt voucher, and can allocate to invoices.",
   "profile": "Profile",
   "addresses": "Addresses",
   "orderHistory": "Order History",

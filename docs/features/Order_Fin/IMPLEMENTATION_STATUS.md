@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-05-30 (Phase 6 closed; BVM Wiring program complete except deferred Sub-item 7)
+Last updated: 2026-07-04 (POS Session Management v1 runtime, UI, and navigation wired)
 Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md`.
 
 ## Phase Completion
@@ -26,6 +26,153 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 | BVM-4 | Reconciliation expansion (PRD §22.1 + §24.3, R1–R8 closed, UI Cmx) | ✅ Done (2026-05-30) — see `bvm_wiring_phase4_implementation.md` |
 | BVM-5 | History / Audit (PRD §22) | ✅ Done (2026-05-30) — see `bvm_wiring_phase5_implementation.md` |
 | BVM-6 | Settlement hardening (verify-payment, modal hardening, D9 toggles, per-leg status, voucher-status audit) | ✅ Done (2026-05-30) — see `bvm_wiring_phase6_implementation.md`. Sub-item 7 deferred with audit. |
+| POS-1 | POS Session Management v1 — Phase 1 schema + documentation foundation | ✅ Done (2026-07-04) — migrations 0396–0398 applied locally/remotely; types refreshed |
+| POS-2 | POS Session Management v1 — backend lifecycle + finance lineage APIs | ✅ Done (2026-07-04) |
+| POS-3 | POS Session Management v1 — operations UI, order banner, navigation, access contract | ✅ Done (2026-07-04) — migration 0399 applied locally/remotely by user |
+| POS-4 | POS Session Management v1 — tests, docs, access inventories, i18n closeout | ✅ Done (2026-07-04) |
+
+---
+
+## POS Session Management v1 — Phase 1 Foundation (2026-07-04)
+
+Phase 1 freezes the user-owned POS session contract and adds the database surface for later service and UI work. The migrations have now been applied to both local and remote DBs, and generated types were refreshed after apply.
+
+### Decision summary
+
+- POS session is user-owned, not terminal-owned.
+- Only one active POS session is allowed per `tenant_org_id + user_id`.
+- `terminal_id` is optional session context and is not unique.
+- `cash_drawer_session_id` remains the physical cash-reconciliation source.
+- `pos_session_id` is operational lineage only.
+- Same-branch open returns the current session; different-branch open returns branch conflict.
+- `business_date` is fixed at open time using `business_timezone`.
+- Combined close wizard must complete the drawer step before POS close succeeds.
+- Idempotency is mandatory for lifecycle actions and drawer auto-link.
+
+### Documentation created
+
+- `docs/features/Order_Fin/ADR/ADR-054-User-Owned-POS-Sessions.md`
+- `docs/features/Order_Fin/POS_Session_Management_V1.md`
+
+### Documentation updated
+
+- `docs/features/Order_Fin/README.md`
+- `docs/features/Order_Fin/CHANGELOG.md`
+- `docs/features/Order_Fin/developer_guide.md`
+- `docs/features/Order_Fin/current_status.md`
+- `docs/features/Order_Fin/ADR/README.md`
+- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`
+
+### Migrations applied
+
+- `supabase/migrations/0396_pos_session_catalogs.sql`
+- `supabase/migrations/0397_pos_session_core_tables.sql`
+- `supabase/migrations/0398_pos_session_finance_links.sql`
+
+### Type refresh
+
+- DB types refreshed after applying the migrations.
+- Prisma schema now mirrors the nullable `pos_session_id` finance-link columns on active finance tables.
+- POS session master/event models are still accessed by tenant-safe raw SQL in the Phase 2 backend service.
+
+### Scope delivered in Phase 1
+
+- new POS session status and event catalogs
+- POS session permissions
+- non-visible `sys_components_cd` metadata seed
+- `org_pos_sessions_mst`
+- `org_pos_session_events_dtl`
+- nullable `pos_session_id` links on active finance tables only:
+  - `org_order_payments_dtl`
+  - `org_order_refunds_dtl`
+  - `org_fin_voucher_trx_lines_dtl`
+
+### Explicitly deferred
+
+- services and APIs
+- TypeScript constants and runtime permission wiring
+- POS route/page and sidebar exposure
+- auto-open runtime behavior
+- `getPosSessionSummary`
+- `autoLinkDrawer`
+
+---
+
+## POS Session Management v1 — Phase 2/3 Runtime and UI (Done 2026-07-04)
+
+Completed in the first Phase 2 slice:
+
+- `web-admin/lib/constants/pos-session.ts`
+- `web-admin/lib/constants/permissions/pos-session-perm.ts`
+- `web-admin/lib/types/pos-session.ts`
+- `web-admin/lib/validations/pos-session-schemas.ts`
+- `web-admin/lib/services/pos-session.service.ts`
+- `web-admin/app/api/v1/pos-sessions/route.ts`
+- `GET /api/v1/pos-sessions/my-active`
+- `GET /api/v1/pos-sessions`
+- `POST /api/v1/pos-sessions/open`
+- `POST /api/v1/pos-sessions/ensure-for-order-entry`
+- `POST /api/v1/pos-sessions/pause`
+- `POST /api/v1/pos-sessions/resume`
+- `POST /api/v1/pos-sessions/close`
+- `POST /api/v1/pos-sessions/force-close`
+- `GET /api/v1/pos-sessions/[sessionId]/summary`
+
+Completed in the UI/navigation slice:
+
+- `web-admin/app/dashboard/internal_fin/pos-sessions/page.tsx`
+- `web-admin/src/features/pos-sessions/ui/pos-sessions-screen.tsx`
+- `web-admin/src/features/pos-sessions/ui/pos-session-order-banner.tsx`
+- `web-admin/src/features/pos-sessions/access/pos-sessions-access.ts`
+- `web-admin/config/navigation.ts` entry `billing_pos_sessions`
+- `supabase/migrations/0399_pos_sessions_navigation.sql` for the matching `sys_components_cd` navigation seed
+- `web-admin/messages/en/posSessions.json`
+- `web-admin/messages/ar/posSessions.json`
+
+Runtime behavior now covered:
+
+- branch conflict detection
+- same-branch open returns current active session
+- idempotency cache via `org_idempotency_keys`
+- event audit rows with previous/new status
+- advisory lock on user open/ensure to prevent duplicate active sessions
+- `FOR UPDATE` lifecycle transitions
+- close/force-close blocks while linked drawer session is still open
+- order-entry auto-ensure before `/api/v1/orders/submit-order`, using a retry-safe POS session idempotency sub-key
+- optional `posSessionId` lineage on POS-aware order submit, later collection, refund initiation, voucher lines, order payments, and refund rows
+- `autoLinkDrawer` backend service logic that locks the POS session row before attaching a cash drawer session
+- `getPosSessionSummary` backend query from active finance tables only:
+  - `org_order_payments_dtl`
+  - `org_order_refunds_dtl`
+  - `org_fin_voucher_trx_lines_dtl`
+- manager-visible session list via `GET /api/v1/pos-sessions` when `pos_session:view_all` is granted
+- POS sessions workbench for active session actions, history, pagination, and session summary
+- order-entry banner that surfaces active/paused/no-session/branch-conflict state before cashier submission
+- combined close flow in the POS Sessions UI: if close returns `POS_SESSION_DRAWER_STILL_OPEN`, the UI requires the linked drawer close step to succeed before retrying POS close
+- later collection attaches `posSessionId` only when the current user already has an active same-branch `OPEN` session; it does not auto-open sessions from back-office collection flows
+
+Apply status and residual follow-ups:
+
+- Migration `0399_pos_sessions_navigation.sql` was applied by the user to local and remote DBs on 2026-07-04. Codex did not run migrations.
+- The combined close UI currently uses the existing normal cash-drawer close endpoint. Drawer force-close remains a separate future UX/API decision because POS force-close must not silently force-close physical cash reconciliation.
+- POS session master/event tables are still accessed by tenant-filtered raw SQL. A later Prisma model pull can replace those reads/writes when the team wants full Prisma model coverage.
+- `npm run check:platform-info-inventories` still reports the existing unrelated `/dashboard/internal_fin/vouchers` navigation-contract warning.
+
+### Test coverage added
+
+- `web-admin/__tests__/validations/pos-session-schemas.test.ts`
+  - manual open schema with optional terminal
+  - force-close reason requirement
+  - list pagination/status/scope validation
+  - branch query validation
+- `web-admin/__tests__/services/pos-session.service.test.ts`
+  - branch conflict blocks silent branch switching
+  - resume of an already-open session is idempotent no-op
+  - closed sessions cannot be resumed
+  - finance writes reject branch-mismatched POS sessions
+  - drawer auto-link is same-drawer idempotent and rejects different drawer linkage
+  - summary aggregation maps active finance rows into payment/refund/voucher groups
+  - out-of-scope summary lookup returns typed not-found error
 
 ---
 

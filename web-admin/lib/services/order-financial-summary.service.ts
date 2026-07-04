@@ -120,14 +120,25 @@ export interface OrderTaxRow {
 export interface OrderPaymentRow {
   id: string;
   payment_method_code: string | null;
+  payment_method_name_snapshot: string | null;
   payment_nature_snapshot: string | null;
   amount: number;
+  currency_code: string | null;
+  tendered_amount: number | null;
+  change_returned_amount: number | null;
   payment_status: string | null;
   received_by: string | null;
   gateway_code: string | null;
+  gateway_transaction_id: string | null;
   gateway_reference: string | null;
+  card_brand_code: string | null;
+  card_last4: string | null;
+  check_no: string | null;
+  bank_reference: string | null;
   branch_payment_method_id: string | null;
+  paid_at: string | null;
   created_at: string;
+  rec_notes: string | null;
   fin_voucher_id: string | null;
 }
 
@@ -256,6 +267,86 @@ function toIso(value: Date | string | null | undefined): string {
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+/** Structural shape of an `org_order_payments_dtl` row as returned by Prisma. */
+interface OrderPaymentDbRow {
+  id: string;
+  payment_method_code: string | null;
+  payment_method_name_snapshot: string | null;
+  payment_nature_snapshot: string | null;
+  amount: Decimal | number | null;
+  currency_code: string | null;
+  tendered_amount: Decimal | number | null;
+  change_returned_amount: Decimal | number | null;
+  payment_status: string | null;
+  received_by: string | null;
+  gateway_code: string | null;
+  gateway_transaction_id: string | null;
+  gateway_reference: string | null;
+  card_brand_code: string | null;
+  card_last4: string | null;
+  check_no: string | null;
+  bank_reference: string | null;
+  branch_payment_method_id: string | null;
+  paid_at: Date | string | null;
+  created_at: Date | string;
+  rec_notes: string | null;
+  fin_voucher_id: string | null;
+}
+
+function mapOrderPaymentRow(row: OrderPaymentDbRow): OrderPaymentRow {
+  return {
+    id: row.id,
+    payment_method_code: row.payment_method_code ?? null,
+    payment_method_name_snapshot: row.payment_method_name_snapshot ?? null,
+    payment_nature_snapshot: row.payment_nature_snapshot ?? null,
+    amount: toNumber(row.amount),
+    currency_code: row.currency_code ?? null,
+    tendered_amount: row.tendered_amount == null ? null : toNumber(row.tendered_amount),
+    change_returned_amount:
+      row.change_returned_amount == null ? null : toNumber(row.change_returned_amount),
+    payment_status: row.payment_status ?? null,
+    received_by: row.received_by ?? null,
+    gateway_code: row.gateway_code ?? null,
+    gateway_transaction_id: row.gateway_transaction_id ?? null,
+    gateway_reference: row.gateway_reference ?? null,
+    card_brand_code: row.card_brand_code ?? null,
+    card_last4: row.card_last4 ?? null,
+    check_no: row.check_no ?? null,
+    bank_reference: row.bank_reference ?? null,
+    branch_payment_method_id: row.branch_payment_method_id ?? null,
+    paid_at: row.paid_at ? toIso(row.paid_at) : null,
+    created_at: toIso(row.created_at),
+    rec_notes: row.rec_notes ?? null,
+    fin_voucher_id: row.fin_voucher_id ?? null,
+  };
+}
+
+/**
+ * Canonical order-payment rows for display surfaces (Payments tab, prints).
+ *
+ * Why:
+ * `org_order_payments_dtl` is the single payment truth for orders (ADR-002 —
+ * the legacy payments ledger is deprecated and unwritten by the canonical flow).
+ * Every UI/report that lists an order's payments must read through here so it
+ * can never diverge from the financial snapshot built over the same rows.
+ *
+ * @param tenantId authenticated tenant identifier
+ * @param orderId order header identifier
+ * @returns active payment rows, newest first
+ */
+export async function getOrderPaymentsCanonical(
+  tenantId: string,
+  orderId: string,
+): Promise<OrderPaymentRow[]> {
+  const rows = await withTenantContext(tenantId, () =>
+    prisma.org_order_payments_dtl.findMany({
+      where: { tenant_org_id: tenantId, order_id: orderId, is_active: true },
+      orderBy: { created_at: 'desc' },
+    }),
+  );
+  return rows.map(mapOrderPaymentRow);
 }
 
 function sumProcessedRefunds(refunds: Array<{ refund_status: string | null; refund_amount: Decimal }>): number {
@@ -697,19 +788,7 @@ export async function getOrderFinancialSummary(
       taxable_amount: toNumber(row.taxable_amount),
       currency_code: row.currency_code,
     })),
-    payments: payments.map((row) => ({
-      id: row.id,
-      payment_method_code: row.payment_method_code ?? null,
-      payment_nature_snapshot: row.payment_nature_snapshot ?? null,
-      amount: toNumber(row.amount),
-      payment_status: row.payment_status ?? null,
-      received_by: row.received_by ?? null,
-      gateway_code: row.gateway_code ?? null,
-      gateway_reference: row.gateway_reference ?? null,
-      branch_payment_method_id: row.branch_payment_method_id ?? null,
-      created_at: toIso(row.created_at),
-      fin_voucher_id: row.fin_voucher_id ?? null,
-    })),
+    payments: payments.map(mapOrderPaymentRow),
     creditApplications: creditApplications.map((row) => ({
       id: row.id,
       credit_type: row.credit_type,

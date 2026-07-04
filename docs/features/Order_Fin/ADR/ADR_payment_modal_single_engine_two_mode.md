@@ -29,7 +29,7 @@ We explicitly **reject** building two independent modals.
 ## `needsAdvanced` — escalation conditions (normative)
 
 Open in **Simple**; flip to **Full** (and block manual return to Simple) when **any** hold:
-
+ 
 **Be Flexible in implementation because maybe one or more of this conditions maybe change or disabled in the future**
 
 1. More than one settlement leg (split payment).

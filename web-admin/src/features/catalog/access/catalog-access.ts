@@ -1,14 +1,9 @@
-import type { AccessRequirement, PageAccessContract } from '@/lib/auth/access-contracts'
+import type { PageAccessContract } from '@/lib/auth/access-contracts'
 import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
 
 export const CATALOG_SECTION_PERMISSIONS = [ADMIN_PERMISSIONS.MANAGE] as const
 
 export { ADMIN_PERMISSIONS }
-
-const CATALOG_SECTION_PAGE: AccessRequirement = {
-  permissions: [ADMIN_PERMISSIONS.MANAGE],
-  requireAllPermissions: true,
-}
 
 const CATALOG_CHILD_NOTES = [
   'Catalog section child route; page gate and nav parent require admin:manage. Linked APIs enforce access separately.',
@@ -18,7 +13,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog',
     label: 'Catalog & Pricing',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     notes: [
       'Section hub route; redirects to catalog services. Nav visibility requires admin:manage.',
     ],
@@ -26,7 +24,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/services',
     label: 'Catalog Services',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'List products',
@@ -60,7 +61,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/services/new',
     label: 'New Catalog Service',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'List categories',
@@ -87,7 +91,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/services/[id]',
     label: 'Catalog Service Details',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'Get product',
@@ -119,7 +126,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/pricing',
     label: 'Catalog Pricing',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'List price lists',
@@ -139,7 +149,10 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/pricing/[id]',
     label: 'Pricing Details',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'Get price list',
@@ -190,13 +203,19 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/catalog/addons',
     label: 'Catalog Add-ons',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     notes: CATALOG_CHILD_NOTES,
   },
   {
     routePattern: '/dashboard/catalog/categories',
     label: 'Catalog Categories',
-    page: CATALOG_SECTION_PAGE,
+    page: {
+      permissions: ['admin:manage'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'List categories',

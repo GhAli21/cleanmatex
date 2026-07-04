@@ -12,16 +12,14 @@
  * - Advance balance and record advance payment
  */
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getCustomerById } from '@/lib/api/customers'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
-import { getPaymentsForCustomer, processPayment } from '@/app/actions/payments/process-payment'
 import type { CustomerWithTenantData } from '@/lib/types/customer'
-import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section'
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section'
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab'
@@ -56,17 +54,12 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabId>('profile')
   const [error, setError] = useState<string | null>(null)
-  const [advancePayments, setAdvancePayments] = useState<Array<{ id: string; paid_amount: number; payment_kind?: string; invoice_id?: string }>>([])
-  const [advanceAmount, setAdvanceAmount] = useState<number>(0)
-  const [advanceMethod, setAdvanceMethod] = useState<PaymentMethodCode>('CASH')
-  const [advanceError, setAdvanceError] = useState<string | null>(null)
-  const [advanceSuccess, setAdvanceSuccess] = useState<string | null>(null)
-  const [advancePending, startAdvanceTransition] = useTransition()
+  const [advanceBalance, setAdvanceBalance] = useState<number>(0)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const { currentTenant, user } = useAuth()
-  const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
+  const { currentTenant } = useAuth()
+  const { formatMoneyWithCode } = useTenantCurrency()
   const t = useTranslations('customers')
   const tB2b = useTranslations('b2b')
 
@@ -111,57 +104,27 @@ export default function CustomerDetailPage() {
     }
   }, [customerId])
 
-  // Fetch advance/unapplied payments for customer
+  // Canonical advance balance (stored-value ledger). Money is RECEIVED via the
+  // customer account receipt flow (method + drawer + voucher + allocation) —
+  // the old inline record-advance form wrote the deprecated
+  // legacy payments ledger (ADR-002) and was removed.
   useEffect(() => {
-    async function loadPayments() {
+    async function loadAdvanceBalance() {
       try {
-        const result = await getPaymentsForCustomer(customerId)
-        if (result.success && result.data) {
-          setAdvancePayments(result.data)
+        const res = await fetch(`/api/v1/customers/${customerId}/stored-value`, {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const body = await res.json()
+        if (res.ok && body.success) {
+          setAdvanceBalance(Number(body.data?.advance ?? 0))
         }
       } catch {
-        // Ignore; advance section will show empty
+        // Ignore; advance section will show zero
       }
     }
-    if (customerId) loadPayments()
+    if (customerId) loadAdvanceBalance()
   }, [customerId])
-
-  const unappliedAdvancePayments = advancePayments.filter((p) => !p.invoice_id)
-  const advanceBalanceTotal = unappliedAdvancePayments.reduce((sum, p) => sum + Number(p.paid_amount), 0)
-
-  const handleRecordAdvance = (e: React.FormEvent) => {
-    e.preventDefault()
-    setAdvanceError(null)
-    setAdvanceSuccess(null)
-    if (advanceAmount <= 0) {
-      setAdvanceError(t('noAdvancePayments'))
-      return
-    }
-    setAdvanceError(null)
-    const tenantOrgId = currentTenant?.tenant_id
-    const userId = user?.id
-    if (!tenantOrgId || !userId) {
-      setAdvanceError('Not authenticated')
-      return
-    }
-    startAdvanceTransition(async () => {
-      const result = await processPayment(tenantOrgId, userId, {
-        customerId,
-        paymentKind: 'advance',
-        paymentMethod: advanceMethod,
-        amount: advanceAmount,
-      })
-      if (result.success) {
-        setAdvanceSuccess(t('advanceRecorded'))
-        setAdvanceAmount(0)
-        const res = await getPaymentsForCustomer(customerId)
-        if (res.success && res.data) setAdvancePayments(res.data)
-        router.refresh()
-      } else {
-        setAdvanceError(result.error ?? 'Failed to record advance')
-      }
-    })
-  }
 
   // Get customer type badge
   const getTypeBadge = (type: string) => {
@@ -363,58 +326,29 @@ export default function CustomerDetailPage() {
           />
         )}
 
-        {/* Advance balance & Record advance */}
+        {/* Advance balance (canonical stored-value ledger) */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('advanceBalance')}</h2>
-          <div className="flex flex-wrap items-end gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm text-gray-500 mb-1">{t('advanceBalance')}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatMoneyWithCode(advanceBalanceTotal)}
+                {formatMoneyWithCode(advanceBalance)}
               </p>
-              {unappliedAdvancePayments.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('unappliedAdvanceCount', { count: unappliedAdvancePayments.length })}
-                </p>
+              {advanceBalance === 0 && (
+                <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
               )}
             </div>
-            <form onSubmit={handleRecordAdvance} className="flex flex-wrap items-end gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('recordAdvance')}</label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number"
-                    step={10 ** -decimalPlaces}
-                    min={0}
-                    value={advanceAmount || ''}
-                    onChange={(e) => setAdvanceAmount(Number(e.target.value) || 0)}
-                    placeholder="Amount"
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm w-32 text-right"
-                  />
-                  <select
-                    value={advanceMethod}
-                    onChange={(e) => setAdvanceMethod(e.target.value as PaymentMethodCode)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                  </select>
-                  <button
-                    type="submit"
-                    disabled={advancePending || advanceAmount <= 0}
-                    className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {advancePending ? '...' : t('recordAdvance')}
-                  </button>
-                </div>
-              </div>
-            </form>
+            <div className="text-end">
+              <Link
+                href="/dashboard/customers/account-receipt"
+                className="inline-block rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              >
+                {t('receiveAccountPayment')}
+              </Link>
+              <p className="mt-1 max-w-xs text-xs text-gray-500">{t('receiveAccountPaymentHint')}</p>
+            </div>
           </div>
-          {advanceError && <p className="mt-2 text-sm text-red-600">{advanceError}</p>}
-          {advanceSuccess && <p className="mt-2 text-sm text-green-600">{advanceSuccess}</p>}
-          {unappliedAdvancePayments.length === 0 && advanceBalanceTotal === 0 && (
-            <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
-          )}
         </div>
 
         {/* Tabs */}

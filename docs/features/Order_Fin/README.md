@@ -1,6 +1,6 @@
 # Order Financial Platform
 
-Multi-leg payments, stored value (wallet, advance, credit note), loyalty earn/redeem, promotions engine, tax configuration, cash drawer management, financial reconciliation, and domain event outbox for CleanMateX.
+Multi-leg payments, stored value (wallet, advance, credit note), loyalty earn/redeem, promotions engine, tax configuration, cash drawer management, POS session management, financial reconciliation, and domain event outbox for CleanMateX.
 
 ## Scope
 
@@ -74,6 +74,8 @@ Order Settlement Service (prisma.$transaction)
 | Canonical order submission path (Phase 1B) | `submit-order` only; `create-with-payment` frozen | One path to maintain; orchestrator reusable by any caller |
 | Idempotency ownership (Phase 1B D11) | Route owns full lifecycle; orchestrator is stateless | Orchestrator stays pure/testable; route guards against replay |
 | D9 payment status config (Phase 1B) | COALESCE(org.col, sys.col) — sys defaults, org overrides | Config-driven status without code changes; tenant overrides possible |
+| POS session ownership (Phase 1) | User-owned, one active per tenant+user | Keeps user session, terminal context, and drawer reconciliation cleanly separated |
+| POS session navigation (Phase 3) | `/dashboard/internal_fin/pos-sessions` with DB seed migration `0399` | Keeps sidebar and `sys_components_cd` in sync |
 
 ## Directory Structure
 
@@ -82,9 +84,10 @@ docs/features/Order_Fin/
 ├── README.md                            ← this file
 ├── developer_guide.md                   ← service graph, flow walkthroughs, patterns
 ├── IMPLEMENTATION_STATUS.md             ← canonical phase + stabilization status (supersedes current_status.md)
-├── current_status.md                    ← legacy; mirrored into IMPLEMENTATION_STATUS.md
+├── current_status.md                    ← legacy pointer to IMPLEMENTATION_STATUS.md
 ├── progress_summary.md                  ← session-by-session log
 ├── CHANGELOG.md                         ← chronological changes
+├── POS_Session_Management_V1.md         ← POS Session v1 source-of-truth spec
 ├── ADR_submit_order_canonical_path.md   ← Phase 1B canonical orchestrator decision
 ├── bvm_wiring_phase1a_implementation.md ← Phase 1A outcomes
 ├── bvm_wiring_phase1b_implementation.md ← Phase 1B outcomes (+ 2026-05-28 stabilization addendum)
@@ -113,6 +116,8 @@ Related ADRs in sibling features:
 
 ## Quick Links
 
+- [POS Session Management v1](POS_Session_Management_V1.md)
+- [ADR-054 — User-Owned POS Sessions](ADR/ADR-054-User-Owned-POS-Sessions.md)
 - [Payment Settlement Plan](Payment_Settlement_And_Receipt_Allocation_IMPLEMENTATION_PLAN.md) (complete)
 - [Pending Follow-Ups](Pending_Payment_Settlement_Follow_Ups.md)
 - [HQ sys_ Catalogs Guide](HQ_Fin_Settlement_Sys_Catalogs_Implementation_Guide.md) (implement in cleanmatexsaas)

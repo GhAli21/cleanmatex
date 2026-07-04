@@ -11,6 +11,7 @@ import {
 import type { RefundMethod, RefundReasonCode } from '@/lib/types/order-financial';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
+import { assertOpenPosSessionForFinanceTx } from './pos-session.service';
 import { topUpWalletTx, issueCreditNoteTx } from './stored-value.service';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -69,6 +70,7 @@ async function getRefundableBalanceSummaryTx(
     id: string;
     order_no: string;
     customer_id: string | null;
+    branch_id: string | null;
     currency_code: string | null;
     total_paid_amount: Decimal | null;
     total_credit_applied_amount: Decimal | null;
@@ -81,6 +83,7 @@ async function getRefundableBalanceSummaryTx(
       id: true,
       order_no: true,
       customer_id: true,
+      branch_id: true,
       currency_code: true,
       total_paid_amount: true,
       total_credit_applied_amount: true,
@@ -126,6 +129,7 @@ export interface InitiateRefundParams {
   refundScope?: RefundScope;
   approvalRequired?: boolean;
   idempotencyKey?: string;
+  posSessionId?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -152,6 +156,7 @@ export async function initiateRefund(
     refundScope = REFUND_SCOPES.STANDARD,
     approvalRequired = true,
     idempotencyKey,
+    posSessionId,
     metadata,
   } = params;
 
@@ -187,6 +192,13 @@ export async function initiateRefund(
       tenantId,
       orderId
     );
+
+    await assertOpenPosSessionForFinanceTx(tx, {
+      tenantId,
+      userId: requestedBy,
+      posSessionId,
+      branchId: order.branch_id,
+    });
 
     if (amount > refundableBalance) {
       throw new Error(
@@ -307,6 +319,7 @@ export async function initiateRefund(
         reason_code: reason,
         refund_reason: notes ?? null,
         refund_method_code: method,
+        pos_session_id: posSessionId ?? null,
         refund_status: approvalRequired ? 'PENDING_APPROVAL' : 'APPROVED',
         idempotency_key: idempotencyKey ?? null,
         created_by: requestedBy,

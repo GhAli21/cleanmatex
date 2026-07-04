@@ -407,7 +407,6 @@ model org_branches_mst {
   org_order_items_dtl             org_order_items_dtl[]
   org_orders_mst                  org_orders_mst[]
   org_pck_packing_lists_mst       org_pck_packing_lists_mst[]
-  org_payments_dtl_tr             org_payments_dtl_tr[]
   org_qa_decisions_tr             org_qa_decisions_tr[]
   org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
   org_stng_audit_log_tr           org_stng_audit_log_tr[]
@@ -526,7 +525,6 @@ model org_customers_mst {
   org_invoice_mst            org_invoice_mst[]
   org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
   org_orders_mst             org_orders_mst[]
-  org_payments_dtl_tr        org_payments_dtl_tr[]
   gc_issued_to               org_gift_cards_mst[]         @relation("gc_issued_to")
   gc_purchased_by            org_gift_cards_mst[]         @relation("gc_purchased_by")
   org_customer_wallets_mst   org_customer_wallets_mst[]
@@ -685,7 +683,6 @@ model org_invoice_mst {
   org_orders_mst                 org_orders_mst?                  @relation("org_invoice_order_header", fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
   sys_payment_method_cd          sys_payment_method_cd?           @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_invoice_payment_method")
   org_tenants_mst                org_tenants_mst                  @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_tenant")
-  org_payments_dtl_tr            org_payments_dtl_tr[]
 
   @@id([id, tenant_org_id])
   @@unique([tenant_org_id, invoice_no])
@@ -1075,7 +1072,6 @@ model org_orders_mst {
   sys_order_type_cd                  sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
   sys_payment_method_cd              sys_payment_method_cd?            @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_orders_payment_method")
   sys_workflow_template_cd           sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
-  org_payments_dtl_tr                org_payments_dtl_tr[]
   org_pck_packing_lists_mst          org_pck_packing_lists_mst?
   org_qa_decisions_tr                org_qa_decisions_tr[]
   org_rcpt_receipts_mst              org_rcpt_receipts_mst[]
@@ -1134,117 +1130,8 @@ model org_order_edit_locks {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model org_payments_dtl_tr {
-  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  invoice_id                    String?                         @db.Uuid
-  tenant_org_id                 String                          @db.Uuid
-  paid_amount                   Decimal?                        @default(0) @db.Decimal(19, 4)
-  status                        String?                         @default("pending")
-  due_date                      DateTime?                       @db.Date
-  payment_method_code           String                          @db.VarChar(50)
-  paid_at                       DateTime?                       @db.Timestamp(6)
-  paid_by                       String?                         @db.VarChar(255)
-  gateway                       String?
-  transaction_id                String?
-  metadata                      Json?
-  rec_notes                     String?                         @db.VarChar(1000)
-  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
-  created_by                    String?                         @db.VarChar(120)
-  created_info                  String?
-  updated_at                    DateTime?                       @db.Timestamp(6)
-  updated_by                    String?                         @db.VarChar(120)
-  updated_info                  String?
-  order_id                      String?                         @db.Uuid
-  customer_id                   String?                         @db.Uuid
-  currency_code                 String                          @db.VarChar(3)
-  tax_amount                    Decimal?                        @default(0) @db.Decimal(19, 4)
-  vat_amount                    Decimal?                        @default(0) @db.Decimal(19, 4)
-  payment_type_code             String?                         @db.VarChar(30)
-  subtotal                      Decimal?                        @default(0) @db.Decimal(19, 4)
-  discount_rate                 Decimal?                        @default(0) @db.Decimal(5, 2)
-  discount_amount               Decimal?                        @default(0) @db.Decimal(19, 4)
-  vat_rate                      Decimal?                        @default(0) @db.Decimal(5, 2)
-  manual_discount_amount        Decimal?                        @default(0) @db.Decimal(19, 4)
-  promo_discount_amount         Decimal?                        @default(0) @db.Decimal(19, 4)
-  gift_card_applied_amount      Decimal?                        @default(0) @db.Decimal(19, 4)
-  promo_code_id                 String?                         @db.Uuid
-  gift_card_id                  String?                         @db.Uuid
-  currency_ex_rate              Decimal                         @default(1.000000) @db.Decimal(10, 6)
-  check_number                  String?                         @db.VarChar(100)
-  check_bank                    String?                         @db.VarChar(100)
-  check_date                    DateTime?                       @db.Date
-  payment_channel               String?                         @default("web_admin") @db.VarChar(30)
-  trans_desc                    String?                         @db.VarChar(500)
-  voucher_id                    String?                         @db.Uuid
-  branch_id                     String?                         @db.Uuid
-  // V1 Payment Config linking columns
-  org_payment_method_id         String?                         @db.Uuid
-  branch_payment_method_id      String?                         @db.Uuid
-  payment_terminal_id           String?                         @db.Uuid
-  cash_drawer_id                String?                         @db.Uuid
-  cash_drawer_session_id        String?                         @db.Uuid
-  // Historical snapshots (denormalized — preserved regardless of sys_payment_method_cd changes)
-  payment_method_name           String?
-  payment_method_name2          String?
-  payment_status                String?                         @default("COMPLETED")
-  // Cash payment details
-  tendered_amount               Decimal?                        @db.Decimal(19, 4)
-  change_returned_amount        Decimal?                        @db.Decimal(19, 4)
-  // Card details (PCI: last 4 only)
-  card_brand_code               String?
-  card_last4                    String?
-  // Authorization
-  auth_code                     String?
-  gateway_transaction_id        String?
-  gateway_reference             String?
-  bank_reference                String?
-  // Idempotency: prevents duplicate submissions from mobile/customer app
-  idempotency_key               String?                         @unique
-  received_by                   String?                         @db.Uuid
-  // Relations
-  org_payment_audit_log         org_payment_audit_log[]
-  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
-  org_invoice_payments_dtl      org_invoice_payments_dtl[]
-  // org_order_refunds_dtl FK was moved to org_order_payments_dtl in migration 0283
-  org_payment_methods_cf_rel    org_payment_methods_cf?         @relation("PaymentMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_branch_pay_methods_cf_rel org_branch_payment_methods_cf?  @relation("BranchPaymentMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_payment_terminals_cf_rel  org_payment_terminals_cf?       @relation("PaymentTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawers_mst_rel      org_cash_drawers_mst?           @relation("CashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawer_sessions_rel  org_cash_drawer_sessions_mst?   @relation("CashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_branches_mst              org_branches_mst?               @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payment_branch")
-  org_invoice_mst               org_invoice_mst?                @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_invoice")
-  org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_tenant")
-  sys_payment_method_cd         sys_payment_method_cd           @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction, map: "fk_org_payments_payment_method")
-  sys_payment_type_cd           sys_payment_type_cd?            @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction, map: "fk_org_payments_payment_type")
-  org_fin_vouchers_mst          org_fin_vouchers_mst?           @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payments_voucher")
-  org_gift_cards_mst            org_gift_cards_mst?             @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_payments_gift_card")
-  org_promotions_mst            org_promotions_mst?             @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_payments_promo_code")
-  org_customers_mst             org_customers_mst?              @relation(fields: [customer_id], references: [id], onUpdate: NoAction)
-  org_orders_mst                org_orders_mst?                 @relation(fields: [order_id], references: [id], onUpdate: NoAction)
-
-  @@index([invoice_id], map: "idx_org_payments_invoice")
-  @@index([tenant_org_id], map: "idx_org_payments_tenant")
-  @@schema("public")
-}
 
 /// Payment audit log: append-only history (CREATED, CANCELLED, REFUNDED, NOTES_UPDATED)
-model org_payment_audit_log {
-  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id       String              @db.Uuid
-  payment_id          String              @db.Uuid
-  action_type         String              @db.VarChar(30)
-  before_value        Json?
-  after_value         Json?
-  changed_by          String?             @db.VarChar(120)
-  changed_at          DateTime?           @default(now()) @db.Timestamptz(6)
-  metadata            Json?
-  org_payments_dtl_tr org_payments_dtl_tr @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payment_audit_payment")
-  org_tenants_mst     org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payment_audit_tenant")
-
-  @@index([tenant_org_id, changed_at(sort: Desc)], map: "idx_payment_audit_tenant_changed")
-  @@index([tenant_org_id, payment_id], map: "idx_payment_audit_tenant_payment")
-  @@schema("public")
-}
 
 /// Finance vouchers: parent of payment rows (receipt/refund/credit/adjustment)
 model org_fin_vouchers_mst {
@@ -1320,7 +1207,6 @@ model org_fin_vouchers_mst {
   org_fin_vouchers_mst          org_fin_vouchers_mst?           @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst", fields: [reversed_by_voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_reversed")
   other_org_fin_vouchers_mst    org_fin_vouchers_mst[]          @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst")
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fin_voucher_tenant")
-  org_payments_dtl_tr           org_payments_dtl_tr[]
   org_rcpt_receipts_mst         org_rcpt_receipts_mst[]
 
   @@id([id, tenant_org_id], map: "pk_org_fin_vouchers_mst")
@@ -1572,12 +1458,10 @@ model org_tenants_mst {
   org_orders_mst                   org_orders_mst[]
   org_order_payments_dtl           org_order_payments_dtl[]
   org_card_brand_cf                org_card_brand_cf[]
-  org_payment_audit_log            org_payment_audit_log[]
   org_payment_methods_cf           org_payment_methods_cf[]
   org_branch_payment_methods_cf    org_branch_payment_methods_cf[]
   org_payment_terminals_cf         org_payment_terminals_cf[]
   org_payment_reconciliation_log   org_payment_reconciliation_log[]
-  org_payments_dtl_tr              org_payments_dtl_tr[]
   org_cash_drawers_mst             org_cash_drawers_mst[]
   org_cash_drawer_sessions_mst     org_cash_drawer_sessions_mst[]
   org_cash_drawer_movements_dtl    org_cash_drawer_movements_dtl[]
@@ -2493,7 +2377,6 @@ model org_gift_cards_mst {
   purchased_by_customer org_customers_mst?      @relation("gc_purchased_by", fields: [purchased_by_cust_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_gc_purchased_by")
   org_invoice_mst       org_invoice_mst[]
   org_orders_mst        org_orders_mst[]
-  org_payments_dtl_tr   org_payments_dtl_tr[]
 
   @@index([tenant_org_id, issued_to_customer_id], map: "idx_gc_tenant_cust")
   @@index([tenant_org_id, purchased_by_cust_id], map: "idx_gc_tenant_buyer")
@@ -2549,7 +2432,6 @@ model org_promotions_mst {
 
   org_invoice_mst         org_invoice_mst[]
   org_orders_mst          org_orders_mst[]
-  org_payments_dtl_tr     org_payments_dtl_tr[]
   org_tenants_mst         org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_promo_codes_tenant_fk")
   org_promotion_usage_dtl org_promotion_usage_dtl[]
   org_order_discounts_dtl org_order_discounts_dtl[]
@@ -2637,7 +2519,6 @@ model sys_payment_method_cd {
   org_invoice_mst                org_invoice_mst[]
   org_orders_mst                 org_orders_mst[]
   org_payment_reconciliation_log org_payment_reconciliation_log[]
-  org_payments_dtl_tr            org_payments_dtl_tr[]
   org_subscriptions_mst          org_subscriptions_mst[]
   sys_bill_invoice_payments_tr   sys_bill_invoice_payments_tr[]
   sys_bill_invoices_mst          sys_bill_invoices_mst[]
@@ -2669,7 +2550,6 @@ model sys_payment_type_cd {
   rec_status                   Int?                           @default(1) @db.SmallInt
   rec_order                    Int?
   org_orders_mst               org_orders_mst[]
-  org_payments_dtl_tr          org_payments_dtl_tr[]
   sys_bill_invoice_payments_tr sys_bill_invoice_payments_tr[]
 
   @@schema("public")
@@ -6298,7 +6178,6 @@ model org_payment_methods_cf {
   sys_payment_method_cd         sys_payment_method_cd           @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction)
   sys_payment_gateway_cd        sys_payment_gateway_cd?         @relation(fields: [gateway_code], references: [code], onUpdate: NoAction)
   org_branch_payment_methods_cf org_branch_payment_methods_cf[]
-  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("PaymentMethodConfig")
   org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayMethodConfig")
 
   @@unique([tenant_org_id, payment_method_code, gateway_code], map: "uq_org_payment_methods_cf")
@@ -6339,7 +6218,6 @@ model org_branch_payment_methods_cf {
   is_active                     Boolean                  @default(true)
   org_tenants_mst               org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_payment_methods_cf        org_payment_methods_cf   @relation(fields: [org_payment_method_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_payments_dtl_tr           org_payments_dtl_tr[]    @relation("BranchPaymentMethodConfig")
   org_order_payments_dtl        org_order_payments_dtl[] @relation("OrdBranchPayMethodConfig")
 
   @@unique([tenant_org_id, branch_id, org_payment_method_id], map: "uq_org_branch_pay_methods_cf")
@@ -6376,7 +6254,6 @@ model org_payment_terminals_cf {
   org_tenants_mst        org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sys_payment_gateway_cd sys_payment_gateway_cd?  @relation("TerminalGateway", fields: [gateway_code], references: [code], onUpdate: NoAction)
   org_cash_drawers_mst   org_cash_drawers_mst[]
-  org_payments_dtl_tr    org_payments_dtl_tr[]    @relation("PaymentTerminal")
   org_order_payments_dtl org_order_payments_dtl[] @relation("OrdPayTerminal")
 
   @@unique([tenant_org_id, terminal_code], map: "uq_org_pay_terminals_cf_code")
@@ -6466,7 +6343,6 @@ model org_invoice_payments_dtl {
   id                         String                       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id              String                       @db.Uuid
   invoice_id                 String                       @db.Uuid
-  payment_id                 String?                      @db.Uuid
   voucher_id                 String?                      @db.Uuid
   allocation_no              Int                          @default(1)
   allocation_outcome         String                       @default("APPLIED") @db.VarChar(30)
@@ -6489,13 +6365,11 @@ model org_invoice_payments_dtl {
   is_active                  Boolean                      @default(true)
   org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
   org_invoice_mst            org_invoice_mst              @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oip_inv")
-  org_payments_dtl_tr        org_payments_dtl_tr?         @relation(fields: [payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oip_pay")
   org_fin_vouchers_mst       org_fin_vouchers_mst?        @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oip_vch")
 
   @@id([id, tenant_org_id], map: "pk_oip")
   @@unique([tenant_org_id, invoice_id, allocation_no], map: "uq_oip_no")
   @@index([tenant_org_id, invoice_id], map: "idx_oip_inv")
-  @@index([tenant_org_id, payment_id], map: "idx_oip_pay")
   @@index([tenant_org_id, voucher_id], map: "idx_oip_vch")
   @@schema("public")
 }
@@ -6659,7 +6533,6 @@ model org_cash_drawers_mst {
   org_payment_terminals_cf      org_payment_terminals_cf?       @relation(fields: [assigned_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst[]
   org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
-  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("CashDrawer")
   org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawer")
 
   @@unique([tenant_org_id, drawer_code], map: "uq_org_cash_drawers_mst_code")
@@ -6700,7 +6573,6 @@ model org_cash_drawer_sessions_mst {
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_cash_drawers_mst          org_cash_drawers_mst            @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
-  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("CashDrawerSession")
   org_order_refunds_dtl         org_order_refunds_dtl[]
   org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawerSession")
 
@@ -6741,7 +6613,9 @@ model org_cash_drawer_movements_dtl {
   org_tenants_mst              org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_cash_drawers_mst         org_cash_drawers_mst         @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst @relation(fields: [cash_drawer_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  org_payments_dtl_tr          org_payments_dtl_tr?         @relation(fields: [order_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  // DB FK fk_org_cdm_order_payment (0271) targets the CANONICAL order-payment
+  // table; the previous relation to the dropped legacy ledger was stale drift.
+  org_order_payments_dtl       org_order_payments_dtl?      @relation(fields: [order_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cdm_order_payment")
 
   @@index([tenant_org_id, cash_drawer_session_id, performed_at], map: "idx_org_cdm_session")
   @@index([tenant_org_id, cash_drawer_id, performed_at(sort: Desc)], map: "idx_org_cdm_drawer")
@@ -6801,6 +6675,7 @@ model org_order_refunds_dtl {
   refund_reason                String?
   gateway_refund_id            String?
   cash_drawer_session_id       String?                       @db.Uuid
+  pos_session_id               String?                       @db.Uuid
   approved_by                  String?                       @db.Uuid
   approved_at                  DateTime?                     @db.Timestamptz(6)
   processed_at                 DateTime?                     @db.Timestamptz(6)
@@ -6822,13 +6697,14 @@ model org_order_refunds_dtl {
   rec_notes                    String?
   is_active                    Boolean                       @default(true)
   org_tenants_mst              org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  // FK updated in migration 0283: was org_payments_dtl_tr, now org_order_payments_dtl
+  // FK repointed to the canonical order-payment table in migration 0283 (legacy ledger dropped by 0395; ADR-002)
   org_order_payments_dtl       org_order_payments_dtl?       @relation("RefundOriginalPayment", fields: [original_payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_refund_original_payment")
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst? @relation(fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_refund_idempotency")
   @@index([tenant_org_id], map: "idx_org_order_refunds_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_refunds_order")
+  @@index([tenant_org_id, pos_session_id], map: "idx_ordref_possess")
   @@schema("public")
 }
 
@@ -6843,6 +6719,7 @@ model org_order_payments_dtl {
   payment_terminal_id           String?                        @db.Uuid
   cash_drawer_id                String?                        @db.Uuid
   cash_drawer_session_id        String?                        @db.Uuid
+  pos_session_id                String?                        @db.Uuid
   payment_method_code           String
   payment_method_name_snapshot  String?
   payment_status                String                         @default("COMPLETED")
@@ -6886,11 +6763,13 @@ model org_order_payments_dtl {
   org_payment_terminals_cf      org_payment_terminals_cf?      @relation("OrdPayTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_cash_drawers_mst          org_cash_drawers_mst?          @relation("OrdPayCashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?  @relation("OrdPayCashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
   org_order_refunds_dtl         org_order_refunds_dtl[]        @relation("RefundOriginalPayment")
 
   @@index([tenant_org_id], map: "idx_org_ord_pay_dtl_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_ord_pay_dtl_order")
   @@index([fin_voucher_id], map: "idx_ord_pay_fin_voucher")
+  @@index([tenant_org_id, pos_session_id], map: "idx_ordpay_possess")
   @@map("org_order_payments_dtl")
   @@schema("public")
 }
@@ -7549,6 +7428,7 @@ model org_fin_voucher_trx_lines_dtl {
   employee_id             String?                         @db.Uuid
   branch_id               String?                         @db.Uuid
   cash_drawer_session_id  String?                         @db.Uuid
+  pos_session_id          String?                         @db.Uuid
   payment_method_code     String?
   amount                  Decimal                         @db.Decimal(19, 4)
   currency_code           String?
@@ -7605,6 +7485,7 @@ model org_fin_voucher_trx_lines_dtl {
   @@index([tenant_org_id, customer_id], map: "idx_vch_trx_line_customer")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_vch_trx_line_created")
   @@index([cash_drawer_session_id], map: "idx_vch_trx_line_session")
+  @@index([tenant_org_id, pos_session_id], map: "idx_vtl_possess")
   @@schema("public")
 }
 

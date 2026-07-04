@@ -35,6 +35,7 @@ export interface VoucherLineForWiring {
   order_id: string | null;
   customer_id: string | null;
   cash_drawer_session_id: string | null;
+  pos_session_id: string | null;
   tendered_amount: Prisma.Decimal | null;
   change_returned_amount: Prisma.Decimal | null;
   /** Sub-type for ORDER_CREDIT_APPLICATION: WALLET, GIFT_CARD, CUSTOMER_ADVANCE, CREDIT_NOTE, LOYALTY_CREDIT */

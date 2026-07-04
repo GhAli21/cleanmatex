@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-06-26T15:52:21.918Z",
+  "extractedAt": "2026-07-04T03:07:15.293Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -95,7 +95,7 @@
       "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 90,
+      "line": 123,
       "surface": "screen"
     },
     {
@@ -104,6 +104,54 @@
       "permission": "orders:verify_payment",
       "component": "useHasPermission",
       "line": 64,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:view_all",
+      "component": "useHasPermissionCode",
+      "line": 91,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:open",
+      "component": "useHasPermissionCode",
+      "line": 92,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:pause_resume",
+      "component": "useHasPermissionCode",
+      "line": 93,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:close",
+      "component": "useHasPermissionCode",
+      "line": 94,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "pos_session:force_close",
+      "component": "useHasPermissionCode",
+      "line": 95,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "permission": "cash_drawer:close_session",
+      "component": "useHasPermissionCode",
+      "line": 96,
       "surface": "screen"
     },
     {
@@ -143,7 +191,7 @@
       "route": "lib/services/order-settlement.service.ts",
       "permission": "orders:verify_payment",
       "component": "requirePermission",
-      "line": 421,
+      "line": 445,
       "surface": "service"
     }
   ],
@@ -965,6 +1013,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/finance/reports/money-position/route.ts",
+      "method": "GET",
+      "route": "/api/v1/finance/reports/money-position",
+      "permission": "finance_reports:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/finance/reports/orders-summary/route.ts",
       "method": "GET",
       "route": "/api/v1/finance/reports/orders-summary",
@@ -1465,7 +1521,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/collect-payment",
       "permission": "orders:collect_payment",
-      "line": 35,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -1657,7 +1713,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/payments",
       "permission": "orders:collect_payment",
-      "line": 39,
+      "line": 40,
       "surface": "api"
     },
     {
@@ -1681,7 +1737,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/refund",
       "permission": "orders:process_refund",
-      "line": 46,
+      "line": 47,
       "surface": "api"
     },
     {
@@ -1689,7 +1745,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/refunds",
       "permission": "orders:view_financial_breakdown",
-      "line": 53,
+      "line": 54,
       "surface": "api"
     },
     {
@@ -1697,7 +1753,23 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/refunds",
       "permission": "orders:process_refund",
-      "line": 88,
+      "line": 89,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/report/invoices-payments-rprt/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/report/invoices-payments-rprt",
+      "permission": "orders:read",
+      "line": 53,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/report/payments-rprt/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/report/payments-rprt",
+      "permission": "orders:read",
+      "line": 38,
       "surface": "api"
     },
     {
@@ -1733,6 +1805,78 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/pos-sessions/close/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/close",
+      "permission": "pos_session:close",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/ensure-for-order-entry/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/ensure-for-order-entry",
+      "permission": "pos_session:open",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/force-close/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/force-close",
+      "permission": "pos_session:force_close",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/my-active/route.ts",
+      "method": "GET",
+      "route": "/api/v1/pos-sessions/my-active",
+      "permission": "pos_session:view",
+      "line": 8,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/open/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/open",
+      "permission": "pos_session:open",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/pause/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/pause",
+      "permission": "pos_session:pause_resume",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/resume/route.ts",
+      "method": "POST",
+      "route": "/api/v1/pos-sessions/resume",
+      "permission": "pos_session:pause_resume",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/pos-sessions",
+      "permission": "pos_session:view",
+      "line": 9,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/pos-sessions/[sessionId]/summary/route.ts",
+      "method": "GET",
+      "route": "/api/v1/pos-sessions/[sessionId]/summary",
+      "permission": "pos_session:view",
+      "line": 11,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/preferences/last-order/route.ts",
       "method": "GET",
       "route": "/api/v1/preferences/last-order",
@@ -1754,14 +1898,6 @@
       "route": "/api/v1/preferences/suggest",
       "permission": "orders:read",
       "line": 22,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/products/route.ts",
-      "method": "GET",
-      "route": "/api/v1/products",
-      "permission": "catalog:read",
-      "line": 82,
       "surface": "api"
     },
     {

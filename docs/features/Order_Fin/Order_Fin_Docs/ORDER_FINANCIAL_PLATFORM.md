@@ -72,3 +72,19 @@ Prisma's `{ decrement: N }` uses a SQL `UPDATE ... SET balance = balance - N` wh
 4. Write
 
 Steps 1–4 must be atomic. If two transactions race, both could read the same balance and both pass the validation. SELECT FOR UPDATE locks the row at step 1, preventing the race.
+
+---
+
+## Money-entry surfaces (Remediation 2026-07 Phase 3 — canonical only)
+
+All money enters through canonical flows; the `internal_fin/payments` screens and every `processPayment`/`recordPaymentTransaction` path (deprecated `org_payments_dtl_tr` ledger, ADR-002) were removed.
+
+| Business need | Canonical surface |
+|---|---|
+| Pay at order checkout | New Order → Payment Modal v4 (`submit-order`) |
+| Collect later (POC) | Collect Payment modal (`orders:collect_payment`) |
+| Pay an AR invoice / on-account money | Customer Account Receipt (`/dashboard/customers/account-receipt`) → preview → post → allocation; or AR invoice allocations API (`invoices:allocate_payment`) |
+| Customer advance | Account receipt with advance fallback; balance shown from the stored-value ledger (`GET /api/v1/customers/[id]/stored-value`) |
+| B2B statement settlement | B2B statement payment flow (idempotent, detail-audited) |
+
+Navigation: the `billing_payments` sidebar entry was removed (dual-write: `config/navigation.ts` + migration `0393_nav_retire_billing_payments.sql`, soft-retire).

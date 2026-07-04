@@ -292,32 +292,10 @@ export async function getVoucherData(
         org_invoice_mst: options?.includeInvoice ?? false,
         org_orders_mst: true,
         org_customers_mst: true,
-        org_payments_dtl_tr: options?.includePayments ?? false, // Jh7
       },
     });
     if (!row) return null;
     return mapRowToVoucherData(row);
-  });
-}
-
-/**
- * Get voucher data by payment ID (looks up voucher via payment's voucher_id).
- */
-export async function getVoucherDataByPaymentId(
-  paymentId: string,
-  options?: { includePayments?: boolean; includeInvoice?: boolean }
-): Promise<VoucherData | null> {
-  const tenantId = await getTenantIdFromSession();
-  if (!tenantId) return null;
-
-  return withTenantContext(tenantId, async () => {
-    const payment = await prisma.org_payments_dtl_tr.findFirst({
-      where: { id: paymentId, tenant_org_id: tenantId },
-      select: { voucher_id: true },
-    });
-    if (!payment?.voucher_id) return null;
-
-    return getVoucherData(payment.voucher_id, options);
   });
 }
 
@@ -549,11 +527,6 @@ export async function listVouchers(params: {
           org_invoice_mst: { select: { invoice_no: true } },
           org_orders_mst: { select: { order_no: true } },
           org_customers_mst: { select: { name: true, name2: true } },
-          org_payments_dtl_tr: {
-            select: { id: true },
-            take: 1,
-            orderBy: { created_at: 'desc' },
-          },
         },
         orderBy: {
           [params.sortBy && ['voucher_no', 'created_at', 'issued_at', 'total_amount', 'voucher_status'].includes(params.sortBy)
@@ -594,11 +567,7 @@ export async function listVouchers(params: {
           updated_at: row.updated_at,
           updated_by: row.updated_by,
         });
-        // Add first payment ID for linking
-        return {
-          ...voucher,
-          payment_id: row.org_payments_dtl_tr?.[0]?.id || null,
-        };
+        return voucher;
       }),
       total,
       totalPages: Math.ceil(total / limit),

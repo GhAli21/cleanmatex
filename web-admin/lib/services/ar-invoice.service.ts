@@ -617,7 +617,6 @@ export async function allocateArPaymentTx(
         data: {
           tenant_org_id: tenantId,
           invoice_id: invoiceId,
-          payment_id: input.payment_id ?? null,
           voucher_id: input.voucher_id ?? null,
           allocation_no: allocationNo,
           allocation_outcome: allocationOutcome,
@@ -671,7 +670,7 @@ export async function allocateArPaymentTx(
         entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
         movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_APPLIED,
         refDocNo: invoice.invoice_no,
-        metadata: { payment_id: input.payment_id, notes: input.notes },
+        metadata: { notes: input.notes },
         userId,
       });
 
@@ -687,7 +686,7 @@ export async function allocateArPaymentTx(
           entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
           movementCd: AR_LEDGER_MOVEMENTS.OVERPAY_CREDIT,
           refDocNo: invoice.invoice_no,
-          metadata: { payment_id: input.payment_id, notes: input.notes },
+          metadata: { notes: input.notes },
           userId,
         });
       }
@@ -695,7 +694,6 @@ export async function allocateArPaymentTx(
       await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.AR_PAYMENT_ALLOCATED, 'ar_invoice', invoiceId, {
         invoice_id: invoiceId,
         invoice_no: invoice.invoice_no,
-        payment_id: input.payment_id ?? null,
         voucher_id: input.voucher_id ?? null,
         allocated_amount: appliedToInvoice,
         unapplied_credit_amount: unappliedCreditAmount,
@@ -711,7 +709,6 @@ export async function allocateArPaymentTx(
           {
             invoice_id: invoiceId,
             invoice_no: invoice.invoice_no,
-            payment_id: input.payment_id ?? null,
             voucher_id: input.voucher_id ?? null,
             unapplied_credit_amount: unappliedCreditAmount,
           }
@@ -840,7 +837,6 @@ export async function reverseArPaymentAllocationTx(
           movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
           refDocNo: invoice.invoice_no,
           metadata: {
-            payment_id: allocation.payment_id,
             reversal_reason: input.reason,
           },
           userId,
@@ -860,7 +856,6 @@ export async function reverseArPaymentAllocationTx(
           movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
           refDocNo: invoice.invoice_no,
           metadata: {
-            payment_id: allocation.payment_id,
             reversal_reason: input.reason,
             reversal_kind: 'UNAPPLIED_CREDIT',
           },
@@ -878,7 +873,6 @@ export async function reverseArPaymentAllocationTx(
           invoice_id: invoiceId,
           invoice_no: invoice.invoice_no,
           allocation_id: allocationId,
-          payment_id: allocation.payment_id,
           voucher_id: allocation.voucher_id,
           reversed_allocated_amount: reversedAppliedAmount,
           reversed_unapplied_credit_amount: reversedCreditAmount,
@@ -966,7 +960,6 @@ function mapOrderLink(row: {
 function mapAllocation(row: {
   id: string;
   invoice_id: string;
-  payment_id: string | null;
   voucher_id: string | null;
   allocation_no: number;
   allocation_outcome: string;
@@ -981,7 +974,6 @@ function mapAllocation(row: {
   return {
     id: row.id,
     invoice_id: row.invoice_id,
-    payment_id: row.payment_id ?? undefined,
     voucher_id: row.voucher_id ?? undefined,
     allocation_no: row.allocation_no,
     allocation_outcome: row.allocation_outcome as ArInvoicePaymentAllocation['allocation_outcome'],
@@ -2297,7 +2289,6 @@ export async function allocateArPayment(
             data: {
               tenant_org_id: tenantId,
               invoice_id: invoiceId,
-              payment_id: input.payment_id ?? null,
               voucher_id: input.voucher_id ?? null,
               allocation_no: allocationNo,
               allocation_outcome: allocationOutcome,
@@ -2351,7 +2342,7 @@ export async function allocateArPayment(
             entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
             movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_APPLIED,
             refDocNo: invoice.invoice_no,
-            metadata: { payment_id: input.payment_id, notes: input.notes },
+            metadata: { notes: input.notes },
             userId,
           });
 
@@ -2367,7 +2358,7 @@ export async function allocateArPayment(
               entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
               movementCd: AR_LEDGER_MOVEMENTS.OVERPAY_CREDIT,
               refDocNo: invoice.invoice_no,
-              metadata: { payment_id: input.payment_id, notes: input.notes },
+              metadata: { notes: input.notes },
               userId,
             });
           }
@@ -2375,7 +2366,6 @@ export async function allocateArPayment(
           await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.AR_PAYMENT_ALLOCATED, 'ar_invoice', invoiceId, {
             invoice_id: invoiceId,
             invoice_no: invoice.invoice_no,
-            payment_id: input.payment_id ?? null,
             voucher_id: input.voucher_id ?? null,
             allocated_amount: appliedToInvoice,
             unapplied_credit_amount: unappliedCreditAmount,
@@ -2391,7 +2381,6 @@ export async function allocateArPayment(
               {
                 invoice_id: invoiceId,
                 invoice_no: invoice.invoice_no,
-                payment_id: input.payment_id ?? null,
                 voucher_id: input.voucher_id ?? null,
                 unapplied_credit_amount: unappliedCreditAmount,
               }
@@ -2520,7 +2509,6 @@ export async function reverseArPaymentAllocation(
               movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
               refDocNo: invoice.invoice_no,
               metadata: {
-                payment_id: allocation.payment_id,
                 reversal_reason: input.reason,
               },
               userId,
@@ -2540,7 +2528,6 @@ export async function reverseArPaymentAllocation(
               movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
               refDocNo: invoice.invoice_no,
               metadata: {
-                payment_id: allocation.payment_id,
                 reversal_reason: input.reason,
                 reversal_kind: 'UNAPPLIED_CREDIT',
               },
@@ -2558,7 +2545,6 @@ export async function reverseArPaymentAllocation(
               invoice_id: invoiceId,
               invoice_no: invoice.invoice_no,
               allocation_id: allocationId,
-              payment_id: allocation.payment_id,
               voucher_id: allocation.voucher_id,
               reversed_allocated_amount: reversedAppliedAmount,
               reversed_unapplied_credit_amount: reversedCreditAmount,

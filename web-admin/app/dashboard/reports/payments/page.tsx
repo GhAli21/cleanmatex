@@ -13,7 +13,9 @@ import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt'
 import PaymentsReportCharts from '@features/reports/ui/payments-report-charts-rprt';
 import PaymentsReportTable from '@features/reports/ui/payments-report-table-rprt';
 
-const PAYMENT_STATUSES = ['completed', 'pending', 'cancelled', 'refunded'];
+// Canonical lifecycle buckets — expanded server-side to the row statuses of
+// each bucket (see getPaymentsReport / ORDER_PAYMENT_LIFECYCLE_STATUSES).
+const PAYMENT_STATUSES = ['COMPLETED', 'PENDING', 'AUTHORIZED', 'FAILED'];
 const BASE_PATH = '/dashboard/reports/payments';
 
 /**

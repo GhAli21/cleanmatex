@@ -56,6 +56,16 @@
     "totalDifference": "Total Difference",
     "unlinkedTotal": "Unlinked Movements"
   },
+  "moneyPosition": {
+    "todayCollections": "Collected today",
+    "ordersOutstanding": "Orders outstanding",
+    "arOutstanding": "AR outstanding",
+    "storedValueLiability": "Owed to customers",
+    "storedValueHint": "Wallets, advances and credit notes",
+    "openDrawerSessions": "Open drawer sessions",
+    "noCollectionsYet": "No collections yet today",
+    "loadError": "Could not load money position"
+  },
   "title": "Reports & Analytics",
   "subtitle": "Business intelligence and analytics",
   "revenueReport": "Revenue Report",

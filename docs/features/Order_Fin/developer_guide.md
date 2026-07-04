@@ -33,6 +33,50 @@ cash-drawer.service
   └── org_cash_drawer_sessions_mst, org_cash_drawer_movements_dtl
 ```
 
+## POS Session Management v1
+
+POS session groundwork is introduced by migrations `0396`, `0397`, and `0398`; dashboard navigation is introduced by migration `0399` plus:
+
+- `docs/features/Order_Fin/ADR/ADR-054-User-Owned-POS-Sessions.md`
+- `docs/features/Order_Fin/POS_Session_Management_V1.md`
+
+The model is intentionally split:
+
+- `org_pos_sessions_mst` tracks the authenticated user's operational POS work period
+- `org_payment_terminals_cf` remains device and terminal configuration
+- `org_cash_drawer_sessions_mst` remains the physical cash-reconciliation source
+
+Important lineage rule:
+
+- `pos_session_id` is operational lineage, not cash reconciliation truth
+- `cash_drawer_session_id` remains the authoritative cash session link
+
+The runtime service enforces:
+
+- one active POS session per `tenant_org_id + user_id`
+- same-branch open returns current session
+- different-branch open returns branch conflict
+- idempotent lifecycle actions
+- row locking before `autoLinkDrawer` attaches a drawer session
+
+The runtime/API slice adds:
+
+| Route | Permission | Purpose |
+|---|---|---|
+| `GET /api/v1/pos-sessions` | `pos_session:view` | List own sessions, or all sessions with `pos_session:view_all` |
+| `GET /api/v1/pos-sessions/my-active` | `pos_session:view` | Resolve the current user's active POS session or branch conflict |
+| `POST /api/v1/pos-sessions/open` | `pos_session:open` | Manually open or return the same-branch active session |
+| `POST /api/v1/pos-sessions/ensure-for-order-entry` | `pos_session:open` | POS order-entry auto-ensure endpoint |
+| `POST /api/v1/pos-sessions/pause` | `pos_session:pause_resume` | Pause the current active session |
+| `POST /api/v1/pos-sessions/resume` | `pos_session:pause_resume` | Resume the current paused session |
+| `POST /api/v1/pos-sessions/close` | `pos_session:close` | Close the current active session after drawer guard passes |
+| `POST /api/v1/pos-sessions/force-close` | `pos_session:force_close` | Force-close the current active session with a required reason |
+| `GET /api/v1/pos-sessions/[sessionId]/summary` | `pos_session:view` | Compute session totals from active finance rows only |
+
+The operations UI is available at `/dashboard/internal_fin/pos-sessions`. It supports manual open, pause/resume, close/force-close, history, and summary. If the close route reports a linked open drawer, the UI requires the drawer close step to succeed before POS close is retried. POS force-close does not silently force-close drawers.
+
+Order entry calls `ensure-for-order-entry` before submit and passes the returned `posSessionId` into the canonical submit-order route. Later collection only attaches an already-open same-branch POS session; it intentionally does not auto-open sessions from back-office collection flows.
+
 ## Multi-Leg Settlement Flow Walkthrough
 
 ```
@@ -185,7 +229,7 @@ Results are written to `org_reconciliation_runs_mst` (PASSED/FAILED/PARTIAL) and
 
 ## Permissions Reference
 
-All financial permissions are seeded via migration 0294. Key codes:
+Core financial permissions are seeded via migration 0294. Key codes:
 
 | Code | Description |
 |---|---|
@@ -199,6 +243,17 @@ All financial permissions are seeded via migration 0294. Key codes:
 | `marketing.promotions.manage` | Create/edit promotions |
 | `customers.stored-value.manage` | Top-up wallet/advance |
 | `settings.tax.manage` | Configure tax profiles |
+
+POS session permissions are added in migration `0396_pos_session_catalogs.sql`:
+
+| Code | Description |
+|---|---|
+| `pos_session:view` | View the current user's POS session context |
+| `pos_session:view_all` | View branch or tenant POS session history |
+| `pos_session:open` | Open a POS session |
+| `pos_session:pause_resume` | Pause or resume a POS session |
+| `pos_session:close` | Close a POS session |
+| `pos_session:force_close` | Force-close a POS session with audit reason |
 
 ## Environment Setup
 

@@ -4,6 +4,109 @@ All routes are under `/api/v1/` and require a valid session cookie (Supabase aut
 
 ---
 
+## POS Sessions
+
+POS Session v1 routes manage the authenticated user's operational POS work period. The backend can attach `pos_session_id` to active finance write paths when POS-aware callers provide it. The dashboard workbench is exposed at `/dashboard/internal_fin/pos-sessions`.
+
+### `GET /api/v1/pos-sessions`
+
+Returns paginated POS session history for the current user. Users with `pos_session:view_all` may request `scope=all` for branch/tenant operations review.
+
+**Permission:** `pos_session:view`
+
+**Query parameters:**
+
+- `page`
+- `pageSize`
+- `branchId`
+- `status`
+- `scope` = `own` or `all`
+
+### `GET /api/v1/pos-sessions/my-active`
+
+Returns the current user's active POS session. Optional `branchId` query parameter returns a branch-conflict result when the user already has an active session in another branch.
+
+**Permission:** `pos_session:view`
+
+### `POST /api/v1/pos-sessions/open`
+
+Manually opens a POS session. If the user already has an active same-branch session, the route returns the current session. If the active session is in another branch, it returns `409 POS_SESSION_BRANCH_CONFLICT`.
+
+**Permission:** `pos_session:open`
+
+**Request:**
+```json
+{
+  "branchId": "uuid",
+  "terminalId": "uuid",
+  "idempotencyKey": "client-generated-key",
+  "sourceChannel": "api"
+}
+```
+
+### `POST /api/v1/pos-sessions/ensure-for-order-entry`
+
+Auto-ensure endpoint for POS order-entry flows. Uses the same branch-conflict and idempotency behavior as manual open, but records `AUTO_OPEN` when it creates a new session.
+
+**Permission:** `pos_session:open`
+
+The new-order UI calls this route before `POST /api/v1/orders/submit-order` and forwards the returned session id as `posSessionId`.
+
+### `POST /api/v1/pos-sessions/pause`
+
+Pauses the current active `OPEN` session. Replays with the same idempotency key return the cached result.
+
+**Permission:** `pos_session:pause_resume`
+
+### `POST /api/v1/pos-sessions/resume`
+
+Resumes the current active `PAUSED` session.
+
+**Permission:** `pos_session:pause_resume`
+
+### `POST /api/v1/pos-sessions/close`
+
+Closes the current active session when no linked cash drawer session is still open. If the linked drawer is open, returns `409 POS_SESSION_DRAWER_STILL_OPEN`.
+
+**Permission:** `pos_session:close`
+
+### `POST /api/v1/pos-sessions/force-close`
+
+Force-closes the current active session with a required reason. This route does not silently force-close a linked cash drawer.
+
+**Permission:** `pos_session:force_close`
+
+**Request:**
+```json
+{
+  "reason": "Manager override reason",
+  "idempotencyKey": "client-generated-key",
+  "sourceChannel": "api"
+}
+```
+
+### `GET /api/v1/pos-sessions/[sessionId]/summary`
+
+Returns a summary for the current user's POS session using only active finance tables:
+
+- `org_order_payments_dtl`
+- `org_order_refunds_dtl`
+- `org_fin_voucher_trx_lines_dtl`
+
+**Permission:** `pos_session:view`
+
+Users with `pos_session:view_all` can view summaries for other users' sessions; otherwise the route is restricted to the current user's sessions.
+
+### Drawer close integration
+
+When POS close returns `409 POS_SESSION_DRAWER_STILL_OPEN`, the POS Sessions UI uses the existing drawer close endpoint:
+
+- `POST /api/v1/cash-drawers/[drawerId]/close-session`
+
+POS force-close does not silently force-close a drawer. Drawer force-close remains an explicit future UX/API decision.
+
+---
+
 ## Order Submission (Phase 1B — Canonical Path)
 
 ### `POST /api/v1/orders/submit-order` ← **Canonical**
@@ -444,3 +547,29 @@ Idempotency-Key: <uuid-v4>
 ```
 
 Repeated requests with the same key within 24 hours return the original response without a second mutation.
+
+## Order Payment Read Surfaces (Remediation 2026-07 — Phase 1)
+
+### `GET /api/v1/orders/[id]/report/payments-rprt?sort=asc|desc`
+
+A4 print data: order header + **canonical** payments. Guard: `requirePermission('orders:read')` + centralized tenant context (the old ad-hoc `tenants[0]` auth was removed). Payments come from `getOrderPaymentsCanonical()` (`lib/services/order-financial-summary.service.ts`) over `org_order_payments_dtl` — never `org_payments_dtl_tr` (deprecated, ADR-002).
+
+### `GET /api/v1/orders/[id]/report/invoices-payments-rprt`
+
+A4 print data: order header + invoices with their **canonical AR payment allocations** (`org_invoice_payments_dtl`, reversed allocations excluded). Guard: `requirePermission('orders:read')`.
+
+### Canonical read model
+
+`getOrderPaymentsCanonical(tenantId, orderId): OrderPaymentRow[]` is the single read path for every UI/report listing one order's payments (Payments tab, prints). It reads the same rows the snapshot engine aggregates, so displays can never diverge from `org_orders_mst` canonical totals.
+
+### Cancellation guard (interim, FN-02)
+
+`WorkflowServiceEnhanced.executeScreenTransition('canceling', …)` rejects with `CANCEL_BLOCKED_PAID_ORDER` when the order has canonical `total_paid_amount > 0` or `total_credit_applied_amount > 0`. Replaced by the full disposition flow in Remediation Phase 4.
+
+### `GET /api/v1/finance/reports/money-position` (Remediation Phase 2)
+
+Owner/finance glance row (financial reports hub): today's canonical order-payment collections by method (COMPLETED bucket), orders outstanding, AR outstanding, stored-value liability (wallets+advances+credit notes), open drawer sessions. Guard: `finance_reports:view`. Service: `lib/services/reports/finance-money-position.service.ts`.
+
+### Tenant Payments report — canonical source (Remediation Phase 2)
+
+`report-service.getPaymentsReport` now aggregates `org_order_payments_dtl` (order payments) instead of the deprecated `_tr` ledger: collected KPIs count the COMPLETED/CAPTURED/SETTLED bucket only; pending/authorized/failed stay visible in the status breakdown; refunds KPI counts PROCESSED rows in `org_order_refunds_dtl`. Status filter values are canonical bucket names (`COMPLETED`/`PENDING`/`AUTHORIZED`/`FAILED`), expanded server-side. Scope note: this report covers ORDER payments; AR/B2B collections are reported by the AR reports and reconciliation reports (no double counting).

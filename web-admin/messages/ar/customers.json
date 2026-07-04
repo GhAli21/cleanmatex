@@ -24,6 +24,8 @@
   "noAdvancePayments": "لا توجد مدفوعات مقدمة",
   "advanceRecorded": "تم تسجيل السلفة بنجاح",
   "unappliedAdvanceCount": "{count} دفعة مقدمة غير مطبقة",
+  "receiveAccountPayment": "استلام دفعة (سند قبض للعميل)",
+  "receiveAccountPaymentHint": "استلم المبالغ على الحساب عبر سند قبض العميل — يسجل طريقة الدفع وصندوق النقد وسند القبض ويمكنه التخصيص على الفواتير.",
   "profile": "الملف الشخصي",
   "addresses": "العناوين",
   "orderHistory": "سجل الطلبات",

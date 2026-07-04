@@ -9,10 +9,13 @@
  * - Customers
  */
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from './tenant-settings.service';
+import { ORDER_PAYMENT_LIFECYCLE_STATUSES } from '@/lib/constants/order-financial';
+import { REFUND_STATUSES } from '@/lib/constants/payment';
 import { format, eachDayOfInterval, differenceInDays } from 'date-fns';
 import type {
   ReportFilters,
@@ -246,9 +249,27 @@ export async function getPaymentsReport(params: {
   return withTenantContext(tenantOrgId, async () => {
     const currencyCode = await getTenantCurrency(tenantOrgId, filters.branchId);
 
+    // Canonical source (ADR-002): `org_order_payments_dtl` — the same rows the
+    // order financial snapshot aggregates. This report covers ORDER payments;
+    // AR/B2B invoice collections are reported by the AR reports and the
+    // reconciliation reports, so nothing is double counted here.
+    // Status filter values are canonical bucket names (COMPLETED / PENDING /
+    // AUTHORIZED / FAILED) expanded to the row statuses of each bucket.
+    const statusFilter =
+      filters.status && filters.status.length > 0
+        ? filters.status.flatMap((bucket) => {
+            const expanded =
+              ORDER_PAYMENT_LIFECYCLE_STATUSES[
+                bucket as keyof typeof ORDER_PAYMENT_LIFECYCLE_STATUSES
+              ];
+            return expanded ? [...expanded] : [bucket];
+          })
+        : undefined;
+
     const where: Record<string, unknown> = {
       tenant_org_id: tenantOrgId,
-      paid_at: {
+      is_active: true,
+      created_at: {
         gte: filters.startDate,
         lte: filters.endDate,
       },
@@ -257,75 +278,91 @@ export async function getPaymentsReport(params: {
     if (filters.paymentMethodCode) {
       where.payment_method_code = filters.paymentMethodCode;
     }
-    if (filters.status && filters.status.length > 0) {
-      where.status = { in: filters.status };
+    if (statusFilter) {
+      where.payment_status = { in: statusFilter };
     }
     if (filters.customerId) {
       where.customer_id = filters.customerId;
     }
 
     // Fetch all payments for aggregation
-    const allPayments = await prisma.org_payments_dtl_tr.findMany({
+    const allPayments = await prisma.org_order_payments_dtl.findMany({
       where,
       select: {
         id: true,
-        paid_amount: true,
+        amount: true,
         payment_method_code: true,
-        status: true,
+        payment_method_name_snapshot: true,
+        payment_status: true,
         paid_at: true,
-        sys_payment_method_cd: {
-          select: { payment_method_name: true },
-        },
+        created_at: true,
       },
     });
 
-    // KPIs
-    const positivePayments = allPayments.filter((p) => Number(p.paid_amount) > 0);
-    const totalPayments = positivePayments.length;
-    const totalAmount = positivePayments.reduce((sum, p) => sum + Number(p.paid_amount), 0);
-    const avgAmount = totalPayments > 0 ? totalAmount / totalPayments : 0;
-    const completedPayments = positivePayments.filter((p) => p.status === 'completed').length;
-    const refundedPayments = allPayments.filter((p) => p.status === 'refunded' || Number(p.paid_amount) < 0).length;
+    const completedStatuses: readonly string[] = ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED;
+    const isCompleted = (status: string | null) =>
+      completedStatuses.includes((status ?? '').toUpperCase());
 
-    // By method
+    // KPIs — collected money counts COMPLETED-bucket rows only; pending /
+    // authorized / failed rows stay visible via the status breakdown.
+    const completedRows = allPayments.filter(
+      (p) => isCompleted(p.payment_status) && Number(p.amount) > 0,
+    );
+    const totalPayments = completedRows.length;
+    const totalAmount = completedRows.reduce((sum, p) => sum + Number(p.amount), 0);
+    const avgAmount = totalPayments > 0 ? totalAmount / totalPayments : 0;
+    const completedPayments = completedRows.length;
+
+    // Refunds are their own canonical fact table (not negative payment rows).
+    const refundedPayments = await prisma.org_order_refunds_dtl.count({
+      where: {
+        tenant_org_id: tenantOrgId,
+        is_active: true,
+        refund_status: REFUND_STATUSES.PROCESSED,
+        created_at: { gte: filters.startDate, lte: filters.endDate },
+      },
+    });
+
+    // By method (collected money only)
     const methodMap = new Map<string, PaymentMethodBreakdown>();
-    for (const p of positivePayments) {
+    for (const p of completedRows) {
       const code = p.payment_method_code;
       const existing = methodMap.get(code) ?? {
         methodCode: code,
-        methodName: p.sys_payment_method_cd?.payment_method_name ?? code,
+        methodName: p.payment_method_name_snapshot ?? code,
         count: 0,
         amount: 0,
       };
       existing.count += 1;
-      existing.amount += Number(p.paid_amount);
+      existing.amount += Number(p.amount);
       methodMap.set(code, existing);
     }
     const paymentsByMethod = Array.from(methodMap.values());
 
-    // By status
+    // By status (all rows, canonical lifecycle codes)
     const statusMap = new Map<string, PaymentStatusBreakdown>();
     for (const p of allPayments) {
-      const s = p.status ?? 'unknown';
+      const s = p.payment_status ?? 'UNKNOWN';
       const existing = statusMap.get(s) ?? { status: s, count: 0, amount: 0 };
       existing.count += 1;
-      existing.amount += Math.abs(Number(p.paid_amount));
+      existing.amount += Math.abs(Number(p.amount));
       statusMap.set(s, existing);
     }
     const paymentsByStatus = Array.from(statusMap.values());
 
-    // By day
+    // By day (collected money only)
     const dayMap = new Map<string, { revenue: number; orders: number }>();
     const days = eachDayOfInterval({ start: filters.startDate, end: filters.endDate });
     for (const day of days) {
       dayMap.set(format(day, 'yyyy-MM-dd'), { revenue: 0, orders: 0 });
     }
-    for (const p of positivePayments) {
-      if (p.paid_at) {
-        const key = format(p.paid_at, 'yyyy-MM-dd');
+    for (const p of completedRows) {
+      const paidDate = p.paid_at ?? p.created_at;
+      if (paidDate) {
+        const key = format(paidDate, 'yyyy-MM-dd');
         const existing = dayMap.get(key);
         if (existing) {
-          existing.revenue += Number(p.paid_amount);
+          existing.revenue += Number(p.amount);
           existing.orders += 1;
         }
       }
@@ -336,37 +373,78 @@ export async function getPaymentsReport(params: {
       orders: data.orders,
     }));
 
-    // Paginated payments table
+    // Paginated payments table. org_order_payments_dtl has no Prisma relations
+    // to orders/customers, so the display columns join via raw SQL (tenant
+    // filter explicit on every table).
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
+    const sortDirection = (filters.sortOrder ?? 'desc') === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
 
-    const [paginatedPayments, totalCount] = await Promise.all([
-      prisma.org_payments_dtl_tr.findMany({
-        where,
-        include: {
-          org_customers_mst: { select: { name: true, name2: true } },
-          org_orders_mst: { select: { order_no: true } },
-          org_invoice_mst: { select: { invoice_no: true } },
-          sys_payment_method_cd: { select: { payment_method_name: true } },
-        },
-        orderBy: [{ paid_at: filters.sortOrder ?? 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.org_payments_dtl_tr.count({ where }),
-    ]);
+    const methodCondition = filters.paymentMethodCode
+      ? Prisma.sql`AND p.payment_method_code = ${filters.paymentMethodCode}`
+      : Prisma.empty;
+    const statusCondition = statusFilter
+      ? Prisma.sql`AND p.payment_status IN (${Prisma.join(statusFilter)})`
+      : Prisma.empty;
+    const customerCondition = filters.customerId
+      ? Prisma.sql`AND p.customer_id = ${filters.customerId}::uuid`
+      : Prisma.empty;
+
+    const paginatedPayments = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        order_no: string | null;
+        customer_name: string | null;
+        customer_name2: string | null;
+        amount: number;
+        payment_method_code: string;
+        payment_method_name_snapshot: string | null;
+        payment_status: string | null;
+        paid_at: Date | null;
+        created_at: Date;
+        currency_code: string;
+      }>
+    >`
+      SELECT
+        p.id,
+        o.order_no,
+        c.name  AS customer_name,
+        c.name2 AS customer_name2,
+        p.amount::float8 AS amount,
+        p.payment_method_code,
+        p.payment_method_name_snapshot,
+        p.payment_status,
+        p.paid_at,
+        p.created_at,
+        p.currency_code
+      FROM public.org_order_payments_dtl p
+      JOIN public.org_orders_mst o
+        ON o.id = p.order_id AND o.tenant_org_id = p.tenant_org_id
+      LEFT JOIN public.org_customers_mst c
+        ON c.id = p.customer_id AND c.tenant_org_id = p.tenant_org_id
+      WHERE p.tenant_org_id = ${tenantOrgId}::uuid
+        AND p.is_active = true
+        AND p.created_at >= ${filters.startDate}
+        AND p.created_at <= ${filters.endDate}
+        ${methodCondition}
+        ${statusCondition}
+        ${customerCondition}
+      ORDER BY COALESCE(p.paid_at, p.created_at) ${sortDirection}
+      LIMIT ${limit} OFFSET ${(page - 1) * limit}
+    `;
+    const totalCount = allPayments.length;
 
     const payments: PaymentRow[] = paginatedPayments.map((p) => ({
       id: p.id,
-      orderNo: p.org_orders_mst?.order_no ?? undefined,
-      invoiceNo: p.org_invoice_mst?.invoice_no ?? undefined,
-      customerName: p.org_customers_mst?.name ?? undefined,
-      customerName2: p.org_customers_mst?.name2 ?? undefined,
-      amount: Number(p.paid_amount),
+      orderNo: p.order_no ?? undefined,
+      invoiceNo: undefined,
+      customerName: p.customer_name ?? undefined,
+      customerName2: p.customer_name2 ?? undefined,
+      amount: Number(p.amount),
       methodCode: p.payment_method_code,
-      methodName: p.sys_payment_method_cd?.payment_method_name ?? undefined,
-      status: p.status ?? '',
-      paidAt: p.paid_at?.toISOString() ?? '',
+      methodName: p.payment_method_name_snapshot ?? undefined,
+      status: p.payment_status ?? '',
+      paidAt: (p.paid_at ?? p.created_at)?.toISOString() ?? '',
       currencyCode: p.currency_code,
     }));
 

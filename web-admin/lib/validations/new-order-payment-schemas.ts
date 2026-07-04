@@ -507,6 +507,8 @@ export const createWithPaymentRequestSchema = z.object({
   idempotencyKey: z.string().max(100).optional(),
   /** Cash drawer session ID — required when a CASH payment method has requiresCashDrawer=true. */
   cashDrawerSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  /** Optional POS operational session lineage. Required only for POS-aware runtime flows. */
+  posSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.saleTotal. Must be <= saleTotal. */
   amountToCharge: z.number().min(0).optional(),

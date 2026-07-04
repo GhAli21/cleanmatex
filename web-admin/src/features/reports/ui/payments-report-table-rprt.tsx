@@ -13,11 +13,21 @@ interface PaymentsReportTableProps {
   basePath: string;
 }
 
+// Canonical `org_order_payments_dtl.payment_status` lifecycle codes (ADR-002).
 const STATUS_BADGE: Record<string, string> = {
-  completed: 'bg-green-100 text-green-800',
-  pending: 'bg-yellow-100 text-yellow-800',
-  cancelled: 'bg-red-100 text-red-800',
-  refunded: 'bg-purple-100 text-purple-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  CAPTURED: 'bg-green-100 text-green-800',
+  SETTLED: 'bg-green-100 text-green-800',
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  PROCESSING: 'bg-yellow-100 text-yellow-800',
+  CAPTURE_PENDING: 'bg-yellow-100 text-yellow-800',
+  AUTHORIZED: 'bg-blue-100 text-blue-800',
+  FAILED: 'bg-red-100 text-red-800',
+  CANCELLED: 'bg-red-100 text-red-800',
+  EXPIRED: 'bg-red-100 text-red-800',
+  VOIDED: 'bg-red-100 text-red-800',
+  REFUSED: 'bg-red-100 text-red-800',
+  REVERSED: 'bg-purple-100 text-purple-800',
 };
 
 /**

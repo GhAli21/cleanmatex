@@ -4,13 +4,19 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { Invoice } from '@/lib/types/payment';
-import type { PaymentTransaction } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
-/**
- *
- */
+/** One canonical AR payment allocation, shaped for the print. */
+export interface InvoicePaymentPrintRow {
+  id: string;
+  paid_at: string | null;
+  amount: number;
+  currency_code: string | null;
+  payment_method_code: string | null;
+}
+
+/** Print payload — invoice payments are canonical AR allocations (ADR-002). */
 export interface OrderInvoicesPaymentsPrintRprtData {
   order: {
     id: string;
@@ -19,7 +25,7 @@ export interface OrderInvoicesPaymentsPrintRprtData {
   };
   invoices: Array<
     Invoice & {
-      payments: PaymentTransaction[];
+      payments: InvoicePaymentPrintRow[];
       /** Discount from the best-matching auto rule (if any) */
       auto_rule_discount?: number;
       /** Promo code that was applied, e.g. "SUMMER20" */
@@ -207,9 +213,9 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
                   <tbody>
                     {inv.payments.map((p) => (
                       <tr key={p.id} className="border-b border-dashed border-gray-100">
-                        <td className="py-0.5">{p.paid_at ? formatDate(p.paid_at, locale) : (p.created_at ? formatDate(p.created_at, locale) : '—')}</td>
+                        <td className="py-0.5">{p.paid_at ? formatDate(p.paid_at, locale) : '—'}</td>
                         <td className="py-0.5 text-right">
-                          {formatMoneyAmountWithCode(Number(p.paid_amount), {
+                          {formatMoneyAmountWithCode(Number(p.amount), {
                             currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
                             decimalPlaces,
                             locale: moneyLocale,

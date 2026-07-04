@@ -78,6 +78,7 @@ export const orderPaymentWiringHandler: WiringHandler = {
         tendered_amount:         line.tendered_amount ?? null,
         change_returned_amount:  line.change_returned_amount ?? null,
         cash_drawer_session_id:  line.cash_drawer_session_id ?? null,
+        pos_session_id:          line.pos_session_id ?? null,
         gateway_code:            line.gateway_code ?? null,
         gateway_reference:       line.gateway_reference ?? null,
         bank_reference:          line.bank_reference ?? null,

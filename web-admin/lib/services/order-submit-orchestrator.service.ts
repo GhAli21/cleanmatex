@@ -35,6 +35,10 @@ import {
 } from '@/lib/services/customer-receipt-excess-executor.service';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
+import {
+  assertOpenPosSessionForFinanceTx,
+  autoLinkDrawerTx,
+} from '@/lib/services/pos-session.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
 import {
@@ -812,6 +816,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           tx,
         );
 
+        if (input.posSessionId) {
+          await assertOpenPosSessionForFinanceTx(tx, {
+            tenantId,
+            userId,
+            posSessionId: input.posSessionId,
+            branchId,
+          });
+        }
+
         // 5.1 Real-payment lines (cash, card, gateway, check, bank transfer)
         for (const leg of plan.realPaymentLegs) {
           const changeReturned = resolveVoucherCashChangeReturned(
@@ -847,6 +860,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               check_bank:             leg.checkBank,
               check_date:             leg.checkDate,
               payment_terminal_id:    leg.terminalId,
+              pos_session_id:         input.posSessionId,
               card_brand_code:        leg.cardBrandCode,
               card_last4:             leg.cardLast4,
               auth_code:              leg.authCode,
@@ -856,6 +870,16 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             undefined,
             tx,
           );
+
+          await autoLinkDrawerTx(tx, {
+            tenantId,
+            userId,
+            posSessionId: input.posSessionId,
+            branchId,
+            cashDrawerSessionId: leg.cashDrawerSessionId,
+            idempotencyKey: `${orderId}_pos_link_${leg.legIndex}`,
+            sourceChannel: 'submit_order',
+          });
         }
 
         // 5.2 Credit-application legs: voucher line + matching stored-value
@@ -877,6 +901,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               amount:                  leg.amount,
               currency_code:           leg.currencyCode,
               credit_application_type: leg.creditType,
+              pos_session_id:          input.posSessionId,
               idempotency_key:         `${orderId}_vl_ca_${leg.legIndex}`,
             },
             userId,
@@ -970,6 +995,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         settlementLegs,
         cashDrawerSessionId,
         settledBy:           userId,
+        posSessionId:        input.posSessionId,
         wiringMode:          plan.shouldCreateReceiptVoucher,
       });
 
@@ -989,7 +1015,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // existing AR collection flow (POST /api/v1/ar/invoices/[id]/payments).
   //
   // The previous block called `recordPaymentTransaction` with
-  // `skipReceiptVoucher: true` which left `org_payments_dtl_tr.voucher_id`
+  // `skipReceiptVoucher: true` which left `the legacy payments ledger.voucher_id`
   // NULL and violated `chk_payments_voucher_required`. It also duplicated
   // payment facts already captured by BVM wiring's voucher in tx2.
   //

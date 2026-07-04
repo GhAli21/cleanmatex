@@ -83,6 +83,276 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'Pos Sessions My Active',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/my-active',
+        requirement: {
+          permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Assembly Dashboard',
+        method: 'GET',
+        path: '/api/v1/assembly/dashboard',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Catalog Packing Preferences',
+        method: 'GET',
+        path: '/api/v1/catalog/packing-preferences',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Catalog Preference Kinds',
+        method: 'GET',
+        path: '/api/v1/catalog/preference-kinds',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Catalog Service Preferences',
+        method: 'GET',
+        path: '/api/v1/catalog/service-preferences',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Delivery Routes',
+        method: 'GET',
+        path: '/api/v1/delivery/routes',
+        requirement: {
+          permissions: ['drivers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders [Id]',
+        method: 'GET',
+        path: '/api/v1/orders/[id]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Batch Update',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/batch-update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Editability',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/editability',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] History',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/history',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Issue',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/issue',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[ItemId] Pieces',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Pieces [PieceId]',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[PieceId] Conditions',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[PieceId] Service Prefs',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Lock',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/lock',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Pieces',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/pieces',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Report Invoices Payments Rprt',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/report/invoices-payments-rprt',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Report Payments Rprt',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/report/payments-rprt',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Split',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/split',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] State',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Transition',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/transition',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Transitions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/transitions',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Unlock',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/unlock',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Update',
+        method: 'PATCH',
+        path: '/api/v1/orders/[id]/update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders Estimate Ready By',
+        method: 'GET',
+        path: '/api/v1/orders/estimate-ready-by',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'V1 Plan Flags',
+        method: 'GET',
+        path: '/api/v1/plan-flags',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pos Sessions Ensure For Order Entry',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/ensure-for-order-entry',
+        requirement: {
+          permissions: ['pos_session:open'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Complete',
+        method: 'POST',
+        path: '/api/v1/preparation/[id]/complete',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Items',
+        method: 'POST',
+        path: '/api/v1/preparation/[id]/items',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Items [ItemId]',
+        method: 'PATCH',
+        path: '/api/v1/preparation/[id]/items/[itemId]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Preview',
+        method: 'GET',
+        path: '/api/v1/preparation/[id]/preview',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Processing Steps [Category]',
+        method: 'GET',
+        path: '/api/v1/processing-steps/[category]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Resend',
+        method: 'POST',
+        path: '/api/v1/receipts/[id]/resend',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Orders [OrderId]',
+        method: 'GET',
+        path: '/api/v1/receipts/orders/[orderId]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Server action: inventory-actions',
+        method: 'POST',
+        path: '/app/actions/inventory/inventory-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-currency-config',
+        method: 'POST',
+        path: '/app/actions/tenant/get-currency-config',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
         label: 'Preview payment',
         method: 'POST',
         path: '/api/v1/orders/preview-payment',
@@ -208,8 +478,70 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/orders/[id]',
     label: 'Order Details',
-    page: {},
+    page: {
+      permissions: ['orders:view_financial_breakdown'],
+      requireAllPermissions: true,},
     apiDependencies: [
+      {
+        label: 'Ar *',
+        method: 'GET',
+        path: '/api/v1/ar/*',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Invoices From Orders',
+        method: 'POST',
+        path: '/api/v1/ar/invoices/from-orders',
+        requirement: {
+          permissions: ['invoices:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders Checkout Options',
+        method: 'GET',
+        path: '/api/v1/orders/checkout-options',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pos Sessions My Active',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/my-active',
+        requirement: {
+          permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: get-order',
+        method: 'POST',
+        path: '/app/actions/orders/get-order',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-edit-history',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-edit-history',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-financial',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-financial',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-preferences',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-preferences',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: invoice-actions',
+        method: 'POST',
+        path: '/app/actions/payments/invoice-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
       {
         label: 'Get order',
         method: 'GET',
@@ -224,12 +556,234 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     notes: ORDER_NOTES,
-  },
+    actions: {
+      verify_payment: {
+        label: 'Verify Payment',
+        requirement: {
+          permissions: ['orders:verify_payment'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
   {
     routePattern: '/dashboard/orders/[id]/edit',
     label: 'Edit Order',
     page: {},
     apiDependencies: [
+      {
+        label: 'Assembly Dashboard',
+        method: 'GET',
+        path: '/api/v1/assembly/dashboard',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Catalog Packing Preferences',
+        method: 'GET',
+        path: '/api/v1/catalog/packing-preferences',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Catalog Preference Kinds',
+        method: 'GET',
+        path: '/api/v1/catalog/preference-kinds',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Catalog Service Preferences',
+        method: 'GET',
+        path: '/api/v1/catalog/service-preferences',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'V1 Categories',
+        method: 'GET',
+        path: '/api/v1/categories',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Allocation Post',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/post',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Allocation Preview Auto',
+        method: 'POST',
+        path: '/api/v1/customer-receipts/allocation/preview-auto',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'V1 Customers',
+        method: 'POST',
+        path: '/api/v1/customers',
+        requirement: {
+          permissions: ['customers:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Delivery Routes',
+        method: 'GET',
+        path: '/api/v1/delivery/routes',
+        requirement: {
+          permissions: ['drivers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders Estimate Ready By',
+        method: 'GET',
+        path: '/api/v1/orders/estimate-ready-by',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Orders Preview Payment',
+        method: 'POST',
+        path: '/api/v1/orders/preview-payment',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders Submit Order',
+        method: 'POST',
+        path: '/api/v1/orders/submit-order',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'V1 Plan Flags',
+        method: 'GET',
+        path: '/api/v1/plan-flags',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pos Sessions Ensure For Order Entry',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/ensure-for-order-entry',
+        requirement: {
+          permissions: ['pos_session:open'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Pos Sessions My Active',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/my-active',
+        requirement: {
+          permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Preferences Last Order',
+        method: 'GET',
+        path: '/api/v1/preferences/last-order',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Preferences Resolve',
+        method: 'GET',
+        path: '/api/v1/preferences/resolve',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Preferences Suggest',
+        method: 'GET',
+        path: '/api/v1/preferences/suggest',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Complete',
+        method: 'POST',
+        path: '/api/v1/preparation/[id]/complete',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Items',
+        method: 'POST',
+        path: '/api/v1/preparation/[id]/items',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Items [ItemId]',
+        method: 'PATCH',
+        path: '/api/v1/preparation/[id]/items/[itemId]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Preview',
+        method: 'GET',
+        path: '/api/v1/preparation/[id]/preview',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Processing Steps [Category]',
+        method: 'GET',
+        path: '/api/v1/processing-steps/[category]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'V1 Products',
+        method: 'GET',
+        path: '/api/v1/products',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Resend',
+        method: 'POST',
+        path: '/api/v1/receipts/[id]/resend',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Orders [OrderId]',
+        method: 'GET',
+        path: '/api/v1/receipts/orders/[orderId]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Tenant Settings Default Guest Customer',
+        method: 'GET',
+        path: '/api/v1/tenant-settings/default-guest-customer',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Server action: inventory-actions',
+        method: 'POST',
+        path: '/app/actions/inventory/inventory-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-currency-config',
+        method: 'POST',
+        path: '/app/actions/tenant/get-currency-config',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
       {
         label: 'Get order',
         method: 'GET',
@@ -271,13 +825,131 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Prepare Order',
     page: {},
     notes: ORDER_NOTES,
-  },
+    apiDependencies: [
+      {
+        label: 'Server action: find-or-create-product',
+        method: 'POST',
+        path: '/app/actions/catalog/find-or-create-product',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: add-order-items',
+        method: 'POST',
+        path: '/app/actions/orders/add-order-items',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: complete-preparation',
+        method: 'POST',
+        path: '/app/actions/orders/complete-preparation',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order',
+        method: 'POST',
+        path: '/app/actions/orders/get-order',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+},
   {
     routePattern: '/dashboard/orders/[id]/full',
     label: 'Full Order Details',
     page: {},
     notes: ORDER_NOTES,
-  },
+    apiDependencies: [
+      {
+        label: 'Ar *',
+        method: 'GET',
+        path: '/api/v1/ar/*',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Invoices From Orders',
+        method: 'POST',
+        path: '/api/v1/ar/invoices/from-orders',
+        requirement: {
+          permissions: ['invoices:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Confirm Physical Intake',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/confirm-physical-intake',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: '[Id] Fix Order Data',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/fix-order-data',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Pieces',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[id]/pieces',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pieces [Id]',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[id]/pieces/[id]',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Pieces Scan',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[id]/pieces/scan',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] State',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: '[Id] Transitions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/transitions',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Server action: get-order',
+        method: 'POST',
+        path: '/app/actions/orders/get-order',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-edit-history',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-edit-history',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-financial',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-financial',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: get-order-preferences',
+        method: 'POST',
+        path: '/app/actions/orders/get-order-preferences',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+      {
+        label: 'Server action: invoice-actions',
+        method: 'POST',
+        path: '/app/actions/payments/invoice-actions',
+        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+      },
+    ],
+},
   {
     routePattern: '/dashboard/preparation',
     label: 'Preparation',

@@ -5,14 +5,12 @@
  * Dedicated view for B2B customers with company-first layout and B2B-specific tabs
  */
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { getCustomerById } from '@/lib/api/customers';
-import { getPaymentsForCustomer, processPayment } from '@/app/actions/payments/process-payment';
 import type { CustomerWithTenantData } from '@/lib/types/customer';
-import type { PaymentMethodCode } from '@/lib/types/payment';
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section';
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section';
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab';
@@ -21,7 +19,6 @@ import {
   CustomerB2BContractsTab,
   CustomerB2BStatementsTab,
 } from '@features/customers/ui/customer-b2b-tabs';
-import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
@@ -48,15 +45,9 @@ export default function B2BCustomerViewPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [error, setError] = useState<string | null>(null);
-  const [advancePayments, setAdvancePayments] = useState<Array<{ id: string; paid_amount: number; payment_kind?: string; invoice_id?: string }>>([]);
-  const [advanceAmount, setAdvanceAmount] = useState<number>(0);
-  const [advanceMethod, setAdvanceMethod] = useState<PaymentMethodCode>('CASH');
-  const [advanceError, setAdvanceError] = useState<string | null>(null);
-  const [advanceSuccess, setAdvanceSuccess] = useState<string | null>(null);
-  const [advancePending, startAdvanceTransition] = useTransition();
+  const [advanceBalance, setAdvanceBalance] = useState<number>(0);
 
-  const { currentTenant, user } = useAuth();
-  const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const t = useTranslations('customers');
   const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
@@ -99,53 +90,26 @@ export default function B2BCustomerViewPage() {
     if (customerId) loadCustomer();
   }, [customerId, router]);
 
+  // Canonical advance balance (stored-value ledger). Money is RECEIVED via the
+  // customer account receipt flow — the old inline record-advance form wrote
+  // the legacy payments ledger (dropped by migration 0395) (ADR-002) and was removed.
   useEffect(() => {
-    async function loadPayments() {
+    async function loadAdvanceBalance() {
       try {
-        const result = await getPaymentsForCustomer(customerId);
-        if (result.success && result.data) setAdvancePayments(result.data);
+        const res = await fetch(`/api/v1/customers/${customerId}/stored-value`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const body = await res.json();
+        if (res.ok && body.success) {
+          setAdvanceBalance(Number(body.data?.advance ?? 0));
+        }
       } catch {
         // Ignore
       }
     }
-    if (customerId) loadPayments();
+    if (customerId) loadAdvanceBalance();
   }, [customerId]);
-
-  const unappliedAdvancePayments = advancePayments.filter((p) => !p.invoice_id);
-  const advanceBalanceTotal = unappliedAdvancePayments.reduce((sum, p) => sum + Number(p.paid_amount), 0);
-
-  const handleRecordAdvance = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdvanceError(null);
-    setAdvanceSuccess(null);
-    if (advanceAmount <= 0) {
-      setAdvanceError(t('noAdvancePayments'));
-      return;
-    }
-    const tenantOrgId = currentTenant?.tenant_id;
-    const userId = user?.id;
-    if (!tenantOrgId || !userId) {
-      setAdvanceError('Not authenticated');
-      return;
-    }
-    startAdvanceTransition(async () => {
-      const result = await processPayment(tenantOrgId, userId, {
-        customerId,
-        paymentKind: 'advance',
-        paymentMethod: advanceMethod,
-        amount: advanceAmount,
-      });
-      if (result.success) {
-        setAdvanceSuccess(t('advanceRecorded'));
-        setAdvanceAmount(0);
-        const res = await getPaymentsForCustomer(customerId);
-        if (res.success && res.data) setAdvancePayments(res.data);
-        router.refresh();
-      } else {
-        setAdvanceError(result.error ?? 'Failed to record advance');
-      }
-    });
-  };
 
   if (loading) {
     return (
@@ -274,56 +238,31 @@ export default function B2BCustomerViewPage() {
         </Card>
       </div>
 
-      {/* Advance balance & Record advance */}
+      {/* Advance balance (canonical stored-value ledger) */}
       <Card>
         <CardHeader>
           <CardTitle>{t('advanceBalance')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {formatMoneyWithCode(advanceBalanceTotal)}
+                {formatMoneyWithCode(advanceBalance)}
               </p>
-              {unappliedAdvancePayments.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('unappliedAdvanceCount', { count: unappliedAdvancePayments.length })}
-                </p>
+              {advanceBalance === 0 && (
+                <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
               )}
             </div>
-            <form onSubmit={handleRecordAdvance} className="flex flex-wrap items-end gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('recordAdvance')}</label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number"
-                    step={10 ** -decimalPlaces}
-                    min={0}
-                    value={advanceAmount || ''}
-                    onChange={(e) => setAdvanceAmount(Number(e.target.value) || 0)}
-                    placeholder="Amount"
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm w-32 text-right"
-                  />
-                  <select
-                    value={advanceMethod}
-                    onChange={(e) => setAdvanceMethod(e.target.value as PaymentMethodCode)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                  </select>
-                  <Button type="submit" disabled={advancePending || advanceAmount <= 0}>
-                    {advancePending ? '...' : t('recordAdvance')}
-                  </Button>
-                </div>
-              </div>
-            </form>
+            <div className="text-end">
+              <Link
+                href="/dashboard/customers/account-receipt"
+                className="inline-block rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+              >
+                {t('receiveAccountPayment')}
+              </Link>
+              <p className="mt-1 max-w-xs text-xs text-gray-500">{t('receiveAccountPaymentHint')}</p>
+            </div>
           </div>
-          {advanceError && <p className="mt-2 text-sm text-red-600">{advanceError}</p>}
-          {advanceSuccess && <p className="mt-2 text-sm text-green-600">{advanceSuccess}</p>}
-          {unappliedAdvancePayments.length === 0 && advanceBalanceTotal === 0 && (
-            <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
-          )}
         </CardContent>
       </Card>
 

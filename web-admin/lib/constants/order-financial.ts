@@ -360,6 +360,17 @@ export const OUTBOX_EVENT_TYPES = {
    * 0332 (PAYMENT_VERIFIED) exactly — case and spelling.
    */
   PAYMENT_VERIFIED: 'PAYMENT_VERIFIED',
+  /**
+   * Order-Fin remediation Phase 4 (FN-02). Emitted by
+   * unwindOrderFinancialsOnCancel() after a cancelled order's financial
+   * unwind commits: credit applications reversed to source ledgers, real
+   * payments routed per the chosen disposition (REFUND / STORE_CREDIT /
+   * KEEP_ON_ACCOUNT), promo usage reversed, snapshot recalculated. The
+   * payload is the durable audit record of where the customer's money went.
+   * Not mapped into org_order_history (the cancel RPC already writes the
+   * status row); the history consumer intentionally ignores this type.
+   */
+  ORDER_CANCEL_FINANCIAL_UNWIND: 'ORDER_CANCEL_FINANCIAL_UNWIND',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

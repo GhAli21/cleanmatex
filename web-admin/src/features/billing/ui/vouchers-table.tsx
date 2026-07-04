@@ -188,10 +188,9 @@ export default function VouchersTable({
                       <VoucherStatusBadge status={voucher.voucher_status ?? 'DRAFT'} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      {voucher.voucher_status === VOUCHER_STATUS.POSTED && (voucher as any).payment_id && (
+                      {voucher.voucher_status === VOUCHER_STATUS.POSTED && (
                         <Link
-                          href={`/dashboard/internal_fin/payments/${(voucher as any).payment_id}/print/receipt-voucher`}
-                          target="_blank"
+                          href={`/dashboard/internal_fin/vouchers/${voucher.id}`}
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
                           title={t('printReceiptVoucher')}
                         >

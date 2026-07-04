@@ -3,20 +3,18 @@
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
-import type { PaymentTransaction } from '@/lib/types/payment';
+import type { OrderPaymentRow } from '@/lib/services/order-financial-summary.service';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
-/**
- *
- */
+/** Print payload — canonical payment rows (`org_order_payments_dtl`, ADR-002). */
 export interface OrderPaymentsPrintRprtData {
   order: {
     id: string;
     order_no: string;
     customer: { name: string; phone: string };
   };
-  payments: PaymentTransaction[];
+  payments: OrderPaymentRow[];
   sortOrder: 'asc' | 'desc';
 }
 
@@ -101,14 +99,14 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
                 <tr key={p.id} className="border-b border-dashed border-gray-200">
                   <td className="py-1">{formatDate(p.paid_at ?? p.created_at, locale)}</td>
                   <td className="py-1 text-right font-medium">
-                    {formatMoneyAmountWithCode(Number(p.paid_amount), {
+                    {formatMoneyAmountWithCode(Number(p.amount), {
                       currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
                       decimalPlaces,
                       locale: moneyLocale,
                     })}
                   </td>
-                  <td className="py-1">{p.payment_method_code ?? '—'}</td>
-                  <td className="py-1">{p.status ?? '—'}</td>
+                  <td className="py-1">{p.payment_method_name_snapshot ?? p.payment_method_code ?? '—'}</td>
+                  <td className="py-1">{p.payment_status ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

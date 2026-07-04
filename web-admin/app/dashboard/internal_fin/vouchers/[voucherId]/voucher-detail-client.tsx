@@ -94,14 +94,14 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
   const [addLineOpen, setAddLineOpen] = useState(false);
   const [postPreviewOpen, setPostPreviewOpen] = useState(false);
 
+  // PAYMENTS source refs pointed at the retired internal_fin/payments screens
+  // (legacy payments ledger (dropped by migration 0395), ADR-002) — shown unlinked now.
   const sourceRefLink =
     voucher.source_module === 'ORDERS' && voucher.source_ref_id
       ? `/dashboard/orders/${voucher.source_ref_id}/full`
       : voucher.source_module === 'INVOICES' && voucher.source_ref_id
         ? `/dashboard/internal_fin/invoices/${voucher.source_ref_id}`
-        : voucher.source_module === 'PAYMENTS' && voucher.source_ref_id
-          ? `/dashboard/internal_fin/payments/${voucher.source_ref_id}`
-          : null;
+        : null;
 
   const canPost      = hasVoucherPermission(userRole, 'fin_vouchers:post')            && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
   const canCancel    = hasVoucherPermission(userRole, 'fin_vouchers:cancel')          && voucher.voucher_status === VOUCHER_STATUS.DRAFT;

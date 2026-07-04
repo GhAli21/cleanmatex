@@ -82,3 +82,4 @@ This pack contains one ADR file per finalized decision across Order Fin, Gift Ca
 - [Voucher Receipt Is Temporary Tax Bridge Only](./ADR-043-Tax-Document-and-Voucher-Receipt-Bridge.md)
 - [Reports Must Use Canonical Financial Fields](./ADR-044-Reports-Use-Canonical-Fields.md)
 - [Legacy Financial Columns Drop Strategy](./ADR-045-Legacy-Column-Drop-Strategy.md)
+- [ADR-054-User-Owned-POS-Sessions.md — User-Owned POS Sessions](./ADR-054-User-Owned-POS-Sessions.md)

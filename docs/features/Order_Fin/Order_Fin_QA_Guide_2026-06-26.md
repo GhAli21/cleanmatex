@@ -203,3 +203,27 @@ for the GA process gates (finance sign-off + soak, see `Process_Gates_Guide.md`)
 - `Process_Gates_Guide.md` — finance sign-off + soak (the production-trust gates).
 - `Promotion_Loyalty_Offline_DeepDive_2026-06-26.md` — what changed in promo/loyalty + why.
 - `Order_Fin_Phases_RESUME.md` — program status, next migration seq.
+
+---
+
+## Addendum — Remediation 2026-07 Phase 1 (canonical payments display + cancel guard)
+
+1. **Payments tab = canonical:** open any order (compact + full view) → Payments tab must list exactly the payments shown in the Financial tab (same rows, same amounts, uppercase lifecycle statuses). Cash rows show Tendered / Change returned when present; the payment links to its receipt voucher (no more `internal_fin/payments` links).
+2. **Order payment prints:** print "Payments" and "Invoices + Payments" from the ready/print screens → payments listed must match the Payments tab; both endpoints now require `orders:read` (a role without it gets 403).
+3. **Cancel guard (interim FN-02):** attempt to cancel an order with any collected payment or applied credit → blocked with "refund or resolve the balance before cancelling" (`CANCEL_BLOCKED_PAID_ORDER`). Unpaid orders cancel as before. Full disposition flow arrives in Phase 4.
+4. **Removed legacy UI:** the "Record deposit/POS" form and "apply payment to invoice" dialog are gone from both order detail views (they wrote to the deprecated `org_payments_dtl_tr` ledger). Money is collected via New Order checkout, Collect Payment, AR invoice payment, or customer receipts only.
+
+## Addendum — Remediation 2026-07 Phase 3 (legacy money-entry removal)
+
+1. **Sidebar:** "Payments" under Billing/Internal Finance is gone (after migration 0393 is applied); direct URL `/dashboard/internal_fin/payments` returns 404.
+2. **Ready/handover:** for non-POC orders with invoice balance, the payment section now shows "Receive payment (account receipt)" linking to the customer account receipt screen. POC orders keep the Collect Payment button.
+3. **Customer + B2B customer pages:** the advance section shows the canonical stored-value advance balance and links to the account receipt screen; the inline "record advance" form (no voucher/drawer audit) is gone.
+4. **Vouchers list/detail:** payment-source links now stay within voucher screens; refund rows show the payment id as copyable text.
+
+## Addendum — Remediation 2026-07 Phase 4 (cancellation disposition)
+
+1. **Cancel unpaid order:** unchanged — reason + confirm.
+2. **Cancel paid order (cash):** the dialog shows "Collected payments: {amount}" with three choices. REFUND → refund requests appear (PENDING, maker-checker) per payment; STORE_CREDIT → an active credit note for the net amount appears on the customer; KEEP_ON_ACCOUNT → allowed only for roles with `orders:approve_refund`, no money movement, decision auditable via the `ORDER_CANCEL_FINANCIAL_UNWIND` outbox event.
+3. **Cancel order with applied wallet/advance/gift-card/credit-note:** balances return to the source ledger exactly once (retry the cancel → no double restore); credit applications show REVERSED in the Financial tab; snapshot totals recompute (credit no longer counted).
+4. **Loyalty-credit order:** cancellation completes with a warning naming the application that needs manual restore.
+5. **Unwind failure:** if the unwind fails after the status flipped, the UI shows "cancelled but financial unwind failed — retry"; repeating the cancellation completes the unwind without duplicates.

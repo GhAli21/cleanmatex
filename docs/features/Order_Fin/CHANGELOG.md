@@ -1,5 +1,178 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-07-04 — POS Session Management v1: Phase 5 tests and documentation closeout
+
+**Scope:** Test hardening and documentation/status refresh only. No migration execution.
+
+### Shipped
+
+- Added POS session schema tests for optional terminal behavior, force-close reason validation, list filters, and branch query validation.
+- Added POS session service tests for branch conflicts, status-transition no-op/reject behavior, finance branch validation, drawer auto-link idempotency/conflict handling, and summary aggregation.
+- Updated implementation status to mark POS Session Management v1 test/docs/access/i18n closeout complete.
+
+### Validation
+
+- `npm test -- __tests__/validations/pos-session-schemas.test.ts --runInBand` passed.
+- `npm test -- __tests__/services/pos-session.service.test.ts --runInBand` passed.
+
+---
+
+## 2026-07-04 — POS Session Management v1: Phase 3 UI, navigation, and access wiring
+
+**Scope:** POS Sessions operations workbench, order-entry session banner, sidebar exposure, access contract, and navigation migration. No migrations were applied by Codex.
+
+### Shipped
+
+- Added `/dashboard/internal_fin/pos-sessions` with active-session actions, manual open, pause/resume, close/force-close, history pagination, and summary dialog.
+- Added the combined close drawer step: if POS close reports an open linked drawer, the UI requires the existing drawer close flow to succeed before retrying POS close.
+- Added an order-entry banner so cashiers see active, paused, missing, or branch-conflict POS session state before submission.
+- Added later-collection lineage: existing same-branch `OPEN` POS sessions are attached as `posSessionId`; back-office collection does not auto-open POS sessions.
+- Added `GET /api/v1/pos-sessions` for own/all session history with `pos_session:view_all` manager scope.
+- Added POS session permission constants and the route access contract.
+- Added frontend navigation entry `billing_pos_sessions` and migration `0399_pos_sessions_navigation.sql` for the matching `sys_components_cd` seed.
+- Added EN/AR `posSessions` messages and refreshed platform inventories/access contracts.
+- Migration `0399_pos_sessions_navigation.sql` was applied by the user to local and remote DBs on 2026-07-04.
+
+### Validation
+
+- Scoped ESLint for touched POS/order files passed.
+- `npm run check:i18n` in `web-admin` passed.
+- `npm run typecheck` in `web-admin` passed.
+- `npm run build` in `web-admin` passed.
+- `npm run check:ui-access-contract -- --route=/dashboard/internal_fin/pos-sessions --wire --verbose` passed.
+- `npm run check:ui-access-contract -- --route=/dashboard/orders/new --wire --verbose` passed.
+- `npm run check:ui-access-contract -- --route=/dashboard/orders/[id] --wire --verbose` passed.
+- `npm run sync:ui-access-contract` passed.
+- `npm run check:platform-info-inventories` still reports the existing unrelated `/dashboard/internal_fin/vouchers` navigation-contract warning.
+
+---
+
+## 2026-07-04 — POS Session Management v1: Phase 2 finance-lineage backend slice
+
+**Scope:** Backend/service wiring only. No POS UI route/page, no sidebar exposure, and no combined close wizard UI.
+
+### Shipped
+
+- Mirrored `pos_session_id` finance-link columns in `web-admin/prisma/schema.prisma`.
+- Added optional `posSessionId` support for POS-aware order submit, later collection, and refund initiation.
+- Wired `pos_session_id` into:
+  - `org_fin_voucher_trx_lines_dtl`
+  - `org_order_payments_dtl`
+  - `org_order_refunds_dtl`
+- Added backend `autoLinkDrawer` logic with POS session row locking before drawer attachment.
+- Added `getPosSessionSummary` and `GET /api/v1/pos-sessions/[sessionId]/summary`.
+- Regenerated platform inventories so the new summary route is discoverable.
+
+### Validation
+
+- `npx prisma generate` in `web-admin` passed.
+- `npm run typecheck` in `web-admin` passed.
+- Scoped ESLint for touched POS/order-finance files passed.
+- `npm run rebuild:platform-info-inventories` passed.
+- `npm run check:platform-info-inventories` still reports the existing unrelated `/dashboard/internal_fin/vouchers` navigation-contract warning.
+
+---
+
+## 2026-07-04 — POS Session Management v1: Phase 2 order-entry auto-ensure
+
+**Scope:** Existing new-order flow only. No new POS sidebar route and no combined close wizard UI.
+
+### Shipped
+
+- New order submission now calls `POST /api/v1/pos-sessions/ensure-for-order-entry` before `POST /api/v1/orders/submit-order`.
+- The ensure call uses a deterministic sub-key from the order submit idempotency key for safe retry/double-click behavior.
+- The returned `posSessionId` is passed into submit-order so voucher lines and order-payment rows receive operational POS lineage.
+- Added EN/AR cashier-facing error messages for POS session branch conflict and ensure failures.
+- Updated `/dashboard/orders/new` access contract so the POS ensure API dependency is documented with `pos_session:open`.
+
+### Validation
+
+- `npm run check:i18n` in `web-admin` passed.
+- `npm run typecheck` in `web-admin` passed.
+- Scoped ESLint for the submit hook passed.
+- `npm run check:ui-access-contract -- --route=/dashboard/orders/new --wire --verbose` passed.
+- `npm run sync:ui-access-contract` passed.
+
+---
+
+## 2026-07-04 — POS Session Management v1: Phase 2 lifecycle service/API slice
+
+**Scope:** Runtime lifecycle slice only. No UI route/page, no sidebar exposure, no finance write-path wiring, no `getPosSessionSummary`, and no `autoLinkDrawer` in this slice.
+
+### Shipped
+
+- Added POS session constants, generated DB-row types, and Zod request schemas.
+- Added `pos-session.service.ts` using tenant-filtered raw SQL because the Prisma schema did not yet expose the newly applied POS session models.
+- Implemented user-owned lifecycle behavior:
+  - same-branch manual open returns the current active session
+  - different-branch open/ensure returns branch conflict
+  - open/ensure uses advisory locking per `tenant_org_id + user_id`
+  - pause/resume/close/force-close lock the active session row `FOR UPDATE`
+  - close and force-close block while a linked drawer session is still open
+  - lifecycle events write `previous_status`, `new_status`, `idempotency_key`, and `source_channel`
+- Added API routes:
+  - `GET /api/v1/pos-sessions/my-active`
+  - `POST /api/v1/pos-sessions/open`
+  - `POST /api/v1/pos-sessions/ensure-for-order-entry`
+  - `POST /api/v1/pos-sessions/pause`
+  - `POST /api/v1/pos-sessions/resume`
+  - `POST /api/v1/pos-sessions/close`
+  - `POST /api/v1/pos-sessions/force-close`
+
+### Validation
+
+- `npm run typecheck` in `web-admin` passed.
+- Scoped ESLint for the POS session slice passed.
+- Focused `git diff --check` for touched POS files passed.
+
+---
+
+## 2026-07-04 — POS Session Management v1: Phase 1 schema and documentation foundation
+
+**Scope:** Documentation + migrations only. No services, APIs, UI routes, or runtime permission wiring.
+
+### Shipped
+
+- Added `ADR-054-User-Owned-POS-Sessions.md` to freeze the user-owned POS session model.
+- Added `POS_Session_Management_V1.md` as the implementation-ready Phase 1 source of truth.
+- Created migration `0396_pos_session_catalogs.sql` for:
+  - `sys_pos_session_status_cd`
+  - `sys_pos_session_event_type_cd`
+  - POS session permission seeds
+  - non-visible `sys_components_cd` metadata seed
+- Created migration `0397_pos_session_core_tables.sql` for:
+  - `org_pos_sessions_mst`
+  - `org_pos_session_events_dtl`
+  - tenant-safe indexes, FKs, and RLS
+- Created migration `0398_pos_session_finance_links.sql` to add nullable `pos_session_id` to:
+  - `org_order_payments_dtl`
+  - `org_order_refunds_dtl`
+  - `org_fin_voucher_trx_lines_dtl`
+- Refreshed Order Fin documentation references so the ADR, spec, migration numbers, and implementation status are discoverable from the feature pack.
+
+### Locked decisions
+
+- one active POS session per `tenant_org_id + user_id`
+- `terminal_id` optional and non-unique
+- branch mismatch blocks POS entry
+- `cash_drawer_session_id` remains cash reconciliation truth
+- `pos_session_id` is operational lineage only
+- `FORCE_CLOSE` action/event name and `FORCE_CLOSED` status name
+- `business_date` fixed at open time using `business_timezone`
+- drawer close step must succeed before POS close succeeds
+- `getPosSessionSummary` later computes from active finance tables only
+- `org_payments_dtl_tr` remains untouched
+
+### Apply status
+
+Migrations `0396`–`0398` were applied to both local and remote DBs on 2026-07-04, and types were refreshed afterward.
+
+### Runtime status
+
+Phase 1 is complete for docs and schema. Runtime lifecycle services, summary queries, drawer auto-link behavior, and UI flows remain pending for later phases.
+
+---
+
 ## 2026-07-03 — Payment Modal v4: Phases 4–7 — Simple mode, shortcuts, tablet, docs (PROGRAM COMPLETE)
 
 **Program plan:** `docs/features/Order_Fin/Payment_Modal_Review/happy-doodling-volcano.md`

@@ -108,7 +108,6 @@ export function ArInvoiceDetailTabs({ detail }: ArInvoiceDetailTabsProps) {
   const allocationColumns: CmxDataTableSimpleColumn<ArInvoicePaymentAllocation>[] = [
     { key: 'id', header: t('columns.id'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
     { key: 'invoice_id', header: t('columns.invoiceId'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.invoice_id} maxLength={12} align={textAlign} /> },
-    { key: 'payment_id', header: t('columns.paymentId'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.payment_id} maxLength={12} align={textAlign} /> },
     { key: 'voucher_id', header: t('columns.voucherId'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.voucher_id} maxLength={12} align={textAlign} /> },
     { key: 'allocation_no', header: t('columns.allocationNo'), sortable: false, align: 'right', render: (row) => <ArInvoiceDetailCopyValue value={row.allocation_no} align="right" /> },
     { key: 'allocation_outcome', header: t('columns.outcome'), sortable: false, render: (row) => <ArInvoiceDetailCopyValue value={row.allocation_outcome} align={textAlign} /> },

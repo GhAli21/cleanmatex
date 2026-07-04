@@ -1,8 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { FinancialReportsClient } from '@features/reports/ui/financial-reports-client';
+import { MoneyPositionCardsRprt } from '@features/reports/ui/money-position-cards-rprt';
 
 /**
- *
+ * Financial reports hub — money-position glance row (canonical ledgers) above
+ * the orders/payments/tax report tabs.
  */
 export default async function FinancialReportsPage() {
   const t = await getTranslations('reports.financial');
@@ -13,6 +15,7 @@ export default async function FinancialReportsPage() {
         <h1 className="text-3xl font-bold">{t('title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('description')}</p>
       </div>
+      <MoneyPositionCardsRprt />
       <FinancialReportsClient />
     </div>
   );

@@ -615,106 +615,10 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
     notes: ['Statement cycles define which B2B receivables roll into consolidated billing runs.'],
   },
-  {
-    routePattern: '/dashboard/internal_fin/payments',
-    label: 'Payments',
-    page: {},
-    actions: {
-      cancelPayment: {
-        label: 'Cancel payment',
-        requirement: {
-          permissions: ['payments:cancel'],
-          requireAllPermissions: true,
-        },
-      },
-      refundPayment: {
-        label: 'Refund payment',
-        requirement: {
-          permissions: ['payments:refund'],
-          requireAllPermissions: true,
-        },
-      },
-    },
-    apiDependencies: [
-      {
-        label: 'Cancel payment',
-        method: 'POST',
-        path: 'app/actions/payments/payment-crud-actions.cancelPaymentAction',
-        requirement: {
-          permissions: ['payments:cancel'],
-          requireAllPermissions: true,
-        },
-        notes: ['Server action used by the payments table row action.'],
-      },
-      {
-        label: 'Refund payment',
-        method: 'POST',
-        path: 'app/actions/payments/payment-crud-actions.refundPaymentAction',
-        requirement: {
-          permissions: ['payments:refund'],
-          requireAllPermissions: true,
-        },
-        notes: ['Server action used by the payments table row action.'],
-      },
-    ],
-    notes: BILLING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/internal_fin/payments/new',
-    label: 'New Payment',
-    page: {},
-    notes: BILLING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/internal_fin/payments/[id]',
-    label: 'Payment Details',
-    page: {},
-    actions: {
-      cancelPayment: {
-        label: 'Cancel payment',
-        requirement: {
-          permissions: ['payments:cancel'],
-          requireAllPermissions: true,
-        },
-      },
-      refundPayment: {
-        label: 'Refund payment',
-        requirement: {
-          permissions: ['payments:refund'],
-          requireAllPermissions: true,
-        },
-      },
-    },
-    apiDependencies: [
-      {
-        label: 'Cancel payment',
-        method: 'POST',
-        path: 'app/actions/payments/payment-crud-actions.cancelPaymentAction',
-        requirement: {
-          permissions: ['payments:cancel'],
-          requireAllPermissions: true,
-        },
-        notes: ['Server action used by the payment details screen.'],
-      },
-      {
-        label: 'Refund payment',
-        method: 'POST',
-        path: 'app/actions/payments/payment-crud-actions.refundPaymentAction',
-        requirement: {
-          permissions: ['payments:refund'],
-          requireAllPermissions: true,
-        },
-        notes: ['Server action used by the payment details screen.'],
-      },
-    ],
-    notes: BILLING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/internal_fin/payments/[id]/print/receipt-voucher',
-    label: 'Print Receipt Voucher',
-    page: {},
-    notes: BILLING_NOTES,
-  },
+  // NOTE: /dashboard/internal_fin/payments* contracts were removed with the
+  // screens themselves (Order-Fin remediation Phase 3) — they operated on the
+  // legacy payments ledger (dropped by migration 0395) (ADR-002). Canonical money entry:
+  // order checkout / collect-payment, AR invoice payments, customer receipts.
   {
     routePattern: '/dashboard/internal_fin/cash-drawers',
     label: 'Cash Drawers',
@@ -769,19 +673,10 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     notes: ['Refund workbench route using the same page gate exposed in navigation.'],
   },
-  {
-    routePattern: '/dashboard/internal_fin/cashup',
-    label: 'Cash Up',
-    page: {},
-    notes: BILLING_NOTES,
-  },
+  // '/dashboard/internal_fin/cashup' contract removed (Order-Fin remediation
+  // Phase 5): the Cash Up screen is superseded by cash drawer sessions + the
+  // D-09 reconciliation report (finding FN-06).
 ]
-
-export const BILLING_PAYMENTS_ACCESS =
-  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/payments')!
-
-export const BILLING_PAYMENT_DETAIL_ACCESS =
-  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/payments/[id]')!
 
 export const BILLING_INVOICES_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices')!

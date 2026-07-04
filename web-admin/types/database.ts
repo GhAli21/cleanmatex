@@ -11158,6 +11158,7 @@ export type Database = {
           payment_method_code: string | null
           payment_status: string | null
           payment_terminal_id: string | null
+          pos_session_id: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
@@ -11220,6 +11221,7 @@ export type Database = {
           payment_method_code?: string | null
           payment_status?: string | null
           payment_terminal_id?: string | null
+          pos_session_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -11282,6 +11284,7 @@ export type Database = {
           payment_method_code?: string | null
           payment_status?: string | null
           payment_terminal_id?: string | null
+          pos_session_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -11319,6 +11322,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_fin_vouchers_mst"
             referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_vtl_possess"
+            columns: ["tenant_org_id", "pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["tenant_org_id", "id"]
           },
         ]
       }
@@ -12737,7 +12747,6 @@ export type Database = {
           invoice_id: string
           is_active: boolean
           metadata: Json
-          payment_id: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -12763,7 +12772,6 @@ export type Database = {
           invoice_id: string
           is_active?: boolean
           metadata?: Json
-          payment_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -12789,7 +12797,6 @@ export type Database = {
           invoice_id?: string
           is_active?: boolean
           metadata?: Json
-          payment_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -12810,13 +12817,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_invoice_mst"
             referencedColumns: ["id", "tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_oip_pay"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "org_payments_dtl_tr"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_oip_vch"
@@ -15896,6 +15896,7 @@ export type Database = {
           payment_nature_snapshot: string
           payment_status: string
           payment_terminal_id: string | null
+          pos_session_id: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -15943,6 +15944,7 @@ export type Database = {
           payment_nature_snapshot?: string
           payment_status?: string
           payment_terminal_id?: string | null
+          pos_session_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -15990,6 +15992,7 @@ export type Database = {
           payment_nature_snapshot?: string
           payment_status?: string
           payment_terminal_id?: string | null
+          pos_session_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -16001,6 +16004,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ordpay_possess"
+            columns: ["tenant_org_id", "pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "org_order_payments_dtl_branch_payment_method_id_fkey"
             columns: ["branch_payment_method_id"]
@@ -16309,6 +16319,7 @@ export type Database = {
           metadata: Json
           order_id: string
           original_payment_id: string | null
+          pos_session_id: string | null
           processed_at: string | null
           reason_code: string | null
           rec_notes: string | null
@@ -16341,6 +16352,7 @@ export type Database = {
           metadata?: Json
           order_id: string
           original_payment_id?: string | null
+          pos_session_id?: string | null
           processed_at?: string | null
           reason_code?: string | null
           rec_notes?: string | null
@@ -16373,6 +16385,7 @@ export type Database = {
           metadata?: Json
           order_id?: string
           original_payment_id?: string | null
+          pos_session_id?: string | null
           processed_at?: string | null
           reason_code?: string | null
           rec_notes?: string | null
@@ -16391,6 +16404,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ordref_possess"
+            columns: ["tenant_org_id", "pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "fk_refund_original_payment"
             columns: ["original_payment_id"]
@@ -17296,71 +17316,6 @@ export type Database = {
           },
         ]
       }
-      org_payment_audit_log: {
-        Row: {
-          action_type: string
-          after_value: Json | null
-          before_value: Json | null
-          changed_at: string | null
-          changed_by: string | null
-          id: string
-          metadata: Json | null
-          payment_id: string
-          tenant_org_id: string
-        }
-        Insert: {
-          action_type: string
-          after_value?: Json | null
-          before_value?: Json | null
-          changed_at?: string | null
-          changed_by?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_id: string
-          tenant_org_id: string
-        }
-        Update: {
-          action_type?: string
-          after_value?: Json | null
-          before_value?: Json | null
-          changed_at?: string | null
-          changed_by?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_id?: string
-          tenant_org_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_payment_audit_payment"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "org_payments_dtl_tr"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_payment_audit_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_tenants_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_payment_audit_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_missing_required_usage"
-            referencedColumns: ["tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_payment_audit_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_tenant_readiness"
-            referencedColumns: ["tenant_org_id"]
-          },
-        ]
-      }
       org_payment_methods_cf: {
         Row: {
           allow_outside_integration: boolean | null
@@ -17773,315 +17728,6 @@ export type Database = {
           },
         ]
       }
-      org_payments_dtl_tr: {
-        Row: {
-          auth_code: string | null
-          bank_reference: string | null
-          branch_id: string | null
-          branch_payment_method_id: string | null
-          card_brand_code: string | null
-          card_last4: string | null
-          cash_drawer_id: string | null
-          cash_drawer_session_id: string | null
-          change_returned_amount: number | null
-          check_bank: string | null
-          check_date: string | null
-          check_number: string | null
-          created_at: string
-          created_by: string | null
-          created_info: string | null
-          currency_code: string
-          currency_ex_rate: number
-          customer_id: string | null
-          discount_amount: number | null
-          discount_rate: number | null
-          due_date: string | null
-          gateway: string | null
-          gateway_reference: string | null
-          gateway_transaction_id: string | null
-          gift_card_applied_amount: number | null
-          gift_card_id: string | null
-          id: string
-          idempotency_key: string | null
-          invoice_id: string | null
-          manual_discount_amount: number | null
-          metadata: Json | null
-          order_id: string | null
-          org_payment_method_id: string | null
-          paid_amount: number | null
-          paid_at: string | null
-          paid_by: string | null
-          payment_channel: string | null
-          payment_method_code: string
-          payment_method_name: string | null
-          payment_method_name2: string | null
-          payment_status: string | null
-          payment_terminal_id: string | null
-          payment_type_code: string | null
-          promo_code_id: string | null
-          promo_discount_amount: number | null
-          rec_notes: string | null
-          received_by: string | null
-          status: string | null
-          subtotal: number | null
-          tax_amount: number | null
-          tenant_org_id: string
-          tendered_amount: number | null
-          trans_desc: string | null
-          transaction_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-          updated_info: string | null
-          vat_amount: number | null
-          vat_rate: number | null
-          voucher_id: string | null
-        }
-        Insert: {
-          auth_code?: string | null
-          bank_reference?: string | null
-          branch_id?: string | null
-          branch_payment_method_id?: string | null
-          card_brand_code?: string | null
-          card_last4?: string | null
-          cash_drawer_id?: string | null
-          cash_drawer_session_id?: string | null
-          change_returned_amount?: number | null
-          check_bank?: string | null
-          check_date?: string | null
-          check_number?: string | null
-          created_at?: string
-          created_by?: string | null
-          created_info?: string | null
-          currency_code: string
-          currency_ex_rate?: number
-          customer_id?: string | null
-          discount_amount?: number | null
-          discount_rate?: number | null
-          due_date?: string | null
-          gateway?: string | null
-          gateway_reference?: string | null
-          gateway_transaction_id?: string | null
-          gift_card_applied_amount?: number | null
-          gift_card_id?: string | null
-          id?: string
-          idempotency_key?: string | null
-          invoice_id?: string | null
-          manual_discount_amount?: number | null
-          metadata?: Json | null
-          order_id?: string | null
-          org_payment_method_id?: string | null
-          paid_amount?: number | null
-          paid_at?: string | null
-          paid_by?: string | null
-          payment_channel?: string | null
-          payment_method_code: string
-          payment_method_name?: string | null
-          payment_method_name2?: string | null
-          payment_status?: string | null
-          payment_terminal_id?: string | null
-          payment_type_code?: string | null
-          promo_code_id?: string | null
-          promo_discount_amount?: number | null
-          rec_notes?: string | null
-          received_by?: string | null
-          status?: string | null
-          subtotal?: number | null
-          tax_amount?: number | null
-          tenant_org_id: string
-          tendered_amount?: number | null
-          trans_desc?: string | null
-          transaction_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          vat_amount?: number | null
-          vat_rate?: number | null
-          voucher_id?: string | null
-        }
-        Update: {
-          auth_code?: string | null
-          bank_reference?: string | null
-          branch_id?: string | null
-          branch_payment_method_id?: string | null
-          card_brand_code?: string | null
-          card_last4?: string | null
-          cash_drawer_id?: string | null
-          cash_drawer_session_id?: string | null
-          change_returned_amount?: number | null
-          check_bank?: string | null
-          check_date?: string | null
-          check_number?: string | null
-          created_at?: string
-          created_by?: string | null
-          created_info?: string | null
-          currency_code?: string
-          currency_ex_rate?: number
-          customer_id?: string | null
-          discount_amount?: number | null
-          discount_rate?: number | null
-          due_date?: string | null
-          gateway?: string | null
-          gateway_reference?: string | null
-          gateway_transaction_id?: string | null
-          gift_card_applied_amount?: number | null
-          gift_card_id?: string | null
-          id?: string
-          idempotency_key?: string | null
-          invoice_id?: string | null
-          manual_discount_amount?: number | null
-          metadata?: Json | null
-          order_id?: string | null
-          org_payment_method_id?: string | null
-          paid_amount?: number | null
-          paid_at?: string | null
-          paid_by?: string | null
-          payment_channel?: string | null
-          payment_method_code?: string
-          payment_method_name?: string | null
-          payment_method_name2?: string | null
-          payment_status?: string | null
-          payment_terminal_id?: string | null
-          payment_type_code?: string | null
-          promo_code_id?: string | null
-          promo_discount_amount?: number | null
-          rec_notes?: string | null
-          received_by?: string | null
-          status?: string | null
-          subtotal?: number | null
-          tax_amount?: number | null
-          tenant_org_id?: string
-          tendered_amount?: number | null
-          trans_desc?: string | null
-          transaction_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-          vat_amount?: number | null
-          vat_rate?: number | null
-          voucher_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_org_payment_branch"
-            columns: ["branch_id", "tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_branches_mst"
-            referencedColumns: ["id", "tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_org_payment_invoice"
-            columns: ["invoice_id", "tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_invoice_mst"
-            referencedColumns: ["id", "tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_org_payment_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_tenants_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_org_payment_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_missing_required_usage"
-            referencedColumns: ["tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_org_payment_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fin_tenant_readiness"
-            referencedColumns: ["tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_org_payments_payment_method"
-            columns: ["payment_method_code"]
-            isOneToOne: false
-            referencedRelation: "sys_payment_method_cd"
-            referencedColumns: ["payment_method_code"]
-          },
-          {
-            foreignKeyName: "fk_org_payments_voucher"
-            columns: ["voucher_id", "tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_fin_vouchers_mst"
-            referencedColumns: ["id", "tenant_org_id"]
-          },
-          {
-            foreignKeyName: "fk_payments_gift_card"
-            columns: ["gift_card_id"]
-            isOneToOne: false
-            referencedRelation: "org_gift_cards_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_payments_promo_code"
-            columns: ["promo_code_id"]
-            isOneToOne: false
-            referencedRelation: "org_promotions_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_branch_payment_method_id_fkey"
-            columns: ["branch_payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "org_branch_payment_methods_cf"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_cash_drawer_id_fkey"
-            columns: ["cash_drawer_id"]
-            isOneToOne: false
-            referencedRelation: "org_cash_drawers_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_cash_drawer_session_id_fkey"
-            columns: ["cash_drawer_session_id"]
-            isOneToOne: false
-            referencedRelation: "org_cash_drawer_sessions_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "org_customers_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "org_orders_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_org_payment_method_id_fkey"
-            columns: ["org_payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "org_payment_methods_cf"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_payment_terminal_id_fkey"
-            columns: ["payment_terminal_id"]
-            isOneToOne: false
-            referencedRelation: "org_payment_terminals_cf"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_payments_dtl_tr_payment_type_code_fkey"
-            columns: ["payment_type_code"]
-            isOneToOne: false
-            referencedRelation: "sys_payment_type_cd"
-            referencedColumns: ["payment_type_code"]
-          },
-        ]
-      }
       org_pck_packing_lists_mst: {
         Row: {
           branch_id: string | null
@@ -18453,6 +18099,296 @@ export type Database = {
           },
           {
             foreignKeyName: "org_pln_subscriptions_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_pos_session_events_dtl: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          event_at: string
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          is_active: boolean
+          metadata: Json
+          new_status: string | null
+          performed_by: string
+          pos_session_id: string
+          previous_status: string | null
+          reason: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          source_channel: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          event_at?: string
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          new_status?: string | null
+          performed_by: string
+          pos_session_id: string
+          previous_status?: string | null
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_channel?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          event_at?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          new_status?: string | null
+          performed_by?: string
+          pos_session_id?: string
+          previous_status?: string | null
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_channel?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_opse_pos"
+            columns: ["tenant_org_id", "pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_event_type_fkey"
+            columns: ["event_type"]
+            isOneToOne: false
+            referencedRelation: "sys_pos_session_event_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_new_status_fkey"
+            columns: ["new_status"]
+            isOneToOne: false
+            referencedRelation: "sys_pos_session_status_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_previous_status_fkey"
+            columns: ["previous_status"]
+            isOneToOne: false
+            referencedRelation: "sys_pos_session_status_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_pos_session_events_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_pos_sessions_mst: {
+        Row: {
+          branch_id: string
+          business_date: string
+          business_timezone: string
+          cash_drawer_id: string | null
+          cash_drawer_session_id: string | null
+          close_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          force_close_reason: string | null
+          force_closed_at: string | null
+          force_closed_by: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          opened_at: string
+          opened_by: string
+          pause_reason: string | null
+          paused_at: string | null
+          paused_by: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          session_no: string
+          status: string
+          tenant_org_id: string
+          terminal_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_date: string
+          business_timezone: string
+          cash_drawer_id?: string | null
+          cash_drawer_session_id?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          force_close_reason?: string | null
+          force_closed_at?: string | null
+          force_closed_by?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          opened_at?: string
+          opened_by: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          session_no: string
+          status: string
+          tenant_org_id: string
+          terminal_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_date?: string
+          business_timezone?: string
+          cash_drawer_id?: string | null
+          cash_drawer_session_id?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          force_close_reason?: string | null
+          force_closed_at?: string | null
+          force_closed_by?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          opened_at?: string
+          opened_by?: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          session_no?: string
+          status?: string
+          tenant_org_id?: string
+          terminal_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ops_branch"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ops_draw_sess"
+            columns: ["cash_drawer_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ops_drawer"
+            columns: ["cash_drawer_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ops_term"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "org_payment_terminals_cf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_pos_sessions_mst_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "sys_pos_session_status_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "org_pos_sessions_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_pos_sessions_mst_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_pos_sessions_mst_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
@@ -30598,6 +30534,123 @@ export type Database = {
           recommended?: boolean | null
           setup_fee?: number | null
           trial_days?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_pos_session_event_type_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_pos_session_status_cd: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          display_order: number | null
+          is_active: boolean
+          is_final: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_final?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number | null
+          is_active?: boolean
+          is_final?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null

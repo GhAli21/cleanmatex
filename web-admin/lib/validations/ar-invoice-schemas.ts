@@ -144,17 +144,16 @@ export const voidArInvoiceSchema = z.object({
   idempotency_key: z.string().max(120).optional(),
 });
 
+// AR allocations reference the money source by receipt voucher only —
+// the legacy payment-row reference was removed with the deprecated payments
+// ledger (ADR-002 / drop migration 0395).
 export const allocateArPaymentSchema = z.object({
-  payment_id: uuidSchema.optional(),
   voucher_id: uuidSchema.optional(),
   allocated_amount: moneySchema,
   unapplied_credit_amount: moneySchema.default(0),
   applied_at: dateStringSchema,
   notes: z.string().max(1000).optional(),
   idempotency_key: z.string().max(120).optional(),
-}).refine((value) => !!value.payment_id || !!value.voucher_id, {
-  message: 'payment_id or voucher_id is required',
-  path: ['payment_id'],
 });
 
 export const reverseArPaymentAllocationSchema = z.object({

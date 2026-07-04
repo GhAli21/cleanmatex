@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useMessage } from '@ui/feedback';
@@ -20,6 +20,7 @@ import {
 } from '@ui/overlays';
 import { Label, CmxTextarea } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface CancelOrderDialogProps {
   orderId: string;
@@ -30,6 +31,10 @@ interface CancelOrderDialogProps {
 }
 
 const MIN_REASON_LENGTH = 10;
+
+/** Mirrors CANCEL_DISPOSITIONS in order-cancel-financials.service (server). */
+const DISPOSITIONS = ['REFUND', 'STORE_CREDIT', 'KEEP_ON_ACCOUNT'] as const;
+type Disposition = (typeof DISPOSITIONS)[number];
 
 /**
  *
@@ -50,8 +55,33 @@ export function CancelOrderDialog({
   const isRTL = useRTL();
   const { showSuccess, showErrorFrom, showError } = useMessage();
   const transition = useOrderTransition();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const [reason, setReason] = useState('');
   const [reasonCode, setReasonCode] = useState<string>('');
+  const [paidAmount, setPaidAmount] = useState<number | null>(null);
+  const [disposition, setDisposition] = useState<Disposition>('REFUND');
+
+  // Canonical collected total decides whether a money disposition is required
+  // (FN-02): cancelling a paid order must state where the money goes. The
+  // stale reset happens in handleOpenChange (close), so this effect only
+  // syncs with the external fetch — no synchronous setState in the body.
+  useEffect(() => {
+    if (!open) return;
+    let stale = false;
+    fetch(`/api/v1/orders/${orderId}/state`, { cache: 'no-store', credentials: 'include' })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!stale) setPaidAmount(Number(body?.paymentSummary?.paid ?? 0));
+      })
+      .catch(() => {
+        if (!stale) setPaidAmount(0);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [open, orderId]);
+
+  const hasCollectedMoney = (paidAmount ?? 0) > 0.001;
 
   const handleSubmit = async () => {
     const trimmed = reason.trim();
@@ -68,6 +98,7 @@ export function CancelOrderDialog({
           to_status: 'cancelled',
           cancelled_note: trimmed,
           cancellation_reason_code: reasonCode || undefined,
+          cancellation_disposition: hasCollectedMoney ? disposition : undefined,
           useOldWfCodeOrNew: true,
         },
       });
@@ -76,6 +107,7 @@ export function CancelOrderDialog({
         showSuccess(t('success'));
         setReason('');
         setReasonCode('');
+        setDisposition('REFUND');
         onOpenChange(false);
         onSuccess?.();
       } else {
@@ -90,11 +122,18 @@ export function CancelOrderDialog({
     if (!next) {
       setReason('');
       setReasonCode('');
+      setDisposition('REFUND');
+      setPaidAmount(null);
     }
     onOpenChange(next);
   };
 
-  const canSubmit = reason.trim().length >= MIN_REASON_LENGTH && !transition.isPending;
+  const canSubmit =
+    reason.trim().length >= MIN_REASON_LENGTH &&
+    !transition.isPending &&
+    // Wait for the paid check so a paid order can never slip through without
+    // an explicit disposition.
+    paidAmount !== null;
 
   return (
     <CmxDialog open={open} onOpenChange={handleOpenChange}>
@@ -126,6 +165,40 @@ export function CancelOrderDialog({
               {t('reasonHint', { min: MIN_REASON_LENGTH })}
             </p>
           </div>
+
+          {hasCollectedMoney && (
+            <fieldset className="rounded-md border border-amber-300 bg-amber-50 p-3">
+              <legend className="px-1 text-sm font-semibold text-amber-900">
+                {t('disposition.title', { amount: formatMoneyWithCode(paidAmount ?? 0) })}
+              </legend>
+              <p className={`mb-2 text-xs text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('disposition.hint')}
+              </p>
+              <div className="space-y-2">
+                {DISPOSITIONS.map((value) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancel-disposition"
+                      value={value}
+                      checked={disposition === value}
+                      onChange={() => setDisposition(value)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium">{t(`disposition.options.${value}.label`)}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {t(`disposition.options.${value}.description`)}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           <div>
             <Label htmlFor="cancel-reason-code" className={isRTL ? 'text-right' : 'text-left'}>

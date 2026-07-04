@@ -131,7 +131,9 @@
       "invoiceOption": "Invoice {invoiceNo} — {remaining}",
       "distributeAcrossInvoices": "Distribute across all invoices (oldest first)",
       "applyToSelectedInvoice": "Apply to selected invoice",
-      "orPayPerInvoiceHint": "Alternatively, go to Billing → Invoices to record payments for each invoice separately."
+      "orPayPerInvoiceHint": "Alternatively, go to Billing → Invoices to record payments for each invoice separately.",
+      "receiveAccountPayment": "Receive payment (account receipt)",
+      "receiveAccountPaymentHint": "Opens the customer account receipt screen — take the money there and allocate it to this customer's invoices."
     },
     "paymentStatus": {
       "paid": "Paid",

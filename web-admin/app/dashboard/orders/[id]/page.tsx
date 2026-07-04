@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { getPaymentsForOrder } from '@/app/actions/payments/process-payment';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
 import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
@@ -44,9 +43,6 @@ async function OrderDetailContent({
   const tFull = await getTranslations('orders.detailFull');
   const locale = await getLocale();
 
-  const { processPayment } = await import('@/app/actions/payments/process-payment');
-  const { applyPaymentToInvoice } = await import('@/app/actions/payments/process-payment');
-
   if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
     return (
       <OrderDetailError
@@ -67,7 +63,6 @@ async function OrderDetailContent({
 
   const [
     orderResult,
-    paymentsResult,
     invoicesResult,
     financialResult,
     preferencesResult,
@@ -76,7 +71,6 @@ async function OrderDetailContent({
     canViewFinancialDebug,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
-    getPaymentsForOrder(orderId),
     getOrderInvoices(orderId),
     getOrderFinancialAction(tenantId, orderId),
     getOrderPreferencesAction(orderId),
@@ -113,8 +107,6 @@ async function OrderDetailContent({
     rounding_adjustment_amount?: number | string | null;
     financial_engine_version?: number | null;
   };
-  const allPayments = paymentsResult.success && paymentsResult.data ? paymentsResult.data : [];
-  const unappliedPayments = allPayments.filter((p) => !p.invoice_id);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
   const financialData = financialResult.success ? financialResult.data : undefined;
   const orderPreferences =
@@ -192,15 +184,12 @@ async function OrderDetailContent({
       financialData={financialData}
       orderPreferences={orderPreferences}
       orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}
-      unappliedPayments={unappliedPayments}
       orderInvoices={orderInvoices}
       vouchers={vouchers}
       editHistory={editHistory}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       canViewFinancialDebug={canViewFinancialDebug}
-      processPaymentAction={processPayment}
-      applyPaymentToInvoiceAction={applyPaymentToInvoice}
       returnUrl={searchParams?.returnUrl}
       returnLabel={searchParams?.returnLabel}
       translations={{

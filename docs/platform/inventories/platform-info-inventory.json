@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-27T00:13:29.406Z",
-  "gitSha": "ae0d722e",
+  "generatedAt": "2026-07-04T03:07:33.265Z",
+  "gitSha": "ab51b70d",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -24,18 +24,19 @@
     "web-admin/src/features/notifications/access/notifications-access.ts",
     "web-admin/src/features/orders/access/orders-access.ts",
     "web-admin/src/features/payment-config/access/payment-config-access.ts",
+    "web-admin/src/features/pos-sessions/access/pos-sessions-access.ts",
     "web-admin/src/features/reports/access/reports-access.ts",
     "web-admin/src/features/settings/access/settings-access.ts",
     "web-admin/src/features/tenant-admin/access/tenant-admin-access.ts",
     "web-admin/src/features/users/access/users-access.ts"
   ],
   "counts": {
-    "permissionUsages": 236,
+    "permissionUsages": 253,
     "featureFlagUsages": 74,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 144,
-    "navigationEntries": 99,
+    "accessContracts": 140,
+    "navigationEntries": 97,
     "flagCatalogEntries": 290
   },
   "permissionUsages": [
@@ -52,7 +53,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 66
         }
       ]
@@ -70,7 +71,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 67
         }
       ]
@@ -88,7 +89,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 68
         }
       ]
@@ -106,7 +107,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 69
         }
       ]
@@ -124,7 +125,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 70
         }
       ]
@@ -142,7 +143,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 71
         }
       ]
@@ -160,7 +161,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 72
         }
       ]
@@ -178,7 +179,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 73
         }
       ]
@@ -196,7 +197,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 74
         }
       ]
@@ -214,7 +215,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 35
         }
       ]
@@ -232,26 +233,26 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 59
         }
       ]
     },
     {
-      "id": "perm_screen:src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx_90_orders_collect_payment",
+      "id": "perm_screen:src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx_123_orders_collect_payment",
       "kind": "permission_usage",
       "permissionCode": "orders:collect_payment",
       "surface": "screen",
       "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
       "file": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
-      "line": 90,
+      "line": 123,
       "component": "useHasPermissionCode",
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 90
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 123
         }
       ]
     },
@@ -268,8 +269,116 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 64
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_91_pos_session_view_all",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:view_all",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 91,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 91
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_92_pos_session_open",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:open",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 92,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 92
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_93_pos_session_pause_resume",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:pause_resume",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 93,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 93
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_94_pos_session_close",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:close",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 94,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 94
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_95_pos_session_force_close",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:force_close",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 95,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "id": "perm_screen:src/features/pos-sessions/ui/pos-sessions-screen.tsx_96_cash_drawer_close_session",
+      "kind": "permission_usage",
+      "permissionCode": "cash_drawer:close_session",
+      "surface": "screen",
+      "route": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "file": "src/features/pos-sessions/ui/pos-sessions-screen.tsx",
+      "line": 96,
+      "component": "useHasPermissionCode",
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 96
         }
       ]
     },
@@ -286,7 +395,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 165
         }
       ]
@@ -304,7 +413,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 196
         }
       ]
@@ -322,7 +431,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 95
         }
       ]
@@ -340,26 +449,26 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 144
         }
       ]
     },
     {
-      "id": "perm_screen:lib/services/order-settlement.service.ts_421_orders_verify_payment",
+      "id": "perm_screen:lib/services/order-settlement.service.ts_445_orders_verify_payment",
       "kind": "permission_usage",
       "permissionCode": "orders:verify_payment",
       "surface": "service",
       "route": "lib/services/order-settlement.service.ts",
       "file": "lib/services/order-settlement.service.ts",
-      "line": 421,
+      "line": 445,
       "component": "requirePermission",
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 421
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 445
         }
       ]
     },
@@ -375,7 +484,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -392,7 +501,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 47
         }
       ]
@@ -409,7 +518,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 108
         }
       ]
@@ -426,7 +535,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -443,7 +552,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -460,7 +569,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -477,7 +586,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -494,7 +603,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -511,7 +620,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -528,7 +637,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -545,7 +654,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -562,7 +671,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 36
         }
       ]
@@ -579,7 +688,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -596,7 +705,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -613,7 +722,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -630,7 +739,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -647,7 +756,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -664,7 +773,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -681,7 +790,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 39
         }
       ]
@@ -698,7 +807,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -715,7 +824,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -732,7 +841,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -749,7 +858,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -766,7 +875,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -783,7 +892,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -800,7 +909,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -817,7 +926,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 20
         }
       ]
@@ -834,7 +943,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 42
         }
       ]
@@ -851,7 +960,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -868,7 +977,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -885,7 +994,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -902,7 +1011,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -919,7 +1028,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 39
         }
       ]
@@ -936,7 +1045,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -953,7 +1062,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 37
         }
       ]
@@ -970,7 +1079,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 52
         }
       ]
@@ -987,7 +1096,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 31
         }
       ]
@@ -1004,7 +1113,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 60
         }
       ]
@@ -1021,7 +1130,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 38
         }
       ]
@@ -1038,7 +1147,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 101
         }
       ]
@@ -1055,7 +1164,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 143
         }
       ]
@@ -1072,7 +1181,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 29
         }
       ]
@@ -1089,7 +1198,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 52
         }
       ]
@@ -1106,7 +1215,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 35
         }
       ]
@@ -1123,7 +1232,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 67
         }
       ]
@@ -1140,7 +1249,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 107
         }
       ]
@@ -1157,7 +1266,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 25
         }
       ]
@@ -1174,7 +1283,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -1191,7 +1300,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -1208,7 +1317,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 30
         }
       ]
@@ -1225,7 +1334,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 62
         }
       ]
@@ -1242,7 +1351,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 10
         }
       ]
@@ -1259,7 +1368,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -1276,7 +1385,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -1293,7 +1402,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 25
         }
       ]
@@ -1310,7 +1419,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -1327,7 +1436,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 23
         }
       ]
@@ -1344,7 +1453,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 63
         }
       ]
@@ -1361,7 +1470,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -1378,7 +1487,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -1395,7 +1504,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 51
         }
       ]
@@ -1412,7 +1521,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -1429,7 +1538,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 90
         }
       ]
@@ -1446,7 +1555,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -1463,7 +1572,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 55
         }
       ]
@@ -1480,7 +1589,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -1497,7 +1606,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 82
         }
       ]
@@ -1514,7 +1623,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 25
         }
       ]
@@ -1531,7 +1640,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 55
         }
       ]
@@ -1548,7 +1657,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -1565,7 +1674,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -1582,7 +1691,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -1599,7 +1708,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 55
         }
       ]
@@ -1616,7 +1725,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -1633,7 +1742,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 90
         }
       ]
@@ -1650,7 +1759,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -1667,7 +1776,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 23
         }
       ]
@@ -1684,7 +1793,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 58
         }
       ]
@@ -1701,7 +1810,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -1718,7 +1827,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 74
         }
       ]
@@ -1735,7 +1844,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 133
         }
       ]
@@ -1752,7 +1861,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 57
         }
       ]
@@ -1769,7 +1878,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -1786,7 +1895,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -1803,7 +1912,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 28
         }
       ]
@@ -1820,7 +1929,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -1837,7 +1946,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -1854,7 +1963,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -1871,7 +1980,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 43
         }
       ]
@@ -1888,7 +1997,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 126
         }
       ]
@@ -1905,7 +2014,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 214
         }
       ]
@@ -1922,7 +2031,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -1939,7 +2048,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 74
         }
       ]
@@ -1956,7 +2065,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 140
         }
       ]
@@ -1973,7 +2082,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -1990,7 +2099,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -2007,7 +2116,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -2024,7 +2133,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -2041,7 +2150,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 29
         }
       ]
@@ -2058,7 +2167,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -2075,7 +2184,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 43
         }
       ]
@@ -2092,8 +2201,25 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 46
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/finance/reports/money-position/route.ts_16_finance_reports_view",
+      "kind": "permission_usage",
+      "permissionCode": "finance_reports:view",
+      "surface": "api",
+      "route": "/api/v1/finance/reports/money-position",
+      "file": "app/api/v1/finance/reports/money-position/route.ts",
+      "line": 16,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 16
         }
       ]
     },
@@ -2109,7 +2235,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -2126,7 +2252,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 11
         }
       ]
@@ -2143,7 +2269,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -2160,7 +2286,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -2177,7 +2303,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -2194,7 +2320,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -2211,7 +2337,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 11
         }
       ]
@@ -2228,7 +2354,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2245,7 +2371,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 11
         }
       ]
@@ -2262,7 +2388,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 11
         }
       ]
@@ -2279,7 +2405,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 11
         }
       ]
@@ -2296,7 +2422,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -2313,7 +2439,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 49
         }
       ]
@@ -2330,7 +2456,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2347,7 +2473,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -2364,7 +2490,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 43
         }
       ]
@@ -2381,7 +2507,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2398,7 +2524,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 18
         }
       ]
@@ -2415,7 +2541,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 37
         }
       ]
@@ -2432,7 +2558,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2449,7 +2575,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -2466,7 +2592,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 42
         }
       ]
@@ -2483,7 +2609,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2500,7 +2626,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -2517,7 +2643,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 14
         }
       ]
@@ -2534,7 +2660,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 43
         }
       ]
@@ -2551,7 +2677,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 24
         }
       ]
@@ -2568,7 +2694,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -2585,7 +2711,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 50
         }
       ]
@@ -2602,7 +2728,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -2619,7 +2745,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -2636,7 +2762,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 61
         }
       ]
@@ -2653,7 +2779,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 109
         }
       ]
@@ -2670,7 +2796,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 38
         }
       ]
@@ -2687,7 +2813,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 96
         }
       ]
@@ -2704,7 +2830,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 24
         }
       ]
@@ -2721,7 +2847,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 61
         }
       ]
@@ -2738,7 +2864,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 121
         }
       ]
@@ -2755,7 +2881,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 29
         }
       ]
@@ -2772,7 +2898,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -2789,7 +2915,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -2806,7 +2932,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -2823,7 +2949,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 32
         }
       ]
@@ -2840,7 +2966,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 70
         }
       ]
@@ -2857,7 +2983,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 133
         }
       ]
@@ -2874,7 +3000,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 209
         }
       ]
@@ -2891,7 +3017,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -2908,7 +3034,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 53
         }
       ]
@@ -2925,7 +3051,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -2942,7 +3068,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 17
         }
       ]
@@ -2959,7 +3085,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 44
         }
       ]
@@ -2976,7 +3102,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -2993,7 +3119,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 36
         }
       ]
@@ -3010,7 +3136,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -3027,7 +3153,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -3044,7 +3170,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -3061,7 +3187,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 19
         }
       ]
@@ -3078,7 +3204,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 34
         }
       ]
@@ -3095,7 +3221,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 192
         }
       ]
@@ -3112,7 +3238,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 72
         }
       ]
@@ -3129,7 +3255,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 38
         }
       ]
@@ -3146,25 +3272,25 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 44
         }
       ]
     },
     {
-      "id": "perm_api:app/api/v1/orders/_id_/collect-payment/route.ts_35_orders_collect_payment",
+      "id": "perm_api:app/api/v1/orders/_id_/collect-payment/route.ts_36_orders_collect_payment",
       "kind": "permission_usage",
       "permissionCode": "orders:collect_payment",
       "surface": "api",
       "route": "/api/v1/orders/[id]/collect-payment",
       "file": "app/api/v1/orders/[id]/collect-payment/route.ts",
-      "line": 35,
+      "line": 36,
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 35
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 36
         }
       ]
     },
@@ -3180,7 +3306,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 24
         }
       ]
@@ -3197,7 +3323,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 35
         }
       ]
@@ -3214,7 +3340,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 38
         }
       ]
@@ -3231,7 +3357,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 31
         }
       ]
@@ -3248,7 +3374,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 15
         }
       ]
@@ -3265,7 +3391,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 30
         }
       ]
@@ -3282,7 +3408,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -3299,7 +3425,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -3316,7 +3442,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 94
         }
       ]
@@ -3333,7 +3459,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 192
         }
       ]
@@ -3350,7 +3476,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 24
         }
       ]
@@ -3367,7 +3493,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -3384,7 +3510,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 31
         }
       ]
@@ -3401,7 +3527,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 27
         }
       ]
@@ -3418,7 +3544,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 102
         }
       ]
@@ -3435,7 +3561,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 193
         }
       ]
@@ -3452,7 +3578,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 26
         }
       ]
@@ -3469,7 +3595,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 30
         }
       ]
@@ -3486,7 +3612,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 97
         }
       ]
@@ -3503,7 +3629,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 155
         }
       ]
@@ -3520,7 +3646,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 30
         }
       ]
@@ -3537,7 +3663,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 82
         }
       ]
@@ -3554,25 +3680,25 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 139
         }
       ]
     },
     {
-      "id": "perm_api:app/api/v1/orders/_id_/payments/route.ts_39_orders_collect_payment",
+      "id": "perm_api:app/api/v1/orders/_id_/payments/route.ts_40_orders_collect_payment",
       "kind": "permission_usage",
       "permissionCode": "orders:collect_payment",
       "surface": "api",
       "route": "/api/v1/orders/[id]/payments",
       "file": "app/api/v1/orders/[id]/payments/route.ts",
-      "line": 39,
+      "line": 40,
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 39
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 40
         }
       ]
     },
@@ -3588,7 +3714,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 42
         }
       ]
@@ -3605,59 +3731,93 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 29
         }
       ]
     },
     {
-      "id": "perm_api:app/api/v1/orders/_id_/refund/route.ts_46_orders_process_refund",
+      "id": "perm_api:app/api/v1/orders/_id_/refund/route.ts_47_orders_process_refund",
       "kind": "permission_usage",
       "permissionCode": "orders:process_refund",
       "surface": "api",
       "route": "/api/v1/orders/[id]/refund",
       "file": "app/api/v1/orders/[id]/refund/route.ts",
-      "line": 46,
+      "line": 47,
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 46
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 47
         }
       ]
     },
     {
-      "id": "perm_api:app/api/v1/orders/_id_/refunds/route.ts_53_orders_view_financial_breakdown",
+      "id": "perm_api:app/api/v1/orders/_id_/refunds/route.ts_54_orders_view_financial_breakdown",
       "kind": "permission_usage",
       "permissionCode": "orders:view_financial_breakdown",
       "surface": "api",
       "route": "/api/v1/orders/[id]/refunds",
       "file": "app/api/v1/orders/[id]/refunds/route.ts",
-      "line": 53,
+      "line": 54,
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 53
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 54
         }
       ]
     },
     {
-      "id": "perm_api:app/api/v1/orders/_id_/refunds/route.ts_88_orders_process_refund",
+      "id": "perm_api:app/api/v1/orders/_id_/refunds/route.ts_89_orders_process_refund",
       "kind": "permission_usage",
       "permissionCode": "orders:process_refund",
       "surface": "api",
       "route": "/api/v1/orders/[id]/refunds",
       "file": "app/api/v1/orders/[id]/refunds/route.ts",
-      "line": 88,
+      "line": 89,
       "provenance": [
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 88
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 89
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/orders/_id_/report/invoices-payments-rprt/route.ts_53_orders_read",
+      "kind": "permission_usage",
+      "permissionCode": "orders:read",
+      "surface": "api",
+      "route": "/api/v1/orders/[id]/report/invoices-payments-rprt",
+      "file": "app/api/v1/orders/[id]/report/invoices-payments-rprt/route.ts",
+      "line": 53,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 53
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/orders/_id_/report/payments-rprt/route.ts_38_orders_read",
+      "kind": "permission_usage",
+      "permissionCode": "orders:read",
+      "surface": "api",
+      "route": "/api/v1/orders/[id]/report/payments-rprt",
+      "file": "app/api/v1/orders/[id]/report/payments-rprt/route.ts",
+      "line": 38,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 38
         }
       ]
     },
@@ -3673,7 +3833,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 37
         }
       ]
@@ -3690,7 +3850,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 175
         }
       ]
@@ -3707,7 +3867,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 37
         }
       ]
@@ -3724,8 +3884,161 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 20
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/close/route.ts_12_pos_session_close",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:close",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/close",
+      "file": "app/api/v1/pos-sessions/close/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/ensure-for-order-entry/route.ts_12_pos_session_open",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:open",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/ensure-for-order-entry",
+      "file": "app/api/v1/pos-sessions/ensure-for-order-entry/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/force-close/route.ts_12_pos_session_force_close",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:force_close",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/force-close",
+      "file": "app/api/v1/pos-sessions/force-close/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/my-active/route.ts_8_pos_session_view",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:view",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/my-active",
+      "file": "app/api/v1/pos-sessions/my-active/route.ts",
+      "line": 8,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/open/route.ts_12_pos_session_open",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:open",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/open",
+      "file": "app/api/v1/pos-sessions/open/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/pause/route.ts_12_pos_session_pause_resume",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:pause_resume",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/pause",
+      "file": "app/api/v1/pos-sessions/pause/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/resume/route.ts_12_pos_session_pause_resume",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:pause_resume",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/resume",
+      "file": "app/api/v1/pos-sessions/resume/route.ts",
+      "line": 12,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/route.ts_9_pos_session_view",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:view",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions",
+      "file": "app/api/v1/pos-sessions/route.ts",
+      "line": 9,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "id": "perm_api:app/api/v1/pos-sessions/_sessionId_/summary/route.ts_11_pos_session_view",
+      "kind": "permission_usage",
+      "permissionCode": "pos_session:view",
+      "surface": "api",
+      "route": "/api/v1/pos-sessions/[sessionId]/summary",
+      "file": "app/api/v1/pos-sessions/[sessionId]/summary/route.ts",
+      "line": 11,
+      "provenance": [
+        {
+          "sourceType": "extracted-permissions-json",
+          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
+          "line": 11
         }
       ]
     },
@@ -3741,7 +4054,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
         }
       ]
@@ -3758,7 +4071,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 21
         }
       ]
@@ -3775,25 +4088,8 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 22
-        }
-      ]
-    },
-    {
-      "id": "perm_api:app/api/v1/products/route.ts_82_catalog_read",
-      "kind": "permission_usage",
-      "permissionCode": "catalog:read",
-      "surface": "api",
-      "route": "/api/v1/products",
-      "file": "app/api/v1/products/route.ts",
-      "line": 82,
-      "provenance": [
-        {
-          "sourceType": "extracted-permissions-json",
-          "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
-          "line": 82
         }
       ]
     },
@@ -3809,7 +4105,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 32
         }
       ]
@@ -3826,7 +4122,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 45
         }
       ]
@@ -3843,7 +4139,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 75
         }
       ]
@@ -3860,7 +4156,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 83
         }
       ]
@@ -3877,7 +4173,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 115
         }
       ]
@@ -3894,7 +4190,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 16
         }
       ]
@@ -3911,7 +4207,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 39
         }
       ]
@@ -3928,7 +4224,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 12
         }
       ]
@@ -3945,7 +4241,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 32
         }
       ]
@@ -3962,7 +4258,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 13
         }
       ]
@@ -3979,7 +4275,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 57
         }
       ]
@@ -3996,7 +4292,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 13
         }
       ]
@@ -4013,7 +4309,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 55
         }
       ]
@@ -4030,7 +4326,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 13
         }
       ]
@@ -4047,7 +4343,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 51
         }
       ]
@@ -4064,7 +4360,7 @@
         {
           "sourceType": "extracted-permissions-json",
           "sourcePath": "docs/platform/permissions/extracted-permissions.json",
-          "extractedAt": "2026-06-26T15:52:21.918Z",
+          "extractedAt": "2026-07-04T03:07:15.293Z",
           "line": 29
         }
       ]
@@ -4083,7 +4379,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 23
         }
       ]
@@ -4100,7 +4396,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 88
         }
       ]
@@ -4117,7 +4413,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 125
         }
       ]
@@ -4134,7 +4430,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 34
         }
       ]
@@ -4151,7 +4447,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 402
         }
       ]
@@ -4168,7 +4464,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 142
         }
       ]
@@ -4185,7 +4481,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 197
         }
       ]
@@ -4202,7 +4498,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 214
         }
       ]
@@ -4219,7 +4515,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 247
         }
       ]
@@ -4236,7 +4532,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 299
         }
       ]
@@ -4253,7 +4549,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 337
         }
       ]
@@ -4270,7 +4566,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 360
         }
       ]
@@ -4287,42 +4583,42 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 63
         }
       ]
     },
     {
-      "id": "flag:lib/services/workflow-service-enhanced.ts_221_getFeatureFlags",
+      "id": "flag:lib/services/workflow-service-enhanced.ts_263_getFeatureFlags",
       "kind": "feature_flag_usage",
       "flagKey": "getFeatureFlags",
       "surface": "service",
       "file": "lib/services/workflow-service-enhanced.ts",
-      "line": 221,
+      "line": 263,
       "context": "const featureFlags = await getFeatureFlags(tenantId);",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 221
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 263
         }
       ]
     },
     {
-      "id": "flag:lib/services/workflow-service-enhanced.ts_422_getFeatureFlags",
+      "id": "flag:lib/services/workflow-service-enhanced.ts_456_getFeatureFlags",
       "kind": "feature_flag_usage",
       "flagKey": "getFeatureFlags",
       "surface": "service",
       "file": "lib/services/workflow-service-enhanced.ts",
-      "line": 422,
+      "line": 456,
       "context": "const flags = await getFeatureFlags(tenantId);",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 422
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 456
         }
       ]
     },
@@ -4338,7 +4634,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 360
         }
       ]
@@ -4355,7 +4651,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 683
         }
       ]
@@ -4372,331 +4668,331 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 11
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_576_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_571_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 576,
+      "line": 571,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 576
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 571
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_584_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_579_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 584,
+      "line": 579,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 584
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 579
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_593_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_588_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 593,
+      "line": 588,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 593
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 588
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_601_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_596_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 601,
+      "line": 596,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 601
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 596
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_609_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_604_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 609,
+      "line": 604,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 609
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 604
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_617_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_612_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 617,
+      "line": 612,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 617
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 612
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_625_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_620_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 625,
+      "line": 620,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 625
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 620
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_633_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_628_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 633,
+      "line": 628,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 633
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 628
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_641_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_636_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 641,
+      "line": 636,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 641
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 636
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_649_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_644_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 649,
+      "line": 644,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 649
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 644
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_657_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_652_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 657,
+      "line": 652,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 657
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 652
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_665_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_660_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 665,
+      "line": 660,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 665
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 660
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_673_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_668_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 673,
+      "line": 668,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 673
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 668
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_681_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_676_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 681,
+      "line": 676,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 681
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 676
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_689_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_684_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 689,
+      "line": 684,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 689
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 684
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_697_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_692_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 697,
+      "line": 692,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 697
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 692
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_705_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_700_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 705,
+      "line": 700,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 705
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 700
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_713_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_708_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 713,
+      "line": 708,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 713
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 708
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_721_erp_lite_enabled",
+      "id": "flag:config/navigation.ts_716_erp_lite_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 721,
+      "line": 716,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 721
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 716
         }
       ]
     },
@@ -4712,7 +5008,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 406
         }
       ]
@@ -4729,7 +5025,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 231
         }
       ]
@@ -4746,7 +5042,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 271
         }
       ]
@@ -4763,7 +5059,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 528
         }
       ]
@@ -4780,7 +5076,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 665
         }
       ]
@@ -4797,7 +5093,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 25
         }
       ]
@@ -4814,7 +5110,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 43
         }
       ]
@@ -4831,7 +5127,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 282
         }
       ]
@@ -4848,7 +5144,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 290
         }
       ]
@@ -4865,7 +5161,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 298
         }
       ]
@@ -4882,7 +5178,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 306
         }
       ]
@@ -4899,7 +5195,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 30
         }
       ]
@@ -4916,7 +5212,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 71
         }
       ]
@@ -4933,7 +5229,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 38
         }
       ]
@@ -4950,7 +5246,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 28
         }
       ]
@@ -4967,7 +5263,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 531
         }
       ]
@@ -4984,7 +5280,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 666
         }
       ]
@@ -5001,7 +5297,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 534
         }
       ]
@@ -5018,7 +5314,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 667
         }
       ]
@@ -5035,7 +5331,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 201
         }
       ]
@@ -5052,7 +5348,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 209
         }
       ]
@@ -5069,7 +5365,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 217
         }
       ]
@@ -5086,7 +5382,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 537
         }
       ]
@@ -5103,7 +5399,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 668
         }
       ]
@@ -5120,7 +5416,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 540
         }
       ]
@@ -5137,7 +5433,7 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 670
         }
       ]
@@ -5154,178 +5450,178 @@
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
+          "extractedAt": "2026-07-04T02:42:17.329Z",
           "line": 669
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_519_advanced_analytics",
+      "id": "flag:config/navigation.ts_514_advanced_analytics",
       "kind": "feature_flag_usage",
       "flagKey": "advanced_analytics",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 519,
+      "line": 514,
       "context": "//featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 519
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 514
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_649_erp_lite_gl_enabled",
+      "id": "flag:config/navigation.ts_644_erp_lite_gl_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_gl_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 649,
+      "line": 644,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 649
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 644
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_657_erp_lite_gl_enabled",
+      "id": "flag:config/navigation.ts_652_erp_lite_gl_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_gl_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 657,
+      "line": 652,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 657
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 652
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_673_erp_lite_ar_enabled",
+      "id": "flag:config/navigation.ts_668_erp_lite_ar_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_ar_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 673,
+      "line": 668,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 673
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 668
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_681_erp_lite_ap_enabled",
+      "id": "flag:config/navigation.ts_676_erp_lite_ap_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_ap_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 681,
+      "line": 676,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 681
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 676
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_689_erp_lite_po_enabled",
+      "id": "flag:config/navigation.ts_684_erp_lite_po_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_po_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 689,
+      "line": 684,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 689
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 684
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_697_erp_lite_expenses_enabled",
+      "id": "flag:config/navigation.ts_692_erp_lite_expenses_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_expenses_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 697,
+      "line": 692,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 697
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 692
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_705_erp_lite_bank_recon_enabled",
+      "id": "flag:config/navigation.ts_700_erp_lite_bank_recon_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_bank_recon_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 705,
+      "line": 700,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 705
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 700
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_713_erp_lite_branch_pl_enabled",
+      "id": "flag:config/navigation.ts_708_erp_lite_branch_pl_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "erp_lite_branch_pl_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 713,
+      "line": 708,
       "context": "featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 713
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 708
         }
       ]
     },
     {
-      "id": "flag:config/navigation.ts_777_campaigns_enabled",
+      "id": "flag:config/navigation.ts_772_campaigns_enabled",
       "kind": "feature_flag_usage",
       "flagKey": "campaigns_enabled",
       "surface": "navigation",
       "file": "config/navigation.ts",
-      "line": 777,
+      "line": 772,
       "context": "featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED,",
       "provenance": [
         {
           "sourceType": "extracted-feature-flags-json",
           "sourcePath": "docs/platform/feature_flags/extracted-feature-flags-usage.json",
-          "extractedAt": "2026-06-26T15:52:22.841Z",
-          "line": 777
+          "extractedAt": "2026-07-04T02:42:17.329Z",
+          "line": 772
         }
       ]
     }
@@ -5343,7 +5639,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 49
         }
       ]
@@ -5360,7 +5656,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 61
         }
       ]
@@ -5377,7 +5673,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 69
         }
       ]
@@ -5394,7 +5690,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 79
         }
       ]
@@ -5411,7 +5707,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 53
         }
       ]
@@ -5428,7 +5724,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 403
         }
       ]
@@ -5445,7 +5741,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 853
         }
       ]
@@ -5462,7 +5758,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 78
         }
       ]
@@ -5479,7 +5775,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 113
         }
       ]
@@ -5496,7 +5792,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 74
         }
       ]
@@ -5513,7 +5809,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 29
         }
       ]
@@ -5530,7 +5826,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 47
         }
       ]
@@ -5547,7 +5843,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 1002
         }
       ]
@@ -5564,7 +5860,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 221
         }
       ]
@@ -5581,7 +5877,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 264
         }
       ]
@@ -5598,7 +5894,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 265
         }
       ]
@@ -5615,7 +5911,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 266
         }
       ]
@@ -5632,7 +5928,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 27
         }
       ]
@@ -5649,7 +5945,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 5
         }
       ]
@@ -5666,7 +5962,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 80
         }
       ]
@@ -5683,7 +5979,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 281
         }
       ]
@@ -5700,7 +5996,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 183
         }
       ]
@@ -5717,7 +6013,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 184
         }
       ]
@@ -5734,7 +6030,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 185
         }
       ]
@@ -5751,7 +6047,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 186
         }
       ]
@@ -5768,7 +6064,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 187
         }
       ]
@@ -5785,7 +6081,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 38
         }
       ]
@@ -5802,7 +6098,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 188
         }
       ]
@@ -5819,7 +6115,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 39
         }
       ]
@@ -5836,7 +6132,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 189
         }
       ]
@@ -5853,7 +6149,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 40
         }
       ]
@@ -5870,7 +6166,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 235
         }
       ]
@@ -5887,7 +6183,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 269
         }
       ]
@@ -5904,7 +6200,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 270
         }
       ]
@@ -5921,7 +6217,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 271
         }
       ]
@@ -5938,7 +6234,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 28
         }
       ]
@@ -5955,7 +6251,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 249
         }
       ]
@@ -5972,7 +6268,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 30
         }
       ]
@@ -5989,7 +6285,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 41
         }
       ]
@@ -6006,7 +6302,7 @@
         {
           "sourceType": "extracted-settings-json",
           "sourcePath": "docs/platform/settings/extracted-settings-usage.json",
-          "extractedAt": "2026-06-26T15:52:23.752Z",
+          "extractedAt": "2026-07-04T02:42:18.038Z",
           "line": 46
         }
       ]
@@ -6026,7 +6322,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 189
         }
       ]
@@ -6044,7 +6340,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 233
         }
       ]
@@ -6062,7 +6358,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 252
         }
       ]
@@ -6080,7 +6376,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 189
         }
       ]
@@ -6098,7 +6394,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 233
         }
       ]
@@ -6116,7 +6412,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 252
         }
       ]
@@ -6134,7 +6430,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 104
         }
       ]
@@ -6152,7 +6448,7 @@
         {
           "sourceType": "extracted-plan-limits-json",
           "sourcePath": "docs/platform/plan_limits/extracted-plan-limits-usage.json",
-          "extractedAt": "2026-06-26T15:52:24.627Z",
+          "extractedAt": "2026-07-04T02:42:18.797Z",
           "line": 142
         }
       ]
@@ -6703,94 +6999,6 @@
       ]
     },
     {
-      "id": "access_contract:/dashboard/internal_fin/payments",
-      "kind": "access_contract",
-      "routePattern": "/dashboard/internal_fin/payments",
-      "label": "Payments",
-      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
-      "page": {
-        "permissions": [],
-        "permissionPrefixes": [],
-        "featureFlags": [],
-        "workflowRoles": [],
-        "tenantRoles": []
-      },
-      "actions": [],
-      "apiDependencyCount": 1,
-      "provenance": [
-        {
-          "sourceType": "access-contract-ts",
-          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
-        }
-      ]
-    },
-    {
-      "id": "access_contract:/dashboard/internal_fin/payments/new",
-      "kind": "access_contract",
-      "routePattern": "/dashboard/internal_fin/payments/new",
-      "label": "New Payment",
-      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
-      "page": {
-        "permissions": [],
-        "permissionPrefixes": [],
-        "featureFlags": [],
-        "workflowRoles": [],
-        "tenantRoles": []
-      },
-      "actions": [],
-      "apiDependencyCount": 0,
-      "provenance": [
-        {
-          "sourceType": "access-contract-ts",
-          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
-        }
-      ]
-    },
-    {
-      "id": "access_contract:/dashboard/internal_fin/payments/_id_",
-      "kind": "access_contract",
-      "routePattern": "/dashboard/internal_fin/payments/[id]",
-      "label": "Payment Details",
-      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
-      "page": {
-        "permissions": [],
-        "permissionPrefixes": [],
-        "featureFlags": [],
-        "workflowRoles": [],
-        "tenantRoles": []
-      },
-      "actions": [],
-      "apiDependencyCount": 1,
-      "provenance": [
-        {
-          "sourceType": "access-contract-ts",
-          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
-        }
-      ]
-    },
-    {
-      "id": "access_contract:/dashboard/internal_fin/payments/_id_/print/receipt-voucher",
-      "kind": "access_contract",
-      "routePattern": "/dashboard/internal_fin/payments/[id]/print/receipt-voucher",
-      "label": "Print Receipt Voucher",
-      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
-      "page": {
-        "permissions": [],
-        "permissionPrefixes": [],
-        "featureFlags": [],
-        "workflowRoles": [],
-        "tenantRoles": []
-      },
-      "actions": [],
-      "apiDependencyCount": 0,
-      "provenance": [
-        {
-          "sourceType": "access-contract-ts",
-          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
-        }
-      ]
-    },
-    {
       "id": "access_contract:/dashboard/internal_fin/cash-drawers",
       "kind": "access_contract",
       "routePattern": "/dashboard/internal_fin/cash-drawers",
@@ -6930,28 +7138,6 @@
         "workflowRoles": [],
         "tenantRoles": [],
         "requireAllPermissions": true
-      },
-      "actions": [],
-      "apiDependencyCount": 0,
-      "provenance": [
-        {
-          "sourceType": "access-contract-ts",
-          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
-        }
-      ]
-    },
-    {
-      "id": "access_contract:/dashboard/internal_fin/cashup",
-      "kind": "access_contract",
-      "routePattern": "/dashboard/internal_fin/cashup",
-      "label": "Cash Up",
-      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
-      "page": {
-        "permissions": [],
-        "permissionPrefixes": [],
-        "featureFlags": [],
-        "workflowRoles": [],
-        "tenantRoles": []
       },
       "actions": [],
       "apiDependencyCount": 0,
@@ -8615,14 +8801,17 @@
       "label": "Order Details",
       "sourceFile": "web-admin/src/features/orders/access/orders-access.ts",
       "page": {
-        "permissions": [],
+        "permissions": [
+          "orders:view_financial_breakdown"
+        ],
         "permissionPrefixes": [],
         "featureFlags": [],
         "workflowRoles": [],
-        "tenantRoles": []
+        "tenantRoles": [],
+        "requireAllPermissions": true
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -8644,7 +8833,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -8666,7 +8855,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -8688,7 +8877,7 @@
         "tenantRoles": []
       },
       "actions": [],
-      "apiDependencyCount": 0,
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -9048,6 +9237,98 @@
         {
           "sourceType": "access-contract-ts",
           "sourcePath": "web-admin/src/features/payment-config/access/payment-config-access.ts"
+        }
+      ]
+    },
+    {
+      "id": "access_contract:/dashboard/internal_fin/pos-sessions",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/internal_fin/pos-sessions",
+      "label": "POS Sessions",
+      "sourceFile": "web-admin/src/features/pos-sessions/access/pos-sessions-access.ts",
+      "page": {
+        "permissions": [
+          "pos_session:view"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [
+        {
+          "actionKey": "openPosSession",
+          "label": "Open POS session",
+          "permissions": [
+            "pos_session:open"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "pauseResumePosSession",
+          "label": "Pause or resume POS session",
+          "permissions": [
+            "pos_session:pause_resume"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "closePosSession",
+          "label": "Close POS session",
+          "permissions": [
+            "pos_session:close"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "forceClosePosSession",
+          "label": "Force-close POS session",
+          "permissions": [
+            "pos_session:force_close"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "viewAllPosSessions",
+          "label": "View all POS sessions",
+          "permissions": [
+            "pos_session:view_all"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "closeLinkedCashDrawer",
+          "label": "Close linked cash drawer session",
+          "permissions": [
+            "cash_drawer:close_session"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        }
+      ],
+      "apiDependencyCount": 1,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/pos-sessions/access/pos-sessions-access.ts"
         }
       ]
     },
@@ -10664,69 +10945,6 @@
       "label": "Receipt Vouchers",
       "path": "/dashboard/internal_fin/vouchers",
       "depth": "section",
-      "permissions": [],
-      "roles": [
-        "super_admin",
-        "tenant_admin",
-        "admin",
-        "operator"
-      ],
-      "provenance": [
-        {
-          "sourceType": "navigation-ts",
-          "sourcePath": "web-admin/config/navigation.ts"
-        }
-      ]
-    },
-    {
-      "id": "nav:section_billing_payments_/dashboard/internal_fin/payments",
-      "kind": "navigation_entry",
-      "key": "billing_payments",
-      "label": "Payments",
-      "path": "/dashboard/internal_fin/payments",
-      "depth": "section",
-      "permissions": [],
-      "roles": [
-        "super_admin",
-        "tenant_admin",
-        "admin",
-        "operator"
-      ],
-      "provenance": [
-        {
-          "sourceType": "navigation-ts",
-          "sourcePath": "web-admin/config/navigation.ts"
-        }
-      ]
-    },
-    {
-      "id": "nav:section_billing_cashup_/dashboard/internal_fin/cashup",
-      "kind": "navigation_entry",
-      "key": "billing_cashup",
-      "label": "Cash Up",
-      "path": "/dashboard/internal_fin/cashup",
-      "depth": "section",
-      "permissions": [],
-      "roles": [
-        "super_admin",
-        "tenant_admin",
-        "admin",
-        "operator"
-      ],
-      "provenance": [
-        {
-          "sourceType": "navigation-ts",
-          "sourcePath": "web-admin/config/navigation.ts"
-        }
-      ]
-    },
-    {
-      "id": "nav:section_billing_cash_drawers_/dashboard/internal_fin/cash-drawers",
-      "kind": "navigation_entry",
-      "key": "billing_cash_drawers",
-      "label": "Cash Drawers",
-      "path": "/dashboard/internal_fin/cash-drawers",
-      "depth": "section",
       "permissions": [
         "cash_drawer:view"
       ],
@@ -10734,8 +10952,32 @@
         "super_admin",
         "tenant_admin",
         "admin",
-        "branch_manager",
         "operator"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
+      "id": "nav:section_billing_pos_sessions_/dashboard/internal_fin/pos-sessions",
+      "kind": "navigation_entry",
+      "key": "billing_pos_sessions",
+      "label": "POS Sessions",
+      "path": "/dashboard/internal_fin/pos-sessions",
+      "depth": "section",
+      "permissions": [
+        "pos_session:view"
+      ],
+      "roles": [
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "branch_manager",
+        "operator",
+        "cashier"
       ],
       "provenance": [
         {
@@ -16649,11 +16891,20 @@
       ]
     }
   ],
-  "driftItems": [],
+  "driftItems": [
+    {
+      "id": "nav_contract_permission_mismatch:/dashboard/internal_fin/vouchers",
+      "kind": "nav_contract_permission_mismatch",
+      "severity": "warn",
+      "message": "Navigation permissions differ from contract for /dashboard/internal_fin/vouchers",
+      "path": "/dashboard/internal_fin/vouchers",
+      "isKnownException": false
+    }
+  ],
   "driftCounts": {
     "errors": 0,
-    "warnings": 0,
-    "total": 0,
-    "newDrift": 0
+    "warnings": 1,
+    "total": 1,
+    "newDrift": 1
   }
 }

@@ -52,21 +52,9 @@ export async function deleteOrderAction(
           throw new Error('Order not found or access denied');
         }
 
-        // Get invoice ids for this order (to delete payments first)
-        const invoices = await tx.org_invoice_mst.findMany({
+        await tx.org_invoice_mst.deleteMany({
           where: { order_id: id, tenant_org_id: tenantId },
-          select: { id: true },
         });
-        const invoiceIds = invoices.map((i) => i.id);
-
-        if (invoiceIds.length > 0) {
-          await tx.org_payments_dtl_tr.deleteMany({
-            where: { invoice_id: { in: invoiceIds } },
-          });
-          await tx.org_invoice_mst.deleteMany({
-            where: { order_id: id, tenant_org_id: tenantId },
-          });
-        }
 
         await tx.org_order_item_pieces_dtl.deleteMany({
           where: { order_id: id, tenant_org_id: tenantId },

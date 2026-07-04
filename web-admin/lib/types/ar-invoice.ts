@@ -129,7 +129,6 @@ export interface ArInvoiceOrderLink {
 export interface ArInvoicePaymentAllocation {
   id: string;
   invoice_id: string;
-  payment_id?: string;
   voucher_id?: string;
   allocation_no: number;
   allocation_outcome: ArAllocationOutcome;

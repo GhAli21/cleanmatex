@@ -22,6 +22,10 @@
 0294 (permissions seed) — no schema deps
 0295 (navigation seed)  — no schema deps
 0296 (pg_cron jobs)     — no schema deps
+0396 (POS session catalogs + permissions + component metadata) — no schema deps
+  └─→ 0397 (POS session master/events)
+        └─→ 0398 (nullable POS lineage links on active finance tables)
+0399 (POS sessions navigation seed) — no schema deps
 ```
 
 ## ER Diagram (Mermaid)
@@ -50,6 +54,10 @@ erDiagram
 
   org_cash_drawers_cf ||--o{ org_cash_drawer_sessions_mst : "has"
   org_cash_drawer_sessions_mst ||--o{ org_cash_drawer_movements_dtl : "has"
+  org_pos_sessions_mst ||--o{ org_pos_session_events_dtl : "audits"
+  org_pos_sessions_mst ||--o{ org_order_payments_dtl : "traces"
+  org_pos_sessions_mst ||--o{ org_order_refunds_dtl : "traces"
+  org_pos_sessions_mst ||--o{ org_fin_voucher_trx_lines_dtl : "traces"
 
   org_reconciliation_runs_mst ||--o{ org_reconciliation_issues_dtl : "produces"
 ```
@@ -105,6 +113,7 @@ One row per REAL_PAYMENT leg.
 | tendered_amount | DECIMAL(19,4) | Cash handed over |
 | change_returned_amount | DECIMAL(19,4) | Overpayment returned |
 | cash_drawer_session_id | UUID | FK when requiresCashDrawer=true |
+| pos_session_id | UUID | Optional operational POS lineage; not cash reconciliation truth |
 | payment_status | TEXT | COMPLETED, FAILED, VOIDED |
 
 **`org_order_credit_apps_dtl`**
@@ -128,6 +137,37 @@ One row per refund request.
 | requested_by | UUID | Staff who initiated |
 | approved_by | UUID | Manager who approved |
 | processed_at | TIMESTAMPTZ | When reversal was executed |
+| pos_session_id | UUID | Optional operational POS lineage for POS-aware refunds |
+
+### POS Session Tables
+
+**`org_pos_sessions_mst`**
+User-owned operational POS work period. One active row is allowed per `tenant_org_id + user_id` while status is `OPEN` or `PAUSED`. `terminal_id` is optional session context and is not unique. `cash_drawer_session_id` may link to the physical drawer session, but cash reconciliation remains owned by the drawer session.
+
+| Column | Type | Notes |
+|---|---|---|
+| tenant_org_id | UUID | RLS filter |
+| branch_id | UUID | Branch where the POS session was opened |
+| user_id | UUID | Authenticated cashier/operator owner |
+| terminal_id | UUID | Optional payment terminal context |
+| cash_drawer_id | UUID | Optional drawer context |
+| cash_drawer_session_id | UUID | Optional physical drawer session link |
+| session_no | TEXT | Unique per tenant + branch |
+| business_date | DATE | Fixed at open time |
+| business_timezone | TEXT | Timezone snapshot used for business date |
+| status | TEXT | OPEN, PAUSED, CLOSED, FORCE_CLOSED |
+
+**`org_pos_session_events_dtl`**
+Append-only audit trail for POS lifecycle actions.
+
+| Column | Type | Notes |
+|---|---|---|
+| pos_session_id | UUID | FK to `org_pos_sessions_mst` |
+| event_type | TEXT | OPEN, AUTO_OPEN, PAUSE, RESUME, CLOSE, FORCE_CLOSE, AUTO_LINK_DRAWER |
+| previous_status | TEXT | Previous status snapshot |
+| new_status | TEXT | New status snapshot |
+| idempotency_key | TEXT | Optional retry-safety key |
+| source_channel | TEXT | Optional caller/source channel |
 
 ### Stored Value Tables
 
@@ -231,3 +271,7 @@ Audit trail of reconciliation check results. Issues have severity: BLOCKER, WARN
 ## Money Field Convention
 
 All monetary columns use `DECIMAL(19, 4)`. No `FLOAT` or `NUMERIC` without precision. Currency codes stored as TEXT (no foreign key to avoid lock contention).
+
+## Deprecated Ledger Status (Remediation 2026-07)
+
+`org_payments_dtl_tr` is deprecated (ADR-002) and **empty**; the canonical order-payment ledger is `org_order_payments_dtl` (+ voucher trx lines). As of Remediation Phase 1, no order-detail UI or order print reads `_tr`; remaining readers (tenant payments report, cash-up, legacy invoice/customer payment flows, `internal_fin/payments` screens) are removed in Phases 2–3, and the table itself (plus `org_payment_audit_log` and `org_invoice_payments_dtl.payment_id`) is dropped in Phase 5. See `../Order_Fin_Remediation_2026-07/PLAN.md`.

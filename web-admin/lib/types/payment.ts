@@ -13,13 +13,11 @@ import {
   type PaymentKind,
   type PaymentTypeId,
   type InvoiceStatus,
-  type PaymentStatus,
   type PaymentGateway,
   PAYMENT_KINDS,
   PAYMENT_METHODS,
   PAYMENT_TYPE_IDS,
   INVOICE_STATUSES,
-  PAYMENT_STATUSES,
   PAYMENT_GATEWAYS,
   getPaymentTypeFromMethod,
 } from "../constants/payment";
@@ -56,7 +54,7 @@ export {
   GIFT_CARD_PIN_MAX_ATTEMPTS,
 };
 
-export type { PaymentMethodCode, PaymentKind, PaymentTypeId, InvoiceStatus, PaymentStatus, PaymentGateway };
+export type { PaymentMethodCode, PaymentKind, PaymentTypeId, InvoiceStatus, PaymentGateway };
 
 /** Re-export key payment constants (single source: lib/constants/payment.ts) for one-import convenience */
 export {
@@ -64,7 +62,6 @@ export {
   PAYMENT_METHODS,
   PAYMENT_TYPE_IDS,
   INVOICE_STATUSES,
-  PAYMENT_STATUSES,
   PAYMENT_GATEWAYS,
   getPaymentTypeFromMethod,
 };
@@ -227,105 +224,6 @@ export interface UpdateInvoiceInput {
   rec_notes?: string;
 }
 
-// ============================================================================
-// Payment Transaction Types
-// ============================================================================
-
-export interface PaymentTransaction {
-  id: string;
-  invoice_id?: string;
-  voucher_id?: string;
-  tenant_org_id: string;
-  branch_id?: string;
-  order_id?: string;
-  customer_id?: string;
-
-  // Payment details
-  currency_code: string;
-  paid_amount: number;
-  status: PaymentStatus;
-  due_date?: string;
-  payment_method_code: PaymentMethodCode;
-  payment_type_code?: string;
-  tax?: number;
-  vat?: number;
-
-  // Transaction info
-  paid_at?: string;
-  paid_by?: string;
-  gateway?: PaymentGateway;
-  transaction_id?: string;
-
-  // Metadata
-  metadata?: PaymentTransactionMetadata;
-  rec_notes?: string;
-  trans_desc?: string;
-
-  // Audit fields
-  created_at: string;
-  created_by?: string;
-  updated_at?: string;
-  updated_by?: string;
-}
-
-export interface PaymentTransactionMetadata {
-  gateway_transaction_id?: string;
-  gateway_response?: Record<string, any>;
-  card_last_four?: string;
-  card_brand?: string;
-  check_number?: string;
-  bank_reference?: string;
-  failure_reason?: string;
-  refund_reason?: string;
-  [key: string]: any;
-}
-
-export interface CreatePaymentTransactionInput {
-  invoice_id?: string;
-  order_id?: string;
-  customer_id?: string;
-  paid_amount: number;
-  payment_method_code: PaymentMethodCode;
-  currency_code?: string;
-  payment_type_code?: string;
-  /** @deprecated Use tax_amount */
-  tax?: number;
-  /** @deprecated Use vat_amount */
-  vat?: number;
-  tax_rate?: number;
-  tax_amount?: number;
-  vat_amount?: number;
-  paid_by?: string;
-  gateway?: PaymentGateway;
-  transaction_id?: string;
-  metadata?: PaymentTransactionMetadata;
-  rec_notes?: string;
-  /** Amount breakdown */
-  subtotal?: number;
-  discount_rate?: number;
-  discount_amount?: number;
-  manual_discount_amount?: number;
-  promo_discount_amount?: number;
-  gift_card_applied_amount?: number;
-  vat_rate?: number;
-  currency_ex_rate?: number;
-  payment_channel?: string;
-  check_number?: string;
-  check_bank?: string;
-  check_date?: Date;
-  promo_code_id?: string;
-  gift_card_id?: string;
-  /** For currency lookup when branch-specific */
-  branch_id?: string;
-  /** Short description/reference for the transaction */
-  trans_desc?: string;
-  /**
-   * When true, skips createReceiptVoucherForPayment.
-   * Set by the BVM orchestrator when a receipt voucher was already created and wired
-   * via postAndWireBizVoucher — prevents the legacy VCR-RCP-* ghost voucher.
-   */
-  skipReceiptVoucher?: boolean;
-}
 
 // ============================================================================
 // Payment Data Types (for UI forms)
@@ -695,91 +593,6 @@ export interface CreateStandalonePaymentInput {
 }
 
 // ============================================================================
-// Payment Processing Types
-// ============================================================================
-
-export interface ProcessPaymentInput {
-  order_id?: string;
-  invoice_id?: string;
-  customer_id?: string;
-  payment_kind?: PaymentKind;
-  payment_method_code: PaymentMethodCode;
-  amount: number;
-
-  // Optional payment details
-  check_number?: string;
-  check_bank?: string;
-  check_date?: Date;
-  gateway_token?: string;
-
-  // Discounts
-  manual_discount?: number;
-  promo_code?: string;
-  promo_code_id?: string;
-  gift_card_number?: string;
-  gift_card_amount?: number;
-  gift_card_id?: string;
-
-  // Amount breakdown (for order payments)
-  subtotal?: number;
-  discount_rate?: number;
-  discount_amount?: number;
-  manual_discount_amount?: number;
-  promo_discount_amount?: number;
-  gift_card_applied_amount?: number;
-  vat_rate?: number;
-  vat_amount?: number;
-  tax_rate?: number;
-  tax_amount?: number;
-  sale_total?: number;
-  /** @deprecated Use sale_total */
-  final_total?: number;
-  currency_code?: string;
-  currency_ex_rate?: number;
-  branch_id?: string;
-  payment_type_code?: string;
-
-  // Metadata
-  processed_by?: string;
-  notes?: string;
-  /** Short description/reference for the transaction */
-  trans_desc?: string;
-  /** Channel that recorded the payment (e.g. web_admin, pos) */
-  payment_channel?: string;
-  /** When true and no invoice_id: apply payment across all order invoices with balance (FIFO, oldest first) */
-  distribute_across_invoices?: boolean;
-}
-
-export interface ProcessPaymentResult {
-  success: boolean;
-  invoice_id: string;
-  transaction_id?: string;
-  payment_status: PaymentStatus;
-  amount_paid: number;
-  remaining_balance: number;
-  payment_kind?: PaymentKind;
-  error?: string;
-  errorCode?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface RefundPaymentInput {
-  transaction_id: string;
-  amount: number;
-  reason: string;
-  processed_by?: string;
-  /** Voucher reason_code: CUSTOMER_RETURN, ORDER_CANCELLED, REFUND, etc. */
-  reason_code?: string;
-}
-
-export interface RefundPaymentResult {
-  success: boolean;
-  refund_transaction_id: string;
-  refund_amount: number;
-  error?: string;
-}
-
-// ============================================================================
 // Payment Gateway Types
 // ============================================================================
 
@@ -805,7 +618,7 @@ export interface GatewayPaymentResponse {
   transaction_id?: string;
   gateway_reference?: string;
   redirect_url?: string;
-  status: PaymentStatus;
+  status: string;
   error?: string;
   raw_response?: Record<string, any>;
 }
@@ -862,108 +675,6 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
 
 export const DEFAULT_CURRENCY = 'USD';
 export const CURRENCY_DECIMALS = 2; // OMR uses 3 decimal places
-
-// ============================================================================
-// Payment List Types (for Payments Page)
-// ============================================================================
-
-export interface PaymentListItem extends PaymentTransaction {
-  // Joined display fields
-  customerName?: string;
-  customerName2?: string;
-  orderReference?: string;
-  invoiceNumber?: string;
-  paymentMethodName?: string;
-  paymentMethodName2?: string;
-  paymentTypeName?: string;
-  paymentTypeName2?: string;
-  // Extended amount fields
-  subtotal?: number;
-  discount_rate?: number;
-  discount_amount?: number;
-  manual_discount_amount?: number;
-  promo_discount_amount?: number;
-  gift_card_applied_amount?: number;
-  vat_rate?: number;
-  currency_ex_rate?: number;
-  // Check fields
-  check_number?: string;
-  check_bank?: string;
-  check_date?: string;
-  // Channel
-  payment_channel?: string;
-  /** True if any refund rows exist for this payment (original); used to hide Cancel */
-  hasRefunds?: boolean;
-}
-
-export interface PaymentListFilters {
-  status?: PaymentStatus[];
-  paymentMethodCode?: string[];
-  kind?: PaymentKind[];
-  customerId?: string;
-  orderId?: string;
-  invoiceId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  searchQuery?: string;
-}
-
-export interface PaymentStats {
-  totalCount: number;
-  totalAmount: number;
-  byStatus: Record<PaymentStatus, { count: number; amount: number }>;
-  byMethod: Record<string, { count: number; amount: number }>;
-  recentTrends: {
-    today: number;
-    thisWeek: number;
-    thisMonth: number;
-  };
-}
-
-export interface PaymentListResult {
-  payments: PaymentListItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-  };
-}
-
-// ============================================================================
-// Cash Up / Reconciliation Types
-// ============================================================================
-
-export type CashUpReconciliationStatus = 'pending' | 'reconciled' | 'variance_noted';
-
-export interface CashUpReconciliationEntry {
-  payment_method_code: string;
-  expected_amount: number;
-  actual_amount: number;
-  variance: number;
-  status: CashUpReconciliationStatus;
-  reconciled_by?: string;
-  reconciled_at?: string;
-  notes?: string;
-}
-
-export interface CashUpSubmitEntry {
-  payment_method_code: string;
-  actual_amount: number;
-  notes?: string;
-}
-
-export interface CashUpSubmitInput {
-  date: string;
-  entries: CashUpSubmitEntry[];
-}
-
-export interface CashUpDayData {
-  date: string;
-  expectedByMethod: Record<string, number>;
-  reconciliation: CashUpReconciliationEntry[];
-  paymentMethods: PaymentMethod[];
-}
 
 /** Amount mismatch diff for create-with-payment AMOUNT_MISMATCH response */
 export interface AmountMismatchDiff {

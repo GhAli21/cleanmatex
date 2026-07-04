@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-06-27T00:13:29.406Z
-Git SHA: ae0d722e
+Generated: 2026-07-04T03:07:33.265Z
+Git SHA: ab51b70d
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 144 |
-| Permission usages | 236 |
+| Access contracts | 140 |
+| Permission usages | 253 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
-| Navigation entries | 99 |
+| Navigation entries | 97 |
 | Flag catalog entries | 290 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -77,15 +77,11 @@ Git SHA: ae0d722e
 | /dashboard/internal_fin/cash-drawers | Cash Drawers | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print | Print Cash Drawer Session | cash_drawer:view | — | 0 |
-| /dashboard/internal_fin/cashup | Cash Up | — | — | 0 |
 | /dashboard/internal_fin/invoices | Invoices | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |
 | /dashboard/internal_fin/invoices/new | New AR Invoice | invoices:create | — | 0 |
-| /dashboard/internal_fin/payments | Payments | — | — | 0 |
-| /dashboard/internal_fin/payments/[id] | Payment Details | — | — | 0 |
-| /dashboard/internal_fin/payments/[id]/print/receipt-voucher | Print Receipt Voucher | — | — | 0 |
-| /dashboard/internal_fin/payments/new | New Payment | — | — | 0 |
+| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 6 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |
@@ -110,7 +106,7 @@ Git SHA: ae0d722e
 | /dashboard/notifications/delivery-log | Delivery Log | notifications:view_log | — | 0 |
 | /dashboard/notifications/settings | Channel Settings | notifications:configure | — | 0 |
 | /dashboard/orders | Orders | — | — | 0 |
-| /dashboard/orders/[id] | Order Details | — | — | 0 |
+| /dashboard/orders/[id] | Order Details | orders:view_financial_breakdown | — | 0 |
 | /dashboard/orders/[id]/edit | Edit Order | — | — | 0 |
 | /dashboard/orders/[id]/full | Full Order Details | — | — | 0 |
 | /dashboard/orders/[id]/prepare | Prepare Order | — | — | 0 |

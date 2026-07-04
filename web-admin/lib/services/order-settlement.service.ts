@@ -43,6 +43,10 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import {
+  assertOpenPosSessionForFinanceTx,
+  autoLinkDrawerTx,
+} from '@/lib/services/pos-session.service';
 
 /** Prisma transaction client shared with submit-order's atomic settlement flow. */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -76,6 +80,7 @@ export interface SettlementParams {
   discountLines: DiscountLineInput[];
   settlementLegs: ResolvedSettlementLeg[];
   cashDrawerSessionId?: string;
+  posSessionId?: string;
   settledBy?: string;
   /**
    * When true the BVM wiring service is responsible for writing
@@ -139,10 +144,21 @@ export async function settleOrderTx(
     discountLines,
     settlementLegs,
     cashDrawerSessionId,
+    posSessionId,
     settledBy,
     wiringMode = false,
   } = params;
   const currencyCode = breakdown.currencyCode;
+
+    if (posSessionId && !settledBy) {
+      throw new Error('POS_SESSION_USER_REQUIRED');
+    }
+
+    await assertOpenPosSessionForFinanceTx(tx, {
+      tenantId,
+      userId: settledBy ?? '',
+      posSessionId,
+    });
 
     // ── 1. Charges ────────────────────────────────────────────────────────────
     for (const charge of chargeLines) {
@@ -240,6 +256,7 @@ export async function settleOrderTx(
               tendered_amount: cashTendered ?? null,
               change_returned_amount: change > 0 ? change : null,
               cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
+              pos_session_id: posSessionId ?? null,
               gateway_code: option.gatewayCode ?? null,
               gateway_reference: leg.reference ?? null,
               payment_status: paymentStatus,
@@ -583,6 +600,8 @@ export interface CollectPaymentParams {
     checkDate?: string;
   }>;
   cashDrawerSessionId?: string;
+  posSessionId?: string;
+  posSessionUserId?: string;
   collectedBy: string;
   customerId?: string | null;
   overpaymentResolution?: OverpaymentResolutionInput;
@@ -605,6 +624,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     tenantId,
     paymentLegs,
     cashDrawerSessionId,
+    posSessionId,
+    posSessionUserId,
     collectedBy,
     overpaymentResolution,
     idempotencyKey: idempotencyKeyInput,
@@ -645,6 +666,13 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     const branchId = rows[0].branch_id;
     const customerId = params.customerId ?? rows[0].customer_id;
     const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
+
+    await assertOpenPosSessionForFinanceTx(tx, {
+      tenantId,
+      userId: posSessionUserId ?? collectedBy,
+      posSessionId,
+      branchId,
+    });
 
     if (totalCollected <= 0) {
       throw new Error('Collected amount must be greater than zero');
@@ -809,6 +837,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           tendered_amount: resolved.cashTendered ?? null,
           change_returned_amount: change > 0 ? change : null,
           cash_drawer_session_id: resolved.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
+          pos_session_id: posSessionId ?? null,
           gateway_code: resolved.gatewayCode ?? null,
           gateway_reference: resolved.reference ?? null,
           check_no: resolved.checkNumber ?? null,
@@ -856,6 +885,16 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
             rec_status: 1,
             created_by: collectedBy,
           },
+        });
+
+        await autoLinkDrawerTx(tx, {
+          tenantId,
+          userId: posSessionUserId ?? collectedBy,
+          posSessionId,
+          branchId,
+          cashDrawerSessionId: session.id,
+          idempotencyKey: `${idempotencyKey}_pos_link_${resolved.legIndex}`,
+          sourceChannel: 'collect_payment',
         });
 
         if (change > SETTLEMENT_MONEY_EPSILON && resolved.supportsChangeReturn) {

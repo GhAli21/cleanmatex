@@ -56,6 +56,16 @@
     "totalDifference": "إجمالي الفرق",
     "unlinkedTotal": "حركات غير مرتبطة"
   },
+  "moneyPosition": {
+    "todayCollections": "المحصل اليوم",
+    "ordersOutstanding": "مستحقات الطلبات",
+    "arOutstanding": "مستحقات الفواتير",
+    "storedValueLiability": "المستحق للعملاء",
+    "storedValueHint": "المحافظ والدفعات المقدمة وإشعارات الدائن",
+    "openDrawerSessions": "جلسات الصندوق المفتوحة",
+    "noCollectionsYet": "لا تحصيلات حتى الآن اليوم",
+    "loadError": "تعذر تحميل الموقف المالي"
+  },
   "title": "التقارير والتحليلات",
   "subtitle": "ذكاء الأعمال والتحليلات",
   "revenueReport": "تقرير الإيرادات",

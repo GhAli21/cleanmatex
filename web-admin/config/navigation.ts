@@ -110,7 +110,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       },
       /*
       TESTING:
-      do this if I decide to add three new screens in the navigation tree using the command: 
+      do this if I decide to add three new screens in the navigation tree using the command:
       /navigation /create-ui-screen-in-sys-tree add three new screens thier parent code "orders" and display_order=1 and labels are All Orders TEST1 to All Orders TEST3 and paths are /dashboard/orders/test1 /dashboard/orders/test2 /dashboard/orders/test3
       {
         key: 'orders_list',
@@ -448,18 +448,13 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/internal_fin/vouchers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
-      {
-        key: 'billing_payments',
-        label: 'Payments',
-        path: '/dashboard/internal_fin/payments',
-        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
-      },
-      {
-        key: 'billing_cashup',
-        label: 'Cash Up',
-        path: '/dashboard/internal_fin/cashup',
-        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
-      },
+      // 'billing_payments' removed (Order-Fin remediation Phase 3): the
+      // internal_fin/payments screens operated on the deprecated
+      // legacy payments ledger (ADR-002). Dual-write: sys_components_cd
+      // row removed by migration 0393.
+      // 'billing_cashup' removed (Order-Fin remediation Phase 5): superseded
+      // by cash drawer sessions + the D-09 reconciliation report (FN-06).
+      // Dual-write: sys_components_cd row retired by migration 0394.
       {
         key: 'billing_cash_drawers',
         label: 'Cash Drawers',
@@ -467,6 +462,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/internal_fin/cash-drawers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator'],
         permissions: ['cash_drawer:view'],
+      },
+      {
+        key: 'billing_pos_sessions',
+        label: 'POS Sessions',
+        label2: 'جلسات نقطة البيع',
+        path: '/dashboard/internal_fin/pos-sessions',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'cashier'],
+        permissions: ['pos_session:view'],
       },
       {
         key: 'billing_refunds',

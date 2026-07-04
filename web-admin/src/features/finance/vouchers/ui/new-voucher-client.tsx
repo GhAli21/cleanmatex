@@ -193,6 +193,7 @@ export function NewVoucherClient() {
             line_status:            'DRAFT',
             wiring_status:          'NOT_WIRED',
             reversed_line_id:       null,
+            pos_session_id:         input.pos_session_id ?? null,
             created_at:             new Date(),
             credit_application_type: input.credit_application_type ?? null,
             order_payment_id:        null,

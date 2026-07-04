@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Banknote, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -39,6 +40,8 @@ import { PayExtraIntentToggle } from '@features/orders/ui/payment-modal/pay-extr
 import { PaymentValidateButton } from '@features/orders/ui/payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from '@features/orders/ui/payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
+import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
 
 interface CheckoutMethodOption {
   id: string;
@@ -49,6 +52,27 @@ interface CheckoutMethodOption {
   supports_overpayment: boolean;
   supports_change_return: boolean;
   allowed_for_pay_on_collection?: boolean;
+}
+
+type PosSessionApiEnvelope = {
+  success?: boolean;
+  data?: GetMyActivePosSessionResult;
+  error?: string;
+};
+
+async function fetchActivePosSessionForBranch(branchId: string): Promise<GetMyActivePosSessionResult | null> {
+  const params = new URLSearchParams({ branchId });
+  const response = await fetch(`/api/v1/pos-sessions/my-active?${params.toString()}`, {
+    credentials: 'include',
+  });
+  const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope;
+  if (response.status === 404 || payload.data?.type === 'NONE') {
+    return null;
+  }
+  if (!response.ok || payload.success === false) {
+    return null;
+  }
+  return payload.data ?? null;
 }
 
 /**
@@ -105,6 +129,12 @@ export function OrderCollectPaymentModal({
   const canCreditNote = useHasPermissionCode(OVERPAYMENT_RESOLUTION_PERMISSIONS.TO_CREDIT_NOTE);
   const canSaveAdvance = canDispose || canAdvance;
   const canSaveCredit = canDispose || canCredit || canCreditNote;
+  const activePosSessionQuery = useQuery({
+    queryKey: ['pos-sessions', 'collect-payment', branchId ?? 'none'],
+    enabled: open && canCollect && !!branchId,
+    queryFn: () => fetchActivePosSessionForBranch(branchId!),
+    staleTime: 30_000,
+  });
 
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(false);
@@ -361,6 +391,10 @@ export function OrderCollectPaymentModal({
           customerId: customerId ?? undefined,
           ...(cashDrawerRequired && selectedCashDrawerSessionId
             ? { cashDrawerSessionId: selectedCashDrawerSessionId }
+            : {}),
+          ...(activePosSessionQuery.data?.type === 'ACTIVE' &&
+          activePosSessionQuery.data.session.status === POS_SESSION_STATUS.OPEN
+            ? { posSessionId: activePosSessionQuery.data.session.id }
             : {}),
           ...(submitResolution ? { overpaymentResolution: submitResolution } : {}),
           // F-10: per-event idempotency key. Random suffix guards against two

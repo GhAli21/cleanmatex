@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { getPaymentsForOrder } from '@/app/actions/payments/process-payment';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
@@ -57,9 +56,6 @@ async function OrderDetailsFullContent({
   const tCommon = await getTranslations('common');
   const locale = await getLocale();
 
-  const { processPayment } = await import('@/app/actions/payments/process-payment');
-  const { applyPaymentToInvoice } = await import('@/app/actions/payments/process-payment');
-
   // Validate order ID
   if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
     return (
@@ -81,7 +77,6 @@ async function OrderDetailsFullContent({
 
   const [
     orderResult,
-    paymentsResult,
     invoicesResult,
     vouchersResult,
     stockResult,
@@ -92,7 +87,6 @@ async function OrderDetailsFullContent({
     financialResult,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
-    getPaymentsForOrder(orderId),
     getOrderInvoices(orderId),
     getVouchersForOrder(orderId),
     getStockTransactionsForOrder(orderId),
@@ -130,8 +124,6 @@ async function OrderDetailsFullContent({
     total_credit_applied_amount?: number | string | null;
     promo_discount_amount?: number | string | null;
   };
-  const allPayments = paymentsResult.success && paymentsResult.data ? paymentsResult.data : [];
-  const unappliedPayments = allPayments.filter((p) => !p.invoice_id);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
   const vouchers = vouchersResult ?? [];
   const stockTransactions = stockResult ?? [];
@@ -214,8 +206,7 @@ async function OrderDetailsFullContent({
   return (
     <OrderDetailsFullClient
       order={serializedOrder}
-      allPayments={allPayments}
-      unappliedPayments={unappliedPayments}
+      allPayments={financialData?.payments ?? []}
       orderInvoices={orderInvoices}
       vouchers={vouchers}
       stockTransactions={stockTransactions}
@@ -227,8 +218,6 @@ async function OrderDetailsFullContent({
       orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
-      processPaymentAction={processPayment}
-      applyPaymentToInvoiceAction={applyPaymentToInvoice}
       initialTab={searchParams?.tab}
       initialInvoiceId={searchParams?.invoiceId}
       initialVoucherId={searchParams?.voucherId}

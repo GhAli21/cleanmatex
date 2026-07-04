@@ -71,6 +71,7 @@ const LINE_SELECT = {
   order_id:                true,
   customer_id:             true,
   cash_drawer_session_id:  true,
+  pos_session_id:          true,
   tendered_amount:         true,
   change_returned_amount:  true,
   credit_application_type: true,

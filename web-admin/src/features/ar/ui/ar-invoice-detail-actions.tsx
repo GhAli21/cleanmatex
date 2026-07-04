@@ -90,7 +90,6 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
   const [approvalNotes, setApprovalNotes] = useState('');
 
   const [allocatedAmount, setAllocatedAmount] = useState(invoice.outstanding_amount.toFixed(4));
-  const [paymentId, setPaymentId] = useState('');
   const [voucherId, setVoucherId] = useState('');
   const [allocationDate, setAllocationDate] = useState(todayDate());
   const [allocationNotes, setAllocationNotes] = useState('');
@@ -376,7 +375,6 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
           <div className="grid gap-4 md:grid-cols-2">
             <CmxInput label={t('fields.allocatedAmount')} type="number" min="0.0001" step="0.0001" value={allocatedAmount} onChange={(event) => setAllocatedAmount(event.target.value)} />
             <CmxInput label={t('fields.allocationDate')} type="date" value={allocationDate} onChange={(event) => setAllocationDate(event.target.value)} />
-            <CmxInput label={t('fields.paymentId')} value={paymentId} onChange={(event) => setPaymentId(event.target.value)} />
             <CmxInput label={t('fields.voucherId')} value={voucherId} onChange={(event) => setVoucherId(event.target.value)} />
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-900">{t('fields.notes')}</label>
@@ -389,10 +387,9 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             </CmxDialogClose>
             <CmxButton
               loading={submitting === 'allocate'}
-              disabled={!paymentId.trim() && !voucherId.trim()}
+              disabled={!voucherId.trim()}
               onClick={() =>
                 submitJson('allocate', `/api/v1/ar/invoices/${invoice.id}/allocations`, {
-                  payment_id: paymentId.trim() || undefined,
                   voucher_id: voucherId.trim() || undefined,
                   allocated_amount: Number(allocatedAmount || 0),
                   applied_at: allocationDate,

@@ -350,7 +350,6 @@ export async function applyArCredit(
         where: {
           tenant_org_id: tenantId,
           invoice_id: input.invoice_id,
-          payment_id: null,
           voucher_id: null,
         },
         orderBy: { allocation_no: 'desc' },

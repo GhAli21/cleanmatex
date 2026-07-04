@@ -369,12 +369,7 @@ export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
                     <TextCell value={row.refund_method_code ?? emptyValue} />
                     <td className={tableCell}>
                       {row.original_payment_id ? (
-                        <div className="space-y-1">
-                          <CopyValue value={row.original_payment_id} maxLength={12} />
-                          <Link href={`/dashboard/internal_fin/payments/${row.original_payment_id}`} className="text-xs font-medium text-primary hover:underline">
-                            {t('actions.openPayment')}
-                          </Link>
-                        </div>
+                        <CopyValue value={row.original_payment_id} maxLength={12} />
                       ) : (
                         emptyValue
                       )}

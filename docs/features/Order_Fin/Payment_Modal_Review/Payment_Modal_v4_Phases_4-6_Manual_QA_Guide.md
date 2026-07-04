@@ -39,6 +39,8 @@
 - ✅ Expect: **no escalation banner**.
 - [ ] Pass
 - My Notes:
+1. I choose simple then select Cash it jump to Advanced mode even also jump when click on any number in the keypad????
+2. the keypad is big can you make it smaller to look like calculator look and feel???
 
 ### A2 — Cash exact, one tap
 1. Tap the **Cash** chip. 2. Tap the **Exact** quick-tender chip.

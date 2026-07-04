@@ -47,3 +47,29 @@
 - P19: Documentation written (README, developer_guide, current_status, progress_summary, CHANGELOG, technical_docs, Order_Fin_Docs)
 
 **Next Session:** Post-launch monitoring, outbox worker integration, multi-leg preview endpoint
+
+---
+
+## Session: 2026-07-04
+
+**Completed:**
+- POS Session Management v1 Phase 1 docs created and indexed:
+  - `ADR-054-User-Owned-POS-Sessions.md`
+  - `POS_Session_Management_V1.md`
+- Migrations `0396`, `0397`, and `0398` created, reviewed, and applied by the user to local and remote DBs.
+- Generated DB types refreshed after migration apply.
+- Implementation status and changelog updated to mark Phase 1 as applied.
+
+**Completed continuation:**
+- Lifecycle service/API slice for get/open/ensure/pause/resume/close/force-close completed.
+- Backend finance-lineage slice completed: optional `posSessionId`, Prisma finance columns, summary endpoint, and drawer auto-link service logic.
+- New-order submit now auto-ensures a POS session and passes `posSessionId` into submit-order.
+- POS Sessions operations page added at `/dashboard/internal_fin/pos-sessions`.
+- Sidebar/navigation entry `billing_pos_sessions` added with migration `0399_pos_sessions_navigation.sql`; applied by the user to local and remote DBs.
+- Order-entry active-session banner added.
+- Combined close flow added: linked drawer close must succeed before POS close is retried.
+- Later collection now attaches an existing same-branch `OPEN` POS session as operational lineage without auto-opening a session.
+- POS session validation and service contract tests added and passing.
+
+**Remaining follow-ups:**
+- Add explicit drawer force-close UX/API later if the product wants it; current POS force-close does not silently force-close drawers.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,8 +20,6 @@ import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxInput } from '@ui/primitives/cmx-input';
-import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
@@ -45,9 +43,7 @@ import type {
   OrderPaymentRow,
   OrderRefundRow,
 } from '@/app/actions/orders/get-order-financial';
-import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
-import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
@@ -60,8 +56,8 @@ const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'i
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
-  allPayments: PaymentTransaction[];
-  unappliedPayments: PaymentTransaction[];
+  /** Canonical payment rows (`org_order_payments_dtl`) — same source as `financialData.payments`. */
+  allPayments: OrderPaymentRow[];
   orderInvoices: Invoice[];
   vouchers: VoucherData[];
   stockTransactions: StockTransactionWithProduct[];
@@ -93,25 +89,6 @@ interface OrderDetailsFullClientProps {
   orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   tenantOrgId: string;
   userId: string;
-  processPaymentAction: (
-    tenantOrgId: string,
-    userId: string,
-    input: {
-      orderId: string;
-      invoiceId?: string;
-      customerId?: string;
-      paymentKind?: 'invoice' | 'deposit' | 'advance' | 'pos';
-      paymentMethod: PaymentMethodCode;
-      amount: number;
-      notes?: string;
-    }
-  ) => Promise<{ success: boolean; error?: string }>;
-  applyPaymentToInvoiceAction: (
-    paymentId: string,
-    invoiceId: string,
-    userId?: string,
-    orderId?: string
-  ) => Promise<{ success: boolean; error?: string }>;
   initialTab?: string;
   initialInvoiceId?: string;
   initialVoucherId?: string;
@@ -126,7 +103,6 @@ interface OrderDetailsFullClientProps {
  * @param root0
  * @param root0.order
  * @param root0.allPayments
- * @param root0.unappliedPayments
  * @param root0.orderInvoices
  * @param root0.vouchers
  * @param root0.stockTransactions
@@ -138,8 +114,6 @@ interface OrderDetailsFullClientProps {
  * @param root0.orderPreferenceDtlColumnLabels
  * @param root0.tenantOrgId
  * @param root0.userId
- * @param root0.processPaymentAction
- * @param root0.applyPaymentToInvoiceAction
  * @param root0.initialTab
  * @param root0.initialInvoiceId
  * @param root0.initialVoucherId
@@ -151,7 +125,6 @@ interface OrderDetailsFullClientProps {
 export function OrderDetailsFullClient({
   order,
   allPayments,
-  unappliedPayments,
   orderInvoices,
   vouchers,
   stockTransactions,
@@ -163,8 +136,6 @@ export function OrderDetailsFullClient({
   orderPreferenceDtlColumnLabels,
   tenantOrgId,
   userId,
-  processPaymentAction,
-  applyPaymentToInvoiceAction,
   initialTab,
   initialInvoiceId,
   initialVoucherId,
@@ -227,19 +198,6 @@ export function OrderDetailsFullClient({
   const isTerminalStatus =
     order.status === 'closed' || order.status === 'cancelled';
 
-  const [applyModalPaymentId, setApplyModalPaymentId] = useState<string | null>(null);
-  const [applyModalInvoiceId, setApplyModalInvoiceId] = useState<string>('');
-  const [applyError, setApplyError] = useState<string | null>(null);
-  const [applyPending, startApplyTransition] = useTransition();
-
-  const [depositAmount, setDepositAmount] = useState<number>(0);
-  const [depositMethod, setDepositMethod] = useState<PaymentMethodCode>('CASH');
-  const [depositKind, setDepositKind] = useState<'deposit' | 'pos'>('deposit');
-  const [depositNotes, setDepositNotes] = useState<string>('');
-  const [depositError, setDepositError] = useState<string | null>(null);
-  const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
-  const [depositPending, startDepositTransition] = useTransition();
-
   const tenantId = currentTenant?.tenant_id;
   const { token: csrfToken } = useCSRFToken();
   const [intakeConfirming, setIntakeConfirming] = useState(false);
@@ -248,53 +206,6 @@ export function OrderDetailsFullClient({
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tabId);
     router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-  };
-
-  const handleApplyToInvoice = () => {
-    if (!applyModalPaymentId || !applyModalInvoiceId) return;
-    setApplyError(null);
-    startApplyTransition(async () => {
-      const result = await applyPaymentToInvoiceAction(
-        applyModalPaymentId,
-        applyModalInvoiceId,
-        userId,
-        order.id as string
-      );
-      if (result.success) {
-        setApplyModalPaymentId(null);
-        setApplyModalInvoiceId('');
-        router.refresh();
-      } else {
-        setApplyError(result.error ?? 'Failed to apply');
-      }
-    });
-  };
-
-  const handleRecordDepositPos = (e: React.FormEvent) => {
-    e.preventDefault();
-    setDepositError(null);
-    setDepositSuccess(null);
-    if (depositAmount <= 0) {
-      setDepositError(t.recordPaymentError ?? 'Error');
-      return;
-    }
-    startDepositTransition(async () => {
-      const result = await processPaymentAction(tenantOrgId, userId, {
-        orderId: order.id as string,
-        paymentKind: depositKind,
-        paymentMethod: depositMethod,
-        amount: depositAmount,
-        notes: depositNotes || undefined,
-      });
-      if (result.success) {
-        setDepositSuccess(t.recordPaymentSuccess ?? 'Success');
-        setDepositAmount(0);
-        setDepositNotes('');
-        router.refresh();
-      } else {
-        setDepositError(result.error ?? t.recordPaymentError ?? 'Error');
-      }
-    });
   };
 
   const publicTrackingPath = tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
@@ -1179,123 +1090,9 @@ export function OrderDetailsFullClient({
               )}
             </div>
           </div>
-          {/* Unapplied payments + Record deposit - only when not closed */}
-          {!isTerminalStatus && (
-            <>
-              {unappliedPayments.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t.unappliedPayments}
-                  </h3>
-                  <ul className="space-y-2">
-                    {unappliedPayments.map((p) => (
-                      <li key={p.id} className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm`}>
-                        <span className="font-medium">{fmtOrderMoney(Number(p.paid_amount))}</span>
-                        <span className="text-gray-600">{p.payment_method_code}</span>
-                        <CmxButton
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setApplyModalPaymentId(p.id);
-                            setApplyModalInvoiceId('');
-                            setApplyError(null);
-                          }}
-                        >
-                          {t.applyToInvoice}
-                        </CmxButton>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t.recordDepositPos}
-                </h3>
-                <form onSubmit={handleRecordDepositPos} className="space-y-4">
-                  <CmxInput
-                    type="number"
-                    label={t.recordPaymentAmount}
-                    step={10 ** -decimalPlaces}
-                    min={0}
-                    value={depositAmount || ''}
-                    onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">{t.recordPaymentMethod}</p>
-                    <div className="flex gap-2">
-                      <CmxButton
-                        type="button"
-                        variant={depositMethod === 'CASH' ? 'primary' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setDepositMethod('CASH')}
-                      >
-                        {t.recordPaymentCash}
-                      </CmxButton>
-                      <CmxButton
-                        type="button"
-                        variant={depositMethod === 'CARD' ? 'primary' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setDepositMethod('CARD')}
-                      >
-                        {t.recordPaymentCard}
-                      </CmxButton>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">{t.paymentKind}</p>
-                    <div className="flex gap-2">
-                      <CmxButton
-                        type="button"
-                        variant={depositKind === 'deposit' ? 'primary' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setDepositKind('deposit')}
-                      >
-                        {t.kindDeposit}
-                      </CmxButton>
-                      <CmxButton
-                        type="button"
-                        variant={depositKind === 'pos' ? 'primary' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setDepositKind('pos')}
-                      >
-                        {t.kindPos}
-                      </CmxButton>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{t.notes}</p>
-                    <CmxTextarea
-                      value={depositNotes}
-                      onChange={(e) => setDepositNotes(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  {depositError && <p className="text-sm text-red-600">{depositError}</p>}
-                  {depositSuccess && <p className="text-sm text-green-600">{depositSuccess}</p>}
-                  <CmxButton
-                    type="submit"
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    disabled={depositPending || depositAmount <= 0}
-                    loading={depositPending}
-                  >
-                    {depositPending ? t.recordPaymentProcessing : t.recordPaymentSubmit}
-                  </CmxButton>
-                </form>
-              </div>
-            </>
-          )}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <OrdersPaymentsTabRprt
               payments={allPayments}
-              filterInvoiceId={invoiceIdFromUrl}
               filterVoucherId={voucherIdFromUrl}
               translations={tabTranslations}
             />
@@ -1980,54 +1777,6 @@ export function OrderDetailsFullClient({
         <CmxTabsPanel tabs={tabs} value={activeTab} onChange={handleTabChange} />
       </div>
 
-      {/* Apply to invoice modal */}
-      {applyModalPaymentId && !isTerminalStatus && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="apply-invoice-dialog-title"
-        >
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 id="apply-invoice-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">{t.selectInvoiceToApply}</h3>
-            <select
-              value={applyModalInvoiceId}
-              onChange={(e) => setApplyModalInvoiceId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-              aria-label={t.selectInvoiceToApply}
-            >
-              <option value="">—</option>
-              {orderInvoices.map((inv) => (
-                <option key={inv.id} value={inv.id}>
-                  {inv.invoice_no ?? inv.id} — {fmtOrderMoney(Number(inv.total ?? 0))}
-                </option>
-              ))}
-            </select>
-            {applyError && <p className="mt-2 text-sm text-red-600">{applyError}</p>}
-            <div className={`flex gap-2 mt-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <button
-                type="button"
-                onClick={() => {
-                  setApplyModalPaymentId(null);
-                  setApplyModalInvoiceId('');
-                  setApplyError(null);
-                }}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                {t.recordPaymentCancel}
-              </button>
-              <button
-                type="button"
-                disabled={!applyModalInvoiceId || applyPending}
-                onClick={handleApplyToInvoice}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {applyPending ? t.recordPaymentProcessing : t.applyToInvoice}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

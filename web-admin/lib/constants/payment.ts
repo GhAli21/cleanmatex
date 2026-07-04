@@ -108,21 +108,6 @@ export type InvoiceStatus =
   | ArInvoiceStatus;
 
 /**
- * Payment transaction status (per-transaction lifecycle)
- */
-export const PAYMENT_STATUSES = {
-  PENDING: 'pending',
-  PROCESSING: 'processing',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
-  PARTIALLY_REFUNDED: 'partially_refunded',
-} as const;
-
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
-
-/**
  * Payment gateway identifiers
  */
 export const PAYMENT_GATEWAYS = {

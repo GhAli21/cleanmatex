@@ -13,6 +13,7 @@ const schema = z.object({
     cashTendered:    z.number().positive().optional(),
   })).min(1),
   cashDrawerSessionId: z.string().uuid().optional(),
+  posSessionId:         z.string().uuid().optional(),
   collectedBy:         z.string().min(1),
   customerId:          z.string().uuid().optional(),
   overpaymentResolution: overpaymentResolutionSchema.optional(),
@@ -34,7 +35,7 @@ export async function POST(
 
   const auth = await requirePermission('orders:collect_payment')(request);
   if (auth instanceof NextResponse) return auth;
-  const { tenantId } = auth;
+  const { tenantId, userId } = auth;
 
   const { id: orderId } = await params;
   const body   = await request.json().catch(() => null);
@@ -42,7 +43,12 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
 
   try {
-    const result = await collectPaymentTx({ orderId, tenantId, ...parsed.data });
+    const result = await collectPaymentTx({
+      orderId,
+      tenantId,
+      ...parsed.data,
+      posSessionUserId: userId,
+    });
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Collection failed';

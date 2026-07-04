@@ -1,51 +1,46 @@
 /**
  * GET /api/v1/orders/[id]/report/payments-rprt?sort=asc|desc
- * A4 report: order header + payments list (sort by date)
+ * A4 report: order header + canonical payments list (sort by date).
+ *
+ * Reads `org_order_payments_dtl` via the canonical read model (ADR-002 —
+ * the legacy payments ledger is deprecated) so the print can never disagree with
+ * the order financial snapshot.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getPaymentsForOrder } from '@/lib/services/payment-service';
-import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
-import type { OrderDiscountLine } from '@/lib/db/order-discounts';
-import type { PaymentTransaction } from '@/lib/types/payment';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import {
+  getOrderPaymentsCanonical,
+  type OrderPaymentRow,
+} from '@/lib/services/order-financial-summary.service';
 
-async function getAuthContext() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) throw new Error('No tenant access found');
-  return { tenantId: tenants[0].tenant_id as string };
-}
-
-/**
- *
- */
+/** Response contract consumed by `order-payments-print-rprt.tsx`. */
 export interface PaymentsRprtResponse {
   order: {
     id: string;
     order_no: string;
     customer: { name: string; phone: string };
-    discountLines: OrderDiscountLine[];
   };
-  payments: PaymentTransaction[];
+  payments: OrderPaymentRow[];
   sortOrder: 'asc' | 'desc';
 }
 
 /**
- *
- * @param request
- * @param root0
- * @param root0.params
+ * @param request incoming request (optional `sort` query param)
+ * @param root0 route context
+ * @param root0.params dynamic segment params promise
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requirePermission('orders:read')(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { id } = await params;
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = auth;
     const sortParam = request.nextUrl.searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' = sortParam === 'asc' ? 'asc' : 'desc';
 
@@ -70,8 +65,12 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    const custRaw = order.org_customers_mst as any;
-    const cust = Array.isArray(custRaw) ? custRaw[0] : custRaw;
+    const custRaw = order.org_customers_mst as unknown;
+    const cust = (Array.isArray(custRaw) ? custRaw[0] : custRaw) as {
+      name?: string | null;
+      phone?: string | null;
+      sys_customers_mst?: { name?: string | null; phone?: string | null } | null;
+    } | null;
     const sysCust = cust?.sys_customers_mst;
     const orderHeader = {
       id: order.id,
@@ -82,13 +81,11 @@ export async function GET(
       },
     };
 
-    const [payments, discountLines] = await Promise.all([
-      getPaymentsForOrder(id, sortOrder),
-      getDiscountLinesForOrder(tenantId, id).catch(() => [] as OrderDiscountLine[]),
-    ]);
+    const payments = await getOrderPaymentsCanonical(tenantId, id);
+    if (sortOrder === 'asc') payments.reverse();
 
     const body: PaymentsRprtResponse = {
-      order: { ...orderHeader, discountLines },
+      order: orderHeader,
       payments,
       sortOrder,
     };

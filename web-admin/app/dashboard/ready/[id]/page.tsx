@@ -18,8 +18,6 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
-import { RecordPaymentClient } from '@/app/dashboard/internal_fin/invoices/[id]/record-payment-client';
-import { processPayment } from '@/app/actions/payments/process-payment';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import {
@@ -56,10 +54,6 @@ export default function ReadyDetailPage() {
     layout: 'thermal' | 'a4';
     sort?: 'asc' | 'desc';
   } | null>(null);
-  /** When order has many invoices with balance: which invoice to pay, or 'distribute' */
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('');
-  /** 'single' = apply to selected invoice; 'distribute' = FIFO across all invoices */
-  const [paymentTargetMode, setPaymentTargetMode] = useState<'single' | 'distribute'>('single');
   const [collectOpen, setCollectOpen] = useState(false);
 
   const orderId = (params as any)?.id as string | undefined;
@@ -100,27 +94,6 @@ export default function ReadyDetailPage() {
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
-
-  // Sync selected invoice when order loads: primary or first with remaining balance
-  useEffect(() => {
-    if (!order?.invoices?.length) {
-      setSelectedInvoiceId('');
-      return;
-    }
-    const withBalance = order.invoices.filter((inv) => inv.remaining > 0);
-    if (withBalance.length === 0) {
-      setSelectedInvoiceId('');
-      return;
-    }
-    const primaryInList = withBalance.some((inv) => inv.id === order.primaryInvoiceId);
-    setSelectedInvoiceId(primaryInList ? (order.primaryInvoiceId ?? '') : withBalance[0].id);
-  }, [order?.id, order?.primaryInvoiceId, order?.invoices]);
-
-  // Reset payment target to single when order has only one invoice with balance
-  useEffect(() => {
-    const withBalance = order?.invoices?.filter((inv) => inv.remaining > 0) ?? [];
-    if (withBalance.length < 2) setPaymentTargetMode('single');
-  }, [order?.invoices]);
 
   const handleDeliver = async () => {
     if (!orderId) return;
@@ -318,120 +291,22 @@ export default function ReadyDetailPage() {
                           </div>
                         );
                       }
-                      const invoicesWithBalance = order.invoices?.filter((inv) => inv.remaining > 0) ?? [];
-                      const selectedInvoice =
-                        invoicesWithBalance.find((inv) => inv.id === selectedInvoiceId) ??
-                        invoicesWithBalance[0];
-                      const isDistribute = paymentTargetMode === 'distribute';
-                      const paymentInvoiceId = isDistribute ? '' : (selectedInvoice?.id ?? '');
-                      const paymentRemainingBalance = isDistribute
-                        ? order.paymentSummary.remaining
-                        : (selectedInvoice?.remaining ?? order.paymentSummary.remaining);
+                      // Canonical path for invoice/on-account money: the
+                      // customer account receipt flow (preview → post →
+                      // allocation across invoices). The legacy per-invoice
+                      // record-payment form wrote the deprecated
+                      // legacy payments ledger (ADR-002) and was removed.
                       return (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          {invoicesWithBalance.length >= 2 && (
-                            <div className="mb-3 space-y-2">
-                              <span className="block text-sm font-medium text-gray-700">
-                                {t('ready.paymentSection.applyPaymentTo')}
-                              </span>
-                              <div className="flex flex-wrap gap-3">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="paymentTarget"
-                                    checked={paymentTargetMode === 'single'}
-                                    onChange={() => setPaymentTargetMode('single')}
-                                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                  />
-                                  <span className="text-sm">{t('ready.paymentSection.applyToSelectedInvoice')}</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="paymentTarget"
-                                    checked={paymentTargetMode === 'distribute'}
-                                    onChange={() => setPaymentTargetMode('distribute')}
-                                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                  />
-                                  <span className="text-sm">{t('ready.paymentSection.distributeAcrossInvoices')}</span>
-                                </label>
-                              </div>
-                              {paymentTargetMode === 'single' && (
-                                <select
-                                  value={selectedInvoiceId}
-                                  onChange={(e) => setSelectedInvoiceId(e.target.value)}
-                                  className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                                >
-                                  {invoicesWithBalance.map((inv) => (
-                                    <option key={inv.id} value={inv.id}>
-                                      {t('ready.paymentSection.invoiceOption', {
-                                        invoiceNo: inv.invoiceNo ?? inv.id.slice(0, 8),
-                                        remaining: formatMoneyWithCode(inv.remaining),
-                                      })}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                              <p className="mt-2 text-xs text-gray-500">
-                                {t('ready.paymentSection.orPayPerInvoiceHint')}
-                              </p>
-                            </div>
-                          )}
-                          {invoicesWithBalance.length === 1 && (
-                            <div className="mb-3">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('ready.paymentSection.applyPaymentTo')}
-                              </label>
-                              <select
-                                value={selectedInvoiceId}
-                                onChange={(e) => setSelectedInvoiceId(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                              >
-                                {invoicesWithBalance.map((inv) => (
-                                  <option key={inv.id} value={inv.id}>
-                                    {t('ready.paymentSection.invoiceOption', {
-                                      invoiceNo: inv.invoiceNo ?? inv.id.slice(0, 8),
-                                      remaining: formatMoneyWithCode(inv.remaining),
-                                    })}
-                                  </option>
-                                ))}
-                              </select>
-                              <p className="mt-2 text-xs text-gray-500">
-                                {t('ready.paymentSection.orPayPerInvoiceHint')}
-                              </p>
-                            </div>
-                          )}
-                          <RecordPaymentClient
-                            tenantOrgId={currentTenant.tenant_id}
-                            userId={user?.id ?? ''}
-                            invoiceId={paymentInvoiceId}
-                            orderId={orderId}
-                            customerId={(order as any).customer_id}
-                            paymentKind="invoice"
-                            remainingBalance={paymentRemainingBalance}
-                            subtotal={order.total}
-                            saleTotal={order.paymentSummary.total}
-                            distributeAcrossInvoices={isDistribute}
-                            processPaymentAction={async (tid, uid, input) => {
-                              const r = await processPayment(tid, uid, { ...input, paymentKind: 'invoice' });
-                              if (r.success) loadOrder();
-                              return { success: r.success, error: r.error };
-                            }}
-                            t={{
-                              recordPayment: tInvoices('recordPayment.title'),
-                              amount: tInvoices('recordPayment.amount'),
-                              paymentMethod: tInvoices('recordPayment.paymentMethod'),
-                              notes: tInvoices('recordPayment.notes'),
-                              remaining: tInvoices('recordPayment.remaining'),
-                              cash: tInvoices('recordPayment.cash'),
-                              card: tInvoices('recordPayment.card'),
-                              submit: tInvoices('recordPayment.submit'),
-                              cancelling: tInvoices('recordPayment.processing'),
-                              cancel: tInvoices('recordPayment.cancel'),
-                              success: tInvoices('recordPayment.success'),
-                              error: tInvoices('recordPayment.error'),
-                            }}
-                          />
+                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                          <Link
+                            href="/dashboard/customers/account-receipt"
+                            className="block w-full rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700"
+                          >
+                            {t('ready.paymentSection.receiveAccountPayment')}
+                          </Link>
+                          <p className="text-xs text-gray-500">
+                            {t('ready.paymentSection.receiveAccountPaymentHint')}
+                          </p>
                         </div>
                       );
                     })()}

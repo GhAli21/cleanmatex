@@ -131,7 +131,9 @@
       "invoiceOption": "فاتورة {invoiceNo} — {remaining}",
       "distributeAcrossInvoices": "توزيع على جميع الفواتير (الأقدم أولاً)",
       "applyToSelectedInvoice": "تطبيق على الفاتورة المحددة",
-      "orPayPerInvoiceHint": "بدلاً من ذلك، انتقل إلى الفواتير → الفواتير لتسجيل الدفع لكل فاتورة على حدة."
+      "orPayPerInvoiceHint": "بدلاً من ذلك، انتقل إلى الفواتير → الفواتير لتسجيل الدفع لكل فاتورة على حدة.",
+      "receiveAccountPayment": "استلام دفعة (سند قبض للعميل)",
+      "receiveAccountPaymentHint": "يفتح شاشة سند قبض حساب العميل — استلم المبلغ هناك وخصصه على فواتير هذا العميل."
     },
     "paymentStatus": {
       "paid": "مدفوع",

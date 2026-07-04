@@ -11,11 +11,12 @@ import { getFeatureFlags } from '@/lib/services/feature-flags.service';
 import { canCreateOrder } from '@/lib/services/usage-tracking.service';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 import { WorkflowService } from './workflow-service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
-  getPaymentsForOrder,
-  cancelPayment,
-  refundPayment,
-} from './payment-service';
+  unwindOrderFinancialsOnCancel,
+  CANCEL_DISPOSITIONS,
+  type CancelDisposition,
+} from '@/lib/services/order-cancel-financials.service';
 import type { Order } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
 
@@ -146,6 +147,36 @@ export class WorkflowServiceEnhanced {
       throw new ValidationError('User not authenticated', 'UNAUTHORIZED');
     }
 
+    // FN-02 disposition gate (Order-Fin remediation Phase 4): cancelling an
+    // order that holds collected money requires an explicit disposition —
+    // REFUND (maker-checker refund flow), STORE_CREDIT (credit note), or
+    // KEEP_ON_ACCOUNT (retain funds; requires orders:approve_refund). Applied
+    // stored-value credit is always reversed to its source ledger by the
+    // unwind. Runs before the old/new workflow fork so both paths are covered.
+    let cancelDisposition: CancelDisposition | undefined;
+    if (screen === 'canceling') {
+      const paidAmount = Number(order.total_paid_amount ?? 0);
+      if (paidAmount > 0.001) {
+        const requested = String(input.cancellation_disposition ?? '').toUpperCase();
+        if (!Object.values(CANCEL_DISPOSITIONS).includes(requested as CancelDisposition)) {
+          throw new ValidationError(
+            'This order has collected payments. Choose a disposition (refund, store credit, or keep on account) to cancel it.',
+            'CANCEL_DISPOSITION_REQUIRED'
+          );
+        }
+        cancelDisposition = requested as CancelDisposition;
+        if (cancelDisposition === CANCEL_DISPOSITIONS.KEEP_ON_ACCOUNT) {
+          const canKeep = await hasPermissionServer('orders:approve_refund');
+          if (!canKeep) {
+            throw new PermissionError(
+              'Keeping collected money on a cancelled order requires refund-approval permission.',
+              ['orders:approve_refund']
+            );
+          }
+        }
+      }
+    }
+
     // Check USE_OLD_WF_CODE_OR_NEW flag (from options or feature flag)
     const USE_OLD_WF_CODE_OR_NEW =
       options?.useOldWfCodeOrNew ??
@@ -165,6 +196,17 @@ export class WorkflowServiceEnhanced {
         notes: input.notes,
         metadata: input.metadata,
       });
+
+      // FN-02: the financial unwind must run on BOTH workflow paths.
+      if (result.success && screen === 'canceling') {
+        await unwindOrderFinancialsOnCancel({
+          tenantId,
+          orderId,
+          userId: userId!,
+          disposition: cancelDisposition,
+          reason: (input.cancelled_note || input.notes || '').trim(),
+        });
+      }
 
       return {
         ok: result.success,
@@ -319,24 +361,32 @@ export class WorkflowServiceEnhanced {
           cancelPayload?.errors || []
         );
       }
-      // Payment handling: cancel completed payments linked to order
+      // FN-02 financial unwind: reverse applied credit to source ledgers,
+      // route collected payments per the chosen disposition, reverse promo
+      // usage, recalc the snapshot, and emit the audit event. Runs after the
+      // status transition committed; every step is idempotent, so on failure
+      // the operator retries from the order screen without double effects.
       try {
-        const payments = await getPaymentsForOrder(orderId);
-        const completedPayments = payments.filter(
-          (p) => p.status === 'completed' && p.paid_amount > 0
-        );
-        for (const payment of completedPayments) {
-          const cancelResult = await cancelPayment(
-            payment.id,
-            (input.cancelled_note || input.notes || '').trim(),
-            userId!
-          );
-          if (!cancelResult.success) {
-            console.warn(`Failed to cancel payment ${payment.id}:`, cancelResult.error);
-          }
+        const unwind = await unwindOrderFinancialsOnCancel({
+          tenantId,
+          orderId,
+          userId: userId!,
+          disposition: cancelDisposition,
+          reason: (input.cancelled_note || input.notes || '').trim(),
+        });
+        if (unwind.warnings.length > 0) {
+          return {
+            ...(cancelPayload as TransitionResult),
+            message: `Cancelled with financial warnings: ${unwind.warnings.join(' | ')}`,
+          };
         }
-      } catch (paymentError) {
-        console.warn('Payment cancel handling failed:', paymentError);
+      } catch (unwindError) {
+        const message =
+          unwindError instanceof Error ? unwindError.message : String(unwindError);
+        throw new TransitionError(
+          `Order was cancelled but the financial unwind failed (${message}). Retry the cancellation to complete the refund/credit handling — it is safe to repeat.`,
+          [{ code: 'CANCEL_UNWIND_FAILED', message }]
+        );
       }
       return cancelPayload as TransitionResult;
     }
@@ -362,27 +412,11 @@ export class WorkflowServiceEnhanced {
           returnPayload?.errors || []
         );
       }
-      // Refund handling: refund each completed payment (full amount)
-      try {
-        const payments = await getPaymentsForOrder(orderId);
-        const completedPayments = payments.filter(
-          (p) => p.status === 'completed' && p.paid_amount > 0
-        );
-        for (const payment of completedPayments) {
-          const refundResult = await refundPayment({
-            transaction_id: payment.id,
-            amount: payment.paid_amount,
-            reason: (input.return_reason || input.notes || '').trim(),
-            processed_by: userId!,
-            reason_code: 'CUSTOMER_RETURN',
-          });
-          if (!refundResult.success) {
-            console.warn(`Failed to refund payment ${payment.id}:`, refundResult.error);
-          }
-        }
-      } catch (paymentError) {
-        console.warn('Refund handling failed:', paymentError);
-      }
+      // Refund handling: the legacy loop refunded the legacy payments ledger rows —
+      // that ledger is deprecated and empty (ADR-002), so it refunded nothing.
+      // Canonical refunds for returned orders go through the order refund flow
+      // (order-refund.service); auto-wiring returns into it lands with
+      // Order-Fin remediation Phase 4.
       return returnPayload as TransitionResult;
     }
 

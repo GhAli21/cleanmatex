@@ -37,9 +37,8 @@ function buildSourceLink(voucher: VoucherData): string | null {
   if (voucher.source_module === 'INVOICES') {
     return `/dashboard/internal_fin/invoices/${voucher.source_ref_id}`;
   }
-  if (voucher.source_module === 'PAYMENTS') {
-    return `/dashboard/internal_fin/payments/${voucher.source_ref_id}`;
-  }
+  // PAYMENTS source refs have no screen — internal_fin/payments was retired
+  // with the legacy payments ledger (dropped by migration 0395) (ADR-002).
 
   return null;
 }

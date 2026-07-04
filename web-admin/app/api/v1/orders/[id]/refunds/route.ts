@@ -32,6 +32,7 @@ const schema = z.object({
   refundScope: z.enum([REFUND_SCOPES.STANDARD, REFUND_SCOPES.MANUAL_EXCEPTION]).optional(),
   approvalRequired: z.boolean().optional(),
   idempotencyKey: z.string().min(1).max(120).optional(),
+  posSessionId: z.string().uuid().optional(),
 });
 
 /**
@@ -120,6 +121,7 @@ export async function POST(
       refundScope: parsed.data.refundScope,
       approvalRequired: parsed.data.approvalRequired,
       idempotencyKey: parsed.data.idempotencyKey,
+      posSessionId: parsed.data.posSessionId,
     });
     return NextResponse.json({ success: true, data: refund }, { status: 201 });
   } catch (err) {

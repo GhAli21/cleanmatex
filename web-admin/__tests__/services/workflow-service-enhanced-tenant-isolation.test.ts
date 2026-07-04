@@ -28,10 +28,17 @@ jest.mock('@/lib/api/hq-api-client', () => ({
   },
 }));
 
-jest.mock('@/lib/services/payment-service', () => ({
-  getPaymentsForOrder: jest.fn().mockResolvedValue([]),
-  cancelPayment: jest.fn().mockResolvedValue({ success: true }),
-  refundPayment: jest.fn().mockResolvedValue({ success: true }),
+jest.mock('@/lib/services/permission-service-server', () => ({
+  hasPermissionServer: jest.fn().mockResolvedValue(true),
+}));
+
+jest.mock('@/lib/services/order-cancel-financials.service', () => ({
+  CANCEL_DISPOSITIONS: {
+    REFUND: 'REFUND',
+    STORE_CREDIT: 'STORE_CREDIT',
+    KEEP_ON_ACCOUNT: 'KEEP_ON_ACCOUNT',
+  },
+  unwindOrderFinancialsOnCancel: jest.fn().mockResolvedValue({ warnings: [] }),
 }));
 
 describe('WorkflowServiceEnhanced — Tenant Isolation', () => {

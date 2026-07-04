@@ -7,6 +7,7 @@
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import { assertVoucherIsMutable, validateVoucherLine } from './voucher-validation.service';
+import { assertOpenPosSessionForFinanceTx } from './pos-session.service';
 import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } from '../types/voucher';
 import { TARGET_TYPE, normalizeVoucherLinePaymentStatus } from '../constants/voucher';
 
@@ -51,6 +52,7 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
     org_payment_method_id:  (row.org_payment_method_id as string) ?? null,
     payment_terminal_id:    (row.payment_terminal_id as string) ?? null,
     cash_drawer_session_id: (row.cash_drawer_session_id as string) ?? null,
+    pos_session_id:         (row.pos_session_id as string) ?? null,
     card_brand_code:        (row.card_brand_code as string) ?? null,
     card_last4:             (row.card_last4 as string) ?? null,
     auth_code:              (row.auth_code as string) ?? null,
@@ -121,6 +123,13 @@ async function addVoucherLineInTx(
 
   const line_no = await getNextLineNoTx(tx, tenantOrgId, voucherId);
 
+  await assertOpenPosSessionForFinanceTx(tx, {
+    tenantId: tenantOrgId,
+    userId,
+    posSessionId: input.pos_session_id,
+    branchId: input.branch_id ?? null,
+  });
+
   // Auto-derive change for cash payments unless explicitly provided
   let changeReturned: number | null = null;
   if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined) {
@@ -146,6 +155,7 @@ async function addVoucherLineInTx(
       employee_id:            input.employee_id ?? null,
       branch_id:              input.branch_id ?? null,
       cash_drawer_session_id: input.cash_drawer_session_id ?? null,
+      pos_session_id:         input.pos_session_id ?? null,
       payment_method_code:    input.payment_method_code ?? null,
       payment_status:         normalizeVoucherLinePaymentStatus(input.payment_status),
       // B5 fix: these three were dropped by the original create payload, leaving

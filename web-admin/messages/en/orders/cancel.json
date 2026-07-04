@@ -14,6 +14,24 @@
     "outOfStock": "Out of stock",
     "other": "Other"
   },
+  "disposition": {
+    "title": "Collected payments: {amount}",
+    "hint": "This order has collected money. Choose what happens to it when the order is cancelled.",
+    "options": {
+      "REFUND": {
+        "label": "Refund the customer",
+        "description": "Creates refund requests for each payment; they follow the normal refund approval flow."
+      },
+      "STORE_CREDIT": {
+        "label": "Convert to store credit",
+        "description": "Issues an active credit note the customer can use on future orders."
+      },
+      "KEEP_ON_ACCOUNT": {
+        "label": "Keep the money (cancellation charge)",
+        "description": "Retains the collected amount. Requires refund-approval permission and is recorded in the audit trail."
+      }
+    }
+  },
   "confirm": "Cancel Order",
   "success": "Order cancelled successfully",
   "error": "Failed to cancel order"

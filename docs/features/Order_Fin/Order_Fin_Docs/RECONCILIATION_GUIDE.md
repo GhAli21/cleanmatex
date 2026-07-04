@@ -83,3 +83,9 @@
 ## Viewing Results
 
 The reconciliation UI at `/dashboard/internal_fin/reconciliation` lists all runs. Each run's detail page shows per-check status and affected entity counts.
+
+---
+
+## Money-position glance (Remediation 2026-07 Phase 2)
+
+`/dashboard/reports/financial` now opens with a five-card money-position row: Collected today (by method), Orders outstanding, AR outstanding, Owed to customers (wallets + advances + credit notes — the same liability the Unallocated Excess reconciliation itemizes), and Open drawer sessions. All figures are thin aggregates over the canonical ledgers via `GET /api/v1/finance/reports/money-position` (`finance_reports:view`). Use the reconciliation reports for row-level drill-down.
