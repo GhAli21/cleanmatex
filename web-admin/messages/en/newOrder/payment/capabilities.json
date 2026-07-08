@@ -1,0 +1,11 @@
+{
+  "dialog": {
+    "errorFallback": "Something went wrong in this dialog. Your payment entries are safe — close and try again.",
+    "required": "Required"
+  },
+  "SPLIT_TENDER": {
+    "title": "Split payment",
+    "action": "Split payment",
+    "description": "Take this payment with more than one method — for example cash and card together."
+  }
+}

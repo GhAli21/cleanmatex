@@ -12,7 +12,7 @@
 | 0B | Backend credit-limit hard-deny by default (orchestrator only) | ✅ DONE (2026-07-09) | hard-deny tests 5/5 · oracle 8/8 · eslint 0 · tsc 0 · i18n ✓ |
 | 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
-| 3 | Capability dialogs (domain-level) | ⬜ pending | — |
+| 3 | Capability dialogs (domain-level) | 🟡 IN PROGRESS — 3a facade ext ✅ (`e80f9258`) · split-tender ✅ · gift-card/promo/credit/B2B/drawer/overpayment-wrap/FX ⬜ | split tests 4/4 · module 31/31 · i18n ✓ · eslint 0 · tsc 0 |
 | 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ⬜ pending | — |
 | 5 | Behavior reversal + server-error→capability routing | ⬜ pending | — |
 | 6 | i18n EN/AR + new test coverage + full gates | ⬜ pending | — |
@@ -65,6 +65,12 @@
 - `payment-submit-guard.tsx` — `PaymentSubmitGuard` inline guard banner (`data-reason=<code>`, `aria-live=polite`, optional corrective action) — ADR: blocked submit is a guard, never a mode change.
 - **Reused, not rebuilt:** `CmxMoneyField` (amount input), `CmxKeypad`, `SummaryRow`, `quick-tender-chips`, `payment-mode-toggle`, `CmxButton`/`CmxDialog`. `MethodSelector`/`LegEditor` extraction lands with the capability dialogs (Phase 3) where their real consumers exist — not speculatively.
 - Tests: `payment-primitives.test.tsx` 7/7 (guard reason attr + action; boundary fallback/close/safe-log; shell render/required badge/confirm-disabled/single open log). Known jest workaround reused: mock `tenant-currency-context` (next-intl ESM via @ui barrel).
+
+## Phase 3 — detail (2026-07-09, in progress)
+
+- **3a (`e80f9258`):** `PaymentEngineActions` extended per H2 — leg editing (`setActiveLegIndex`/`updateLeg`/`addLeg`/`removeLegAt` from `engine.legs`) + drawer actions (`selectCashDrawerSession`/`persistPreferredCashDrawerId`/`openCashDrawerDialog`/`createCashDrawerSession` from `engine.cashDrawer`). Facade tests updated same commit.
+- **Split-tender dialog** — `payment/capabilities/split-tender/split-tender-dialog.tsx`: leg rows (method dropdown + `CmxMoneyField` + remove), add-method picker (`addLeg(option, remaining)`), live balance line. **No money math in the dialog** — `amountDue`/`legsTotal`/`remainingBalance` arrive engine-derived; edits go through typed actions only. Live-commit model (engine owns state → ADR state-survival) with a single Done. Reuses existing `splitPayment.*` i18n keys; new namespace `newOrder.payment.capabilities` (EN/AR: `dialog.errorFallback`, `dialog.required`, `SPLIT_TENDER.*`); added `common.done` (EN/AR). Tests 4/4.
+- **Remaining dialogs (build one per commit, each extends i18n + tests):** gift-card(+PIN), promo, customer-credit, B2B account-billing, cash-drawer selector, overpayment (wrap existing `payment-extra-receipt-dialog`), FX/rounding inline line. Then registry `Dialog` wiring.
 
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
