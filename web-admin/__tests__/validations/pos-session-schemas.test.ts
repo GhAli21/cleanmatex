@@ -67,7 +67,16 @@ describe('pos session validation schemas', () => {
   });
 
   it('validates branch conflict query shape', () => {
-    expect(posSessionBranchQuerySchema.parse({ branchId })).toEqual({ branchId });
+    expect(posSessionBranchQuerySchema.parse({ branchId })).toEqual({ branchId, includeContext: false });
+    expect(posSessionBranchQuerySchema.parse({ branchId, includeContext: 'true' })).toEqual({
+      branchId,
+      includeContext: true,
+    });
+    expect(posSessionBranchQuerySchema.parse({ branchId, includeContext: 'false' })).toEqual({
+      branchId,
+      includeContext: false,
+    });
     expect(() => posSessionBranchQuerySchema.parse({ branchId: 'not-a-uuid' })).toThrow();
+    expect(() => posSessionBranchQuerySchema.parse({ branchId, includeContext: 'yes' })).toThrow();
   });
 });

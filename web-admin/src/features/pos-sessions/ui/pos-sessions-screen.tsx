@@ -24,13 +24,17 @@ import {
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
+import {
+  fetchMyActivePosSession,
+  fetchPosSessionSummary,
+  PosSessionApiError,
+  postPosSessionLifecycleAction,
+} from '@features/pos-sessions/api/pos-session-api';
 import type {
   GetMyActivePosSessionResult,
-  OpenPosSessionResult,
   PosSessionListResult,
   PosSessionListRow,
   PosSessionRow,
-  PosSessionSummary,
 } from '@/lib/types/pos-session';
 
 interface BranchOption {
@@ -114,7 +118,7 @@ export function PosSessionsScreen() {
 
   const activeQuery = useQuery({
     queryKey: ['pos-sessions', 'my-active'],
-    queryFn: () => fetchJson<GetMyActivePosSessionResult>('/api/v1/pos-sessions/my-active'),
+    queryFn: () => fetchMyActivePosSession(),
   });
 
   const sessionsQuery = useQuery({
@@ -134,7 +138,7 @@ export function PosSessionsScreen() {
   const summaryQuery = useQuery({
     queryKey: ['pos-sessions', 'summary', summarySessionId],
     enabled: !!summarySessionId,
-    queryFn: () => fetchJson<PosSessionSummary>(`/api/v1/pos-sessions/${summarySessionId}/summary`),
+    queryFn: () => fetchPosSessionSummary(summarySessionId!),
   });
 
   const activeSession =
@@ -155,32 +159,20 @@ export function PosSessionsScreen() {
   ): Promise<'ok' | 'drawer-open' | 'error'> => {
     setBusyAction(endpoint);
     try {
-      const response = await fetch(`/api/v1/pos-sessions/${endpoint}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCSRFHeader(csrfToken),
-        },
-        body: JSON.stringify({
-          ...body,
-          idempotencyKey: `${endpoint}:${crypto.randomUUID()}`,
-          sourceChannel: 'pos_session_workbench',
-        }),
+      await postPosSessionLifecycleAction(endpoint, {
+        csrfToken,
+        body,
+        sourceChannel: 'pos_session_workbench',
       });
-      const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<OpenPosSessionResult>;
-      if (!response.ok || payload.success === false) {
-        if (payload.errorCode === 'POS_SESSION_DRAWER_STILL_OPEN') {
-          setDrawerDialogOpen(true);
-          cmxMessage.info(t('messages.drawerStillOpen'));
-          return 'drawer-open';
-        }
-        throw new Error(payload.error || t('messages.actionFailed'));
-      }
       cmxMessage.success(successMessage);
       await refreshAll();
       return 'ok';
     } catch (error) {
+      if (error instanceof PosSessionApiError && error.errorCode === 'POS_SESSION_DRAWER_STILL_OPEN') {
+        setDrawerDialogOpen(true);
+        cmxMessage.info(t('messages.drawerStillOpen'));
+        return 'drawer-open';
+      }
       cmxMessage.error(error instanceof Error ? error.message : t('messages.actionFailed'));
       return 'error';
     } finally {

@@ -47,6 +47,7 @@ import { OrderPiecePreferencesSection } from './piece-preferences/order-piece-pr
 import { OrderPiecesNotesSection } from './order-pieces-notes-section';
 import { EditOrderBar } from './edit-order-bar';
 import { PosSessionOrderBanner } from '@features/pos-sessions/ui/pos-session-order-banner';
+import { PosSessionHub } from '@features/pos-sessions/ui/pos-session-hub';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
@@ -623,6 +624,9 @@ export function NewOrderContent() {
                 categoriesLoading={state.state.categoriesLoading}
                 showCategories={activeTab === 'select'}
                 hasBranchDependentData={hasBranchDependentData}
+                sessionSlot={!state.state.isEditMode ? (
+                    <PosSessionHub branchId={state.state.branchId} />
+                ) : null}
             />
 
             {!state.state.isEditMode && (

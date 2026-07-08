@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Scan all web-admin/app/api/**/route.ts files.
+ * Scan all web-admin app API route files.
  * Detect: requirePermission, requireTenantAuth, getAuthContext, custom getAuthContext
  * Output: API_AUTH_AUDIT.md — routes with explicit permission vs auth-only vs none
  * Flag routes that may need permission checks added.

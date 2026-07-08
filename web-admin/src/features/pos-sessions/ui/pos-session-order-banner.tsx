@@ -5,35 +5,17 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { AlertCircle, CreditCard } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxStatusBadge } from '@ui/feedback';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
-import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
-
-type ApiEnvelope<T> = { success?: boolean; data?: T; error?: string; errorCode?: string };
-
-async function fetchMyActiveSession(branchId: string | null): Promise<GetMyActivePosSessionResult> {
-  const params = new URLSearchParams();
-  if (branchId) params.set('branchId', branchId);
-  const response = await fetch(`/api/v1/pos-sessions/my-active?${params.toString()}`, {
-    credentials: 'include',
-  });
-  const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<GetMyActivePosSessionResult>;
-  if (!response.ok && payload.errorCode === 'POS_SESSION_BRANCH_CONFLICT' && payload.data) {
-    return payload.data;
-  }
-  if (!response.ok || payload.success === false) {
-    throw new Error(payload.error || 'Failed to load POS session');
-  }
-  return payload.data as GetMyActivePosSessionResult;
-}
+import { fetchMyActivePosSession, posSessionActiveQueryKey } from '@features/pos-sessions/api/pos-session-api';
 
 export function PosSessionOrderBanner({ branchId }: { branchId: string | null }) {
   const t = useTranslations('posSessions');
   const query = useQuery({
-    queryKey: ['pos-sessions', 'order-banner', branchId ?? 'none'],
+    queryKey: posSessionActiveQueryKey(branchId, true),
     enabled: !!branchId,
-    queryFn: () => fetchMyActiveSession(branchId),
+    queryFn: () => fetchMyActivePosSession({ branchId, includeContext: true }),
     staleTime: 30_000,
   });
 
@@ -41,11 +23,16 @@ export function PosSessionOrderBanner({ branchId }: { branchId: string | null })
     return null;
   }
 
-  if (query.isLoading) {
+  if (query.isLoading || query.data?.type === 'NONE') {
+    return null;
+  }
+
+  if (query.isError) {
     return (
-      <BannerShell tone="info">
-        <CreditCard className="h-4 w-4" aria-hidden />
-        <span>{t('banner.loading')}</span>
+      <BannerShell tone="danger">
+        <AlertCircle className="h-4 w-4" aria-hidden />
+        <span className="flex-1">{t('messages.loadFailed')}</span>
+        <ManageButton label={t('banner.manage')} />
       </BannerShell>
     );
   }
@@ -63,17 +50,16 @@ export function PosSessionOrderBanner({ branchId }: { branchId: string | null })
   if (query.data?.type === 'ACTIVE') {
     const session = query.data.session;
     const isPaused = session.status === POS_SESSION_STATUS.PAUSED;
+    if (!isPaused) return null;
     return (
-      <BannerShell tone={isPaused ? 'warning' : 'success'}>
+      <BannerShell tone="warning">
         <CreditCard className="h-4 w-4" aria-hidden />
         <span className="flex-1">
-          {isPaused
-            ? t('banner.paused', { sessionNo: session.session_no })
-            : t('banner.open', { sessionNo: session.session_no })}
+          {t('banner.paused', { sessionNo: session.session_no })}
         </span>
         <CmxStatusBadge
           label={session.status}
-          variant={isPaused ? 'warning' : 'success'}
+          variant="warning"
           size="sm"
         />
         <ManageButton label={t('banner.manage')} />
@@ -81,13 +67,7 @@ export function PosSessionOrderBanner({ branchId }: { branchId: string | null })
     );
   }
 
-  return (
-    <BannerShell tone="info">
-      <CreditCard className="h-4 w-4" aria-hidden />
-      <span className="flex-1">{t('banner.none')}</span>
-      <ManageButton label={t('banner.manage')} />
-    </BannerShell>
-  );
+  return null;
 }
 
 function ManageButton({ label }: { label: string }) {

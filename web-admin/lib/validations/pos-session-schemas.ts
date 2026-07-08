@@ -23,6 +23,17 @@ export const posSessionForceCloseSchema = posSessionReasonSchema.extend({
 
 export const posSessionBranchQuerySchema = z.object({
   branchId: z.string().uuid().optional(),
+  includeContext: z
+    .preprocess(
+      (value) => {
+        if (value === undefined) return false;
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return value;
+      },
+      z.boolean()
+    )
+    .default(false),
 });
 
 export const posSessionListQuerySchema = z.object({

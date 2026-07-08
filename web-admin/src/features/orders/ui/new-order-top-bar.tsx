@@ -6,7 +6,7 @@
 
 'use client';
 
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CategoryTabs } from './category-tabs';
@@ -38,6 +38,7 @@ interface NewOrderTopBarProps {
   categoriesLoading?: boolean;
   showCategories?: boolean;
   hasBranchDependentData?: boolean;
+  sessionSlot?: ReactNode;
 }
 
 export const NewOrderTopBar = memo(function NewOrderTopBar({
@@ -56,6 +57,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   categoriesLoading = false,
   showCategories = true,
   hasBranchDependentData = false,
+  sessionSlot,
 }: NewOrderTopBarProps) {
   const t = useTranslations('newOrder');
   const tCommon = useTranslations('common');
@@ -134,6 +136,12 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           <Zap className="w-4 h-4 shrink-0" aria-hidden />
           <span>{t('topBar.expressLabel') || t('express.label') || 'Express'}</span>
         </button>
+
+        {sessionSlot ? (
+          <div className="ms-auto flex min-w-0 items-center">
+            {sessionSlot}
+          </div>
+        ) : null}
       </div>
 
       {/* Row 2: Category Tabs */}
