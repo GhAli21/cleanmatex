@@ -19,7 +19,7 @@ import { createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrderTx } from '@/lib/services/order-settlement.service';
-import { checkCreditLimit } from '@/lib/services/credit-limit.service';
+import { checkCreditLimit, assertCreditWithinPolicy } from '@/lib/services/credit-limit.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { resolveVoucherCashChangeReturned } from '@/lib/payments/resolve-voucher-cash-change';
@@ -248,7 +248,7 @@ export async function resolveOrderBranch(
  * @throws Error('AMOUNT_MISMATCH')               — server totals differ from client totals.
  * @throws Error('PRODUCT_NOT_FOUND')             — a line item product does not exist for this tenant.
  * @throws Error('B2B_CREDIT_HOLD')               — customer has a credit hold; order blocked.
- * @throws Error('B2B_CREDIT_EXCEEDED')           — order would exceed credit limit (with creditLimit/available attached).
+ * @throws Error('B2B_CREDIT_EXCEEDED')           — order would exceed credit limit (with creditLimit/available attached). Hard-denied for everyone since Phase 0B; `input.creditLimitOverride` is inert.
  * @throws Error('SPLIT_AMOUNT_MISMATCH')         — sum of multi-leg amounts ≠ order total.
  * @throws Error('DEFERRED_LEG_NOT_ALONE')        — deferred method mixed with other legs in a split.
  * @throws Error('CHECK_NUMBER_REQUIRED')         — CHECK leg missing a non-empty checkNumber.
@@ -345,7 +345,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   const isDeferredOnly = paymentLegs.every((leg) => DEFERRED_METHODS.has(leg.method));
   const hasDeferredLeg = paymentLegs.some((leg) => DEFERRED_METHODS.has(leg.method));
   const hasImmediatePayment = paymentLegs.some((leg) => !DEFERRED_METHODS.has(leg.method));
-  const creditLimitOverride = input.creditLimitOverride === true;
   // sumMoney avoids float drift across multi-leg totals (e.g. CASH 33.333 + CARD 66.667).
   const amountToCharge = sumMoney(
     paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method)).map((leg) => leg.amount)
@@ -370,19 +369,13 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   );
 
   if (effectiveOutstandingPolicy === 'CREDIT_INVOICE') {
+    // Phase 0B (accounting safety, 2026-07-09): exceeding the credit limit is
+    // hard-denied for everyone — `input.creditLimitOverride` is deliberately
+    // inert. The gate takes no override input by design; see
+    // `assertCreditWithinPolicy` and Deferred_Backend_Tasks.md for the future
+    // gated re-enable (enablement policy + permission, BOTH required).
     const creditCheck = await checkCreditLimit(input.customerId, serverSaleTotal);
-    if (creditCheck.isCreditHold) {
-      const err = new Error('B2B_CREDIT_HOLD'); throw err;
-    }
-    if (creditCheck.wouldExceed && !creditLimitOverride) {
-      const err = new Error('B2B_CREDIT_EXCEEDED');
-      Object.assign(err, {
-        creditLimit:    creditCheck.creditLimit,
-        currentBalance: creditCheck.currentBalance,
-        available:      creditCheck.available,
-      });
-      throw err;
-    }
+    assertCreditWithinPolicy(creditCheck);
   }
 
   if (!Number.isFinite(amountToCharge) || amountToCharge < 0)
@@ -625,10 +618,9 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     ...(input.b2bContractId    != null && { b2bContractId:    input.b2bContractId }),
     ...(input.costCenterCode   != null && input.costCenterCode !== '' && { costCenterCode: input.costCenterCode }),
     ...(input.poNumber         != null && input.poNumber !== '' && { poNumber: input.poNumber }),
-    ...(creditLimitOverride && {
-      creditLimitOverrideBy: userName,
-      creditLimitOverrideAt: new Date(),
-    }),
+    // creditLimitOverrideBy/At stamping removed with Phase 0B: the client
+    // override flag is inert, so nothing is ever overridden. The gated path
+    // (Deferred_Backend_Tasks.md) reintroduces the stamp when override returns.
   };
 
   // Gift-card redemption is stored-value settlement, not a pricing discount.

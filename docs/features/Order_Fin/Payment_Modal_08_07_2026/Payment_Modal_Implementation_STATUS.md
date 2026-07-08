@@ -8,8 +8,8 @@
 
 | Phase | Scope | Status | Gates |
 |-------|-------|--------|-------|
-| 0 | Engine action facade + config boundary + kill-switch + task docs | 🟡 IN PROGRESS (~80%) | new tests 6/6 · oracle 8/8 · eslint 0 · tsc 0 |
-| 0B | Backend credit-limit hard-deny by default (orchestrator only) | ⬜ pending | — |
+| 0 | Engine action facade + config boundary + kill-switch + task docs | ✅ DONE — commit `83147972` | new tests 6/6 · oracle 8/8 · eslint 0 · tsc 0 |
+| 0B | Backend credit-limit hard-deny by default (orchestrator only) | ✅ DONE (2026-07-09) | hard-deny tests 5/5 · oracle 8/8 · eslint 0 · tsc 0 · i18n ✓ |
 | 1 | Capability registry + unified reason codes + CapabilityContext | ⬜ pending | — |
 | 2 | Reusable primitives + capability dialog shell | ⬜ pending | — |
 | 3 | Capability dialogs (domain-level) | ⬜ pending | — |
@@ -36,6 +36,17 @@
 **⚠ Facade is deliberately partial (handoff H2):** leg editing (`updateLeg`/`addLeg`/`removeLeg`) and cash-drawer actions are NOT yet in `PaymentEngineActions`; each Phase-3 dialog adds the actions it needs in the same commit.
 
 **⚠ Foreign uncommitted files on this branch (handoff H3) — NEVER stage:** `web-admin/app/dashboard/internal_fin/pos-sessions/page.tsx`, `web-admin/messages/{en,ar}/posSessions.json`, `supabase/migrations/0400_pos_sessions_rebuild_effective_permissions.sql` (separate pos-sessions work). No `git add -A`.
+
+## Phase 0B — detail (2026-07-09)
+
+**Change:** B2B credit-limit exceedance is **hard-denied by default**; the client `creditLimitOverride` boolean is fully inert server-side.
+
+- `web-admin/lib/services/credit-limit.service.ts` — new exported pure gate `assertCreditWithinPolicy(creditCheck)`: throws `B2B_CREDIT_HOLD` / `B2B_CREDIT_EXCEEDED` (with `creditLimit`/`currentBalance`/`available` attached). **Takes no override input by design** — inertness is structural.
+- `web-admin/lib/services/order-submit-orchestrator.service.ts` — CREDIT_INVOICE path now calls the gate unconditionally; removed the `creditLimitOverride` const, the `!creditLimitOverride` bypass, and the now-meaningless `creditLimitOverrideBy/At` stamping (nothing is ever overridden). Schema field stays (payload frozen); `order-service.ts` pass-through params kept for the future gated path.
+- Tests: `web-admin/__tests__/services/credit-limit-hard-deny.test.ts` (5/5) — within-limit passes · hold throws · exceeded throws with details · **structural inertness** (single-param signature + smuggled flag still denied) · non-B2B passes.
+- i18n: added missing `newOrder.payment.errors.*` keys (EN+AR): `b2bCreditHold`, `b2bCreditExceeded`, `splitAmountMismatch`, `deferredLegNotAlone`, `paymentReferenceRequired`, `paymentTerminalRequired`, `outstandingPolicyRequired` — **pre-existing gap**: `use-order-submission.ts:607-646` referenced all of these but none existed, so those server rejections rendered raw key paths. Now fixed; `check:i18n` ✓.
+- **Interim seam (accepted, H5):** until Phase 5 removes the UI override affordance (`creditExceededWarn` flow), a cashier using it simply gets the server's hard `B2B_CREDIT_EXCEEDED` denial. Not a bug. The stale `b2b.creditExceededWarn` copy ("You may override…") is removed/reworded in Phase 5.
+- **Deferred (HIGH-PRIORITY):** gated override re-enable — see `Deferred_Backend_Tasks.md` §1.
 
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
