@@ -10,7 +10,7 @@
 |-------|-------|--------|-------|
 | 0 | Engine action facade + config boundary + kill-switch + task docs | ✅ DONE — commit `83147972` | new tests 6/6 · oracle 8/8 · eslint 0 · tsc 0 |
 | 0B | Backend credit-limit hard-deny by default (orchestrator only) | ✅ DONE (2026-07-09) | hard-deny tests 5/5 · oracle 8/8 · eslint 0 · tsc 0 · i18n ✓ |
-| 1 | Capability registry + unified reason codes + CapabilityContext | ⬜ pending | — |
+| 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
 | 2 | Reusable primitives + capability dialog shell | ⬜ pending | — |
 | 3 | Capability dialogs (domain-level) | ⬜ pending | — |
 | 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ⬜ pending | — |
@@ -47,6 +47,15 @@
 - i18n: added missing `newOrder.payment.errors.*` keys (EN+AR): `b2bCreditHold`, `b2bCreditExceeded`, `splitAmountMismatch`, `deferredLegNotAlone`, `paymentReferenceRequired`, `paymentTerminalRequired`, `outstandingPolicyRequired` — **pre-existing gap**: `use-order-submission.ts:607-646` referenced all of these but none existed, so those server rejections rendered raw key paths. Now fixed; `check:i18n` ✓.
 - **Interim seam (accepted, H5):** until Phase 5 removes the UI override affordance (`creditExceededWarn` flow), a cashier using it simply gets the server's hard `B2B_CREDIT_EXCEEDED` denial. Not a bug. The stale `b2b.creditExceededWarn` copy ("You may override…") is removed/reworded in Phase 5.
 - **Deferred (HIGH-PRIORITY):** gated override re-enable — see `Deferred_Backend_Tasks.md` §1.
+
+## Phase 1 — detail (2026-07-09)
+
+**New pure layers (no React, no money math — classifier only):**
+- `payment/domain/payment-reasons.ts` — unified `PAYMENT_REASON` codes: **server-mirror family** (values are the exact backend error codes, e.g. `CASH_DRAWER_SESSION_CLOSED`, `B2B_CREDIT_EXCEEDED` — contract-mirror rule) + **UX family** (`SHOWN_*`, `REQUIRED_*`, `SUGGEST_FULL_COMPLEXITY`); `SERVER_ERROR_TO_REASON` map (Phase 5 extends into guard routing); `needsAdvancedToSuggestion` (demoted suggestion); `reasonMessageKey` (`newOrder.payment.reasons.<code>` — catalog entries land with consuming UI in Phase 6).
+- `payment/domain/capability-context.ts` — `CapabilityContext` (pure facts: catalog/customer/legs/overpayment/drawer/FX/submit), `createCapabilityContext` builder, `toNeedsAdvancedInput` adapter so the retained `computeNeedsAdvanced` predicate and the registry classify from the SAME facts (no drift).
+- `payment/capabilities/registry.ts` — declarative descriptors for all 13 capabilities (`isAvailable`/`isRequired`/`isBlocked`/`presentation`/`activeReasons` + messageKeys) + `evaluateCapability`/`evaluateCapabilities`; config `capabilityOverrides` applies last and cannot resurrect an unavailable capability. ADR mappings pinned: split=dialog(#1), PIN inside gift dialog(#6), drawer-ambiguity=required inline prompt(#7), drawer-blocked=submit guard(#8), overpayment=required dialog(#5), B2B pay-now unforced / account-billing missing-fields=required gate(#3), FX=read-only inline(#9).
+- Tests: `capability-registry.test.ts` (15/15) incl. server-mirror identity check and adapter parity with `computeNeedsAdvanced`. `payment-needs-advanced.ts` and its tests untouched.
+- Note: `Dialog` component wiring is deliberately absent from descriptors until Phase 3 (H2 — facade extends per capability then).
 
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
