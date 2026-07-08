@@ -11,7 +11,7 @@
 | 0 | Engine action facade + config boundary + kill-switch + task docs | ✅ DONE — commit `83147972` | new tests 6/6 · oracle 8/8 · eslint 0 · tsc 0 |
 | 0B | Backend credit-limit hard-deny by default (orchestrator only) | ✅ DONE (2026-07-09) | hard-deny tests 5/5 · oracle 8/8 · eslint 0 · tsc 0 · i18n ✓ |
 | 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
-| 2 | Reusable primitives + capability dialog shell | ⬜ pending | — |
+| 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ⬜ pending | — |
 | 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ⬜ pending | — |
 | 5 | Behavior reversal + server-error→capability routing | ⬜ pending | — |
@@ -56,6 +56,15 @@
 - `payment/capabilities/registry.ts` — declarative descriptors for all 13 capabilities (`isAvailable`/`isRequired`/`isBlocked`/`presentation`/`activeReasons` + messageKeys) + `evaluateCapability`/`evaluateCapabilities`; config `capabilityOverrides` applies last and cannot resurrect an unavailable capability. ADR mappings pinned: split=dialog(#1), PIN inside gift dialog(#6), drawer-ambiguity=required inline prompt(#7), drawer-blocked=submit guard(#8), overpayment=required dialog(#5), B2B pay-now unforced / account-billing missing-fields=required gate(#3), FX=read-only inline(#9).
 - Tests: `capability-registry.test.ts` (15/15) incl. server-mirror identity check and adapter parity with `computeNeedsAdvanced`. `payment-needs-advanced.ts` and its tests untouched.
 - Note: `Dialog` component wiring is deliberately absent from descriptors until Phase 3 (H2 — facade extends per capability then).
+
+## Phase 2 — detail (2026-07-09)
+
+**New L4 primitives under `payment/primitives/`** (Cmx-composed; i18n resolved by callers, same convention as `payment-mode-toggle`):
+- `payment-capability-dialog.tsx` — `PaymentCapabilityDialog` shell: CmxDialog chrome + title/description + required badge + cancel/confirm footer + built-in error boundary + open-event observability (safe metadata only: capability key + event; hardening #11 + #12). Focus trap / Esc / aria-modal / focus-return come from CmxDialog (Radix) — not re-implemented.
+- `payment-dialog-error-boundary.tsx` — class boundary; crash → recoverable fallback + close; engine state lives outside the dialog tree so nothing is lost; logs capability key only.
+- `payment-submit-guard.tsx` — `PaymentSubmitGuard` inline guard banner (`data-reason=<code>`, `aria-live=polite`, optional corrective action) — ADR: blocked submit is a guard, never a mode change.
+- **Reused, not rebuilt:** `CmxMoneyField` (amount input), `CmxKeypad`, `SummaryRow`, `quick-tender-chips`, `payment-mode-toggle`, `CmxButton`/`CmxDialog`. `MethodSelector`/`LegEditor` extraction lands with the capability dialogs (Phase 3) where their real consumers exist — not speculatively.
+- Tests: `payment-primitives.test.tsx` 7/7 (guard reason attr + action; boundary fallback/close/safe-log; shell render/required badge/confirm-disabled/single open log). Known jest workaround reused: mock `tenant-currency-context` (next-intl ESM via @ui barrel).
 
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
