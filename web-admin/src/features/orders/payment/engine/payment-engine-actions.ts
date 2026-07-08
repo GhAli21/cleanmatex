@@ -34,6 +34,16 @@ export interface PaymentEngineActions {
   cycleActiveLeg: PaymentEngine['cycleActiveLeg'];
   fillLegRemaining: PaymentEngine['fillLegRemaining'];
   pressKeypad: PaymentEngine['handleKeypadPress'];
+  // ---- leg editing (split-tender capability; H2 extension, Phase 3) ----
+  setActiveLegIndex: PaymentEngine['legs']['setActiveLegIndex'];
+  updateLeg: PaymentEngine['legs']['updateLeg'];
+  addLeg: PaymentEngine['legs']['addLeg'];
+  removeLegAt: PaymentEngine['legs']['removeLegAt'];
+  // ---- cash drawer (drawer-selector capability; H2 extension, Phase 3) ----
+  selectCashDrawerSession: PaymentEngine['cashDrawer']['setSelectedCashDrawerSessionId'];
+  persistPreferredCashDrawerId: PaymentEngine['cashDrawer']['persistPreferredCashDrawerId'];
+  openCashDrawerDialog: PaymentEngine['cashDrawer']['handleOpenCashDrawerDialog'];
+  createCashDrawerSession: PaymentEngine['cashDrawer']['handleCreateCashDrawerSession'];
   // ---- gift card & promo ----
   fetchGiftCardDetails: PaymentEngine['handleFetchGiftCardDetails'];
   applyGiftCard: PaymentEngine['handleApplyGiftCard'];
@@ -69,6 +79,14 @@ export function toPaymentEngineActions(
     cycleActiveLeg: engine.cycleActiveLeg,
     fillLegRemaining: engine.fillLegRemaining,
     pressKeypad: engine.handleKeypadPress,
+    setActiveLegIndex: engine.legs.setActiveLegIndex,
+    updateLeg: engine.legs.updateLeg,
+    addLeg: engine.legs.addLeg,
+    removeLegAt: engine.legs.removeLegAt,
+    selectCashDrawerSession: engine.cashDrawer.setSelectedCashDrawerSessionId,
+    persistPreferredCashDrawerId: engine.cashDrawer.persistPreferredCashDrawerId,
+    openCashDrawerDialog: engine.cashDrawer.handleOpenCashDrawerDialog,
+    createCashDrawerSession: engine.cashDrawer.handleCreateCashDrawerSession,
     fetchGiftCardDetails: engine.handleFetchGiftCardDetails,
     applyGiftCard: engine.handleApplyGiftCard,
     clearGiftCard: engine.handleClearGiftCard,
