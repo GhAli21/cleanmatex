@@ -77,8 +77,8 @@
 
 The gift-card workspace is **entangled with React-Hook-Form**, unlike split/drawer:
 - `use-gift-card-and-promo.ts` receives the watched RHF `giftCardNumber` (`:82-83`), a `setValue` it uses to reset the field (`:153-162`), a `pinInputRef` auto-focus effect (`:165-170`), and holds `giftCardPin`/`pinRequired` state (`:125-126`).
-- Engine actions `fetchGiftCardDetails`/`applyGiftCard`/`clearGiftCard` most likely read the RHF form value rather than taking the number as an argument — **verify `handleFetchGiftCardDetails`'s signature in `use-payment-engine.ts` before designing props.**
-- Two clean options: (a) the dialog receives `giftCardNumber` + `setGiftCardNumber` (RHF-bound) as props from the container, keeping the dialog RHF-free; (b) the dialog uses the form context directly. Option (a) matches the program's purity rules — prefer it unless the engine handlers make it impractical.
+- **VERIFIED (2026-07-09):** the engine handlers take **no arguments** and read RHF-watched values from engine scope — `handleValidatePromoCode` reads `promoCode` (`use-payment-engine.ts:864-866`), `handleFetchGiftCardDetails` reads `giftCardNumber` + `giftCardPin`/`pinRequired` (`:905-908`), `handleApplyGiftCard` reads `giftCardDetails` + `giftCardAmount` (`:974-977`). All are behind the `NEW_ORDER_PROMO_GIFT_DISABLED` kill-flag — the capability's `isAvailable` fact must reflect that flag too.
+- Therefore use option (a): the dialog receives the RHF-bound values + setters (`giftCardNumber`/`setValue`, `giftCardAmount`, `giftCardPin`/`setGiftCardPin`) as props from the container and calls the no-arg typed actions; the dialog itself stays RHF-free.
 - PIN field goes INSIDE this dialog (ADR #6); `pinRequired` + `giftCardPin`/`setGiftCardPin` come from the engine's giftPromo slice; extend `PaymentEngineActions` with the pin setters in the same commit (H2).
 - Async states are mandatory (hardening #7): fetch loading / error+retry / not-found empty; promo validation loading/error.
 
