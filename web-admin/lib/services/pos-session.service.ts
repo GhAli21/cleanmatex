@@ -21,6 +21,7 @@ import type {
   PosSessionMetadata,
   PosSessionRow,
   PosSessionSummary,
+  PosSessionWithContext,
 } from '@/lib/types/pos-session';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -110,6 +111,13 @@ function normalizeSessionListRow(row: PosSessionListRow): PosSessionListRow {
   };
 }
 
+function normalizeSessionWithContext(row: PosSessionWithContext): PosSessionWithContext {
+  return {
+    ...row,
+    ...normalizeSession(row),
+  };
+}
+
 function businessDateForTimezone(timezone: string, now = new Date()): string {
   try {
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -151,6 +159,55 @@ async function getActiveSessionForUser(
     LIMIT 1
   `);
   return rows[0] ? normalizeSession(rows[0]) : null;
+}
+
+async function getActiveSessionForUserWithContext(
+  db: Pick<typeof prisma, '$queryRaw'>,
+  tenantId: string,
+  userId: string,
+  includeDrawerContext: boolean
+): Promise<PosSessionWithContext | null> {
+  const drawerNameSql = includeDrawerContext
+    ? Prisma.sql`cd.drawer_name AS cash_drawer_name`
+    : Prisma.sql`NULL::text AS cash_drawer_name`;
+  const drawerSessionNoSql = includeDrawerContext
+    ? Prisma.sql`cds.session_no AS cash_drawer_session_no`
+    : Prisma.sql`NULL::text AS cash_drawer_session_no`;
+  const drawerSessionStatusSql = includeDrawerContext
+    ? Prisma.sql`cds.status AS cash_drawer_session_status`
+    : Prisma.sql`NULL::text AS cash_drawer_session_status`;
+
+  const rows = await db.$queryRaw<PosSessionWithContext[]>(Prisma.sql`
+    SELECT
+      ps.*,
+      COALESCE(b.name, b.branch_name) AS branch_name,
+      b.name2 AS branch_name2,
+      pt.terminal_name,
+      pt.terminal_code,
+      ${drawerNameSql},
+      ${drawerSessionNoSql},
+      ${drawerSessionStatusSql}
+    FROM public.org_pos_sessions_mst ps
+    LEFT JOIN public.org_branches_mst b
+      ON b.tenant_org_id = ps.tenant_org_id
+     AND b.id = ps.branch_id
+    LEFT JOIN public.org_payment_terminals_cf pt
+      ON pt.tenant_org_id = ps.tenant_org_id
+     AND pt.id = ps.terminal_id
+    LEFT JOIN public.org_cash_drawers_mst cd
+      ON cd.tenant_org_id = ps.tenant_org_id
+     AND cd.id = ps.cash_drawer_id
+    LEFT JOIN public.org_cash_drawer_sessions_mst cds
+      ON cds.tenant_org_id = ps.tenant_org_id
+     AND cds.id = ps.cash_drawer_session_id
+    WHERE ps.tenant_org_id = ${tenantId}::uuid
+      AND ps.user_id = ${userId}::uuid
+      AND ps.status IN (${Prisma.join([...ACTIVE_STATUSES])})
+      AND ps.is_active = TRUE
+    ORDER BY ps.opened_at DESC
+    LIMIT 1
+  `);
+  return rows[0] ? normalizeSessionWithContext(rows[0]) : null;
 }
 
 async function getActiveSessionForUserForUpdate(
@@ -779,9 +836,18 @@ export async function getMyActivePosSession(input: {
   tenantId: string;
   userId: string;
   branchId?: string | null;
+  includeContext?: boolean;
+  includeDrawerContext?: boolean;
 }): Promise<GetMyActivePosSessionResult> {
   const active = await withTenantContext(input.tenantId, () =>
-    getActiveSessionForUser(prisma, input.tenantId, input.userId)
+    input.includeContext
+      ? getActiveSessionForUserWithContext(
+          prisma,
+          input.tenantId,
+          input.userId,
+          input.includeDrawerContext === true
+        )
+      : getActiveSessionForUser(prisma, input.tenantId, input.userId)
   );
   if (!active) return { type: 'NONE' };
   if (input.branchId && active.branch_id !== input.branchId) {

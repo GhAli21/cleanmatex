@@ -209,6 +209,45 @@ Implemented routes:
   - uses an existing same-branch `OPEN` POS session when present
   - does not auto-open a POS session in back-office collection flows
 
+### Session Hub order-entry enhancement implemented on 2026-07-09
+
+The New Order screen now uses a compact Session Hub instead of an always-visible healthy-state POS banner.
+
+UI behavior:
+
+- healthy `OPEN` session renders as a compact `Session Hub` pill in the New Order header
+- full-width notices are reserved for warning/blocking states only:
+  - paused POS session
+  - branch conflict
+  - active-session API error
+- no active session is shown as an informational Hub state because order submit still auto-ensures the POS session
+- the Hub opens a right-side `CmxDialog` panel on desktop and a near-full-screen panel on small screens
+
+Hub content:
+
+- POS session status, session number, branch, business date, timezone, opened time, and optional terminal context
+- cash drawer section that only displays drawer labels/status when `cash_drawer:view` is granted
+- permission-safe drawer restriction text when the user can see POS lineage but cannot view drawer reconciliation details
+- finance summary loaded lazily from `GET /api/v1/pos-sessions/[sessionId]/summary`
+- safe lifecycle actions using existing POS session APIs:
+  - pause/resume
+  - close
+  - force-close
+  - manage sessions link
+
+Security and drawer rules:
+
+- `GET /api/v1/pos-sessions/my-active?includeContext=true` is backward-compatible and opt-in
+- drawer context is nulled unless the caller has `cash_drawer:view`
+- lifecycle commands use idempotency keys and `sourceChannel = new_order_session_hub`
+- if POS close reports `POS_SESSION_DRAWER_STILL_OPEN`, the Hub requires the linked cash drawer close step before retrying POS close
+- POS force-close still does not silently force-close the drawer
+
+Access contract coverage:
+
+- New Order documents the Hub dependencies on POS summary/lifecycle APIs
+- drawer close from the Hub is documented with `cash_drawer:close_session`
+
 ### Remaining future enhancements
 
 - optional global POS session provider if multiple pages need live state refresh

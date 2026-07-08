@@ -1,438 +1,357 @@
-# Project UI Layer Blueprint (`src/ui/`)
+# CleanMateX Cmx UI Blueprint
 
-This defines the Project **UI abstraction layer** on top of:
+This document defines the UI abstraction layer under `src/ui/`.
 
-- Tailwind
-- shadcn/ui
-- Radix primitives
-- Lucide React
-- Sonner
-- Recharts
-- TanStack Table
+All feature code should use Cmx components, not raw third-party primitives.
 
-All feature code should use these **Cmx* components**, not raw third-party primitives.
-
----
-
-## 1. Folder Structure
+## 1. Folder structure
 
 ```txt
-components/
-  ui/
+src/ui/
+  foundations/
+    cmx-theme-provider.tsx
+    cmx-theme-tokens.css
+    cmx-density.ts
+  primitives/
     cmx-button.tsx
     cmx-input.tsx
+    cmx-textarea.tsx
+    cmx-card.tsx
+    cmx-badge.tsx
+    cmx-checkbox.tsx
+    cmx-switch.tsx
+    cmx-label.tsx
+    index.ts
+  forms/
     cmx-form.tsx
+    cmx-form-field.tsx
+    cmx-select.tsx
+    cmx-select-dropdown.tsx
+    cmx-date-picker.tsx
+    index.ts
+  data-display/
     cmx-data-table.tsx
+    cmx-editable-data-table.tsx
+    cmx-kpi-card.tsx
+    cmx-empty-state.tsx
+    index.ts
+  navigation/
+    cmx-app-shell.tsx
+    cmx-breadcrumbs.tsx
+    cmx-tabs.tsx
+    index.ts
+  layouts/
+    cmx-page-shell.tsx
+    cmx-section.tsx
+    cmx-dashboard-grid.tsx
+    index.ts
+  patterns/
+    cmx-crud-shell.tsx
+    cmx-filter-bar.tsx
+    cmx-wizard.tsx
+    index.ts
+  charts/
     cmx-chart.tsx
-    cmx-toast.tsx
+    index.ts
+  feedback/
+    cmx-message.ts
+    cmx-inline-error.tsx
+    cmx-summary-message.tsx
+    cmx-progress-bar.tsx
+    index.ts
+  overlays/
+    cmx-dialog.tsx
+    cmx-drawer.tsx
+    cmx-confirm-dialog.tsx
     index.ts
 ```
 
-Optional extensions later:
+No `components/` folder. No `components/ui`.
+
+## 2. Import rules
+
+Correct:
+
+```ts
+import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxCard } from '@ui/primitives/cmx-card'
+import { CmxDataTable } from '@ui/data-display/cmx-data-table'
+import { CmxDialog } from '@ui/overlays/cmx-dialog'
+import { cmxMessage } from '@ui/feedback/cmx-message'
+import { cn } from '@lib/utils/cn'
+```
+
+Forbidden:
+
+```ts
+import { Button } from '@/components/ui/button'
+import { Button } from '@ui/compat'
+import { Dialog } from '@radix-ui/react-dialog'
+```
+
+Feature code must not import raw shadcn/Radix primitives. Wrap them once in `src/ui`.
+
+## 3. Design token contract
+
+Cmx components must support:
+
+- light/dark mode,
+- accent theme,
+- radius theme,
+- density theme,
+- RTL,
+- accessible focus states,
+- semantic variants.
+
+Theme attributes live on `<html>`:
 
 ```txt
-    cmx-card.tsx
-    cmx-modal.tsx
-    cmx-date-picker.tsx
-    cmx-select.tsx
-    cmx-badge.tsx
+class="dark"
+data-accent="blue|emerald|violet|..."
+data-radius="sm|md|lg"
+data-density="compact|comfortable|spacious"
+dir="ltr|rtl"
 ```
 
----
+Use CSS variables:
 
-## 2. `CmxButton`
-
-```tsx
-// src/ui/cmx-button.tsx
-"use client";
-
-import * as React from "react";
-import { Button, type ButtonProps } from "@/src/ui/button";
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-export interface CmxButtonProps extends ButtonProps {
-  loading?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
-}
-
-export const CmxButton: React.FC<CmxButtonProps> = ({
-  loading,
-  leftIcon,
-  rightIcon,
-  children,
-  className,
-  disabled,
-  ...props
-}) => {
-  return (
-    <Button
-      className={cn("gap-2", className)}
-      disabled={disabled || loading}
-      {...props}
-    >
-      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-      {!loading && leftIcon}
-      <span>{children}</span>
-      {!loading && rightIcon}
-    </Button>
-  );
-};
+```css
+--cmx-background-rgb
+--cmx-foreground-rgb
+--cmx-surface-rgb
+--cmx-border-rgb
+--cmx-primary-rgb
+--cmx-danger-rgb
+--cmx-warning-rgb
+--cmx-success-rgb
 ```
 
----
+## 4. `CmxButton` contract
 
-## 3. `CmxInput`
+Purpose: standard action button.
 
-```tsx
-// src/ui/cmx-input.tsx
-"use client";
+Props should support:
 
-import * as React from "react";
-import { Input, type InputProps } from "@/src/ui/input";
-import { cn } from "@/lib/utils";
+```ts
+type CmxButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+  | 'success'
+  | 'warning'
 
-export interface CmxInputProps extends InputProps {}
-
-export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
-  ({ className, ...props }, ref) => {
-    return <Input ref={ref} className={cn("text-sm", className)} {...props} />;
-  }
-);
-
-CmxInput.displayName = "CmxInput";
-```
-
----
-
-## 4. `CmxForm` (+ `CmxFormField`)
-
-```tsx
-// src/ui/cmx-form.tsx
-"use client";
-
-import * as React from "react";
-import {
-  Form as ShadcnForm,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/src/ui/form";
-import type { UseFormReturn, FieldValues, Path } from "react-hook-form";
-
-interface CmxFormProps<TFieldValues extends FieldValues> {
-  form: UseFormReturn<TFieldValues>;
-  onSubmit: (values: TFieldValues) => Promise<void> | void;
-  className?: string;
-  children: React.ReactNode;
-}
-
-export function CmxForm<TFieldValues extends FieldValues>({
-  form,
-  onSubmit,
-  className,
-  children,
-}: CmxFormProps<TFieldValues>) {
-  return (
-    <ShadcnForm {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className={className ?? "space-y-6"}
-      >
-        {children}
-      </form>
-    </ShadcnForm>
-  );
-}
-
-interface CmxFormFieldProps<TFieldValues extends FieldValues> {
-  name: Path<TFieldValues>;
-  label?: React.ReactNode;
-  description?: React.ReactNode;
-  children: (ctx: { field: any }) => React.ReactNode;
-  form: UseFormReturn<TFieldValues>;
-}
-
-export function CmxFormField<TFieldValues extends FieldValues>({
-  name,
-  label,
-  description,
-  children,
-  form,
-}: CmxFormFieldProps<TFieldValues>) {
-  return (
-    <FormField
-      control={form.control}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          {label && <FormLabel>{label}</FormLabel>}
-          <FormControl>{children({ field })}</FormControl>
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
+interface CmxButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: CmxButtonVariant
+  size?: 'sm' | 'md' | 'lg' | 'icon'
+  loading?: boolean
+  leftIcon?: React.ReactNode
+  rightIcon?: React.ReactNode
+  fullWidth?: boolean
 }
 ```
 
-Usage:
+Required behavior:
+
+- disable while loading,
+- show spinner when loading,
+- keep accessible name,
+- maintain focus ring,
+- support RTL icon spacing,
+- no hardcoded colors.
+
+## 5. `CmxInput` contract
+
+Purpose: standard input wrapper.
+
+Required behavior:
+
+- forward ref,
+- support invalid state,
+- support disabled/read-only,
+- support leading/trailing slot where needed,
+- use tokenized focus/error styles,
+- work inside `CmxFormField`.
+
+## 6. `CmxForm` and `CmxFormField` contract
+
+Purpose: standard RHF form shell and field wrapper.
+
+Required behavior:
+
+- accepts `UseFormReturn<T>`.
+- supports Zod/RHF validation messages.
+- provides label, description, error, required marker.
+- connects `aria-describedby` correctly.
+- supports RTL layout.
+- does not own domain validation.
+
+Pattern:
 
 ```tsx
 <CmxForm form={form} onSubmit={onSubmit}>
-  <CmxFormField form={form} name="name" label="Name">
+  <CmxFormField form={form} name="name" label={t('fields.name')}>
     {({ field }) => <CmxInput {...field} />}
   </CmxFormField>
 </CmxForm>
 ```
 
----
+## 7. `CmxDataTable` server-side contract
 
-## 5. `CmxDataTable`
+Purpose: non-editable data table for large lists.
 
-```tsx
-// src/ui/cmx-data-table.tsx
-"use client";
+Pagination must be server-side.
 
-import * as React from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/src/ui/table";
-
-export interface CmxDataTableProps<TData> {
-  columns: ColumnDef<TData, any>[];
-  data: TData[];
-}
-
-export function CmxDataTable<TData>({
-  columns,
-  data,
-}: CmxDataTableProps<TData>) {
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  return (
-    <div className="w-full overflow-x-auto">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-```
-
----
-
-## 6. `CmxChart`
-
-```tsx
-// src/ui/cmx-chart.tsx
-"use client";
-
-import * as React from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
-export interface CmxChartProps {
-  data: any[];
-  xKey: string;
-  yKey: string;
-}
-
-export const CmxChart: React.FC<CmxChartProps> = ({ data, xKey, yKey }) => {
-  if (!data || data.length === 0) {
-    return <div className="text-sm text-muted-foreground">No data</div>;
-  }
-
-  return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer>
-        <LineChart data={data}>
-          <XAxis dataKey={xKey} />
-          <YAxis />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey={yKey}
-            stroke="currentColor"
-            strokeWidth={2}
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-```
-
----
-
-## 7. Global Message Utility (`cmxMessage`)
-
-Unified message utility with multiple display methods (Toast, Alert, Console, Inline), full i18n support, RTL awareness, and promise handling.
-
-### Core Utility
-
-```tsx
-// src/ui/feedback/cmx-message.ts
-import { MessageType, DisplayMethod, MessageOptions } from "./types";
-
-export const cmxMessage = {
-  success: (message: string, options?: MessageOptions) => MessageResult,
-  error: (message: string, options?: MessageOptions) => MessageResult,
-  warning: (message: string, options?: MessageOptions) => MessageResult,
-  info: (message: string, options?: MessageOptions) => MessageResult,
-  loading: (message: string, options?: MessageOptions) => MessageResult,
-  promise: <T,>(
-    promise: Promise<T>,
-    messages: PromiseMessages,
-    options?: MessageOptions
-  ) => Promise<T>,
-};
-```
-
-### React Hook (Recommended)
-
-```tsx
-// src/ui/feedback/useMessage.ts
-"use client";
-
-import { useMessage } from "@ui/feedback";
-import { useTranslations } from "next-intl";
-
-export function MyComponent() {
-  const { showSuccess, showError, handlePromise } = useMessage();
-  const t = useTranslations();
-
-  const handleSave = async () => {
-    await handlePromise(saveData(), {
-      loading: t("messages.saving"),
-      success: t("messages.saveSuccess"),
-      error: t("errors.saveFailed"),
-    });
-  };
-
-  return <button onClick={handleSave}>Save</button>;
-}
-```
-
-### Display Methods
-
-```tsx
-// Toast (default)
-cmxMessage.success("Saved!", { method: "toast" });
-
-// Alert
-cmxMessage.error("Critical!", { method: "alert" });
-
-// Console (debugging)
-cmxMessage.info("Debug info", { method: "console" });
-
-// Inline (for components)
-const message = cmxMessage.success("Saved!", { method: "inline" });
-```
-
-### Advanced Options
-
-```tsx
-cmxMessage.success("Order created", {
-  description: "Order #12345 has been created",
-  duration: 5000,
-  action: {
-    label: "View Order",
-    onClick: () => router.push("/orders/12345"),
-  },
-  cancel: {
-    label: "Dismiss",
-    onClick: () => {},
-  },
-});
-```
-
-### Legacy API (Deprecated)
-
-```tsx
-// ❌ Deprecated - Use cmxMessage instead
-import { showSuccessToast } from "@ui/feedback";
-showSuccessToast("Saved!");
-
-// ✅ New - Recommended
-import { useMessage } from "@ui/feedback";
-const { showSuccess } = useMessage();
-showSuccess("Saved!");
-```
-
----
-
-## 8. Barrel Export
+Minimum props:
 
 ```ts
-// src/ui/index.ts
-export * from "./cmx-button";
-export * from "./cmx-input";
-export * from "./cmx-form";
-export * from "./cmx-data-table";
-export * from "./cmx-chart";
-export * from "./cmx-toast";
+interface CmxDataTableProps<TData> {
+  rows: TData[]
+  columns: CmxColumnDef<TData>[]
+  getRowId: (row: TData) => string
+
+  page: number
+  pageSize: number
+  totalRows: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+
+  sort?: CmxSortState
+  onSortChange?: (sort: CmxSortState) => void
+
+  filters?: unknown
+  loading?: boolean
+  error?: string | null
+  emptyState?: React.ReactNode
+
+  rowActions?: (row: TData) => React.ReactNode
+  selection?: CmxSelectionState<TData>
+}
 ```
 
----
+Required behavior:
 
-## 9. Rule
+- loading skeleton,
+- empty state,
+- error state,
+- total row count,
+- accessible table headers,
+- keyboard-safe row actions,
+- RTL-safe horizontal scroll,
+- no client-side pagination over large datasets.
 
-**Feature code must:**
+## 8. `CmxEditableDataTable` contract
 
-- Import from `@/src/ui` (Cmx\* components),
-- Not import raw shadcn, Recharts, Sonner, or TanStack primitives directly (except inside these Cmx\* wrappers).
+Purpose: editable grids only.
+
+Use when rows can be edited inline.
+
+Required behavior:
+
+- server-safe row identity,
+- row-level dirty tracking,
+- row-level validation,
+- save/cancel per row or controlled batch save,
+- loading state per save action,
+- conflict handling,
+- keyboard navigation,
+- clear error placement,
+- no silent discard of unsaved changes.
+
+Feature code must not build custom editable table logic unless the Cmx component cannot support the case and the gap is documented.
+
+## 9. `cmxMessage` contract
+
+Purpose: single message API for all user-facing feedback.
+
+Required methods:
+
+```ts
+cmxMessage.success(messageKeyOrText, options?)
+cmxMessage.error(messageKeyOrText, options?)
+cmxMessage.warning(messageKeyOrText, options?)
+cmxMessage.info(messageKeyOrText, options?)
+cmxMessage.confirm(options)
+```
+
+Rules:
+
+- Prefer i18n keys or already translated strings depending on existing project pattern.
+- Do not expose raw backend errors.
+- Use consistent duration and placement.
+- Destructive confirmation must be explicit.
+
+## 10. `CmxDialog` / `CmxDrawer` contract
+
+Required behavior:
+
+- accessible title and description,
+- focus trap,
+- ESC handling,
+- loading-safe close behavior,
+- dirty-form close confirmation where needed,
+- responsive fallback to drawer on mobile if app pattern requires it,
+- RTL-safe animation direction.
+
+## 11. `CmxEmptyState` contract
+
+Required props:
+
+```ts
+interface CmxEmptyStateProps {
+  title: React.ReactNode
+  description?: React.ReactNode
+  icon?: React.ReactNode
+  action?: React.ReactNode
+}
+```
+
+Usage rules:
+
+- explain what is empty,
+- provide next action only if permission allows,
+- avoid generic “No data” for business screens.
+
+## 12. `CmxKpiCard` contract
+
+Required behavior:
+
+- label,
+- value,
+- optional delta/trend,
+- loading skeleton,
+- accessible label/value structure,
+- tokenized semantic trend colors,
+- compact layout for dashboard grids.
+
+## 13. Charts
+
+Charts must be wrapped as Cmx chart components.
+
+Rules:
+
+- no raw chart usage in feature code unless approved,
+- support empty state,
+- support loading state,
+- support RTL labels where relevant,
+- use tokenized colors,
+- provide accessible summary text.
+
+## 14. Component export rules
+
+Each `src/ui/<group>/index.ts` should export stable public components.
+
+Avoid deep unstable imports when an index barrel exists and is established.
+
+Keep `.clauderc` / AI import hints in sync with actual exports when the repo uses them.
+
+## 15. When a Cmx component is missing
+
+If a feature needs reusable behavior that does not exist:
+
+1. Create or extend the Cmx component in `src/ui`.
+2. Add exports.
+3. Add usage example if project docs have component docs.
+4. Use the Cmx component from feature code.
+5. Do not create one-off raw shadcn copies in the feature.

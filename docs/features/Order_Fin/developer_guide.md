@@ -77,6 +77,22 @@ The operations UI is available at `/dashboard/internal_fin/pos-sessions`. It sup
 
 Order entry calls `ensure-for-order-entry` before submit and passes the returned `posSessionId` into the canonical submit-order route. Later collection only attaches an already-open same-branch POS session; it intentionally does not auto-open sessions from back-office collection flows.
 
+### POS Session Hub
+
+The New Order screen uses `PosSessionHub` as the compact cashier-facing control for POS operational context.
+
+Implementation points:
+
+- healthy `OPEN` state appears as a compact header pill, not a full-width banner
+- the old order banner is now warning-only for paused sessions, branch conflicts, and load errors
+- `GET /api/v1/pos-sessions/my-active?includeContext=true` returns optional branch/terminal/drawer presentation context
+- drawer labels and drawer-session status are only returned/displayed when `cash_drawer:view` is granted
+- finance totals are loaded lazily from `GET /api/v1/pos-sessions/[sessionId]/summary` when the Hub opens
+- lifecycle actions reuse existing POS session APIs with idempotency keys and `sourceChannel = new_order_session_hub`
+- linked drawer close still requires `cash_drawer:close_session`; POS force-close does not force-close drawers silently
+
+The Hub is intentionally not a replacement for `/dashboard/internal_fin/pos-sessions`. The page remains the full management and history surface; the Hub is an order-entry shortcut and context panel.
+
 ## Multi-Leg Settlement Flow Walkthrough
 
 ```

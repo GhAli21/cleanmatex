@@ -1,5 +1,44 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-07-09 — POS Session Hub for order entry
+
+**Scope:** New Order UI enhancement, permission-safe POS context projection, access contract refresh, i18n, tests, and docs. No database migrations were created or applied.
+
+### Shipped
+
+- Added a compact Session Hub pill to the New Order header so healthy `OPEN` sessions no longer occupy a full-width green banner.
+- Added a right-side Session Hub panel with POS session context, permission-safe cash drawer context, lazy finance summary, and safe lifecycle actions.
+- Changed the order-entry POS banner to warning-only behavior for paused sessions, branch conflicts, and API errors.
+- Added `includeContext=true` support to `GET /api/v1/pos-sessions/my-active` while keeping the original response backward-compatible.
+- Gated drawer labels/status in the context projection behind `cash_drawer:view`.
+- Shared POS session client helpers for active-session lookup, summary loading, and idempotent lifecycle commands.
+- Updated New Order access contract dependencies for POS summary/lifecycle APIs and linked drawer close.
+- Added EN/AR Session Hub messages and focused tests for warning-only banner behavior.
+
+### Validation
+
+- `npm run check:i18n` in `web-admin` passed.
+- Targeted POS session schema/service/banner tests passed.
+- `npm run typecheck` in `web-admin` passed.
+
+---
+
+## 2026-07-08 — POS Session Management v1: blank page permission-cache repair
+
+**Scope:** Runtime page-gate UX and RBAC effective-permission repair migration. No migrations were applied by Codex.
+
+### Fixed
+
+- Replaced the POS Sessions page's client-only silent permission wrapper with a server-side `pos_session:view` check.
+- The page now renders a visible access message instead of an empty content area when the user's effective permissions are stale or missing.
+- Added migration `0400_pos_sessions_rebuild_effective_permissions.sql` to rebuild `cmx_effective_permissions` for active user/tenant rows after POS role-default grants from `0396`.
+
+### Why
+
+`0396` added `pos_session:*` role-default permissions, but RBAC comments note that role-default changes require rebuilding existing effective permissions. Without that rebuild, the sidebar can show the route while the page body is hidden by permission gating.
+
+---
+
 ## 2026-07-04 — POS Session Management v1: Phase 5 tests and documentation closeout
 
 **Scope:** Test hardening and documentation/status refresh only. No migration execution.

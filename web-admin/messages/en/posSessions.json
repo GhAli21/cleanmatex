@@ -1,6 +1,8 @@
 {
   "title": "POS Sessions",
   "description": "Track cashier operating sessions, POS lineage, and linked cash drawer context.",
+  "accessDeniedTitle": "POS Sessions access is not enabled for your user.",
+  "accessDeniedDescription": "The page requires {permission}. If this was just added, refresh permissions or rebuild the user permission cache.",
   "activeTitle": "Active POS session",
   "activeDescription": "This is the current user-owned operating session used for POS order lineage.",
   "noActiveTitle": "No active POS session",
@@ -51,6 +53,27 @@
     "none": "No POS session is open yet. It will be auto-opened when you submit this POS order.",
     "branchConflict": "You already have an active POS session in another branch. Close it before starting POS in this branch.",
     "manage": "Manage sessions"
+  },
+  "hub": {
+    "title": "Session Hub",
+    "description": "Operational POS context for this order screen.",
+    "openAria": "Open POS Session Hub",
+    "checking": "Checking",
+    "error": "Error",
+    "autoOpen": "Auto-open",
+    "branchConflictBadge": "Branch conflict",
+    "branchConflictTitle": "Active session is in another branch",
+    "requestedBranch": "Requested branch",
+    "activeBranch": "Active branch",
+    "posSession": "POS session",
+    "timezone": "Timezone",
+    "drawerNotLinked": "Not linked yet",
+    "drawerRestricted": "Cash drawer details are restricted for your user. POS lineage remains visible, but physical cash reconciliation details require cash drawer view permission.",
+    "financeSummary": "Finance summary",
+    "summaryLoading": "Loading finance summary...",
+    "summaryError": "Unable to load finance summary.",
+    "openToLoadSummary": "Open POS session details to load finance summary.",
+    "forceCloseWarning": "Force-close is an audited override. It does not silently force-close a linked cash drawer."
   },
   "messages": {
     "opened": "POS session opened.",

@@ -1,463 +1,358 @@
-# CleanMateX Frontend Standards (Aligned with Architecture)
+# CleanMateX Frontend Coding Standards
 
-This document defines the **frontend standards** for CleanMateX and is fully aligned with the architecture described in `AI_Coder_Frontend_Instructions.md`.
+This document defines how frontend code should be written after the architecture boundaries are respected.
 
-**Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on**
-- Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
-- **Pagination Always should be Server-Side Pagination (API-Driven)**
-- use for common message keys for common messages keys, const tCommon = useTranslations('common');
-- when adding locale text, search existing keys first and then update matching files under web-admin/messages/en/** and web-admin/messages/ar/**
+## 1. Technology defaults
 
-Authoritative folder structure:
+- TypeScript only for app code.
+- React functional components only.
+- Next.js App Router.
+- TailwindCSS for layout and spacing.
+- Cmx Design System for reusable UI.
+- TanStack Query for interactive async client workflows.
+- React Hook Form + Zod for non-trivial forms.
+- next-intl / approved i18n helper for translations.
+- `cmxMessage` / approved message wrapper for all user-facing feedback.
 
-```txt
-app/            # Next.js App Router (routing only)
-src/
-  ui/           # Global Cmx Design System (reusable UI components)
-  features/     # Feature modules (domain-specific UI + logic)
-lib/            # Shared infrastructure (API clients, hooks, utils, config)
-```
+## 2. TypeScript rules
 
-Path aliases (tsconfig):
+- Prefer explicit domain types from `src/features/<feature>/model`.
+- Avoid `any`. If unavoidable, isolate it and explain why.
+- Use discriminated unions for statuses, modes, and variant-heavy UI.
+- Keep mappers separate from UI when transforming API records.
+- Do not duplicate backend enums manually unless there is no generated/shared source.
 
-```jsonc
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@ui/*": ["src/ui/*"],
-      "@features/*": ["src/features/*"],
-      "@lib/*": ["lib/*"]
-    }
-  }
-}
-```
+## 3. Component rules
 
-All standards below MUST respect this structure.
+A component should be small and focused.
 
----
+Use this split:
 
-## web-admin/.clauderc (AI Hints)
+- Screen component: orchestration, hooks, layout composition.
+- View component: presentational domain UI.
+- Form component: one bounded form flow.
+- Dialog/drawer component: one bounded overlay flow.
+- Table component: columns, filters, actions for one list.
+- Cmx component: generic reusable UI, no domain assumptions.
 
-**What it is:** A project-level config file in `web-admin/.clauderc` that Cursor/Claude can use when generating or suggesting code. It is **not** read by the app at build or runtime; it only guides AI output so imports and patterns match project conventions.
+Avoid components that mix:
 
-**Why it matters:** The `ui_components` section lists **recommended import lines** for common UI pieces (button, input, dialog, card, alert, select, etc.). When the AI suggests a Button or Card, it should use these snippets so imports point at the correct Cmx modules.
+- data fetching,
+- mutation logic,
+- form validation,
+- table columns,
+- permissions,
+- dialog state,
+- layout,
+- formatting.
 
-**Rules:**
+Split when the component becomes hard to test or reason about.
 
-1. **Keep `ui_components` in sync with `src/ui`.** When you add or change a shared Cmx component or its export path, update the matching entry in `web-admin/.clauderc` so suggestions stay correct.
-2. **Use Cmx components only.** Do not reference `@ui/compat` (removed). Imports must use `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation` as appropriate.
-3. **Comment the section.** The `ui_components` block has a short comment explaining that it is for AI import suggestions and should stay in sync with `src/ui`. See also `docs/dev/ui-migration-guide.md` and `docs/dev/compat-to-cmx-migration-notes.md`.
-4. **Version control.** Keep `.clauderc` in git so the whole team (and the AI) uses the same conventions.
-5. **Don't rely on it for correctness.** The app does not read `.clauderc`. Linting, TypeScript, and tests are the source of truth; `.clauderc` only improves AI-suggested code.
+## 4. Data-fetching rules
 
-**Current snippet keys:** `button`, `input`, `textarea`, `select`, `checkbox`, `switch`, `label`, `card`, `badge`, `alert`, `dialog`, `tabs`, `progress`, `summary_message`, `select_dropdown`, `data_table`. Add or adjust keys when new shared UI is introduced.
+### 4.1 Server Components
 
----
+Use Server Components for:
 
-## 1. Tech Stack & Core Principles
+- route-level read-only composition,
+- static metadata,
+- initial shell data that does not need client-side refresh,
+- authenticated server-side checks when already established in the app.
 
-- **Framework:** Next.js (App Router)
-- **Language:** TypeScript only (no plain JS for app code)
-- **Styling:** Tailwind CSS, design tokens, CSS variables
-- **UI Layer:**
-  - shadcn/ui (wrapped only in Cmx components)
-  - Cmx Design System in `src/ui`
-- **State / Data:**
-  - React Query (TanStack Query) for async data
-  - React Hook Form + Zod for forms & validation
-- **API:**
-  - Centralized API client in `lib/api`
-- **Types:**
-  - Supabase generated types for DB entities
-  - Shared domain types in `src/features/*/model` or `lib/types`
+Do not put interactive table/filter mutation logic in Server Components.
 
-Guiding principles:
+### 4.2 TanStack Query
 
-- Composition over inheritance.
-- Small, focused components.
-- Strong typing everywhere.
-- Clear separation of concerns between routing, domain logic, and UI.
+Use TanStack Query for:
 
----
+- interactive lists,
+- server-side pagination,
+- filtering and sorting,
+- mutations,
+- optimistic or invalidated refresh,
+- dialogs that create/update/delete data,
+- workflows that need retry/loading/error states.
 
-## 2. Folder Responsibilities
-
-### 2.1 `app/` – Routing Layer
-
-- Contains:
-  - `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, route groups.
-- Responsibilities:
-  - Defines routes and top-level layout structure.
-  - Composes screens from `src/features` and `src/ui`.
-- MUST NOT:
-  - Define reusable primitives.
-  - Contain design system components.
-  - Contain domain logic.
-
-Example:
-
-```tsx
-// app/dashboard/orders/page.tsx
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-
-export default async function OrdersPage() {
-  return <OrderListScreen />
-}
-```
-
----
-
-### 2.2 `src/ui/` – Global Cmx Design System
-
-- Location of all **reusable, app-wide UI components**.
-- All components here MUST:
-  - Use the `Cmx` prefix (e.g., `CmxButton`, `CmxEditableDataTable`, `CmxDataTable`, `CmxPageHeader`).
-  - Be generic and not tied to a specific business domain.
-  - Be theme-aware (colors, radius, density, dark mode).
-- Subfolders (recommended):
-
-```txt
-src/ui/
-  foundations/
-  primitives/
-  data-display/
-  forms/
-  navigation/
-  layouts/
-  patterns/
-  charts/
-  feedback/
-  overlays/
-```
-
-Rules:
-
-- MUST NOT import from `app/` or `src/features/`.
-- MAY import from `lib/` for infra/utilities.
-- All shadcn/ui components MUST be wrapped as Cmx components here; features should not import shadcn directly.
-
-Example:
-
-```tsx
-// src/ui/primitives/cmx-button.tsx
-export function CmxButton(/* props */) {
-  // Wrap shadcn/ui or base <button>, apply Tailwind + tokens
-}
-```
-
----
-
-### 2.3 `src/features/` – Feature Modules
-
-Each feature/module lives under `src/features/<featureName>/`:
-
-```txt
-src/features/orders/
-  ui/
-  api/
-  hooks/
-  model/
-```
-
-- `ui/`: Screens and UI components specific to the feature.
-- `api/`: Feature-scoped API client functions.
-- `hooks/`: Domain-specific React hooks.
-- `model/`: Types, mappers, domain models.
-
-Rules:
-
-- Feature UI must compose from `src/ui` (Cmx components) and `lib`.
-- Feature UI MUST NOT import from other features’ folders directly.
-- Feature UI MUST NOT import from `app/`.
-
-Example:
-
-```tsx
-// src/features/orders/ui/order-list-screen.tsx
-import { CmxDataTable } from '@ui/data-display/cmx-datatable'
-import { useOrders } from '../hooks/use-orders'
-
-export function OrderListScreen() {
-  const { data, isLoading } = useOrders()
-  return (
-    <CmxDataTable
-      data={data ?? []}
-      loading={isLoading}
-      /* ... */
-    />
-  )
-}
-```
-
----
-
-### 2.4 `lib/` – Shared Infrastructure (Root-Level)
-
-- Lives at project root: `lib/`
-- Contains:
-  - `lib/api/` – base API client(s)
-  - `lib/hooks/` – generic cross-feature hooks
-  - `lib/utils/` – generic utilities
-  - `lib/config/` – configuration helpers
-  - `lib/supabase/` – Supabase client, if used
-
-Rules:
-
-- Can be imported by `app/`, `src/ui`, and `src/features`.
-- Must not depend on `src/ui` or `src/features`.
-
----
-
-## 3. UI Standards
-
-### 3.1 Cmx Components (Design System)
-
-- All reusable UI must be implemented as **Cmx** components in `src/ui`.
-- Naming:
-  - `CmxButton`, `CmxInput`, `CmxCard`, `CmxDataTable`, `CmxForm`, `CmxPageHeader`, etc.
-
-Usage rules:
-
-- Features should **only** use Cmx components (not shadcn directly).
-- If a new primitive is needed:
-  - Implement it once in `src/ui/primitives/` (wrapping shadcn or native HTML).
-  - Use it everywhere via `@ui/...`.
-
-Example import:
+Query keys must be stable and include tenant/filters/page where relevant.
 
 ```ts
-import { CmxButton } from '@ui/primitives/cmx-button'
+const ordersQueryKey = ['orders', tenantId, filters, page, pageSize]
 ```
 
-### 3.2 Styling & Tailwind
+### 4.3 Feature API clients
 
-- Use Tailwind for:
-  - Layout: flex, grid, gap, margin, padding.
-  - Typography scale: `text-sm`, `text-base`, `text-lg`.
-  - Responsiveness: `sm:`, `md:`, `lg:`, `xl:` breakpoints.
-- Do NOT hardcode brand colors in components:
-  - Avoid `text-blue-500`, `bg-green-500`, hex literals.
-- Use theme tokens and CSS variables:
-  - `text-[rgb(var(--cmx-foreground-rgb))]`
-  - `bg-[rgb(var(--cmx-surface-rgb))]`
-  - etc.
+Feature-owned API calls belong under:
 
-### 3.3 Icons (Lucide)
+```txt
+src/features/<feature>/api/<feature>-api.ts
+```
 
-- Use `lucide-react` for icons.
-- Wrap common icon patterns into Cmx components where it makes sense (e.g. `CmxIconButton`).
+The UI should call hooks, and hooks should call feature API clients.
 
-### 3.4 Toasts (Sonner)
+Preferred flow:
 
-- Use Sonner (wired once at app root).
-- Expose wrapper helpers if needed in `src/ui/feedback/` for consistent variants.
+```txt
+UI screen -> feature hook -> feature API client -> lib/api base client
+```
 
----
+### 4.4 Supabase direct access
 
-## 4. Forms & Validation
+Use Supabase direct access only when:
 
-### 4.1 React Hook Form + Zod
+- the existing feature already uses Supabase direct access,
+- the project decision for that module is Supabase-only,
+- the access pattern is simple and RLS-safe,
+- no custom business transaction is required.
 
-- All non-trivial forms must use:
-  - **React Hook Form** for state and submission.
-  - **Zod** for schema validation.
+Do not mix Supabase direct calls and REST/Nest API calls randomly in the same feature.
+
+### 4.5 Mutations
+
+Every mutation must provide:
+
+- disabled/loading state,
+- success feedback through `cmxMessage`,
+- error feedback through `cmxMessage`,
+- permission/feature-flag guard,
+- cache invalidation or refresh,
+- controlled validation errors.
+
+## 5. Forms
+
+Use React Hook Form + Zod for non-trivial forms.
+
+Rules:
+
+- Use `zodResolver`.
+- Infer form type from Zod schema.
+- Use `useWatch`; do not use `form.watch()` in render-heavy components.
+- Avoid `setState` in `useEffect` for derived form values.
+- Use Cmx form components from `@ui/forms`.
+- Show inline validation messages.
+- Submit buttons must show loading state.
+- Cancel/close behavior must be explicit and safe.
 
 Pattern:
 
 ```tsx
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-
-// Define schema
-const FormSchema = z.object({
+const schema = z.object({
   name: z.string().min(1),
 })
 
-// Infer TypeScript type
-type FormValues = z.infer<typeof FormSchema>
+type FormValues = z.infer<typeof schema>
 
-export function SomeForm() {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: { name: '' },
-  })
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      {/* use CmxForm + CmxInput here */}
-    </form>
-  )
-}
+const form = useForm<FormValues>({
+  resolver: zodResolver(schema),
+  defaultValues: { name: '' },
+})
 ```
 
-- Zod schemas should live near where they are used:
-  - For feature forms: under `src/features/<feature>/ui` or `model` if shared.
-  - For shared schemas: `lib/types` or `lib/validation`.
+## 6. Tables and lists
 
----
+Pagination is always server-side/API-driven.
 
-## 5. API Client & Data Fetching
+Do not load all records and paginate in the browser except for tiny static lookup lists.
 
-### 5.1 Central API Client (`lib/api`)
+### 6.1 Non-editable tables
 
-- There should be a single reusable API client abstraction, e.g.:
+Use `CmxDataTable` with server-side contract:
 
-```ts
-// lib/api/client.ts
-export async function apiRequest<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  // handle base URL, auth headers, error handling, etc.
-}
-```
+- `rows`
+- `columns`
+- `page`
+- `pageSize`
+- `totalRows`
+- `sort`
+- `filters`
+- `onPageChange`
+- `onPageSizeChange`
+- `onSortChange`
+- `loading`
+- `error`
+- `emptyState`
+- `rowActions`
 
-- Feature-specific API functions should live under `src/features/<feature>/api`, and call `apiRequest`.
+### 6.2 Editable tables
+
+Use `CmxEditableDataTable`.
+
+Required behavior:
+
+- row-level validation,
+- dirty state,
+- save/cancel controls,
+- loading/error states,
+- keyboard-safe editing,
+- clear conflict handling,
+- no silent data loss.
+
+### 6.3 Empty states
+
+Every list/table must have a meaningful empty state:
+
+- what is missing,
+- why it matters,
+- primary action if allowed,
+- no action if permission is missing.
+
+## 7. Messages and errors
+
+Use `cmxMessage` / approved wrapper for:
+
+- success toasts,
+- error toasts,
+- warnings,
+- destructive confirmations,
+- permission denial,
+- validation summaries,
+- async operation feedback.
+
+Do not call raw `toast()` or `alert()` from feature code unless wrapped by Cmx feedback utilities.
+
+Errors must be user-safe:
+
+- no stack traces,
+- no SQL details,
+- no provider secrets,
+- no raw backend exception dump.
+
+## 8. Internationalization
+
+Rules:
+
+- All user-facing text uses i18n keys.
+- Search existing keys first.
+- Common actions use `common` namespace, such as save/cancel/delete/search/filter.
+- Feature-specific labels use the feature namespace.
+- Add keys to both English and Arabic message files.
+- Keep key names semantic, not visual.
 
 Example:
 
-```ts
-// src/features/orders/api/orders-api.ts
-import { apiRequest } from '@lib/api/client'
+```tsx
+const t = useTranslations('orders')
+const tCommon = useTranslations('common')
 
-export async function fetchOrders(params: { page: number }) {
-  return apiRequest<{ data: Order[]; total: number }>(`/api/orders?page=${params.page}`)
-}
+<CmxButton>{tCommon('save')}</CmxButton>
+<h1>{t('list.title')}</h1>
 ```
 
-### 5.2 React Query (TanStack Query)
+Bad:
 
-- Use React Query for server data caching and fetching.
-- Feature hooks should wrap query logic:
-
-```ts
-// src/features/orders/hooks/use-orders.ts
-import { useQuery } from '@tanstack/react-query'
-import { fetchOrders } from '../api/orders-api'
-
-export function useOrders(params: { page: number }) {
-  return useQuery({
-    queryKey: ['orders', params],
-    queryFn: () => fetchOrders(params),
-  })
-}
+```tsx
+<CmxButton>Save</CmxButton>
 ```
 
----
+## 9. RTL rules
 
-## 6. Supabase Types Usage
+Use logical or RTL-aware classes.
 
-- Supabase-generated types must be used as **base DB shapes**, not directly as UI models.
-- Mapping rules:
-  - Raw types from Supabase: used in `lib` or `src/features/*/model`.
-  - Map DB types to UI/domain types in a separate mapper function.
+Correct:
 
-Example pattern:
-
-```ts
-// lib/types/supabase.ts
-export type DbOrder = {/* generated */}
-
-// src/features/orders/model/order-types.ts
-export type Order = {
-  id: string
-  customerName: string
-  // ...
-}
-
-export function mapDbOrderToOrder(db: DbOrder): Order {
-  return {
-    id: db.id,
-    customerName: db.customer_name ?? '',
-    // ...
-  }
-}
+```tsx
+<div className="ms-4">...</div>
+<ChevronRight className="rtl:rotate-180" />
+<div className="text-left rtl:text-right">...</div>
 ```
 
----
+Avoid direction-specific layout unless paired:
 
-## 7. Tables, Charts, and Analytics
+```tsx
+<div className="ml-4 rtl:ml-0 rtl:mr-4">...</div>
+```
 
-### 7.1 TanStack Table
+## 10. Styling rules
 
-- Use TanStack Table for complex data tables.
-- Wrap table patterns in Cmx components under `src/ui/data-display/`:
-  - `CmxDataTable`
-  - `CmxSortableTable`
-  - etc.
+Do:
 
-Feature tables should **compose** from these wrappers, not build TanStack logic from scratch each time.
+- use Tailwind for layout,
+- use CSS variables and Cmx tokens for colors,
+- use Cmx variants for semantic actions,
+- support dark mode, density, radius, and accent themes.
 
-### 7.2 Recharts
+Do not:
 
-- Use Recharts for charts.
-- Wrap chart patterns in `src/ui/charts/`:
-  - `CmxLineChart`
-  - `CmxBarChart`
-  - `CmxDonutChart`
+- hardcode hex colors,
+- hardcode brand colors like `text-blue-500`,
+- duplicate shadcn variants in features,
+- use inline styles for theme values,
+- create one-off CSS unless there is no tokenized alternative.
 
-Screens in `src/features` should use these Cmx chart components.
+## 11. Permissions and feature flags
 
----
+Frontend permission checks improve UX only. They are not security enforcement.
 
-## 8. Error Handling & UX
+For restricted actions:
 
-- **Always** use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on
-Global Message Utility (`cmxMessage`) README and usage guide is: /src/ui/feedback/cmxMessage_developer_guide.md
-Global Message Utility (`cmxMessage`) MIGRATION guide is: /src/ui/feedback/cmxMessage_MIGRATION.md
+1. Read permissions/feature flags using the approved app hook or context.
+2. Hide or disable action with a reason.
+3. Backend/API/server action must enforce again.
+4. Use `cmxMessage` for denied actions.
+5. Keep audit-relevant reasons in the payload where required.
 
-- Handle errors at three levels:
-  1. API error handling in `apiRequest` (HTTP status, network errors).
-  2. React Query error boundaries where appropriate.
-  3. User-facing toasts (Sonner) or inline messages (Cmx components in `src/ui/feedback/`).
+Do not rely on CSS hiding as permission enforcement.
 
-Patterns:
+## 12. Reports
 
-- For forms: show validation errors near fields using Cmx form components.
-- For lists/tables: show empty/error states with `CmxEmptyState`.
+Reports must be:
 
----
+- named with `-rprt.tsx`,
+- feature-owned unless generic,
+- bilingual,
+- RTL-safe,
+- print/PDF aware,
+- token-styled,
+- permission-gated,
+- server-paginated when browsing large report datasets,
+- export-safe with clear loading/error states.
 
-## 9. Linting, Formatting, and DX
+## 13. Accessibility
 
-- Use ESLint with:
-  - Typescript rules
-  - React + React Hooks rules
-  - Architecture constraints for `app/`, `src/ui/`, `src/features/`, `lib/`.
-- Use Prettier for formatting.
-- Enable Tailwind IntelliSense for class name completion.
-- No `console.log` in committed code (use proper logging or dev-only `debug` helpers).
+Required:
 
----
+- semantic HTML,
+- keyboard navigation,
+- visible focus state,
+- labels for inputs,
+- `aria-*` only when semantic HTML is insufficient,
+- non-color-only status indicators,
+- WCAG 2.1 AA contrast.
 
-## 10. React lint (portable — copy `docs/dev/rules/*.md` to other projects)
+## 14. React lint rules
 
-**Checklist:** `docs/dev/rules/react-lint-verification-checklist.md`  
-**Effects / Link:** `docs/dev/rules/react-effects-patterns.md`  
-**RHF / table / a11y:** `docs/dev/rules/react-rhf-and-table-lint.md`
+Mandatory patterns:
 
-| ESLint rule | Do | Don't |
-|-------------|-----|-------|
-| `react-hooks/set-state-in-effect` | Render-time reset when props change | `useEffect(() => setState(...))` |
-| `@next/next/no-html-link-for-pages` | `<Link href="...">` | `<a href="/...">` |
-| `react-hooks/incompatible-library` (RHF) | `useWatch({ control, name })` | `form.watch('field')` |
-| `react-hooks/incompatible-library` (table) | `eslint-disable-next-line` on `useReactTable` only | File-wide disable |
-| `import/no-anonymous-default-export` | `const m = {}; export default m` | `export default {}` |
-| `jsx-a11y/role-supports-aria-props` | `role="combobox"` + listbox | `aria-expanded` on plain input |
+- no `setState` in `useEffect` for values that can be derived,
+- no `form.watch()` for reactive rendering; use `useWatch`,
+- internal links use `next/link`,
+- no missing dependency hacks,
+- no random `use client` unless the component needs client behavior,
+- no browser APIs in Server Components.
 
-**Gate:** `cd web-admin && npx eslint . --quiet` before marking work complete.
+Before done, read and follow if present:
 
----
+```txt
+docs/dev/rules/react-lint-verification-checklist.md
+docs/dev/rules/react-effects-patterns.md
+docs/dev/rules/react-rhf-and-table-lint.md
+```
 
-## 11. Quick Rules Checklist
+## 15. Mandatory verification
 
-- **Routing:** Only in `app/`.
-- **Reusable UI:** Only in `src/ui`, named with `Cmx*`.
-- **Feature UI and logic:** In `src/features/<feature>/...`.
-- **Infra & utilities:** In `lib/`.
-- **Imports:**
-  - `@ui/*` → `src/ui/*`
-  - `@features/*` → `src/features/*`
-  - `@lib/*` → `lib/*`
-- **Do not use:** `components/ui`, `shared/`, `common/` as roots.
+Run from `web-admin`:
 
-This document is the single source of truth for frontend implementation standards and must always remain consistent with the architecture defined in `AI_Coder_Frontend_Instructions.md`.
+```bash
+npx eslint . --quiet
+npm run typecheck
+npm run build
+```
+
+If a script does not exist, run:
+
+```bash
+npm run
+```
+
+Then report the closest available checks and their result.
+
+Do not claim checks passed unless they actually ran and exited successfully.

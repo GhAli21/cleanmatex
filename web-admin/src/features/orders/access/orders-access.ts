@@ -83,11 +83,80 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'Invoices From Orders',
+        method: 'POST',
+        path: '/api/v1/ar/invoices/from-orders',
+        requirement: {
+          permissions: ['invoices:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close linked cash drawer session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/close-session',
+        requirement: {
+          permissions: ['cash_drawer:close_session'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Orders Checkout Options',
+        method: 'GET',
+        path: '/api/v1/orders/checkout-options',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
         label: 'Pos Sessions My Active',
         method: 'GET',
         path: '/api/v1/pos-sessions/my-active',
         requirement: {
           permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'POS Session Hub summary',
+        method: 'GET',
+        path: '/api/v1/pos-sessions/[sessionId]/summary',
+        requirement: {
+          permissions: ['pos_session:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Pause POS session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/pause',
+        requirement: {
+          permissions: ['pos_session:pause_resume'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Resume POS session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/resume',
+        requirement: {
+          permissions: ['pos_session:pause_resume'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close POS session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/close',
+        requirement: {
+          permissions: ['pos_session:close'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Force-close POS session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/force-close',
+        requirement: {
+          permissions: ['pos_session:force_close'],
           requireAllPermissions: true,
         },
       },

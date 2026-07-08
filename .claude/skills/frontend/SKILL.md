@@ -1,288 +1,192 @@
 ---
 name: frontend
-description: Frontend development standards for Next.js 15, React 19, TypeScript, Tailwind CSS, Cmx Design System. Use when creating components, pages, forms, or frontend code.
+description: CleanMateX web-admin frontend standards for Next.js App Router, React, TypeScript, TailwindCSS, next-intl, and Cmx Design System. Use when creating or editing pages, screens, forms, tables, dialogs, reports, route UI, feature UI, reusable UI, or frontend i18n.
 user-invocable: true
-effort: low
+effort: medium
 agents:
 ---
 
-# CleanMateX Frontend Standards
+# CleanMateX Frontend Skill
 
-## CRITICAL Rules
+This skill is authoritative for `web-admin` frontend work.
 
-1. **Always use cmxMessage** for all messages, errors, alerts
-2. **Pagination must be server-side** (API-driven)
-3. **Use CmxEditableDataTable** for editable tables
-4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
-5. **Routes visible in the system menu MUST go through `/navigation` skill** — any new route, renamed route, moved route, or removed route that appears (or should appear) in the sidebar/system menu requires the **dual-write** workflow: update `web-admin/config/navigation.ts` AND generate a `sys_components_cd` migration. Load `/navigation` BEFORE touching `app/**/page.tsx` for a menu-visible route. See [Routes & Navigation Menu](#routes--navigation-menu) below.
-6. **React lint (mandatory before done)** — Read `docs/dev/rules/react-lint-verification-checklist.md`. Effects/Link: `react-effects-patterns.md`. RHF/TanStack/a11y: `react-rhf-and-table-lint.md`. Run `cd web-admin && npx eslint . --quiet` (must be 0). No `setState` in `useEffect`; no `form.watch()` — use `useWatch`; internal links → `next/link`.
+CleanMateX uses:
 
-## Folder Structure
+- Next.js App Router
+- React + TypeScript
+- TailwindCSS
+- next-intl / i18n
+- Cmx Design System
+- TanStack Query
+- React Hook Form + Zod
+- Supabase / API clients depending on feature context
 
+## 1. Load order
+
+When working on frontend code, apply these files in this order:
+
+1. `SKILL.md` — hard gates and workflow.
+2. `architecture.md` — folder boundaries, imports, route/menu rules.
+3. `standards.md` — coding, forms, data, permissions, lint rules.
+4. `ui-blueprint.md` — Cmx component contracts.
+5. `uiux-rules.md` — UX, accessibility, RTL, states.
+
+For menu-visible routes, load the `/navigation` skill before writing route code.
+
+## 2. Hard gates
+
+1. Never create a root `components/` folder.
+2. Never create `components/ui`.
+3. `app/` is routing and composition only.
+4. Reusable UI lives in `src/ui/` and must use the `Cmx` prefix.
+5. Feature UI lives in `src/features/<feature>/ui/`.
+6. Feature API clients live in `src/features/<feature>/api/`.
+7. Feature hooks live in `src/features/<feature>/hooks/`.
+8. Feature types/mappers live in `src/features/<feature>/model/`.
+9. Shared infrastructure lives in root `lib/`.
+10. Use only these project aliases: `@ui/*`, `@features/*`, `@lib/*`.
+11. Do not invent aliases such as `@/components`, `@/core`, or `@ui/compat`.
+12. Do not import raw shadcn/ui or Radix primitives directly inside feature code. Wrap them in Cmx components first.
+13. All user-facing messages, alerts, errors, confirmations, and toasts must use `cmxMessage` / approved message wrapper.
+14. All user-facing text must use i18n keys.
+15. Search existing locale keys before adding new keys.
+16. When adding keys, update matching English and Arabic files under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.
+17. Pagination must be server-side/API-driven.
+18. Editable grids must use `CmxEditableDataTable`.
+19. Non-editable large lists must use a server-side `CmxDataTable` contract.
+20. Async actions must have loading, success, error, and empty states as applicable.
+21. Arabic RTL must be supported for layout, icons, alignment, and text direction.
+22. Do not hardcode brand colors or hex values in feature UI.
+23. Use design tokens and CSS variables.
+24. Menu-visible routes require the `/navigation` dual-write workflow.
+25. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
+26. Before finishing, run the mandatory frontend verification commands listed in `standards.md`.
+
+## 3. Canonical folder structure
+
+```txt
+web-admin/
+  app/                    # routing only
+  src/
+    ui/                   # global reusable Cmx Design System
+      foundations/
+      primitives/
+      forms/
+      data-display/
+      navigation/
+      layouts/
+      patterns/
+      charts/
+      feedback/
+      overlays/
+    features/             # domain modules
+      orders/
+        ui/
+        reports/
+        api/
+        hooks/
+        model/
+  lib/                    # shared infrastructure
+    api/
+    supabase/
+    hooks/
+    utils/
+    config/
+  messages/
+    en/
+    ar/
 ```
-app/            # Next.js App Router (routing only - page.tsx, layout.tsx)
-src/
-  ui/           # Global Cmx Design System (Cmx* prefix REQUIRED)
-    primitives/      # CmxButton, CmxInput, CmxCard
-    data-display/    # CmxDataTable, CmxKpiCard
-    forms/           # CmxForm, CmxFormField
-    navigation/      # CmxAppShell, CmxBreadcrumbs
-  features/     # Feature modules (domain-specific)
-    orders/
-      ui/            # OrderListScreen, OrderFilters
-      api/           # orders-api.ts
-      hooks/         # use-orders.ts
-      model/         # order-types.ts
-lib/            # Shared infrastructure (api, supabase, hooks, utils)
-```
 
-## Path Aliases
+## 4. App Router rule
 
-```typescript
-import { CmxButton } from '@ui/primitives/cmx-button'
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-import { apiClient } from '@lib/api/client'
-```
-
-**DO NOT** create other paths like `@/components` or `@/core`.
-
-## Component Placement Rules
-
-### Reusable UI → `src/ui/` with `Cmx` prefix
-Components that are:
-- Reused across multiple features
-- Generic in nature (button, input, table, layout)
-
-Examples: `CmxButton`, `CmxInput`, `CmxForm`, `CmxDataTable`, `CmxPageHeader`
-
-### Feature-Specific UI → `src/features/<module>/ui`
-Components containing business/domain logic:
-- `OrderStatusBadge`
-- `CustomerTierBadge`
-- `OrderListScreen`
-- `TenantSettingsForm`
-
-### Routes → `app/`
-Only use for routing and composition:
+`app/**/page.tsx` should compose feature screens only.
 
 ```tsx
-// app/dashboard/orders/page.tsx
 import { OrderListScreen } from '@features/orders/ui/order-list-screen'
 
-export default async function OrdersPage() {
+export default function OrdersPage() {
   return <OrderListScreen />
 }
 ```
 
-## Routes & Navigation Menu
+Do not put domain logic, reusable components, feature hooks, or design-system primitives in `app/`.
 
-**Hard gate — load `/navigation` before writing route code that affects the menu.**
+## 5. Naming rules
 
-Any route that is (or will be) visible in the sidebar / system menu is governed by the `/navigation` skill. The frontend route file (`app/**/page.tsx`) is only **one of three** artifacts that must stay in sync:
+- Screens: `<feature>-<screen>-screen.tsx`
+- Reports: `<feature>-<report-name>-rprt.tsx`
+- Reusable UI: `cmx-<component>.tsx`, exported as `Cmx<Component>`
+- Hooks: `use-<feature-or-purpose>.ts`
+- API client: `<feature>-api.ts`
+- Model/types: `<feature>-types.ts`, `<feature>-mapper.ts`
 
-| Artifact | Owned by | Required for menu visibility |
-|---|---|---|
-| `app/<segment>/page.tsx` | this skill (`/frontend`) | Yes — the actual Next.js route |
-| `web-admin/config/navigation.ts` | `/navigation` skill | Yes — drives the React sidebar |
-| `supabase/migrations/{seq}_nav_*.sql` (`sys_components_cd`) | `/navigation` skill | Yes — drives RBAC, permission checks, navigation API |
+Examples:
 
-### When to load `/navigation`
-
-Load `/navigation` BEFORE writing code in any of these cases:
-
-- **Adding a new page** that should appear in the sidebar (e.g. new `app/dashboard/<feature>/page.tsx` that users navigate to)
-- **Renaming a route segment** that is reflected in the menu label or URL
-- **Moving a route** under a different parent section (re-parenting in the menu tree)
-- **Converting a flat link into an expandable section** (or vice versa)
-- **Changing which roles/permissions** can see a menu entry
-- **Removing a route** that is currently in the menu
-
-### When `/navigation` is NOT required
-
-- The route is **internal/hidden** (detail pages like `[id]`, modals routed via URL, debug-only pages) AND is not in `sys_components_cd`
-- You are editing the **body** of an existing page that already has its navigation entry wired
-- You are creating a **component** under `src/features/<module>/ui/` without adding a new route
-
-### Workflow when both skills apply
-
-1. Load `/navigation` first — it governs the dual-write contract.
-2. Load `/frontend` for component/page implementation rules.
-3. Create the `app/<segment>/page.tsx` per `/frontend` rules.
-4. Update `web-admin/config/navigation.ts` per `/navigation`.
-5. Generate the `sys_components_cd` migration per `/navigation` (do NOT apply it — stop and ask the user to review).
-6. If permissions are new, also follow CRITICAL RULE #11 (permission migration).
-
-> Skipping the navigation skill for a menu-visible route causes **sidebar/DB drift**: the link appears in code but RBAC denies access, or RBAC allows it but the sidebar never shows it. Both are silent bugs.
-
-## Styling Rules
-
-### DO
-- Use CSS variables: `rgb(var(--cmx-primary-rgb))`
-- Use Tailwind for layout/spacing: `flex`, `grid`, `gap-4`, `p-4`
-- Support RTL with Tailwind: `ml-4 rtl:ml-0 rtl:mr-4`
-
-### DO NOT
-- Hardcode brand colors: `text-blue-500`, `bg-red-500`
-- Use hex codes directly: `#1d4ed8`, `#ef4444`
-- Import shadcn/ui directly in features (wrap as Cmx in `src/ui` first)
-
-## Internationalization (i18n)
-
-### Always Re-Use Keys
-
-```typescript
-import { useTranslations } from 'next-intl';
-
-export default function OrdersPage() {
-  const tCommon = useTranslations('common');  // For common keys
-  const t = useTranslations('orders');        // For feature keys
-
-  return (
-    <div>
-      <h1>{t('title')}</h1>
-      <button>{tCommon('save')}</button>
-    </div>
-  );
-}
+```txt
+src/features/orders/ui/order-list-screen.tsx
+src/features/orders/reports/orders-payments-print-rprt.tsx
+src/features/orders/api/orders-api.ts
+src/features/orders/hooks/use-orders.ts
+src/features/orders/model/order-types.ts
+src/ui/primitives/cmx-button.tsx
 ```
 
-**CRITICAL:**
-- Always search for existing message keys before adding new ones
-- Use `tCommon()` for common keys like save, cancel, delete
-- Update matching files under `web-admin/messages/en/**` and `web-admin/messages/ar/**` when adding translations
+## 6. Route and navigation hard gate
 
-### RTL Support
+Any route that appears, should appear, or previously appeared in the sidebar/system menu must use the `/navigation` workflow.
 
-```tsx
-// Direction-aware spacing
-<div className="ml-4 rtl:ml-0 rtl:mr-4">Content</div>
+Required artifacts must stay synchronized:
 
-// Direction-aware icons
-<ChevronRight className="rtl:rotate-180" />
-```
+1. `app/<segment>/page.tsx`
+2. `web-admin/config/navigation.ts`
+3. `supabase/migrations/{seq}_nav_*.sql` for `sys_components_cd`
 
-## Import Rules (Always Apply — ESLint enforced)
+Do not create, rename, move, or remove a menu-visible page without updating both navigation config and DB navigation/RBAC migration.
 
-### CORRECT
-```typescript
-import { CmxButton } from '@ui/primitives'
-import { CmxCard, CmxCardHeader, CmxCardContent } from '@ui/primitives/cmx-card'
-import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
-import { CmxTabsPanel } from '@ui/navigation'
-import { CmxDataTable } from '@ui/data-display'
-import { CmxProgressBar, CmxSummaryMessage } from '@ui/feedback'
-import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-import { supabaseClient } from '@lib/supabase/client'
-```
+## 7. Data-fetching decision rule
 
-### FORBIDDEN (will fail `npm run build`)
-```typescript
-import X from '@ui/compat'            // NO - removed, causes build failure
-import Y from '@/components/ui'       // NO - doesn't exist
-import Z from '@/components/ui/*'     // NO - doesn't exist
-import W from '@/app/components/...'  // NO - never import from app
-import V from '@/components/...'      // NO - components folder doesn't exist
-```
+Use this default decision tree:
 
-> Full import snippets per component type: see `.claude/docs/web-admin-ui-imports.md`
+- Server Component: initial read-only route composition or static page data.
+- TanStack Query: interactive lists, filters, pagination, refresh, mutations, dialogs, and client-side workflows.
+- Feature API client: all feature-owned API calls.
+- `lib/api`: base HTTP client, interceptors, auth headers, shared errors.
+- Supabase client: only where the existing feature architecture already uses it or the project decision says this module is Supabase-direct.
+- Server Action: only for small, controlled mutations where the current app architecture already uses Server Actions.
 
-## Common Patterns
+Never scatter API calls directly inside complex UI components.
 
-### Server-Side Pagination
+## 8. Permission and feature gate rule
 
-```typescript
-// API endpoint returns paginated data
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const pageSize = parseInt(searchParams.get('pageSize') || '20');
+Frontend gates are UX only. Backend/API/RLS must enforce security again.
 
-  const { data, total } = await getOrders({ page, pageSize });
+For restricted actions:
 
-  return Response.json({ data, total, page, pageSize });
-}
-```
+1. Check permission/feature flag before rendering the action.
+2. Keep action unavailable or disabled with a clear reason.
+3. Enforce again in backend/API/server action.
+4. Use `cmxMessage` for controlled denial messages.
 
-### Using CmxDataTable
+## 9. Required verification before done
 
-```tsx
-import { CmxDataTable } from '@ui/data-display/cmx-datatable';
-
-<CmxDataTable
-  columns={columns}
-  data={data}
-  pagination="server"  // REQUIRED for server-side
-  totalRows={total}
-  onPageChange={handlePageChange}
-/>
-```
-
-## Report Naming Convention (Always Apply)
-
-When building or implementing a **report** (screen, component, page, tool):
-
-- Name pattern: `{feature}-{report-name}-rprt`
-- Examples: `orders-payments-print-rprt.tsx`, `customers-summary-rprt.tsx`, `financial-monthly-rprt.tsx`
-- Apply to ALL report artifacts: component files, screen names, route segments, tool names
-- The `-rprt` suffix identifies it as a report and separates it from regular UI components
-
-❌ `orders-payments-print.tsx` — missing suffix
-✅ `orders-payments-print-rprt.tsx` — correct
-
-## Additional Resources
-
-- [architecture.md](./architecture.md) - Complete architecture rules and folder structure
-- [standards.md](./standards.md) - Detailed frontend coding standards
-- [ui-blueprint.md](./ui-blueprint.md) - UI layer blueprint
-- [uiux-rules.md](./uiux-rules.md) - UI/UX design guidelines
-- [react-effects-patterns.md](../../../docs/dev/rules/react-effects-patterns.md) - Effects, Next `Link`, memoization ESLint
-- [react-rhf-and-table-lint.md](../../../docs/dev/rules/react-rhf-and-table-lint.md) - useWatch, TanStack Table, a11y, exports
-- [react-lint-verification-checklist.md](../../../docs/dev/rules/react-lint-verification-checklist.md) - Pre-submit agent checklist
-
-## Dashboard `*-access.ts` (load `/rebuild-ui-access-contract` first)
-
-**Do not hand-author large `*-access.ts` blocks from memory.** Use scripts + golden path (`.cursor/rules/ui-access-contract-pattern.mdc`).
-
-### New dashboard route
-
-1. Permission migration + `lib/constants/permissions/{domain}-perm.ts` (if new codes)
-2. **`/navigation`** dual-write if menu-visible (`navigation.ts` + `sys_components_cd` migration)
-3. `app/dashboard/**/page.tsx` + feature UI
-4. Scripts (feature or route scope):
+Run from `web-admin`:
 
 ```bash
-npm run scaffold:ui-access-contract -- --feature=<feature>
-npm run derive:ui-access-contract -- --feature=<feature> --apply --refresh-extract
-npm run wire:ui-access-contract -- --feature=<feature> --fix
-npm run check:ui-access-contract -- --feature=<feature> --wire --verbose
-npm run sync:ui-access-contract
+npx eslint . --quiet
+npm run typecheck
+npm run build
 ```
 
-`derive` infers from: page/feature permission hooks, **`config/navigation.ts`** (when no page gate), `hasPermissionServer` in linked server actions, `/api/*` literals, `@/app/actions/*` modules.
+If the repo does not have `typecheck` or build scripts, report that honestly and run the closest available scripts from `package.json`.
 
-### Page gate on `page.tsx` (wire audit)
+## 10. Stop conditions
 
-| Pattern | When |
-|---------|------|
-| `RequireAnyPermission` + `FEATURE_ROUTE_ACCESS.page.permissions` | **Preferred** sync/client pages |
-| `hasPermissionServer` + `*.page.permissions` reference | `async` server pages, redirects |
-| `wire --fix` | Auto-wraps simple `return (...)` / `return <Component />` pages |
+Stop and ask for review before applying migrations or changing generated artifacts.
 
-Import: `RequireAnyPermission` from `@features/auth/ui/RequirePermission`; route export from `@features/<feature>/access/<feature>-access`.
+Stop and report clearly if:
 
-### After contract / gate changes
-
-`npm run sync:ui-access-contract` (or `rebuild:platform-info-inventories` if permission scans changed). See **`/rebuild-platform-info-inventories`** for drift.
-
-Full CLI: `docs/platform/ui-access-contract/user_guide.md`
-
-## Platform info inventories (conditional)
-
-After changing page access contracts (`src/features/*/access/*-access.ts`), navigation gates, or UI feature-flag guards:
-
-1. Load **`/rebuild-platform-info-inventories`** — `Mode: refresh` · `Scope: surface=page` · `route=<path>`
-2. Run `npm run sync:ui-access-contract` (typical) or `npm run rebuild:platform-info-inventories`
-3. Fix new drift in `docs/platform/inventories/DRIFT_REPORT.md`
-
-Do not hand-edit `GENERATED_*.md`.
+- navigation and route contracts conflict,
+- a reusable Cmx component does not exist and must be created,
+- locale key ownership is unclear,
+- the requested UI violates established Cmx design-system contracts,
+- permission or feature flag ownership is unknown.

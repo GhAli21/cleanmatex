@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-07-04 (POS Session Management v1 runtime, UI, and navigation wired)
+Last updated: 2026-07-09 (POS Session Hub order-entry enhancement wired)
 Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md`.
 
 ## Phase Completion
@@ -30,6 +30,7 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 | POS-2 | POS Session Management v1 — backend lifecycle + finance lineage APIs | ✅ Done (2026-07-04) |
 | POS-3 | POS Session Management v1 — operations UI, order banner, navigation, access contract | ✅ Done (2026-07-04) — migration 0399 applied locally/remotely by user |
 | POS-4 | POS Session Management v1 — tests, docs, access inventories, i18n closeout | ✅ Done (2026-07-04) |
+| POS-5 | POS Session Hub — compact order-entry control, context panel, warning-only banner | ✅ Done (2026-07-09) |
 
 ---
 
@@ -123,6 +124,8 @@ Completed in the UI/navigation slice:
 - `web-admin/app/dashboard/internal_fin/pos-sessions/page.tsx`
 - `web-admin/src/features/pos-sessions/ui/pos-sessions-screen.tsx`
 - `web-admin/src/features/pos-sessions/ui/pos-session-order-banner.tsx`
+- `web-admin/src/features/pos-sessions/ui/pos-session-hub.tsx`
+- `web-admin/src/features/pos-sessions/api/pos-session-api.ts`
 - `web-admin/src/features/pos-sessions/access/pos-sessions-access.ts`
 - `web-admin/config/navigation.ts` entry `billing_pos_sessions`
 - `supabase/migrations/0399_pos_sessions_navigation.sql` for the matching `sys_components_cd` navigation seed
@@ -148,7 +151,12 @@ Runtime behavior now covered:
 - manager-visible session list via `GET /api/v1/pos-sessions` when `pos_session:view_all` is granted
 - POS sessions workbench for active session actions, history, pagination, and session summary
 - order-entry banner that surfaces active/paused/no-session/branch-conflict state before cashier submission
+- order-entry Session Hub that replaces the healthy `OPEN` banner with a compact header pill and right-side context panel
+- warning-only order-entry banner behavior for paused sessions, branch conflict, and load errors
+- permission-safe drawer context: `cash_drawer:view` is required before drawer labels/status are returned or displayed
+- lazy Hub finance summary using `GET /api/v1/pos-sessions/[sessionId]/summary`
 - combined close flow in the POS Sessions UI: if close returns `POS_SESSION_DRAWER_STILL_OPEN`, the UI requires the linked drawer close step to succeed before retrying POS close
+- combined close flow in the Session Hub: if close returns `POS_SESSION_DRAWER_STILL_OPEN`, the linked drawer close step must succeed before POS close is retried
 - later collection attaches `posSessionId` only when the current user already has an active same-branch `OPEN` session; it does not auto-open sessions from back-office collection flows
 
 Apply status and residual follow-ups:
@@ -173,6 +181,10 @@ Apply status and residual follow-ups:
   - drawer auto-link is same-drawer idempotent and rejects different drawer linkage
   - summary aggregation maps active finance rows into payment/refund/voucher groups
   - out-of-scope summary lookup returns typed not-found error
+- `web-admin/__tests__/features/pos-sessions/pos-session-order-banner.test.tsx`
+  - healthy `OPEN` state renders no full-width order banner
+  - paused state still renders a warning banner
+  - branch-conflict state still renders a blocking banner
 
 ---
 

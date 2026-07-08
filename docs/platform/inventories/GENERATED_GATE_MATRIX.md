@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-04T04:18:53.106Z
-Git SHA: 46e72b9e
+Generated: 2026-07-08T21:45:32.617Z
+Git SHA: ae552057
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 140 |
-| Permission usages | 253 |
+| Permission usages | 259 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |

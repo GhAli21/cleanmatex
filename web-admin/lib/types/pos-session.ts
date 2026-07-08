@@ -6,11 +6,29 @@ export type PosSessionRow =
 export type PosSessionEventRow =
   Database['public']['Tables']['org_pos_session_events_dtl']['Row'];
 
+/**
+ * Presentation context used by POS operational screens.
+ *
+ * Drawer fields are permission-sensitive and must be nulled by the API unless
+ * the caller has cash drawer view access.
+ */
+export interface PosSessionContextFields {
+  branch_name: string | null;
+  branch_name2: string | null;
+  terminal_name: string | null;
+  terminal_code: string | null;
+  cash_drawer_name: string | null;
+  cash_drawer_session_no: string | null;
+  cash_drawer_session_status: string | null;
+}
+
+export type PosSessionWithContext = PosSessionRow & PosSessionContextFields;
+
 export interface PosSessionBranchConflict {
   type: 'BRANCH_CONFLICT';
   requestedBranchId: string;
   activeBranchId: string;
-  activeSession: PosSessionRow;
+  activeSession: PosSessionRow | PosSessionWithContext;
 }
 
 export interface PosSessionNoneResult {
@@ -19,7 +37,7 @@ export interface PosSessionNoneResult {
 
 export interface PosSessionActiveResult {
   type: 'ACTIVE';
-  session: PosSessionRow;
+  session: PosSessionRow | PosSessionWithContext;
 }
 
 export interface PosSessionCreatedResult {
@@ -63,15 +81,7 @@ export type PosSessionIdempotentResult =
 
 export type PosSessionMetadata = Record<string, unknown>;
 
-export interface PosSessionListRow extends PosSessionRow {
-  branch_name: string | null;
-  branch_name2: string | null;
-  terminal_name: string | null;
-  terminal_code: string | null;
-  cash_drawer_name: string | null;
-  cash_drawer_session_no: string | null;
-  cash_drawer_session_status: string | null;
-}
+export type PosSessionListRow = PosSessionWithContext;
 
 export interface PosSessionListResult {
   items: PosSessionListRow[];

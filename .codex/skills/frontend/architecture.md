@@ -1,93 +1,138 @@
-# Frontend Architecture Rules
+# CleanMateX Frontend Architecture Rules
 
-You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS platform built with **Next.js App Router, TypeScript, TailwindCSS, shadcn/ui, Supabase**, and a custom **Cmx UI Design System**.
+This document defines where frontend code belongs in `web-admin`.
 
-## 1. Project Architecture (MUST FOLLOW)
+## 1. Core architecture
 
-### 1.1 Routing Layer - `app/`
-
-**Contains:**
-- `page.tsx`, `layout.tsx`, `template.tsx`
-- `loading.tsx`, `error.tsx`
-- Route groups `(dashboard)`, `(auth)`, etc.
-
-**Responsibilities:**
-- Routing and composition only
-- Compose feature screens and Cmx UI
-
-**Naming:**
-- Screens should start with feature name then screen name then end with `-screen`
-- When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
-- Always use best practice for reports
-- Use centralized/reusable themes, fonts, layout, UI/UX for all alike reports
-
-**DO NOT:**
-- Define reusable primitives
-- Put business logic here
-- Put design system components here
-
-### 1.2 Global UI System - `src/ui/`
-
-The **Cmx Design System** lives here.
-
-**Structure:**
+```txt
+web-admin/
+  app/                    # Next.js App Router only
+  src/
+    ui/                   # global Cmx Design System
+    features/             # feature/domain modules
+  lib/                    # shared infrastructure
+  messages/               # i18n messages
 ```
+
+## 2. `app/` routing layer
+
+### Contains
+
+- `page.tsx`
+- `layout.tsx`
+- `template.tsx`
+- `loading.tsx`
+- `error.tsx`
+- route groups such as `(dashboard)` and `(auth)`
+
+### Responsibilities
+
+- Define route segments.
+- Compose feature screens.
+- Compose route-specific layout wrappers.
+- Handle route-level loading and error boundaries.
+
+### Must not contain
+
+- reusable UI primitives,
+- domain business logic,
+- feature hooks,
+- API clients,
+- table/form implementation,
+- design-system components.
+
+### Correct example
+
+```tsx
+import { OrderListScreen } from '@features/orders/ui/order-list-screen'
+
+export default function OrdersPage() {
+  return <OrderListScreen />
+}
+```
+
+## 3. `src/ui/` global Cmx Design System
+
+Reusable app-wide components live here.
+
+```txt
 src/ui/
-  foundations/    # tokens, theme, CSS vars
-  primitives/     # CmxButton, CmxInput, CmxCard
-  forms/          # CmxForm, CmxFormField, CmxFormSection
-  data-display/   # CmxDataTable, CmxKpiCard, CmxEmptyState
-  navigation/     # CmxAppShell, sidebar, breadcrumbs
-  layouts/        # major layout shells
-  patterns/       # CRUD shells, list-with-filters, wizards
-  charts/         # Recharts wrappers
-  feedback/       # toast, inline error/success, confirm dialog
-  overlays/       # modals, side panels
+  foundations/       # tokens, CSS vars, theme provider helpers
+  primitives/        # CmxButton, CmxInput, CmxCard, CmxBadge
+  forms/             # CmxForm, CmxFormField, CmxSelect, CmxDatePicker
+  data-display/      # CmxDataTable, CmxEditableDataTable, CmxKpiCard
+  navigation/        # CmxAppShell, CmxBreadcrumbs, CmxTabs
+  layouts/           # CmxPageShell, CmxDashboardGrid
+  patterns/          # CRUD shells, filter bars, wizard shells
+  charts/            # CmxChart wrappers
+  feedback/          # cmxMessage, CmxEmptyState, CmxInlineError
+  overlays/          # CmxDialog, CmxDrawer, CmxConfirmDialog
 ```
 
-All global reusable components MUST be prefixed with **`Cmx`**.
+Rules:
 
-### 1.3 Feature Modules - `src/features/`
+- All exported reusable components must use the `Cmx` prefix.
+- `src/ui` must not import from `app/`.
+- `src/ui` must not import from `src/features/`.
+- shadcn/Radix wrappers belong here, not in feature modules.
+- Components must be theme-aware, RTL-safe, accessible, and token-based.
 
-Domain-level modules live here:
-- `src/features/orders/`
-- `src/features/customers/`
-- `src/features/tenants/`
+## 4. `src/features/` domain modules
 
-Each feature may have:
-- `ui/` - feature-specific components and screens
-- `reports/` - feature-specific reports components and screens
-- `api/` - API clients for this feature
-- `hooks/` - feature hooks
-- `model/` - types and mappers
+Domain-specific frontend code lives here.
 
-Example:
-```
+```txt
 src/features/orders/
   ui/
     order-list-screen.tsx
     order-filters.tsx
+    order-status-badge.tsx
   reports/
-    order-list-rprt.tsx
-    order-filters-rprt.tsx
+    orders-payments-print-rprt.tsx
   api/
     orders-api.ts
   hooks/
     use-orders.ts
   model/
     order-types.ts
+    order-mapper.ts
 ```
 
-### 1.4 Shared Infrastructure - `lib/` (root-level)
+Rules:
 
-Contains:
-- `lib/api/` - base API clients
-- `lib/supabase/` - supabase client
-- `lib/hooks/` - generic hooks
-- `lib/utils/` - utilities
-- `lib/config/` - configuration helpers
+- Feature UI may import from `@ui/*`, `@lib/*`, and its own local feature folders.
+- Feature UI must not import from `app/`.
+- Feature UI must not directly import another feature’s internals unless an approved public feature boundary exists.
+- Business-specific components belong in feature UI, not in `src/ui`.
 
-## 2. Path Aliases
+Examples:
+
+- `OrderStatusBadge` belongs in `src/features/orders/ui`.
+- `CustomerTierBadge` belongs in `src/features/customers/ui`.
+- `CmxBadge` belongs in `src/ui/primitives`.
+
+## 5. `lib/` shared infrastructure
+
+Root-level `lib/` contains non-UI shared infrastructure.
+
+```txt
+lib/
+  api/          # base API client, HTTP errors, interceptors
+  supabase/     # Supabase clients/config helpers
+  hooks/        # generic cross-feature hooks only
+  utils/        # pure generic helpers
+  config/       # app config helpers
+```
+
+Rules:
+
+- `lib` can be imported by `app`, `src/ui`, and `src/features`.
+- `lib` must not depend on `src/features`.
+- `lib` must not depend on `src/ui` unless it is explicitly a UI helper under a UI-owned path.
+
+## 6. Path aliases
+
+Use only:
 
 ```jsonc
 {
@@ -102,90 +147,81 @@ Contains:
 }
 ```
 
-**Usage:**
-```typescript
-// Global UI (design system)
+Correct:
+
+```ts
 import { CmxButton } from '@ui/primitives/cmx-button'
-
-// Feature UI
 import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-
-// Infrastructure
 import { apiClient } from '@lib/api/client'
 ```
 
-Do not invent other top-level paths like `@/components` or `@/core`.
+Forbidden:
 
-## 3. Rules for Where Code Goes
-
-### Reusable UI -> `src/ui/`
-Components that are:
-- Reused across multiple features
-- Generic in nature (button, input, table, layout, etc.)
-
-Examples: `CmxButton`, `CmxInput`, `CmxForm`, `CmxDataTable`, `CmxPageHeader`
-
-### Feature-Specific UI -> `src/features/<module>/ui`
-Components that contain business/domain logic:
-- `OrderStatusBadge`
-- `CustomerTierBadge`
-- `OrderListScreen`
-- `TenantSettingsForm`
-
-### Routes -> `app/`
-Only use for:
-- Composing feature screens
-- Handling routing, layouts, segment-specific logic
-
-```tsx
-// app/dashboard/orders/page.tsx
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-
-export default async function OrdersPage() {
-  return <OrderListScreen />
-}
+```ts
+import { Button } from '@/components/ui/button'
+import { Something } from '@/core/something'
+import { X } from '@ui/compat'
+import { Y } from '@/app/components/y'
 ```
 
-## 4. Theming & Styling Rules
+## 7. Navigation and menu-visible routes
 
-### Theme Engine
-`ThemeProvider` sets DOM attributes on `<html>`:
-- `class="dark"` (for dark mode)
-- `data-accent="blue" | "emerald" | "violet"`
-- `data-radius="sm" | "md" | "lg"`
-- `data-density="compact" | "comfortable" | "spacious"`
+A route is menu-visible if it appears or should appear in the sidebar/system menu.
 
-### Styling - DO
-- Use CSS variables and theme tokens: `rgb(var(--cmx-primary-rgb))`
-- Use Tailwind for layout/spacing/typography: `flex`, `grid`, `gap-4`, `p-4`
+For menu-visible routes, update all three artifacts:
 
-### Styling - DO NOT
-- Hardcode brand colors: `text-blue-500`, `bg-red-500`
-- Use hex codes directly: `#1d4ed8`, `#ef4444`
-- Use shadcn/ui directly inside features - always wrap as Cmx in `src/ui` first
+| Artifact | Purpose |
+|---|---|
+| `app/<segment>/page.tsx` | actual Next.js route |
+| `web-admin/config/navigation.ts` | React sidebar/menu |
+| `supabase/migrations/{seq}_nav_*.sql` | `sys_components_cd`, RBAC, permission/navigation API |
 
-## 5. Import Rules (CRITICAL)
+Use `/navigation` before touching route code when:
 
-### From `src/ui` (global design system):
-```typescript
-import { CmxButton } from '@ui/primitives/cmx-button'
-import { CmxDataTable } from '@ui/data-display/cmx-datatable'
-import { CmxPageHeader } from '@ui/navigation/cmx-page-header'
+- adding a page to the sidebar,
+- renaming a menu route,
+- moving a menu route,
+- changing roles/permissions for a menu route,
+- removing a menu route,
+- changing a flat link into an expandable menu section or vice versa.
+
+`/navigation` is not required when:
+
+- editing the body of an existing page,
+- creating hidden detail pages that are not menu entries,
+- creating feature components under `src/features/*/ui`,
+- creating reusable components under `src/ui`.
+
+## 8. Reports architecture
+
+Reports must be centralized and reusable where possible.
+
+Rules:
+
+- Report files end with `-rprt.tsx`.
+- Feature reports live in `src/features/<feature>/reports`.
+- Reusable report primitives live in `src/ui/patterns` or `src/ui/data-display`.
+- Reports must use shared theme, typography, spacing, and print/PDF layout tokens.
+- Reports must support EN/AR and RTL.
+- Export/print actions must use permission and feature gates.
+
+Example:
+
+```txt
+src/features/orders/reports/orders-payments-print-rprt.tsx
 ```
 
-### From `src/features` (domain UI):
-```typescript
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
-import { CustomerForm } from '@features/customers/ui/customer-form'
-```
+## 9. Generated files protection
 
-### From `lib` (infra):
-```typescript
-import { supabaseClient } from '@lib/supabase/client'
-import { apiClient } from '@lib/api/client'
-```
+Do not hand-edit generated files unless the file explicitly says it is manually maintained.
 
-### NEVER:
-- Import UI from `app/*`: `import X from '@/app/components/...'` -> FORBIDDEN
-- Invent `components/` or `shared/` or `common/` top-level UI folders
-- Mix `src/ui` and `components/ui`. There is only `src/ui`
+Common protected categories:
+
+- generated route/access inventories,
+- generated API types,
+- generated DB types,
+- generated component registries,
+- generated permission/access contracts,
+- generated OpenAPI clients.
+
+If generated output is wrong, fix the source generator/input and regenerate.

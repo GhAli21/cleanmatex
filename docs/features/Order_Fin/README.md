@@ -76,6 +76,7 @@ Order Settlement Service (prisma.$transaction)
 | D9 payment status config (Phase 1B) | COALESCE(org.col, sys.col) — sys defaults, org overrides | Config-driven status without code changes; tenant overrides possible |
 | POS session ownership (Phase 1) | User-owned, one active per tenant+user | Keeps user session, terminal context, and drawer reconciliation cleanly separated |
 | POS session navigation (Phase 3) | `/dashboard/internal_fin/pos-sessions` with DB seed migration `0399` | Keeps sidebar and `sys_components_cd` in sync |
+| POS Session Hub (2026-07-09) | Compact order-entry control plus right-side context panel | Healthy POS state stays quiet; warning banners remain for paused/conflict/error states |
 
 ## Directory Structure
 

@@ -8,7 +8,7 @@ import {
   PosSessionError,
   resumePosSession,
 } from '@/lib/services/pos-session.service';
-import type { PosSessionRow } from '@/lib/types/pos-session';
+import type { PosSessionRow, PosSessionWithContext } from '@/lib/types/pos-session';
 
 jest.mock('server-only', () => ({}), { virtual: true });
 
@@ -105,10 +105,24 @@ function posSession(overrides: Partial<PosSessionRow> = {}): PosSessionRow {
     rec_notes: null,
     created_at: new Date('2026-07-04T07:00:00.000Z') as unknown as string,
     created_by: userId,
-    created_by_info: null,
+    created_info: null,
     updated_at: null,
     updated_by: null,
-    updated_by_info: null,
+    updated_info: null,
+    ...overrides,
+  };
+}
+
+function posSessionWithContext(overrides: Partial<PosSessionWithContext> = {}): PosSessionWithContext {
+  return {
+    ...posSession(),
+    branch_name: 'Main Branch',
+    branch_name2: 'الفرع الرئيسي',
+    terminal_name: 'Front terminal',
+    terminal_code: 'TERM-01',
+    cash_drawer_name: 'Main Cash Drawer',
+    cash_drawer_session_no: 'CDS-001',
+    cash_drawer_session_status: 'OPEN',
     ...overrides,
   };
 }
@@ -141,6 +155,29 @@ describe('pos-session.service', () => {
     });
     expect(result.type === 'BRANCH_CONFLICT' ? result.activeSession.opened_at : null)
       .toBe('2026-07-04T07:00:00.000Z');
+  });
+
+  it('returns optional presentation context for the active POS session', async () => {
+    db.$queryRaw.mockResolvedValueOnce([posSessionWithContext()]);
+
+    const result = await getMyActivePosSession({
+      tenantId,
+      userId,
+      branchId: branchA,
+      includeContext: true,
+      includeDrawerContext: true,
+    });
+
+    expect(result).toMatchObject({
+      type: 'ACTIVE',
+      session: {
+        id: sessionId,
+        branch_name: 'Main Branch',
+        terminal_name: 'Front terminal',
+        cash_drawer_name: 'Main Cash Drawer',
+        cash_drawer_session_status: 'OPEN',
+      },
+    });
   });
 
   it('resuming an already-open session is an idempotent no-op', async () => {
