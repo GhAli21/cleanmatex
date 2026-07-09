@@ -12,5 +12,10 @@
     "title": "Gift card",
     "action": "Gift card",
     "description": "Look up a gift card, enter its PIN if required, and apply an amount to this order."
+  },
+  "PROMO_CODE": {
+    "title": "Promo code",
+    "action": "Promo code",
+    "description": "Enter a promo code to apply its discount to this order."
   }
 }
