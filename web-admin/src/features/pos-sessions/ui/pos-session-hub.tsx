@@ -229,7 +229,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
       <CmxDialog open={hubOpen} onOpenChange={setHubOpen}>
         <CmxDialogContent
           bodyPadding="none"
-          className="ms-auto flex h-screen max-h-screen w-full max-w-[32rem] flex-col overflow-hidden rounded-none rounded-s-2xl"
+          className="!fixed inset-x-0 bottom-0 top-20 z-[70] ms-0 flex h-auto w-full !max-h-[calc(100dvh-5rem)] flex-col !overflow-hidden rounded-none rounded-t-2xl sm:inset-x-auto sm:end-0 sm:max-w-[32rem] sm:rounded-s-2xl sm:rounded-t-none"
         >
           <CmxDialogHeader className="shrink-0 pe-14">
             <div className="flex items-start justify-between gap-3">
