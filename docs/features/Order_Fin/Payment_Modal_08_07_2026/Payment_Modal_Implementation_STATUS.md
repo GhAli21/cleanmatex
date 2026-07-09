@@ -14,7 +14,7 @@
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ✅ DONE (2026-07-09) — all capability surfaces + registry `Dialog`/presentation wiring; gates verified green after Bash tool restored | wiring 5/5 · full payment module **24 suites / 206 tests** · tsc 0 · eslint 0 · i18n ✓ |
 | 4 | Presets + view renderer (strangler decomposition of payment-full-view) | 🟡 IN PROGRESS — 4a presets ✅ · 4b view-plan ✅ · 4c renderer ✅ · 4d projector ✅ · 4e FX/rounding container wiring ✅ · **4f method-chips as preset metadata (hardening #5), behavior-identical ✅** | full payment module 29 suites / 244 tests · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
-| 5 | Behavior reversal + server-error→capability routing | ⬜ pending | — |
+| 5 | Behavior reversal + server-error→capability routing | 🟡 GROUNDWORK STARTED — pure server-error→capability-guard routing ✅ (`routeServerErrorToGuard`); behavior reversal (auto-escalation removal, kill-switch wiring) pending QA-able pass | routing 5/5 · full payment module 30 suites / 249 tests · tsc 0 · eslint 0 |
 | 6 | i18n EN/AR + new test coverage + full gates | ⬜ pending | — |
 | 7 | Docs (/documentation), QA guide, closeout | ⬜ pending | — |
 
@@ -130,6 +130,12 @@ The gift-card workspace is **entangled with React-Hook-Form**, unlike split/draw
   - Gates: full payment module 29 suites / 244 tests (oracle green) · tsc 0 · eslint 0 · **`npm run build` ✓** · i18n ✓.
   - **State-survival (hardening #4) — status:** no `renderHook`/engine test harness exists (engine has heavy query/context deps); the invariant is **architecturally guaranteed** (engine owns all state; views/dialogs are stateless projections — Phase-3 dialogs are RHF-free and call typed actions, holding no payment state). Full "type 50 → switch view → persists" check is a manual-QA item (verification checklist #6, Phase-7 guide). Per-dialog statelessness is already covered by the Phase-3 dialog tests.
 - **Next (4g):** route the first section whose show/hide decision can move to the registry **without a UX change** (behavior freeze holds in Phase 4; the inline→dialog reversal + escalation removal are Phase 5). Candidate: gate an existing inline surface (e.g. the balance-policy / drawer line) on the capability plan's presentation instead of the scattered `showXSection` flags, keeping the same rendered UI via `renderInline`. Each step: oracle + tsc + eslint + build + i18n green. Then Phase 5 behavior reversal (auto-escalation removal per the plan inventory; kill-switch through the container mode logic; demoted suggestion; server-error→capability-guard routing extending `use-order-submission.ts:607-646`).
+
+## Phase 5 — groundwork (2026-07-09)
+
+Behavior reversal itself (auto-escalation removal, kill-switch wiring, demoted suggestion) is a user-facing behavior change → deferred to a QA-able pass (QA currently postponed). The **pure, fully-verifiable** pieces are landed ahead of it:
+
+- **Server-error → capability-guard routing (hardening #2).** `payment/domain/server-error-routing.ts`: `routeServerErrorToGuard(errorCode)` → `{ capability, reason } | null`. `reason` is the server-mirror code from `SERVER_ERROR_TO_REASON` (byte-identical, never re-derived); `capability` from `SERVER_ERROR_TO_CAPABILITY` (B2B_CREDIT_* → B2B_ACCOUNT_BILLING · SPLIT_AMOUNT_MISMATCH → SPLIT_TENDER · CASH_DRAWER_SESSION_* → CASH_DRAWER · OVERPAYMENT_RESOLUTION_REQUIRED → OVERPAYMENT_ROUTING · OUTSTANDING_POLICY_REQUIRED/DEFERRED_LEG_NOT_ALONE → PAY_LATER); per-leg tender-detail codes (PAYMENT_REFERENCE/TERMINAL_REQUIRED, CHECK_NUMBER_REQUIRED) → aggregate SUBMIT_GUARDS; **unknown code → `null`** so the caller keeps its generic error path (never a forced view switch, per the plan). Phase 5 wires this into `use-order-submission.ts:607-646`. Tests `server-error-routing.test.ts` 5/5 (owner routing · SUBMIT_GUARDS fallback · unknown→null · full server-mirror coverage + reason identity · only-real-capability-keys).
 
 ## Visual QA (Storybook — isolated, no order/production needed)
 
