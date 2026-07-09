@@ -42,7 +42,6 @@ import {
   legHasRequiredPaymentReference,
   deriveLegAppliedAmount,
   deriveQuickTenderChips,
-  deriveSimpleModeMethodOptions,
   PAYMENT_MODAL_MODE,
   type PaymentModalMode,
   type PaymentKeypadKey,
@@ -82,6 +81,8 @@ import {
 } from '@features/orders/payment/domain/project-capability-context';
 import { PAYMENT_PRESET } from '@features/orders/payment/presets/preset-keys';
 import { resolvePreset } from '@features/orders/payment/presets/presets';
+import { SIMPLE_PRESET } from '@features/orders/payment/presets/simple.preset';
+import { applyMethodChipPolicy } from '@features/orders/payment/view/method-chips';
 import { planCapabilityView } from '@features/orders/payment/view/capability-view-plan';
 import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
 import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
@@ -1586,8 +1587,11 @@ export function PaymentFullView({
   );
 
   // ---- Simple-face derivations + handlers (Phase 4) ----
+  // Preset-metadata-driven (hardening #5): the SIMPLE preset's chip policy decides
+  // which methods surface inline — provably identical to the legacy
+  // deriveSimpleModeMethodOptions call (see method-chips.test.ts parity).
   const simpleMethodOptions = useMemo(
-    () => deriveSimpleModeMethodOptions(realPaymentOptions),
+    () => applyMethodChipPolicy(realPaymentOptions, SIMPLE_PRESET.methodChips),
     [realPaymentOptions]
   );
   const simpleAmountValue =
