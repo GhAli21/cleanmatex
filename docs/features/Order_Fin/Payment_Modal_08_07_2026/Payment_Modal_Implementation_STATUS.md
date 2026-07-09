@@ -13,7 +13,7 @@
 | 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ✅ DONE (2026-07-09) — all capability surfaces + registry `Dialog`/presentation wiring; gates verified green after Bash tool restored | wiring 5/5 · full payment module **24 suites / 206 tests** · tsc 0 · eslint 0 · i18n ✓ |
-| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ⬜ pending | — |
+| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | 🟡 IN PROGRESS — 4a pure preset descriptors + view-presentation resolver ✅ (touches nothing existing; oracle green) | presets 10/10 · full payment module 25 suites / 216 tests · tsc 0 · eslint 0 |
 | 5 | Behavior reversal + server-error→capability routing | ⬜ pending | — |
 | 6 | i18n EN/AR + new test coverage + full gates | ⬜ pending | — |
 | 7 | Docs (/documentation), QA guide, closeout | ⬜ pending | — |
@@ -90,6 +90,19 @@ The gift-card workspace is **entangled with React-Hook-Form**, unlike split/draw
 - Therefore use option (a): the dialog receives the RHF-bound values + setters (`giftCardNumber`/`setValue`, `giftCardAmount`, `giftCardPin`/`setGiftCardPin`) as props from the container and calls the no-arg typed actions; the dialog itself stays RHF-free.
 - PIN field goes INSIDE this dialog (ADR #6); `pinRequired` + `giftCardPin`/`setGiftCardPin` come from the engine's giftPromo slice; extend `PaymentEngineActions` with the pin setters in the same commit (H2).
 - Async states are mandatory (hardening #7): fetch loading / error+retry / not-found empty; promo validation loading/error.
+
+## Phase 4 — detail (2026-07-09, in progress)
+
+**Strangler, not rewrite** (program top-risk; ADR rejects rewrite). `payment-full-view.tsx` is 4,383 lines (smaller than the plan's ~5,900 estimate); it is routed through the capability layer **section by section**, payload oracle green at every step. Built in small green sub-steps.
+
+- **4a — Pure L6 preset descriptors + view-presentation resolver (no UI change; oracle trivially green).** New files under `payment/presets/`:
+  - `preset-types.ts` — `PaymentPreset` (key, `messageKey`, `layout` `'fast-lane'|'workbench'`, `methodChips` policy, per-capability `capabilityPresentation` intent), `PresetLayout`, `PresetMethodChipPolicy`.
+  - `simple.preset.ts` — `SIMPLE_PRESET`: fast-lane; `methodChips.simpleSafeOnly=true`, `chipLimit=SIMPLE_MODE_METHOD_CHIP_LIMIT` (imported from legacy `payment-modal-v4.utils` — the metadata form of `deriveSimpleModeMethodOptions`, hardening #5, single-source cap kept there); hides the advanced-dialog launchers (split/gift/promo/store-credit/pay-later) from the inline lane (only while neither required nor blocked).
+  - `full.preset.ts` — `FULL_PRESET`: uncapped workbench, no capability overrides (safe superset).
+  - `presets.ts` — `resolvePreset(key)` (reserved/unbuilt key → falls back to FULL, no throw, so a config mistake never crashes the modal) + **`resolveViewPresentation(evaluated, preset)`** pure merge enforcing 3 invariants: (1) unavailable⇒hidden, (2) blocked⇒surfaces in place (preset can't suppress a guard), (3) required⇒never hidden (re-slottable but not hideable).
+  - `index.ts` — presets barrel (L6).
+  - Test `payment-presets.test.ts` (10/10): descriptor shapes, `resolvePreset` incl. reserved-key fallback, all 3 resolver invariants + override/intrinsic precedence.
+- **Next (4b):** L5 view renderer skeleton (React) that iterates `evaluateCapabilities(ctx, config)` × `resolveViewPresentation`, mounts inline surfaces / dialog-opener buttons / guards — introduced **behind the kill-switch**, not yet wired into `payment-full-view`. Then 4c+ route Full sections through it; enforce + test the state-survival invariant (hardening #4). **Phase-4/5 reminder:** the ctx projector must fold `NEW_ORDER_PROMO_GIFT_DISABLED` into `giftCardSupported`/`promoSupported`.
 
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
