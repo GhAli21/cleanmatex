@@ -73,8 +73,8 @@ describe('resolveViewPresentation (registry × preset merge)', () => {
   });
 
   it('(2) surfaces a blocked guard in place even when the preset would hide it', () => {
-    // SPLIT_TENDER is hidden by the SIMPLE preset, but a blocked state wins.
-    const state = evaluated(PAYMENT_CAPABILITY.SPLIT_TENDER, {
+    // CASH_CARD_SPLIT is hidden by the SIMPLE preset, but a blocked state wins.
+    const state = evaluated(PAYMENT_CAPABILITY.CASH_CARD_SPLIT, {
       blocked: true,
       presentation: 'inline',
     });
@@ -82,8 +82,8 @@ describe('resolveViewPresentation (registry × preset merge)', () => {
   });
 
   it('(3) never hides a required gate the preset marks hidden — falls to intrinsic', () => {
-    // GIFT_CARD is hidden in SIMPLE, but a required PIN gate must still surface.
-    const state = evaluated(PAYMENT_CAPABILITY.GIFT_CARD, {
+    // PROMO_CODE is hidden in SIMPLE, but a required gate must still surface.
+    const state = evaluated(PAYMENT_CAPABILITY.PROMO_CODE, {
       required: true,
       presentation: 'dialog',
     });
@@ -105,9 +105,22 @@ describe('resolveViewPresentation (registry × preset merge)', () => {
   });
 
   it('applies the preset override for an available, non-required capability', () => {
-    // SIMPLE hides SPLIT_TENDER when it is merely available (not required/blocked).
-    const state = evaluated(PAYMENT_CAPABILITY.SPLIT_TENDER, { presentation: 'dialog' });
+    // SIMPLE hides PROMO_CODE when it is merely available (not required/blocked).
+    const state = evaluated(PAYMENT_CAPABILITY.PROMO_CODE, { presentation: 'dialog' });
     expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('hidden');
+  });
+
+  it('surfaces the SIMPLE quick-action capabilities as dialog buttons (not hidden)', () => {
+    // Common advanced capabilities are quick-action buttons on the fast lane.
+    for (const key of [
+      PAYMENT_CAPABILITY.SPLIT_TENDER,
+      PAYMENT_CAPABILITY.GIFT_CARD,
+      PAYMENT_CAPABILITY.CUSTOMER_CREDIT,
+      PAYMENT_CAPABILITY.PAY_LATER,
+    ]) {
+      const state = evaluated(key, { presentation: 'dialog' });
+      expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('dialog');
+    }
   });
 
   it('uses the registry intrinsic presentation when the preset has no override', () => {

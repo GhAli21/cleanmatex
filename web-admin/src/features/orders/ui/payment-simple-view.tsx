@@ -15,7 +15,7 @@
  * See `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md`.
  */
 
-import { useState, type RefObject } from 'react';
+import { useState, type ReactNode, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 import { Banknote, CreditCard, EllipsisVertical, Keyboard } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -95,6 +95,9 @@ export interface PaymentSimpleViewProps {
   // ---- remaining-balance policy ----
   policyLabel: string;
   onChangeBalancePolicy: () => void;
+  // ---- capability quick actions (rendered below the receipt) ----
+  /** Optional capability quick-action buttons for the fast lane; omit for none. */
+  quickActions?: ReactNode;
 }
 
 /**
@@ -143,6 +146,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     balanceStatusAnnouncement,
     policyLabel,
     onChangeBalancePolicy,
+    quickActions,
   } = props;
 
   const t = useTranslations('newOrder.payment');
@@ -449,6 +453,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           </p>
         </CmxCardContent>
       </CmxCard>
+
+      {/* Capability quick actions — common advanced tenders on the fast lane
+          (only the available ones render; driven by the capability plan). */}
+      {quickActions}
     </div>
   );
 }

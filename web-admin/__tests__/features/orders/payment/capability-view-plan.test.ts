@@ -54,13 +54,19 @@ describe('planCapabilityView', () => {
     ]);
   });
 
-  it('SIMPLE hides the advanced dialog launchers but keeps the inline lane', () => {
+  it('SIMPLE keeps the inline lane and surfaces common capabilities as quick-action buttons', () => {
     const plan = planCapabilityView(sampleCapabilities(), SIMPLE_PRESET);
-    // SPLIT_TENDER + GIFT_CARD are hidden by SIMPLE (available, not required/blocked).
+    // Cash/Card inline; SPLIT_TENDER + GIFT_CARD are quick-action dialog buttons;
+    // FX_ROUNDING is unavailable in the fixture → dropped.
     expect(plan.map((s) => s.key)).toEqual([
       PAYMENT_CAPABILITY.CASH,
       PAYMENT_CAPABILITY.CARD,
+      PAYMENT_CAPABILITY.SPLIT_TENDER,
+      PAYMENT_CAPABILITY.GIFT_CARD,
     ]);
+    expect(
+      plan.find((s) => s.key === PAYMENT_CAPABILITY.SPLIT_TENDER)?.presentation,
+    ).toBe('dialog');
   });
 
   it('SIMPLE re-surfaces a required gate it would otherwise hide', () => {

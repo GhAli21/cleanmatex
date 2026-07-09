@@ -83,7 +83,10 @@ import { PAYMENT_PRESET } from '@features/orders/payment/presets/preset-keys';
 import { resolvePreset } from '@features/orders/payment/presets/presets';
 import { SIMPLE_PRESET } from '@features/orders/payment/presets/simple.preset';
 import { applyMethodChipPolicy } from '@features/orders/payment/view/method-chips';
-import { planCapabilityView } from '@features/orders/payment/view/capability-view-plan';
+import {
+  planCapabilityView,
+  selectDialogSlots,
+} from '@features/orders/payment/view/capability-view-plan';
 import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
 import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
@@ -1477,6 +1480,22 @@ export function PaymentFullView({
       ).filter((slot) => slot.key === PAYMENT_CAPABILITY.FX_ROUNDING),
     [capabilityContextSource, paymentModalConfig]
   );
+  // Simple fast-lane quick-action buttons: the common advanced capabilities the
+  // SIMPLE preset surfaces as dialogs (split, gift card, store credit, pay-later),
+  // filtered to the ones actually available this session.
+  const simpleQuickActionsPlan = useMemo(
+    () =>
+      selectDialogSlots(
+        planCapabilityView(
+          evaluateCapabilities(
+            projectCapabilityContext(capabilityContextSource),
+            paymentModalConfig
+          ),
+          resolvePreset(PAYMENT_PRESET.SIMPLE)
+        )
+      ),
+    [capabilityContextSource, paymentModalConfig]
+  );
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -2018,6 +2037,30 @@ export function PaymentFullView({
                   balanceStatusAnnouncement={balanceStatusAnnouncement}
                   policyLabel={simplePolicyLabel}
                   onChangeBalancePolicy={handleSimpleChangePolicy}
+                  quickActions={
+                    simpleQuickActionsPlan.length > 0 ? (
+                      <CmxCard className="border-slate-200 bg-white shadow-sm">
+                        <CmxCardContent className="space-y-2 pt-5">
+                          <p className={`text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('mode.simpleView.quickActionsTitle')}
+                          </p>
+                          <CapabilityViewRenderer
+                            plan={simpleQuickActionsPlan}
+                            isRTL={isRTL}
+                            renderInline={() => null}
+                            dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
+                            requiredBadgeLabel={t('capabilities.dialog.required')}
+                            onOpenCapability={(slot) =>
+                              slot.key === PAYMENT_CAPABILITY.PAY_LATER
+                                ? handleSimpleChangePolicy()
+                                : handleSimpleMoreOptions()
+                            }
+                            resolveGuard={() => null}
+                          />
+                        </CmxCardContent>
+                      </CmxCard>
+                    ) : null
+                  }
                 />
               ) : (
               <div className="mx-auto grid min-h-full max-w-[1880px] items-start gap-4 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(720px,1fr)_360px]">
