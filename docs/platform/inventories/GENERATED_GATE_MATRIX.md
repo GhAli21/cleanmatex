@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-09T02:19:20.756Z
-Git SHA: 9b5b7bb5
+Generated: 2026-07-09T19:04:09.906Z
+Git SHA: 5c400005
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 140 |
+| Access contracts | 141 |
 | Permission usages | 259 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
@@ -76,6 +76,7 @@ Git SHA: 9b5b7bb5
 | /dashboard/internal_fin/ar/statements/print | Print Customer Statement | customer_statements:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers | Cash Drawers | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId] | Cash Drawer Details | cash_drawer:view | — | 0 |
+| /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId] | Cash Drawer Session Details | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print | Print Cash Drawer Session | cash_drawer:view | — | 0 |
 | /dashboard/internal_fin/invoices | Invoices | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
