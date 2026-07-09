@@ -4,6 +4,9 @@
   "toggleLabel": "Payment view",
   "simpleDisabledHint": "Advanced options are in use — Simple mode is unavailable until they are cleared",
   "escalatedTitle": "Switched to Advanced mode",
+  "suggestTitle": "Advanced options may help",
+  "suggestAction": "Switch to Advanced",
+  "suggestDismiss": "Dismiss suggestion",
   "reasons": {
     "SPLIT_PAYMENT": "split payment in use",
     "CUSTOMER_CREDIT": "customer credit applied",

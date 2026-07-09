@@ -4,6 +4,9 @@
   "toggleLabel": "طريقة عرض الدفع",
   "simpleDisabledHint": "خيارات متقدمة قيد الاستخدام — الوضع البسيط غير متاح حتى يتم إلغاؤها",
   "escalatedTitle": "تم التبديل إلى الوضع المتقدم",
+  "suggestTitle": "قد تساعدك الخيارات المتقدمة",
+  "suggestAction": "التبديل إلى المتقدم",
+  "suggestDismiss": "تجاهل الاقتراح",
   "reasons": {
     "SPLIT_PAYMENT": "دفع مقسّم قيد الاستخدام",
     "CUSTOMER_CREDIT": "تم تطبيق رصيد العميل",

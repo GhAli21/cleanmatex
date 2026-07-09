@@ -14,7 +14,7 @@
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ✅ DONE (2026-07-09) — all capability surfaces + registry `Dialog`/presentation wiring; gates verified green after Bash tool restored | wiring 5/5 · full payment module **24 suites / 206 tests** · tsc 0 · eslint 0 · i18n ✓ |
 | 4 | Presets + view renderer (strangler decomposition of payment-full-view) | 🟡 IN PROGRESS — 4a presets ✅ · 4b view-plan ✅ · 4c renderer ✅ · 4d projector ✅ · 4e FX/rounding container wiring ✅ · **4f method-chips as preset metadata (hardening #5), behavior-identical ✅** | full payment module 29 suites / 244 tests · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
-| 5 | Behavior reversal + server-error→capability routing | 🟡 GROUNDWORK STARTED — pure server-error→capability-guard routing ✅ (`routeServerErrorToGuard`); behavior reversal (auto-escalation removal, kill-switch wiring) pending QA-able pass | routing 5/5 · full payment module 30 suites / 249 tests · tsc 0 · eslint 0 |
+| 5 | Behavior reversal + server-error→capability routing | 🟡 IN PROGRESS — server-error→guard routing ✅ · **behavior reversal WIRED ✅ (kill-switch now LIVE; auto-escalation/lock gated off by default; dismissible suggestion replaces the escalation banner)**; remaining: wire `routeServerErrorToGuard` into `use-order-submission` + full manual QA | suggestion 5/5 · routing 5/5 · full payment module 31 suites / 254 tests · tsc 0 · eslint 0 · i18n ✓ · next build ✓ |
 | 6 | i18n EN/AR + new test coverage + full gates | ⬜ pending | — |
 | 7 | Docs (/documentation), QA guide, closeout | ⬜ pending | — |
 
@@ -31,7 +31,7 @@
 
 **Remaining:** first commit (stage payment-modal/program files ONLY — see Foreign-files warning below).
 
-**⚠ Kill-switch is dormant (handoff H6):** `PAYMENT_MODE_USER_CONTROLLED = true` exists but nothing consumes it yet — the modal still auto-escalates until Phase 5 wires the container through `resolvePaymentModalConfig`. Do not report the new behavior as live.
+**⚠ Kill-switch H6 — NOW LIVE (updated 2026-07-10):** `PAYMENT_MODE_USER_CONTROLLED` was dormant through Phases 0–4; **Phase 5 wired it** — the container consumes `resolvePaymentModalConfig().userControlledMode` and no longer auto-escalates by default. See the Phase 5 section. (Removal after QA sign-off remains a tracked task in `Deferred_Backend_Tasks.md`.)
 
 **⚠ Facade is deliberately partial (handoff H2):** leg editing (`updateLeg`/`addLeg`/`removeLeg`) and cash-drawer actions are NOT yet in `PaymentEngineActions`; each Phase-3 dialog adds the actions it needs in the same commit.
 
@@ -131,9 +131,22 @@ The gift-card workspace is **entangled with React-Hook-Form**, unlike split/draw
   - **State-survival (hardening #4) — status:** no `renderHook`/engine test harness exists (engine has heavy query/context deps); the invariant is **architecturally guaranteed** (engine owns all state; views/dialogs are stateless projections — Phase-3 dialogs are RHF-free and call typed actions, holding no payment state). Full "type 50 → switch view → persists" check is a manual-QA item (verification checklist #6, Phase-7 guide). Per-dialog statelessness is already covered by the Phase-3 dialog tests.
 - **Next (4g):** route the first section whose show/hide decision can move to the registry **without a UX change** (behavior freeze holds in Phase 4; the inline→dialog reversal + escalation removal are Phase 5). Candidate: gate an existing inline surface (e.g. the balance-policy / drawer line) on the capability plan's presentation instead of the scattered `showXSection` flags, keeping the same rendered UI via `renderInline`. Each step: oracle + tsc + eslint + build + i18n green. Then Phase 5 behavior reversal (auto-escalation removal per the plan inventory; kill-switch through the container mode logic; demoted suggestion; server-error→capability-guard routing extending `use-order-submission.ts:607-646`).
 
-## Phase 5 — groundwork (2026-07-09)
+## Phase 5 — behavior reversal WIRED (2026-07-10)
 
-Behavior reversal itself (auto-escalation removal, kill-switch wiring, demoted suggestion) is a user-facing behavior change → deferred to a QA-able pass (QA currently postponed). The **pure, fully-verifiable** pieces are landed ahead of it:
+**⚠ Kill-switch is now LIVE (supersedes the earlier H6 "dormant" note).** `PAYMENT_MODE_USER_CONTROLLED = true` is consumed by the container via `resolvePaymentModalConfig().userControlledMode`. The amended-ADR behavior is now the default; flip the constant to `false` for the legacy auto-escalate-and-lock path (retained for QA rollback).
+
+**Behavior reversal (container `payment-full-view.tsx`, all gated on `userControlledMode`):**
+- Render-time auto-escalation (`if (!userControlledMode && open && SIMPLE && needsAdvanced) …`) — **disabled by default**; Simple stays selected.
+- `handleModeChange` Simple-return refusal — **removed** under user-controlled mode (cashier may always return to Simple; engine state survives). Legacy refusal kept behind the flag.
+- `simpleDisabled={!userControlledMode && needsAdvanced}` — the Simple segment is **never locked** by default.
+- Blocked submit in Simple still opens Full to fix the blocker (user-initiated, helpful) but **without** the auto-escalation banner framing (`autoEscalated` stamped only on the legacy path).
+- **Escalation banner → dismissible suggestion.** New L4 primitive `payment/primitives/payment-mode-suggestion.tsx` (`PaymentModeSuggestion`: polite live region, reason labels, "Switch to Advanced" accept + dismiss; i18n resolved by caller). Rendered while `SIMPLE && needsAdvanced && !suggestionDismissed`; `onAccept` → `handleModeChange(FULL)`, `onDismiss` → sets `suggestionDismissed` (reset on modal open). Under the legacy flag the old amber escalation banner is retained. New i18n `mode.suggestTitle`/`suggestAction`/`suggestDismiss` (EN+AR). Test `payment-mode-suggestion.test.tsx` 5/5.
+- `computeNeedsAdvanced` predicate + `mode.reasons.*` copy **unchanged** (the plan preserves the predicate; only the consequence changed). `payment-simple-mode.test.ts` / `payment-needs-advanced.test.ts` untouched — they test pure helpers/predicate, not the container consequence, so H4 had nothing to rewrite.
+- **Gates:** suggestion 5/5 · full payment module 31 suites / 254 tests (oracle green) · tsc 0 · eslint 0 · i18n ✓ · `next build` ✓ compiled successfully. (NB `npm run build` wrapper hit a Windows `EPERM` file-lock on `prisma generate`'s query-engine DLL — environment/stray-node lock, unrelated to this code; the Next compile itself passed.)
+
+**Remaining in Phase 5:** wire `routeServerErrorToGuard` into the container's `infrastructureMessages` flow (`use-order-submission.ts:607-646`) so server rejections render as in-view capability guards; full manual QA of the reversal (auto-escalation gone, suggestion accept/dismiss, return-to-Simple, RTL).
+
+### Phase 5 groundwork (2026-07-09)
 
 - **Server-error → capability-guard routing (hardening #2).** `payment/domain/server-error-routing.ts`: `routeServerErrorToGuard(errorCode)` → `{ capability, reason } | null`. `reason` is the server-mirror code from `SERVER_ERROR_TO_REASON` (byte-identical, never re-derived); `capability` from `SERVER_ERROR_TO_CAPABILITY` (B2B_CREDIT_* → B2B_ACCOUNT_BILLING · SPLIT_AMOUNT_MISMATCH → SPLIT_TENDER · CASH_DRAWER_SESSION_* → CASH_DRAWER · OVERPAYMENT_RESOLUTION_REQUIRED → OVERPAYMENT_ROUTING · OUTSTANDING_POLICY_REQUIRED/DEFERRED_LEG_NOT_ALONE → PAY_LATER); per-leg tender-detail codes (PAYMENT_REFERENCE/TERMINAL_REQUIRED, CHECK_NUMBER_REQUIRED) → aggregate SUBMIT_GUARDS; **unknown code → `null`** so the caller keeps its generic error path (never a forced view switch, per the plan). Phase 5 wires this into `use-order-submission.ts:607-646`. Tests `server-error-routing.test.ts` 5/5 (owner routing · SUBMIT_GUARDS fallback · unknown→null · full server-mirror coverage + reason identity · only-real-capability-keys).
 
