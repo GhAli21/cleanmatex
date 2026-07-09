@@ -90,6 +90,8 @@ import {
 import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
 import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
 import { SplitTenderDialog } from '@features/orders/payment/capabilities/split-tender/split-tender-dialog';
+import { CustomerCreditDialog } from '@features/orders/payment/capabilities/customer-credit/customer-credit-dialog';
+import { GiftCardDialog } from '@features/orders/payment/capabilities/gift-card/gift-card-dialog';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
@@ -467,9 +469,11 @@ export function PaymentFullView({
   const paymentModalConfig = useMemo(() => resolvePaymentModalConfig(), []);
   const userControlledMode = paymentModalConfig.userControlledMode;
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
-  // Split-tender capability dialog, openable in-place from the Simple fast lane
-  // (ADR: a split is a focused dialog, never a mode change).
+  // Capability dialogs openable in-place from the Simple fast lane (ADR: a
+  // complication is a focused dialog, never a mode change).
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
+  const [giftDialogOpen, setGiftDialogOpen] = useState(false);
   // Phase 6 — below `xl` the receipt rail becomes a slide-over panel.
   const [railOpen, setRailOpen] = useState(false);
 
@@ -524,6 +528,8 @@ export function PaymentFullView({
       setAutoEscalated(false);
       setSuggestionDismissed(false);
       setSplitDialogOpen(false);
+      setCreditDialogOpen(false);
+      setGiftDialogOpen(false);
       setRailOpen(false);
     }
   }, [open, initialMode]);
@@ -1511,6 +1517,29 @@ export function PaymentFullView({
     }),
     [legs]
   );
+  // Typed actions for the customer-credit + gift-card dialogs.
+  const customerCreditActions = useMemo(
+    () => ({ selectCustomerCredit: handleCustomerCreditSelect }),
+    [handleCustomerCreditSelect]
+  );
+  const giftCardActions = useMemo(
+    () => ({
+      fetchGiftCardDetails: handleFetchGiftCardDetails,
+      applyGiftCard: handleApplyGiftCard,
+      clearGiftCard: handleClearGiftCard,
+      setGiftCardPin,
+      setGiftCardPinVisible: setPinVisible,
+      setGiftCardPinError: setPinFieldError,
+    }),
+    [
+      handleFetchGiftCardDetails,
+      handleApplyGiftCard,
+      handleClearGiftCard,
+      setGiftCardPin,
+      setPinVisible,
+      setPinFieldError,
+    ]
+  );
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -2027,6 +2056,52 @@ export function PaymentFullView({
               decimalPlaces={decimalPlaces}
             />
 
+            <CustomerCreditDialog
+              open={creditDialogOpen}
+              onOpenChange={setCreditDialogOpen}
+              actions={customerCreditActions}
+              creditOptions={customerCreditOptions}
+              paymentLegs={paymentLegs}
+              getOptionDisplayName={getCheckoutOptionDisplayName}
+              storedValueSummary={storedValueSummary}
+              storedValueLoading={storedValueLoading}
+              storedValueFetching={storedValueFetching}
+              refetchStoredValueSummary={refetchStoredValueSummary}
+              walletBalanceLoaded={walletBalanceLoaded}
+              walletHasAvailableBalance={walletHasAvailableBalance}
+              liveWalletBalanceDisplay={liveWalletBalanceDisplay}
+              walletLegExceedsLiveBalance={walletLegExceedsLiveBalance}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
+
+            <GiftCardDialog
+              open={giftDialogOpen}
+              onOpenChange={setGiftDialogOpen}
+              actions={giftCardActions}
+              giftCardNumber={giftCardNumber ?? ''}
+              onGiftCardNumberChange={(value) =>
+                setValue('giftCardNumber', value.toUpperCase())
+              }
+              giftCardAmount={giftCardAmount}
+              onGiftCardAmountChange={(value) => setValue('giftCardAmount', value)}
+              giftCardValidating={giftCardValidating}
+              giftCardResult={giftCardResult}
+              giftCardDetails={giftCardDetails}
+              appliedGiftCard={appliedGiftCard}
+              giftCardPin={giftCardPin}
+              pinRequired={pinRequired}
+              pinVisible={pinVisible}
+              pinFieldError={pinFieldError}
+              resolveGiftCardError={resolveGiftCardError}
+              remainingBalance={remainingBalance}
+              moneyEpsilon={moneyEpsilon}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+              pinInputRef={pinInputRef}
+              giftCardAmountInputRef={giftCardAmountInputRef}
+            />
+
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
@@ -2084,11 +2159,15 @@ export function PaymentFullView({
                             dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
                             requiredBadgeLabel={t('capabilities.dialog.required')}
                             onOpenCapability={(slot) => {
-                              // Split opens its dialog in-place (Simple stays);
-                              // pay-later deep-links to the balance-policy section;
-                              // the rest switch to Advanced for now.
+                              // Split / gift card / store credit open their dialog
+                              // in-place (Simple stays); pay-later deep-links to the
+                              // balance-policy section; anything else → Advanced.
                               if (slot.key === PAYMENT_CAPABILITY.SPLIT_TENDER) {
                                 setSplitDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.GIFT_CARD) {
+                                setGiftDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.CUSTOMER_CREDIT) {
+                                setCreditDialogOpen(true);
                               } else if (slot.key === PAYMENT_CAPABILITY.PAY_LATER) {
                                 handleSimpleChangePolicy();
                               } else {
