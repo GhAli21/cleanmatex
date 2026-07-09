@@ -17,5 +17,10 @@
     "title": "Promo code",
     "action": "Promo code",
     "description": "Enter a promo code to apply its discount to this order."
+  },
+  "CUSTOMER_CREDIT": {
+    "title": "Store credit",
+    "action": "Store credit",
+    "description": "Apply the customer's wallet, advance, or credit-note balance to this order."
   }
 }
