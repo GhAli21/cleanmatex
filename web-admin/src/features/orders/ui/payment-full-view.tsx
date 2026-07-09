@@ -68,6 +68,23 @@ import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validat
 import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+// Composable payment system (Phase 4 strangler — capability renderer wired in
+// section by section behind PAYMENT_MODE_USER_CONTROLLED; oracle green each step).
+import {
+  PAYMENT_MODE_USER_CONTROLLED,
+  resolvePaymentModalConfig,
+} from '@features/orders/payment/config/payment-modal-config';
+import { PAYMENT_CAPABILITY } from '@features/orders/payment/capabilities/capability-keys';
+import { evaluateCapabilities } from '@features/orders/payment/capabilities/registry';
+import {
+  projectCapabilityContext,
+  type CapabilityContextSource,
+} from '@features/orders/payment/domain/project-capability-context';
+import { PAYMENT_PRESET } from '@features/orders/payment/presets/preset-keys';
+import { resolvePreset } from '@features/orders/payment/presets/presets';
+import { planCapabilityView } from '@features/orders/payment/view/capability-view-plan';
+import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
+import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
@@ -1384,6 +1401,72 @@ export function PaymentFullView({
     PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
   );
 
+  // ---- Composable capability system (Phase 4 strangler) ----
+  // Server still enforces `orders:apply_credit`; this only gates the UI affordance.
+  const canApplyCustomerCredit = useHasPermissionCode('orders:apply_credit');
+  // Project the live engine into the pure capability-context facts, classify via
+  // the registry, and plan the view. Only the capabilities migrated to the
+  // renderer so far are rendered through it (strangler); the rest keep their
+  // existing full-view UI until their section is routed. See the STATUS doc.
+  const capabilityContextSource = useMemo<CapabilityContextSource>(
+    () => ({
+      promoGiftDisabled: NEW_ORDER_PROMO_GIFT_DISABLED,
+      availableMethodCodes: realPaymentOptions.map((option) => option.payment_method_code),
+      isB2BCustomer,
+      effectiveOutstandingPolicy,
+      customerCreditAvailable: customerCreditOptions.length > 0,
+      canApplyCustomerCredit,
+      // TODO(Phase 4e — B2B section): define the exact required-field rule (the
+      // contract is optional per `b2b.contractOptional`); conservative false until
+      // then — B2B_ACCOUNT_BILLING is not yet routed through the renderer, and the
+      // server still enforces credit limits, so this has no runtime effect today.
+      b2bRequiredFieldsMissing: false,
+      payLaterAvailable: showBalancePolicySection,
+      settlementLegCount: settlementLegEntries.length,
+      customerCreditApplied: customerCreditEntries.length > 0,
+      giftCardApplied: !!appliedGiftCard,
+      promoApplied: !!appliedPromoCode,
+      giftCardPinRequired: pinRequired,
+      overpaymentNeedsResolution,
+      cashDrawerRequired,
+      cashDrawerSessionChoiceCount: cashDrawerSessionChoices.length,
+      cashDrawerBlocked: !!cashDrawerBlockingMessage,
+      currencyExRate: currencyConfig?.currencyExRate,
+      submitHasBlockingIssues,
+    }),
+    [
+      realPaymentOptions,
+      isB2BCustomer,
+      effectiveOutstandingPolicy,
+      customerCreditOptions,
+      canApplyCustomerCredit,
+      showBalancePolicySection,
+      settlementLegEntries.length,
+      customerCreditEntries.length,
+      appliedGiftCard,
+      appliedPromoCode,
+      pinRequired,
+      overpaymentNeedsResolution,
+      cashDrawerRequired,
+      cashDrawerSessionChoices.length,
+      cashDrawerBlockingMessage,
+      currencyConfig?.currencyExRate,
+      submitHasBlockingIssues,
+    ]
+  );
+  const migratedCapabilityPlan = useMemo(
+    () =>
+      planCapabilityView(
+        evaluateCapabilities(
+          projectCapabilityContext(capabilityContextSource),
+          resolvePaymentModalConfig()
+        ),
+        resolvePreset(PAYMENT_PRESET.FULL)
+        // Sections routed through the renderer so far (strangler): FX/rounding.
+      ).filter((slot) => slot.key === PAYMENT_CAPABILITY.FX_ROUNDING),
+    [capabilityContextSource]
+  );
+
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
     if (remainingBalance > epsilon) {
@@ -1915,6 +1998,30 @@ export function PaymentFullView({
                       </p>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3 pt-3">
+                {/* Phase 4 strangler: FX/rounding reference line routed through the
+                    capability renderer (additive — this line was never rendered
+                    before). Double-gated: registry availability + the line's own
+                    epsilon null-guard. Behind the kill-switch. */}
+                {PAYMENT_MODE_USER_CONTROLLED ? (
+                  <CapabilityViewRenderer
+                    plan={migratedCapabilityPlan}
+                    isRTL={isRTL}
+                    renderInline={(slot) =>
+                      slot.key === PAYMENT_CAPABILITY.FX_ROUNDING ? (
+                        <FxRoundingLine
+                          exchangeRate={currencyConfig?.currencyExRate ?? 1}
+                          roundingAmount={0}
+                          moneyEpsilon={moneyEpsilon}
+                          currencyCode={currencyCode}
+                          formatAmount={formatAmount}
+                        />
+                      ) : null
+                    }
+                    dialogButtonLabel={() => ''}
+                    onOpenCapability={() => undefined}
+                    resolveGuard={() => null}
+                  />
+                ) : null}
                 <div className="space-y-3">
                   <div>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
