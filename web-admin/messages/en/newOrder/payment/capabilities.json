@@ -34,5 +34,10 @@
     "description": "This order settles at a non-base exchange rate; the applied rate and any rounding are shown for reference.",
     "exchangeRate": "Exchange rate",
     "rounding": "Rounding adjustment"
+  },
+  "PAY_LATER": {
+    "title": "Balance policy",
+    "action": "Pay later",
+    "description": "Choose how the remaining balance on this order is settled."
   }
 }
