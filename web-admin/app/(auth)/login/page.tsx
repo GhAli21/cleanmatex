@@ -170,6 +170,7 @@ export default function LoginPage() {
           src="/brand/cleanmatex-x-mark.png"
           alt=""
           fill
+          sizes="(min-width: 1024px) 28rem, 0px"
           className="object-contain"
           priority
         />
@@ -183,6 +184,7 @@ export default function LoginPage() {
           src="/brand/cleanmatex-x-mark.png"
           alt=""
           fill
+          sizes="(min-width: 640px) 5rem, 0px"
           className="object-contain"
           loading="eager"
         />
@@ -202,6 +204,7 @@ export default function LoginPage() {
                   src="/brand/cleanmatex-login-mascot.png"
                   alt={t('login.mascotAlt')}
                   fill
+                  sizes="(min-width: 1280px) 28rem, (min-width: 1024px) 40vw, 0px"
                   className="relative object-contain drop-shadow-[0_30px_40px_rgba(15,23,42,0.14)]"
                   priority
                 />
@@ -233,6 +236,7 @@ export default function LoginPage() {
                       src="/brand/cleanmatex-login-mascot.png"
                       alt={t('login.mascotAlt')}
                       fill
+                      sizes="5rem"
                       className="object-contain"
                       priority
                     />
