@@ -30,6 +30,11 @@ describe('toPaymentEngineActions (typed engine-action facade)', () => {
       handleFetchGiftCardDetails: jest.fn(),
       handleApplyGiftCard: jest.fn(),
       handleClearGiftCard: jest.fn(),
+      giftPromo: {
+        setGiftCardPin: jest.fn(),
+        setPinVisible: jest.fn(),
+        setPinFieldError: jest.fn(),
+      },
       handleValidatePromoCode: jest.fn(),
       handleClearPromoCode: jest.fn(),
       handleClearPromoCodeError: jest.fn(),
@@ -72,6 +77,9 @@ describe('toPaymentEngineActions (typed engine-action facade)', () => {
     expect(actions.fetchGiftCardDetails).toBe(engine.handleFetchGiftCardDetails);
     expect(actions.applyGiftCard).toBe(engine.handleApplyGiftCard);
     expect(actions.clearGiftCard).toBe(engine.handleClearGiftCard);
+    expect(actions.setGiftCardPin).toBe(engine.giftPromo.setGiftCardPin);
+    expect(actions.setGiftCardPinVisible).toBe(engine.giftPromo.setPinVisible);
+    expect(actions.setGiftCardPinError).toBe(engine.giftPromo.setPinFieldError);
     expect(actions.validatePromoCode).toBe(engine.handleValidatePromoCode);
     expect(actions.clearPromoCode).toBe(engine.handleClearPromoCode);
     expect(actions.clearPromoCodeError).toBe(engine.handleClearPromoCodeError);

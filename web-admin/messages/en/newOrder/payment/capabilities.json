@@ -7,5 +7,10 @@
     "title": "Split payment",
     "action": "Split payment",
     "description": "Take this payment with more than one method — for example cash and card together."
+  },
+  "GIFT_CARD": {
+    "title": "Gift card",
+    "action": "Gift card",
+    "description": "Look up a gift card, enter its PIN if required, and apply an amount to this order."
   }
 }

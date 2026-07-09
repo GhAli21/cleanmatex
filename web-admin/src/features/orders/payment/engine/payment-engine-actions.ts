@@ -48,6 +48,10 @@ export interface PaymentEngineActions {
   fetchGiftCardDetails: PaymentEngine['handleFetchGiftCardDetails'];
   applyGiftCard: PaymentEngine['handleApplyGiftCard'];
   clearGiftCard: PaymentEngine['handleClearGiftCard'];
+  // ---- gift-card PIN (gift-card capability; H2 extension, Phase 3) ----
+  setGiftCardPin: PaymentEngine['giftPromo']['setGiftCardPin'];
+  setGiftCardPinVisible: PaymentEngine['giftPromo']['setPinVisible'];
+  setGiftCardPinError: PaymentEngine['giftPromo']['setPinFieldError'];
   validatePromoCode: PaymentEngine['handleValidatePromoCode'];
   clearPromoCode: PaymentEngine['handleClearPromoCode'];
   clearPromoCodeError: PaymentEngine['handleClearPromoCodeError'];
@@ -90,6 +94,9 @@ export function toPaymentEngineActions(
     fetchGiftCardDetails: engine.handleFetchGiftCardDetails,
     applyGiftCard: engine.handleApplyGiftCard,
     clearGiftCard: engine.handleClearGiftCard,
+    setGiftCardPin: engine.giftPromo.setGiftCardPin,
+    setGiftCardPinVisible: engine.giftPromo.setPinVisible,
+    setGiftCardPinError: engine.giftPromo.setPinFieldError,
     validatePromoCode: engine.handleValidatePromoCode,
     clearPromoCode: engine.handleClearPromoCode,
     clearPromoCodeError: engine.handleClearPromoCodeError,
