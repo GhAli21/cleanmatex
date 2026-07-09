@@ -22,5 +22,10 @@
     "title": "Store credit",
     "action": "Store credit",
     "description": "Apply the customer's wallet, advance, or credit-note balance to this order."
+  },
+  "B2B_ACCOUNT_BILLING": {
+    "title": "Account billing",
+    "action": "Account billing",
+    "description": "Add the contract and accounting details to bill this order to the customer's account."
   }
 }
