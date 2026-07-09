@@ -117,6 +117,10 @@ export interface CmxDataTableProps<TData> {
   totalCount?: number
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  /** Override page-size choices shown in the shared footer selector. */
+  pageSizeOptions?: number[]
+  /** Hide the footer page-size selector when a screen uses a fixed page size. */
+  showPageSizeSelector?: boolean
   /** Sorting support */
   sorting?: SortingState
   onSortingChange?: (sorting: SortingState) => void
@@ -154,6 +158,8 @@ export interface CmxDataTableProps<TData> {
   paginationFooter?: CmxDataTablePaginationFooter
   /** Optional class(es) applied to each `<tr>`. Return undefined to apply no extra class. */
   getRowClassName?: (row: TData, index: number) => string | undefined
+  /** Optional row click handler for interactive table rows. */
+  onRowClick?: (row: TData, index: number) => void
   /** Built-in audit action column that opens the shared audit metadata dialog. */
   auditConfig?: boolean | CmxDataTableAuditConfig<TData>
 }
@@ -359,6 +365,8 @@ function withSortableColumnHeader<TData>(
  * @param root0.totalCount
  * @param root0.onPageChange
  * @param root0.onPageSizeChange
+ * @param root0.pageSizeOptions
+ * @param root0.showPageSizeSelector
  * @param root0.sorting
  * @param root0.onSortingChange
  * @param root0.clientSideSorting
@@ -391,6 +399,8 @@ export function CmxDataTable<TData>({
   totalCount,
   onPageChange,
   onPageSizeChange,
+  pageSizeOptions,
+  showPageSizeSelector = true,
   sorting,
   onSortingChange,
   clientSideSorting = false,
@@ -409,6 +419,7 @@ export function CmxDataTable<TData>({
   rowNumberOffset: rowNumberOffsetProp,
   paginationFooter = 'auto',
   getRowClassName,
+  onRowClick,
   auditConfig,
 }: CmxDataTableProps<TData>) {
   const tCommon = useTranslations('common')
@@ -759,9 +770,11 @@ export function CmxDataTable<TData>({
                       key={row.id}
                       className={cn(
                         'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                        onRowClick && 'cursor-pointer',
                         enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
                         getRowClassName?.(row.original, index),
                       )}
+                      onClick={onRowClick ? () => onRowClick(row.original, index) : undefined}
                     >
                       {row.getVisibleCells().map((cell) => {
                         const simpleCol = columns.find(
@@ -833,6 +846,8 @@ export function CmxDataTable<TData>({
                   else onPageChange?.(p - 1)
                 }}
                 onPageSizeChange={onPageSizeChange ?? noopPageSize}
+                pageSizeOptions={pageSizeOptions}
+                showPageSizeSelector={showPageSizeSelector}
                 showWhenSinglePage={paginationFooter === 'always'}
               />
             </div>

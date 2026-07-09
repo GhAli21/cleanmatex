@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-09T02:19:20.756Z",
-  "gitSha": "9b5b7bb5",
+  "generatedAt": "2026-07-09T19:04:09.906Z",
+  "gitSha": "5c400005",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -35,7 +35,7 @@
     "featureFlagUsages": 74,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 140,
+    "accessContracts": 141,
     "navigationEntries": 97,
     "flagCatalogEntries": 290
   },
@@ -7136,6 +7136,31 @@
       "kind": "access_contract",
       "routePattern": "/dashboard/internal_fin/cash-drawers/[drawerId]",
       "label": "Cash Drawer Details",
+      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
+      "page": {
+        "permissions": [
+          "cash_drawer:view"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [],
+      "apiDependencyCount": 0,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
+        }
+      ]
+    },
+    {
+      "id": "access_contract:/dashboard/internal_fin/cash-drawers/_drawerId_/session/_sessionId_",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]",
+      "label": "Cash Drawer Session Details",
       "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
       "page": {
         "permissions": [

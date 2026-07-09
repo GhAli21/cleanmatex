@@ -638,6 +638,15 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Cash drawer detail route inherits the same page gate as the list view.'],
   },
   {
+    routePattern: '/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]',
+    label: 'Cash Drawer Session Details',
+    page: {
+      permissions: ['cash_drawer:view'],
+      requireAllPermissions: true,
+    },
+    notes: ['Hidden session truth route used for detailed cash reconciliation and audit review.'],
+  },
+  {
     routePattern: '/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print',
     label: 'Print Cash Drawer Session',
     page: {
@@ -700,6 +709,11 @@ export const BILLING_INTERNAL_FIN_AR_STATEMENTS_PRINT_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/ar/statements/print')!
 export const BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers')!
+export const BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find(
+    (contract) =>
+      contract.routePattern === '/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]',
+  )!
 export const BILLING_INTERNAL_FIN_CASH_DRAWERS_SESSION_PRINT_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print')!
 export const BILLING_INTERNAL_FIN_INVOICES_ACCESS =
