@@ -1,5 +1,6 @@
 import {
   posSessionBranchQuerySchema,
+  posSessionAutoLinkDrawerSchema,
   posSessionForceCloseSchema,
   posSessionListQuerySchema,
   posSessionOpenSchema,
@@ -8,6 +9,8 @@ import {
 
 const branchId = '11111111-1111-4111-8111-111111111111';
 const terminalId = '22222222-2222-4222-8222-222222222222';
+const posSessionId = '33333333-3333-4333-8333-333333333333';
+const cashDrawerSessionId = '44444444-4444-4444-8444-444444444444';
 
 describe('pos session validation schemas', () => {
   it('accepts manual open input with optional terminal and idempotency metadata', () => {
@@ -30,6 +33,27 @@ describe('pos session validation schemas', () => {
 
   it('keeps terminal optional for user-owned sessions', () => {
     expect(posSessionOpenSchema.parse({ branchId })).toEqual({ branchId });
+  });
+
+  it('validates auto-link drawer input', () => {
+    expect(posSessionAutoLinkDrawerSchema.parse({
+      posSessionId,
+      branchId,
+      cashDrawerSessionId,
+      idempotencyKey: 'link-drawer-key',
+      sourceChannel: 'session_hub',
+    })).toMatchObject({
+      posSessionId,
+      branchId,
+      cashDrawerSessionId,
+      idempotencyKey: 'link-drawer-key',
+      sourceChannel: 'session_hub',
+    });
+
+    expect(() => posSessionAutoLinkDrawerSchema.parse({
+      posSessionId,
+      cashDrawerSessionId: 'not-a-uuid',
+    })).toThrow();
   });
 
   it('requires a non-empty reason for force-close but not normal lifecycle actions', () => {

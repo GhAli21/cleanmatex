@@ -221,6 +221,7 @@ UI behavior:
   - branch conflict
   - active-session API error
 - no active session is shown as an informational Hub state because order submit still auto-ensures the POS session
+- users with `pos_session:open` can explicitly start the POS session from the Hub before submitting an order
 - the Hub opens a right-side `CmxDialog` panel on desktop and a near-full-screen panel on small screens
 
 Hub content:
@@ -228,7 +229,13 @@ Hub content:
 - POS session status, session number, branch, business date, timezone, opened time, and optional terminal context
 - cash drawer section that only displays drawer labels/status when `cash_drawer:view` is granted
 - permission-safe drawer restriction text when the user can see POS lineage but cannot view drawer reconciliation details
+- drawer setup card when an `OPEN` POS session has no linked drawer:
+  - lists branch cash drawers through `GET /api/v1/cash-drawers`
+  - links an existing open drawer session through `POST /api/v1/pos-sessions/auto-link-drawer`
+  - opens a drawer through `POST /api/v1/cash-drawers/[drawerId]/open-session`, then links it through POS auto-link
 - finance summary loaded lazily from `GET /api/v1/pos-sessions/[sessionId]/summary`
+- drawer close summary loaded from the cash-drawer API boundary, `GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary`
+- drawer close summary displays drawer/session identity, currency, opening float, linked cash collected, expected cash, counted cash, payment row count, movement row count, cash-in/cash-out/net movement context, and variance
 - safe lifecycle actions using existing POS session APIs:
   - pause/resume
   - close
@@ -239,6 +246,9 @@ Security and drawer rules:
 
 - `GET /api/v1/pos-sessions/my-active?includeContext=true` is backward-compatible and opt-in
 - drawer context is nulled unless the caller has `cash_drawer:view`
+- cash drawer reconciliation facts remain owned by cash drawer service/API; POS Session UI only orchestrates the combined close flow
+- cash drawer selection/opening remains owned by cash drawer APIs; POS Session owns only the operational link (`AUTO_LINK_DRAWER`)
+- drawer auto-link requires `pos_session:open` and `cash_drawer:view`; opening a drawer requires `cash_drawer:open_session`
 - lifecycle commands use idempotency keys and `sourceChannel = new_order_session_hub`
 - if POS close reports `POS_SESSION_DRAWER_STILL_OPEN`, the Hub requires the linked cash drawer close step before retrying POS close
 - POS force-close still does not silently force-close the drawer
@@ -246,6 +256,9 @@ Security and drawer rules:
 Access contract coverage:
 
 - New Order documents the Hub dependencies on POS summary/lifecycle APIs
+- drawer list/open from the Hub is documented with `cash_drawer:view` and `cash_drawer:open_session`
+- drawer auto-link from the Hub is documented with `pos_session:open` plus `cash_drawer:view`
+- drawer summary from the Hub is documented with `cash_drawer:view`
 - drawer close from the Hub is documented with `cash_drawer:close_session`
 
 ### Remaining future enhancements

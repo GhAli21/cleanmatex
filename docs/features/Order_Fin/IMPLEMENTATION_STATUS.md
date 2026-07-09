@@ -152,9 +152,11 @@ Runtime behavior now covered:
 - POS sessions workbench for active session actions, history, pagination, and session summary
 - order-entry banner that surfaces active/paused/no-session/branch-conflict state before cashier submission
 - order-entry Session Hub that replaces the healthy `OPEN` banner with a compact header pill and right-side context panel
+- Session Hub start-work flow: explicit POS session start, branch drawer list, choose open drawer session, or open-and-link a drawer session
 - warning-only order-entry banner behavior for paused sessions, branch conflict, and load errors
 - permission-safe drawer context: `cash_drawer:view` is required before drawer labels/status are returned or displayed
 - lazy Hub finance summary using `GET /api/v1/pos-sessions/[sessionId]/summary`
+- enriched linked-drawer close summary in the Hub and POS Sessions UI using the cash-drawer summary API, including opening float, cash collected, expected cash, counted cash, payment/movement row counts, movement context, and variance
 - combined close flow in the POS Sessions UI: if close returns `POS_SESSION_DRAWER_STILL_OPEN`, the UI requires the linked drawer close step to succeed before retrying POS close
 - combined close flow in the Session Hub: if close returns `POS_SESSION_DRAWER_STILL_OPEN`, the linked drawer close step must succeed before POS close is retried
 - later collection attaches `posSessionId` only when the current user already has an active same-branch `OPEN` session; it does not auto-open sessions from back-office collection flows
@@ -163,6 +165,8 @@ Apply status and residual follow-ups:
 
 - Migration `0399_pos_sessions_navigation.sql` was applied by the user to local and remote DBs on 2026-07-04. Codex did not run migrations.
 - The combined close UI currently uses the existing normal cash-drawer close endpoint. Drawer force-close remains a separate future UX/API decision because POS force-close must not silently force-close physical cash reconciliation.
+- Cash drawer close totals are sourced from `getSessionSummary` / `GET /api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary`; POS session code does not own drawer reconciliation calculations.
+- Cash drawer selection/opening from the Hub is sourced from cash-drawer APIs; POS auto-link only records the operational POS linkage after a drawer session exists.
 - POS session master/event tables are still accessed by tenant-filtered raw SQL. A later Prisma model pull can replace those reads/writes when the team wants full Prisma model coverage.
 - `npm run check:platform-info-inventories` still reports the existing unrelated `/dashboard/internal_fin/vouchers` navigation-contract warning.
 

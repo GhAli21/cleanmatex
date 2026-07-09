@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
 import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
@@ -30,11 +29,13 @@ import {
   PosSessionApiError,
   postPosSessionLifecycleAction,
 } from '@features/pos-sessions/api/pos-session-api';
+import { PosSessionDrawerCloseSummary } from '@features/pos-sessions/ui/pos-session-drawer-close-summary';
 import type {
   GetMyActivePosSessionResult,
   PosSessionListResult,
   PosSessionListRow,
   PosSessionRow,
+  PosSessionWithContext,
 } from '@/lib/types/pos-session';
 
 interface BranchOption {
@@ -97,6 +98,7 @@ export function PosSessionsScreen() {
   const canPauseResume = useHasPermissionCode('pos_session:pause_resume');
   const canClose = useHasPermissionCode('pos_session:close');
   const canForceClose = useHasPermissionCode('pos_session:force_close');
+  const canViewCashDrawer = useHasPermissionCode('cash_drawer:view');
   const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
 
   const [page, setPage] = useState(1);
@@ -118,7 +120,7 @@ export function PosSessionsScreen() {
 
   const activeQuery = useQuery({
     queryKey: ['pos-sessions', 'my-active'],
-    queryFn: () => fetchMyActivePosSession(),
+    queryFn: () => fetchMyActivePosSession({ includeContext: true }),
   });
 
   const sessionsQuery = useQuery({
@@ -143,6 +145,7 @@ export function PosSessionsScreen() {
 
   const activeSession =
     activeQuery.data?.type === 'ACTIVE' ? activeQuery.data.session : null;
+  const activeSessionContext = activeSession as PosSessionWithContext | null;
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
@@ -539,28 +542,23 @@ export function PosSessionsScreen() {
       </CmxDialog>
 
       <CmxDialog open={drawerDialogOpen} onOpenChange={setDrawerDialogOpen}>
-        <CmxDialogContent>
+        <CmxDialogContent className="max-w-2xl">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('drawerCloseStep')}</CmxDialogTitle>
           </CmxDialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {t('drawerCloseDescription')}
-            </p>
-            <CmxInput
-              label={t('countedCash')}
-              type="number"
-              min="0"
-              step="0.001"
-              value={countedCash}
-              onChange={(event) => setCountedCash(event.target.value)}
-            />
-            <CmxTextarea
-              value={drawerNotes}
-              placeholder={t('notes')}
-              onChange={(event) => setDrawerNotes(event.target.value)}
-            />
-          </div>
+          <PosSessionDrawerCloseSummary
+            open={drawerDialogOpen}
+            drawerId={activeSession?.cash_drawer_id}
+            drawerName={activeSessionContext?.cash_drawer_name}
+            drawerSessionId={activeSession?.cash_drawer_session_id}
+            drawerSessionNo={activeSessionContext?.cash_drawer_session_no}
+            drawerStatus={activeSessionContext?.cash_drawer_session_status}
+            canViewCashDrawer={canViewCashDrawer}
+            countedCash={countedCash}
+            notes={drawerNotes}
+            onCountedCashChange={setCountedCash}
+            onNotesChange={setDrawerNotes}
+          />
           <CmxDialogFooter>
             <CmxButton variant="outline" onClick={() => setDrawerDialogOpen(false)}>
               {t('cancel')}

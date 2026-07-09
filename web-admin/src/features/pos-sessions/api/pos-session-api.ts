@@ -111,6 +111,42 @@ export async function postPosSessionLifecycleAction(
   return payload.data;
 }
 
+/**
+ * Links an OPEN cash drawer session to an OPEN POS session.
+ */
+export async function postPosSessionAutoLinkDrawer(input: {
+  csrfToken: string | null;
+  posSessionId: string;
+  branchId?: string | null;
+  cashDrawerSessionId: string;
+  sourceChannel: string;
+}): Promise<PosSessionLifecycleResult> {
+  const response = await fetch('/api/v1/pos-sessions/auto-link-drawer', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getCSRFHeader(input.csrfToken),
+    },
+    body: JSON.stringify({
+      posSessionId: input.posSessionId,
+      branchId: input.branchId || undefined,
+      cashDrawerSessionId: input.cashDrawerSessionId,
+      idempotencyKey: `auto-link-drawer:${crypto.randomUUID()}`,
+      sourceChannel: input.sourceChannel,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope<PosSessionLifecycleResult>;
+  if (!response.ok || payload.success === false) {
+    throw new PosSessionApiError(payload.error || 'POS drawer link failed', payload.errorCode, response.status);
+  }
+  if (!payload.data) {
+    throw new PosSessionApiError('POS drawer link failed', undefined, response.status);
+  }
+  return payload.data;
+}
+
 async function fetchPosSessionJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { credentials: 'include' });
   const payload = (await response.json().catch(() => ({}))) as PosSessionApiEnvelope<T>;

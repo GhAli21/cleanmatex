@@ -33,6 +33,10 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Close linked cash drawer session',
         requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
       },
+      viewLinkedCashDrawerSummary: {
+        label: 'View linked cash drawer close summary',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
+      },
     },
     apiDependencies: [
       {
@@ -94,6 +98,12 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: '/api/v1/cash-drawers/[drawerId]/close-session',
         requirement: { permissions: ['cash_drawer:close_session'], requireAllPermissions: true },
+      },
+      {
+        label: 'Get linked cash drawer close summary',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary',
+        requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
       },
     ],
     notes: [

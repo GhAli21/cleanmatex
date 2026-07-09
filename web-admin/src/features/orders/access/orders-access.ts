@@ -101,6 +101,42 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Load linked cash drawer close totals from Session Hub',
+        method: 'GET',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List branch cash drawers from Session Hub',
+        method: 'GET',
+        path: '/api/v1/cash-drawers',
+        requirement: {
+          permissions: ['cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Open cash drawer session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/open-session',
+        requirement: {
+          permissions: ['cash_drawer:open_session'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Auto-link cash drawer to POS session from Session Hub',
+        method: 'POST',
+        path: '/api/v1/pos-sessions/auto-link-drawer',
+        requirement: {
+          permissions: ['pos_session:open', 'cash_drawer:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Orders Checkout Options',
         method: 'GET',
         path: '/api/v1/orders/checkout-options',
