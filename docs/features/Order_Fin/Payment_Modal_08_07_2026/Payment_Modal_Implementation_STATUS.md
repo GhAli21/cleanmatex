@@ -131,6 +131,14 @@ The gift-card workspace is **entangled with React-Hook-Form**, unlike split/draw
   - **State-survival (hardening #4) — status:** no `renderHook`/engine test harness exists (engine has heavy query/context deps); the invariant is **architecturally guaranteed** (engine owns all state; views/dialogs are stateless projections — Phase-3 dialogs are RHF-free and call typed actions, holding no payment state). Full "type 50 → switch view → persists" check is a manual-QA item (verification checklist #6, Phase-7 guide). Per-dialog statelessness is already covered by the Phase-3 dialog tests.
 - **Next (4g):** route the first section whose show/hide decision can move to the registry **without a UX change** (behavior freeze holds in Phase 4; the inline→dialog reversal + escalation removal are Phase 5). Candidate: gate an existing inline surface (e.g. the balance-policy / drawer line) on the capability plan's presentation instead of the scattered `showXSection` flags, keeping the same rendered UI via `renderInline`. Each step: oracle + tsc + eslint + build + i18n green. Then Phase 5 behavior reversal (auto-escalation removal per the plan inventory; kill-switch through the container mode logic; demoted suggestion; server-error→capability-guard routing extending `use-order-submission.ts:607-646`).
 
+## Visual QA (Storybook — isolated, no order/production needed)
+
+Two stories let you visually verify the Phase-4 UI surfaces in isolation (no need to build a special multi-currency order):
+- `src/features/orders/payment/capabilities/fx-rounding/FxRoundingLine.stories.tsx` — RateOnly / RateAndRounding / RoundingOnly / NothingToShow (renders nothing sub-epsilon = correct).
+- `src/features/orders/payment/view/CapabilityViewRenderer.stories.tsx` — ActionsOnly / InlineActionsAndGuard / GuardOnly / Empty; toggle `isRTL` + the Direction toolbar for RTL.
+
+Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **Features/Orders/PaymentModal/** (`FxRoundingLine`, `CapabilityViewRenderer`). Verified: both register in the SB index and compile clean (tsc 0 / eslint 0); SB **dev** boots fine. NB `npm run build-storybook` (production) crashed with a native Windows heap-corruption error (`0xC0000374`) at 9% *setup* (environment/memory, pre-story-compile) — unrelated to these stories; use dev mode for QA.
+
 ## Cross-layer audit — exact repo references (clarification #2; verified 2026-07-09)
 
 | Area | File · symbol | Line(s) | Finding |
