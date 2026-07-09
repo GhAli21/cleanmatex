@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-07-08T21:45:32.617Z
+Generated: 2026-07-09T02:19:20.756Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |

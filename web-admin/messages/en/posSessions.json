@@ -58,6 +58,7 @@
     "title": "Session Hub",
     "description": "Operational POS context for this order screen.",
     "openAria": "Open POS Session Hub",
+    "closePanel": "Close panel",
     "checking": "Checking",
     "error": "Error",
     "autoOpen": "Auto-open",
@@ -73,7 +74,40 @@
     "summaryLoading": "Loading finance summary...",
     "summaryError": "Unable to load finance summary.",
     "openToLoadSummary": "Open POS session details to load finance summary.",
-    "forceCloseWarning": "Force-close is an audited override. It does not silently force-close a linked cash drawer."
+    "forceCloseWarning": "Force-close is an audited override. It does not silently force-close a linked cash drawer.",
+    "startPosSession": "Start POS session",
+    "linkDrawerTitle": "Choose or open a cash drawer",
+    "linkDrawerDescription": "Use an open drawer session, or explicitly open a drawer and link it to this POS session.",
+    "drawerLinkNoViewPermission": "Cash drawer setup requires cash drawer view permission.",
+    "drawerListLoading": "Loading available cash drawers...",
+    "drawerListError": "Unable to load cash drawers for this branch.",
+    "noDrawersForBranch": "No active cash drawers are configured for this branch.",
+    "drawerHasOpenSession": "Open drawer session",
+    "drawerNoOpenSession": "No open drawer session",
+    "useOpenDrawer": "Use open drawer",
+    "openingBalance": "Opening balance",
+    "openAndLinkDrawer": "Open and link drawer",
+    "drawerOpenPermissionRequired": "Drawer open permission required",
+    "resumeBeforeDrawerLink": "Resume the POS session before linking a cash drawer."
+  },
+  "drawerClose": {
+    "openingFloat": "Opening float",
+    "cashCollected": "Cash collected",
+    "expectedCash": "Expected cash",
+    "countedCashPreview": "Counted cash",
+    "variance": "Variance",
+    "movementContext": "Drawer movement context",
+    "cashInMovements": "Cash in",
+    "cashOutMovements": "Cash out",
+    "netMovements": "Net movement",
+    "paymentRows": "Payment rows",
+    "movementRows": "Movement rows",
+    "movementContextHelp": "Movement rows are shown for audit context; this POS close step uses the linked cash payment total for expected cash.",
+    "expectedCashHelp": "Expected cash here mirrors the current cash-drawer close API calculation: opening float plus linked cash payments.",
+    "summaryLoading": "Loading drawer reconciliation totals...",
+    "summaryUnavailable": "Drawer totals could not be loaded. You can still count and close; the server will validate the close.",
+    "notCountedYet": "Not counted yet",
+    "notesVariancePlaceholder": "Add notes explaining the variance"
   },
   "messages": {
     "opened": "POS session opened.",
@@ -87,6 +121,11 @@
     "selectBranch": "Select a branch before opening a POS session.",
     "countedCashRequired": "Enter the counted cash amount before closing the drawer.",
     "drawerStillOpen": "Close the linked cash drawer first.",
-    "drawerClosePermissionRequired": "You need cash drawer close permission to complete this step."
+    "drawerClosePermissionRequired": "You need cash drawer close permission to complete this step.",
+    "drawerLinked": "Cash drawer linked to this POS session.",
+    "drawerOpenedAndLinked": "Cash drawer opened and linked to this POS session.",
+    "drawerLinkFailed": "Unable to link the cash drawer to this POS session.",
+    "selectCashDrawer": "Select a cash drawer first.",
+    "openingBalanceRequired": "Enter a valid opening balance."
   }
 }

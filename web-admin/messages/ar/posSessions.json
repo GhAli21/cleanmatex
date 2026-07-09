@@ -58,6 +58,7 @@
     "title": "مركز الجلسة",
     "description": "سياق تشغيل نقطة البيع لهذه الشاشة.",
     "openAria": "فتح مركز جلسة نقطة البيع",
+    "closePanel": "إغلاق اللوحة",
     "checking": "جاري الفحص",
     "error": "خطأ",
     "autoOpen": "فتح تلقائي",
@@ -73,7 +74,40 @@
     "summaryLoading": "جاري تحميل الملخص المالي...",
     "summaryError": "تعذر تحميل الملخص المالي.",
     "openToLoadSummary": "افتح تفاصيل جلسة نقطة البيع لتحميل الملخص المالي.",
-    "forceCloseWarning": "الإغلاق القسري تجاوز مدقق. لا يقوم بإغلاق درج النقد المرتبط تلقائياً في الخلفية."
+    "forceCloseWarning": "الإغلاق القسري تجاوز مدقق. لا يقوم بإغلاق درج النقد المرتبط تلقائياً في الخلفية.",
+    "startPosSession": "بدء جلسة نقطة البيع",
+    "linkDrawerTitle": "اختيار أو فتح درج نقد",
+    "linkDrawerDescription": "استخدم جلسة درج مفتوحة، أو افتح درجاً بشكل صريح واربطه بجلسة نقطة البيع هذه.",
+    "drawerLinkNoViewPermission": "إعداد درج النقد يتطلب صلاحية عرض درج النقد.",
+    "drawerListLoading": "جاري تحميل أدراج النقد المتاحة...",
+    "drawerListError": "تعذر تحميل أدراج النقد لهذا الفرع.",
+    "noDrawersForBranch": "لا توجد أدراج نقد نشطة مهيأة لهذا الفرع.",
+    "drawerHasOpenSession": "جلسة درج مفتوحة",
+    "drawerNoOpenSession": "لا توجد جلسة درج مفتوحة",
+    "useOpenDrawer": "استخدام الدرج المفتوح",
+    "openingBalance": "رصيد الفتح",
+    "openAndLinkDrawer": "فتح وربط الدرج",
+    "drawerOpenPermissionRequired": "صلاحية فتح الدرج مطلوبة",
+    "resumeBeforeDrawerLink": "استأنف جلسة نقطة البيع قبل ربط درج النقد."
+  },
+  "drawerClose": {
+    "openingFloat": "رصيد الفتح",
+    "cashCollected": "النقد المحصل",
+    "expectedCash": "النقد المتوقع",
+    "countedCashPreview": "النقد المعدود",
+    "variance": "الفرق",
+    "movementContext": "سياق حركات درج النقد",
+    "cashInMovements": "نقد داخل",
+    "cashOutMovements": "نقد خارج",
+    "netMovements": "صافي الحركة",
+    "paymentRows": "صفوف المدفوعات",
+    "movementRows": "صفوف الحركات",
+    "movementContextHelp": "تظهر حركات الدرج كسياق تدقيق؛ تستخدم خطوة إغلاق نقطة البيع هذه إجمالي مدفوعات النقد المرتبطة لحساب النقد المتوقع.",
+    "expectedCashHelp": "النقد المتوقع هنا يطابق حساب واجهة إغلاق درج النقد الحالية: رصيد الفتح زائد مدفوعات النقد المرتبطة.",
+    "summaryLoading": "جاري تحميل إجماليات تسوية الدرج...",
+    "summaryUnavailable": "تعذر تحميل إجماليات الدرج. يمكنك متابعة العد والإغلاق، وسيقوم الخادم بالتحقق من الإغلاق.",
+    "notCountedYet": "لم يتم العد بعد",
+    "notesVariancePlaceholder": "أضف ملاحظات تشرح الفرق"
   },
   "messages": {
     "opened": "تم فتح جلسة نقطة البيع.",
@@ -87,6 +121,11 @@
     "selectBranch": "اختر فرعاً قبل فتح جلسة نقطة البيع.",
     "countedCashRequired": "أدخل مبلغ النقد المعدود قبل إغلاق الدرج.",
     "drawerStillOpen": "أغلق درج النقد المرتبط أولاً.",
-    "drawerClosePermissionRequired": "تحتاج إلى صلاحية إغلاق درج النقد لإكمال هذه الخطوة."
+    "drawerClosePermissionRequired": "تحتاج إلى صلاحية إغلاق درج النقد لإكمال هذه الخطوة.",
+    "drawerLinked": "تم ربط درج النقد بجلسة نقطة البيع هذه.",
+    "drawerOpenedAndLinked": "تم فتح درج النقد وربطه بجلسة نقطة البيع هذه.",
+    "drawerLinkFailed": "تعذر ربط درج النقد بجلسة نقطة البيع هذه.",
+    "selectCashDrawer": "اختر درج نقد أولاً.",
+    "openingBalanceRequired": "أدخل رصيد فتح صالحاً."
   }
 }

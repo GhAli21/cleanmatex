@@ -10,6 +10,15 @@ export const posSessionOpenSchema = z.object({
 
 export const posSessionEnsureSchema = posSessionOpenSchema;
 
+export const posSessionAutoLinkDrawerSchema = z.object({
+  posSessionId: z.string().uuid(),
+  branchId: z.string().uuid().optional(),
+  cashDrawerSessionId: z.string().uuid(),
+  idempotencyKey: z.string().min(1).max(200).optional(),
+  sourceChannel: z.string().min(1).max(80).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
 export const posSessionReasonSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
   idempotencyKey: z.string().min(1).max(200).optional(),

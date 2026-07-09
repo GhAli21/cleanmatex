@@ -552,6 +552,32 @@ export async function autoLinkDrawerTx(
   return result;
 }
 
+/**
+ * Links an existing OPEN cash drawer session to an OPEN POS session.
+ *
+ * Why:
+ * Cash drawer ownership stays in the cash-drawer domain; this wrapper only
+ * records POS operational lineage after the drawer API has chosen/opened a
+ * drawer session.
+ *
+ * @param input Tenant/user/session context plus the cash drawer session to attach.
+ * @returns Updated POS session lifecycle result, or null when required IDs are missing.
+ *
+ * @example
+ * await autoLinkDrawer({
+ *   tenantId: 'tenant-uuid',
+ *   userId: 'user-uuid',
+ *   posSessionId: 'pos-session-uuid',
+ *   branchId: 'branch-uuid',
+ *   cashDrawerSessionId: 'drawer-session-uuid',
+ * });
+ */
+export async function autoLinkDrawer(input: AutoLinkDrawerInput): Promise<PosSessionLifecycleResult | null> {
+  return withTenantContext(input.tenantId, () =>
+    prisma.$transaction((tx) => autoLinkDrawerTx(tx, input))
+  );
+}
+
 export async function setOrderPaymentPosSessionTx(
   tx: PrismaTx,
   input: PosSessionFinanceContextInput & { orderPaymentId: string }

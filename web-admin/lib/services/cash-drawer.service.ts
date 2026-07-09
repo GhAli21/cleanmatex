@@ -379,8 +379,29 @@ export async function getSessionSummary(tenantId: string, sessionId: string) {
   const totalCashIn   = movements.filter((m) => m.direction === 'IN').reduce((s, m) => s + toNumber(m.amount), 0);
   const totalCashOut  = movements.filter((m) => m.direction === 'OUT').reduce((s, m) => s + toNumber(m.amount), 0);
   const totalPayments = payments.reduce((s, p) => s + toNumber(p.amount), 0);
+  const openingFloat = toNumber(session.opening_float_amount);
+  const movementNet = totalCashIn - totalCashOut;
 
-  return { session, movements, payments, totalCashIn, totalCashOut, totalPayments };
+  return {
+    session,
+    movements,
+    payments,
+    totalCashIn,
+    totalCashOut,
+    totalPayments,
+    reconciliation: {
+      openingFloat,
+      cashCollected: totalPayments,
+      movementCashIn: totalCashIn,
+      movementCashOut: totalCashOut,
+      movementNet,
+      expectedCash: openingFloat + totalPayments,
+      movementExpectedCash: openingFloat + movementNet,
+      paymentCount: payments.length,
+      movementCount: movements.length,
+      currencyCode: session.currency_code,
+    },
+  };
 }
 
 /**

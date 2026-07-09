@@ -8,11 +8,15 @@
 
 - Added a compact Session Hub pill to the New Order header so healthy `OPEN` sessions no longer occupy a full-width green banner.
 - Added a right-side Session Hub panel with POS session context, permission-safe cash drawer context, lazy finance summary, and safe lifecycle actions.
+- Added Session Hub start-work actions: start POS session, choose an existing open cash drawer session, or explicitly open and link a drawer.
+- Enriched the linked cash drawer close step with cash-drawer-service totals: opening float, linked cash collected, expected cash, counted cash, payment/movement row counts, movement context, and variance.
 - Changed the order-entry POS banner to warning-only behavior for paused sessions, branch conflicts, and API errors.
 - Added `includeContext=true` support to `GET /api/v1/pos-sessions/my-active` while keeping the original response backward-compatible.
 - Gated drawer labels/status in the context projection behind `cash_drawer:view`.
 - Shared POS session client helpers for active-session lookup, summary loading, and idempotent lifecycle commands.
 - Updated New Order access contract dependencies for POS summary/lifecycle APIs and linked drawer close.
+- Added `POST /api/v1/pos-sessions/auto-link-drawer` as a narrow POS-owned linkage endpoint; drawer list/open remains under cash-drawer APIs.
+- Updated New Order and POS Sessions access contract dependencies for linked drawer summary reads via `cash_drawer:view`.
 - Added EN/AR Session Hub messages and focused tests for warning-only banner behavior.
 
 ### Validation

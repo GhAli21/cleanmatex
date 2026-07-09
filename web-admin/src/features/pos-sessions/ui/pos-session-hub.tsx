@@ -14,9 +14,9 @@ import {
   RefreshCw,
   ShieldAlert,
   WalletCards,
+  X,
 } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { Badge } from '@ui/primitives/badge';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
@@ -41,6 +41,8 @@ import {
   postPosSessionLifecycleAction,
   type PosSessionLifecycleEndpoint,
 } from '@features/pos-sessions/api/pos-session-api';
+import { PosSessionDrawerCloseSummary } from '@features/pos-sessions/ui/pos-session-drawer-close-summary';
+import { PosSessionDrawerLinker } from '@features/pos-sessions/ui/pos-session-drawer-linker';
 import type {
   GetMyActivePosSessionResult,
   PosSessionSummary,
@@ -68,10 +70,12 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
   const t = useTranslations('posSessions');
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
+  const canOpen = useHasPermissionCode('pos_session:open');
   const canPauseResume = useHasPermissionCode('pos_session:pause_resume');
   const canClose = useHasPermissionCode('pos_session:close');
   const canForceClose = useHasPermissionCode('pos_session:force_close');
   const canViewCashDrawer = useHasPermissionCode('cash_drawer:view');
+  const canOpenCashDrawer = useHasPermissionCode('cash_drawer:open_session');
   const canCloseCashDrawer = useHasPermissionCode('cash_drawer:close_session');
 
   const [hubOpen, setHubOpen] = useState(false);
@@ -89,6 +93,7 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
   });
 
   const activeSession = getActiveSession(activeQuery.data);
+  const activeSessionContext = activeSession as PosSessionWithContext | null;
   const summaryQuery = useQuery({
     queryKey: ['pos-sessions', 'summary', activeSession?.id ?? 'none', 'hub'],
     enabled: hubOpen && !!activeSession?.id,
@@ -146,6 +151,14 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
     if (result === 'ok') {
       setActionDialog({ action: null, reason: '' });
     }
+  };
+
+  const startPosSession = async () => {
+    if (!branchId) {
+      cmxMessage.error(t('messages.selectBranch'));
+      return;
+    }
+    await runLifecycleAction('open', { branchId }, t('messages.opened'));
   };
 
   const closeDrawerThenSession = async () => {
@@ -219,11 +232,23 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
           className="ms-auto flex h-screen max-h-screen w-full max-w-[32rem] flex-col overflow-hidden rounded-none rounded-s-2xl"
         >
           <CmxDialogHeader className="shrink-0 pe-14">
-            <CmxDialogTitle className="flex flex-wrap items-center gap-2">
-              <CreditCard className="h-5 w-5" aria-hidden />
-              {t('hub.title')}
-              <HubPanelStatus queryData={activeQuery.data} isLoading={activeQuery.isLoading} isError={activeQuery.isError} />
-            </CmxDialogTitle>
+            <div className="flex items-start justify-between gap-3">
+              <CmxDialogTitle className="flex flex-wrap items-center gap-2">
+                <CreditCard className="h-5 w-5" aria-hidden />
+                {t('hub.title')}
+                <HubPanelStatus queryData={activeQuery.data} isLoading={activeQuery.isLoading} isError={activeQuery.isError} />
+              </CmxDialogTitle>
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-mt-1 shrink-0 rounded-full px-2"
+                onClick={() => setHubOpen(false)}
+                aria-label={t('hub.closePanel')}
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </CmxButton>
+            </div>
             <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {t('hub.description')}
             </p>
@@ -235,18 +260,27 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
               isLoading={activeQuery.isLoading}
               isError={activeQuery.isError}
               canViewCashDrawer={canViewCashDrawer}
+              canOpenCashDrawer={canOpenCashDrawer}
+              canOpenPosSession={canOpen}
               summary={summaryQuery.data}
               summaryLoading={summaryQuery.isLoading}
               summaryError={summaryQuery.isError}
               onRetry={refreshHub}
+              onStartPosSession={startPosSession}
+              onDrawerLinked={refreshHub}
             />
           </div>
 
           <CmxDialogFooter className="shrink-0 flex-wrap justify-between gap-2">
-            <CmxButton variant="outline" size="sm" loading={activeQuery.isFetching} onClick={refreshHub}>
-              <RefreshCw className="me-2 h-4 w-4" aria-hidden />
-              {t('refresh')}
-            </CmxButton>
+            <div className="flex flex-wrap gap-2">
+              <CmxButton variant="outline" size="sm" loading={activeQuery.isFetching} onClick={refreshHub}>
+                <RefreshCw className="me-2 h-4 w-4" aria-hidden />
+                {t('refresh')}
+              </CmxButton>
+              <CmxButton variant="ghost" size="sm" onClick={() => setHubOpen(false)}>
+                {t('hub.closePanel')}
+              </CmxButton>
+            </div>
             <div className="flex flex-wrap justify-end gap-2">
               {activeSession?.status === POS_SESSION_STATUS.OPEN && canPauseResume ? (
                 <CmxButton
@@ -331,28 +365,23 @@ export function PosSessionHub({ branchId }: PosSessionHubProps) {
       </CmxDialog>
 
       <CmxDialog open={drawerDialogOpen} onOpenChange={setDrawerDialogOpen}>
-        <CmxDialogContent className="max-w-md">
+        <CmxDialogContent className="max-w-2xl">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('drawerCloseStep')}</CmxDialogTitle>
           </CmxDialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {t('drawerCloseDescription')}
-            </p>
-            <CmxInput
-              label={t('countedCash')}
-              type="number"
-              min="0"
-              step="0.001"
-              value={countedCash}
-              onChange={(event) => setCountedCash(event.target.value)}
-            />
-            <CmxTextarea
-              value={drawerNotes}
-              placeholder={t('notes')}
-              onChange={(event) => setDrawerNotes(event.target.value)}
-            />
-          </div>
+          <PosSessionDrawerCloseSummary
+            open={drawerDialogOpen}
+            drawerId={activeSession?.cash_drawer_id}
+            drawerName={activeSessionContext?.cash_drawer_name}
+            drawerSessionId={activeSession?.cash_drawer_session_id}
+            drawerSessionNo={activeSessionContext?.cash_drawer_session_no}
+            drawerStatus={activeSessionContext?.cash_drawer_session_status}
+            canViewCashDrawer={canViewCashDrawer}
+            countedCash={countedCash}
+            notes={drawerNotes}
+            onCountedCashChange={setCountedCash}
+            onNotesChange={setDrawerNotes}
+          />
           <CmxDialogFooter>
             <CmxButton variant="outline" onClick={() => setDrawerDialogOpen(false)}>
               {t('cancel')}
@@ -372,19 +401,27 @@ function HubBody({
   isLoading,
   isError,
   canViewCashDrawer,
+  canOpenCashDrawer,
+  canOpenPosSession,
   summary,
   summaryLoading,
   summaryError,
   onRetry,
+  onStartPosSession,
+  onDrawerLinked,
 }: {
   queryData?: GetMyActivePosSessionResult;
   isLoading: boolean;
   isError: boolean;
   canViewCashDrawer: boolean;
+  canOpenCashDrawer: boolean;
+  canOpenPosSession: boolean;
   summary?: PosSessionSummary;
   summaryLoading: boolean;
   summaryError: boolean;
   onRetry: () => void;
+  onStartPosSession: () => void;
+  onDrawerLinked: () => Promise<void> | void;
 }) {
   const t = useTranslations('posSessions');
 
@@ -424,6 +461,8 @@ function HubBody({
         icon={<CreditCard className="h-5 w-5" aria-hidden />}
         title={t('noActiveTitle')}
         description={t('banner.none')}
+        actionLabel={canOpenPosSession ? t('hub.startPosSession') : undefined}
+        onAction={canOpenPosSession ? onStartPosSession : undefined}
       />
     );
   }
@@ -462,11 +501,23 @@ function HubBody({
         </CmxCardHeader>
         <CmxCardContent>
           {canViewCashDrawer ? (
-            <InfoGrid>
-              <InfoTile label={t('cashDrawer')} value={session.cash_drawer_name ?? t('hub.drawerNotLinked')} />
-              <InfoTile label={t('drawerSession')} value={session.cash_drawer_session_no ?? session.cash_drawer_session_id ?? t('none')} />
-              <InfoTile label={t('status')} value={session.cash_drawer_session_status ?? t('none')} />
-            </InfoGrid>
+            session.cash_drawer_session_id ? (
+              <InfoGrid>
+                <InfoTile label={t('cashDrawer')} value={session.cash_drawer_name ?? t('hub.drawerNotLinked')} />
+                <InfoTile label={t('drawerSession')} value={session.cash_drawer_session_no ?? session.cash_drawer_session_id ?? t('none')} />
+                <InfoTile label={t('status')} value={session.cash_drawer_session_status ?? t('none')} />
+              </InfoGrid>
+            ) : session.status === POS_SESSION_STATUS.OPEN ? (
+              <PosSessionDrawerLinker
+                branchId={session.branch_id}
+                posSessionId={session.id}
+                canViewCashDrawer={canViewCashDrawer}
+                canOpenCashDrawer={canOpenCashDrawer}
+                onLinked={onDrawerLinked}
+              />
+            ) : (
+              <DrawerSetupPausedNotice />
+            )
           ) : (
             <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -496,6 +547,15 @@ function HubBody({
           )}
         </CmxCardContent>
       </CmxCard>
+    </div>
+  );
+}
+
+function DrawerSetupPausedNotice() {
+  const t = useTranslations('posSessions');
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+      {t('hub.resumeBeforeDrawerLink')}
     </div>
   );
 }

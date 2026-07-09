@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-08T21:45:32.617Z
-Git SHA: ae552057
+Generated: 2026-07-09T02:19:20.756Z
+Git SHA: 9b5b7bb5
 ## Summary
 | Domain | Count |
 | --- | --- |
@@ -81,7 +81,7 @@ Git SHA: ae552057
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |
 | /dashboard/internal_fin/invoices/new | New AR Invoice | invoices:create | — | 0 |
-| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 6 |
+| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 7 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |

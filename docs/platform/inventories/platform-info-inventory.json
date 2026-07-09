@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-08T21:45:32.617Z",
-  "gitSha": "ae552057",
+  "generatedAt": "2026-07-09T02:19:20.756Z",
+  "gitSha": "9b5b7bb5",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -9425,6 +9425,17 @@
           "label": "Close linked cash drawer session",
           "permissions": [
             "cash_drawer:close_session"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
+        },
+        {
+          "actionKey": "viewLinkedCashDrawerSummary",
+          "label": "View linked cash drawer close summary",
+          "permissions": [
+            "cash_drawer:view"
           ],
           "permissionPrefixes": [],
           "featureFlags": [],
