@@ -95,6 +95,31 @@ export function selectBlockedSlots(plan: CapabilityViewPlan): CapabilityViewSlot
 }
 
 /**
+ * Blocked slots reduced to the ones the submit-guard surface should render: one
+ * per distinct block reason, first occurrence in registry order winning. This
+ * dedups the deliberate overlap in the registry — a specific capability (e.g.
+ * `CASH_DRAWER`) and the aggregate `SUBMIT_GUARDS` both report the same reason
+ * for a closed drawer, and the cashier must see that guard exactly once. Slots
+ * blocked without a reason code are skipped (defensive: blocked always carries a
+ * reason by contract).
+ *
+ * @param plan - A view plan.
+ * @returns One blocked slot per distinct reason, in plan order.
+ */
+export function selectGuardSlots(plan: CapabilityViewPlan): CapabilityViewSlot[] {
+  const seen = new Set<string>();
+  const guards: CapabilityViewSlot[] = [];
+  for (const slot of plan) {
+    if (!slot.evaluated.blocked) continue;
+    const reason = slot.evaluated.blockReason;
+    if (!reason || seen.has(reason)) continue;
+    seen.add(reason);
+    guards.push(slot);
+  }
+  return guards;
+}
+
+/**
  * Slots with an unresolved required gate (must be resolved before submit).
  *
  * @param plan - A view plan.

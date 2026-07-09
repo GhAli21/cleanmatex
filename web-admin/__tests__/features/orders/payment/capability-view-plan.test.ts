@@ -4,7 +4,9 @@ import {
   selectDialogSlots,
   selectBlockedSlots,
   selectRequiredSlots,
+  selectGuardSlots,
 } from '@features/orders/payment/view/capability-view-plan';
+import { PAYMENT_REASON } from '@features/orders/payment/domain/payment-reasons';
 import { SIMPLE_PRESET, FULL_PRESET } from '@features/orders/payment/presets';
 import { PAYMENT_CAPABILITY } from '@features/orders/payment/capabilities/capability-keys';
 import type { EvaluatedCapability } from '@features/orders/payment/capabilities/registry';
@@ -113,6 +115,50 @@ describe('plan selectors', () => {
     const plan = planCapabilityView(caps, FULL_PRESET);
     expect(selectRequiredSlots(plan).map((s) => s.key)).toEqual([
       PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING,
+    ]);
+  });
+});
+
+describe('selectGuardSlots (dedup by reason)', () => {
+  it('renders one guard per distinct reason, first occurrence winning', () => {
+    // The registry deliberately overlaps: CASH_DRAWER and the aggregate
+    // SUBMIT_GUARDS both report CASH_DRAWER_SESSION_CLOSED for a closed drawer.
+    const caps = [
+      evaluated(PAYMENT_CAPABILITY.CASH_DRAWER, {
+        presentation: 'inline',
+        blocked: true,
+        blockReason: PAYMENT_REASON.CASH_DRAWER_SESSION_CLOSED,
+      }),
+      evaluated(PAYMENT_CAPABILITY.SUBMIT_GUARDS, {
+        presentation: 'inline',
+        blocked: true,
+        blockReason: PAYMENT_REASON.CASH_DRAWER_SESSION_CLOSED,
+      }),
+    ];
+    const plan = planCapabilityView(caps, FULL_PRESET);
+    const guards = selectGuardSlots(plan);
+    expect(guards).toHaveLength(1);
+    expect(guards[0].key).toBe(PAYMENT_CAPABILITY.CASH_DRAWER);
+  });
+
+  it('keeps distinct reasons and skips blocked slots with no reason', () => {
+    const caps = [
+      evaluated(PAYMENT_CAPABILITY.OVERPAYMENT_ROUTING, {
+        blocked: true,
+        blockReason: PAYMENT_REASON.OVERPAYMENT_RESOLUTION_REQUIRED,
+      }),
+      evaluated(PAYMENT_CAPABILITY.SUBMIT_GUARDS, {
+        presentation: 'inline',
+        blocked: true,
+        blockReason: PAYMENT_REASON.OUTSTANDING_POLICY_REQUIRED,
+      }),
+      // Defensive: blocked without a reason is skipped.
+      evaluated(PAYMENT_CAPABILITY.CASH_DRAWER, { presentation: 'inline', blocked: true }),
+    ];
+    const plan = planCapabilityView(caps, FULL_PRESET);
+    expect(selectGuardSlots(plan).map((s) => s.evaluated.blockReason)).toEqual([
+      PAYMENT_REASON.OVERPAYMENT_RESOLUTION_REQUIRED,
+      PAYMENT_REASON.OUTSTANDING_POLICY_REQUIRED,
     ]);
   });
 });
