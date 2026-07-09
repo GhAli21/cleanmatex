@@ -27,5 +27,12 @@
     "title": "Account billing",
     "action": "Account billing",
     "description": "Add the contract and accounting details to bill this order to the customer's account."
+  },
+  "FX_ROUNDING": {
+    "title": "Currency & rounding",
+    "action": "Currency & rounding",
+    "description": "This order settles at a non-base exchange rate; the applied rate and any rounding are shown for reference.",
+    "exchangeRate": "Exchange rate",
+    "rounding": "Rounding adjustment"
   }
 }
