@@ -2,7 +2,7 @@
 
 **Branch:** `feature/payment-modal-composable-capabilities` (one final merge; small commits per phase)
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
-**Last update:** 2026-07-10 (in-place dialog set COMPLETE `64cb8892`; **Phase-6 H7 oracle fixtures shipped** — customer-credit + drawer-choice + per-fixture schema gate; manual QA §1 passed by user)
+**Last update:** 2026-07-10 (**QA-R4.5 follow-ups** `90801a20` + `566117fd` — method-detail lock when remaining ≤ 0 and method cannot retain overpayment; correct remaining-balance cap copy for all methods)
 
 ## Phase board
 
@@ -229,11 +229,14 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 | Access contract + inventories | ✅ `payExtraIntentEnable` + ready Collect API dep; check --wire PASS |
 | Gates + Manual QA §6 | ✅ tsc · eslint · jest payment · i18n · build · checklist §6 |
 | Documentation skill closeout | ✅ `Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md` |
+| Follow-up — zero-amount detail lock (all methods) | ✅ `90801a20` — `isPaymentLegDetailLocked` + `PaymentLegDetailFields.disabled` (Simple/Full/Split) when remaining ≤ 0, leg amount ~0, pay-extra OFF |
+| Follow-up — method-no-overpay lock + cap copy | ✅ `566117fd` — lock also when pay-extra ON but method cannot retain overpayment; `resolvePaymentAmountCapReason` (never “enable pay-extra” when already ON); title **Amount limited** (not Cash); copy uses **remaining (unpaid) balance**; Collect parity |
 
-**Last update:** 2026-07-10 — **QA-R4.5 / 4g DONE** (engine hard gate + top strip + Collect/Simple parity).
+**Last update:** 2026-07-10 — **QA-R4.5 / 4g DONE** + follow-ups `90801a20` / `566117fd` (detail lock + correct cap messaging for all methods).
 
 ## Decisions log
 
+- 2026-07-10 — **QA-R4.5 follow-up (user QA):** when remaining balance is not greater than 0 and the active method cannot retain overpayment, method detail fields lock for **all** methods (not Check-only); amount-cap banner must name remaining balance and must not tell the cashier to enable pay-extra when it is already ON (`566117fd`). Prior zero-amount lock when pay-extra OFF: `90801a20`.
 - 2026-07-10 — **Phase 7 feature docs shipped:** `Payment_Modal_Composable_Capabilities_Feature_Docs.md` — program-level feature documentation per the repo feature-docs contract (permissions, flags, i18n, APIs/DB deltas = none-but-0B, trust model, tests, rollout risks, entry points). Remaining Phase-7 items are QA-gated (ADR flip, kill-switch removal, security re-run).
 - 2026-07-10 — **Phase 6 / H7 oracle fixtures shipped:** `customer-credit.json` + `drawer-choice.json` added to the payload oracle (10 fixtures) + new per-fixture `newOrderPaymentPayloadSchema` validation gate. Payment module 32 suites / 274 tests. Remaining Phase 6: reason-code catalog (deferred to the guards-region migration that consumes it).
 - 2026-07-10 — **In-place dialog set COMPLETE:** B2B account-billing + overpayment routing wired in-place (Simple quick-actions + server-guard corrective actions); extra-receipt mount swapped to the Phase-3 `OverpaymentRoutingDialog` capability adapter; `ADVANCED_VIEW` guard affordance retired (`B2B_DIALOG` replaces it — no workbench hop remains); shared `use-b2b-contracts.ts` hook extracted (container + inspector dedupe); capability dialogs added to the submit-shortcut suppression set. Gates: 32 suites / 262 tests · tsc 0 · eslint 0 · i18n ✓ · next build ✓.
