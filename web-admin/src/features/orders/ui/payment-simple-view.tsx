@@ -37,12 +37,6 @@ import {
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
 import type { PaymentKeypadKey } from './payment-modal-v4.utils';
-import {
-  isPaymentLegDetailLocked,
-  resolvePaymentLegDetailLockReason,
-  resolvePaymentOverpaymentPolicy,
-  resolveSupportsRetainedOverpayment,
-} from '@/lib/payments/overpayment-policy';
 
 /**
  * Props for {@link PaymentSimpleView}. Values and handlers are threaded from
@@ -137,7 +131,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     amountValue,
     onAmountValueChange,
     amountCapHint,
-    payExtraIntent = false,
+    payExtraIntent: _payExtraIntent = false,
     activeLegOption,
     updateLeg,
     cardBrands,
@@ -165,31 +159,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [showKeypad, setShowKeypad] = useState(false);
-  const activeLegSupportsRetainedOverpayment = resolveSupportsRetainedOverpayment({
-    payExtraIntent,
-    policy: resolvePaymentOverpaymentPolicy({
-      paymentMethodCode: activeLeg?.method ?? '',
-      supportsChangeReturn: activeLegOption?.supports_change_return,
-      supportsOverpayment: activeLegOption?.supports_overpayment,
-      requiresCashDrawer: activeLegOption?.requires_cash_drawer,
-    }),
-  });
-  const legDetailsLocked = isPaymentLegDetailLocked({
-    legAmount: activeLeg?.amount,
-    remainingBalance,
-    supportsRetainedOverpayment: activeLegSupportsRetainedOverpayment,
-    moneyEpsilon,
-  });
-  const legDetailsLockReason = resolvePaymentLegDetailLockReason({
-    locked: legDetailsLocked,
-    payExtraIntent,
-  });
-  const legDetailsLockedReason =
-    legDetailsLockReason === 'method_no_overpayment'
-      ? t('payExtraIntent.detailsLockedMethodNoOverpayment')
-      : legDetailsLockReason === 'pay_extra_off'
-        ? t('payExtraIntent.detailsLockedZeroAmount')
-        : undefined;
 
   return (
     <div
@@ -361,8 +330,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               showCashTenderedChange
               currencyCode={currencyCode}
               formatAmount={formatAmount}
-              disabled={legDetailsLocked}
-              disabledReason={legDetailsLockedReason}
             />
           ) : null}
 

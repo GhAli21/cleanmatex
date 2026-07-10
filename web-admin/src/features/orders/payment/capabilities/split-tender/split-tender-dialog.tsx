@@ -35,12 +35,6 @@ import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
 import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fields';
-import {
-  isPaymentLegDetailLocked,
-  resolvePaymentLegDetailLockReason,
-  resolvePaymentOverpaymentPolicy,
-  resolveSupportsRetainedOverpayment,
-} from '@/lib/payments/overpayment-policy';
 
 /**
  * Typed engine actions the split dialog may call — nothing more.
@@ -186,31 +180,6 @@ export function SplitTenderDialog({
         <ul className="flex flex-col gap-2" data-testid="split-tender-leg-list">
           {paymentLegs.map((leg, index) => {
             const option = optionByCode.get(leg.method);
-            const legSupportsRetained = resolveSupportsRetainedOverpayment({
-              payExtraIntent: payExtraIntent ?? false,
-              policy: resolvePaymentOverpaymentPolicy({
-                paymentMethodCode: leg.method,
-                supportsChangeReturn: option?.supports_change_return,
-                supportsOverpayment: option?.supports_overpayment,
-                requiresCashDrawer: option?.requires_cash_drawer,
-              }),
-            });
-            const detailsLocked = isPaymentLegDetailLocked({
-              legAmount: leg.amount,
-              remainingBalance,
-              supportsRetainedOverpayment: legSupportsRetained,
-              moneyEpsilon,
-            });
-            const detailsLockReason = resolvePaymentLegDetailLockReason({
-              locked: detailsLocked,
-              payExtraIntent: payExtraIntent ?? false,
-            });
-            const detailsLockedReason =
-              detailsLockReason === 'method_no_overpayment'
-                ? t('payExtraIntent.detailsLockedMethodNoOverpayment')
-                : detailsLockReason === 'pay_extra_off'
-                  ? t('payExtraIntent.detailsLockedZeroAmount')
-                  : undefined;
             return (
               <li
                 key={leg.legRef ?? `${leg.method}-${index}`}
@@ -261,6 +230,7 @@ export function SplitTenderDialog({
                       : leg.amount
                   }
                   decimalPlaces={decimalPlaces}
+                  showZero
                   onValueChange={(value) => {
                     actions.setActiveLegIndex(index);
                     actions.updateLeg(index, 'amount', value ?? 0);
@@ -294,8 +264,6 @@ export function SplitTenderDialog({
                   showCashTenderedChange
                   currencyCode={currencyCode}
                   formatAmount={formatAmount}
-                  disabled={detailsLocked}
-                  disabledReason={detailsLockedReason}
                 />
               </li>
             );

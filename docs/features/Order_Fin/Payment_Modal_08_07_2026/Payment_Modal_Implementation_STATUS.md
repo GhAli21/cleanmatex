@@ -230,7 +230,7 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 | Gates + Manual QA §6 | ✅ tsc · eslint · jest payment · i18n · build · checklist §6 |
 | Documentation skill closeout | ✅ `Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md` |
 | Follow-up — zero-amount detail lock (all methods) | ✅ `90801a20` — `isPaymentLegDetailLocked` + `PaymentLegDetailFields.disabled` (Simple/Full/Split) when remaining ≤ 0, leg amount ~0, pay-extra OFF |
-| Follow-up — method-no-overpay lock + cap copy | ✅ `566117fd` — lock also when pay-extra ON but method cannot retain overpayment; `resolvePaymentAmountCapReason` (never “enable pay-extra” when already ON); title **Amount limited** (not Cash); copy uses **remaining (unpaid) balance**; Collect parity |
+| Follow-up — prevent-at-add (no zombie zero legs) | ✅ — `resolveNewPaymentLegRejection`: do not create a new leg when remaining ≤ 0 and method cannot retain overpayment; methods stay enabled; toast on reject; repeat click → toast + dismissible alert; existing legs untouched (no amount mutation, no lock) |
 
 **Last update:** 2026-07-10 — **QA-R4.5 / 4g DONE** + follow-ups `90801a20` / `566117fd` (detail lock + correct cap messaging for all methods).
 

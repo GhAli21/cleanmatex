@@ -141,15 +141,40 @@ export function resolvePaymentAmountCapReason(params: {
 }
 
 /**
- * When the amount editor cannot accept a positive collect on this leg, method
- * detail fields must lock the same way (QA-R4.5 follow-up).
+ * Why adding a *new* payment leg must be refused (remaining already covered and
+ * this method cannot retain overpayment). Existing legs are never auto-changed
+ * — only new-leg creation is gated (cashier decision on legs already present).
+ */
+export type NewPaymentLegRejectReason = 'pay_extra_off' | 'method_no_overpayment';
+
+/**
+ * Returns a reject reason when a new leg for this method must not be created.
+ * Methods stay selectable in the UI; the caller shows toast (and alert on repeat).
  *
- * Locked when: no applied amount on the leg, remaining balance is not greater
- * than 0 (≤ ε), and this method cannot retain overpayment (pay-extra OFF **or**
- * method does not support overpayment / cash change). When remaining > ε,
- * details stay editable at amount 0. Do **not** use this to disable the amount
- * editor — the engine caps increases; decreasing an existing leg must stay
- * possible.
+ * @returns `null` when the new leg may be added.
+ */
+export function resolveNewPaymentLegRejection(params: {
+  remainingBalance: number;
+  payExtraIntent: boolean;
+  policy: PaymentOverpaymentPolicy;
+  moneyEpsilon: number;
+}): NewPaymentLegRejectReason | null {
+  if (params.remainingBalance > params.moneyEpsilon) return null;
+  if (
+    resolveSupportsRetainedOverpayment({
+      payExtraIntent: params.payExtraIntent,
+      policy: params.policy,
+    })
+  ) {
+    return null;
+  }
+  return params.payExtraIntent ? 'method_no_overpayment' : 'pay_extra_off';
+}
+
+/**
+ * @deprecated Prefer {@link resolveNewPaymentLegRejection} (prevent-at-add).
+ * Kept for tests / transitional call sites — existing legs are no longer locked
+ * by product rule (cashier decides what to do with legs already present).
  */
 export function isPaymentLegDetailLocked(params: {
   legAmount: number | null | undefined;
@@ -157,13 +182,12 @@ export function isPaymentLegDetailLocked(params: {
   supportsRetainedOverpayment: boolean;
   moneyEpsilon: number;
 }): boolean {
-  const noAmount = (params.legAmount ?? 0) <= params.moneyEpsilon;
-  const nothingLeft = params.remainingBalance <= params.moneyEpsilon;
-  return noAmount && nothingLeft && !params.supportsRetainedOverpayment;
+  void params;
+  return false;
 }
 
 /**
- * Which locked-details copy to show (pay-extra OFF vs method cannot overpay).
+ * @deprecated See {@link isPaymentLegDetailLocked}.
  */
 export function resolvePaymentLegDetailLockReason(params: {
   locked: boolean;

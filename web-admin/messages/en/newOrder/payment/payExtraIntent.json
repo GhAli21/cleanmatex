@@ -5,6 +5,9 @@
   "cappedAtRemaining": "Capped at remaining ({max}) — customer paying extra? Enable \"Customer is paying extra\" above.",
   "cappedMethodNoOverpayment": "This payment method does not allow collecting more than the remaining (unpaid) balance. Maximum for this leg is {max}.",
   "amountLimitedTitle": "Amount limited",
+  "newLegRejectedPayExtraOff": "Payment method not added — remaining balance is zero. Enable \"Customer is paying extra\" above to collect more than the remaining balance.",
+  "newLegRejectedMethodNoOverpayment": "Payment method not added — remaining balance is zero and this method does not allow overpayment. Use a method that supports overpayment, or reduce other legs first.",
+  "newLegRejectedAlertTitle": "Payment method not added",
   "permissionRequired": "You do not have permission to enable paying extra. Required: {permissionName} ({permissionCode}).",
   "permissionNameAllocate": "Allocate Overpayment to Balances",
   "permissionCodeAllocate": "orders:overpayment_allocate",
@@ -12,6 +15,6 @@
   "extraAmount": "Extra: {amount}",
   "extraResolvedTo": "Extra: {amount} → {destination}",
   "extraUnresolved": "Extra unresolved — validate to choose destination",
-  "detailsLockedZeroAmount": "Remaining balance is zero and this method has no amount — details are locked. Enable \"Customer is paying extra\" above to collect more than the remaining balance.",
-  "detailsLockedMethodNoOverpayment": "Remaining balance is zero and this method does not allow overpayment — details are locked. Use a method that supports overpayment, or reduce other legs first."
+  "detailsLockedZeroAmount": "Remaining balance is zero and this method has no amount — amount and details are locked. Enable \"Customer is paying extra\" above to collect more than the remaining balance.",
+  "detailsLockedMethodNoOverpayment": "Remaining balance is zero and this method does not allow overpayment — amount and details are locked. Use a method that supports overpayment, or reduce other legs first."
 }

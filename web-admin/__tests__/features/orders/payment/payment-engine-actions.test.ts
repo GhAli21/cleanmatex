@@ -12,6 +12,7 @@ describe('toPaymentEngineActions (typed engine-action facade)', () => {
   function buildMockEngine() {
     return {
       handleMethodSelect: jest.fn(),
+      addPaymentLeg: jest.fn(),
       cycleActiveLeg: jest.fn(),
       fillLegRemaining: jest.fn(),
       handleKeypadPress: jest.fn(),
@@ -60,7 +61,7 @@ describe('toPaymentEngineActions (typed engine-action facade)', () => {
     expect(actions.pressKeypad).toBe(engine.handleKeypadPress);
     expect(actions.setActiveLegIndex).toBe(engine.legs.setActiveLegIndex);
     expect(actions.updateLeg).toBe(engine.legs.updateLeg);
-    expect(actions.addLeg).toBe(engine.legs.addLeg);
+    expect(actions.addLeg).toBe(engine.addPaymentLeg);
     expect(actions.removeLegAt).toBe(engine.legs.removeLegAt);
     expect(actions.selectCashDrawerSession).toBe(
       engine.cashDrawer.setSelectedCashDrawerSessionId,

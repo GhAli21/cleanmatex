@@ -1,6 +1,7 @@
 import {
   capCollectPaymentAmount,
   isPaymentLegDetailLocked,
+  resolveNewPaymentLegRejection,
   resolvePaymentAmountCapReason,
   resolvePaymentLegDetailLockReason,
   resolvePaymentOverpaymentPolicy,
@@ -162,55 +163,66 @@ describe('resolvePaymentAmountCapReason', () => {
   });
 });
 
-describe('isPaymentLegDetailLocked', () => {
-  it('locks details when fully settled, amount is zero, and method cannot retain overpay', () => {
-    expect(
-      isPaymentLegDetailLocked({
-        legAmount: 0,
-        remainingBalance: 0,
-        supportsRetainedOverpayment: false,
-        moneyEpsilon: 0.001,
-      })
-    ).toBe(true);
+describe('resolveNewPaymentLegRejection', () => {
+  const checkNoOverpay = resolvePaymentOverpaymentPolicy({
+    paymentMethodCode: 'CHECK',
+    supportsOverpayment: false,
+  });
+  const cardOverpay = resolvePaymentOverpaymentPolicy({
+    paymentMethodCode: 'CARD',
+    supportsOverpayment: true,
   });
 
-  it('locks details when pay-extra is ON but method does not support overpayment', () => {
+  it('allows a new leg when remaining balance is positive', () => {
     expect(
-      isPaymentLegDetailLocked({
-        legAmount: 0,
-        remainingBalance: 0,
-        supportsRetainedOverpayment: false,
-        moneyEpsilon: 0.001,
-      })
-    ).toBe(true);
-  });
-
-  it('keeps details editable on unpaid orders even at zero amount', () => {
-    expect(
-      isPaymentLegDetailLocked({
-        legAmount: 0,
+      resolveNewPaymentLegRejection({
         remainingBalance: 3.05,
-        supportsRetainedOverpayment: false,
+        payExtraIntent: false,
+        policy: checkNoOverpay,
         moneyEpsilon: 0.001,
       })
-    ).toBe(false);
+    ).toBeNull();
   });
 
-  it('keeps details editable when method can retain overpayment at zero amount', () => {
+  it('rejects when remaining is zero and pay-extra is OFF', () => {
+    expect(
+      resolveNewPaymentLegRejection({
+        remainingBalance: 0,
+        payExtraIntent: false,
+        policy: checkNoOverpay,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe('pay_extra_off');
+  });
+
+  it('rejects when remaining is zero, pay-extra ON, but method cannot overpay', () => {
+    expect(
+      resolveNewPaymentLegRejection({
+        remainingBalance: 0,
+        payExtraIntent: true,
+        policy: checkNoOverpay,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe('method_no_overpayment');
+  });
+
+  it('allows when remaining is zero and method can retain overpayment', () => {
+    expect(
+      resolveNewPaymentLegRejection({
+        remainingBalance: 0,
+        payExtraIntent: true,
+        policy: cardOverpay,
+        moneyEpsilon: 0.001,
+      })
+    ).toBeNull();
+  });
+});
+
+describe('isPaymentLegDetailLocked (deprecated — always unlocked for existing legs)', () => {
+  it('never locks existing legs (cashier decision)', () => {
     expect(
       isPaymentLegDetailLocked({
         legAmount: 0,
-        remainingBalance: 0,
-        supportsRetainedOverpayment: true,
-        moneyEpsilon: 0.001,
-      })
-    ).toBe(false);
-  });
-
-  it('keeps details editable when leg has applied amount', () => {
-    expect(
-      isPaymentLegDetailLocked({
-        legAmount: 3.05,
         remainingBalance: 0,
         supportsRetainedOverpayment: false,
         moneyEpsilon: 0.001,
@@ -220,18 +232,6 @@ describe('isPaymentLegDetailLocked', () => {
 });
 
 describe('resolvePaymentLegDetailLockReason', () => {
-  it('returns pay_extra_off when locked and intent is OFF', () => {
-    expect(
-      resolvePaymentLegDetailLockReason({ locked: true, payExtraIntent: false })
-    ).toBe('pay_extra_off');
-  });
-
-  it('returns method_no_overpayment when locked and intent is ON', () => {
-    expect(
-      resolvePaymentLegDetailLockReason({ locked: true, payExtraIntent: true })
-    ).toBe('method_no_overpayment');
-  });
-
   it('returns null when not locked', () => {
     expect(
       resolvePaymentLegDetailLockReason({ locked: false, payExtraIntent: true })

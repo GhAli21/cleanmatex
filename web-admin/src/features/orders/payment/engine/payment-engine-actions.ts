@@ -37,7 +37,8 @@ export interface PaymentEngineActions {
   // ---- leg editing (split-tender capability; H2 extension, Phase 3) ----
   setActiveLegIndex: PaymentEngine['legs']['setActiveLegIndex'];
   updateLeg: PaymentEngine['legs']['updateLeg'];
-  addLeg: PaymentEngine['legs']['addLeg'];
+  /** Guarded add — refuses new legs that cannot accept amount (prevent-at-add). */
+  addLeg: PaymentEngine['addPaymentLeg'];
   removeLegAt: PaymentEngine['legs']['removeLegAt'];
   // ---- cash drawer (drawer-selector capability; H2 extension, Phase 3) ----
   selectCashDrawerSession: PaymentEngine['cashDrawer']['setSelectedCashDrawerSessionId'];
@@ -70,7 +71,8 @@ export interface PaymentEngineActions {
 
 /**
  * Projects the engine's handlers into the {@link PaymentEngineActions} facade.
- * Pure mapping — no wrapping, no behavior change.
+ * Pure mapping — no behavior change except `addLeg`, which binds the
+ * prevent-at-add guarded {@link PaymentEngine.addPaymentLeg}.
  *
  * @param engine - The `usePaymentEngine` return value.
  * @returns The grouped, typed action surface.
@@ -85,7 +87,7 @@ export function toPaymentEngineActions(
     pressKeypad: engine.handleKeypadPress,
     setActiveLegIndex: engine.legs.setActiveLegIndex,
     updateLeg: engine.legs.updateLeg,
-    addLeg: engine.legs.addLeg,
+    addLeg: engine.addPaymentLeg,
     removeLegAt: engine.legs.removeLegAt,
     selectCashDrawerSession: engine.cashDrawer.setSelectedCashDrawerSessionId,
     persistPreferredCashDrawerId: engine.cashDrawer.persistPreferredCashDrawerId,
