@@ -66,7 +66,7 @@ export interface SplitTenderDialogProps {
   amountDue: number;
   /** Engine-derived sum of all legs (`paymentLegsTotal`). */
   legsTotal: number;
-  /** Engine-derived remaining balance (>0 outstanding, <0 over-allocated). */
+  /** Engine-derived remaining balance (floored at 0 — >0 means outstanding). */
   remainingBalance: number;
   /** Engine money-comparison epsilon (display thresholding only). */
   moneyEpsilon: number;
@@ -130,12 +130,21 @@ export function SplitTenderDialog({
     }
   }, [open, activeLegIndex, paymentLegs.length]);
 
+  // The engine floors `remainingBalance` at 0 (`max(0, due − settled)`), so
+  // over-allocation can never be read from it — detect it by comparing the two
+  // figures this balance line already renders (legs total vs amount due).
+  // Display thresholding only; capping/change policy stay engine-owned. QA
+  // round 4: a card leg overpaying the order previously showed "Fully
+  // Allocated" here because the 'over' branch was unreachable.
+  const overAllocatedAmount = legsTotal - amountDue;
   const balanceState =
-    Math.abs(remainingBalance) <= moneyEpsilon
-      ? 'allocated'
-      : remainingBalance > 0
+    overAllocatedAmount > moneyEpsilon
+      ? 'over'
+      : remainingBalance > moneyEpsilon
         ? 'outstanding'
-        : 'over';
+        : 'allocated';
+  const balanceDelta =
+    balanceState === 'over' ? overAllocatedAmount : remainingBalance;
   const balanceLabel =
     balanceState === 'allocated'
       ? t('splitPayment.allocated')
@@ -311,7 +320,7 @@ export function SplitTenderDialog({
             {balanceState !== 'allocated' ? (
               <span className="font-mono tabular-nums">
                 {' '}
-                {formatAmount(Math.abs(remainingBalance))}
+                {formatAmount(balanceDelta)}
               </span>
             ) : null}
           </span>

@@ -154,19 +154,23 @@ describe('SplitTenderDialog', () => {
     expect(actions.removeLegAt).toHaveBeenCalledWith(1);
   });
 
-  it('renders over-allocation as the over state', () => {
+  it('renders over-allocation as the over state even though the engine floors remainingBalance at 0', () => {
+    // Real engine contract: remainingBalance = max(0, due − settled) — it is
+    // NEVER negative. Over-allocation must be detected from legsTotal vs
+    // amountDue (QA round 4: a CARD leg overpaying previously showed
+    // "Fully Allocated").
     render(
       <SplitTenderDialog
         {...baseProps}
         actions={buildActions()}
-        paymentLegs={[leg('CASH', 50)]}
+        paymentLegs={[leg('CARD', 50)]}
         legsTotal={50}
-        remainingBalance={-7.5}
+        remainingBalance={0}
       />,
     );
-    expect(screen.getByTestId('split-tender-balance')).toHaveAttribute(
-      'data-balance-state',
-      'over',
-    );
+    const balance = screen.getByTestId('split-tender-balance');
+    expect(balance).toHaveAttribute('data-balance-state', 'over');
+    // Shows the over-allocated amount (50 − 42.5).
+    expect(balance.textContent).toContain('7.500');
   });
 });
