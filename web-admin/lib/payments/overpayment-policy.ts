@@ -105,3 +105,25 @@ export function capCollectPaymentAmount(params: {
   return Number.parseFloat(capped.toFixed(decimalPlaces));
 }
 
+/**
+ * When nothing remains to collect, the leg has no applied amount, and pay-extra
+ * is OFF, method detail fields (card brand / last-4 / auth / check / gateway)
+ * must not stay editable — same hard-gate spirit as a zero collect
+ * (QA-R4.5 follow-up / Fully Settled screenshot).
+ *
+ * Unpaid orders (remaining > ε) keep details editable even at amount 0 so
+ * cashiers can fill card/check metadata before the amount. Do **not** use this
+ * to disable the amount editor — the engine already caps increases when
+ * overpayment is not allowed.
+ */
+export function isPaymentLegDetailLocked(params: {
+  legAmount: number | null | undefined;
+  remainingBalance: number;
+  payExtraIntent: boolean;
+  moneyEpsilon: number;
+}): boolean {
+  const noAmount = (params.legAmount ?? 0) <= params.moneyEpsilon;
+  const nothingLeft = params.remainingBalance <= params.moneyEpsilon;
+  return noAmount && nothingLeft && !params.payExtraIntent;
+}
+

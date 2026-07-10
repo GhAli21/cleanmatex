@@ -114,6 +114,7 @@ import {
 import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
+  isPaymentLegDetailLocked,
 } from '@/lib/payments/overpayment-policy';
 import {
   deriveBalanceStatusLabel,
@@ -1775,6 +1776,16 @@ export function PaymentFullView({
     }, 150);
   }, [handleBlockedSubmitAttempt, needsAdvanced, userControlledMode]);
 
+  const activeLegDetailsLocked = isPaymentLegDetailLocked({
+    legAmount: activeLeg?.amount,
+    remainingBalance,
+    payExtraIntent,
+    moneyEpsilon,
+  });
+  const activeLegDetailsLockedReason = activeLegDetailsLocked
+    ? t('payExtraIntent.detailsLockedZeroAmount')
+    : undefined;
+
   const handlePayExtraIntentAttempt = useCallback(
     (next: boolean) => {
       attemptPayExtraIntentChange({
@@ -3202,6 +3213,8 @@ export function PaymentFullView({
                                     checkNumberError={errors.checkNumber?.message}
                                     checkNumberInputRef={checkNumberInputRef}
                                     checkDateInputRef={checkDateInputRef}
+                                    disabled={activeLegDetailsLocked}
+                                    disabledReason={activeLegDetailsLockedReason}
                                   />
                                 </div>
                               </div>

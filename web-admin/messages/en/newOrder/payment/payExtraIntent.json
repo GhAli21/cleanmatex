@@ -9,5 +9,6 @@
   "cannotDisableWhileExtra": "Cannot turn off while an extra amount remains. Reduce payment legs to the order total, or validate and choose where the extra goes.",
   "extraAmount": "Extra: {amount}",
   "extraResolvedTo": "Extra: {amount} → {destination}",
-  "extraUnresolved": "Extra unresolved — validate to choose destination"
+  "extraUnresolved": "Extra unresolved — validate to choose destination",
+  "detailsLockedZeroAmount": "Order is fully settled and this method has no amount — details are locked. Enable \"Customer is paying extra\" above to collect more than the order total."
 }

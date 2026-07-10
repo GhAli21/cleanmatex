@@ -37,6 +37,7 @@ import {
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
 import type { PaymentKeypadKey } from './payment-modal-v4.utils';
+import { isPaymentLegDetailLocked } from '@/lib/payments/overpayment-policy';
 
 /**
  * Props for {@link PaymentSimpleView}. Values and handlers are threaded from
@@ -70,6 +71,8 @@ export interface PaymentSimpleViewProps {
   onAmountValueChange: (value: number | null, draft: string) => void;
   /** Amber hard-gate / cash-cap notice from the engine (QA-R4.5). */
   amountCapHint?: string | null;
+  /** Pay-extra intent — unlocks zero-amount method detail fields. */
+  payExtraIntent?: boolean;
   quickTenderItems: PaymentQuickTenderChipItem[];
   onQuickTenderSelect: (item: PaymentQuickTenderChipItem) => void;
   onKeypadPress: (key: PaymentKeypadKey) => void;
@@ -129,6 +132,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     amountValue,
     onAmountValueChange,
     amountCapHint,
+    payExtraIntent = false,
     activeLegOption,
     updateLeg,
     cardBrands,
@@ -156,6 +160,15 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [showKeypad, setShowKeypad] = useState(false);
+  const legDetailsLocked = isPaymentLegDetailLocked({
+    legAmount: activeLeg?.amount,
+    remainingBalance,
+    payExtraIntent,
+    moneyEpsilon,
+  });
+  const legDetailsLockedReason = legDetailsLocked
+    ? t('payExtraIntent.detailsLockedZeroAmount')
+    : undefined;
 
   return (
     <div
@@ -327,6 +340,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               showCashTenderedChange
               currencyCode={currencyCode}
               formatAmount={formatAmount}
+              disabled={legDetailsLocked}
+              disabledReason={legDetailsLockedReason}
             />
           ) : null}
 

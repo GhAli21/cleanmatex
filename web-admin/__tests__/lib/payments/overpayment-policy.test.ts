@@ -1,5 +1,6 @@
 import {
   capCollectPaymentAmount,
+  isPaymentLegDetailLocked,
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
 } from '@/lib/payments/overpayment-policy';
@@ -93,5 +94,51 @@ describe('capCollectPaymentAmount', () => {
         decimalPlaces: 3,
       })
     ).toBe(10);
+  });
+});
+
+describe('isPaymentLegDetailLocked', () => {
+  it('locks details when fully settled, amount is zero, and pay-extra is OFF', () => {
+    expect(
+      isPaymentLegDetailLocked({
+        legAmount: 0,
+        remainingBalance: 0,
+        payExtraIntent: false,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe(true);
+  });
+
+  it('keeps details editable on unpaid orders even at zero amount', () => {
+    expect(
+      isPaymentLegDetailLocked({
+        legAmount: 0,
+        remainingBalance: 3.05,
+        payExtraIntent: false,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe(false);
+  });
+
+  it('keeps details editable when pay-extra is ON even at zero amount', () => {
+    expect(
+      isPaymentLegDetailLocked({
+        legAmount: 0,
+        remainingBalance: 0,
+        payExtraIntent: true,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe(false);
+  });
+
+  it('keeps details editable when leg has applied amount', () => {
+    expect(
+      isPaymentLegDetailLocked({
+        legAmount: 3.05,
+        remainingBalance: 0,
+        payExtraIntent: false,
+        moneyEpsilon: 0.001,
+      })
+    ).toBe(false);
   });
 });

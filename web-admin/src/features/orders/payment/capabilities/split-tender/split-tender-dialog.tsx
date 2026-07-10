@@ -35,6 +35,7 @@ import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
 import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fields';
+import { isPaymentLegDetailLocked } from '@/lib/payments/overpayment-policy';
 
 /**
  * Typed engine actions the split dialog may call — nothing more.
@@ -80,6 +81,8 @@ export interface SplitTenderDialogProps {
   cardBrands: OrgCardBrandConfig[];
   /** Customer-credit instrument method codes (for the "no details" fallback). */
   creditMethodCodes: string[];
+  /** Pay-extra intent — unlocks zero-amount method detail fields. */
+  payExtraIntent?: boolean;
 }
 
 /**
@@ -108,6 +111,7 @@ export function SplitTenderDialog({
   branchPaymentTerminals,
   cardBrands,
   creditMethodCodes,
+  payExtraIntent = false,
 }: SplitTenderDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -260,6 +264,22 @@ export function SplitTenderDialog({
                   showCashTenderedChange
                   currencyCode={currencyCode}
                   formatAmount={formatAmount}
+                  disabled={isPaymentLegDetailLocked({
+                    legAmount: leg.amount,
+                    remainingBalance,
+                    payExtraIntent: payExtraIntent ?? false,
+                    moneyEpsilon,
+                  })}
+                  disabledReason={
+                    isPaymentLegDetailLocked({
+                      legAmount: leg.amount,
+                      remainingBalance,
+                      payExtraIntent: payExtraIntent ?? false,
+                      moneyEpsilon,
+                    })
+                      ? t('payExtraIntent.detailsLockedZeroAmount')
+                      : undefined
+                  }
                 />
               </li>
             );

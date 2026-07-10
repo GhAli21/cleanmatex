@@ -86,6 +86,13 @@ export interface PaymentLegDetailFieldsProps {
   showCashTenderedChange?: boolean;
   currencyCode?: string;
   formatAmount?: (n: number) => string;
+  /**
+   * Lock method detail fields when the leg has no applied amount and pay-extra
+   * is OFF (amount hard-gate parity). Does not clear existing values.
+   */
+  disabled?: boolean;
+  /** Optional reason shown under the fields when {@link disabled}. */
+  disabledReason?: string;
 }
 
 /**
@@ -111,12 +118,16 @@ export function PaymentLegDetailFields({
   showCashTenderedChange = false,
   currencyCode,
   formatAmount,
+  disabled = false,
+  disabledReason,
 }: PaymentLegDetailFieldsProps) {
   const t = useTranslations('newOrder.payment');
   const isRTL = useRTL();
 
   const referenceError =
-    option?.requires_reference && !legHasRequiredPaymentReference(leg, true)
+    !disabled &&
+    option?.requires_reference &&
+    !legHasRequiredPaymentReference(leg, true)
       ? t('splitPayment.validation.referenceRequiredField')
       : undefined;
 
@@ -136,16 +147,30 @@ export function PaymentLegDetailFields({
     !showCash;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-disabled={disabled ? '' : undefined}>
+      {disabled && disabledReason ? (
+        <p
+          className={`text-xs text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}
+          role="status"
+          data-testid="payment-leg-details-locked"
+        >
+          {disabledReason}
+        </p>
+      ) : null}
       {option?.requires_terminal && (
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-600">
             {t('splitPayment.paymentTerminal')}
-            <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
-            <span className="sr-only">{t('workspace.requiredField')}</span>
+            {!disabled ? (
+              <>
+                <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
+                <span className="sr-only">{t('workspace.requiredField')}</span>
+              </>
+            ) : null}
           </label>
           <CmxSelectDropdown
             value={leg.terminalId ?? ''}
+            disabled={disabled}
             onValueChange={(value) => updateLeg(legIndex, 'terminalId', value || undefined)}
           >
             <CmxSelectDropdownTrigger>
@@ -172,7 +197,7 @@ export function PaymentLegDetailFields({
               ))}
             </CmxSelectDropdownContent>
           </CmxSelectDropdown>
-          {!leg.terminalId?.trim() ? (
+          {!disabled && !leg.terminalId?.trim() ? (
             <p className="mt-1 text-xs text-rose-600">
               {t('splitPayment.validation.terminalRequiredField')}
             </p>
@@ -188,6 +213,7 @@ export function PaymentLegDetailFields({
             </label>
             <CmxSelectDropdown
               value={leg.card_brand_code ?? ''}
+              disabled={disabled}
               onValueChange={(value) => updateLeg(legIndex, 'card_brand_code', value || undefined)}
             >
               <CmxSelectDropdownTrigger>
@@ -220,6 +246,7 @@ export function PaymentLegDetailFields({
             maxLength={4}
             inputMode="numeric"
             placeholder="0000"
+            disabled={disabled}
             onChange={(event) =>
               updateLeg(
                 legIndex,
@@ -230,11 +257,12 @@ export function PaymentLegDetailFields({
           />
           <CmxInput
             label={t('splitPayment.authCode')}
-            required={option?.requires_reference}
+            required={!disabled && option?.requires_reference}
             value={leg.auth_code ?? ''}
             dir="ltr"
             placeholder="—"
             error={referenceError}
+            disabled={disabled}
             onChange={(event) => updateLeg(legIndex, 'auth_code', event.target.value || undefined)}
           />
         </div>
@@ -245,11 +273,12 @@ export function PaymentLegDetailFields({
           <CmxInput
             ref={checkNumberInputRef}
             label={t('splitPayment.checkNumber')}
-            required
+            required={!disabled}
             value={leg.checkNumber ?? ''}
             dir="ltr"
-            error={checkNumberError}
+            error={disabled ? undefined : checkNumberError}
             placeholder={t('checkNumber.placeholder')}
+            disabled={disabled}
             onChange={(event) => {
               const nextValue = event.target.value || undefined;
               updateLeg(legIndex, 'checkNumber', nextValue);
@@ -261,6 +290,7 @@ export function PaymentLegDetailFields({
             value={leg.checkBank ?? ''}
             dir="ltr"
             placeholder="—"
+            disabled={disabled}
             onChange={(event) => {
               const nextValue = event.target.value || undefined;
               updateLeg(legIndex, 'checkBank', nextValue);
@@ -276,10 +306,13 @@ export function PaymentLegDetailFields({
             // tender a back-dated check; validateCheckDueDate also catches
             // pasted/typed values that bypass the picker.
             min={todayYyyyMmDd()}
+            disabled={disabled}
             error={
-              validateCheckDueDate(leg.checkDate)
-                ? t(`splitPayment.${validateCheckDueDate(leg.checkDate)!}`)
-                : undefined
+              disabled
+                ? undefined
+                : validateCheckDueDate(leg.checkDate)
+                  ? t(`splitPayment.${validateCheckDueDate(leg.checkDate)!}`)
+                  : undefined
             }
             onChange={(event) => {
               const nextValue = event.target.value || undefined;
@@ -293,11 +326,12 @@ export function PaymentLegDetailFields({
       {leg.method === PAYMENT_METHODS.BANK_TRANSFER && (
         <CmxInput
           label={t('splitPayment.bankReference')}
-          required={option?.requires_reference}
+          required={!disabled && option?.requires_reference}
           value={leg.bank_reference ?? ''}
           dir="ltr"
           placeholder="—"
           error={referenceError}
+          disabled={disabled}
           onChange={(event) => updateLeg(legIndex, 'bank_reference', event.target.value || undefined)}
         />
       )}
@@ -313,22 +347,24 @@ export function PaymentLegDetailFields({
           />
           <CmxInput
             label={t('splitPayment.gatewayTransactionId')}
-            required={option?.requires_reference}
+            required={!disabled && option?.requires_reference}
             value={leg.gateway_transaction_id ?? ''}
             dir="ltr"
             placeholder="—"
             error={referenceError}
+            disabled={disabled}
             onChange={(event) =>
               updateLeg(legIndex, 'gateway_transaction_id', event.target.value || undefined)
             }
           />
           <CmxInput
             label={t('splitPayment.gatewayReference')}
-            required={option?.requires_reference}
+            required={!disabled && option?.requires_reference}
             value={leg.gateway_reference ?? ''}
             dir="ltr"
             placeholder="—"
             error={referenceError}
+            disabled={disabled}
             onChange={(event) =>
               updateLeg(legIndex, 'gateway_reference', event.target.value || undefined)
             }
