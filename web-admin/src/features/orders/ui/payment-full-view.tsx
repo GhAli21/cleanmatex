@@ -88,6 +88,12 @@ import {
   selectDialogSlots,
 } from '@features/orders/payment/view/capability-view-plan';
 import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
+import {
+  SERVER_GUARD_AFFORDANCE,
+  resolveServerGuardAffordance,
+} from '@features/orders/payment/view/server-guard-affordance';
+import { PaymentSubmitGuard } from '@features/orders/payment/primitives/payment-submit-guard';
+import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
 import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
 import { SplitTenderDialog } from '@features/orders/payment/capabilities/split-tender/split-tender-dialog';
 import { CustomerCreditDialog } from '@features/orders/payment/capabilities/customer-credit/customer-credit-dialog';
@@ -374,6 +380,14 @@ interface PaymentFullViewProps {
    * program decision; the engine's `needsAdvanced` auto-escalates to Full.
    */
   initialMode?: PaymentModalMode;
+  /**
+   * Phase 5 — a server submit rejection routed to its owning capability.
+   * Rendered as an in-view `PaymentSubmitGuard` in the shared footer with a
+   * corrective action that opens the owning capability surface.
+   */
+  serverGuard?: PaymentServerGuard | null;
+  /** Clears the routed server guard (called on modal open reset). */
+  onServerGuardClear?: () => void;
   // ---- callbacks ----
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
@@ -408,6 +422,8 @@ export function PaymentFullView({
   loading = false,
   initialPaymentNotes = '',
   initialMode = PAYMENT_MODAL_MODE.SIMPLE,
+  serverGuard = null,
+  onServerGuardClear,
   onClose,
   onSubmit,
 }: PaymentFullViewProps) {
@@ -558,8 +574,10 @@ export function PaymentFullView({
       setPromoDialogOpen(false);
       setPayLaterDialogOpen(false);
       setRailOpen(false);
+      // A routed server guard from a previous session must not survive reopen.
+      onServerGuardClear?.();
     }
-  }, [open, initialMode]);
+  }, [open, initialMode, onServerGuardClear]);
 
   // Composition engine (Phase 2G-1): the 7 concern slices + every cross-slice
   // derivation + the non-DOM handlers + the payExtraIntentRef bridge. Behavior-frozen.
@@ -1752,6 +1770,65 @@ export function PaymentFullView({
       handleBlockedSubmitAttempt();
     }, 150);
   }, [handleBlockedSubmitAttempt, needsAdvanced, userControlledMode]);
+
+  // ---- Server-error → capability guard (Phase 5, hardening #2) ----
+  // A routed server rejection renders as an in-view guard in the shared footer
+  // (both faces); its corrective action opens the owning capability surface in
+  // place. The one deliberate workbench hop is ADVANCED_VIEW (B2B billing has
+  // no in-place dialog wired yet) — and it is offered only while in Simple.
+  const serverGuardAffordance = serverGuard
+    ? resolveServerGuardAffordance(serverGuard.capability)
+    : null;
+  const showServerGuardAction =
+    !!serverGuardAffordance &&
+    serverGuardAffordance !== SERVER_GUARD_AFFORDANCE.NONE &&
+    !(
+      serverGuardAffordance === SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW &&
+      mode === PAYMENT_MODAL_MODE.FULL
+    );
+  // Resolved only when shown — message-only guards (SUBMIT_GUARDS) have no
+  // `capabilities.*.action` catalog entry to resolve.
+  const serverGuardActionLabel =
+    serverGuard && showServerGuardAction
+      ? serverGuardAffordance === SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW
+        ? t('mode.suggestAction')
+        : t(`capabilities.${serverGuard.capability}.action`)
+      : undefined;
+  const handleServerGuardAction = useCallback(() => {
+    switch (serverGuardAffordance) {
+      case SERVER_GUARD_AFFORDANCE.SPLIT_DIALOG:
+        setSplitDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.GIFT_DIALOG:
+        setGiftDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.PROMO_DIALOG:
+        setPromoDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.CREDIT_DIALOG:
+        setCreditDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.PAY_LATER_DIALOG:
+        setPayLaterDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.CASH_DRAWER_DIALOG:
+        setCashDrawerDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.OVERPAYMENT_DIALOG:
+        setExtraReceiptDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW:
+        handleSimpleMoreOptions();
+        break;
+      default:
+        break;
+    }
+  }, [
+    serverGuardAffordance,
+    setCashDrawerDialogOpen,
+    setExtraReceiptDialogOpen,
+    handleSimpleMoreOptions,
+  ]);
 
   // Contextual auto-expand (finding 1.8): sections default-collapsed now, but
   // re-open the moment they become operationally relevant. Render-time guarded
@@ -4204,6 +4281,18 @@ export function PaymentFullView({
                     </CmxButton>
                   ) : null}
                 </div>
+                {/* Phase 5: a routed server rejection surfaces as an in-view
+                    guard naming the same cause as the server (shared footer —
+                    visible in both faces; cleared on the next attempt). */}
+                {serverGuard ? (
+                  <PaymentSubmitGuard
+                    reason={serverGuard.reason}
+                    message={serverGuard.message}
+                    actionLabel={serverGuardActionLabel}
+                    onAction={showServerGuardAction ? handleServerGuardAction : undefined}
+                    isRTL={isRTL}
+                  />
+                ) : null}
                 {validationItems.length > 0 ? (
                   <CmxSummaryMessage
                     type="warning"

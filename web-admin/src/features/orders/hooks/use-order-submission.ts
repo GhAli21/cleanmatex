@@ -21,6 +21,20 @@ import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
+import {
+    routeServerErrorToGuard,
+    type ServerErrorGuardRoute,
+} from '../payment/domain/server-error-routing';
+
+/**
+ * A server submit rejection routed to its owning payment capability (Phase 5 —
+ * server-error → capability-guard routing). `capability`/`reason` come from the
+ * pure routing module; `message` is the already-localized infrastructure
+ * message so the in-view guard and the toast name the same cause.
+ */
+export interface PaymentServerGuard extends ServerErrorGuardRoute {
+    message: string;
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
@@ -143,11 +157,16 @@ export function useOrderSubmission() {
         message?: string;
         differences?: AmountMismatchDifferences;
     }>({ open: false });
+    // Server rejection routed to its owning capability — the payment modal
+    // renders it as an in-view guard (cleared on the next attempt / modal open).
+    const [serverGuard, setServerGuard] = useState<PaymentServerGuard | null>(null);
+    const clearServerGuard = useCallback(() => setServerGuard(null), []);
 
     const submitOrder = useCallback(
         async (paymentData: PaymentFormData, payload?: NewOrderPaymentPayload) => {
             setIsSubmitting(true);
             state.setLoading(true);
+            setServerGuard(null);
 
             // Check if we're in edit mode
             const isEditMode = state.state.isEditMode && state.state.editingOrderId;
@@ -646,6 +665,15 @@ export function useOrderSubmission() {
                             infrastructureMessages[errorCode] ||
                             errorMessage ||
                             t('errors.orderCreationFailed');
+
+                        // Phase 5 (hardening #2): route the typed server code to its
+                        // owning capability so the payment modal renders an in-view
+                        // guard naming the same cause as this toast. Unknown codes
+                        // return null → generic toast path only, never a view switch.
+                        const guardRoute = routeServerErrorToGuard(errorCode);
+                        if (guardRoute) {
+                            setServerGuard({ ...guardRoute, message: errorMessage });
+                        }
                     } else if (isServerError) {
                         errorMessage = t('errors.serverError', {
                             default:
@@ -939,5 +967,7 @@ export function useOrderSubmission() {
         isSubmitting,
         amountMismatch,
         setAmountMismatch,
+        serverGuard,
+        clearServerGuard,
     };
 }

@@ -8,7 +8,7 @@
 import { useAuth } from '@/lib/auth/auth-context';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
-import { useOrderSubmission } from '../hooks/use-order-submission';
+import { useOrderSubmission, type PaymentServerGuard } from '../hooks/use-order-submission';
 import { AmountMismatchDialog } from './amount-mismatch-dialog';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -50,6 +50,10 @@ type PaymentModalComponentProps = {
   initialPaymentNotes?: string;
   /** Phase 4 — face the payment modal opens with ('simple' auto-escalates to 'full'). */
   initialPaymentMode?: 'simple' | 'full';
+  /** Phase 5 — server rejection routed to its owning capability (in-view guard). */
+  serverGuard?: PaymentServerGuard | null;
+  /** Clears the routed server guard (modal open reset). */
+  onServerGuardClear?: () => void;
 };
 
 // Lazy load heavy modals for code splitting
@@ -98,7 +102,8 @@ export function NewOrderModals() {
   const { currentTenant, user } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
-  const { submitOrder, amountMismatch, setAmountMismatch } = useOrderSubmission();
+  const { submitOrder, amountMismatch, setAmountMismatch, serverGuard, clearServerGuard } =
+    useOrderSubmission();
   const { trackByPiece } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
@@ -393,6 +398,8 @@ export function NewOrderModals() {
           loading={state.state.loading}
           initialPaymentNotes={state.state.paymentNotes ?? ''}
           initialPaymentMode="simple"
+          serverGuard={serverGuard}
+          onServerGuardClear={clearServerGuard}
         />
       )}
 

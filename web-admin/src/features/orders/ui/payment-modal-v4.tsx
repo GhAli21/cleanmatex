@@ -27,6 +27,7 @@ import {
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
+import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
 import { PAYMENT_MODAL_MODE, type PaymentModalMode } from './payment-modal-v4.utils';
 import { PaymentFullView } from './payment-full-view';
 
@@ -58,6 +59,10 @@ interface PaymentModalProps {
    * to Simple; the engine auto-escalates to Full when `needsAdvanced` trips.
    */
   initialPaymentMode?: PaymentModalMode;
+  /** Phase 5 — server rejection routed to its owning capability (in-view guard). */
+  serverGuard?: PaymentServerGuard | null;
+  /** Clears the routed server guard (called on modal open reset). */
+  onServerGuardClear?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +91,8 @@ interface PaymentModalProps {
  * @param root0.loading Disables submit while the parent order flow is busy.
  * @param root0.initialPaymentNotes Existing payment notes restored when reopening.
  * @param root0.initialPaymentMode Face the modal opens with (defaults to Simple).
+ * @param root0.serverGuard Server rejection routed to its owning capability (in-view guard).
+ * @param root0.onServerGuardClear Clears the routed server guard on modal open reset.
  * @param root0.checkoutAmount
  * @returns Payment modal JSX for the active order.
  */
@@ -109,6 +116,8 @@ export function PaymentModalV4({
   loading = false,
   initialPaymentNotes = '',
   initialPaymentMode = PAYMENT_MODAL_MODE.SIMPLE,
+  serverGuard = null,
+  onServerGuardClear,
 }: PaymentModalProps) {
   const isB2BCustomer = customerType === 'b2b';
   const defaultOutstandingPolicy: OutstandingPolicy = isRetailOnlyOrder
@@ -220,6 +229,8 @@ export function PaymentModalV4({
       loading={loading}
       initialPaymentNotes={initialPaymentNotes}
       initialMode={initialPaymentMode}
+      serverGuard={serverGuard}
+      onServerGuardClear={onServerGuardClear}
       onClose={onClose}
       onSubmit={onSubmit}
     />

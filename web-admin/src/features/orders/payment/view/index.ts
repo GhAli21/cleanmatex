@@ -7,3 +7,4 @@
 
 export * from './capability-view-plan';
 export * from './capability-view-renderer';
+export * from './server-guard-affordance';

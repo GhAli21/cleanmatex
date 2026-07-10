@@ -45,6 +45,11 @@
     "action": "Cash + card",
     "description": "Split this payment between cash and card."
   },
+  "CASH_DRAWER": {
+    "title": "Cash drawer",
+    "action": "Cash drawer",
+    "description": "Select or open the cash drawer session used to take cash for this order."
+  },
   "OVERPAYMENT_ROUTING": {
     "title": "Extra amount",
     "action": "Extra amount",
