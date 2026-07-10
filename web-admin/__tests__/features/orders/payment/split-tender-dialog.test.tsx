@@ -65,6 +65,9 @@ const baseProps = {
   currencyCode: 'KWD',
   formatAmount: (n: number) => n.toFixed(3),
   decimalPlaces: 3,
+  branchPaymentTerminals: [],
+  cardBrands: [],
+  creditMethodCodes: [],
 };
 
 describe('SplitTenderDialog', () => {

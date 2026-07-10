@@ -2092,6 +2092,9 @@ export function PaymentFullView({
               currencyCode={currencyCode}
               formatAmount={formatAmount}
               decimalPlaces={decimalPlaces}
+              branchPaymentTerminals={branchPaymentTerminals}
+              cardBrands={cardBrands}
+              creditMethodCodes={creditMethodCodes}
             />
 
             <CustomerCreditDialog

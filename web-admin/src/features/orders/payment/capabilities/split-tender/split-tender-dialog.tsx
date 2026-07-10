@@ -16,7 +16,11 @@ import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
-import type { CheckoutSettlementOption } from '@features/orders/hooks/use-payment-catalog';
+import type { OrgCardBrandConfig } from '@/lib/types/payment';
+import type {
+  CheckoutSettlementOption,
+  PaymentTerminalOption,
+} from '@features/orders/hooks/use-payment-catalog';
 import { CmxButton, CmxMoneyField } from '@ui/primitives';
 import {
   CmxSelectDropdown,
@@ -28,6 +32,7 @@ import {
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
+import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fields';
 
 /**
  * Typed engine actions the split dialog may call — nothing more.
@@ -64,6 +69,13 @@ export interface SplitTenderDialogProps {
   currencyCode: string;
   formatAmount: (n: number) => string;
   decimalPlaces: number;
+  // ---- per-method detail fields (shared PaymentLegDetailFields) ----
+  /** Payment terminals for the branch (card terminal selector). */
+  branchPaymentTerminals: PaymentTerminalOption[];
+  /** Active card-brand config (card brand selector). */
+  cardBrands: OrgCardBrandConfig[];
+  /** Customer-credit instrument method codes (for the "no details" fallback). */
+  creditMethodCodes: string[];
 }
 
 /**
@@ -88,6 +100,9 @@ export function SplitTenderDialog({
   currencyCode,
   formatAmount,
   decimalPlaces,
+  branchPaymentTerminals,
+  cardBrands,
+  creditMethodCodes,
 }: SplitTenderDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -138,8 +153,9 @@ export function SplitTenderDialog({
             return (
               <li
                 key={leg.legRef ?? `${leg.method}-${index}`}
-                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex flex-col gap-2 rounded-xl border border-slate-100 p-2"
               >
+                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <CmxSelectDropdown
                   value={leg.method}
                   onValueChange={(method) => {
@@ -194,6 +210,16 @@ export function SplitTenderDialog({
                 >
                   <Trash2 className="h-4 w-4 text-slate-500" />
                 </CmxButton>
+                </div>
+                <PaymentLegDetailFields
+                  leg={leg}
+                  legIndex={index}
+                  option={option}
+                  updateLeg={actions.updateLeg}
+                  branchPaymentTerminals={branchPaymentTerminals}
+                  cardBrands={cardBrands}
+                  creditMethodCodes={creditMethodCodes}
+                />
               </li>
             );
           })}
