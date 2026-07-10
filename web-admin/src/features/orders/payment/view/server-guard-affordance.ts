@@ -4,10 +4,11 @@
  *
  * `routeServerErrorToGuard` (domain) answers *which capability* owns a server
  * rejection; this module answers *what the guard's corrective action does* in
- * the container — open that capability's in-place dialog, open the Advanced
- * workbench, or nothing (message-only, when the fields to fix are already in
- * view). Pure and exhaustive over {@link PaymentCapabilityKey} so adding a
- * capability without deciding its guard affordance is a type error.
+ * the container — open that capability's in-place dialog, or nothing
+ * (message-only, when the fields to fix are already in view). Every routable
+ * capability now has an in-place dialog (ADR: a complication is a dialog,
+ * never a mode change). Pure and exhaustive over {@link PaymentCapabilityKey}
+ * so adding a capability without deciding its guard affordance is a type error.
  *
  * The container maps each affordance token to its concrete handler (dialog
  * open-state setter / mode switch); no React or engine coupling here.
@@ -35,8 +36,8 @@ export const SERVER_GUARD_AFFORDANCE = {
   CASH_DRAWER_DIALOG: 'CASH_DRAWER_DIALOG',
   /** Open the overpayment (extra receipt) dialog. */
   OVERPAYMENT_DIALOG: 'OVERPAYMENT_DIALOG',
-  /** Switch to the Advanced (Full) workbench — no in-place dialog yet. */
-  ADVANCED_VIEW: 'ADVANCED_VIEW',
+  /** Open the B2B account-billing dialog. */
+  B2B_DIALOG: 'B2B_DIALOG',
   /** Message-only guard — the fields to fix are already in view. */
   NONE: 'NONE',
 } as const;
@@ -67,7 +68,7 @@ const CAPABILITY_GUARD_AFFORDANCE: Record<
   PROMO_CODE: SERVER_GUARD_AFFORDANCE.PROMO_DIALOG,
   CUSTOMER_CREDIT: SERVER_GUARD_AFFORDANCE.CREDIT_DIALOG,
   PAY_LATER: SERVER_GUARD_AFFORDANCE.PAY_LATER_DIALOG,
-  B2B_ACCOUNT_BILLING: SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW,
+  B2B_ACCOUNT_BILLING: SERVER_GUARD_AFFORDANCE.B2B_DIALOG,
   CASH_DRAWER: SERVER_GUARD_AFFORDANCE.CASH_DRAWER_DIALOG,
   OVERPAYMENT_ROUTING: SERVER_GUARD_AFFORDANCE.OVERPAYMENT_DIALOG,
   FX_ROUNDING: SERVER_GUARD_AFFORDANCE.NONE,

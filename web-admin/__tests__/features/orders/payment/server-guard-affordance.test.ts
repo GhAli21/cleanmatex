@@ -35,9 +35,9 @@ describe('resolveServerGuardAffordance', () => {
     );
   });
 
-  it('routes B2B account billing to the Advanced workbench (no in-place dialog wired)', () => {
+  it('routes B2B account billing to its in-place dialog (set complete — no workbench hop)', () => {
     expect(resolveServerGuardAffordance(PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING)).toBe(
-      SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW,
+      SERVER_GUARD_AFFORDANCE.B2B_DIALOG,
     );
   });
 

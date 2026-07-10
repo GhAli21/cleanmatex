@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
-import { useQuery } from '@tanstack/react-query';
 import { Controller, type FieldErrors, type UseFormReturn } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
 import {
@@ -65,7 +64,6 @@ import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 import { PayExtraTopStrip } from './payment-modal/pay-extra/pay-extra-top-strip';
 import { attemptPayExtraIntentChange } from './payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
-import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 // Composable payment system (Phase 4 strangler — capability renderer wired in
@@ -101,6 +99,9 @@ import { CustomerCreditDialog } from '@features/orders/payment/capabilities/cust
 import { GiftCardDialog } from '@features/orders/payment/capabilities/gift-card/gift-card-dialog';
 import { PromoCodeDialog } from '@features/orders/payment/capabilities/promo-code/promo-code-dialog';
 import { PayLaterDialog } from '@features/orders/payment/capabilities/pay-later/pay-later-dialog';
+import { B2BAccountBillingDialog } from '@features/orders/payment/capabilities/b2b-account-billing/b2b-account-billing-dialog';
+import { OverpaymentRoutingDialog } from '@features/orders/payment/capabilities/overpayment-routing/overpayment-routing-dialog';
+import { useB2bContracts } from '@features/orders/hooks/use-b2b-contracts';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
 import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
@@ -291,16 +292,9 @@ function B2BContractsSelect({
   isRTL: boolean;
 }) {
   const t = useTranslations('newOrder.payment');
-  const { data: contracts = [], isLoading } = useQuery({
-    queryKey: ['b2b-contracts', 'customer', customerId],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/b2b-contracts?customer_id=${customerId}`);
-      if (!res.ok) return [];
-      const json = await res.json();
-      return (json.data ?? []) as Array<{ id: string; contractNo: string }>;
-    },
-    enabled: !!customerId,
-  });
+  // Shared query (use-b2b-contracts) — same key as the B2B capability dialog's
+  // fetch in the container, so the two surfaces dedupe to one request.
+  const { data: contracts = [], isLoading } = useB2bContracts(customerId);
 
   const noneLabel = t('b2b.contractOptional');
 
@@ -465,6 +459,11 @@ export function PaymentFullView({
   const giftCardNumber  = watch('giftCardNumber');
   const giftCardAmount  = watch('giftCardAmount');
   const outstandingPolicy = watch('outstandingPolicy');
+  // B2B account-billing fields — watched so the RHF-free capability dialog can
+  // receive value + setter pairs (same convention as gift card / promo code).
+  const b2bContractId = watch('b2bContractId');
+  const costCenterCode = watch('costCenterCode');
+  const poNumber = watch('poNumber');
 
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
@@ -500,6 +499,7 @@ export function PaymentFullView({
   const [giftDialogOpen, setGiftDialogOpen] = useState(false);
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [payLaterDialogOpen, setPayLaterDialogOpen] = useState(false);
+  const [b2bDialogOpen, setB2bDialogOpen] = useState(false);
   // Phase 6 — below `xl` the receipt rail becomes a slide-over panel.
   const [railOpen, setRailOpen] = useState(false);
 
@@ -541,7 +541,8 @@ export function PaymentFullView({
       creditDialogOpen ||
       giftDialogOpen ||
       promoDialogOpen ||
-      payLaterDialogOpen
+      payLaterDialogOpen ||
+      b2bDialogOpen
     ) {
       return;
     }
@@ -558,6 +559,7 @@ export function PaymentFullView({
     giftDialogOpen,
     promoDialogOpen,
     payLaterDialogOpen,
+    b2bDialogOpen,
   ]);
 
   // Reset view-local state on open. (form.reset is in the shell's open-reset effect.)
@@ -578,6 +580,7 @@ export function PaymentFullView({
       setGiftDialogOpen(false);
       setPromoDialogOpen(false);
       setPayLaterDialogOpen(false);
+      setB2bDialogOpen(false);
       setRailOpen(false);
       // A routed server guard from a previous session must not survive reopen.
       onServerGuardClear?.();
@@ -1529,34 +1532,59 @@ export function PaymentFullView({
       submitHasBlockingIssues,
     ]
   );
-  const migratedCapabilityPlan = useMemo(
+  // Single registry evaluation shared by every capability plan (and the B2B
+  // dialog's required flag) so all surfaces classify from the SAME facts.
+  const evaluatedCapabilities = useMemo(
     () =>
-      planCapabilityView(
-        evaluateCapabilities(
-          projectCapabilityContext(capabilityContextSource),
-          paymentModalConfig
-        ),
-        resolvePreset(PAYMENT_PRESET.FULL)
-        // Sections routed through the renderer so far (strangler): FX/rounding.
-      ).filter((slot) => slot.key === PAYMENT_CAPABILITY.FX_ROUNDING),
-    [capabilityContextSource, paymentModalConfig]
-  );
-  // Simple fast-lane quick-action buttons: the common advanced capabilities the
-  // SIMPLE preset surfaces as dialogs (split, gift card, store credit, pay-later),
-  // filtered to the ones actually available this session.
-  const simpleQuickActionsPlan = useMemo(
-    () =>
-      selectDialogSlots(
-        planCapabilityView(
-          evaluateCapabilities(
-            projectCapabilityContext(capabilityContextSource),
-            paymentModalConfig
-          ),
-          resolvePreset(PAYMENT_PRESET.SIMPLE)
-        )
+      evaluateCapabilities(
+        projectCapabilityContext(capabilityContextSource),
+        paymentModalConfig
       ),
     [capabilityContextSource, paymentModalConfig]
   );
+  const migratedCapabilityPlan = useMemo(
+    () =>
+      planCapabilityView(
+        evaluatedCapabilities,
+        resolvePreset(PAYMENT_PRESET.FULL)
+        // Sections routed through the renderer so far (strangler): FX/rounding.
+      ).filter((slot) => slot.key === PAYMENT_CAPABILITY.FX_ROUNDING),
+    [evaluatedCapabilities]
+  );
+  // Simple fast-lane quick-action buttons: every advanced capability the SIMPLE
+  // preset surfaces as a dialog, filtered to the ones available this session.
+  const simpleQuickActionsPlan = useMemo(
+    () =>
+      selectDialogSlots(
+        planCapabilityView(evaluatedCapabilities, resolvePreset(PAYMENT_PRESET.SIMPLE))
+      ),
+    [evaluatedCapabilities]
+  );
+  // ---- B2B account-billing capability dialog inputs ----
+  // Required badge comes from the registry evaluation (single source; today
+  // `b2bRequiredFieldsMissing` is conservatively false — see the TODO above).
+  const b2bBillingRequired =
+    evaluatedCapabilities.find(
+      (capability) => capability.key === PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING
+    )?.required ?? false;
+  // Contract list shared with the Full-view inspector tab (same query key —
+  // deduped). Gated to B2B customers so retail sessions never fetch.
+  const { data: b2bContracts = [], isLoading: b2bContractsLoading } = useB2bContracts(
+    customerId,
+    isB2BCustomer
+  );
+  // Read-only credit snapshot for the dialog, mapped off the server preview
+  // totals (server remains the enforcement point — Phase 0B hard-deny).
+  const b2bCreditLimitInfo = useMemo(() => {
+    const creditLimit = serverTotals?.creditLimit;
+    if (!creditLimit) return null;
+    return {
+      creditLimit: creditLimit.creditLimit,
+      currentBalance: creditLimit.currentBalance,
+      available: creditLimit.available,
+      wouldExceed: creditLimit.wouldExceed,
+    };
+  }, [serverTotals?.creditLimit]);
   // Typed actions the split-tender dialog may call (leg editing only).
   const splitTenderActions = useMemo(
     () => ({
@@ -1601,6 +1629,15 @@ export function PaymentFullView({
   const payLaterActions = useMemo(
     () => ({ changeOutstandingPolicy: handleOutstandingPolicyChange }),
     [handleOutstandingPolicyChange]
+  );
+  // Typed actions for the overpayment-routing capability adapter (wraps the
+  // existing extra-receipt dialog with a capability identity — ADR #5).
+  const overpaymentRoutingActions = useMemo(
+    () => ({
+      setExtraReceiptDialogOpen,
+      confirmExtraReceiptSelection,
+    }),
+    [setExtraReceiptDialogOpen, confirmExtraReceiptSelection]
   );
 
   const submitButtonLabel = useMemo(() => {
@@ -1846,25 +1883,17 @@ export function PaymentFullView({
   // ---- Server-error → capability guard (Phase 5, hardening #2) ----
   // A routed server rejection renders as an in-view guard in the shared footer
   // (both faces); its corrective action opens the owning capability surface in
-  // place. The one deliberate workbench hop is ADVANCED_VIEW (B2B billing has
-  // no in-place dialog wired yet) — and it is offered only while in Simple.
+  // place — every routable capability now has an in-place dialog (no mode hop).
   const serverGuardAffordance = serverGuard
     ? resolveServerGuardAffordance(serverGuard.capability)
     : null;
   const showServerGuardAction =
-    !!serverGuardAffordance &&
-    serverGuardAffordance !== SERVER_GUARD_AFFORDANCE.NONE &&
-    !(
-      serverGuardAffordance === SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW &&
-      mode === PAYMENT_MODAL_MODE.FULL
-    );
+    !!serverGuardAffordance && serverGuardAffordance !== SERVER_GUARD_AFFORDANCE.NONE;
   // Resolved only when shown — message-only guards (SUBMIT_GUARDS) have no
   // `capabilities.*.action` catalog entry to resolve.
   const serverGuardActionLabel =
     serverGuard && showServerGuardAction
-      ? serverGuardAffordance === SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW
-        ? t('mode.suggestAction')
-        : t(`capabilities.${serverGuard.capability}.action`)
+      ? t(`capabilities.${serverGuard.capability}.action`)
       : undefined;
   const handleServerGuardAction = useCallback(() => {
     switch (serverGuardAffordance) {
@@ -1889,18 +1918,13 @@ export function PaymentFullView({
       case SERVER_GUARD_AFFORDANCE.OVERPAYMENT_DIALOG:
         setExtraReceiptDialogOpen(true);
         break;
-      case SERVER_GUARD_AFFORDANCE.ADVANCED_VIEW:
-        handleSimpleMoreOptions();
+      case SERVER_GUARD_AFFORDANCE.B2B_DIALOG:
+        setB2bDialogOpen(true);
         break;
       default:
         break;
     }
-  }, [
-    serverGuardAffordance,
-    setCashDrawerDialogOpen,
-    setExtraReceiptDialogOpen,
-    handleSimpleMoreOptions,
-  ]);
+  }, [serverGuardAffordance, setCashDrawerDialogOpen, setExtraReceiptDialogOpen]);
 
   // Contextual auto-expand (finding 1.8): sections default-collapsed now, but
   // re-open the moment they become operationally relevant. Render-time guarded
@@ -2133,7 +2157,15 @@ export function PaymentFullView({
       creditNotePickerOpen ||
       extraReceiptDialogOpen ||
       allocation.autoDrawerOpen ||
-      allocation.manualDrawerOpen,
+      allocation.manualDrawerOpen ||
+      // Capability dialogs (in-place surfaces) equally suppress the submit
+      // shortcuts — Enter must never submit the order behind an open dialog.
+      splitDialogOpen ||
+      creditDialogOpen ||
+      giftDialogOpen ||
+      promoDialogOpen ||
+      payLaterDialogOpen ||
+      b2bDialogOpen,
     onSubmit: () => {
       handleSubmit(onSubmitForm, onInvalidForm)();
     },
@@ -2265,6 +2297,7 @@ export function PaymentFullView({
               branchPaymentTerminals={branchPaymentTerminals}
               cardBrands={cardBrands}
               creditMethodCodes={creditMethodCodes}
+              payExtraIntent={payExtraIntent}
             />
 
             <CustomerCreditDialog
@@ -2334,6 +2367,27 @@ export function PaymentFullView({
               selectedPolicy={effectiveOutstandingPolicy}
             />
 
+            {/* B2B account-billing capability dialog — opened in-place from the
+                Simple quick action or a routed server guard (ADR #3: a required
+                gate, never a mode change). Fields mirror the Full-view inspector
+                tab through the shared RHF form. */}
+            <B2BAccountBillingDialog
+              open={b2bDialogOpen}
+              onOpenChange={setB2bDialogOpen}
+              required={b2bBillingRequired}
+              b2bContractId={b2bContractId}
+              onB2bContractIdChange={(value) => setValue('b2bContractId', value)}
+              contracts={b2bContracts}
+              contractsLoading={b2bContractsLoading}
+              costCenterCode={costCenterCode}
+              onCostCenterCodeChange={(value) => setValue('costCenterCode', value)}
+              poNumber={poNumber}
+              onPoNumberChange={(value) => setValue('poNumber', value)}
+              creditLimit={b2bCreditLimitInfo}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
+
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
@@ -2360,6 +2414,7 @@ export function PaymentFullView({
                   amountValue={simpleAmountValue}
                   onAmountValueChange={handleAmountValueChange}
                   amountCapHint={cashOverRemainingNotice}
+                  payExtraIntent={payExtraIntent}
                   quickTenderItems={quickTenderChipItems}
                   onQuickTenderSelect={handleQuickTenderSelect}
                   onKeypadPress={handleKeypadPress}
@@ -2396,8 +2451,9 @@ export function PaymentFullView({
                             onOpenCapability={(slot) => {
                               // Every quick-action opens its capability dialog
                               // in-place (Simple stays selected — ADR). CASH_CARD_SPLIT
-                              // reuses the split dialog. Anything without a dedicated
-                              // in-place dialog falls back to Advanced.
+                              // reuses the split dialog; OVERPAYMENT_ROUTING reuses the
+                              // extra-receipt dialog. The Advanced fallback remains only
+                              // as defense for a future capability without a dialog.
                               if (
                                 slot.key === PAYMENT_CAPABILITY.SPLIT_TENDER ||
                                 slot.key === PAYMENT_CAPABILITY.CASH_CARD_SPLIT
@@ -2411,6 +2467,14 @@ export function PaymentFullView({
                                 setPromoDialogOpen(true);
                               } else if (slot.key === PAYMENT_CAPABILITY.PAY_LATER) {
                                 setPayLaterDialogOpen(true);
+                              } else if (
+                                slot.key === PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING
+                              ) {
+                                setB2bDialogOpen(true);
+                              } else if (
+                                slot.key === PAYMENT_CAPABILITY.OVERPAYMENT_ROUTING
+                              ) {
+                                setExtraReceiptDialogOpen(true);
                               } else {
                                 handleSimpleMoreOptions();
                               }
@@ -4646,9 +4710,12 @@ export function PaymentFullView({
         }}
       />
 
-      <PaymentExtraReceiptDialog
+      {/* Overpayment-routing capability surface (ADR #5) — the adapter wraps the
+          battle-tested extra-receipt dialog, routing open/confirm/back through the
+          typed engine actions and adding capability open-observability. */}
+      <OverpaymentRoutingDialog
         open={extraReceiptDialogOpen}
-        onOpenChange={setExtraReceiptDialogOpen}
+        actions={overpaymentRoutingActions}
         excessAmount={extraReceiptDialogExcessAmount}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
@@ -4687,12 +4754,9 @@ export function PaymentFullView({
         canSaveAdvance={canSaveAdvanceOverpayment}
         canSaveCredit={canSaveCreditOverpayment}
         canSaveWallet={canWalletOverpayment}
-        onConfirm={() => {
-          if (!confirmExtraReceiptSelection()) {
-            cmxMessage.error(t('validatePayment.requiredBeforeSubmit'));
-          }
+        onConfirmFailed={() => {
+          cmxMessage.error(t('validatePayment.requiredBeforeSubmit'));
         }}
-        onBack={() => setExtraReceiptDialogOpen(false)}
         confirmDisabled={!overpaymentResolutionPayload}
         isRTL={isRTL}
       />

@@ -27,7 +27,9 @@ Legend: `[ ]` not run · `[x]` pass · `[!]` FAIL (add a note + screenshot)
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 2.1 | Buttons per availability | Look at the quick-action card | One button per available capability (Cash+card, Split payment, Gift card, Promo code, Store credit, Pay later); REQUIRED badge when a capability is required | [ ] |
+| 2.1 | Buttons per availability | Look at the quick-action card | One button per available capability (Cash+card, Split payment, Gift card, Promo code, Store credit, Pay later; **Account billing** on a B2B customer; **Route extra amount** when overpaid); REQUIRED badge when a capability is required | [ ] |
+| 2.1b | B2B in-place *(new 2026-07-10)* | B2B customer in Simple → click Account billing | B2B dialog opens **over Simple** (no mode switch): contract dropdown, cost center, PO number; read-only credit status when a limit exists; fields persist to Advanced inspector tab (shared form) | [ ] |
+| 2.1c | Overpayment in-place *(new 2026-07-10)* | Overpay (pay-extra ON) in Simple → click Route extra amount | Extra-receipt routing dialog opens **over Simple**; choosing a destination works exactly as from Advanced | [ ] |
 | 2.2 | In-place dialogs | Click each button | Its dialog opens **over Simple**; closing returns to Simple with state intact | [ ] |
 | 2.3 | Split dialog focus | Open split, add a leg, change a leg's method | Cursor lands in the **active leg's own amount field** each time (never the background editor) | [ ] |
 | 2.4 | Split cash leg | Cash leg, tender more than due (e.g. 10 vs 7 due) | Field shows the TENDERED amount; "Cash Tendered / Change Returned" chips below show tendered and change | [ ] |
@@ -49,7 +51,7 @@ Legend: `[ ]` not run · `[x]` pass · `[!]` FAIL (add a note + screenshot)
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
 | 4.1 | Closed-drawer repro | Cash order → close/end the drawer session from another tab → Submit | Toast **plus** a red guard banner above Cancel/Submit naming the same cause, with a "Cash drawer" button that opens the session dialog | [ ] |
-| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → Submit | Guard routed to Account billing; in **Simple** the button reads "Switch to Advanced"; in **Advanced** message-only (no button) | [ ] |
+| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → Submit | Guard routed to Account billing; corrective button opens the **B2B account-billing dialog in-place** in BOTH faces *(changed 2026-07-10 — was a "Switch to Advanced" hop)* | [ ] |
 | 4.3 | Guard lifecycle | After a guard shows: fix the issue, Submit again | Guard clears on the new attempt; does not reappear after close/reopen | [ ] |
 | 4.4 | Both faces | Trigger a guard, flip Simple↔Advanced | Banner visible in both (shared footer) | [ ] |
 | 4.5 | Generic errors | Force a non-typed failure (e.g. network drop) | Toast only — no guard, no view switch | [ ] |
