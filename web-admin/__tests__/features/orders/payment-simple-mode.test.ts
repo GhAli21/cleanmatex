@@ -71,7 +71,10 @@ describe('deriveSimpleModeMethodOptions', () => {
     ]);
     expect(result).toHaveLength(SIMPLE_MODE_METHOD_CHIP_LIMIT);
     expect(result[0]?.id).toBe('cash');
-    expect(result.map((entry) => entry.id)).toEqual(['cash', 'card', 'mobile']);
+    // Cash first, then catalog order — capped at the chip limit (limit-agnostic).
+    expect(result.map((entry) => entry.id)).toEqual(
+      ['cash', 'card', 'mobile', 'gw'].slice(0, SIMPLE_MODE_METHOD_CHIP_LIMIT),
+    );
   });
 
   it('returns an empty row for an empty catalog', () => {

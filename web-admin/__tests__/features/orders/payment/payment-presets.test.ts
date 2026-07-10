@@ -73,21 +73,33 @@ describe('resolveViewPresentation (registry × preset merge)', () => {
   });
 
   it('(2) surfaces a blocked guard in place even when the preset would hide it', () => {
-    // CASH_CARD_SPLIT is hidden by the SIMPLE preset, but a blocked state wins.
-    const state = evaluated(PAYMENT_CAPABILITY.CASH_CARD_SPLIT, {
+    // A preset that hides SPLIT_TENDER — a blocked state still wins.
+    const preset = {
+      ...SIMPLE_PRESET,
+      capabilityPresentation: {
+        [PAYMENT_CAPABILITY.SPLIT_TENDER]: 'hidden' as CapabilityPresentation,
+      },
+    };
+    const state = evaluated(PAYMENT_CAPABILITY.SPLIT_TENDER, {
       blocked: true,
       presentation: 'inline',
     });
-    expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('inline');
+    expect(resolveViewPresentation(state, preset)).toBe('inline');
   });
 
   it('(3) never hides a required gate the preset marks hidden — falls to intrinsic', () => {
-    // PROMO_CODE is hidden in SIMPLE, but a required gate must still surface.
-    const state = evaluated(PAYMENT_CAPABILITY.PROMO_CODE, {
+    // A preset that hides GIFT_CARD — a required gate must still surface.
+    const preset = {
+      ...SIMPLE_PRESET,
+      capabilityPresentation: {
+        [PAYMENT_CAPABILITY.GIFT_CARD]: 'hidden' as CapabilityPresentation,
+      },
+    };
+    const state = evaluated(PAYMENT_CAPABILITY.GIFT_CARD, {
       required: true,
       presentation: 'dialog',
     });
-    expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('dialog');
+    expect(resolveViewPresentation(state, preset)).toBe('dialog');
   });
 
   it('(3) re-slots a required gate to a non-hidden preset override', () => {
@@ -104,19 +116,26 @@ describe('resolveViewPresentation (registry × preset merge)', () => {
     expect(resolveViewPresentation(state, preset)).toBe('inline');
   });
 
-  it('applies the preset override for an available, non-required capability', () => {
-    // SIMPLE hides PROMO_CODE when it is merely available (not required/blocked).
+  it('applies a hidden preset override for an available, non-required capability', () => {
+    const preset = {
+      ...SIMPLE_PRESET,
+      capabilityPresentation: {
+        [PAYMENT_CAPABILITY.PROMO_CODE]: 'hidden' as CapabilityPresentation,
+      },
+    };
     const state = evaluated(PAYMENT_CAPABILITY.PROMO_CODE, { presentation: 'dialog' });
-    expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('hidden');
+    expect(resolveViewPresentation(state, preset)).toBe('hidden');
   });
 
-  it('surfaces the SIMPLE quick-action capabilities as dialog buttons (not hidden)', () => {
-    // Common advanced capabilities are quick-action buttons on the fast lane.
+  it('surfaces the SIMPLE advanced capabilities as dialog quick-action buttons', () => {
+    // The fast lane surfaces available advanced capabilities as quick-action
+    // buttons (they keep their registry `dialog` presentation).
     for (const key of [
       PAYMENT_CAPABILITY.SPLIT_TENDER,
       PAYMENT_CAPABILITY.GIFT_CARD,
       PAYMENT_CAPABILITY.CUSTOMER_CREDIT,
       PAYMENT_CAPABILITY.PAY_LATER,
+      PAYMENT_CAPABILITY.PROMO_CODE,
     ]) {
       const state = evaluated(key, { presentation: 'dialog' });
       expect(resolveViewPresentation(state, SIMPLE_PRESET)).toBe('dialog');

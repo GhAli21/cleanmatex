@@ -92,6 +92,8 @@ import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-roundin
 import { SplitTenderDialog } from '@features/orders/payment/capabilities/split-tender/split-tender-dialog';
 import { CustomerCreditDialog } from '@features/orders/payment/capabilities/customer-credit/customer-credit-dialog';
 import { GiftCardDialog } from '@features/orders/payment/capabilities/gift-card/gift-card-dialog';
+import { PromoCodeDialog } from '@features/orders/payment/capabilities/promo-code/promo-code-dialog';
+import { PayLaterDialog } from '@features/orders/payment/capabilities/pay-later/pay-later-dialog';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
@@ -474,6 +476,8 @@ export function PaymentFullView({
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [giftDialogOpen, setGiftDialogOpen] = useState(false);
+  const [promoDialogOpen, setPromoDialogOpen] = useState(false);
+  const [payLaterDialogOpen, setPayLaterDialogOpen] = useState(false);
   // Phase 6 — below `xl` the receipt rail becomes a slide-over panel.
   const [railOpen, setRailOpen] = useState(false);
 
@@ -530,6 +534,8 @@ export function PaymentFullView({
       setSplitDialogOpen(false);
       setCreditDialogOpen(false);
       setGiftDialogOpen(false);
+      setPromoDialogOpen(false);
+      setPayLaterDialogOpen(false);
       setRailOpen(false);
     }
   }, [open, initialMode]);
@@ -1540,6 +1546,18 @@ export function PaymentFullView({
       setPinFieldError,
     ]
   );
+  const promoCodeActions = useMemo(
+    () => ({
+      validatePromoCode: handleValidatePromoCode,
+      clearPromoCode: handleClearPromoCode,
+      clearPromoCodeError: handleClearPromoCodeError,
+    }),
+    [handleValidatePromoCode, handleClearPromoCode, handleClearPromoCodeError]
+  );
+  const payLaterActions = useMemo(
+    () => ({ changeOutstandingPolicy: handleOutstandingPolicyChange }),
+    [handleOutstandingPolicyChange]
+  );
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -2102,6 +2120,27 @@ export function PaymentFullView({
               giftCardAmountInputRef={giftCardAmountInputRef}
             />
 
+            <PromoCodeDialog
+              open={promoDialogOpen}
+              onOpenChange={setPromoDialogOpen}
+              actions={promoCodeActions}
+              promoCode={promoCode ?? ''}
+              onPromoCodeChange={(value) => setValue('promoCode', value.toUpperCase())}
+              promoCodeValidating={promoCodeValidating}
+              promoCodeResult={promoCodeResult}
+              appliedPromoCode={appliedPromoCode}
+              promoErrorMessage={promoErrorMessage}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
+
+            <PayLaterDialog
+              open={payLaterDialogOpen}
+              onOpenChange={setPayLaterDialogOpen}
+              actions={payLaterActions}
+              selectedPolicy={effectiveOutstandingPolicy}
+            />
+
             <form
               onSubmit={(event) => event.preventDefault()}
               className="flex min-h-0 flex-1 flex-col"
@@ -2159,17 +2198,23 @@ export function PaymentFullView({
                             dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
                             requiredBadgeLabel={t('capabilities.dialog.required')}
                             onOpenCapability={(slot) => {
-                              // Split / gift card / store credit open their dialog
-                              // in-place (Simple stays); pay-later deep-links to the
-                              // balance-policy section; anything else → Advanced.
-                              if (slot.key === PAYMENT_CAPABILITY.SPLIT_TENDER) {
+                              // Every quick-action opens its capability dialog
+                              // in-place (Simple stays selected — ADR). CASH_CARD_SPLIT
+                              // reuses the split dialog. Anything without a dedicated
+                              // in-place dialog falls back to Advanced.
+                              if (
+                                slot.key === PAYMENT_CAPABILITY.SPLIT_TENDER ||
+                                slot.key === PAYMENT_CAPABILITY.CASH_CARD_SPLIT
+                              ) {
                                 setSplitDialogOpen(true);
                               } else if (slot.key === PAYMENT_CAPABILITY.GIFT_CARD) {
                                 setGiftDialogOpen(true);
                               } else if (slot.key === PAYMENT_CAPABILITY.CUSTOMER_CREDIT) {
                                 setCreditDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.PROMO_CODE) {
+                                setPromoDialogOpen(true);
                               } else if (slot.key === PAYMENT_CAPABILITY.PAY_LATER) {
-                                handleSimpleChangePolicy();
+                                setPayLaterDialogOpen(true);
                               } else {
                                 handleSimpleMoreOptions();
                               }
