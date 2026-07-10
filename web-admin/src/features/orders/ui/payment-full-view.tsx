@@ -44,6 +44,7 @@ import {
   PAYMENT_MODAL_MODE,
   isLegOnSimpleFace,
   resolveSimpleFaceActiveLegIndex,
+  isB2BCreditLimitBlocking,
   type PaymentModalMode,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
@@ -1219,11 +1220,21 @@ export function PaymentFullView({
     }
 
     if (serverTotals?.creditLimit?.wouldExceed) {
-      if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
-        scrollAndFocusTarget(creditLimitOverrideRef.current);
-        return;
+      // Only focus credit UI when a receivable is actually on the path —
+      // fully settled cash/card B2B orders must not be treated as credit blocks.
+      const creditBlocks = isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance,
+        outstandingPolicy: effectiveOutstandingPolicy,
+        epsilon: moneyEpsilon,
+      });
+      if (creditBlocks) {
+        if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
+          scrollAndFocusTarget(creditLimitOverrideRef.current);
+          return;
+        }
+        scrollAndFocusTarget(creditLimitCardRef.current);
       }
-      scrollAndFocusTarget(creditLimitCardRef.current);
     }
   }, [
     creditLimitOverride,
@@ -1238,6 +1249,7 @@ export function PaymentFullView({
     hasCheckLegWithoutNumber,
     hasCheckLegWithInvalidDate,
     legsMissingRequiredReference,
+    moneyEpsilon,
     storedValueLegExceedance,
     storedValueLegExceedsBalance,
     cashDrawerBlockingMessage,

@@ -85,6 +85,26 @@ export function deriveOutstandingPolicy(
 }
 
 /**
+ * Credit-limit preview (`wouldExceed`) is computed against the full sale total
+ * for B2B customers. Submit only enforces it when a receivable is actually
+ * created (`CREDIT_INVOICE` with remaining balance) — match that here so a
+ * fully cash/card-settled B2B order is not blocked by credit attention.
+ */
+export function isB2BCreditLimitBlocking(params: {
+  wouldExceed: boolean;
+  remainingBalance: number;
+  outstandingPolicy: OutstandingPolicy | string;
+  epsilon?: number;
+}): boolean {
+  const epsilon = params.epsilon ?? 0.001;
+  return (
+    params.wouldExceed &&
+    params.remainingBalance > epsilon &&
+    params.outstandingPolicy === 'CREDIT_INVOICE'
+  );
+}
+
+/**
  *
  * @param saleTotal
  * @param totalSettledNowAmount

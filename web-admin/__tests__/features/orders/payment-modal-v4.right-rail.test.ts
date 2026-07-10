@@ -156,10 +156,27 @@ describe('payment-modal-v4 right rail', () => {
         creditLimitWouldExceed: true,
         creditLimitMode: 'warn',
         creditLimitOverride: false,
+        remainingBalance: 12,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
       })
     );
 
     expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT);
+  });
+
+  it('does not surface credit-limit action when fully settled despite wouldExceed preview', () => {
+    const state = derivePaymentModalRightRailState(
+      makeInput({
+        hasBlockingIssues: false,
+        creditLimitWouldExceed: true,
+        creditLimitMode: 'block',
+        remainingBalance: 0,
+        effectiveOutstandingPolicy: 'NONE',
+      })
+    );
+
+    expect(state.requiredAction).toBeNull();
+    expect(state.balanceStatus).toBe(RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED);
   });
 
   it('surfaces gift card pin requirement before remaining-policy fallback', () => {
@@ -224,6 +241,8 @@ describe('payment-modal-v4 right rail', () => {
         creditLimitWouldExceed: true,
         creditLimitMode: 'warn',
         creditLimitOverride: true,
+        remainingBalance: 12,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
       })
     );
 

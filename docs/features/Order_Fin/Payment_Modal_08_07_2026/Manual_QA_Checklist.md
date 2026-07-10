@@ -60,16 +60,18 @@ MISSING_MESSAGE: newOrder.payment.expressLabel
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
 | 4.1 | Closed-drawer repro | Cash order → close/end the drawer session from another tab → Submit | Toast **plus** a red guard banner above Cancel/Submit naming the same cause, with a "Cash drawer" button that opens the session dialog | [ yes] |
-| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → **Submit** | Footer red **server guard** + corrective **"Account billing"** opens the B2B dialog in-place (both faces). *Not* the right-rail card alone — that card’s **"Review account billing"** also opens the same dialog (client-side), but §4.2 is the post-Submit guard. Hard-deny: dialog does **not** unlock override. | [ ] |
-| 4.3 | Guard lifecycle | After a guard shows: fix the issue, Submit again | Guard clears on the new attempt; does not reappear after close/reopen | [ ] |
-| 4.4 | Both faces | Trigger a guard, flip Simple↔Advanced | Banner visible in both (shared footer) | [ ] |
-| 4.5 | Generic errors | Force a non-typed failure (e.g. network drop) | Toast only — no guard, no view switch | [ ] |
+
+| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → **Submit** | Footer red **server guard** + corrective **"Account billing"** opens the B2B dialog in-place (both faces). *Not* the right-rail card alone — that card’s **"Review account billing"** also opens the same dialog (client-side), but §4.2 is the post-Submit guard. Hard-deny: dialog does **not** unlock override. | [ ! ] | where is the button???, also I want to show also the difference between Used-Available , see screenshot file name 4.2_01
+
+| 4.3 | Guard lifecycle | After a guard shows: fix the issue, Submit again | Guard clears on the new attempt; does not reappear after close/reopen | [ !] | I did not find this
+| 4.4 | Both faces | Trigger a guard, flip Simple↔Advanced | Banner visible in both (shared footer) | [ !] | I did not find that 
+| 4.5 | Generic errors | Force a non-typed failure (e.g. network drop) | Toast only — no guard, no view switch | [ ] | How???
 
 ## 5 · Odds and ends
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 5.1 | FX line | Non-base-currency order (exchange rate ≠ 1) — skip if single-currency | "Currency & rounding — Exchange rate" line at top of the Advanced payment-tools rail | [ ] |
+| 5.1 | FX line | Non-base-currency order (exchange rate ≠ 1) — skip if single-currency | "Currency & rounding — Exchange rate" line at top of the Advanced payment-tools rail | [ ] | skipped because of single-currency
 | 5.2 | Blocked submit in Simple | Submit with a blocker active | Opens Advanced to fix (user-initiated); no "we escalated you" banner | [ ] |
 | 5.3 | RTL | Switch to Arabic; walk sections 1–4 | Suggestion, quick-actions, dialogs, guard banner: correct alignment/icon side; no raw i18n keys | [ ] |
 | 5.4 | Narrow / tablet | Window below ~1280px | Receipt rail becomes slide-over; docked total/change bar shows; guard banner doesn't break the footer | [ ] |

@@ -101,22 +101,52 @@ describe('derivePaymentValidationItems', () => {
     expect(items).toContain('remainder.validation.required');
   });
 
-  it('honors credit-limit warn vs block modes', () => {
+  it('honors credit-limit warn vs block modes only when billing to account with remainder', () => {
     expect(
       derivePaymentValidationItems(
-        baseCtx({ creditLimitWouldExceed: true, creditLimitMode: 'warn', creditLimitOverride: false })
+        baseCtx({
+          creditLimitWouldExceed: true,
+          creditLimitMode: 'warn',
+          creditLimitOverride: false,
+          remainingBalance: 10,
+          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+        })
       )
     ).toContain('b2b.creditExceededWarn');
     expect(
       derivePaymentValidationItems(
-        baseCtx({ creditLimitWouldExceed: true, creditLimitMode: 'warn', creditLimitOverride: true })
+        baseCtx({
+          creditLimitWouldExceed: true,
+          creditLimitMode: 'warn',
+          creditLimitOverride: true,
+          remainingBalance: 10,
+          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+        })
       )
     ).not.toContain('b2b.creditExceededWarn');
     expect(
       derivePaymentValidationItems(
-        baseCtx({ creditLimitWouldExceed: true, creditLimitMode: 'block' })
+        baseCtx({
+          creditLimitWouldExceed: true,
+          creditLimitMode: 'block',
+          remainingBalance: 10,
+          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+        })
       )
     ).toContain('b2b.creditExceeded');
+  });
+
+  it('does not block on credit limit when the order is fully settled (cash/card)', () => {
+    const items = derivePaymentValidationItems(
+      baseCtx({
+        creditLimitWouldExceed: true,
+        creditLimitMode: 'block',
+        remainingBalance: 0,
+        effectiveOutstandingPolicy: 'NONE',
+      })
+    );
+    expect(items).not.toContain('b2b.creditExceeded');
+    expect(items).not.toContain('b2b.creditExceededWarn');
   });
 
   it('emits one message per terminal-required leg', () => {

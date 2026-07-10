@@ -5,6 +5,7 @@ import {
   PAYMENT_MODAL_MODE,
   SIMPLE_MODE_METHOD_CHIP_LIMIT,
   deriveSimpleModeMethodOptions,
+  isB2BCreditLimitBlocking,
   isLegOnSimpleFace,
   resolveSimpleFaceActiveLegIndex,
   toSettlementOptionKey,
@@ -151,9 +152,31 @@ describe('resolveSimpleFaceActiveLegIndex', () => {
     ).toBe(false);
   });
 
-  it('toSettlementOptionKey joins method and gateway', () => {
+  it(`toSettlementOptionKey joins method and gateway`, () => {
     expect(toSettlementOptionKey('STRIPE', 'STRIPE')).toBe('STRIPE::STRIPE');
     expect(toSettlementOptionKey('CASH', null)).toBe('CASH::');
     expect(toSettlementOptionKey('CARD')).toBe('CARD::');
+  });
+});
+
+describe('isB2BCreditLimitBlocking', () => {
+  it('blocks only when CREDIT_INVOICE has remaining and wouldExceed', () => {
+    expect(
+      isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance: 10,
+        outstandingPolicy: 'CREDIT_INVOICE',
+      })
+    ).toBe(true);
+  });
+
+  it('does not block a fully settled B2B cash/card payment', () => {
+    expect(
+      isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance: 0,
+        outstandingPolicy: 'NONE',
+      })
+    ).toBe(false);
   });
 });
