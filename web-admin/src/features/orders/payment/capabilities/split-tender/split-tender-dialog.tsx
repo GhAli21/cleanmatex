@@ -16,6 +16,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
 import type {
@@ -208,7 +209,14 @@ export function SplitTenderDialog({
                   ref={(el) => {
                     legAmountRefs.current[index] = el;
                   }}
-                  value={leg.amount}
+                  // For CASH the field is the TENDERED amount (engine caps the
+                  // applied amount and derives change) — consistent with the main
+                  // amount editor. Other methods edit the applied amount directly.
+                  value={
+                    leg.method === PAYMENT_METHODS.CASH
+                      ? leg.cashTendered ?? leg.amount
+                      : leg.amount
+                  }
                   decimalPlaces={decimalPlaces}
                   onValueChange={(value) => {
                     actions.setActiveLegIndex(index);

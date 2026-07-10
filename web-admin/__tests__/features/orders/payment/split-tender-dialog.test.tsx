@@ -91,6 +91,27 @@ describe('SplitTenderDialog', () => {
     );
   });
 
+  it('shows a CASH leg over-tender as change (tendered − applied)', () => {
+    const cashLeg = {
+      method: 'CASH',
+      amount: 10.786,
+      cashTendered: 50,
+      legRef: 'ref-cash',
+    } as PaymentLeg;
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        actions={buildActions()}
+        paymentLegs={[cashLeg]}
+        amountDue={10.786}
+        legsTotal={10.786}
+        remainingBalance={0}
+      />,
+    );
+    // Change = max(0, 50 − 10.786) = 39.214, shown in the cash breakdown.
+    expect(screen.getByTestId('leg-cash-change')).toHaveTextContent('39.214');
+  });
+
   it('flags outstanding remainder as the balance state', () => {
     render(
       <SplitTenderDialog
