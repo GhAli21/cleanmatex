@@ -510,13 +510,33 @@ export function PaymentFullView({
   // Amount-editor focus helper (view-owned ref/scroll/focus). Threaded into the
   // engine so leg/credit-note handlers can refocus the amount editor.
   const focusAmountEditor = useCallback(() => {
+    // A capability dialog (split, gift card, store credit, …) owns its own amount
+    // fields. While one is open, do NOT yank focus/scroll to the background editor
+    // behind it (otherwise selecting a method in the dialog jumps the cursor to
+    // the hidden Simple/Full amount field — QA 1.1).
+    if (
+      splitDialogOpen ||
+      creditDialogOpen ||
+      giftDialogOpen ||
+      promoDialogOpen ||
+      payLaterDialogOpen
+    ) {
+      return;
+    }
     expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
     window.setTimeout(() => {
       amountEditorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       amountInputRef.current?.focus();
       amountInputRef.current?.select();
     }, 50);
-  }, [expandSection]);
+  }, [
+    expandSection,
+    splitDialogOpen,
+    creditDialogOpen,
+    giftDialogOpen,
+    promoDialogOpen,
+    payLaterDialogOpen,
+  ]);
 
   // Reset view-local state on open. (form.reset is in the shell's open-reset effect.)
   useEffect(() => {
