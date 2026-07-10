@@ -95,6 +95,7 @@ import { GiftCardDialog } from '@features/orders/payment/capabilities/gift-card/
 import { PromoCodeDialog } from '@features/orders/payment/capabilities/promo-code/promo-code-dialog';
 import { PayLaterDialog } from '@features/orders/payment/capabilities/pay-later/pay-later-dialog';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
+import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
@@ -3030,228 +3031,29 @@ export function PaymentFullView({
                                       )}
                                     </div>
                                   )}
-                                  {activeLegOption?.requires_terminal && (
-                                    <div>
-                                      <label className="mb-1 block text-xs font-medium text-slate-600">
-                                        {t('splitPayment.paymentTerminal')}
-                                        <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
-                                        <span className="sr-only">{t('workspace.requiredField')}</span>
-                                      </label>
-                                      <CmxSelectDropdown
-                                        value={activeLeg.terminalId ?? ''}
-                                        onValueChange={(value) =>
-                                          updateLeg(activeLegIndex, 'terminalId', value || undefined)
-                                        }
-                                      >
-                                        <CmxSelectDropdownTrigger>
-                                          <CmxSelectDropdownValue
-                                            displayValue={
-                                              activeLeg.terminalId
-                                                ? branchPaymentTerminals.find(
-                                                    (terminal) => terminal.id === activeLeg.terminalId
-                                                  )?.terminal_name ?? activeLeg.terminalId
-                                                : ''
-                                            }
-                                            placeholder={t('splitPayment.paymentTerminalPlaceholder')}
-                                          />
-                                        </CmxSelectDropdownTrigger>
-                                        <CmxSelectDropdownContent>
-                                          <CmxSelectDropdownItem value="">
-                                            {t('splitPayment.paymentTerminalPlaceholder')}
-                                          </CmxSelectDropdownItem>
-                                          {branchPaymentTerminals.map((terminal) => (
-                                            <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
-                                              {isRTL
-                                                ? terminal.terminal_name2 || terminal.terminal_name
-                                                : terminal.terminal_name}
-                                            </CmxSelectDropdownItem>
-                                          ))}
-                                        </CmxSelectDropdownContent>
-                                      </CmxSelectDropdown>
-                                      {!activeLeg.terminalId?.trim() ? (
-                                        <p className="mt-1 text-xs text-rose-600">
-                                          {t('splitPayment.validation.terminalRequiredField')}
-                                        </p>
-                                      ) : null}
-                                    </div>
-                                  )}
-                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <div>
-                                        <label className="mb-1 block text-xs font-medium text-slate-600">{t('splitPayment.cardBrand')}</label>
-                                        <CmxSelectDropdown
-                                          value={activeLeg.card_brand_code ?? ''}
-                                          onValueChange={(value) => updateLeg(activeLegIndex, 'card_brand_code', value || undefined)}
-                                        >
-                                          <CmxSelectDropdownTrigger>
-                                            <CmxSelectDropdownValue
-                                              displayValue={
-                                                activeLeg.card_brand_code
-                                                  ? cardBrands.find((brand) => brand.card_brand_code === activeLeg.card_brand_code)?.name ?? activeLeg.card_brand_code
-                                                  : ''
-                                              }
-                                              placeholder={t('splitPayment.cardBrandPlaceholder')}
-                                            />
-                                          </CmxSelectDropdownTrigger>
-                                          <CmxSelectDropdownContent>
-                                            <CmxSelectDropdownItem value="">{t('splitPayment.cardBrandPlaceholder')}</CmxSelectDropdownItem>
-                                            {cardBrands.map((brand) => (
-                                              <CmxSelectDropdownItem key={brand.card_brand_code} value={brand.card_brand_code}>
-                                                {isRTL ? (brand.name2 || brand.name) : brand.name}
-                                              </CmxSelectDropdownItem>
-                                            ))}
-                                          </CmxSelectDropdownContent>
-                                        </CmxSelectDropdown>
-                                      </div>
-                                      <CmxInput
-                                        label={t('splitPayment.cardLast4')}
-                                        value={activeLeg.card_last4 ?? ''}
-                                        dir="ltr"
-                                        maxLength={4}
-                                        inputMode="numeric"
-                                        placeholder="0000"
-                                        onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.authCode')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.auth_code ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                        }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'auth_code', event.target.value || undefined)}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {activeLeg.method === PAYMENT_METHODS.CHECK && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <CmxInput
-                                        ref={checkNumberInputRef}
-                                        label={t('splitPayment.checkNumber')}
-                                        required
-                                        value={activeLeg.checkNumber ?? ''}
-                                        dir="ltr"
-                                        error={errors.checkNumber?.message}
-                                        placeholder={t('checkNumber.placeholder')}
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkNumber', nextValue);
-                                          setValue('checkNumber', nextValue ?? '', { shouldValidate: true, shouldDirty: true });
-                                        }}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.checkBankName')}
-                                        value={activeLeg.checkBank ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkBank', nextValue);
-                                          setValue('checkBank', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                        }}
-                                      />
-                                      <CmxInput
-                                        ref={checkDateInputRef}
-                                        type="date"
-                                        label={t('splitPayment.checkDueDate')}
-                                        value={activeLeg.checkDate ?? ''}
-                                        // BVM Phase 6 Sub-item 4: floor the picker
-                                        // at today's local date so the operator
-                                        // cannot accidentally tender a back-dated
-                                        // check. validateCheckDueDate also catches
-                                        // pasted/typed values that bypass the picker.
-                                        min={todayYyyyMmDd()}
-                                        error={
-                                          validateCheckDueDate(activeLeg.checkDate)
-                                            ? t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)
-                                            : undefined
-                                        }
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkDate', nextValue);
-                                          setValue('checkDate', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
-                                    <CmxInput
-                                      label={t('splitPayment.bankReference')}
-                                      required={activeLegOption?.requires_reference}
-                                      value={activeLeg.bank_reference ?? ''}
-                                      dir="ltr"
-                                      placeholder="—"
-                                      error={
-                                        activeLegOption?.requires_reference &&
-                                        !legHasRequiredPaymentReference(activeLeg, true)
-                                          ? t('splitPayment.validation.referenceRequiredField')
-                                          : undefined
-                                      }
-                                      onChange={(event) => updateLeg(activeLegIndex, 'bank_reference', event.target.value || undefined)}
-                                    />
-                                  )}
-
-                                  {GATEWAY_METHOD_CODES.includes(activeLeg.method) && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayCode')}
-                                        value={activeLeg.gateway_code ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        readOnly
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayTransactionId')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.gateway_transaction_id ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                        }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayReference')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.gateway_reference ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                      }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_reference', event.target.value || undefined)}
-                                      />
-                                    </div>
-                                  )}
-                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
-                                    <div className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                      <ShieldCheck className="h-4 w-4 text-cyan-700" />
-                                      {t('security.cardPayment')}
-                                    </div>
-                                  )}
-                                  {!creditMethodCodes.includes(activeLeg.method) &&
-                                  activeLeg.method !== PAYMENT_METHODS.CARD &&
-                                  activeLeg.method !== PAYMENT_METHODS.CHECK &&
-                                  activeLeg.method !== PAYMENT_METHODS.BANK_TRANSFER &&
-                                  !GATEWAY_METHOD_CODES.includes(activeLeg.method) ? (
-                                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                                      {t('workspace.noDetailsDescription')}
-                                    </div>
-                                  ) : null}
+                                  {/* Per-method leg detail fields — shared single-source
+                                      component (also used by the split-tender dialog). */}
+                                  <PaymentLegDetailFields
+                                    leg={activeLeg}
+                                    legIndex={activeLegIndex}
+                                    option={activeLegOption}
+                                    updateLeg={updateLeg}
+                                    branchPaymentTerminals={branchPaymentTerminals}
+                                    cardBrands={cardBrands}
+                                    creditMethodCodes={creditMethodCodes}
+                                    onCheckNumberChange={(value) =>
+                                      setValue('checkNumber', value, { shouldValidate: true, shouldDirty: true })
+                                    }
+                                    onCheckBankChange={(value) =>
+                                      setValue('checkBank', value, { shouldValidate: false, shouldDirty: true })
+                                    }
+                                    onCheckDateChange={(value) =>
+                                      setValue('checkDate', value, { shouldValidate: false, shouldDirty: true })
+                                    }
+                                    checkNumberError={errors.checkNumber?.message}
+                                    checkNumberInputRef={checkNumberInputRef}
+                                    checkDateInputRef={checkDateInputRef}
+                                  />
                                 </div>
                               </div>
                             </>
