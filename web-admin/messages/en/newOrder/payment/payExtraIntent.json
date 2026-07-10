@@ -3,6 +3,8 @@
   "help": "Turn on to collect more than the order total across all payment methods. You will choose where the extra goes before submitting.",
   "disabledNoMethods": "No payment method on this order allows retained overpayment.",
   "cappedAtRemaining": "Capped at remaining ({max}) — customer paying extra? Enable \"Customer is paying extra\" above.",
+  "cappedMethodNoOverpayment": "This payment method does not allow collecting more than the remaining (unpaid) balance. Maximum for this leg is {max}.",
+  "amountLimitedTitle": "Amount limited",
   "permissionRequired": "You do not have permission to enable paying extra. Required: {permissionName} ({permissionCode}).",
   "permissionNameAllocate": "Allocate Overpayment to Balances",
   "permissionCodeAllocate": "orders:overpayment_allocate",
@@ -10,5 +12,6 @@
   "extraAmount": "Extra: {amount}",
   "extraResolvedTo": "Extra: {amount} → {destination}",
   "extraUnresolved": "Extra unresolved — validate to choose destination",
-  "detailsLockedZeroAmount": "Order is fully settled and this method has no amount — details are locked. Enable \"Customer is paying extra\" above to collect more than the order total."
+  "detailsLockedZeroAmount": "Remaining balance is zero and this method has no amount — details are locked. Enable \"Customer is paying extra\" above to collect more than the remaining balance.",
+  "detailsLockedMethodNoOverpayment": "Remaining balance is zero and this method does not allow overpayment — details are locked. Use a method that supports overpayment, or reduce other legs first."
 }

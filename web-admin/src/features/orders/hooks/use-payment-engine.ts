@@ -94,6 +94,8 @@ import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
+  resolvePaymentAmountCapReason,
+  type PaymentAmountCapReason,
 } from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
@@ -261,7 +263,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     tGiftCardErrors,
   } = params;
 
-  const [cashOverRemainingNotice, setCashOverRemainingNotice] = useState<string | null>(null);
+  const [amountCapNotice, setAmountCapNotice] = useState<{
+    reason: PaymentAmountCapReason;
+    message: string;
+  } | null>(null);
 
   // Dependency-ordered slices: gift/promo → totals → catalog. Totals reads the
   // applied promo/gift; catalog's checkout-options query key reads totals'
@@ -680,41 +685,52 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         supportsOverpayment: option?.supports_overpayment,
         requiresCashDrawer: option?.requires_cash_drawer,
       });
+      const maxLabel = `${currencyCode} ${formatAmount(cappedAmount)}`;
+      const reason = resolvePaymentAmountCapReason({
+        wasCapped: wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon),
+        payExtraIntent: payExtraIntentRef.current,
+        policy,
+      });
 
-      if (!wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)) {
-        setCashOverRemainingNotice(null);
+      if (!reason) {
+        setAmountCapNotice(null);
         return;
       }
 
-      if (policy.isCash && !policy.supportsChangeReturn) {
-        setCashOverRemainingNotice(
-          t('splitPayment.validation.cashOverRemainingNotAllowed', {
-            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
-          })
-        );
+      if (reason === 'cash_no_change') {
+        setAmountCapNotice({
+          reason,
+          message: t('splitPayment.validation.cashOverRemainingNotAllowed', {
+            max: maxLabel,
+          }),
+        });
         return;
       }
 
-      // Non-cash (or cash-with-change that still hit an order cap while intent OFF):
-      // explain the hard gate — enable "Customer is paying extra" to retain overpay.
-      if (
-        !resolveSupportsRetainedOverpayment({
-          payExtraIntent: payExtraIntentRef.current,
-          policy,
-        })
-      ) {
-        setCashOverRemainingNotice(
-          t('payExtraIntent.cappedAtRemaining', {
-            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
-          })
-        );
+      if (reason === 'pay_extra_off') {
+        setAmountCapNotice({
+          reason,
+          message: t('payExtraIntent.cappedAtRemaining', {
+            max: maxLabel,
+          }),
+        });
         return;
       }
 
-      setCashOverRemainingNotice(null);
+      setAmountCapNotice({
+        reason,
+        message: t('payExtraIntent.cappedMethodNoOverpayment', {
+          max: maxLabel,
+        }),
+      });
     },
     [currencyCode, formatAmount, getMethodOption, moneyEpsilon, payExtraIntentRef, t]
   );
+
+  // Stale cap copy must not survive a method/leg switch (e.g. Cash message on Check).
+  useEffect(() => {
+    setAmountCapNotice(null);
+  }, [activeLegIndex, activeLeg?.method]);
 
   const canAllocateOverpayment = useHasPermissionCode(
     OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE
@@ -1435,7 +1451,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     liveAdvanceBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
-    cashOverRemainingNotice,
+    amountCapNotice,
     canAllocateOverpayment,
     canDisposeOverpayment,
     canWalletOverpayment,

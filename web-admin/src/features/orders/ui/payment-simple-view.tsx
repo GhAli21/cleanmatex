@@ -37,7 +37,12 @@ import {
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
 import type { PaymentKeypadKey } from './payment-modal-v4.utils';
-import { isPaymentLegDetailLocked } from '@/lib/payments/overpayment-policy';
+import {
+  isPaymentLegDetailLocked,
+  resolvePaymentLegDetailLockReason,
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 
 /**
  * Props for {@link PaymentSimpleView}. Values and handlers are threaded from
@@ -160,15 +165,31 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [showKeypad, setShowKeypad] = useState(false);
+  const activeLegSupportsRetainedOverpayment = resolveSupportsRetainedOverpayment({
+    payExtraIntent,
+    policy: resolvePaymentOverpaymentPolicy({
+      paymentMethodCode: activeLeg?.method ?? '',
+      supportsChangeReturn: activeLegOption?.supports_change_return,
+      supportsOverpayment: activeLegOption?.supports_overpayment,
+      requiresCashDrawer: activeLegOption?.requires_cash_drawer,
+    }),
+  });
   const legDetailsLocked = isPaymentLegDetailLocked({
     legAmount: activeLeg?.amount,
     remainingBalance,
-    payExtraIntent,
+    supportsRetainedOverpayment: activeLegSupportsRetainedOverpayment,
     moneyEpsilon,
   });
-  const legDetailsLockedReason = legDetailsLocked
-    ? t('payExtraIntent.detailsLockedZeroAmount')
-    : undefined;
+  const legDetailsLockReason = resolvePaymentLegDetailLockReason({
+    locked: legDetailsLocked,
+    payExtraIntent,
+  });
+  const legDetailsLockedReason =
+    legDetailsLockReason === 'method_no_overpayment'
+      ? t('payExtraIntent.detailsLockedMethodNoOverpayment')
+      : legDetailsLockReason === 'pay_extra_off'
+        ? t('payExtraIntent.detailsLockedZeroAmount')
+        : undefined;
 
   return (
     <div

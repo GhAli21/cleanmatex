@@ -116,6 +116,8 @@ import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
   isPaymentLegDetailLocked,
+  resolvePaymentLegDetailLockReason,
+  resolvePaymentAmountCapReason,
 } from '@/lib/payments/overpayment-policy';
 import {
   deriveBalanceStatusLabel,
@@ -656,7 +658,7 @@ export function PaymentFullView({
     liveAdvanceBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
-    cashOverRemainingNotice,
+    amountCapNotice,
     canAllocateOverpayment,
     canDisposeOverpayment,
     canWalletOverpayment,
@@ -1813,15 +1815,89 @@ export function PaymentFullView({
     }, 150);
   }, [handleBlockedSubmitAttempt, needsAdvanced, userControlledMode]);
 
+  const activeLegSupportsRetainedOverpayment = useMemo(() => {
+    if (!activeLeg) return false;
+    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
+    return resolveSupportsRetainedOverpayment({
+      payExtraIntent,
+      policy: resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: activeLeg.method,
+        supportsChangeReturn: option?.supports_change_return,
+        supportsOverpayment: option?.supports_overpayment,
+        requiresCashDrawer: option?.requires_cash_drawer,
+      }),
+    });
+  }, [activeLeg, getMethodOption, payExtraIntent]);
+
   const activeLegDetailsLocked = isPaymentLegDetailLocked({
     legAmount: activeLeg?.amount,
     remainingBalance,
-    payExtraIntent,
+    supportsRetainedOverpayment: activeLegSupportsRetainedOverpayment,
     moneyEpsilon,
   });
-  const activeLegDetailsLockedReason = activeLegDetailsLocked
-    ? t('payExtraIntent.detailsLockedZeroAmount')
-    : undefined;
+  const activeLegDetailsLockReason = resolvePaymentLegDetailLockReason({
+    locked: activeLegDetailsLocked,
+    payExtraIntent,
+  });
+  const activeLegDetailsLockedReason =
+    activeLegDetailsLockReason === 'method_no_overpayment'
+      ? t('payExtraIntent.detailsLockedMethodNoOverpayment')
+      : activeLegDetailsLockReason === 'pay_extra_off'
+        ? t('payExtraIntent.detailsLockedZeroAmount')
+        : undefined;
+
+  // Proactive amount-cap copy when this leg cannot accept a positive collect
+  // (Fully Settled + method cannot retain overpay) — do not wait for a failed keystroke.
+  const proactiveAmountCapNotice = useMemo(() => {
+    if (!activeLeg) return null;
+    if ((activeLeg.amount ?? 0) > moneyEpsilon) return null;
+    if (activeLegRemainingCap > moneyEpsilon) return null;
+    const option = getMethodOption(activeLeg.method, activeLeg.gateway_code);
+    const policy = resolvePaymentOverpaymentPolicy({
+      paymentMethodCode: activeLeg.method,
+      supportsChangeReturn: option?.supports_change_return,
+      supportsOverpayment: option?.supports_overpayment,
+      requiresCashDrawer: option?.requires_cash_drawer,
+    });
+    const reason = resolvePaymentAmountCapReason({
+      wasCapped: true,
+      payExtraIntent,
+      policy,
+    });
+    if (!reason) return null;
+    const maxLabel = `${currencyCode} ${formatAmount(0)}`;
+    if (reason === 'cash_no_change') {
+      return {
+        reason,
+        message: t('splitPayment.validation.cashOverRemainingNotAllowed', { max: maxLabel }),
+      };
+    }
+    if (reason === 'pay_extra_off') {
+      return {
+        reason,
+        message: t('payExtraIntent.cappedAtRemaining', { max: maxLabel }),
+      };
+    }
+    return {
+      reason,
+      message: t('payExtraIntent.cappedMethodNoOverpayment', { max: maxLabel }),
+    };
+  }, [
+    activeLeg,
+    activeLegRemainingCap,
+    currencyCode,
+    formatAmount,
+    getMethodOption,
+    moneyEpsilon,
+    payExtraIntent,
+    t,
+  ]);
+
+  const displayAmountCapNotice = amountCapNotice ?? proactiveAmountCapNotice;
+  const displayAmountCapTitle =
+    displayAmountCapNotice?.reason === 'cash_no_change'
+      ? t('splitPayment.validation.cashOverRemainingTitle')
+      : t('payExtraIntent.amountLimitedTitle');
 
   const handlePayExtraIntentAttempt = useCallback(
     (next: boolean) => {
@@ -2413,7 +2489,7 @@ export function PaymentFullView({
                   activeAmountDraft={activeAmountDraft}
                   amountValue={simpleAmountValue}
                   onAmountValueChange={handleAmountValueChange}
-                  amountCapHint={cashOverRemainingNotice}
+                  amountCapHint={displayAmountCapNotice?.message ?? null}
                   payExtraIntent={payExtraIntent}
                   quickTenderItems={quickTenderChipItems}
                   onQuickTenderSelect={handleQuickTenderSelect}
@@ -3117,11 +3193,11 @@ export function PaymentFullView({
                                 </span>
                               </div>
                             ) : null}
-                            {cashOverRemainingNotice ? (
+                            {displayAmountCapNotice ? (
                               <CmxSummaryMessage
                                 type="info"
-                                title={t('splitPayment.validation.cashOverRemainingTitle')}
-                                items={[cashOverRemainingNotice]}
+                                title={displayAmountCapTitle}
+                                items={[displayAmountCapNotice.message]}
                               />
                             ) : null}
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">

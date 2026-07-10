@@ -106,24 +106,70 @@ export function capCollectPaymentAmount(params: {
 }
 
 /**
- * When nothing remains to collect, the leg has no applied amount, and pay-extra
- * is OFF, method detail fields (card brand / last-4 / auth / check / gateway)
- * must not stay editable — same hard-gate spirit as a zero collect
- * (QA-R4.5 follow-up / Fully Settled screenshot).
+ * Why an entered amount was (or would be) capped above remaining.
+ * Used for inline cashier messaging — never tell them to enable pay-extra
+ * when it is already ON.
+ */
+export type PaymentAmountCapReason =
+  | 'cash_no_change'
+  | 'pay_extra_off'
+  | 'method_no_overpayment';
+
+/**
+ * Classifies a capped amount entry for UI copy.
  *
- * Unpaid orders (remaining > ε) keep details editable even at amount 0 so
- * cashiers can fill card/check metadata before the amount. Do **not** use this
- * to disable the amount editor — the engine already caps increases when
- * overpayment is not allowed.
+ * @returns Cap reason, or `null` when no cap messaging is needed.
+ */
+export function resolvePaymentAmountCapReason(params: {
+  wasCapped: boolean;
+  payExtraIntent: boolean;
+  policy: PaymentOverpaymentPolicy;
+}): PaymentAmountCapReason | null {
+  if (!params.wasCapped) return null;
+  if (params.policy.isCash && !params.policy.supportsChangeReturn) {
+    return 'cash_no_change';
+  }
+  if (
+    resolveSupportsRetainedOverpayment({
+      payExtraIntent: params.payExtraIntent,
+      policy: params.policy,
+    })
+  ) {
+    return null;
+  }
+  return params.payExtraIntent ? 'method_no_overpayment' : 'pay_extra_off';
+}
+
+/**
+ * When the amount editor cannot accept a positive collect on this leg, method
+ * detail fields must lock the same way (QA-R4.5 follow-up).
+ *
+ * Locked when: no applied amount on the leg, remaining balance is not greater
+ * than 0 (≤ ε), and this method cannot retain overpayment (pay-extra OFF **or**
+ * method does not support overpayment / cash change). When remaining > ε,
+ * details stay editable at amount 0. Do **not** use this to disable the amount
+ * editor — the engine caps increases; decreasing an existing leg must stay
+ * possible.
  */
 export function isPaymentLegDetailLocked(params: {
   legAmount: number | null | undefined;
   remainingBalance: number;
-  payExtraIntent: boolean;
+  supportsRetainedOverpayment: boolean;
   moneyEpsilon: number;
 }): boolean {
   const noAmount = (params.legAmount ?? 0) <= params.moneyEpsilon;
   const nothingLeft = params.remainingBalance <= params.moneyEpsilon;
-  return noAmount && nothingLeft && !params.payExtraIntent;
+  return noAmount && nothingLeft && !params.supportsRetainedOverpayment;
+}
+
+/**
+ * Which locked-details copy to show (pay-extra OFF vs method cannot overpay).
+ */
+export function resolvePaymentLegDetailLockReason(params: {
+  locked: boolean;
+  payExtraIntent: boolean;
+}): 'pay_extra_off' | 'method_no_overpayment' | null {
+  if (!params.locked) return null;
+  return params.payExtraIntent ? 'method_no_overpayment' : 'pay_extra_off';
 }
 

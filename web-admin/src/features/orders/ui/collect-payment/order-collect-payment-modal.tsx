@@ -12,6 +12,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { computeCollectionOverpaymentMetrics } from '@/lib/payments/collection-overpayment';
 import {
   capCollectPaymentAmount,
+  resolvePaymentAmountCapReason,
+  resolvePaymentOverpaymentPolicy,
 } from '@/lib/payments/overpayment-policy';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
@@ -298,11 +300,26 @@ export function OrderCollectPaymentModal({
       });
       setAmount(capped);
       if (capped + SETTLEMENT_MONEY_EPSILON < raw) {
-        setAmountCapHint(
-          tPayment('payExtraIntent.cappedAtRemaining', {
-            max: formatMoneyWithCode(capped),
-          })
-        );
+        const policy = resolvePaymentOverpaymentPolicy({
+          paymentMethodCode: selectedMethod.payment_method_code,
+          supportsChangeReturn: selectedMethod.supports_change_return,
+          supportsOverpayment: selectedMethod.supports_overpayment,
+        });
+        const reason = resolvePaymentAmountCapReason({
+          wasCapped: true,
+          payExtraIntent,
+          policy,
+        });
+        const max = formatMoneyWithCode(capped);
+        if (reason === 'cash_no_change') {
+          setAmountCapHint(
+            tPayment('splitPayment.validation.cashOverRemainingNotAllowed', { max })
+          );
+        } else if (reason === 'method_no_overpayment') {
+          setAmountCapHint(tPayment('payExtraIntent.cappedMethodNoOverpayment', { max }));
+        } else {
+          setAmountCapHint(tPayment('payExtraIntent.cappedAtRemaining', { max }));
+        }
       } else {
         setAmountCapHint(null);
       }
