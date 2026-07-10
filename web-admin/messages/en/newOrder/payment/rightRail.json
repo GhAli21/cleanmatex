@@ -53,6 +53,7 @@
     "creditLimitTitle": "Credit Limit Attention",
     "creditLimitWarn": "This order exceeds the customer's available credit. Confirm the override to continue.",
     "creditLimitBlock": "This order exceeds the customer's available credit and cannot be submitted.",
+    "reviewAccountBilling": "Review account billing",
     "giftCardPinTitle": "Gift Card PIN Required",
     "checkTitle": "Check Details Required",
     "storedValueTitle": "Stored Value Needs Review",

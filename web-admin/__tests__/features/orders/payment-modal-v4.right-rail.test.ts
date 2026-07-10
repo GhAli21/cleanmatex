@@ -1,4 +1,5 @@
 import {
+  deriveRequiredActionCopy,
   derivePaymentModalRightRailState,
   RIGHT_RAIL_BALANCE_STATUS,
   RIGHT_RAIL_REQUIRED_ACTION,
@@ -31,6 +32,26 @@ function makeInput(
 }
 
 describe('payment-modal-v4 right rail', () => {
+  it('provides a specific account-billing action for a credit-limit blocker', () => {
+    const copy = deriveRequiredActionCopy({
+      t: (key) => key,
+      requiredAction: RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT,
+      overpaymentBlocksSubmit: false,
+      payExtraIntent: false,
+      validationPhase: 'ready',
+      currencyCode: 'OMR',
+      formatAmount: (value) => value.toFixed(3),
+      unresolvedOverpaymentAmount: 0,
+      cashDrawerBlockingMessage: null,
+      creditLimitMode: 'block',
+      liveWalletBalanceDisplay: 'OMR 0.000',
+    });
+
+    expect(copy?.actionLabel).toBe(
+      'rightRail.requiredAction.reviewAccountBilling'
+    );
+  });
+
   it('derives blocked status when blocking issues exist', () => {
     const state = derivePaymentModalRightRailState(
       makeInput({ hasBlockingIssues: true, remainingBalance: 10 })

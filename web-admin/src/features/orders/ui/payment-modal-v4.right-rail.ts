@@ -265,6 +265,8 @@ export function deriveBalanceStatusLabel(
 export interface RequiredActionCopy {
   title: string;
   message: string;
+  /** Optional action copy when the blocker owns a specific corrective surface. */
+  actionLabel?: string;
 }
 
 /**
@@ -323,6 +325,7 @@ export function deriveRequiredActionCopy(
           ctx.creditLimitMode === 'warn'
             ? t('rightRail.requiredAction.creditLimitWarn')
             : t('rightRail.requiredAction.creditLimitBlock'),
+        actionLabel: t('rightRail.requiredAction.reviewAccountBilling'),
       };
     case RIGHT_RAIL_REQUIRED_ACTION.GIFT_CARD_PIN:
       return {

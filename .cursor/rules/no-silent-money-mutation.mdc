@@ -5,36 +5,13 @@ alwaysApply: true
 
 # No Silent Money Mutation
 
-The system must NOT auto-change or auto-modify an amount or any money-related field
-that the user can edit, unless that adjustment is an **explicit, documented,
-user-expected default** of the field (e.g. cash tendered → change derivation).
+Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
 
-When an entered amount would be invalid or out of policy, choose in this order:
+Apply that document as the authoritative rule text.
 
-1. **Prevent** — make the invalid entry impossible (gate the capability, disable
-   the affordance with a clear reason: what is blocked, why, and how to proceed —
-   including the permission name + code when permission-gated).
-2. **Explain at the moment it happens** — if a system adjustment (cap,
-   reconciliation, rounding) is unavoidable or is the field's documented default,
-   surface it inline right where and when it occurs ("Capped at remaining —
-   customer paying extra? Enable 'Customer is paying extra'"), never silently.
-3. **Never auto-correct as a side effect** — a toggle, mode switch, dialog
-   close, or state transition must not rewrite money the user typed. If a
-   transition would require rewriting amounts, **block the transition with
-   guidance** instead (e.g. "paying extra" cannot be switched off while extra
-   exists in the legs — reduce the legs or route the extra first).
+Short form:
 
-**Allowed (user-expected defaults):** derivations the cashier relies on by
-design — change from cash tendered, engine-derived totals/balances, read-only
-mirrors of entered amounts.
-
-**Forbidden:** silent capping/snapping of a typed amount with no inline
-explanation; flipping user intent controls (e.g. "paying extra") automatically;
-re-capping legs when a toggle/mode changes; any money rewrite triggered by
-something other than the user editing that field.
-
-**Scope:** payment engine + modal, order totals, discounts, credits, refunds,
-vouchers, any `DECIMAL(19,4)` field surfaced in the UI.
-
-Origin: Payment Modal composable-capabilities program, QA round 4 (2026-07-10)
-— see `docs/features/Order_Fin/Payment_Modal_08_07_2026/Manual_QA_Checklist.md` §4.5.
+1. Prevent invalid money entry first.
+2. Explain unavoidable adjustments inline at the moment they happen.
+3. Never rewrite user-entered money as a side effect of a toggle, mode switch,
+   dialog close, or state transition.

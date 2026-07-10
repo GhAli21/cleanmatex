@@ -60,7 +60,7 @@ MISSING_MESSAGE: newOrder.payment.expressLabel
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
 | 4.1 | Closed-drawer repro | Cash order → close/end the drawer session from another tab → Submit | Toast **plus** a red guard banner above Cancel/Submit naming the same cause, with a "Cash drawer" button that opens the session dialog | [ yes] |
-| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → Submit | Guard routed to Account billing; corrective button opens the **B2B account-billing dialog in-place** in BOTH faces *(changed 2026-07-10 — was a "Switch to Advanced" hop)* | [ no] | where is the corrective button opens the **B2B account-billing dialog in-place**
+| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → **Submit** | Footer red **server guard** + corrective **"Account billing"** opens the B2B dialog in-place (both faces). *Not* the right-rail card alone — that card’s **"Review account billing"** also opens the same dialog (client-side), but §4.2 is the post-Submit guard. Hard-deny: dialog does **not** unlock override. | [ ] |
 | 4.3 | Guard lifecycle | After a guard shows: fix the issue, Submit again | Guard clears on the new attempt; does not reappear after close/reopen | [ ] |
 | 4.4 | Both faces | Trigger a guard, flip Simple↔Advanced | Banner visible in both (shared footer) | [ ] |
 | 4.5 | Generic errors | Force a non-typed failure (e.g. network drop) | Toast only — no guard, no view switch | [ ] |

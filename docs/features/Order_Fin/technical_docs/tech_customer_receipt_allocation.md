@@ -4,6 +4,8 @@
 **Catalogs:** [tech_settlement_catalogs.md](./tech_settlement_catalogs.md)  
 **Pending work:** [Pending_Payment_Settlement_Follow_Ups.md](../Pending_Payment_Settlement_Follow_Ups.md)
 
+Canonical money-field rule: `docs/dev/rules/no-silent-money-mutation.md`
+
 ## Services
 
 | Service | Role |
@@ -65,6 +67,7 @@ Allocation preview APIs receive `excessAmount` from `computeCheckoutExcessMetric
 ## Phase 6 (legacy cleanup)
 
 - Removed silent `supports_overpayment` retention bypass in `settlement-overpayment.ts`
+- Money-entry and pay-extra flows must follow `docs/dev/rules/no-silent-money-mutation.md`
 - Unresolved excess = gross excess minus cash change capacity (intent OFF)
 - Payment Modal V4 aligned with server metrics via shared checkout excess module
 - `RETURN_CHANGE` (allocation fallback) documented as distinct from `RETURN_CASH_CHANGE` (overpayment resolution) — see settlement catalogs doc
