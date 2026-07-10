@@ -924,7 +924,7 @@ const SIMPLE_MODE_METHOD_CODES: readonly string[] = [
  * Maximum method chips the Simple face shows; the rest sit behind the
  * "More options" chip, which switches to Full mode.
  */
-export const SIMPLE_MODE_METHOD_CHIP_LIMIT = 4;
+export const SIMPLE_MODE_METHOD_CHIP_LIMIT = 3;
 
 /**
  * Structural pick of `CheckoutSettlementOption` used by
