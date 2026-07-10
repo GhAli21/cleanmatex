@@ -1740,12 +1740,6 @@ export function PaymentFullView({
       balancePolicySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 120);
   }, [expandSection]);
-  const handleSimpleTerminalChange = useCallback(
-    (terminalId: string | undefined) => {
-      updateLeg(activeLegIndex, 'terminalId', terminalId);
-    },
-    [activeLegIndex, updateLeg]
-  );
   // A blocked submit in Simple opens Full so the cashier can see and fix the
   // blocker (the workbench owns the focus-first-issue flow). This is a
   // user-initiated action, not auto-escalation — under user-controlled mode we
@@ -2194,9 +2188,11 @@ export function PaymentFullView({
                   quickTenderItems={quickTenderChipItems}
                   onQuickTenderSelect={handleQuickTenderSelect}
                   onKeypadPress={handleKeypadPress}
-                  requiresTerminal={Boolean(activeLegOption?.requires_terminal)}
+                  activeLegOption={activeLegOption}
+                  updateLeg={updateLeg}
                   branchPaymentTerminals={branchPaymentTerminals}
-                  onTerminalChange={handleSimpleTerminalChange}
+                  cardBrands={cardBrands}
+                  creditMethodCodes={creditMethodCodes}
                   cashDrawerRequired={cashDrawerRequired}
                   cashDrawerDisplay={cashDrawerDisplay}
                   onManageCashDrawer={handleSimpleManageDrawer}

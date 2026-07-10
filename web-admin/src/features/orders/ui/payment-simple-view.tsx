@@ -21,19 +21,15 @@ import { Banknote, CreditCard, EllipsisVertical, Keyboard } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import type { OrgCardBrandConfig } from '@/lib/types/payment';
 import type {
   CheckoutSettlementOption,
   PaymentTerminalOption,
 } from '@features/orders/hooks/use-payment-catalog';
+import type { PaymentEngineActions } from '@features/orders/payment/engine/payment-engine-actions';
+import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { CmxButton, CmxMoneyField, CmxSkeleton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import {
-  CmxSelectDropdown,
-  CmxSelectDropdownTrigger,
-  CmxSelectDropdownValue,
-  CmxSelectDropdownContent,
-  CmxSelectDropdownItem,
-} from '@ui/forms';
 import { CmxKeypad, KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
 import { SummaryRow } from './payment-modal/summary-row';
 import {
@@ -75,10 +71,12 @@ export interface PaymentSimpleViewProps {
   quickTenderItems: PaymentQuickTenderChipItem[];
   onQuickTenderSelect: (item: PaymentQuickTenderChipItem) => void;
   onKeypadPress: (key: PaymentKeypadKey) => void;
-  // ---- terminal (card/gateway legs that require one) ----
-  requiresTerminal: boolean;
+  // ---- per-method detail fields (shared PaymentLegDetailFields) ----
+  activeLegOption: CheckoutSettlementOption | undefined;
+  updateLeg: PaymentEngineActions['updateLeg'];
   branchPaymentTerminals: PaymentTerminalOption[];
-  onTerminalChange: (terminalId: string | undefined) => void;
+  cardBrands: OrgCardBrandConfig[];
+  creditMethodCodes: string[];
   // ---- cash drawer (bound line only; blocked/ambiguous escalate upstream) ----
   cashDrawerRequired: boolean;
   /** Resolved "Drawer • session" display, or null while unbound. */
@@ -128,12 +126,14 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     activeAmountDraft,
     amountValue,
     onAmountValueChange,
+    activeLegOption,
+    updateLeg,
+    cardBrands,
+    creditMethodCodes,
     quickTenderItems,
     onQuickTenderSelect,
     onKeypadPress,
-    requiresTerminal,
     branchPaymentTerminals,
-    onTerminalChange,
     cashDrawerRequired,
     cashDrawerDisplay,
     onManageCashDrawer,
@@ -153,10 +153,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [showKeypad, setShowKeypad] = useState(false);
-
-  const activeTerminal = activeLeg?.terminalId
-    ? branchPaymentTerminals.find((terminal) => terminal.id === activeLeg.terminalId)
-    : undefined;
 
   return (
     <div
@@ -305,51 +301,22 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             ) : null}
           </div>
 
-          {/* Terminal (card/gateway legs that require one) */}
-          {activeLeg && requiresTerminal ? (
-            <div className="max-w-md">
-              <label className="mb-1 block text-xs font-medium text-slate-600">
-                {t('splitPayment.paymentTerminal')}
-                <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
-                <span className="sr-only">{t('workspace.requiredField')}</span>
-              </label>
-              <CmxSelectDropdown
-                value={activeLeg.terminalId ?? ''}
-                onValueChange={(value) => onTerminalChange(value || undefined)}
-              >
-                <CmxSelectDropdownTrigger data-testid="payment-simple-terminal">
-                  <CmxSelectDropdownValue
-                    displayValue={
-                      activeLeg.terminalId
-                        ? activeTerminal
-                          ? (isRTL
-                              ? activeTerminal.terminal_name2 || activeTerminal.terminal_name
-                              : activeTerminal.terminal_name)
-                          : activeLeg.terminalId
-                        : ''
-                    }
-                    placeholder={t('splitPayment.paymentTerminalPlaceholder')}
-                  />
-                </CmxSelectDropdownTrigger>
-                <CmxSelectDropdownContent>
-                  <CmxSelectDropdownItem value="">
-                    {t('splitPayment.paymentTerminalPlaceholder')}
-                  </CmxSelectDropdownItem>
-                  {branchPaymentTerminals.map((terminal) => (
-                    <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
-                      {isRTL
-                        ? terminal.terminal_name2 || terminal.terminal_name
-                        : terminal.terminal_name}
-                    </CmxSelectDropdownItem>
-                  ))}
-                </CmxSelectDropdownContent>
-              </CmxSelectDropdown>
-              {!activeLeg.terminalId?.trim() ? (
-                <p className="mt-1 text-xs text-rose-600">
-                  {t('splitPayment.validation.terminalRequiredField')}
-                </p>
-              ) : null}
-            </div>
+          {/* Per-method detail fields — shared single-source component (also used
+              by the Full workbench + the split dialog). For CASH it shows the
+              tendered + change breakdown. */}
+          {activeLeg ? (
+            <PaymentLegDetailFields
+              leg={activeLeg}
+              legIndex={activeLegIndex}
+              option={activeLegOption}
+              updateLeg={updateLeg}
+              branchPaymentTerminals={branchPaymentTerminals}
+              cardBrands={cardBrands}
+              creditMethodCodes={creditMethodCodes}
+              showCashTenderedChange
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
           ) : null}
 
           {/* Cash drawer bound line */}

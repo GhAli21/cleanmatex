@@ -39,5 +39,15 @@
     "title": "Balance policy",
     "action": "Pay later",
     "description": "Choose how the remaining balance on this order is settled."
+  },
+  "CASH_CARD_SPLIT": {
+    "title": "Cash + card split",
+    "action": "Cash + card",
+    "description": "Split this payment between cash and card."
+  },
+  "OVERPAYMENT_ROUTING": {
+    "title": "Extra amount",
+    "action": "Extra amount",
+    "description": "Choose what to do with an overpayment — return change, or keep it as store credit or a receipt."
   }
 }
