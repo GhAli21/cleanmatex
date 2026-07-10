@@ -2,7 +2,7 @@
 
 **Branch:** `feature/payment-modal-composable-capabilities` (one final merge; small commits per phase)
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
-**Last update:** 2026-07-09 (Phase 3 closed — registry wiring gates green)
+**Last update:** 2026-07-10 (Phase 4 core done + Phase 5 behavior reversal wired + QA rounds 1/2/3; commit `fa0860b5`)
 
 ## Phase board
 
@@ -13,10 +13,12 @@
 | 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ✅ DONE (2026-07-09) — all capability surfaces + registry `Dialog`/presentation wiring; gates verified green after Bash tool restored | wiring 5/5 · full payment module **24 suites / 206 tests** · tsc 0 · eslint 0 · i18n ✓ |
-| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | 🟡 IN PROGRESS — 4a presets ✅ · 4b view-plan ✅ · 4c renderer ✅ · 4d projector ✅ · 4e FX/rounding container wiring ✅ · **4f method-chips as preset metadata (hardening #5), behavior-identical ✅** | full payment module 29 suites / 244 tests · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
-| 5 | Behavior reversal + server-error→capability routing | 🟡 IN PROGRESS — server-error→guard routing ✅ · **behavior reversal WIRED ✅ (kill-switch now LIVE; auto-escalation/lock gated off by default; dismissible suggestion replaces the escalation banner)**; remaining: wire `routeServerErrorToGuard` into `use-order-submission` + full manual QA | suggestion 5/5 · routing 5/5 · full payment module 31 suites / 254 tests · tsc 0 · eslint 0 · i18n ✓ · next build ✓ |
-| 6 | i18n EN/AR + new test coverage + full gates | ⬜ pending | — |
-| 7 | Docs (/documentation), QA guide, closeout | ⬜ pending | — |
+| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ✅ CORE DONE — 4a presets · 4b view-plan · 4c renderer · 4d projector · 4e FX inline wiring · 4f method-chips metadata (hardening #5); **container wired**: Simple **quick-action buttons** (all available capabilities) + **in-place dialogs** (split/gift/promo/store-credit/pay-later) + **single-source `PaymentLegDetailFields`** across Full + split dialog + Simple. Remaining: route the few legacy Full **workbench** sections through the renderer (functional as legacy today) | full payment module 31 suites / 256 tests · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
+| 5 | Behavior reversal + server-error→capability routing | 🟡 IN PROGRESS — server-error→guard routing ✅ (pure) · **behavior reversal WIRED ✅ (kill-switch LIVE; no auto-escalation/lock by default; dismissible `PaymentModeSuggestion`)**; **QA rounds 1/2/3 done** (dialog focus, cash tendered/change, single-source Simple fields, missing i18n keys). Remaining: wire `routeServerErrorToGuard` into `use-order-submission` + full manual QA | suggestion 5/5 · routing 5/5 · full payment module 31 suites / 256 tests · tsc 0 · eslint 0 · i18n ✓ · next build ✓ |
+| 6 | i18n EN/AR + new test coverage + full gates | 🟡 PARTIAL — capability/mode/reason i18n added incrementally (EN+AR, `check:i18n` ✓); per-capability dialog + preset + projector + renderer + routing tests all landed (256 total). Remaining: reason-code catalog `newOrder.payment.reasons.<code>`, uncovered oracle fixtures (H7) | 256 tests · i18n ✓ |
+| 7 | Docs (/documentation), QA guide, closeout | ⬜ pending — security review done (no HIGH/MED); remaining: `/documentation` pass, QA guide, ADR flip, kill-switch-removal tracking | — |
+
+**Program state (2026-07-10):** the composable system is **functionally live** on the branch/preview — user-controlled Simple/Full (no auto-escalation), Simple fast-lane quick-actions opening in-place dialogs, and one shared `PaymentLegDetailFields` across all surfaces. Remaining before merge: (a) route the residual Full workbench sections through the renderer, (b) server-error→guard container wiring, (c) full manual QA, (d) Phase-7 docs + re-run `/security-review` on a branch cleaned of the foreign pos-sessions/cash-drawer commits, (e) kill-switch removal. Latest commit `fa0860b5`.
 
 ## Phase 0 — detail (2026-07-09)
 
