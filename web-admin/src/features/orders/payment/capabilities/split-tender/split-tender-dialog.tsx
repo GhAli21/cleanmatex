@@ -12,6 +12,7 @@
  * and reconciliation.
  */
 
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -51,6 +52,8 @@ export interface SplitTenderDialogProps {
   actions: SplitTenderDialogActions;
   /** Current settlement legs from the engine. */
   paymentLegs: PaymentLeg[];
+  /** Active leg index — its amount field receives focus on open / add / method change. */
+  activeLegIndex: number;
   /** Real payment-method options selectable for split legs. */
   methodOptions: CheckoutSettlementOption[];
   /** Resolves an option's bilingual display name. */
@@ -91,6 +94,7 @@ export function SplitTenderDialog({
   onOpenChange,
   actions,
   paymentLegs,
+  activeLegIndex,
   methodOptions,
   getOptionDisplayName,
   amountDue,
@@ -111,6 +115,19 @@ export function SplitTenderDialog({
   const optionByCode = new Map(
     methodOptions.map((option) => [option.payment_method_code, option]),
   );
+
+  // Focus the active leg's amount field when the dialog opens or a leg is added /
+  // its method changes, so the cursor lands in the dialog (QA 1.1) rather than the
+  // background editor. The engine sets `activeLegIndex` on add / method select.
+  const legAmountRefs = useRef<Array<HTMLInputElement | null>>([]);
+  useEffect(() => {
+    if (!open) return;
+    const input = legAmountRefs.current[activeLegIndex];
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, [open, activeLegIndex, paymentLegs.length]);
 
   const balanceState =
     Math.abs(remainingBalance) <= moneyEpsilon
@@ -188,12 +205,16 @@ export function SplitTenderDialog({
                 </CmxSelectDropdown>
 
                 <CmxMoneyField
+                  ref={(el) => {
+                    legAmountRefs.current[index] = el;
+                  }}
                   value={leg.amount}
                   decimalPlaces={decimalPlaces}
                   onValueChange={(value) => {
                     actions.setActiveLegIndex(index);
                     actions.updateLeg(index, 'amount', value ?? 0);
                   }}
+                  onFocus={() => actions.setActiveLegIndex(index)}
                   aria-label={t('splitPayment.amount')}
                   data-testid={`split-tender-amount-${index}`}
                   className="h-10 flex-1"
@@ -219,6 +240,9 @@ export function SplitTenderDialog({
                   branchPaymentTerminals={branchPaymentTerminals}
                   cardBrands={cardBrands}
                   creditMethodCodes={creditMethodCodes}
+                  showCashTenderedChange
+                  currencyCode={currencyCode}
+                  formatAmount={formatAmount}
                 />
               </li>
             );

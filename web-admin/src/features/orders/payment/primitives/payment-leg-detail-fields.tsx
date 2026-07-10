@@ -75,6 +75,17 @@ export interface PaymentLegDetailFieldsProps {
   // ---- optional refs (Full-view validation focus) ----
   checkNumberInputRef?: RefObject<HTMLInputElement | null>;
   checkDateInputRef?: RefObject<HTMLInputElement | null>;
+
+  // ---- optional cash tendered/change display (split dialog) ----
+  /**
+   * Show the read-only cash tendered + change breakdown for a CASH leg (used by
+   * the split dialog so the cashier sees where an over-tender went). Off in the
+   * Full view, whose amount editor already shows this. Requires `currencyCode` +
+   * `formatAmount`.
+   */
+  showCashTenderedChange?: boolean;
+  currencyCode?: string;
+  formatAmount?: (n: number) => string;
 }
 
 /**
@@ -97,6 +108,9 @@ export function PaymentLegDetailFields({
   checkNumberError,
   checkNumberInputRef,
   checkDateInputRef,
+  showCashTenderedChange = false,
+  currencyCode,
+  formatAmount,
 }: PaymentLegDetailFieldsProps) {
   const t = useTranslations('newOrder.payment');
   const isRTL = useRTL();
@@ -106,12 +120,20 @@ export function PaymentLegDetailFields({
       ? t('splitPayment.validation.referenceRequiredField')
       : undefined;
 
+  // Read-only cash breakdown (display only — the engine owns the amounts).
+  const showCash = showCashTenderedChange && leg.method === PAYMENT_METHODS.CASH;
+  const cashApplied = leg.amount ?? 0;
+  const cashTendered = leg.cashTendered ?? cashApplied;
+  const cashChange = Math.max(0, cashTendered - cashApplied);
+  const money = (n: number) => `${currencyCode ?? ''} ${formatAmount ? formatAmount(n) : n}`.trim();
+
   const isPlainMethod =
     !creditMethodCodes.includes(leg.method) &&
     leg.method !== PAYMENT_METHODS.CARD &&
     leg.method !== PAYMENT_METHODS.CHECK &&
     leg.method !== PAYMENT_METHODS.BANK_TRANSFER &&
-    !GATEWAY_METHOD_CODES.includes(leg.method);
+    !GATEWAY_METHOD_CODES.includes(leg.method) &&
+    !showCash;
 
   return (
     <div className="space-y-3">
@@ -324,6 +346,27 @@ export function PaymentLegDetailFields({
           {t('security.cardPayment')}
         </div>
       )}
+
+      {showCash ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-slate-500">{t('rightRail.cashTendered')}</span>
+            <span className="font-mono font-semibold tabular-nums text-slate-800" dir="ltr">
+              {money(cashTendered)}
+            </span>
+          </div>
+          <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-slate-500">{t('rightRail.changeReturned')}</span>
+            <span
+              className={`font-mono font-semibold tabular-nums ${cashChange > 0 ? 'text-emerald-600' : 'text-slate-800'}`}
+              dir="ltr"
+              data-testid="leg-cash-change"
+            >
+              {money(cashChange)}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {isPlainMethod ? (
         <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm text-slate-600">

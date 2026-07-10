@@ -2084,6 +2084,7 @@ export function PaymentFullView({
               onOpenChange={setSplitDialogOpen}
               actions={splitTenderActions}
               paymentLegs={paymentLegs}
+              activeLegIndex={activeLegIndex}
               methodOptions={realPaymentOptions}
               getOptionDisplayName={getCheckoutOptionDisplayName}
               amountDue={saleTotal}

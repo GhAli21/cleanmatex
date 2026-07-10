@@ -55,6 +55,7 @@ function buildActions() {
 const baseProps = {
   open: true,
   onOpenChange: jest.fn(),
+  activeLegIndex: 0,
   methodOptions: [option('CASH'), option('CARD')],
   getOptionDisplayName: (
     opt: CheckoutSettlementOption | null | undefined,
