@@ -2,7 +2,7 @@
 
 **Branch:** `feature/payment-modal-composable-capabilities` (one final merge; small commits per phase)
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
-**Last update:** 2026-07-10 (Phase 5 server-error→capability-guard container wiring DONE — hook routes 422 codes, guard renders in the shared footer with corrective action)
+**Last update:** 2026-07-10 (QA-R4.5 / strangler **4g DONE** — pay-extra top strip + hard overpayment gate; see [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md))
 
 ## Phase board
 
@@ -13,7 +13,7 @@
 | 1 | Capability registry + unified reason codes + CapabilityContext | ✅ DONE (2026-07-09) | registry tests 15/15 · all payment suites 42/42 · oracle 8/8 · eslint 0 · tsc 0 |
 | 2 | Reusable primitives + capability dialog shell | ✅ DONE (2026-07-09) | primitives tests 7/7 · module 27/27 · eslint 0 · tsc 0 |
 | 3 | Capability dialogs (domain-level) | ✅ DONE (2026-07-09) — all capability surfaces + registry `Dialog`/presentation wiring; gates verified green after Bash tool restored | wiring 5/5 · full payment module **24 suites / 206 tests** · tsc 0 · eslint 0 · i18n ✓ |
-| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ✅ CORE DONE — 4a presets · 4b view-plan · 4c renderer · 4d projector · 4e FX inline wiring · 4f method-chips metadata (hardening #5); **container wired**: Simple **quick-action buttons** (all available capabilities) + **in-place dialogs** (split/gift/promo/store-credit/pay-later) + **single-source `PaymentLegDetailFields`** across Full + split dialog + Simple. Remaining: route the few legacy Full **workbench** sections through the renderer (functional as legacy today) | full payment module 31 suites / 256 tests · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
+| 4 | Presets + view renderer (strangler decomposition of payment-full-view) | ✅ CORE DONE — 4a–4f as before; **4g DONE** — pay-extra top strip + hard overpayment gate (QA-R4.5). Spec: [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md). Remaining: residual Full workbench → renderer | payment suites green · tsc 0 · eslint 0 · **build ✓** · i18n ✓ |
 | 5 | Behavior reversal + server-error→capability routing | 🟡 IN PROGRESS — server-error→guard routing ✅ (pure) · **behavior reversal WIRED ✅ (kill-switch LIVE; no auto-escalation/lock by default; dismissible `PaymentModeSuggestion`)** · **server-error→guard CONTAINER WIRING ✅ (2026-07-10)** — `use-order-submission` routes 422 codes via `routeServerErrorToGuard` into a `serverGuard` state threaded modals→shell→container; renders as `PaymentSubmitGuard` in the shared footer (both faces) with a corrective action resolved by the new pure `server-guard-affordance.ts` · **QA rounds 1/2/3 done**. Remaining: full manual QA | suggestion 5/5 · routing 5/5 · affordance 5/5 · full payment module **32 suites / 261 tests** · tsc 0 · eslint 0 · i18n ✓ · next build ✓ |
 | 6 | i18n EN/AR + new test coverage + full gates | 🟡 PARTIAL — capability/mode/reason i18n added incrementally (EN+AR, `check:i18n` ✓); per-capability dialog + preset + projector + renderer + routing tests all landed (256 total). Remaining: reason-code catalog `newOrder.payment.reasons.<code>`, uncovered oracle fixtures (H7) | 256 tests · i18n ✓ |
 | 7 | Docs (/documentation), QA guide, closeout | ⬜ pending — security review done (no HIGH/MED); remaining: `/documentation` pass, QA guide, ADR flip, kill-switch-removal tracking | — |
@@ -214,9 +214,25 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 
 **Audit net:** one approved backend change (Phase 0B — accounting safety, orchestrator only, no DB/payload change). Everything else: no backend/DB change.
 
+## QA-R4.5 / strangler 4g — progress
+
+| Step | Status |
+|------|--------|
+| Spec bootstrap | ✅ `Pay_Extra_Top_Strip_QA_R4_5_Spec.md` |
+| Commit A — engine hard gate | ✅ `resolveSupportsRetainedOverpayment` + call sites + Collect cap + tests |
+| Commit B — top strip + toggle UX | ✅ `PayExtraTopStrip` + `CmxSwitch.ariaDisabled` + gates + i18n |
+| Legacy card stuck-excess policy | ✅ keep when `!payExtraIntent && excess > ε` |
+| Access contract + inventories | ✅ `payExtraIntentEnable` + ready Collect API dep; check --wire PASS |
+| Gates + Manual QA §6 | ✅ tsc · eslint · jest payment · i18n · build · checklist §6 |
+| Documentation skill closeout | ✅ `Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md` |
+
+**Last update:** 2026-07-10 — **QA-R4.5 / 4g DONE** (engine hard gate + top strip + Collect/Simple parity).
+
 ## Decisions log
 
-- 2026-07-10 — **QA 4.5 design approved (user):** pay-extra top strip + hard overpayment gate — overpay impossible until the "Customer is paying extra" toggle is ON (even if method config supports it); toggle ON permission-gated (`aria-disabled` + message with permission name+code); toggle OFF blocked while extra > epsilon (message names the two exits); cash change exempt; amber/green states, never red. Full spec in `Manual_QA_Checklist.md` §4.5. Implement after the QA pass as strangler 4g (OVERPAYMENT_ROUTING inline surface); engine cap change = deliberate freeze-lift, own commit + oracle fixtures.
+- 2026-07-10 — **QA-R4.5 implementation started:** normative spec [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md). Naming: QA-R4.5 ≠ checklist table row 4.5 (Generic errors).
+- 2026-07-10 — **QA-R4.5 / 4g shipped:** hard gate + top strip + Collect/Simple parity + access contract + Manual QA §6 + feature docs.
+- 2026-07-10 — **QA 4.5 design approved (user):** pay-extra top strip + hard overpayment gate — overpay impossible until the "Customer is paying extra" toggle is ON (even if method config supports it); toggle ON permission-gated (`aria-disabled` + message with permission name+code); toggle OFF blocked while extra > epsilon (message names the two exits); cash change exempt; amber/green states, never red. Full spec in `Manual_QA_Checklist.md` QA round 4 finding 4.5 / `Pay_Extra_Top_Strip_QA_R4_5_Spec.md`. Implement as strangler 4g; engine cap change = deliberate freeze-lift, own commit + oracle fixtures.
 - 2026-07-10 — **New repo-wide rule codified (user): "No silent money mutation"** — never auto-change a user-editable money field unless it's a documented user-expected default (e.g. tendered→change); prevent or explain inline, never rewrite money as a side effect of toggles/mode switches/dialog closes. Added to CLAUDE.md CRITICAL RULE #15, AGENTS.md #15, `.cursor/rules/no-silent-money-mutation.mdc` (alwaysApply), frontend skill hard gate #27, business-logic skill.
 
 - 2026-07-08 — ADR amended: user-controlled Simple/Full, dialogs/guards, demoted suggestion, restricted class.

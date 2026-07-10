@@ -68,6 +68,8 @@ export interface PaymentSimpleViewProps {
   activeAmountDraft: string;
   amountValue: number | null;
   onAmountValueChange: (value: number | null, draft: string) => void;
+  /** Amber hard-gate / cash-cap notice from the engine (QA-R4.5). */
+  amountCapHint?: string | null;
   quickTenderItems: PaymentQuickTenderChipItem[];
   onQuickTenderSelect: (item: PaymentQuickTenderChipItem) => void;
   onKeypadPress: (key: PaymentKeypadKey) => void;
@@ -126,6 +128,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     activeAmountDraft,
     amountValue,
     onAmountValueChange,
+    amountCapHint,
     activeLegOption,
     updateLeg,
     cardBrands,
@@ -246,6 +249,14 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                 />
               </div>
             </div>
+            {amountCapHint ? (
+              <p
+                className={`mt-2 text-xs text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                role="status"
+              >
+                {amountCapHint}
+              </p>
+            ) : null}
             {!activeLeg ? (
               <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {t('mode.simpleView.pickMethodHint')}

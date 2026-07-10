@@ -2,6 +2,8 @@
 
 **Purpose:** the remaining human verification before merge. Work top-to-bottom; write your notes in the **Notes / result** column of each item (this file is yours to annotate — commit it with your findings).
 
+Canonical rule reference: `docs/dev/rules/no-silent-money-mutation.md`
+
 **Where:** Vercel **preview** deploy of `feature/payment-modal-composable-capabilities` (never production/main).
 **Before starting:** confirm the preview build's commit hash on the Vercel deployment card matches the latest branch commit — a stale preview invalidates the whole pass.
 **Data:** the preview uses the shared Supabase — use the demo tenant as usual.
@@ -92,9 +94,29 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
   4. **Toggle OFF gate:** blocked while `extra > epsilon` (regardless of resolution state) — `aria-disabled` + message naming the two exits: reduce the legs to the order total, or validate and route the extra. Toggle frees itself when extra reaches zero. No re-capping side effect ever.
   5. **Simple face parity:** same registry facts drive the existing "Extra amount REQUIRED" quick-button; the cap hint appears in Simple's amount editor too.
   - Governed by the new repo-wide rule **"No silent money mutation"** (CLAUDE.md CRITICAL RULE #15 / `.cursor/rules/no-silent-money-mutation.mdc`), which this design produced.
+  - Canonical wording now lives in `docs/dev/rules/no-silent-money-mutation.md`.
   - Plan: two commits — (a) engine cap rule + oracle fixtures + tests, (b) top strip + toggle UX + i18n EN/AR.
 
 *(Numbering continues from QA rounds 1–3, which are closed — see the STATUS doc.)*
+
+---
+
+## 6 · QA-R4.5 — Pay-extra top strip + hard overpayment gate
+
+> **Not** the same as table row **4.5** (Generic errors) above. Spec: [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md).
+
+| # | Check | Steps | Expected | Notes / result |
+|---|-------|-------|----------|----------------|
+| 6.1 | Strip placement | Open Payment Modal (Simple + Advanced); RTL | "Customer is paying extra" strip under header, above mode banners; not mid-workbench | [ ] |
+| 6.2 | Hard gate — Full | Toggle OFF; enter card amount > remaining (method supports overpayment) | Amount capped at remaining; amber hint points to strip | [ ] |
+| 6.3 | Hard gate — Simple / Split / Collect | Same over-remaining entry on each surface | Cap + amber hint (Collect); Split via engine cap; Simple shows amountCapHint | [ ] |
+| 6.4 | Cash change exempt | Toggle OFF; cash tender > due | Change returned; no forced toggle; applied capped | [ ] |
+| 6.5 | Toggle ON without allocate perm | User without `orders:overpayment_allocate` clicks toggle | Toast/message with permission **name + code**; toggle stays OFF | [ ] |
+| 6.6 | Toggle OFF while extra | Enable toggle, create extra, try turn OFF | Blocked; message names reduce-legs or validate/route; amounts unchanged | [ ] |
+| 6.7 | Validate + route | Toggle ON + Validate + choose destination | Emerald Extra mirror; submit succeeds | [ ] |
+| 6.8 | Legacy stuck-excess card | Force excess with toggle OFF (if reachable) | ExtraReceiptHandlingCard still usable; no silent leg rewrite | [ ] |
+| 6.9 | Tablet | Narrow window | Strip + banners + keypad usable; receipt slide-over OK | [ ] |
+| 6.10 | Server guard | Trigger overpayment server rejection | Guard still opens routing dialog; strip consistent | [ ] |
 
 ---
 
@@ -107,3 +129,4 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 | 3 Leg fields | | | |
 | 4 Server guard | | | |
 | 5 Odds & ends | | | |
+| 6 QA-R4.5 pay-extra strip | | | |

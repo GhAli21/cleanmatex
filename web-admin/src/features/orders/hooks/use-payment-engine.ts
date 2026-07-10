@@ -91,7 +91,10 @@ import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-pr
 import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 import {
   derivePaymentModalRightRailState,
   type PaymentModalRightRailState,
@@ -678,11 +681,12 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         requiresCashDrawer: option?.requires_cash_drawer,
       });
 
-      if (
-        policy.isCash &&
-        !policy.supportsChangeReturn &&
-        wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)
-      ) {
+      if (!wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)) {
+        setCashOverRemainingNotice(null);
+        return;
+      }
+
+      if (policy.isCash && !policy.supportsChangeReturn) {
         setCashOverRemainingNotice(
           t('splitPayment.validation.cashOverRemainingNotAllowed', {
             max: `${currencyCode} ${formatAmount(cappedAmount)}`,
@@ -691,9 +695,25 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         return;
       }
 
+      // Non-cash (or cash-with-change that still hit an order cap while intent OFF):
+      // explain the hard gate — enable "Customer is paying extra" to retain overpay.
+      if (
+        !resolveSupportsRetainedOverpayment({
+          payExtraIntent: payExtraIntentRef.current,
+          policy,
+        })
+      ) {
+        setCashOverRemainingNotice(
+          t('payExtraIntent.cappedAtRemaining', {
+            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
+          })
+        );
+        return;
+      }
+
       setCashOverRemainingNotice(null);
     },
-    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, t]
+    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, payExtraIntentRef, t]
   );
 
   const canAllocateOverpayment = useHasPermissionCode(
@@ -1304,10 +1324,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
       walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-      supportsOverpayment:
-        payExtraIntent && policy.isCash && policy.supportsChangeReturn
-          ? true
-          : !policy.isCash && policy.supportsOverpayment,
+      supportsOverpayment: resolveSupportsRetainedOverpayment({
+        payExtraIntent,
+        policy,
+      }),
     });
     setActiveAmountDraft(
       nextAmount > cappedAmount && !(policy.isCash && policy.supportsChangeReturn)

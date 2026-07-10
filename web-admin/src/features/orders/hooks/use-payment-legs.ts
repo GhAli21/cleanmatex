@@ -44,7 +44,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 import { cmxMessage } from '@ui/feedback';
 import {
   deriveCashTenderedAmount,
@@ -207,10 +210,10 @@ export function usePaymentLegs({
           giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
           walletBalance: getLegStoredValueCap(target),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const cashTendered = policy.isCash
           ? deriveCashTenderedAmount(value, appliedAmount, policy.supportsChangeReturn, decimalPlaces)
@@ -257,10 +260,10 @@ export function usePaymentLegs({
             amount: defaultAmount,
             ...(existingIndex >= 0 ? prev[existingIndex] : {}),
           }),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const nextLeg: PaymentLeg = {
           legRef: existingIndex >= 0 ? prev[existingIndex].legRef ?? crypto.randomUUID() : crypto.randomUUID(),
@@ -334,10 +337,10 @@ export function usePaymentLegs({
             method: option.payment_method_code as PaymentLeg['method'],
             amount: defaultAmount,
           }),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const nextLeg: PaymentLeg = {
           legRef: crypto.randomUUID(),

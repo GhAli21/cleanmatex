@@ -1,5 +1,13 @@
 {
   "label": "Customer is paying extra",
   "help": "Turn on to collect more than the order total across all payment methods. You will choose where the extra goes before submitting.",
-  "disabledNoMethods": "No payment method on this order allows retained overpayment."
+  "disabledNoMethods": "No payment method on this order allows retained overpayment.",
+  "cappedAtRemaining": "Capped at remaining ({max}) — customer paying extra? Enable \"Customer is paying extra\" above.",
+  "permissionRequired": "You do not have permission to enable paying extra. Required: {permissionName} ({permissionCode}).",
+  "permissionNameAllocate": "Allocate Overpayment to Balances",
+  "permissionCodeAllocate": "orders:overpayment_allocate",
+  "cannotDisableWhileExtra": "Cannot turn off while an extra amount remains. Reduce payment legs to the order total, or validate and choose where the extra goes.",
+  "extraAmount": "Extra: {amount}",
+  "extraResolvedTo": "Extra: {amount} → {destination}",
+  "extraUnresolved": "Extra unresolved — validate to choose destination"
 }

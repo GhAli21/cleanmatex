@@ -43,3 +43,65 @@ export function resolvePaymentOverpaymentPolicy(
   };
 }
 
+/**
+ * Whether a leg may retain amount above the order remaining (not cash change).
+ * Requires explicit cashier pay-extra intent AND method capability.
+ * Cash over-tender for change uses `supportsChangeReturn` separately — do not
+ * treat change as retained overpayment.
+ *
+ * @param params.payExtraIntent - "Customer is paying extra" toggle
+ * @param params.policy - Resolved method overpayment/change policy
+ */
+export function resolveSupportsRetainedOverpayment(params: {
+  payExtraIntent: boolean;
+  policy: Pick<
+    PaymentOverpaymentPolicy,
+    'isCash' | 'supportsChangeReturn' | 'supportsOverpayment'
+  >;
+}): boolean {
+  if (!params.payExtraIntent) return false;
+  return params.policy.isCash
+    ? params.policy.supportsChangeReturn
+    : params.policy.supportsOverpayment;
+}
+
+/**
+ * Caps a Collect Payment amount entry using the same retained-overpay hard gate
+ * as Payment Modal (QA-R4.5). Cash change uses a separate tendered field.
+ */
+export function capCollectPaymentAmount(params: {
+  rawAmount: number;
+  outstandingAmount: number;
+  payExtraIntent: boolean;
+  paymentMethodCode: string;
+  supportsChangeReturn?: boolean | null;
+  supportsOverpayment?: boolean | null;
+  decimalPlaces?: number;
+}): number {
+  const {
+    rawAmount,
+    outstandingAmount,
+    payExtraIntent,
+    paymentMethodCode,
+    supportsChangeReturn,
+    supportsOverpayment,
+    decimalPlaces = 3,
+  } = params;
+  const safeRaw = Number.isFinite(rawAmount) ? Math.max(0, rawAmount) : 0;
+  const policy = resolvePaymentOverpaymentPolicy({
+    paymentMethodCode,
+    supportsChangeReturn,
+    supportsOverpayment,
+  });
+  if (
+    resolveSupportsRetainedOverpayment({
+      payExtraIntent,
+      policy,
+    })
+  ) {
+    return Number.parseFloat(safeRaw.toFixed(decimalPlaces));
+  }
+  const capped = Math.min(safeRaw, Math.max(0, outstandingAmount));
+  return Number.parseFloat(capped.toFixed(decimalPlaces));
+}
+

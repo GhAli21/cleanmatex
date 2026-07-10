@@ -62,7 +62,8 @@ import { getExtraReceiptResolutionSummary } from './payment-modal/allocation/ext
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
-import { PayExtraIntentToggle } from './payment-modal/pay-extra/pay-extra-intent-toggle';
+import { PayExtraTopStrip } from './payment-modal/pay-extra/pay-extra-top-strip';
+import { attemptPayExtraIntentChange } from './payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
@@ -110,7 +111,10 @@ import {
   type PaymentEngineItem,
   type PaymentEngineCurrencyConfig,
 } from '@features/orders/hooks/use-payment-engine';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 import {
   deriveBalanceStatusLabel,
   deriveRequiredActionCopy,
@@ -1692,10 +1696,10 @@ export function PaymentFullView({
         giftCardAmount: giftCardSettlementAmount,
         decimalPlaces,
         walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-        supportsOverpayment:
-          payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-            ? true
-            : !policy.isCash && policy.supportsOverpayment,
+        supportsOverpayment: resolveSupportsRetainedOverpayment({
+          payExtraIntent: payExtraIntentRef.current,
+          policy,
+        }),
       });
       notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
       updateLeg(activeLegIndex, 'amount', value);
@@ -1770,6 +1774,63 @@ export function PaymentFullView({
       handleBlockedSubmitAttempt();
     }, 150);
   }, [handleBlockedSubmitAttempt, needsAdvanced, userControlledMode]);
+
+  const handlePayExtraIntentAttempt = useCallback(
+    (next: boolean) => {
+      attemptPayExtraIntentChange({
+        next,
+        current: payExtraIntent,
+        canEnablePayExtra,
+        canAllocateOverpayment,
+        excessAmount: unresolvedOverpaymentAmount,
+        moneyEpsilon,
+        setPayExtraIntent,
+        messages: {
+          permissionRequired: t('payExtraIntent.permissionRequired', {
+            permissionName: t('payExtraIntent.permissionNameAllocate'),
+            permissionCode: t('payExtraIntent.permissionCodeAllocate'),
+          }),
+          cannotDisableWhileExtra: t('payExtraIntent.cannotDisableWhileExtra'),
+          disabledNoMethods: t('payExtraIntent.disabledNoMethods'),
+        },
+      });
+    },
+    [
+      canAllocateOverpayment,
+      canEnablePayExtra,
+      moneyEpsilon,
+      payExtraIntent,
+      setPayExtraIntent,
+      t,
+      unresolvedOverpaymentAmount,
+    ]
+  );
+
+  const payExtraStripAriaDisabled =
+    canEnablePayExtra &&
+    ((!canAllocateOverpayment && !payExtraIntent) ||
+      (payExtraIntent && unresolvedOverpaymentAmount > moneyEpsilon));
+
+  const extraDestinationLabel = useMemo(() => {
+    if (!overpaymentResolutionPayload || unresolvedOverpaymentAmount <= moneyEpsilon) {
+      return null;
+    }
+    return getExtraReceiptResolutionSummary(
+      allocation.extraReceiptMode,
+      unresolvedOverpaymentAmount,
+      currencyCode,
+      formatAmount,
+      t
+    );
+  }, [
+    allocation.extraReceiptMode,
+    currencyCode,
+    formatAmount,
+    moneyEpsilon,
+    overpaymentResolutionPayload,
+    t,
+    unresolvedOverpaymentAmount,
+  ]);
 
   // ---- Server-error → capability guard (Phase 5, hardening #2) ----
   // A routed server rejection renders as an in-view guard in the shared footer
@@ -2107,6 +2168,31 @@ export function PaymentFullView({
               </div>
             </CmxDialogHeader>
 
+            <PayExtraTopStrip
+              checked={payExtraIntent}
+              onAttemptChange={handlePayExtraIntentAttempt}
+              disabled={!canEnablePayExtra}
+              disabledReason={
+                !checkoutMethodsLoading && !canEnablePayExtra
+                  ? t('payExtraIntent.disabledNoMethods')
+                  : undefined
+              }
+              ariaDisabled={payExtraStripAriaDisabled}
+              isRTL={isRTL}
+              extraAmountLabel={
+                unresolvedOverpaymentAmount > moneyEpsilon
+                  ? `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`
+                  : null
+              }
+              extraDestinationLabel={extraDestinationLabel}
+              extraUnresolved={
+                unresolvedOverpaymentAmount > moneyEpsilon && !overpaymentResolutionPayload
+              }
+              extraResolved={
+                unresolvedOverpaymentAmount > moneyEpsilon && Boolean(overpaymentResolutionPayload)
+              }
+            />
+
             {/* Mode feedback. Under user-controlled mode (amended ADR): a
                 dismissible suggestion while Simple is selected and advanced
                 conditions are present — never a forced switch. Under the legacy
@@ -2262,6 +2348,7 @@ export function PaymentFullView({
                   activeAmountDraft={activeAmountDraft}
                   amountValue={simpleAmountValue}
                   onAmountValueChange={handleAmountValueChange}
+                  amountCapHint={cashOverRemainingNotice}
                   quickTenderItems={quickTenderChipItems}
                   onQuickTenderSelect={handleQuickTenderSelect}
                   onKeypadPress={handleKeypadPress}
@@ -2847,18 +2934,6 @@ export function PaymentFullView({
                       />
                     </div>
                   ) : null}
-
-                  <PayExtraIntentToggle
-                    checked={payExtraIntent}
-                    onCheckedChange={setPayExtraIntent}
-                    disabled={!canEnablePayExtra}
-                    disabledReason={
-                      !checkoutMethodsLoading && !canEnablePayExtra
-                        ? t('payExtraIntent.disabledNoMethods')
-                        : undefined
-                    }
-                    isRTL={isRTL}
-                  />
 
                   {payExtraIntent ? (
                     <PayExtraWorkbenchHint

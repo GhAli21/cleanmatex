@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-09T19:04:09.906Z",
-  "gitSha": "5c400005",
+  "generatedAt": "2026-07-10T08:11:20.049Z",
+  "gitSha": "b1bfa65a",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",

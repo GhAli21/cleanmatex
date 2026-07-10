@@ -15,8 +15,11 @@ what gets submitted.
 
 | Doc | Purpose |
 |-----|---------|
-| [`Implementation_Plan.md`](./Implementation_Plan.md) | The phased program: current-state inventory, guardrails, per-phase tasks, condition→handling map, test plan, rollout, risks. |
-| [`STATUS.md`](./STATUS.md) | Live progress tracker — one row per phase, updated at each phase close. |
+| [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) | The phased program: current-state inventory, guardrails, per-phase tasks, condition→handling map, test plan, rollout, risks. |
+| [`Payment_Modal_Implementation_STATUS.md`](./Payment_Modal_Implementation_STATUS.md) | Live progress tracker — one row per phase, updated at each phase close. |
+| [`Manual_QA_Checklist.md`](./Manual_QA_Checklist.md) | Annotatable manual QA (sections 1–5 + QA round 4 findings + §6 QA-R4.5). |
+| [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md) | Normative spec for strangler **4g** — pay-extra top strip + hard overpayment gate (QA-R4.5). |
+| [`Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md`](./Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md) | Permissions, i18n, APIs, tests, rollout notes for QA-R4.5. |
 
 ## Source of truth
 

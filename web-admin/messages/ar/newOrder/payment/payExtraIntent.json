@@ -1,5 +1,13 @@
 {
   "label": "العميل يدفع مبلغًا إضافيًا",
   "help": "فعّل هذا الخيار لتحصيل أكثر من إجمالي الطلب عبر جميع طرق الدفع. ستختار وجهة المبلغ الزائد قبل الإرسال.",
-  "disabledNoMethods": "لا توجد طريقة دفع في هذا الطلب تسمح بالاحتفاظ بالمبلغ الزائد."
+  "disabledNoMethods": "لا توجد طريقة دفع في هذا الطلب تسمح بالاحتفاظ بالمبلغ الزائد.",
+  "cappedAtRemaining": "تم التقييد بالمتبقي ({max}) — العميل يدفع زيادة؟ فعّل «العميل يدفع مبلغًا إضافيًا» أعلاه.",
+  "permissionRequired": "ليس لديك صلاحية لتفعيل الدفع الإضافي. المطلوب: {permissionName} ({permissionCode}).",
+  "permissionNameAllocate": "توزيع فائض الدفع على الأرصدة",
+  "permissionCodeAllocate": "orders:overpayment_allocate",
+  "cannotDisableWhileExtra": "لا يمكن الإيقاف بينما يتبقى مبلغ إضافي. خفّض مبالغ الدفع إلى إجمالي الطلب، أو تحقق واختر وجهة المبلغ الزائد.",
+  "extraAmount": "الزيادة: {amount}",
+  "extraResolvedTo": "الزيادة: {amount} ← {destination}",
+  "extraUnresolved": "الزيادة غير محسومة — تحقق لاختيار الوجهة"
 }
