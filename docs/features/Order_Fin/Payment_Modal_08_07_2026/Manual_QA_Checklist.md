@@ -16,42 +16,51 @@ Legend: `[ ]` not run · `[x]` pass · `[!]` FAIL (add a note + screenshot)
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 1.1 | No auto-escalation | Open payment modal on a "complex" order (B2B customer, or apply a gift card / split) | Modal opens **Simple** and STAYS Simple; no automatic jump to Advanced | [ ] |
-| 1.2 | Suggestion appears | Same state | Dismissible banner "Advanced options may help — {reason}" (not the old amber escalation banner) | [ ] |
-| 1.3 | Suggestion accept | Click "Switch to Advanced" | Goes to Advanced | [ ] |
-| 1.4 | Suggestion dismiss | Click the ✕ on the banner | Hidden; stays hidden until modal is closed and reopened | [ ] |
-| 1.5 | Toggle never locked | Switch Simple↔Advanced repeatedly | Both segments always clickable; Simple never disabled | [ ] |
-| 1.6 | State survival | Type 50 in Simple → switch Advanced → back to Simple | The 50 (and any applied gift/promo/credit/split legs) is still there | [ ] |
+| 1.1 | No auto-escalation | Open payment modal on a "complex" order (B2B customer, or apply a gift card / split) | Modal opens **Simple** and STAYS Simple; no automatic jump to Advanced | [ yes] |
+| 1.2 | Suggestion appears | Same state | Dismissible banner "Advanced options may help — {reason}" (not the old amber escalation banner) | [ yes] |
+| 1.3 | Suggestion accept | Click "Switch to Advanced" | Goes to Advanced | [ yes] |
+| 1.4 | Suggestion dismiss | Click the ✕ on the banner | Hidden; stays hidden until modal is closed and reopened | [yes ] |
+| 1.5 | Toggle never locked | Switch Simple↔Advanced repeatedly | Both segments always clickable; Simple never disabled | [ yes] |
+| 1.6 | State survival | Type 50 in Simple → switch Advanced → back to Simple | The 50 (and any applied gift/promo/credit/split legs) is still there | [ yes] |
+
+My Notes:
+MISSING_MESSAGE: newOrder.payment.expressLabel 
 
 ## 2 · Simple quick-actions ("More ways to pay")
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 2.1 | Buttons per availability | Look at the quick-action card | One button per available capability (Cash+card, Split payment, Gift card, Promo code, Store credit, Pay later; **Account billing** on a B2B customer; **Route extra amount** when overpaid); REQUIRED badge when a capability is required | [ ] |
-| 2.1b | B2B in-place *(new 2026-07-10)* | B2B customer in Simple → click Account billing | B2B dialog opens **over Simple** (no mode switch): contract dropdown, cost center, PO number; read-only credit status when a limit exists; fields persist to Advanced inspector tab (shared form) | [ ] |
-| 2.1c | Overpayment in-place *(new 2026-07-10)* | Overpay (pay-extra ON) in Simple → click Route extra amount | Extra-receipt routing dialog opens **over Simple**; choosing a destination works exactly as from Advanced | [ ] |
-| 2.2 | In-place dialogs | Click each button | Its dialog opens **over Simple**; closing returns to Simple with state intact | [ ] |
-| 2.3 | Split dialog focus | Open split, add a leg, change a leg's method | Cursor lands in the **active leg's own amount field** each time (never the background editor) | [ ] |
-| 2.4 | Split cash leg | Cash leg, tender more than due (e.g. 10 vs 7 due) | Field shows the TENDERED amount; "Cash Tendered / Change Returned" chips below show tendered and change | [ ] |
-| 2.5 | Split over-allocation label | Make legs total exceed the order total with a CARD leg (e.g. card 10 on a 7.897 order) | Balance line shows **"Over {amount}"** in red — NOT "Fully Allocated" *(fixed in QA round 4 — re-verify)* | [ ] |
-| 2.6 | Dialog cancel/Done | Cancel and Done from each dialog | Engine state never lost either way | [ ] |
+| 2.1 | Buttons per availability | Look at the quick-action card | One button per available capability (Cash+card, Split payment, Gift card, Promo code, Store credit, Pay later; **Account billing** on a B2B customer; **Route extra amount** when overpaid); REQUIRED badge when a capability is required | [ yes] |
+| 2.1b | B2B in-place *(new 2026-07-10)* | B2B customer in Simple → click Account billing | B2B dialog opens **over Simple** (no mode switch): contract dropdown, cost center, PO number; read-only credit status when a limit exists; fields persist to Advanced inspector tab (shared form) | [yes ] |
+
+| 2.1c | Overpayment in-place *(new 2026-07-10)* | Overpay (pay-extra ON) in Simple → click Route extra amount | Extra-receipt routing dialog opens **over Simple**; choosing a destination works exactly as from Advanced | [ ! No] | in both simple and advance when choose destination it still showing the same no state change, see screenshots with file names 2.1c_xx
+
+| 2.2 | In-place dialogs | Click each button | Its dialog opens **over Simple**; closing returns to Simple with state intact | [ ! No] | see screenshots with file names 2.1c_xx
+
+| 2.3 | Split dialog focus | Open split, add a leg, change a leg's method | Cursor lands in the **active leg's own amount field** each time (never the background editor) | [ yes] |
+
+| 2.4 | Split cash leg | Cash leg, tender more than due (e.g. 10 vs 7 due) | Field shows the TENDERED amount; "Cash Tendered / Change Returned" chips below show tendered and change | [ yes] |
+
+| 2.5 | Split over-allocation label | Make legs total exceed the order total with a CARD leg (e.g. card 10 on a 7.897 order) | Balance line shows **"Over {amount}"** in red — NOT "Fully Allocated" *(fixed in QA round 4 — re-verify)* | [ yes] |
+
+| 2.6 | Dialog cancel/Done | Cancel and Done from each dialog | Engine state never lost either way | [ !] | there is no Cancel button And I want all windows to be movable 
 
 ## 3 · Per-method leg fields (single-source component)
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 3.1 | Advanced: card | Card leg in Advanced | Terminal (if required), brand, last-4, auth code — entry works exactly as before the swap | [ ] |
-| 3.2 | Advanced: check | Check leg | Number / bank / due-date; past date rejected | [ ] |
-| 3.3 | Advanced: transfer + gateway | Bank-transfer and gateway legs | Reference field; gateway code/txn-id/reference | [ ] |
-| 3.4 | Simple parity | Card / gateway method in Simple | Same fields render under the amount editor; cash shows tendered + change | [ ] |
-| 3.5 | Chip limit | Simple method chips | Max **3** chips + "More options" | [ ] |
+| 3.1 | Advanced: card | Card leg in Advanced | Terminal (if required), brand, last-4, auth code — entry works exactly as before the swap | [ yes] |
+| 3.2 | Advanced: check | Check leg | Number / bank / due-date; past date rejected | [ yes] |
+| 3.3 | Advanced: transfer + gateway | Bank-transfer and gateway legs | Reference field; gateway code/txn-id/reference | [ yes] |
+| 3.4 | Simple parity | Card / gateway method in Simple | Same fields render under the amount editor; cash shows tendered + change | [ yes] |
+| 3.5 | Chip limit | Simple method chips | Max **3** chips + "More options" | [ yes] |
 
 ## 4 · Server-error → in-view guard (new)
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 4.1 | Closed-drawer repro | Cash order → close/end the drawer session from another tab → Submit | Toast **plus** a red guard banner above Cancel/Submit naming the same cause, with a "Cash drawer" button that opens the session dialog | [ ] |
-| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → Submit | Guard routed to Account billing; corrective button opens the **B2B account-billing dialog in-place** in BOTH faces *(changed 2026-07-10 — was a "Switch to Advanced" hop)* | [ ] |
+| 4.1 | Closed-drawer repro | Cash order → close/end the drawer session from another tab → Submit | Toast **plus** a red guard banner above Cancel/Submit naming the same cause, with a "Cash drawer" button that opens the session dialog | [ yes] |
+| 4.2 | B2B credit exceeded | B2B customer, bill-to-account beyond limit → Submit | Guard routed to Account billing; corrective button opens the **B2B account-billing dialog in-place** in BOTH faces *(changed 2026-07-10 — was a "Switch to Advanced" hop)* | [ no] | where is the corrective button opens the **B2B account-billing dialog in-place**
 | 4.3 | Guard lifecycle | After a guard shows: fix the issue, Submit again | Guard clears on the new attempt; does not reappear after close/reopen | [ ] |
 | 4.4 | Both faces | Trigger a guard, flip Simple↔Advanced | Banner visible in both (shared footer) | [ ] |
 | 4.5 | Generic errors | Force a non-typed failure (e.g. network drop) | Toast only — no guard, no view switch | [ ] |
@@ -120,6 +129,25 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 | 6.9 | Tablet | Narrow window | Strip + banners + keypad usable; receipt slide-over OK | [ ] |
 | 6.10 | Server guard | Trigger overpayment server rejection | Guard still opens routing dialog; strip consistent | [ ] |
 
+My Notes:
+1. 
+2. 
+
+---
+
+## 7 · Simple↔Advanced active-leg binding + gateway identity *(2026-07-11)*
+
+> Fixes the screenshot bug: Advanced Stripe (off-chip) active → switch Simple showed Stripe amount + gateway fields while Card looked selected. Also hardens split dialog multi-gateway option lookup.
+
+| # | Check | Steps | Expected | Notes / result |
+|---|-------|-------|----------|----------------|
+| 7.1 | Advanced→Simple retarget | Advanced: add Cash + Card + Stripe (fill Stripe details); leave Stripe active; switch **Simple** | Simple amount/details show a **chip-visible** leg (Cash first if present), **not** Stripe gateway fields; Cash chip teal/`aria-pressed`; Card may show lighter "has leg" style | [ ] |
+| 7.2 | Stripe state preserved | After 7.1, switch back to Advanced; select Stripe leg | Amount + gateway txn/ref still present (engine state survived; no silent money rewrite) | [ ] |
+| 7.3 | Off-chip-only hint | Advanced: only Check + Stripe legs; switch Simple | Amount editor empty/disabled; info hint about Advanced method; More options still works | [ ] |
+| 7.4 | Advanced method highlight | Advanced with Cash + Stripe; activate Stripe | Only Stripe method card is primary-selected; Cash shows secondary "has leg" (not both primary) | [ ] |
+| 7.5 | Split gateway identity | Split dialog: two gateway options (e.g. STRIPE + HYPERPAY); Stripe leg with details; change method to Cash | Option lookup keeps correct gateway row; method change sets method + clears `gateway_code`; **amount unchanged** | [ ] |
+| 7.6 | Cap hint gated | Off-chip active in Advanced with a cap notice → Simple with no chip-visible active | Cap hint hidden on Simple until a chip method is active | [ ] |
+
 ---
 
 ## Sign-off
@@ -132,3 +160,4 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 | 4 Server guard | | | |
 | 5 Odds & ends | | | |
 | 6 QA-R4.5 pay-extra strip | | | |
+| 7 Active-leg / gateway identity | | | |

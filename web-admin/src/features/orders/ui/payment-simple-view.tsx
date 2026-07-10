@@ -37,6 +37,8 @@ import {
   type PaymentQuickTenderChipItem,
 } from './payment-modal/quick-tender-chips';
 import type { PaymentKeypadKey } from './payment-modal-v4.utils';
+import { isLegOnSimpleFace } from './payment-modal-v4.utils';
+import { CmxSummaryMessage } from '@ui/feedback';
 
 /**
  * Props for {@link PaymentSimpleView}. Values and handlers are threaded from
@@ -182,7 +184,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {methodOptions.map((option) => {
                   const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
-                  const selected = paymentLegs.some(
+                  const isActive =
+                    activeLeg != null &&
+                    `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                  const hasLeg = paymentLegs.some(
                     (leg) => `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
                   );
                   return (
@@ -195,12 +200,14 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, '-')
                         .replace(/^-|-$/g, '')}`}
-                      aria-pressed={selected}
+                      aria-pressed={isActive}
                       onClick={() => onMethodSelect(option)}
                       className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
-                        selected
+                        isActive
                           ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                          : hasLeg
+                            ? 'border-slate-300 bg-slate-50 text-slate-800 hover:border-slate-400'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                       } ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
                       {option.payment_method_code === PAYMENT_METHODS.CASH ? (
@@ -226,6 +233,17 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               </div>
             )}
           </div>
+
+          {!activeLeg &&
+          paymentLegs.some((leg) => !isLegOnSimpleFace(leg, methodOptions)) ? (
+            <div data-testid="payment-simple-advanced-leg-hint">
+              <CmxSummaryMessage
+                type="info"
+                title={t('mode.simpleView.advancedLegActiveTitle')}
+                items={[t('mode.simpleView.advancedLegActiveHint')]}
+              />
+            </div>
+          ) : null}
 
           {/* Amount hero */}
           <div>

@@ -19,9 +19,10 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
-import type {
-  CheckoutSettlementOption,
-  PaymentTerminalOption,
+import {
+  GATEWAY_METHOD_CODES,
+  type CheckoutSettlementOption,
+  type PaymentTerminalOption,
 } from '@features/orders/hooks/use-payment-catalog';
 import { CmxButton, CmxMoneyField } from '@ui/primitives';
 import {
@@ -31,6 +32,7 @@ import {
   CmxSelectDropdownTrigger,
   CmxSelectDropdownValue,
 } from '@ui/forms';
+import { toSettlementOptionKey } from '@features/orders/ui/payment-modal-v4.utils';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
@@ -85,6 +87,28 @@ export interface SplitTenderDialogProps {
 }
 
 /**
+ * Applies catalog identity to a leg without rewriting amount/tender (no silent
+ * money mutation). Sets `method` + `gateway_code` from the option; clears
+ * gateway when the target method is not a gateway tender.
+ */
+function applyLegSettlementOption(
+  actions: SplitTenderDialogActions,
+  legIndex: number,
+  option: CheckoutSettlementOption,
+): void {
+  actions.setActiveLegIndex(legIndex);
+  actions.updateLeg(
+    legIndex,
+    'method',
+    option.payment_method_code as PaymentLeg['method'],
+  );
+  const nextGateway = GATEWAY_METHOD_CODES.includes(option.payment_method_code)
+    ? (option.gateway_code ?? undefined)
+    : undefined;
+  actions.updateLeg(legIndex, 'gateway_code', nextGateway);
+}
+
+/**
  * Renders the split-tender dialog. Commit model: edits apply to engine state
  * live (the engine owns state — ADR state-survival invariant), so the footer
  * is a single "Done" that closes the dialog.
@@ -116,8 +140,13 @@ export function SplitTenderDialog({
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
 
-  const optionByCode = new Map(
-    methodOptions.map((option) => [option.payment_method_code, option]),
+  // Composite key — method alone collides when multiple gateway rows share a
+  // payment_method_code (e.g. PAYMENT_GATEWAY + STRIPE vs HYPERPAY).
+  const optionByKey = new Map(
+    methodOptions.map((option) => [
+      toSettlementOptionKey(option.payment_method_code, option.gateway_code),
+      option,
+    ]),
   );
 
   // Focus the active leg's amount field when the dialog opens or a leg is added /
@@ -179,7 +208,8 @@ export function SplitTenderDialog({
 
         <ul className="flex flex-col gap-2" data-testid="split-tender-leg-list">
           {paymentLegs.map((leg, index) => {
-            const option = optionByCode.get(leg.method);
+            const legKey = toSettlementOptionKey(leg.method, leg.gateway_code);
+            const option = optionByKey.get(legKey);
             return (
               <li
                 key={leg.legRef ?? `${leg.method}-${index}`}
@@ -187,10 +217,12 @@ export function SplitTenderDialog({
               >
                 <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <CmxSelectDropdown
-                  value={leg.method}
-                  onValueChange={(method) => {
-                    actions.setActiveLegIndex(index);
-                    actions.updateLeg(index, 'method', method as PaymentLeg['method']);
+                  value={legKey}
+                  onValueChange={(key) => {
+                    const nextOption = optionByKey.get(key);
+                    if (nextOption) {
+                      applyLegSettlementOption(actions, index, nextOption);
+                    }
                   }}
                 >
                   <CmxSelectDropdownTrigger
@@ -206,7 +238,10 @@ export function SplitTenderDialog({
                     {methodOptions.map((methodOption) => (
                       <CmxSelectDropdownItem
                         key={methodOption.id}
-                        value={methodOption.payment_method_code}
+                        value={toSettlementOptionKey(
+                          methodOption.payment_method_code,
+                          methodOption.gateway_code,
+                        )}
                       >
                         {getOptionDisplayName(
                           methodOption,
@@ -272,8 +307,8 @@ export function SplitTenderDialog({
 
         <CmxSelectDropdown
           value=""
-          onValueChange={(code) => {
-            const option = optionByCode.get(code);
+          onValueChange={(key) => {
+            const option = optionByKey.get(key);
             if (option) {
               actions.addLeg(option, remainingBalance > 0 ? remainingBalance : 0);
             }
@@ -290,7 +325,10 @@ export function SplitTenderDialog({
             {methodOptions.map((methodOption) => (
               <CmxSelectDropdownItem
                 key={methodOption.id}
-                value={methodOption.payment_method_code}
+                value={toSettlementOptionKey(
+                  methodOption.payment_method_code,
+                  methodOption.gateway_code,
+                )}
               >
                 {getOptionDisplayName(methodOption, methodOption.payment_method_code)}
               </CmxSelectDropdownItem>

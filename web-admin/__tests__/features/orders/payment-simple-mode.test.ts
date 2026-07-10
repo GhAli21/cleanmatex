@@ -5,6 +5,9 @@ import {
   PAYMENT_MODAL_MODE,
   SIMPLE_MODE_METHOD_CHIP_LIMIT,
   deriveSimpleModeMethodOptions,
+  isLegOnSimpleFace,
+  resolveSimpleFaceActiveLegIndex,
+  toSettlementOptionKey,
   type SimpleModeMethodOptionLike,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
@@ -79,5 +82,78 @@ describe('deriveSimpleModeMethodOptions', () => {
 
   it('returns an empty row for an empty catalog', () => {
     expect(deriveSimpleModeMethodOptions([])).toEqual([]);
+  });
+});
+
+describe('resolveSimpleFaceActiveLegIndex', () => {
+  const chips = [
+    option('cash', 'CASH'),
+    option('card', 'CARD'),
+    option('mobile', 'MOBILE_PAYMENT'),
+  ];
+
+  it('keeps the current index when the active leg is already on a Simple chip', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CASH' },
+          { method: 'CARD' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 1,
+      })
+    ).toBe(1);
+  });
+
+  it('retargets off-chip active legs (e.g. Stripe) to the first chip that has a leg', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CASH' },
+          { method: 'CARD' },
+          { method: 'CHECK' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 3,
+      })
+    ).toBe(0);
+  });
+
+  it('leaves the index unchanged when no chip-visible leg exists', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CHECK' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 1,
+      })
+    ).toBe(1);
+  });
+
+  it('matches gateway identity so CARD is not confused with STRIPE', () => {
+    const gatewayChips = [
+      option('cash', 'CASH'),
+      option('card', 'CARD'),
+      { id: 'stripe', payment_method_code: 'STRIPE', gateway_code: 'STRIPE' },
+    ];
+    expect(
+      isLegOnSimpleFace(
+        { method: 'STRIPE', gateway_code: 'STRIPE' },
+        gatewayChips
+      )
+    ).toBe(true);
+    expect(
+      isLegOnSimpleFace({ method: 'STRIPE', gateway_code: 'STRIPE' }, chips)
+    ).toBe(false);
+  });
+
+  it('toSettlementOptionKey joins method and gateway', () => {
+    expect(toSettlementOptionKey('STRIPE', 'STRIPE')).toBe('STRIPE::STRIPE');
+    expect(toSettlementOptionKey('CASH', null)).toBe('CASH::');
+    expect(toSettlementOptionKey('CARD')).toBe('CARD::');
   });
 });

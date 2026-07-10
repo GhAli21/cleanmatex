@@ -30,6 +30,8 @@
     "remaining": "المتبقي",
     "manage": "إدارة",
     "changePolicy": "تغيير",
-    "quickActionsTitle": "طرق دفع أخرى"
+    "quickActionsTitle": "طرق دفع أخرى",
+    "advancedLegActiveTitle": "طريقة دفع متقدمة قيد الاستخدام",
+    "advancedLegActiveHint": "تُعدَّل هذه الطريقة في الوضع المتقدم. اختر طريقة أدناه، أو افتح خيارات إضافية للمتابعة هناك."
   }
 }

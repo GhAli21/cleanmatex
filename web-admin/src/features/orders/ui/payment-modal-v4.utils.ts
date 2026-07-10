@@ -933,8 +933,84 @@ export const SIMPLE_MODE_METHOD_CHIP_LIMIT = 3;
  */
 export interface SimpleModeMethodOptionLike {
   payment_method_code: string;
+  /** Gateway identity when the catalog row is a gateway tender (e.g. STRIPE). */
+  gateway_code?: string | null;
   /** Options that demand a reference (auth code, bank ref) need Full mode. */
   requires_reference?: boolean | null;
+}
+
+/** Minimal leg shape for Simple-face active-leg retargeting (no money fields). */
+export interface SimpleFaceLegLike {
+  method: string;
+  gateway_code?: string | null;
+}
+
+function settlementOptionKey(
+  paymentMethodCode: string,
+  gatewayCode?: string | null
+): string {
+  return `${paymentMethodCode}::${gatewayCode ?? ''}`;
+}
+
+/**
+ * Composite catalog/leg identity key (`method::gateway`). Use for option maps,
+ * chip matching, and Simple-face retarget — never match on method code alone
+ * when gateways can share a method family.
+ */
+export function toSettlementOptionKey(
+  paymentMethodCode: string,
+  gatewayCode?: string | null
+): string {
+  return settlementOptionKey(paymentMethodCode, gatewayCode);
+}
+
+/**
+ * True when the leg matches one of the Simple face method chips (same method +
+ * gateway identity). Legs behind "More options" (chip cap / Advanced-only) are
+ * not Simple-editable even if their method code is in {@link SIMPLE_MODE_METHOD_CODES}.
+ */
+export function isLegOnSimpleFace(
+  leg: SimpleFaceLegLike,
+  simpleOptions: SimpleModeMethodOptionLike[]
+): boolean {
+  const key = settlementOptionKey(leg.method, leg.gateway_code);
+  return simpleOptions.some(
+    (option) =>
+      settlementOptionKey(option.payment_method_code, option.gateway_code) === key
+  );
+}
+
+/**
+ * When switching Advanced → Simple, keep engine state but retarget the active
+ * leg to a chip-visible tender so the Simple amount/detail editor does not keep
+ * showing an Advanced-only (or off-chip) leg. Never mutates amounts — index only.
+ *
+ * Preference: keep `currentIndex` if already chip-visible; else first chip that
+ * already has a leg (chip order); else leave `currentIndex` unchanged (Simple UI
+ * hides the editor until the cashier picks a chip).
+ */
+export function resolveSimpleFaceActiveLegIndex(params: {
+  paymentLegs: SimpleFaceLegLike[];
+  simpleOptions: SimpleModeMethodOptionLike[];
+  currentIndex: number;
+}): number {
+  const { paymentLegs, simpleOptions, currentIndex } = params;
+  if (paymentLegs.length === 0) return currentIndex;
+
+  const current = paymentLegs[currentIndex];
+  if (current && isLegOnSimpleFace(current, simpleOptions)) {
+    return currentIndex;
+  }
+
+  for (const option of simpleOptions) {
+    const key = settlementOptionKey(option.payment_method_code, option.gateway_code);
+    const idx = paymentLegs.findIndex(
+      (leg) => settlementOptionKey(leg.method, leg.gateway_code) === key
+    );
+    if (idx >= 0) return idx;
+  }
+
+  return currentIndex;
 }
 
 /**

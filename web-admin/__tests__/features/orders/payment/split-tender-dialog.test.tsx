@@ -20,13 +20,13 @@ import { SplitTenderDialog } from '@features/orders/payment/capabilities/split-t
 import type { CheckoutSettlementOption } from '@features/orders/hooks/use-payment-catalog';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 
-function option(code: string): CheckoutSettlementOption {
+function option(code: string, gatewayCode: string | null = null): CheckoutSettlementOption {
   return {
-    id: `opt-${code}`,
+    id: `opt-${code}-${gatewayCode ?? 'none'}`,
     payment_method_code: code,
     payment_nature: 'REAL_PAYMENT',
-    gateway_code: null,
-    display_name: code,
+    gateway_code: gatewayCode,
+    display_name: gatewayCode ? `${code} (${gatewayCode})` : code,
     display_name2: null,
     description: null,
     description2: null,
@@ -39,8 +39,13 @@ function option(code: string): CheckoutSettlementOption {
   };
 }
 
-function leg(method: string, amount: number): PaymentLeg {
-  return { method, amount, legRef: `ref-${method}-${amount}` } as PaymentLeg;
+function leg(method: string, amount: number, gatewayCode?: string): PaymentLeg {
+  return {
+    method,
+    amount,
+    legRef: `ref-${method}-${amount}`,
+    ...(gatewayCode ? { gateway_code: gatewayCode } : {}),
+  } as PaymentLeg;
 }
 
 function buildActions() {
@@ -172,5 +177,50 @@ describe('SplitTenderDialog', () => {
     expect(balance).toHaveAttribute('data-balance-state', 'over');
     // Shows the over-allocated amount (50 − 42.5).
     expect(balance.textContent).toContain('7.500');
+  });
+
+  it('binds method selects to method::gateway composite keys', () => {
+    const stripe = option('STRIPE', 'STRIPE');
+    const hyperpay = option('STRIPE', 'HYPERPAY');
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        methodOptions={[option('CASH'), stripe, hyperpay]}
+        actions={buildActions()}
+        paymentLegs={[leg('STRIPE', 5, 'STRIPE')]}
+        legsTotal={5}
+        remainingBalance={37.5}
+      />,
+    );
+    // Composite value on the trigger (method-only would be bare "STRIPE").
+    expect(screen.getByTestId('split-tender-method-0')).toHaveTextContent(
+      'STRIPE::STRIPE',
+    );
+  });
+
+  it('applies method + gateway_code on method change', () => {
+    const actions = buildActions();
+    const stripe = option('STRIPE', 'STRIPE');
+    const cash = option('CASH');
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        methodOptions={[cash, stripe]}
+        actions={actions}
+        paymentLegs={[leg('STRIPE', 5, 'STRIPE')]}
+        legsTotal={5}
+        remainingBalance={37.5}
+      />,
+    );
+
+    actions.updateLeg.mockClear();
+    actions.setActiveLegIndex.mockClear();
+
+    fireEvent.click(screen.getByTestId('split-tender-method-0'));
+    fireEvent.click(screen.getByText('CASH'));
+
+    expect(actions.setActiveLegIndex).toHaveBeenCalledWith(0);
+    expect(actions.updateLeg).toHaveBeenCalledWith(0, 'method', 'CASH');
+    expect(actions.updateLeg).toHaveBeenCalledWith(0, 'gateway_code', undefined);
   });
 });

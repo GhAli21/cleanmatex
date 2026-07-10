@@ -697,7 +697,9 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
             ? liveAdvanceBalance
             : option.available_balance ?? 0;
       const existingIndex = paymentLegs.findIndex(
-        (leg) => leg.method === option.payment_method_code
+        (leg) =>
+          leg.method === option.payment_method_code &&
+          (leg.gateway_code ?? '') === (option.gateway_code ?? '')
       );
       // Existing credit leg → activate only; never rewrite the cashier's amount.
       if (existingIndex >= 0) {

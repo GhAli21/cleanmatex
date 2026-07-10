@@ -42,6 +42,8 @@ import {
   deriveLegAppliedAmount,
   deriveQuickTenderChips,
   PAYMENT_MODAL_MODE,
+  isLegOnSimpleFace,
+  resolveSimpleFaceActiveLegIndex,
   type PaymentModalMode,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
@@ -121,6 +123,7 @@ import {
   deriveRequiredActionCopy,
   deriveRightRailWarningMessages,
   RIGHT_RAIL_BALANCE_STATUS,
+  RIGHT_RAIL_REQUIRED_ACTION,
 } from './payment-modal-v4.right-rail';
 import {
   deriveAutoExpandPaymentSections,
@@ -1260,6 +1263,15 @@ export function PaymentFullView({
     cmxMessage.error(firstIssue ?? t('messages.validationErrors'));
   }, [focusFirstBlockingIssue, t, validationItems]);
 
+  const handleRequiredAction = useCallback(() => {
+    if (rightRailState.requiredAction === RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT) {
+      setB2bDialogOpen(true);
+      return;
+    }
+
+    handleBlockedSubmitAttempt();
+  }, [handleBlockedSubmitAttempt, rightRailState.requiredAction]);
+
   const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
     focusFirstBlockingIssue();
 
@@ -1767,10 +1779,34 @@ export function PaymentFullView({
     () => applyMethodChipPolicy(realPaymentOptions, SIMPLE_PRESET.methodChips),
     [realPaymentOptions]
   );
+
+  // Advanced → Simple: retarget active leg to a chip-visible tender so the
+  // Simple amount/detail editor does not keep showing Stripe/gateway (or other
+  // off-chip) legs. Index only — never rewrite amounts (no silent money mutation).
+  useEffect(() => {
+    if (mode !== PAYMENT_MODAL_MODE.SIMPLE) return;
+    const nextIndex = resolveSimpleFaceActiveLegIndex({
+      paymentLegs,
+      simpleOptions: simpleMethodOptions,
+      currentIndex: activeLegIndex,
+    });
+    if (nextIndex !== activeLegIndex) {
+      setActiveLegIndex(nextIndex);
+    }
+  }, [
+    mode,
+    paymentLegs,
+    simpleMethodOptions,
+    activeLegIndex,
+    setActiveLegIndex,
+  ]);
+
+  const simpleFaceActiveLeg =
+    activeLeg && isLegOnSimpleFace(activeLeg, simpleMethodOptions) ? activeLeg : undefined;
   const simpleAmountValue =
-    activeLeg?.method === PAYMENT_METHODS.CASH
-      ? activeLeg.cashTendered ?? activeLeg.amount ?? null
-      : activeLeg?.amount ?? null;
+    simpleFaceActiveLeg?.method === PAYMENT_METHODS.CASH
+      ? simpleFaceActiveLeg.cashTendered ?? simpleFaceActiveLeg.amount ?? null
+      : simpleFaceActiveLeg?.amount ?? null;
   const cashDrawerDisplay = selectedCashDrawerChoice
     ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
     : null;
@@ -2410,21 +2446,40 @@ export function PaymentFullView({
                   methodsLoading={checkoutMethodsLoading}
                   methodOptions={simpleMethodOptions}
                   paymentLegs={paymentLegs}
-                  activeLeg={activeLeg}
+                  activeLeg={simpleFaceActiveLeg}
                   activeLegIndex={activeLegIndex}
                   getOptionDisplayName={getCheckoutOptionDisplayName}
                   onMethodSelect={handleMethodSelect}
                   onMoreOptions={handleSimpleMoreOptions}
                   amountInputRef={amountInputRef}
-                  activeAmountDraft={activeAmountDraft}
+                  activeAmountDraft={
+                    simpleFaceActiveLeg ? activeAmountDraft : ''
+                  }
                   amountValue={simpleAmountValue}
-                  onAmountValueChange={handleAmountValueChange}
-                  amountCapHint={displayAmountCapNotice?.message ?? null}
+                  onAmountValueChange={(value, draft) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleAmountValueChange(value, draft);
+                  }}
+                  amountCapHint={
+                    simpleFaceActiveLeg
+                      ? (displayAmountCapNotice?.message ?? null)
+                      : null
+                  }
                   payExtraIntent={payExtraIntent}
-                  quickTenderItems={quickTenderChipItems}
-                  onQuickTenderSelect={handleQuickTenderSelect}
-                  onKeypadPress={handleKeypadPress}
-                  activeLegOption={activeLegOption}
+                  quickTenderItems={
+                    simpleFaceActiveLeg ? quickTenderChipItems : []
+                  }
+                  onQuickTenderSelect={(item) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleQuickTenderSelect(item);
+                  }}
+                  onKeypadPress={(key) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleKeypadPress(key);
+                  }}
+                  activeLegOption={
+                    simpleFaceActiveLeg ? activeLegOption : undefined
+                  }
                   updateLeg={updateLeg}
                   branchPaymentTerminals={branchPaymentTerminals}
                   cardBrands={cardBrands}
@@ -2585,7 +2640,10 @@ export function PaymentFullView({
                         realPaymentOptions.map((option) => {
                           const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
                           const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
-                          const selected = !!paymentLegs.find(
+                          const isActive =
+                            activeLeg != null &&
+                            `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                          const hasLeg = paymentLegs.some(
                             (leg) =>
                               `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
                           );
@@ -2603,8 +2661,15 @@ export function PaymentFullView({
                                 .replace(/^-|-$/g, '')}`}
                               variant="outline"
                               size="lg"
+                              aria-pressed={isActive}
                               onClick={() => handleMethodSelect(option)}
-                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? tone.selected : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${isRTL ? 'flex-row-reverse' : ''}`}
+                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
+                                isActive
+                                  ? tone.selected
+                                  : hasLeg
+                                    ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
+                                    : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
+                              } ${isRTL ? 'flex-row-reverse' : ''}`}
                             >
                               <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
                                 <span className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${tone.iconWrap}`}>
@@ -2650,7 +2715,14 @@ export function PaymentFullView({
                       ) : (
                         customerCreditOptions.map((option) => {
                           const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
-                          const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
+                          const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                          const isActive =
+                            activeLeg != null &&
+                            `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                          const hasLeg = paymentLegs.some(
+                            (leg) =>
+                              `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                          );
                           const isWalletOption =
                             option.credit_application_type === 'WALLET' ||
                             option.payment_method_code === 'WALLET';
@@ -2710,8 +2782,15 @@ export function PaymentFullView({
                                 variant="outline"
                                 size="lg"
                                 disabled={disabled}
+                                aria-pressed={isActive}
                                 onClick={() => handleCustomerCreditSelect(option)}
-                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
+                                  isActive
+                                    ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm'
+                                    : hasLeg
+                                      ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
+                                      : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
+                                } ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                               >
                                 <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
                                   <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
@@ -4282,10 +4361,10 @@ export function PaymentFullView({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={handleBlockedSubmitAttempt}
+                          onClick={handleRequiredAction}
                           className="w-full rounded-xl border-rose-200 bg-white text-rose-800 hover:bg-rose-100"
                         >
-                          {t('workspace.fixAction')}
+                          {requiredActionCopy.actionLabel ?? t('workspace.fixAction')}
                         </CmxButton>
                       </CmxCardContent>
                     </CmxCard>

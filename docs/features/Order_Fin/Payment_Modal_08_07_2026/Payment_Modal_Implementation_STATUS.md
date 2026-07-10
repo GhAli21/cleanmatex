@@ -2,7 +2,7 @@
 
 **Branch:** `feature/payment-modal-composable-capabilities` (one final merge; small commits per phase)
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
-**Last update:** 2026-07-10 (**QA-R4.5 follow-ups** `90801a20` + `566117fd` — method-detail lock when remaining ≤ 0 and method cannot retain overpayment; correct remaining-balance cap copy for all methods)
+**Last update:** 2026-07-11 (**Simple↔Advanced active-leg binding** + split gateway identity — Advanced Stripe no longer drives Simple amount/details; method highlight = active; split dialog uses `method::gateway`)
 
 ## Phase board
 
@@ -231,11 +231,13 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 | Documentation skill closeout | ✅ `Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md` |
 | Follow-up — zero-amount detail lock (all methods) | ✅ `90801a20` — `isPaymentLegDetailLocked` + `PaymentLegDetailFields.disabled` (Simple/Full/Split) when remaining ≤ 0, leg amount ~0, pay-extra OFF |
 | Follow-up — prevent-at-add (no zombie zero legs) | ✅ — `resolveNewPaymentLegRejection`: do not create a new leg when remaining ≤ 0 and method cannot retain overpayment; methods stay enabled; toast on reject; repeat click → toast + dismissible alert; existing legs untouched (no amount mutation, no lock) |
+| Follow-up — Simple↔Advanced active-leg / gateway identity (2026-07-11) | ✅ — `resolveSimpleFaceActiveLegIndex` + `simpleFaceActiveLeg` gate amount/draft/details/cap/quick-tender; Simple + Advanced method/credit chips highlight **active** (not leg-exists); split dialog option map + method change use `method::gateway` (`toSettlementOptionKey`); credit re-select matches gateway; Manual QA §7 |
 
-**Last update:** 2026-07-10 — **QA-R4.5 / 4g DONE** + follow-ups `90801a20` / `566117fd` (detail lock + correct cap messaging for all methods).
+**Last update:** 2026-07-11 — Simple↔Advanced active-leg binding + split gateway identity (see Decisions log).
 
 ## Decisions log
 
+- 2026-07-11 — **Simple↔Advanced active-leg / gateway identity (user QA screenshots):** Switching Advanced → Simple while an off-chip leg (e.g. Stripe) was active showed that leg's amount + gateway detail fields while Simple chips looked "selected" for any method that had a leg. Fix: retarget active index to a chip-visible tender (index only — no money rewrite); Simple binds editors only through `simpleFaceActiveLeg`; chip/method/credit highlight = active match (secondary slate = has leg); split dialog uses composite `method::gateway` for option lookup and method change (sets/clears `gateway_code`); `amountCapHint` + quick-tender/keypad handlers gated when Simple has no chip-visible active leg. Tests: `payment-simple-mode.test.ts`, `split-tender-dialog.test.tsx`. Manual QA §7.
 - 2026-07-10 — **QA-R4.5 follow-up (user QA):** when remaining balance is not greater than 0 and the active method cannot retain overpayment, method detail fields lock for **all** methods (not Check-only); amount-cap banner must name remaining balance and must not tell the cashier to enable pay-extra when it is already ON (`566117fd`). Prior zero-amount lock when pay-extra OFF: `90801a20`.
 - 2026-07-10 — **Phase 7 feature docs shipped:** `Payment_Modal_Composable_Capabilities_Feature_Docs.md` — program-level feature documentation per the repo feature-docs contract (permissions, flags, i18n, APIs/DB deltas = none-but-0B, trust model, tests, rollout risks, entry points). Remaining Phase-7 items are QA-gated (ADR flip, kill-switch removal, security re-run).
 - 2026-07-10 — **Phase 6 / H7 oracle fixtures shipped:** `customer-credit.json` + `drawer-choice.json` added to the payload oracle (10 fixtures) + new per-fixture `newOrderPaymentPayloadSchema` validation gate. Payment module 32 suites / 274 tests. Remaining Phase 6: reason-code catalog (deferred to the guards-region migration that consumes it).

@@ -30,6 +30,8 @@
     "remaining": "Remaining",
     "manage": "Manage",
     "changePolicy": "Change",
-    "quickActionsTitle": "More ways to pay"
+    "quickActionsTitle": "More ways to pay",
+    "advancedLegActiveTitle": "Advanced payment method in use",
+    "advancedLegActiveHint": "That method is edited in Advanced. Pick a method below, or open More options to continue there."
   }
 }

@@ -67,7 +67,7 @@ No DB feature flags, tenant settings, or plan limits are read or added.
 | Namespace (`newOrder.payment.*`) | Keys | Notes |
 |---|---|---|
 | `capabilities.<KEY>.{title,action,description}` | all 10 dialog/inline capabilities + `dialog.{errorFallback,required}` + `FX_ROUNDING.{exchangeRate,rounding}` | quick-action labels, dialog chrome, guard action labels |
-| `mode.*` | `simple/advanced/toggleLabel`, `suggest{Title,Action,Dismiss}`, `simpleView.*` (incl. `quickActionsTitle`), `reasons.<NEEDS_ADVANCED_REASON>` | suggestion + Simple face |
+| `mode.*` | `simple/advanced/toggleLabel`, `suggest{Title,Action,Dismiss}`, `simpleView.*` (incl. `quickActionsTitle`, `advancedLegActiveTitle`, `advancedLegActiveHint`), `reasons.<NEEDS_ADVANCED_REASON>` | suggestion + Simple face |
 | `payExtraIntent.*` | QA-R4.5 set | see its doc |
 | `errors.*` | `b2bCreditHold`, `b2bCreditExceeded`, `splitAmountMismatch`, `deferredLegNotAlone`, `paymentReferenceRequired`, `paymentTerminalRequired`, `outstandingPolicyRequired` | server 422 toast + guard message (same string, never diverge) |
 | `reasons.<code>` | **PENDING** — lands with the guards-region strangler migration (`reasonMessageKey` has no consumer yet; adding keys now would be dead i18n) | last open Phase-6 item |
@@ -98,6 +98,18 @@ All capability gating is UX-only. The server re-validates everything on submit: 
 - Branch carries foreign pos-sessions/cash-drawer commits → re-run `/security-review` on a cleaned branch before merge (first review: no HIGH/MED).
 - `b2bRequiredFieldsMissing` is `false` by design today: the server defines no required-B2B-field rule (contract/cost-center/PO are optional, persisted verbatim). If a tenant policy ever requires them, wire the fact in the projector — the required-gate UI (badge + guard) already exists.
 
+## Simple↔Advanced active-leg binding (2026-07-11)
+
+One engine, two faces — state survives mode switches (ADR). The Simple face must **not** bind its amount/detail editor to an Advanced-only or off-chip active leg (e.g. Stripe behind the chip cap):
+
+| Rule | Implementation |
+|---|---|
+| Retarget on Simple | `resolveSimpleFaceActiveLegIndex` — index only; never rewrite amounts |
+| Simple editor binding | `simpleFaceActiveLeg` gates amount, draft, details, cap hint, quick-tender, keypad |
+| Chip / method highlight | Primary = **active** match (`method::gateway`); secondary slate = leg exists |
+| Split dialog options | `toSettlementOptionKey` — never look up by `payment_method_code` alone |
+| Manual QA | [`Manual_QA_Checklist.md`](./Manual_QA_Checklist.md) §7 |
+
 ## Developer entry points
 
 | Concern | Path (under `web-admin/src/features/orders/`) |
@@ -106,7 +118,8 @@ All capability gating is UX-only. The server re-validates everything on submit: 
 | Dialogs + primitives | `payment/capabilities/{key}/`, `payment/primitives/` |
 | View plan / renderer / guard affordance | `payment/view/*` |
 | Presets | `payment/presets/*` |
-| Container wiring | `ui/payment-full-view.tsx` (quick-actions `onOpenCapability`, dialog mounts, server-guard footer) |
+| Simple-face helpers | `ui/payment-modal-v4.utils.ts` (`isLegOnSimpleFace`, `resolveSimpleFaceActiveLegIndex`, `toSettlementOptionKey`) |
+| Container wiring | `ui/payment-full-view.tsx` (quick-actions `onOpenCapability`, dialog mounts, server-guard footer, Simple retarget) |
 | Server-guard state | `hooks/use-order-submission.ts` (`serverGuard`, `routeServerErrorToGuard`) |
 | B2B contracts | `hooks/use-b2b-contracts.ts` |
 | Payload oracle | `web-admin/__tests__/features/orders/payment-payload-fixtures/` |
