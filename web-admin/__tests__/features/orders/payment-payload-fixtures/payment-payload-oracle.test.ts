@@ -18,7 +18,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import type { BuildPaymentPayloadInput } from '@features/orders/hooks/use-payment-submit';
-import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import {
+  newOrderPaymentPayloadSchema,
+  type PaymentLeg,
+} from '@/lib/validations/new-order-payment-schemas';
 
 const FIXTURES_DIR = __dirname;
 
@@ -95,14 +98,18 @@ const fixtureFiles = fs
   .filter((file) => file.endsWith('.json'))
   .sort();
 
-describe('payment payload oracle (Phase 2F)', () => {
-  it('has all 8 baseline scenario fixtures', () => {
+describe('payment payload oracle (Phase 2F; H7 fixtures added in Phase 6)', () => {
+  it('has all 8 baseline + 2 Phase-6 (H7) scenario fixtures', () => {
     expect(fixtureFiles).toEqual([
       'b2b-credit.json',
       'card-gateway.json',
       'cash-exact.json',
       'cash-with-change.json',
+      // H7: customer-credit legs (WALLET + ADVANCE + CREDIT_NOTE w/ reference).
+      'customer-credit.json',
       'deferred-policy.json',
+      // H7: explicitly-selected drawer session (multi-session choice) carried.
+      'drawer-choice.json',
       'gift-card-pin.json',
       'overpayment-allocation.json',
       'split.json',
@@ -118,4 +125,13 @@ describe('payment payload oracle (Phase 2F)', () => {
       expect(rebuilt).toEqual(payload);
     }
   );
+
+  // Every fixture must also satisfy the frozen submit contract — guards the
+  // hand-authored H7 fixtures (baselines were live-recorded post-validation).
+  it.each(fixtureFiles)('validates %s against newOrderPaymentPayloadSchema', (file) => {
+    const raw = fs.readFileSync(path.join(FIXTURES_DIR, file), 'utf8');
+    const { payload } = JSON.parse(raw) as { payload: RecordedPayload };
+    const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
+    expect(parsed.success ? null : parsed.error.issues).toBeNull();
+  });
 });

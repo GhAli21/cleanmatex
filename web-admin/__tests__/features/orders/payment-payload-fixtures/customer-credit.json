@@ -1,0 +1,65 @@
+{
+  "paymentData": {
+    "paymentMethod": "CASH",
+    "checkNumber": "",
+    "checkBank": "",
+    "checkDate": "",
+    "percentDiscount": 0,
+    "amountDiscount": 0,
+    "promoCodeId": "",
+    "promoDiscount": 0,
+    "payAllOrders": false,
+    "paymentNotes": "",
+    "outstandingPolicy": "PAY_ON_COLLECTION",
+    "b2bContractId": "",
+    "costCenterCode": "",
+    "poNumber": ""
+  },
+  "payload": {
+    "amountToCharge": 5.35,
+    "totals": {
+      "subtotal": 5,
+      "manualDiscount": 0,
+      "promoDiscount": 0,
+      "afterDiscounts": 5,
+      "taxRate": 0,
+      "taxAmount": 0.1,
+      "vatTaxPercent": 5,
+      "vatValue": 0.25,
+      "giftCardApplied": 0,
+      "saleTotal": 5.35
+    },
+    "outstandingPolicy": "NONE",
+    "currencyCode": "OMR",
+    "currencyExRate": 1,
+    "cashDrawerSessionId": "9777d8fe-a74b-47aa-b723-50fc3affcbb2",
+    "taxProfileIds": [
+      "e233ea70-ce82-464b-8a2d-34688d74e52e",
+      "227836ad-fbbf-4f47-ae07-343ddea178bb"
+    ],
+    "paymentLegs": [
+      {
+        "method": "WALLET",
+        "amount": 1,
+        "legRef": "1f0e2c74-9a3b-4e6d-8c5a-2b7d914f3a60"
+      },
+      {
+        "method": "ADVANCE",
+        "amount": 1,
+        "legRef": "6b8d4a12-3c5e-47f9-a1d0-9e2f6c184b73"
+      },
+      {
+        "method": "CREDIT_NOTE",
+        "amount": 1.5,
+        "creditReferenceId": "d4a91c68-7e2b-40f5-b3a8-51c60d97e2f4",
+        "legRef": "83c5f2e9-1d47-4b06-9a8e-c3617f0d254a"
+      },
+      {
+        "method": "CASH",
+        "amount": 1.85,
+        "cashTendered": 2,
+        "legRef": "b7e04d3f-58a2-46c1-8f9b-0a6d2e7c1354"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "paymentData": {
+    "paymentMethod": "CASH",
+    "checkNumber": "",
+    "checkBank": "",
+    "checkDate": "",
+    "percentDiscount": 0,
+    "amountDiscount": 0,
+    "promoCodeId": "",
+    "promoDiscount": 0,
+    "payAllOrders": false,
+    "paymentNotes": "",
+    "outstandingPolicy": "PAY_ON_COLLECTION",
+    "b2bContractId": "",
+    "costCenterCode": "",
+    "poNumber": ""
+  },
+  "payload": {
+    "amountToCharge": 3.21,
+    "totals": {
+      "subtotal": 3,
+      "manualDiscount": 0,
+      "promoDiscount": 0,
+      "afterDiscounts": 3,
+      "taxRate": 0,
+      "taxAmount": 0.06,
+      "vatTaxPercent": 5,
+      "vatValue": 0.15,
+      "giftCardApplied": 0,
+      "saleTotal": 3.21
+    },
+    "outstandingPolicy": "NONE",
+    "currencyCode": "OMR",
+    "currencyExRate": 1,
+    "cashDrawerSessionId": "4e6a1b0d-72c8-45f3-9d2e-8a05c1f7b396",
+    "taxProfileIds": [
+      "e233ea70-ce82-464b-8a2d-34688d74e52e",
+      "227836ad-fbbf-4f47-ae07-343ddea178bb"
+    ],
+    "paymentLegs": [
+      {
+        "method": "CASH",
+        "amount": 3.21,
+        "cashTendered": 3.5,
+        "legRef": "c9d2e714-06b3-48af-b5e1-3f8a7d60c425"
+      }
+    ]
+  }
+}
