@@ -85,6 +85,15 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 - **4.3 — OPEN (UX decision): a zero-applied cash leg still looks like an active payment.** The Simple amount editor shows 50.000 for a leg contributing 0.000. Recommendation: when `applied = 0 ∧ tendered > 0`, show an explicit inline note "This cash is not needed — the order is covered by other methods" (display-only, i18n EN+AR). → your call: ______
 - **4.4 — OPEN (informational): submit label vs rail.** "Submit — OMR 10.000" (real legs incl. overpay) vs "Total Settled Now 7.897" (applied). Legacy pre-program semantics, blocked anyway until the 2.103 is resolved — suggest leaving as-is unless it keeps confusing cashiers. → your call: ______
 
+- **4.5 — APPROVED DESIGN (2026-07-10, user-approved): pay-extra top strip + hard overpayment gate.** To implement after this checklist pass, as the `OVERPAYMENT_ROUTING` inline surface through the capability renderer (strangler 4g):
+  1. **Top-of-workbench strip:** "Customer is paying extra" toggle + read-only mirror "Extra: OMR X → destination" (never an editable second money field). Amber while unresolved, emerald once resolved — never red (red = blocked/error only).
+  2. **Hard gate:** non-change-capable overpay (card/gateway/transfer) is **capped while the toggle is OFF**, even when the method config supports overpayment. The cap is explained inline at the moment it happens: "Capped at remaining — customer paying extra? Enable 'Customer is paying extra' above." Engine rule becomes `supportsOverpayment && payExtraIntent` (first deliberate lift of the money-model freeze — own commit + new oracle fixtures + ADR/plan note). **Cash over-tender stays exempt** — it is change, not extra.
+  3. **Toggle ON gate:** requires the overpayment-allocation permission. Without it: `aria-disabled` (not native `disabled` — click must still fire) + `cmxMessage` naming the permission **name and code**. Server re-enforces regardless.
+  4. **Toggle OFF gate:** blocked while `extra > epsilon` (regardless of resolution state) — `aria-disabled` + message naming the two exits: reduce the legs to the order total, or validate and route the extra. Toggle frees itself when extra reaches zero. No re-capping side effect ever.
+  5. **Simple face parity:** same registry facts drive the existing "Extra amount REQUIRED" quick-button; the cap hint appears in Simple's amount editor too.
+  - Governed by the new repo-wide rule **"No silent money mutation"** (CLAUDE.md CRITICAL RULE #15 / `.cursor/rules/no-silent-money-mutation.mdc`), which this design produced.
+  - Plan: two commits — (a) engine cap rule + oracle fixtures + tests, (b) top strip + toggle UX + i18n EN/AR.
+
 *(Numbering continues from QA rounds 1–3, which are closed — see the STATUS doc.)*
 
 ---

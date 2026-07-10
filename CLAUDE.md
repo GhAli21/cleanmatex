@@ -20,8 +20,8 @@
 # CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 22-03-2026
-**Last Update Description:** Added /storybook skill + storybook-generator agent to mandatory loading table
+**Last Update:** 10-07-2026
+**Last Update Description:** Added CRITICAL RULE #15 — no silent money mutation (prevent or explain, never auto-correct user-editable amounts)
 
 ---
 
@@ -62,6 +62,7 @@ Communication style:
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`; `src/features/[feature name]/access/[feature name]-access.ts` ; `src/features/access/page-access-registry.ts` . See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
+15. **No silent money mutation** — the system must NEVER auto-change a user-editable amount/money field unless that adjustment is an explicit, documented, user-expected default of the field (e.g. cash tendered → change). Order of preference: (1) PREVENT invalid entry (gate/disable the affordance with a clear reason, incl. permission name + code when permission-gated), (2) EXPLAIN any unavoidable adjustment inline at the moment it happens, (3) NEVER rewrite money as a side effect of a toggle/mode switch/dialog close — block the transition with guidance instead. See `.cursor/rules/no-silent-money-mutation.mdc`.
 
 ---
 
@@ -312,7 +313,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.

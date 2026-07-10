@@ -61,6 +61,7 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 24. Menu-visible routes require the `/navigation` dual-write workflow.
 25. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
 26. Before finishing, run the mandatory frontend verification commands listed in `standards.md`.
+27. No silent money mutation: never auto-change a user-editable amount/money field unless the adjustment is an explicit, documented, user-expected default of that field (e.g. cash tendered → change). Prevent invalid entry (gate/disable with a clear reason, incl. permission name + code) or explain the adjustment inline at the moment it happens; never rewrite money as a side effect of a toggle, mode switch, or dialog close — block the transition with guidance instead. See `.cursor/rules/no-silent-money-mutation.mdc` and CLAUDE.md CRITICAL RULE #15.
 
 ## 3. Canonical folder structure
 

@@ -216,6 +216,9 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 
 ## Decisions log
 
+- 2026-07-10 — **QA 4.5 design approved (user):** pay-extra top strip + hard overpayment gate — overpay impossible until the "Customer is paying extra" toggle is ON (even if method config supports it); toggle ON permission-gated (`aria-disabled` + message with permission name+code); toggle OFF blocked while extra > epsilon (message names the two exits); cash change exempt; amber/green states, never red. Full spec in `Manual_QA_Checklist.md` §4.5. Implement after the QA pass as strangler 4g (OVERPAYMENT_ROUTING inline surface); engine cap change = deliberate freeze-lift, own commit + oracle fixtures.
+- 2026-07-10 — **New repo-wide rule codified (user): "No silent money mutation"** — never auto-change a user-editable money field unless it's a documented user-expected default (e.g. tendered→change); prevent or explain inline, never rewrite money as a side effect of toggles/mode switches/dialog closes. Added to CLAUDE.md CRITICAL RULE #15, AGENTS.md #15, `.cursor/rules/no-silent-money-mutation.mdc` (alwaysApply), frontend skill hard gate #27, business-logic skill.
+
 - 2026-07-08 — ADR amended: user-controlled Simple/Full, dialogs/guards, demoted suggestion, restricted class.
 - 2026-07-09 — Plan approved with composable capability architecture; full program on one branch; kill-switch constant.
 - 2026-07-09 — **Phase 0B approved:** credit-limit exceedance hard-denied by default even with client `creditLimitOverride`; gated exception (explicit enablement + `orders:override_credit_limit`, both required) deferred HIGH-PRIORITY.
