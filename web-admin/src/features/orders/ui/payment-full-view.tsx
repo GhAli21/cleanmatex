@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import {
-  newOrderPaymentPayloadSchema,
+  newOrderPaymentPayloadSchema, 
   type NewOrderPaymentPayload,
   type OutstandingPolicy,
   type PaymentLeg,
