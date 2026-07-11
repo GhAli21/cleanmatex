@@ -4587,11 +4587,14 @@ export function PaymentFullView({
                   <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
                     {tCommon('cancel')}
                   </CmxButton>
-                  {payExtraIntent ? (
+                  {payExtraIntent &&
+                  stripExtraAmount > moneyEpsilon &&
+                  !overpaymentResolutionPayload ? (
                     <PaymentValidateButton
                       onClick={runValidatePayment}
                       disabled={!canEnablePayExtra}
-                      className="w-full rounded-2xl"
+                      isRTL={isRTL}
+                      className="flex-1"
                     />
                   ) : null}
                   <CmxButton

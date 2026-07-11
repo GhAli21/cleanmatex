@@ -792,10 +792,14 @@ export function OrderCollectPaymentModal({
                   </div>
                 ) : null}
 
-                {payExtraIntent ? (
+                {payExtraIntent &&
+                stripExtraAmount > SETTLEMENT_MONEY_EPSILON &&
+                !overpaymentResolution ? (
                   <PaymentValidateButton
                     onClick={runValidatePayment}
                     disabled={!canEnablePayExtra}
+                    isRTL={isRTL}
+                    className="w-full"
                   />
                 ) : null}
 
