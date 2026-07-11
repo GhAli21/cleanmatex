@@ -12,7 +12,10 @@
  */
 
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
-import { validateCheckDueDate } from '@features/orders/ui/payment-modal-v4.utils';
+import {
+  isB2BCreditLimitBlocking,
+  validateCheckDueDate,
+} from '@features/orders/ui/payment-modal-v4.utils';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type { OutstandingPolicy } from '@/lib/validations/new-order-payment-schemas';
 
@@ -195,7 +198,13 @@ export function derivePaymentValidationItems<TOption>(
   if (ctx.remainingBalance > 0.001 && ctx.effectiveOutstandingPolicy === 'NONE') {
     items.push(t('remainder.validation.required'));
   }
-  if (ctx.creditLimitWouldExceed) {
+  if (
+    isB2BCreditLimitBlocking({
+      wouldExceed: ctx.creditLimitWouldExceed,
+      remainingBalance: ctx.remainingBalance,
+      outstandingPolicy: ctx.effectiveOutstandingPolicy,
+    })
+  ) {
     if (ctx.creditLimitMode === 'warn' && !ctx.creditLimitOverride) {
       items.push(t('b2b.creditExceededWarn'));
     } else if (ctx.creditLimitMode !== 'warn') {

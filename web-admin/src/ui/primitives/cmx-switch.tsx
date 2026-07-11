@@ -15,6 +15,12 @@ export interface CmxSwitchProps
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
+  /**
+   * Soft-disable: keeps the control focusable/clickable so the parent can show
+   * a permission or lock message (QA-R4.5 pay-extra gates). Visual not-allowed;
+   * does not set native `disabled`.
+   */
+  ariaDisabled?: boolean;
   className?: string;
 }
 
@@ -25,17 +31,21 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
       checked,
       onCheckedChange,
       disabled,
+      ariaDisabled = false,
       id,
       name,
       ...props
     },
     ref
   ) => {
+    const softLocked = ariaDisabled && !disabled;
+
     return (
       <button
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-disabled={softLocked ? true : undefined}
         data-state={checked ? 'checked' : 'unchecked'}
         disabled={disabled}
         ref={ref}
@@ -45,13 +55,15 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
           'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233))] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
           'disabled:cursor-not-allowed disabled:opacity-50',
+          softLocked && 'cursor-not-allowed opacity-60',
           checked
             ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]'
             : 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
           className
         )}
         onClick={() => {
-          if (!disabled && onCheckedChange) {
+          if (disabled) return;
+          if (onCheckedChange) {
             onCheckedChange(!checked);
           }
         }}

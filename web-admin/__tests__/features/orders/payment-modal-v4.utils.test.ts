@@ -29,6 +29,10 @@ import {
   getStoredValueCapForLeg,
   canReturnChangeFromAllCashLegs,
 } from '@features/orders/ui/payment-modal-v4.utils';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 
 describe('payment-modal-v4 utils', () => {
   it('sanitizes decimal drafts to one decimal separator', () => {
@@ -167,6 +171,29 @@ describe('payment-modal-v4 utils', () => {
       decimalPlaces: 3,
       supportsOverpayment: true,
     })).toBe(105);
+  });
+
+  it('QA-R4.5: card supports_overpayment still caps when retained-overpay helper is false', () => {
+    const policy = resolvePaymentOverpaymentPolicy({
+      paymentMethodCode: 'CARD',
+      supportsOverpayment: true,
+    });
+    const allow = resolveSupportsRetainedOverpayment({
+      payExtraIntent: false,
+      policy,
+    });
+    expect(allow).toBe(false);
+    expect(
+      deriveLegAppliedAmount({
+        rawAmount: 10,
+        paymentLegs: [{ amount: 0 }],
+        legIndex: 0,
+        saleTotal: 7.897,
+        giftCardAmount: 0,
+        decimalPlaces: 3,
+        supportsOverpayment: allow,
+      })
+    ).toBe(7.897);
   });
 
   it('detects when a live wallet refresh makes the applied leg invalid', () => {

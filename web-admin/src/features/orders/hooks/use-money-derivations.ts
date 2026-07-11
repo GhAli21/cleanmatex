@@ -211,6 +211,9 @@ export function useMoneyDerivations({
     if (leg.method !== PAYMENT_METHODS.CASH) return sum;
     const option = getMethodOption(leg.method, leg.gateway_code);
     if (option?.supports_change_return !== true) return sum;
+    // Change capacity = tendered − order-capped applied. Retained overpay (intent ON)
+    // uses checkout excess metrics instead of this legacy capacity path — always
+    // compute applied as capped here (QA-R4.5).
     const applied = deriveLegAppliedAmount({
       rawAmount: leg.amount,
       paymentLegs: settlementLegEntries.map(({ leg: l }) => ({ amount: l.amount })),
@@ -218,7 +221,7 @@ export function useMoneyDerivations({
       saleTotal,
       giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
-      supportsOverpayment: option?.supports_overpayment === true,
+      supportsOverpayment: false,
     });
     const tendered = deriveCashTenderedAmount(
       leg.cashTendered ?? leg.amount,

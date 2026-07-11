@@ -9,6 +9,7 @@
   "creditLimit": "حد الائتمان",
   "creditUsed": "المستخدم",
   "creditAvailable": "المتاح",
+  "creditExceedsBy": "يتجاوز المتاح بمقدار",
   "creditExceeded": "إجمالي الطلب يتجاوز الائتمان المتاح. سيتم رفض الدفع.",
   "creditExceededWarn": "الطلب يتجاوز الائتمان المتاح. يمكنك تجاوزه بتأكيد أدناه.",
   "creditOverrideConfirm": "أؤكد تجاوز حد الائتمان"

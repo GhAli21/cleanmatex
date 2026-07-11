@@ -81,6 +81,24 @@ export interface MessageOptions {
   force?: boolean;
 
   /**
+   * Skip recording this message in the Session Activity log.
+   * @default false
+   */
+  skipSessionLog?: boolean;
+
+  /**
+   * Force recording in Session Activity even when type would normally be skipped
+   * (e.g. important success/info).
+   * @default false
+   */
+  forceSessionLog?: boolean;
+
+  /**
+   * Optional feature tag stored with the Session Activity entry (e.g. 'payment').
+   */
+  sessionActivitySource?: string;
+
+  /**
    * For inline method: callback when message is dismissed
    */
   onDismiss?: () => void;

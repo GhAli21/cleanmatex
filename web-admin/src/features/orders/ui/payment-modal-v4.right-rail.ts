@@ -1,4 +1,5 @@
 import type { OutstandingPolicy } from '@/lib/validations/new-order-payment-schemas';
+import { isB2BCreditLimitBlocking } from './payment-modal-v4.utils';
 
 /**
  * Stable semantic states for the payment modal right-rail headline card.
@@ -133,7 +134,12 @@ export function derivePaymentModalRightRailState(
   const warningCodes: RightRailWarningCode[] = [];
 
   if (
-    input.creditLimitWouldExceed &&
+    isB2BCreditLimitBlocking({
+      wouldExceed: input.creditLimitWouldExceed,
+      remainingBalance: input.remainingBalance,
+      outstandingPolicy: input.effectiveOutstandingPolicy,
+      epsilon: input.epsilon,
+    }) &&
     input.creditLimitMode === 'warn' &&
     input.creditLimitOverride
   ) {
@@ -191,7 +197,12 @@ function deriveRequiredAction(
   }
 
   if (
-    input.creditLimitWouldExceed &&
+    isB2BCreditLimitBlocking({
+      wouldExceed: input.creditLimitWouldExceed,
+      remainingBalance: input.remainingBalance,
+      outstandingPolicy: input.effectiveOutstandingPolicy,
+      epsilon: input.epsilon,
+    }) &&
     (input.creditLimitMode === 'block' ||
       (input.creditLimitMode === 'warn' && !input.creditLimitOverride))
   ) {
@@ -265,6 +276,8 @@ export function deriveBalanceStatusLabel(
 export interface RequiredActionCopy {
   title: string;
   message: string;
+  /** Optional action copy when the blocker owns a specific corrective surface. */
+  actionLabel?: string;
 }
 
 /**
@@ -323,6 +336,7 @@ export function deriveRequiredActionCopy(
           ctx.creditLimitMode === 'warn'
             ? t('rightRail.requiredAction.creditLimitWarn')
             : t('rightRail.requiredAction.creditLimitBlock'),
+        actionLabel: t('rightRail.requiredAction.reviewAccountBilling'),
       };
     case RIGHT_RAIL_REQUIRED_ACTION.GIFT_CARD_PIN:
       return {

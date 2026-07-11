@@ -4,7 +4,9 @@
  */
 
 import { toast as sonnerToast } from 'sonner';
+import { recordSessionMessage } from '@lib/session-activity';
 import type { MessageType, MessageOptions, MessageResult } from '../types';
+import { getMessageConfig } from '../message-config';
 import { sanitizeHtmlSync, containsHtml } from '../utils/html-sanitizer';
 
 /**
@@ -117,6 +119,16 @@ export function showToastPromise<T>(
         typeof messages.success === 'function'
           ? messages.success(result)
           : messages.success;
+      // Success is not logged by default; honor forceSessionLog if set
+      recordSessionMessage({
+        type: 'success',
+        title: message,
+        description: options?.description,
+        method: 'toast',
+        source: options?.sessionActivitySource,
+        skipSessionLog: options?.skipSessionLog,
+        forceSessionLog: options?.forceSessionLog,
+      });
       return message;
     },
     error: (error: Error) => {
@@ -124,23 +136,25 @@ export function showToastPromise<T>(
         typeof messages.error === 'function'
           ? messages.error(error)
           : messages.error;
+      recordSessionMessage({
+        type: 'error',
+        title: message,
+        description: options?.description,
+        method: 'toast',
+        source: options?.sessionActivitySource,
+        skipSessionLog: options?.skipSessionLog,
+        forceSessionLog: options?.forceSessionLog,
+      });
       return message;
     },
   }) as unknown as Promise<T>;
 }
 
 /**
- * Get default duration for message type
+ * Get default duration for message type from message-config
  * @param type
  */
 function getDefaultDuration(type: MessageType): number {
-  const durations: Record<MessageType, number> = {
-    success: 3000,
-    error: 5000,
-    warning: 4000,
-    info: 3000,
-    loading: Infinity, // Loading toasts don't auto-dismiss
-  };
-
-  return durations[type] ?? 3000;
+  const { durations } = getMessageConfig();
+  return durations[type] ?? 4000;
 }

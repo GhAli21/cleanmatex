@@ -7,16 +7,16 @@ import type { MessageConfig } from './types';
 import { DisplayMethod } from './types';
 
 /**
- * Default message configuration
+ * Default message configuration 
  */
 const defaultConfig: MessageConfig = {
   defaultMethod: DisplayMethod.TOAST,
   toastPosition: 'top-right',
   durations: {
-    success: 3000,
-    error: 5000,
-    warning: 4000,
-    info: 3000,
+    success: 4000,
+    error: Infinity,
+    warning: 7000,
+    info: 5000,
     loading: Infinity,
   },
   enableConsoleInProduction: false,

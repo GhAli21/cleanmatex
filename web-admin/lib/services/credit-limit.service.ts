@@ -23,6 +23,37 @@ export interface CreditLimitResult {
 }
 
 /**
+ * Enforces the B2B credit policy for a CREDIT_INVOICE submission (Phase 0B,
+ * 2026-07-09). Pure and synchronous so the deny rules are unit-testable.
+ *
+ * Deliberately takes **no override parameter**: exceeding the credit limit is
+ * hard-denied for everyone. A client-supplied flag must never bypass an
+ * accounting limit. Re-enabling override requires the gated path (explicit
+ * enablement policy + `orders:override_credit_limit` permission, BOTH
+ * required) — tracked in
+ * `docs/features/Order_Fin/Payment_Modal_08_07_2026/Deferred_Backend_Tasks.md`.
+ *
+ * @param creditCheck - Result of {@link checkCreditLimit} for the customer.
+ * @throws Error('B2B_CREDIT_HOLD')     — customer is on credit hold.
+ * @throws Error('B2B_CREDIT_EXCEEDED') — order would exceed the credit limit
+ *         (with creditLimit/currentBalance/available attached for the client).
+ */
+export function assertCreditWithinPolicy(creditCheck: CreditLimitResult): void {
+  if (creditCheck.isCreditHold) {
+    throw new Error('B2B_CREDIT_HOLD');
+  }
+  if (creditCheck.wouldExceed) {
+    const err = new Error('B2B_CREDIT_EXCEEDED');
+    Object.assign(err, {
+      creditLimit:    creditCheck.creditLimit,
+      currentBalance: creditCheck.currentBalance,
+      available:      creditCheck.available,
+    });
+    throw err;
+  }
+}
+
+/**
  *
  * @param customerId
  * @param additionalAmount

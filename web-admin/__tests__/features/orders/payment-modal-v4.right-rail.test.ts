@@ -1,4 +1,5 @@
 import {
+  deriveRequiredActionCopy,
   derivePaymentModalRightRailState,
   RIGHT_RAIL_BALANCE_STATUS,
   RIGHT_RAIL_REQUIRED_ACTION,
@@ -31,6 +32,26 @@ function makeInput(
 }
 
 describe('payment-modal-v4 right rail', () => {
+  it('provides a specific account-billing action for a credit-limit blocker', () => {
+    const copy = deriveRequiredActionCopy({
+      t: (key) => key,
+      requiredAction: RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT,
+      overpaymentBlocksSubmit: false,
+      payExtraIntent: false,
+      validationPhase: 'ready',
+      currencyCode: 'OMR',
+      formatAmount: (value) => value.toFixed(3),
+      unresolvedOverpaymentAmount: 0,
+      cashDrawerBlockingMessage: null,
+      creditLimitMode: 'block',
+      liveWalletBalanceDisplay: 'OMR 0.000',
+    });
+
+    expect(copy?.actionLabel).toBe(
+      'rightRail.requiredAction.reviewAccountBilling'
+    );
+  });
+
   it('derives blocked status when blocking issues exist', () => {
     const state = derivePaymentModalRightRailState(
       makeInput({ hasBlockingIssues: true, remainingBalance: 10 })
@@ -135,10 +156,27 @@ describe('payment-modal-v4 right rail', () => {
         creditLimitWouldExceed: true,
         creditLimitMode: 'warn',
         creditLimitOverride: false,
+        remainingBalance: 12,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
       })
     );
 
     expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT);
+  });
+
+  it('does not surface credit-limit action when fully settled despite wouldExceed preview', () => {
+    const state = derivePaymentModalRightRailState(
+      makeInput({
+        hasBlockingIssues: false,
+        creditLimitWouldExceed: true,
+        creditLimitMode: 'block',
+        remainingBalance: 0,
+        effectiveOutstandingPolicy: 'NONE',
+      })
+    );
+
+    expect(state.requiredAction).toBeNull();
+    expect(state.balanceStatus).toBe(RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED);
   });
 
   it('surfaces gift card pin requirement before remaining-policy fallback', () => {
@@ -203,6 +241,8 @@ describe('payment-modal-v4 right rail', () => {
         creditLimitWouldExceed: true,
         creditLimitMode: 'warn',
         creditLimitOverride: true,
+        remainingBalance: 12,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
       })
     );
 

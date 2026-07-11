@@ -1,7 +1,8 @@
 /**
  * Stories for `PaymentModeToggle` — the Simple ⇄ Advanced segmented control in
- * the Payment Modal v4 header (Phase 4, single engine two faces). Variants:
- * Simple selected, Full selected, Simple locked by `needsAdvanced`, and RTL.
+ * the Payment Modal v4 header (single engine, two faces). Both segments are
+ * always clickable (amended ADR — the cashier controls the view). Variants:
+ * Simple selected, Full selected, and RTL.
  */
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { PaymentModeToggle } from './payment-mode-toggle'
@@ -17,13 +18,11 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     mode: { control: 'radio', options: ['simple', 'full'] },
-    simpleDisabled: { control: 'boolean' },
     isRTL: { control: 'boolean' },
   },
   args: {
     mode: 'simple',
     onModeChange: () => {},
-    simpleDisabled: false,
     simpleLabel: 'Simple',
     fullLabel: 'Advanced',
     groupLabel: 'Payment view',
@@ -39,19 +38,9 @@ type Story = StoryObj<typeof meta>
 /** Default: modal opened on the Simple face. */
 export const SimpleSelected: Story = {}
 
-/** Full face selected manually or via auto-escalation. */
+/** Full face selected by the cashier. */
 export const FullSelected: Story = {
   args: { mode: 'full' },
-}
-
-/** Escalated + locked: Simple is disabled while `needsAdvanced` holds. */
-export const SimpleLocked: Story = {
-  args: {
-    mode: 'full',
-    simpleDisabled: true,
-    simpleDisabledReason:
-      'Advanced options are in use — Simple mode is unavailable until they are cleared',
-  },
 }
 
 /** RTL (Arabic) — segments reverse. */

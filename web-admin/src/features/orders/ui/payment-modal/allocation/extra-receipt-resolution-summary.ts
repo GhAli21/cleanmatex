@@ -40,3 +40,35 @@ export function getExtraReceiptResolutionSummary(
       return amountLabel;
   }
 }
+
+/**
+ * Short destination noun for the resolved pay-extra strip mirror
+ * ("Extra: {amount} → {destination}"). Reuses the existing extra-receipt
+ * option labels — no new i18n. Returns null when no routing destination
+ * applies (e.g. adjust-legs), so the strip falls back to the amount-only line.
+ *
+ * @param mode - Resolved overpayment routing mode.
+ * @param t - Translator scoped to `newOrder.payment`.
+ * @returns Short destination label, or null when not a routed destination.
+ */
+export function getExtraReceiptDestinationLabel(
+  mode: ExtraReceiptHandlingMode,
+  t: ExtraReceiptSummaryTranslator
+): string | null {
+  switch (mode) {
+    case OVERPAYMENT_RESOLUTIONS.RETURN_CASH_CHANGE:
+      return t('extraReceipt.returnCashChange');
+    case OVERPAYMENT_RESOLUTIONS.SAVE_TO_CUSTOMER_WALLET:
+      return t('extraReceipt.saveToWallet');
+    case OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_ADVANCE:
+      return t('extraReceipt.saveAsAdvance');
+    case OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_CREDIT:
+      return t('extraReceipt.saveAsCredit');
+    case OVERPAYMENT_RESOLUTIONS.AUTO_ALLOCATE_TO_CUSTOMER_BALANCES:
+      return t('extraReceipt.autoAllocate');
+    case OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES:
+      return t('extraReceipt.manualAllocate');
+    default:
+      return null;
+  }
+}

@@ -5,6 +5,8 @@
 **Scope:** `web-admin/src/features/orders/ui/payment-modal-v4.tsx` and its supporting modules
 **Status (2026-07-03):** **IMPLEMENTED — program complete (Phases 0–7).** Engine extracted (`usePaymentEngine`, Phases 1–2G), view split (`payment-full-view.tsx` + thin shell), Phase 3 UX quick wins (findings **1.1, 1.2, 1.4, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11** + polish), **Phase 4 Simple mode + auto-escalation** (`payment-simple-view.tsx`, `PaymentModeToggle`, `needsAdvanced` consumed), **Phase 5 keyboard shortcuts** (finding **1.3** — `use-payment-shortcuts.ts`), **Phase 6 tablet layout** (finding **1.5** — 2-pane, rail slide-over, `PaymentDockedSummaryBar`), **Phase 7 docs** (`Payment_Modal_v4_Engine_Architecture.md`). Progress tracker: `happy-doodling-volcano.md`.
 
+Canonical money-field rule: `docs/dev/rules/no-silent-money-mutation.md`
+
 ---
 
 ## 0. Files reviewed

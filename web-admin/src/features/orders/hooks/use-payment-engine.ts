@@ -39,6 +39,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type RefObject,
@@ -91,7 +92,14 @@ import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-pr
 import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+  resolvePaymentAmountCapReason,
+  resolveNewPaymentLegRejection,
+  type PaymentAmountCapReason,
+} from '@/lib/payments/overpayment-policy';
+import { showInfoToast } from '@ui/components/cmx-toast';
 import {
   derivePaymentModalRightRailState,
   type PaymentModalRightRailState,
@@ -258,7 +266,14 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     tGiftCardErrors,
   } = params;
 
-  const [cashOverRemainingNotice, setCashOverRemainingNotice] = useState<string | null>(null);
+  const [amountCapNotice, setAmountCapNotice] = useState<{
+    reason: PaymentAmountCapReason;
+    message: string;
+  } | null>(null);
+  const [newLegRejectAlert, setNewLegRejectAlert] = useState<string | null>(null);
+  const lastNewLegRejectKeyRef = useRef<string | null>(null);
+  const remainingBalanceRef = useRef(0);
+  const moneyEpsilonRef = useRef(0.001);
 
   // Dependency-ordered slices: gift/promo → totals → catalog. Totals reads the
   // applied promo/gift; catalog's checkout-options query key reads totals'
@@ -431,7 +446,55 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     updateLeg,
     upsertSettlementLeg,
     payExtraIntentRef,
+    addLeg,
   } = legs;
+
+  /**
+   * Prevent-at-add: do not create a new zero-capacity leg. Methods stay enabled;
+   * first reject → toast; repeated reject of the same method → toast + alert.
+   * Never mutates existing leg amounts.
+   */
+  const tryAcceptNewPaymentLeg = useCallback(
+    (option: CheckoutSettlementOption) => {
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: option.payment_method_code,
+        supportsChangeReturn: option.supports_change_return,
+        supportsOverpayment: option.supports_overpayment,
+        requiresCashDrawer: option.requires_cash_drawer,
+      });
+      const rejection = resolveNewPaymentLegRejection({
+        remainingBalance: remainingBalanceRef.current,
+        payExtraIntent: payExtraIntentRef.current,
+        policy,
+        moneyEpsilon: moneyEpsilonRef.current,
+      });
+      if (!rejection) {
+        lastNewLegRejectKeyRef.current = null;
+        setNewLegRejectAlert(null);
+        return true;
+      }
+      const message =
+        rejection === 'method_no_overpayment'
+          ? t('payExtraIntent.newLegRejectedMethodNoOverpayment')
+          : t('payExtraIntent.newLegRejectedPayExtraOff');
+      showInfoToast(message);
+      const rejectKey = `${option.payment_method_code}::${option.gateway_code ?? ''}::${rejection}`;
+      if (lastNewLegRejectKeyRef.current === rejectKey) {
+        setNewLegRejectAlert(message);
+      }
+      lastNewLegRejectKeyRef.current = rejectKey;
+      return false;
+    },
+    [payExtraIntentRef, t]
+  );
+
+  const addPaymentLeg = useCallback(
+    (option: CheckoutSettlementOption, defaultAmount: number) => {
+      if (!tryAcceptNewPaymentLeg(option)) return;
+      addLeg(option, defaultAmount);
+    },
+    [addLeg, tryAcceptNewPaymentLeg]
+  );
 
   // Sync the check-* form fields from the active/first check leg. Reads paymentLegs /
   // activeLegIndex (owned by usePaymentLegs), so it registers after the hook call.
@@ -562,22 +625,49 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
 
   const handleMethodSelect = useCallback(
     (option: CheckoutSettlementOption) => {
-      setValue('paymentMethod', toCanonicalLegMethod(option.payment_method_code as PaymentMethodCode), { shouldDirty: true });
       const existingIndex = paymentLegs.findIndex(
         (leg) =>
           leg.method === option.payment_method_code &&
           (leg.gateway_code ?? '') === (option.gateway_code ?? '')
       );
+      setValue(
+        'paymentMethod',
+        toCanonicalLegMethod(option.payment_method_code as PaymentMethodCode),
+        { shouldDirty: true }
+      );
+
+      // Existing leg → activate only. Never rewrite the cashier's amount/tender
+      // (no silent money mutation).
+      if (existingIndex >= 0) {
+        setActiveLegIndex(existingIndex);
+        focusAmountEditor();
+        return;
+      }
+
+      if (!tryAcceptNewPaymentLeg(option)) {
+        return;
+      }
+
       const suggestedAmount = getSuggestedDefaultLegAmount(
         paymentLegs,
-        existingIndex >= 0 ? existingIndex : undefined,
+        undefined,
         saleTotal,
         giftCardSettlementAmount,
         decimalPlaces
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [decimalPlaces, giftCardSettlementAmount, paymentLegs, setValue, saleTotal, upsertSettlementLeg]
+    [
+      decimalPlaces,
+      focusAmountEditor,
+      giftCardSettlementAmount,
+      paymentLegs,
+      setActiveLegIndex,
+      setValue,
+      saleTotal,
+      tryAcceptNewPaymentLeg,
+      upsertSettlementLeg,
+    ]
   );
 
   const handleCustomerCreditSelect = useCallback(
@@ -607,20 +697,29 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
             ? liveAdvanceBalance
             : option.available_balance ?? 0;
       const existingIndex = paymentLegs.findIndex(
-        (leg) => leg.method === option.payment_method_code
+        (leg) =>
+          leg.method === option.payment_method_code &&
+          (leg.gateway_code ?? '') === (option.gateway_code ?? '')
       );
+      // Existing credit leg → activate only; never rewrite the cashier's amount.
+      if (existingIndex >= 0) {
+        setActiveLegIndex(existingIndex);
+        focusAmountEditor();
+        return;
+      }
       const suggestedAmount = getSuggestedStoredValueAmount(
         availableBalance,
         paymentLegs,
         saleTotal,
         giftCardSettlementAmount,
         decimalPlaces,
-        existingIndex >= 0 ? existingIndex : undefined
+        undefined
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
     [
       decimalPlaces,
+      focusAmountEditor,
       giftCardSettlementAmount,
       liveAdvanceBalance,
       liveWalletBalance,
@@ -630,6 +729,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       storedValueSummary?.creditNotes.length,
       t,
       upsertSettlementLeg,
+      setActiveLegIndex,
       setPendingCreditNoteOption,
       setCreditNotePickerOpen,
     ]
@@ -668,6 +768,9 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     decimalPlaces,
   });
 
+  remainingBalanceRef.current = remainingBalance;
+  moneyEpsilonRef.current = moneyEpsilon;
+
   const notifyIfLegAmountCapped = useCallback(
     (leg: PaymentLeg, rawAmount: number, cappedAmount: number) => {
       const option = getMethodOption(leg.method, leg.gateway_code);
@@ -677,24 +780,52 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         supportsOverpayment: option?.supports_overpayment,
         requiresCashDrawer: option?.requires_cash_drawer,
       });
+      const maxLabel = `${currencyCode} ${formatAmount(cappedAmount)}`;
+      const reason = resolvePaymentAmountCapReason({
+        wasCapped: wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon),
+        payExtraIntent: payExtraIntentRef.current,
+        policy,
+      });
 
-      if (
-        policy.isCash &&
-        !policy.supportsChangeReturn &&
-        wasPaymentLegAmountCapped(rawAmount, cappedAmount, moneyEpsilon)
-      ) {
-        setCashOverRemainingNotice(
-          t('splitPayment.validation.cashOverRemainingNotAllowed', {
-            max: `${currencyCode} ${formatAmount(cappedAmount)}`,
-          })
-        );
+      if (!reason) {
+        setAmountCapNotice(null);
         return;
       }
 
-      setCashOverRemainingNotice(null);
+      if (reason === 'cash_no_change') {
+        setAmountCapNotice({
+          reason,
+          message: t('splitPayment.validation.cashOverRemainingNotAllowed', {
+            max: maxLabel,
+          }),
+        });
+        return;
+      }
+
+      if (reason === 'pay_extra_off') {
+        setAmountCapNotice({
+          reason,
+          message: t('payExtraIntent.cappedAtRemaining', {
+            max: maxLabel,
+          }),
+        });
+        return;
+      }
+
+      setAmountCapNotice({
+        reason,
+        message: t('payExtraIntent.cappedMethodNoOverpayment', {
+          max: maxLabel,
+        }),
+      });
     },
-    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, t]
+    [currencyCode, formatAmount, getMethodOption, moneyEpsilon, payExtraIntentRef, t]
   );
+
+  // Stale cap copy must not survive a method/leg switch (e.g. Cash message on Check).
+  useEffect(() => {
+    setAmountCapNotice(null);
+  }, [activeLegIndex, activeLeg?.method]);
 
   const canAllocateOverpayment = useHasPermissionCode(
     OVERPAYMENT_RESOLUTION_PERMISSIONS.ALLOCATE
@@ -1304,10 +1435,10 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       giftCardAmount: giftCardSettlementAmount,
       decimalPlaces,
       walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-      supportsOverpayment:
-        payExtraIntent && policy.isCash && policy.supportsChangeReturn
-          ? true
-          : !policy.isCash && policy.supportsOverpayment,
+      supportsOverpayment: resolveSupportsRetainedOverpayment({
+        payExtraIntent,
+        policy,
+      }),
     });
     setActiveAmountDraft(
       nextAmount > cappedAmount && !(policy.isCash && policy.supportsChangeReturn)
@@ -1415,7 +1546,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     liveAdvanceBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
-    cashOverRemainingNotice,
+    amountCapNotice,
     canAllocateOverpayment,
     canDisposeOverpayment,
     canWalletOverpayment,
@@ -1472,6 +1603,9 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     // Non-DOM handlers.
     handleCreditNoteSelect,
     handleMethodSelect,
+    addPaymentLeg,
+    newLegRejectAlert,
+    clearNewLegRejectAlert: () => setNewLegRejectAlert(null),
     handleCustomerCreditSelect,
     handleValidatePromoCode,
     handleClearPromoCode,

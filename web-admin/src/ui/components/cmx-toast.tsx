@@ -2,13 +2,16 @@
  * @deprecated This component is deprecated. Use the new global message utility instead:
  * - For React components: `import { useMessage } from '@ui/feedback'`
  * - For utility functions: `import { cmxMessage } from '@ui/feedback'`
- * 
+ *
  * See `src/ui/feedback/cmxMessage_MIGRATION.md` for migration guide.
+ *
+ * Bridged to cmxMessage so Session Activity capture and toast durations stay single-path.
  */
 
 'use client'
 
-import { toast } from 'sonner'
+import { cmxMessage } from '@ui/feedback/cmx-message'
+import { DisplayMethod } from '@ui/feedback/types'
 
 interface ToastOptions {
   description?: string
@@ -20,8 +23,9 @@ interface ToastOptions {
  * @param options
  */
 export function showSuccessToast(message: string, options?: ToastOptions) {
-  toast.success(message, {
+  cmxMessage.success(message, {
     description: options?.description,
+    method: DisplayMethod.TOAST,
   })
 }
 
@@ -31,8 +35,9 @@ export function showSuccessToast(message: string, options?: ToastOptions) {
  * @param options
  */
 export function showErrorToast(message: string, options?: ToastOptions) {
-  toast.error(message, {
+  cmxMessage.error(message, {
     description: options?.description,
+    method: DisplayMethod.TOAST,
   })
 }
 
@@ -42,7 +47,8 @@ export function showErrorToast(message: string, options?: ToastOptions) {
  * @param options
  */
 export function showInfoToast(message: string, options?: ToastOptions) {
-  toast(message, {
+  cmxMessage.info(message, {
     description: options?.description,
+    method: DisplayMethod.TOAST,
   })
 }

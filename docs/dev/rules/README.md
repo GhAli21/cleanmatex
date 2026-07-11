@@ -9,6 +9,7 @@ Copy these files to other React 19 + Next.js + ESLint projects. Names are **fram
 | `react-effects-patterns.md` | `useEffect` + `setState`, Next `Link`, `useMemo`/`useCallback` deps |
 | `react-rhf-and-table-lint.md` | `useWatch`, TanStack `useReactTable`, a11y combobox, default exports |
 | `react-lint-verification-checklist.md` | Agent pre-submit checklist + `eslint . --quiet` gate |
+| `no-silent-money-mutation.md` | Canonical money-field behavior rule: prevent first, explain inline, never rewrite typed money as a side effect |
 | `integration-contracts.md` | CleanMateX-specific (do not copy unless needed) |
 
 ## Cursor rules (`.cursor/rules/`)

@@ -49,6 +49,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['Payment Modal V4 → Validate payment → Extra Receipt dialog.'],
       },
+      payExtraIntentEnable: {
+        label: 'Pay extra: enable Customer is paying extra toggle',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'QA-R4.5 top strip — toggle ON gate. Distinct from destination allocate action.',
+        ],
+      },
       payExtraSaveToWallet: {
         label: 'Pay extra: save excess to customer wallet',
         requirement: {
@@ -1265,12 +1275,32 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/ready/[id]',
     label: 'Ready Details',
     page: {},
+    actions: {
+      payExtraIntentEnable: {
+        label: 'Collect payment: enable Customer is paying extra toggle',
+        requirement: {
+          permissions: ['orders:overpayment_allocate'],
+          requireAllPermissions: true,
+        },
+        notes: ['QA-R4.5 — OrderCollectPaymentModal top strip.'],
+      },
+    },
     apiDependencies: [
       {
         label: 'Order state',
         method: 'GET',
         path: '/api/v1/orders/[id]/state',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Collect payment on order',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/payments',
+        requirement: {
+          permissions: ['orders:collect_payment'],
+          requireAllPermissions: true,
+        },
+        notes: ['OrderCollectPaymentModal submit.'],
       },
     ],
     notes: ORDER_NOTES,

@@ -10,6 +10,11 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { computeCollectionOverpaymentMetrics } from '@/lib/payments/collection-overpayment';
+import {
+  capCollectPaymentAmount,
+  resolvePaymentAmountCapReason,
+  resolvePaymentOverpaymentPolicy,
+} from '@/lib/payments/overpayment-policy';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
   OVERPAYMENT_RESOLUTION_PERMISSIONS,
@@ -36,9 +41,11 @@ import { ExtraReceiptHandlingCard } from '@features/orders/ui/payment-modal/allo
 import { AutoAllocationPreviewDrawer } from '@features/orders/ui/payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from '@features/orders/ui/payment-modal/allocation/manual-allocation-drawer';
 import { buildOverpaymentResolutionPayload } from '@features/orders/ui/payment-modal/allocation/build-overpayment-resolution';
-import { PayExtraIntentToggle } from '@features/orders/ui/payment-modal/pay-extra/pay-extra-intent-toggle';
+import { PayExtraTopStrip } from '@features/orders/ui/payment-modal/pay-extra/pay-extra-top-strip';
+import { attemptPayExtraIntentChange } from '@features/orders/ui/payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from '@features/orders/ui/payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from '@features/orders/ui/payment-modal/pay-extra/payment-extra-receipt-dialog';
+import { getExtraReceiptDestinationLabel } from '@features/orders/ui/payment-modal/allocation/extra-receipt-resolution-summary';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
@@ -141,6 +148,7 @@ export function OrderCollectPaymentModal({
   const [selectedMethodId, setSelectedMethodId] = useState('');
   const [amount, setAmount] = useState(outstandingAmount);
   const [cashTendered, setCashTendered] = useState<number | undefined>(undefined);
+  const [amountCapHint, setAmountCapHint] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // Stable UUID for the cash leg — threaded into RETURN_CASH_CHANGE resolution payloads.
   const [cashLegRef] = useState<string>(() => crypto.randomUUID());
@@ -258,6 +266,7 @@ export function OrderCollectPaymentModal({
     sourceType: 'ORDER_PAYMENT_MODAL',
     sourceOrderId: orderId,
     paymentMethodCode: selectedMethod?.payment_method_code ?? PAYMENT_METHODS.CASH,
+    moneyEpsilon: SETTLEMENT_MONEY_EPSILON,
     confirmedToastMessage: tExtra('allocation.confirmedToast'),
     remainingUnallocatedErrorMessage: tExtra('allocation.remainingUnallocatedError'),
     resetDeps: [amount, cashTendered, selectedMethodId],
@@ -273,6 +282,58 @@ export function OrderCollectPaymentModal({
     confirmExtraReceiptSelection,
     validationPhase,
   } = payExtra;
+
+  const handleCollectAmountChange = useCallback(
+    (raw: number) => {
+      if (!selectedMethod) {
+        setAmount(raw);
+        setAmountCapHint(null);
+        return;
+      }
+      const capped = capCollectPaymentAmount({
+        rawAmount: raw,
+        outstandingAmount,
+        payExtraIntent,
+        paymentMethodCode: selectedMethod.payment_method_code,
+        supportsChangeReturn: selectedMethod.supports_change_return,
+        supportsOverpayment: selectedMethod.supports_overpayment,
+        decimalPlaces,
+      });
+      setAmount(capped);
+      if (capped + SETTLEMENT_MONEY_EPSILON < raw) {
+        const policy = resolvePaymentOverpaymentPolicy({
+          paymentMethodCode: selectedMethod.payment_method_code,
+          supportsChangeReturn: selectedMethod.supports_change_return,
+          supportsOverpayment: selectedMethod.supports_overpayment,
+        });
+        const reason = resolvePaymentAmountCapReason({
+          wasCapped: true,
+          payExtraIntent,
+          policy,
+        });
+        const max = formatMoneyWithCode(capped);
+        if (reason === 'cash_no_change') {
+          setAmountCapHint(
+            tPayment('splitPayment.validation.cashOverRemainingNotAllowed', { max })
+          );
+        } else if (reason === 'method_no_overpayment') {
+          setAmountCapHint(tPayment('payExtraIntent.cappedMethodNoOverpayment', { max }));
+        } else {
+          setAmountCapHint(tPayment('payExtraIntent.cappedAtRemaining', { max }));
+        }
+      } else {
+        setAmountCapHint(null);
+      }
+    },
+    [
+      decimalPlaces,
+      formatMoneyWithCode,
+      outstandingAmount,
+      payExtraIntent,
+      selectedMethod,
+      tPayment,
+    ]
+  );
 
   const overpaymentMetrics = useMemo(() => {
     if (!selectedMethod) {
@@ -307,6 +368,57 @@ export function OrderCollectPaymentModal({
   const overpaymentResolution = payExtra.overpaymentResolutionPayload;
 
   const needsResolution = payExtra.overpaymentBlocksSubmit;
+
+  // Strip mirror displays off the PRE-resolution excess (persists after
+  // routing); `unresolvedExcess` zeroes on resolution, which hid the emerald
+  // "resolved" state (QA §6.7). Destination label appears once routed.
+  const stripExtraAmount = allocationExcessAmount;
+  const stripDestinationLabel = useMemo(() => {
+    if (!overpaymentResolution || stripExtraAmount <= SETTLEMENT_MONEY_EPSILON) {
+      return null;
+    }
+    return getExtraReceiptDestinationLabel(allocation.extraReceiptMode, tPayment);
+  }, [
+    allocation.extraReceiptMode,
+    overpaymentResolution,
+    stripExtraAmount,
+    tPayment,
+  ]);
+
+  const handlePayExtraIntentAttempt = useCallback(
+    (next: boolean) => {
+      attemptPayExtraIntentChange({
+        next,
+        current: payExtraIntent,
+        canEnablePayExtra,
+        canAllocateOverpayment: canAllocate,
+        excessAmount: unresolvedExcess,
+        moneyEpsilon: SETTLEMENT_MONEY_EPSILON,
+        setPayExtraIntent,
+        messages: {
+          permissionRequired: tPayment('payExtraIntent.permissionRequired', {
+            permissionName: tPayment('payExtraIntent.permissionNameAllocate'),
+            permissionCode: tPayment('payExtraIntent.permissionCodeAllocate'),
+          }),
+          cannotDisableWhileExtra: tPayment('payExtraIntent.cannotDisableWhileExtra'),
+          disabledNoMethods: tPayment('payExtraIntent.disabledNoMethods'),
+        },
+      });
+    },
+    [
+      canAllocate,
+      canEnablePayExtra,
+      payExtraIntent,
+      setPayExtraIntent,
+      tPayment,
+      unresolvedExcess,
+    ]
+  );
+
+  const payExtraStripAriaDisabled =
+    canEnablePayExtra &&
+    ((!canAllocate && !payExtraIntent) ||
+      (payExtraIntent && unresolvedExcess > SETTLEMENT_MONEY_EPSILON));
 
   useEffect(() => {
     if (!open) return;
@@ -449,6 +561,29 @@ export function OrderCollectPaymentModal({
             <CmxDialogTitle>{t('title')}</CmxDialogTitle>
           </CmxDialogHeader>
 
+          <PayExtraTopStrip
+            checked={payExtraIntent}
+            onAttemptChange={handlePayExtraIntentAttempt}
+            disabled={!canEnablePayExtra}
+            disabledReason={
+              !canEnablePayExtra ? tPayment('payExtraIntent.disabledNoMethods') : undefined
+            }
+            ariaDisabled={payExtraStripAriaDisabled}
+            isRTL={isRTL}
+            extraAmountLabel={
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON
+                ? formatMoneyWithCode(stripExtraAmount)
+                : null
+            }
+            extraDestinationLabel={stripDestinationLabel}
+            extraUnresolved={
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON && !overpaymentResolution
+            }
+            extraResolved={
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON && Boolean(overpaymentResolution)
+            }
+          />
+
           <div className="space-y-4 py-2">
             <div className={`rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div className={`flex items-baseline justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -517,8 +652,13 @@ export function OrderCollectPaymentModal({
                     step="0.001"
                     value={amount}
                     aria-required="true"
-                    onChange={(e) => setAmount(Number(e.target.value))}
+                    onChange={(e) => handleCollectAmountChange(Number(e.target.value))}
                   />
+                  {amountCapHint ? (
+                    <p className="text-xs text-amber-700" role="status">
+                      {amountCapHint}
+                    </p>
+                  ) : null}
                 </div>
 
                 {isCash ? (
@@ -652,20 +792,14 @@ export function OrderCollectPaymentModal({
                   </div>
                 ) : null}
 
-                <PayExtraIntentToggle
-                  checked={payExtraIntent}
-                  onCheckedChange={setPayExtraIntent}
-                  disabled={!canEnablePayExtra}
-                  disabledReason={
-                    !canEnablePayExtra ? tPayment('payExtraIntent.disabledNoMethods') : undefined
-                  }
-                  isRTL={isRTL}
-                />
-
-                {payExtraIntent ? (
+                {payExtraIntent &&
+                stripExtraAmount > SETTLEMENT_MONEY_EPSILON &&
+                !overpaymentResolution ? (
                   <PaymentValidateButton
                     onClick={runValidatePayment}
                     disabled={!canEnablePayExtra}
+                    isRTL={isRTL}
+                    className="w-full"
                   />
                 ) : null}
 

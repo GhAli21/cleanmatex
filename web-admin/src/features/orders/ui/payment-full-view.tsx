@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
-import { useQuery } from '@tanstack/react-query';
 import { Controller, type FieldErrors, type UseFormReturn } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
 import {
@@ -42,8 +41,10 @@ import {
   legHasRequiredPaymentReference,
   deriveLegAppliedAmount,
   deriveQuickTenderChips,
-  deriveSimpleModeMethodOptions,
   PAYMENT_MODAL_MODE,
+  isLegOnSimpleFace,
+  resolveSimpleFaceActiveLegIndex,
+  isB2BCreditLimitBlocking,
   type PaymentModalMode,
   type PaymentKeypadKey,
 } from './payment-modal-v4.utils';
@@ -59,15 +60,50 @@ import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-p
 import {
   ExtraReceiptHandlingCard,
 } from './payment-modal/allocation/extra-receipt-handling-card';
-import { getExtraReceiptResolutionSummary } from './payment-modal/allocation/extra-receipt-resolution-summary';
+import { getExtraReceiptResolutionSummary, getExtraReceiptDestinationLabel } from './payment-modal/allocation/extra-receipt-resolution-summary';
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
-import { PayExtraIntentToggle } from './payment-modal/pay-extra/pay-extra-intent-toggle';
+import { PayExtraTopStrip } from './payment-modal/pay-extra/pay-extra-top-strip';
+import { attemptPayExtraIntentChange } from './payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validate-button';
-import { PaymentExtraReceiptDialog } from './payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+// Composable payment system (Phase 4 strangler — capability renderer wired in
+// section by section; oracle green each step).
+import { resolvePaymentModalConfig } from '@features/orders/payment/config/payment-modal-config';
+import { PAYMENT_CAPABILITY } from '@features/orders/payment/capabilities/capability-keys';
+import { evaluateCapabilities } from '@features/orders/payment/capabilities/registry';
+import {
+  projectCapabilityContext,
+  type CapabilityContextSource,
+} from '@features/orders/payment/domain/project-capability-context';
+import { PAYMENT_PRESET } from '@features/orders/payment/presets/preset-keys';
+import { resolvePreset } from '@features/orders/payment/presets/presets';
+import { SIMPLE_PRESET } from '@features/orders/payment/presets/simple.preset';
+import { applyMethodChipPolicy } from '@features/orders/payment/view/method-chips';
+import {
+  planCapabilityView,
+  selectDialogSlots,
+} from '@features/orders/payment/view/capability-view-plan';
+import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
+import {
+  SERVER_GUARD_AFFORDANCE,
+  resolveServerGuardAffordance,
+} from '@features/orders/payment/view/server-guard-affordance';
+import { PaymentSubmitGuard } from '@features/orders/payment/primitives/payment-submit-guard';
+import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
+import { FxRoundingLine } from '@features/orders/payment/capabilities/fx-rounding/fx-rounding-line';
+import { SplitTenderDialog } from '@features/orders/payment/capabilities/split-tender/split-tender-dialog';
+import { CustomerCreditDialog } from '@features/orders/payment/capabilities/customer-credit/customer-credit-dialog';
+import { GiftCardDialog } from '@features/orders/payment/capabilities/gift-card/gift-card-dialog';
+import { PromoCodeDialog } from '@features/orders/payment/capabilities/promo-code/promo-code-dialog';
+import { PayLaterDialog } from '@features/orders/payment/capabilities/pay-later/pay-later-dialog';
+import { B2BAccountBillingDialog } from '@features/orders/payment/capabilities/b2b-account-billing/b2b-account-billing-dialog';
+import { OverpaymentRoutingDialog } from '@features/orders/payment/capabilities/overpayment-routing/overpayment-routing-dialog';
+import { useB2bContracts } from '@features/orders/hooks/use-b2b-contracts';
+import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
+import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
@@ -76,12 +112,16 @@ import {
   type PaymentEngineItem,
   type PaymentEngineCurrencyConfig,
 } from '@features/orders/hooks/use-payment-engine';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 import {
   deriveBalanceStatusLabel,
   deriveRequiredActionCopy,
   deriveRightRailWarningMessages,
   RIGHT_RAIL_BALANCE_STATUS,
+  RIGHT_RAIL_REQUIRED_ACTION,
 } from './payment-modal-v4.right-rail';
 import {
   deriveAutoExpandPaymentSections,
@@ -252,16 +292,9 @@ function B2BContractsSelect({
   isRTL: boolean;
 }) {
   const t = useTranslations('newOrder.payment');
-  const { data: contracts = [], isLoading } = useQuery({
-    queryKey: ['b2b-contracts', 'customer', customerId],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/b2b-contracts?customer_id=${customerId}`);
-      if (!res.ok) return [];
-      const json = await res.json();
-      return (json.data ?? []) as Array<{ id: string; contractNo: string }>;
-    },
-    enabled: !!customerId,
-  });
+  // Shared query (use-b2b-contracts) — same key as the B2B capability dialog's
+  // fetch in the container, so the two surfaces dedupe to one request.
+  const { data: contracts = [], isLoading } = useB2bContracts(customerId);
 
   const noneLabel = t('b2b.contractOptional');
 
@@ -346,6 +379,14 @@ interface PaymentFullViewProps {
    * program decision; the engine's `needsAdvanced` auto-escalates to Full.
    */
   initialMode?: PaymentModalMode;
+  /**
+   * Phase 5 — a server submit rejection routed to its owning capability.
+   * Rendered as an in-view `PaymentSubmitGuard` in the shared footer with a
+   * corrective action that opens the owning capability surface.
+   */
+  serverGuard?: PaymentServerGuard | null;
+  /** Clears the routed server guard (called on modal open reset). */
+  onServerGuardClear?: () => void;
   // ---- callbacks ----
   onClose: () => void;
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
@@ -380,11 +421,14 @@ export function PaymentFullView({
   loading = false,
   initialPaymentNotes = '',
   initialMode = PAYMENT_MODAL_MODE.SIMPLE,
+  serverGuard = null,
+  onServerGuardClear,
   onClose,
   onSubmit,
 }: PaymentFullViewProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
+  const tTopBar = useTranslations('newOrder.topBar');
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
   // Uppercase/letter-spacing is meaningless (and harmful) for Arabic script —
@@ -416,6 +460,11 @@ export function PaymentFullView({
   const giftCardNumber  = watch('giftCardNumber');
   const giftCardAmount  = watch('giftCardAmount');
   const outstandingPolicy = watch('outstandingPolicy');
+  // B2B account-billing fields — watched so the RHF-free capability dialog can
+  // receive value + setter pairs (same convention as gift card / promo code).
+  const b2bContractId = watch('b2bContractId');
+  const costCenterCode = watch('costCenterCode');
+  const poNumber = watch('poNumber');
 
   const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
@@ -435,7 +484,19 @@ export function PaymentFullView({
   // swaps the dialog body; header, footer CTA, and confirm dialogs are shared,
   // and every slice keeps its state across flips (it lives in the engine).
   const [mode, setMode] = useState<PaymentModalMode>(initialMode);
-  const [autoEscalated, setAutoEscalated] = useState(false);
+  // Composable-payment mode control (amended ADR): the cashier always controls
+  // Simple/Full. The modal never auto-escalates and never locks Simple;
+  // complexity surfaces as a dismissible suggestion.
+  const paymentModalConfig = useMemo(() => resolvePaymentModalConfig(), []);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  // Capability dialogs openable in-place from the Simple fast lane (ADR: a
+  // complication is a focused dialog, never a mode change).
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
+  const [giftDialogOpen, setGiftDialogOpen] = useState(false);
+  const [promoDialogOpen, setPromoDialogOpen] = useState(false);
+  const [payLaterDialogOpen, setPayLaterDialogOpen] = useState(false);
+  const [b2bDialogOpen, setB2bDialogOpen] = useState(false);
   // Phase 6 — below `xl` the receipt rail becomes a slide-over panel.
   const [railOpen, setRailOpen] = useState(false);
 
@@ -468,13 +529,35 @@ export function PaymentFullView({
   // Amount-editor focus helper (view-owned ref/scroll/focus). Threaded into the
   // engine so leg/credit-note handlers can refocus the amount editor.
   const focusAmountEditor = useCallback(() => {
+    // A capability dialog (split, gift card, store credit, …) owns its own amount
+    // fields. While one is open, do NOT yank focus/scroll to the background editor
+    // behind it (otherwise selecting a method in the dialog jumps the cursor to
+    // the hidden Simple/Full amount field — QA 1.1).
+    if (
+      splitDialogOpen ||
+      creditDialogOpen ||
+      giftDialogOpen ||
+      promoDialogOpen ||
+      payLaterDialogOpen ||
+      b2bDialogOpen
+    ) {
+      return;
+    }
     expandSection(PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR);
     window.setTimeout(() => {
       amountEditorSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       amountInputRef.current?.focus();
       amountInputRef.current?.select();
     }, 50);
-  }, [expandSection]);
+  }, [
+    expandSection,
+    splitDialogOpen,
+    creditDialogOpen,
+    giftDialogOpen,
+    promoDialogOpen,
+    payLaterDialogOpen,
+    b2bDialogOpen,
+  ]);
 
   // Reset view-local state on open. (form.reset is in the shell's open-reset effect.)
   useEffect(() => {
@@ -487,10 +570,18 @@ export function PaymentFullView({
       setSubmitConfirmOpen(false);
       setPendingSubmission(null);
       setMode(initialMode);
-      setAutoEscalated(false);
+      setSuggestionDismissed(false);
+      setSplitDialogOpen(false);
+      setCreditDialogOpen(false);
+      setGiftDialogOpen(false);
+      setPromoDialogOpen(false);
+      setPayLaterDialogOpen(false);
+      setB2bDialogOpen(false);
       setRailOpen(false);
+      // A routed server guard from a previous session must not survive reopen.
+      onServerGuardClear?.();
     }
-  }, [open, initialMode]);
+  }, [open, initialMode, onServerGuardClear]);
 
   // Composition engine (Phase 2G-1): the 7 concern slices + every cross-slice
   // derivation + the non-DOM handlers + the payExtraIntentRef bridge. Behavior-frozen.
@@ -561,7 +652,9 @@ export function PaymentFullView({
     liveAdvanceBalance,
     getLegStoredValueCap,
     notifyIfLegAmountCapped,
-    cashOverRemainingNotice,
+    amountCapNotice,
+    newLegRejectAlert,
+    clearNewLegRejectAlert,
     canAllocateOverpayment,
     canDisposeOverpayment,
     canWalletOverpayment,
@@ -742,29 +835,13 @@ export function PaymentFullView({
     handleCreateCashDrawerSession,
   } = cashDrawer;
 
-  // Phase 4 auto-escalation (render-time Pattern A): the moment any advanced
-  // condition trips (`computeNeedsAdvanced` in the engine), Simple flips to
-  // Full and the banner explains why. The guard self-clears — after the flip
-  // the condition is false, and the manual Simple segment stays disabled while
-  // `needsAdvanced` holds, so this can never oscillate.
-  if (open && mode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) {
-    setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(true);
-  }
-
   /**
-   * Manual Simple ⇄ Advanced switch. Returning to Simple is refused while
-   * `needsAdvanced` holds (the toggle also disables the segment) — the modal
-   * never silently drops advanced state.
+   * Manual Simple ⇄ Advanced switch. The cashier may always return to Simple
+   * (engine state survives) — the modal never refuses the return or locks Simple.
    */
-  const handleModeChange = useCallback(
-    (nextMode: PaymentModalMode) => {
-      if (nextMode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) return;
-      setMode(nextMode);
-      setAutoEscalated(false);
-    },
-    [needsAdvanced]
-  );
+  const handleModeChange = useCallback((nextMode: PaymentModalMode) => {
+    setMode(nextMode);
+  }, []);
 
   // Preserve focus across face switches: when the previously-focused control
   // unmounted with the old face, land on the shared amount editor (both faces
@@ -1120,11 +1197,21 @@ export function PaymentFullView({
     }
 
     if (serverTotals?.creditLimit?.wouldExceed) {
-      if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
-        scrollAndFocusTarget(creditLimitOverrideRef.current);
-        return;
+      // Only focus credit UI when a receivable is actually on the path —
+      // fully settled cash/card B2B orders must not be treated as credit blocks.
+      const creditBlocks = isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance,
+        outstandingPolicy: effectiveOutstandingPolicy,
+        epsilon: moneyEpsilon,
+      });
+      if (creditBlocks) {
+        if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
+          scrollAndFocusTarget(creditLimitOverrideRef.current);
+          return;
+        }
+        scrollAndFocusTarget(creditLimitCardRef.current);
       }
-      scrollAndFocusTarget(creditLimitCardRef.current);
     }
   }, [
     creditLimitOverride,
@@ -1139,6 +1226,7 @@ export function PaymentFullView({
     hasCheckLegWithoutNumber,
     hasCheckLegWithInvalidDate,
     legsMissingRequiredReference,
+    moneyEpsilon,
     storedValueLegExceedance,
     storedValueLegExceedsBalance,
     cashDrawerBlockingMessage,
@@ -1163,6 +1251,15 @@ export function PaymentFullView({
     const firstIssue = validationItems.find((item) => item.trim().length > 0);
     cmxMessage.error(firstIssue ?? t('messages.validationErrors'));
   }, [focusFirstBlockingIssue, t, validationItems]);
+
+  const handleRequiredAction = useCallback(() => {
+    if (rightRailState.requiredAction === RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT) {
+      setB2bDialogOpen(true);
+      return;
+    }
+
+    handleBlockedSubmitAttempt();
+  }, [handleBlockedSubmitAttempt, rightRailState.requiredAction]);
 
   const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
     focusFirstBlockingIssue();
@@ -1384,13 +1481,183 @@ export function PaymentFullView({
     PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY
   );
 
+  // ---- Composable capability system (Phase 4 strangler) ----
+  // Server still enforces `orders:apply_credit`; this only gates the UI affordance.
+  const canApplyCustomerCredit = useHasPermissionCode('orders:apply_credit');
+  // Project the live engine into the pure capability-context facts, classify via
+  // the registry, and plan the view. Only the capabilities migrated to the
+  // renderer so far are rendered through it (strangler); the rest keep their
+  // existing full-view UI until their section is routed. See the STATUS doc.
+  const capabilityContextSource = useMemo<CapabilityContextSource>(
+    () => ({
+      promoGiftDisabled: NEW_ORDER_PROMO_GIFT_DISABLED,
+      availableMethodCodes: realPaymentOptions.map((option) => option.payment_method_code),
+      isB2BCustomer,
+      effectiveOutstandingPolicy,
+      customerCreditAvailable: customerCreditOptions.length > 0,
+      canApplyCustomerCredit,
+      // TODO(Phase 4e — B2B section): define the exact required-field rule (the
+      // contract is optional per `b2b.contractOptional`); conservative false until
+      // then — B2B_ACCOUNT_BILLING is not yet routed through the renderer, and the
+      // server still enforces credit limits, so this has no runtime effect today.
+      b2bRequiredFieldsMissing: false,
+      payLaterAvailable: showBalancePolicySection,
+      settlementLegCount: settlementLegEntries.length,
+      customerCreditApplied: customerCreditEntries.length > 0,
+      giftCardApplied: !!appliedGiftCard,
+      promoApplied: !!appliedPromoCode,
+      giftCardPinRequired: pinRequired,
+      overpaymentNeedsResolution,
+      cashDrawerRequired,
+      cashDrawerSessionChoiceCount: cashDrawerSessionChoices.length,
+      cashDrawerBlocked: !!cashDrawerBlockingMessage,
+      currencyExRate: currencyConfig?.currencyExRate,
+      submitHasBlockingIssues,
+    }),
+    [
+      realPaymentOptions,
+      isB2BCustomer,
+      effectiveOutstandingPolicy,
+      customerCreditOptions,
+      canApplyCustomerCredit,
+      showBalancePolicySection,
+      settlementLegEntries.length,
+      customerCreditEntries.length,
+      appliedGiftCard,
+      appliedPromoCode,
+      pinRequired,
+      overpaymentNeedsResolution,
+      cashDrawerRequired,
+      cashDrawerSessionChoices.length,
+      cashDrawerBlockingMessage,
+      currencyConfig?.currencyExRate,
+      submitHasBlockingIssues,
+    ]
+  );
+  // Single registry evaluation shared by every capability plan (and the B2B
+  // dialog's required flag) so all surfaces classify from the SAME facts.
+  const evaluatedCapabilities = useMemo(
+    () =>
+      evaluateCapabilities(
+        projectCapabilityContext(capabilityContextSource),
+        paymentModalConfig
+      ),
+    [capabilityContextSource, paymentModalConfig]
+  );
+  const migratedCapabilityPlan = useMemo(
+    () =>
+      planCapabilityView(
+        evaluatedCapabilities,
+        resolvePreset(PAYMENT_PRESET.FULL)
+        // Sections routed through the renderer so far (strangler): FX/rounding.
+      ).filter((slot) => slot.key === PAYMENT_CAPABILITY.FX_ROUNDING),
+    [evaluatedCapabilities]
+  );
+  // Simple fast-lane quick-action buttons: every advanced capability the SIMPLE
+  // preset surfaces as a dialog, filtered to the ones available this session.
+  const simpleQuickActionsPlan = useMemo(
+    () =>
+      selectDialogSlots(
+        planCapabilityView(evaluatedCapabilities, resolvePreset(PAYMENT_PRESET.SIMPLE))
+      ),
+    [evaluatedCapabilities]
+  );
+  // ---- B2B account-billing capability dialog inputs ----
+  // Required badge comes from the registry evaluation (single source; today
+  // `b2bRequiredFieldsMissing` is conservatively false — see the TODO above).
+  const b2bBillingRequired =
+    evaluatedCapabilities.find(
+      (capability) => capability.key === PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING
+    )?.required ?? false;
+  // Contract list shared with the Full-view inspector tab (same query key —
+  // deduped). Gated to B2B customers so retail sessions never fetch.
+  const { data: b2bContracts = [], isLoading: b2bContractsLoading } = useB2bContracts(
+    customerId,
+    isB2BCustomer
+  );
+  // Read-only credit snapshot for the dialog, mapped off the server preview
+  // totals (server remains the enforcement point — Phase 0B hard-deny).
+  const b2bCreditLimitInfo = useMemo(() => {
+    const creditLimit = serverTotals?.creditLimit;
+    if (!creditLimit) return null;
+    return {
+      creditLimit: creditLimit.creditLimit,
+      currentBalance: creditLimit.currentBalance,
+      available: creditLimit.available,
+      wouldExceed: creditLimit.wouldExceed,
+      // Preview compares the full sale total against available credit
+      // (decision log 2026-07-11) — surface the shortfall, display-only.
+      exceedsBy: creditLimit.wouldExceed
+        ? Math.max(0, saleTotal - creditLimit.available)
+        : 0,
+    };
+  }, [serverTotals?.creditLimit, saleTotal]);
+  // Typed actions the split-tender dialog may call (leg editing only).
+  const splitTenderActions = useMemo(
+    () => ({
+      updateLeg: legs.updateLeg,
+      addLeg: legs.addLeg,
+      removeLegAt: legs.removeLegAt,
+      setActiveLegIndex: legs.setActiveLegIndex,
+    }),
+    [legs]
+  );
+  // Typed actions for the customer-credit + gift-card dialogs.
+  const customerCreditActions = useMemo(
+    () => ({ selectCustomerCredit: handleCustomerCreditSelect }),
+    [handleCustomerCreditSelect]
+  );
+  const giftCardActions = useMemo(
+    () => ({
+      fetchGiftCardDetails: handleFetchGiftCardDetails,
+      applyGiftCard: handleApplyGiftCard,
+      clearGiftCard: handleClearGiftCard,
+      setGiftCardPin,
+      setGiftCardPinVisible: setPinVisible,
+      setGiftCardPinError: setPinFieldError,
+    }),
+    [
+      handleFetchGiftCardDetails,
+      handleApplyGiftCard,
+      handleClearGiftCard,
+      setGiftCardPin,
+      setPinVisible,
+      setPinFieldError,
+    ]
+  );
+  const promoCodeActions = useMemo(
+    () => ({
+      validatePromoCode: handleValidatePromoCode,
+      clearPromoCode: handleClearPromoCode,
+      clearPromoCodeError: handleClearPromoCodeError,
+    }),
+    [handleValidatePromoCode, handleClearPromoCode, handleClearPromoCodeError]
+  );
+  const payLaterActions = useMemo(
+    () => ({ changeOutstandingPolicy: handleOutstandingPolicyChange }),
+    [handleOutstandingPolicyChange]
+  );
+  // Typed actions for the overpayment-routing capability adapter (wraps the
+  // existing extra-receipt dialog with a capability identity — ADR #5).
+  const overpaymentRoutingActions = useMemo(
+    () => ({
+      setExtraReceiptDialogOpen,
+      confirmExtraReceiptSelection,
+    }),
+    [setExtraReceiptDialogOpen, confirmExtraReceiptSelection]
+  );
+
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
+    // QA §4.4: label the amount that actually SETTLES the order
+    // (`amountAppliedToOrder`, matching the rail's "Total Settled Now"), not the
+    // raw leg sum — which in an unresolved-overpay state overstates what is paid
+    // toward the order (the excess is returned/routed, or blocks submit).
     if (remainingBalance > epsilon) {
       return t('actions.submitWithUnpaid', {
         submit: t('actions.submit'),
         currency: currencyCode,
-        payNow: formatAmount(settledNowAmount),
+        payNow: formatAmount(amountAppliedToOrder),
         unpaid: t('summary.notPaidBalance'),
         remaining: formatAmount(remainingBalance),
       });
@@ -1398,9 +1665,9 @@ export function PaymentFullView({
     return t('actions.submitChargeOnly', {
       submit: t('actions.submit'),
       currency: currencyCode,
-      amount: formatAmount(settledNowAmount > 0 ? settledNowAmount : saleTotal),
+      amount: formatAmount(amountAppliedToOrder > 0 ? amountAppliedToOrder : saleTotal),
     });
-  }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, settledNowAmount]);
+  }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, amountAppliedToOrder]);
 
   // Quick-tender fast lane (finding 1.2): chip values come from the pure
   // deriver; selection routes through the SAME capped `updateLeg` write path as
@@ -1478,10 +1745,10 @@ export function PaymentFullView({
         giftCardAmount: giftCardSettlementAmount,
         decimalPlaces,
         walletBalance: activeLeg ? getLegStoredValueCap(activeLeg) : undefined,
-        supportsOverpayment:
-          payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-            ? true
-            : !policy.isCash && policy.supportsOverpayment,
+        supportsOverpayment: resolveSupportsRetainedOverpayment({
+          payExtraIntent: payExtraIntentRef.current,
+          policy,
+        }),
       });
       notifyIfLegAmountCapped(activeLeg, value, cappedAmount);
       updateLeg(activeLegIndex, 'amount', value);
@@ -1503,14 +1770,41 @@ export function PaymentFullView({
   );
 
   // ---- Simple-face derivations + handlers (Phase 4) ----
+  // Preset-metadata-driven (hardening #5): the SIMPLE preset's chip policy decides
+  // which methods surface inline — provably identical to the legacy
+  // deriveSimpleModeMethodOptions call (see method-chips.test.ts parity).
   const simpleMethodOptions = useMemo(
-    () => deriveSimpleModeMethodOptions(realPaymentOptions),
+    () => applyMethodChipPolicy(realPaymentOptions, SIMPLE_PRESET.methodChips),
     [realPaymentOptions]
   );
+
+  // Advanced → Simple: retarget active leg to a chip-visible tender so the
+  // Simple amount/detail editor does not keep showing Stripe/gateway (or other
+  // off-chip) legs. Index only — never rewrite amounts (no silent money mutation).
+  useEffect(() => {
+    if (mode !== PAYMENT_MODAL_MODE.SIMPLE) return;
+    const nextIndex = resolveSimpleFaceActiveLegIndex({
+      paymentLegs,
+      simpleOptions: simpleMethodOptions,
+      currentIndex: activeLegIndex,
+    });
+    if (nextIndex !== activeLegIndex) {
+      setActiveLegIndex(nextIndex);
+    }
+  }, [
+    mode,
+    paymentLegs,
+    simpleMethodOptions,
+    activeLegIndex,
+    setActiveLegIndex,
+  ]);
+
+  const simpleFaceActiveLeg =
+    activeLeg && isLegOnSimpleFace(activeLeg, simpleMethodOptions) ? activeLeg : undefined;
   const simpleAmountValue =
-    activeLeg?.method === PAYMENT_METHODS.CASH
-      ? activeLeg.cashTendered ?? activeLeg.amount ?? null
-      : activeLeg?.amount ?? null;
+    simpleFaceActiveLeg?.method === PAYMENT_METHODS.CASH
+      ? simpleFaceActiveLeg.cashTendered ?? simpleFaceActiveLeg.amount ?? null
+      : simpleFaceActiveLeg?.amount ?? null;
   const cashDrawerDisplay = selectedCashDrawerChoice
     ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
     : null;
@@ -1523,11 +1817,9 @@ export function PaymentFullView({
 
   const handleSimpleMoreOptions = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
   }, []);
   const handleSimpleManageDrawer = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
     window.setTimeout(() => {
       expandSection(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER);
       cashDrawerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1535,27 +1827,142 @@ export function PaymentFullView({
   }, [expandSection]);
   const handleSimpleChangePolicy = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
     window.setTimeout(() => {
       expandSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
       balancePolicySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 120);
   }, [expandSection]);
-  const handleSimpleTerminalChange = useCallback(
-    (terminalId: string | undefined) => {
-      updateLeg(activeLegIndex, 'terminalId', terminalId);
-    },
-    [activeLegIndex, updateLeg]
-  );
-  // Program rule: a blocked submit in Simple escalates to Full so the cashier
-  // can see and fix the blocker, then reuses the Full focus-first-issue flow.
+  // A blocked submit in Simple opens Full so the cashier can see and fix the
+  // blocker (the workbench owns the focus-first-issue flow). This is a
+  // user-initiated action, not auto-escalation.
   const handleSimpleBlockedSubmitAttempt = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    if (needsAdvanced) setAutoEscalated(true);
     window.setTimeout(() => {
       handleBlockedSubmitAttempt();
     }, 150);
-  }, [handleBlockedSubmitAttempt, needsAdvanced]);
+  }, [handleBlockedSubmitAttempt]);
+
+  const displayAmountCapNotice = amountCapNotice;
+  const displayAmountCapTitle =
+    displayAmountCapNotice?.reason === 'cash_no_change'
+      ? t('splitPayment.validation.cashOverRemainingTitle')
+      : t('payExtraIntent.amountLimitedTitle');
+
+  const handlePayExtraIntentAttempt = useCallback(
+    (next: boolean) => {
+      attemptPayExtraIntentChange({
+        next,
+        current: payExtraIntent,
+        canEnablePayExtra,
+        canAllocateOverpayment,
+        excessAmount: unresolvedOverpaymentAmount,
+        moneyEpsilon,
+        setPayExtraIntent,
+        messages: {
+          permissionRequired: t('payExtraIntent.permissionRequired', {
+            permissionName: t('payExtraIntent.permissionNameAllocate'),
+            permissionCode: t('payExtraIntent.permissionCodeAllocate'),
+          }),
+          cannotDisableWhileExtra: t('payExtraIntent.cannotDisableWhileExtra'),
+          disabledNoMethods: t('payExtraIntent.disabledNoMethods'),
+        },
+      });
+    },
+    [
+      canAllocateOverpayment,
+      canEnablePayExtra,
+      moneyEpsilon,
+      payExtraIntent,
+      setPayExtraIntent,
+      t,
+      unresolvedOverpaymentAmount,
+    ]
+  );
+
+  const payExtraStripAriaDisabled =
+    canEnablePayExtra &&
+    ((!canAllocateOverpayment && !payExtraIntent) ||
+      (payExtraIntent && unresolvedOverpaymentAmount > moneyEpsilon));
+
+  // The strip mirror displays off the PRE-resolution excess, which persists
+  // after routing — `unresolvedOverpaymentAmount` zeroes the moment a payload
+  // resolves, so keying the mirror to it made the emerald "resolved" state
+  // (amount + destination) vanish instead of showing (QA §6.7).
+  const stripExtraAmount = extraReceiptDialogExcessAmount;
+  const extraDestinationLabel = useMemo(() => {
+    if (!overpaymentResolutionPayload || stripExtraAmount <= moneyEpsilon) {
+      return null;
+    }
+    return getExtraReceiptDestinationLabel(allocation.extraReceiptMode, t);
+  }, [
+    allocation.extraReceiptMode,
+    moneyEpsilon,
+    overpaymentResolutionPayload,
+    t,
+    stripExtraAmount,
+  ]);
+
+  // ---- Server-error → capability guard (Phase 5, hardening #2) ----
+  // A routed server rejection renders as an in-view guard in the shared footer
+  // (both faces); its corrective action opens the owning capability surface in
+  // place — every routable capability now has an in-place dialog (no mode hop).
+  const serverGuardAffordance = serverGuard
+    ? resolveServerGuardAffordance(serverGuard.capability)
+    : null;
+  const showServerGuardAction =
+    !!serverGuardAffordance && serverGuardAffordance !== SERVER_GUARD_AFFORDANCE.NONE;
+  // Resolved only when shown — message-only guards (SUBMIT_GUARDS) have no
+  // `capabilities.*.action` catalog entry to resolve.
+  const serverGuardActionLabel =
+    serverGuard && showServerGuardAction
+      ? t(`capabilities.${serverGuard.capability}.action`)
+      : undefined;
+  // QA §4.2: when the CLIENT preview already blocks submit on B2B credit,
+  // the server 422 guard can never fire (submit is refused pre-flight) — so
+  // the cashier saw only validation text with no corrective button. Surface
+  // the same footer guard + "Account billing" action pre-submit. Display/UX
+  // only — the server hard-deny (Phase 0B) stays the enforcement point.
+  const b2bCreditClientGuard =
+    !serverGuard &&
+    !!serverTotals?.creditLimit?.wouldExceed &&
+    serverTotals.creditLimit.mode !== 'warn' &&
+    isB2BCreditLimitBlocking({
+      wouldExceed: true,
+      remainingBalance,
+      outstandingPolicy: effectiveOutstandingPolicy,
+      epsilon: moneyEpsilon,
+    });
+
+  const handleServerGuardAction = useCallback(() => {
+    switch (serverGuardAffordance) {
+      case SERVER_GUARD_AFFORDANCE.SPLIT_DIALOG:
+        setSplitDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.GIFT_DIALOG:
+        setGiftDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.PROMO_DIALOG:
+        setPromoDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.CREDIT_DIALOG:
+        setCreditDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.PAY_LATER_DIALOG:
+        setPayLaterDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.CASH_DRAWER_DIALOG:
+        setCashDrawerDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.OVERPAYMENT_DIALOG:
+        setExtraReceiptDialogOpen(true);
+        break;
+      case SERVER_GUARD_AFFORDANCE.B2B_DIALOG:
+        setB2bDialogOpen(true);
+        break;
+      default:
+        break;
+    }
+  }, [serverGuardAffordance, setCashDrawerDialogOpen, setExtraReceiptDialogOpen]);
 
   // Contextual auto-expand (finding 1.8): sections default-collapsed now, but
   // re-open the moment they become operationally relevant. Render-time guarded
@@ -1788,7 +2195,15 @@ export function PaymentFullView({
       creditNotePickerOpen ||
       extraReceiptDialogOpen ||
       allocation.autoDrawerOpen ||
-      allocation.manualDrawerOpen,
+      allocation.manualDrawerOpen ||
+      // Capability dialogs (in-place surfaces) equally suppress the submit
+      // shortcuts — Enter must never submit the order behind an open dialog.
+      splitDialogOpen ||
+      creditDialogOpen ||
+      giftDialogOpen ||
+      promoDialogOpen ||
+      payLaterDialogOpen ||
+      b2bDialogOpen,
     onSubmit: () => {
       handleSubmit(onSubmitForm, onInvalidForm)();
     },
@@ -1814,15 +2229,13 @@ export function PaymentFullView({
             <CmxDialogHeader className="flex items-center justify-between border-b bg-white">
               <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
-                {isExpress && <Badge variant="secondary" className="text-xs">{t('expressLabel')}</Badge>}
+                {isExpress && <Badge variant="secondary" className="text-xs">{tTopBar('expressLabel')}</Badge>}
                 <Badge variant="secondary" className="text-xs">{currencyCode}</Badge>
               </div>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <PaymentModeToggle
                   mode={mode}
                   onModeChange={handleModeChange}
-                  simpleDisabled={needsAdvanced}
-                  simpleDisabledReason={t('mode.simpleDisabledHint')}
                   simpleLabel={t('mode.simple')}
                   fullLabel={t('mode.advanced')}
                   groupLabel={t('mode.toggleLabel')}
@@ -1834,26 +2247,170 @@ export function PaymentFullView({
               </div>
             </CmxDialogHeader>
 
-            {/* Phase 4 escalation banner — explains an automatic Simple → Full
-                flip; polite live region so the switch is announced. */}
-            {mode === PAYMENT_MODAL_MODE.FULL && autoEscalated && needsAdvancedReasons.length > 0 ? (
-              <div
-                role="status"
-                aria-live="polite"
-                data-testid="payment-escalation-banner"
-                className={`flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
-              >
-                <CircleAlert className="h-4 w-4 shrink-0 text-amber-600" />
-                <p className="min-w-0">
-                  <span className="font-semibold">{t('mode.escalatedTitle')}</span>
-                  {' — '}
-                  {needsAdvancedReasons
-                    .slice(0, 3)
-                    .map((reason) => t(`mode.reasons.${reason}`))
-                    .join(' · ')}
-                </p>
-              </div>
+            <PayExtraTopStrip
+              checked={payExtraIntent}
+              onAttemptChange={handlePayExtraIntentAttempt}
+              disabled={!canEnablePayExtra}
+              disabledReason={
+                !checkoutMethodsLoading && !canEnablePayExtra
+                  ? t('payExtraIntent.disabledNoMethods')
+                  : undefined
+              }
+              ariaDisabled={payExtraStripAriaDisabled}
+              isRTL={isRTL}
+              extraAmountLabel={
+                stripExtraAmount > moneyEpsilon
+                  ? `${currencyCode} ${formatAmount(stripExtraAmount)}`
+                  : null
+              }
+              extraDestinationLabel={extraDestinationLabel}
+              extraUnresolved={
+                stripExtraAmount > moneyEpsilon && !overpaymentResolutionPayload
+              }
+              extraResolved={
+                stripExtraAmount > moneyEpsilon && Boolean(overpaymentResolutionPayload)
+              }
+            />
+
+            {newLegRejectAlert ? (
+              <CmxSummaryMessage
+                type="warning"
+                title={t('payExtraIntent.newLegRejectedAlertTitle')}
+                items={[newLegRejectAlert]}
+                onDismiss={clearNewLegRejectAlert}
+              />
             ) : null}
+
+            {/* Mode feedback (amended ADR): a dismissible suggestion while Simple
+                is selected and advanced conditions are present — never a forced
+                switch. Polite live region. */}
+            {mode === PAYMENT_MODAL_MODE.SIMPLE &&
+            needsAdvanced &&
+            !suggestionDismissed &&
+            needsAdvancedReasons.length > 0 ? (
+              <PaymentModeSuggestion
+                title={t('mode.suggestTitle')}
+                reasons={needsAdvancedReasons
+                  .slice(0, 3)
+                  .map((reason) => t(`mode.reasons.${reason}`))}
+                actionLabel={t('mode.suggestAction')}
+                onAccept={() => handleModeChange(PAYMENT_MODAL_MODE.FULL)}
+                dismissLabel={t('mode.suggestDismiss')}
+                onDismiss={() => setSuggestionDismissed(true)}
+                isRTL={isRTL}
+              />
+            ) : null}
+
+            {/* Split-tender capability dialog — opened in-place from the Simple
+                fast-lane quick action (portal overlay; engine owns leg state). */}
+            <SplitTenderDialog
+              open={splitDialogOpen}
+              onOpenChange={setSplitDialogOpen}
+              actions={splitTenderActions}
+              paymentLegs={paymentLegs}
+              activeLegIndex={activeLegIndex}
+              methodOptions={realPaymentOptions}
+              getOptionDisplayName={getCheckoutOptionDisplayName}
+              amountDue={saleTotal}
+              legsTotal={paymentLegsTotal}
+              remainingBalance={remainingBalance}
+              moneyEpsilon={moneyEpsilon}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+              decimalPlaces={decimalPlaces}
+              branchPaymentTerminals={branchPaymentTerminals}
+              cardBrands={cardBrands}
+              creditMethodCodes={creditMethodCodes}
+              payExtraIntent={payExtraIntent}
+            />
+
+            <CustomerCreditDialog
+              open={creditDialogOpen}
+              onOpenChange={setCreditDialogOpen}
+              actions={customerCreditActions}
+              creditOptions={customerCreditOptions}
+              paymentLegs={paymentLegs}
+              getOptionDisplayName={getCheckoutOptionDisplayName}
+              storedValueSummary={storedValueSummary}
+              storedValueLoading={storedValueLoading}
+              storedValueFetching={storedValueFetching}
+              refetchStoredValueSummary={refetchStoredValueSummary}
+              walletBalanceLoaded={walletBalanceLoaded}
+              walletHasAvailableBalance={walletHasAvailableBalance}
+              liveWalletBalanceDisplay={liveWalletBalanceDisplay}
+              walletLegExceedsLiveBalance={walletLegExceedsLiveBalance}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
+
+            <GiftCardDialog
+              open={giftDialogOpen}
+              onOpenChange={setGiftDialogOpen}
+              actions={giftCardActions}
+              giftCardNumber={giftCardNumber ?? ''}
+              onGiftCardNumberChange={(value) =>
+                setValue('giftCardNumber', value.toUpperCase())
+              }
+              giftCardAmount={giftCardAmount}
+              onGiftCardAmountChange={(value) => setValue('giftCardAmount', value)}
+              giftCardValidating={giftCardValidating}
+              giftCardResult={giftCardResult}
+              giftCardDetails={giftCardDetails}
+              appliedGiftCard={appliedGiftCard}
+              giftCardPin={giftCardPin}
+              pinRequired={pinRequired}
+              pinVisible={pinVisible}
+              pinFieldError={pinFieldError}
+              resolveGiftCardError={resolveGiftCardError}
+              remainingBalance={remainingBalance}
+              moneyEpsilon={moneyEpsilon}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+              pinInputRef={pinInputRef}
+              giftCardAmountInputRef={giftCardAmountInputRef}
+            />
+
+            <PromoCodeDialog
+              open={promoDialogOpen}
+              onOpenChange={setPromoDialogOpen}
+              actions={promoCodeActions}
+              promoCode={promoCode ?? ''}
+              onPromoCodeChange={(value) => setValue('promoCode', value.toUpperCase())}
+              promoCodeValidating={promoCodeValidating}
+              promoCodeResult={promoCodeResult}
+              appliedPromoCode={appliedPromoCode}
+              promoErrorMessage={promoErrorMessage}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
+
+            <PayLaterDialog
+              open={payLaterDialogOpen}
+              onOpenChange={setPayLaterDialogOpen}
+              actions={payLaterActions}
+              selectedPolicy={effectiveOutstandingPolicy}
+            />
+
+            {/* B2B account-billing capability dialog — opened in-place from the
+                Simple quick action or a routed server guard (ADR #3: a required
+                gate, never a mode change). Fields mirror the Full-view inspector
+                tab through the shared RHF form. */}
+            <B2BAccountBillingDialog
+              open={b2bDialogOpen}
+              onOpenChange={setB2bDialogOpen}
+              required={b2bBillingRequired}
+              b2bContractId={b2bContractId}
+              onB2bContractIdChange={(value) => setValue('b2bContractId', value)}
+              contracts={b2bContracts}
+              contractsLoading={b2bContractsLoading}
+              costCenterCode={costCenterCode}
+              onCostCenterCodeChange={(value) => setValue('costCenterCode', value)}
+              poNumber={poNumber}
+              onPoNumberChange={(value) => setValue('poNumber', value)}
+              creditLimit={b2bCreditLimitInfo}
+              currencyCode={currencyCode}
+              formatAmount={formatAmount}
+            />
 
             <form
               onSubmit={(event) => event.preventDefault()}
@@ -1871,21 +2428,44 @@ export function PaymentFullView({
                   methodsLoading={checkoutMethodsLoading}
                   methodOptions={simpleMethodOptions}
                   paymentLegs={paymentLegs}
-                  activeLeg={activeLeg}
+                  activeLeg={simpleFaceActiveLeg}
                   activeLegIndex={activeLegIndex}
                   getOptionDisplayName={getCheckoutOptionDisplayName}
                   onMethodSelect={handleMethodSelect}
                   onMoreOptions={handleSimpleMoreOptions}
                   amountInputRef={amountInputRef}
-                  activeAmountDraft={activeAmountDraft}
+                  activeAmountDraft={
+                    simpleFaceActiveLeg ? activeAmountDraft : ''
+                  }
                   amountValue={simpleAmountValue}
-                  onAmountValueChange={handleAmountValueChange}
-                  quickTenderItems={quickTenderChipItems}
-                  onQuickTenderSelect={handleQuickTenderSelect}
-                  onKeypadPress={handleKeypadPress}
-                  requiresTerminal={Boolean(activeLegOption?.requires_terminal)}
+                  onAmountValueChange={(value, draft) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleAmountValueChange(value, draft);
+                  }}
+                  amountCapHint={
+                    simpleFaceActiveLeg
+                      ? (displayAmountCapNotice?.message ?? null)
+                      : null
+                  }
+                  payExtraIntent={payExtraIntent}
+                  quickTenderItems={
+                    simpleFaceActiveLeg ? quickTenderChipItems : []
+                  }
+                  onQuickTenderSelect={(item) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleQuickTenderSelect(item);
+                  }}
+                  onKeypadPress={(key) => {
+                    if (!simpleFaceActiveLeg) return;
+                    handleKeypadPress(key);
+                  }}
+                  activeLegOption={
+                    simpleFaceActiveLeg ? activeLegOption : undefined
+                  }
+                  updateLeg={updateLeg}
                   branchPaymentTerminals={branchPaymentTerminals}
-                  onTerminalChange={handleSimpleTerminalChange}
+                  cardBrands={cardBrands}
+                  creditMethodCodes={creditMethodCodes}
                   cashDrawerRequired={cashDrawerRequired}
                   cashDrawerDisplay={cashDrawerDisplay}
                   onManageCashDrawer={handleSimpleManageDrawer}
@@ -1898,6 +2478,56 @@ export function PaymentFullView({
                   balanceStatusAnnouncement={balanceStatusAnnouncement}
                   policyLabel={simplePolicyLabel}
                   onChangeBalancePolicy={handleSimpleChangePolicy}
+                  quickActions={
+                    simpleQuickActionsPlan.length > 0 ? (
+                      <CmxCard className="border-slate-200 bg-white shadow-sm">
+                        <CmxCardContent className="space-y-2 pt-5">
+                          <p className={`text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('mode.simpleView.quickActionsTitle')}
+                          </p>
+                          <CapabilityViewRenderer
+                            plan={simpleQuickActionsPlan}
+                            isRTL={isRTL}
+                            renderInline={() => null}
+                            dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
+                            requiredBadgeLabel={t('capabilities.dialog.required')}
+                            onOpenCapability={(slot) => {
+                              // Every quick-action opens its capability dialog
+                              // in-place (Simple stays selected — ADR). CASH_CARD_SPLIT
+                              // reuses the split dialog; OVERPAYMENT_ROUTING reuses the
+                              // extra-receipt dialog. The Advanced fallback remains only
+                              // as defense for a future capability without a dialog.
+                              if (
+                                slot.key === PAYMENT_CAPABILITY.SPLIT_TENDER ||
+                                slot.key === PAYMENT_CAPABILITY.CASH_CARD_SPLIT
+                              ) {
+                                setSplitDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.GIFT_CARD) {
+                                setGiftDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.CUSTOMER_CREDIT) {
+                                setCreditDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.PROMO_CODE) {
+                                setPromoDialogOpen(true);
+                              } else if (slot.key === PAYMENT_CAPABILITY.PAY_LATER) {
+                                setPayLaterDialogOpen(true);
+                              } else if (
+                                slot.key === PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING
+                              ) {
+                                setB2bDialogOpen(true);
+                              } else if (
+                                slot.key === PAYMENT_CAPABILITY.OVERPAYMENT_ROUTING
+                              ) {
+                                setExtraReceiptDialogOpen(true);
+                              } else {
+                                handleSimpleMoreOptions();
+                              }
+                            }}
+                            resolveGuard={() => null}
+                          />
+                        </CmxCardContent>
+                      </CmxCard>
+                    ) : null
+                  }
                 />
               ) : (
               <div className="mx-auto grid min-h-full max-w-[1880px] items-start gap-4 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(720px,1fr)_360px]">
@@ -1915,6 +2545,28 @@ export function PaymentFullView({
                       </p>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3 pt-3">
+                {/* Phase 4 strangler: FX/rounding reference line routed through the
+                    capability renderer (additive — this line was never rendered
+                    before). Double-gated: registry availability + the line's own
+                    epsilon null-guard. */}
+                <CapabilityViewRenderer
+                  plan={migratedCapabilityPlan}
+                  isRTL={isRTL}
+                  renderInline={(slot) =>
+                    slot.key === PAYMENT_CAPABILITY.FX_ROUNDING ? (
+                      <FxRoundingLine
+                        exchangeRate={currencyConfig?.currencyExRate ?? 1}
+                        roundingAmount={0}
+                        moneyEpsilon={moneyEpsilon}
+                        currencyCode={currencyCode}
+                        formatAmount={formatAmount}
+                      />
+                    ) : null
+                  }
+                  dialogButtonLabel={() => ''}
+                  onOpenCapability={() => undefined}
+                  resolveGuard={() => null}
+                />
                 <div className="space-y-3">
                   <div>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
@@ -1968,7 +2620,10 @@ export function PaymentFullView({
                         realPaymentOptions.map((option) => {
                           const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
                           const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
-                          const selected = !!paymentLegs.find(
+                          const isActive =
+                            activeLeg != null &&
+                            `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                          const hasLeg = paymentLegs.some(
                             (leg) =>
                               `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
                           );
@@ -1986,8 +2641,15 @@ export function PaymentFullView({
                                 .replace(/^-|-$/g, '')}`}
                               variant="outline"
                               size="lg"
+                              aria-pressed={isActive}
                               onClick={() => handleMethodSelect(option)}
-                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? tone.selected : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${isRTL ? 'flex-row-reverse' : ''}`}
+                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
+                                isActive
+                                  ? tone.selected
+                                  : hasLeg
+                                    ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
+                                    : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
+                              } ${isRTL ? 'flex-row-reverse' : ''}`}
                             >
                               <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
                                 <span className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${tone.iconWrap}`}>
@@ -2033,7 +2695,14 @@ export function PaymentFullView({
                       ) : (
                         customerCreditOptions.map((option) => {
                           const optionLabel = getCheckoutOptionDisplayName(option, option.payment_method_code);
-                          const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
+                          const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                          const isActive =
+                            activeLeg != null &&
+                            `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                          const hasLeg = paymentLegs.some(
+                            (leg) =>
+                              `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                          );
                           const isWalletOption =
                             option.credit_application_type === 'WALLET' ||
                             option.payment_method_code === 'WALLET';
@@ -2093,8 +2762,15 @@ export function PaymentFullView({
                                 variant="outline"
                                 size="lg"
                                 disabled={disabled}
+                                aria-pressed={isActive}
                                 onClick={() => handleCustomerCreditSelect(option)}
-                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
+                                  isActive
+                                    ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm'
+                                    : hasLeg
+                                      ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
+                                      : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
+                                } ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                               >
                                 <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
                                   <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
@@ -2115,7 +2791,7 @@ export function PaymentFullView({
                                         {balanceLabel}
                                       </span>
                                     )}
-                                    {isWalletOption && selected && !walletLegExceedsLiveBalance && (
+                                    {isWalletOption && hasLeg && !walletLegExceedsLiveBalance && (
                                       <span className="mt-1 text-xs font-medium text-cyan-700">
                                         {t('customerCredits.applied')}
                                       </span>
@@ -2399,18 +3075,6 @@ export function PaymentFullView({
                     </div>
                   ) : null}
 
-                  <PayExtraIntentToggle
-                    checked={payExtraIntent}
-                    onCheckedChange={setPayExtraIntent}
-                    disabled={!canEnablePayExtra}
-                    disabledReason={
-                      !checkoutMethodsLoading && !canEnablePayExtra
-                        ? t('payExtraIntent.disabledNoMethods')
-                        : undefined
-                    }
-                    isRTL={isRTL}
-                  />
-
                   {payExtraIntent ? (
                     <PayExtraWorkbenchHint
                       visible={
@@ -2518,11 +3182,11 @@ export function PaymentFullView({
                                 </span>
                               </div>
                             ) : null}
-                            {cashOverRemainingNotice ? (
+                            {displayAmountCapNotice ? (
                               <CmxSummaryMessage
                                 type="info"
-                                title={t('splitPayment.validation.cashOverRemainingTitle')}
-                                items={[cashOverRemainingNotice]}
+                                title={displayAmountCapTitle}
+                                items={[displayAmountCapNotice.message]}
                               />
                             ) : null}
                             <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
@@ -2656,228 +3320,29 @@ export function PaymentFullView({
                                       )}
                                     </div>
                                   )}
-                                  {activeLegOption?.requires_terminal && (
-                                    <div>
-                                      <label className="mb-1 block text-xs font-medium text-slate-600">
-                                        {t('splitPayment.paymentTerminal')}
-                                        <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
-                                        <span className="sr-only">{t('workspace.requiredField')}</span>
-                                      </label>
-                                      <CmxSelectDropdown
-                                        value={activeLeg.terminalId ?? ''}
-                                        onValueChange={(value) =>
-                                          updateLeg(activeLegIndex, 'terminalId', value || undefined)
-                                        }
-                                      >
-                                        <CmxSelectDropdownTrigger>
-                                          <CmxSelectDropdownValue
-                                            displayValue={
-                                              activeLeg.terminalId
-                                                ? branchPaymentTerminals.find(
-                                                    (terminal) => terminal.id === activeLeg.terminalId
-                                                  )?.terminal_name ?? activeLeg.terminalId
-                                                : ''
-                                            }
-                                            placeholder={t('splitPayment.paymentTerminalPlaceholder')}
-                                          />
-                                        </CmxSelectDropdownTrigger>
-                                        <CmxSelectDropdownContent>
-                                          <CmxSelectDropdownItem value="">
-                                            {t('splitPayment.paymentTerminalPlaceholder')}
-                                          </CmxSelectDropdownItem>
-                                          {branchPaymentTerminals.map((terminal) => (
-                                            <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
-                                              {isRTL
-                                                ? terminal.terminal_name2 || terminal.terminal_name
-                                                : terminal.terminal_name}
-                                            </CmxSelectDropdownItem>
-                                          ))}
-                                        </CmxSelectDropdownContent>
-                                      </CmxSelectDropdown>
-                                      {!activeLeg.terminalId?.trim() ? (
-                                        <p className="mt-1 text-xs text-rose-600">
-                                          {t('splitPayment.validation.terminalRequiredField')}
-                                        </p>
-                                      ) : null}
-                                    </div>
-                                  )}
-                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <div>
-                                        <label className="mb-1 block text-xs font-medium text-slate-600">{t('splitPayment.cardBrand')}</label>
-                                        <CmxSelectDropdown
-                                          value={activeLeg.card_brand_code ?? ''}
-                                          onValueChange={(value) => updateLeg(activeLegIndex, 'card_brand_code', value || undefined)}
-                                        >
-                                          <CmxSelectDropdownTrigger>
-                                            <CmxSelectDropdownValue
-                                              displayValue={
-                                                activeLeg.card_brand_code
-                                                  ? cardBrands.find((brand) => brand.card_brand_code === activeLeg.card_brand_code)?.name ?? activeLeg.card_brand_code
-                                                  : ''
-                                              }
-                                              placeholder={t('splitPayment.cardBrandPlaceholder')}
-                                            />
-                                          </CmxSelectDropdownTrigger>
-                                          <CmxSelectDropdownContent>
-                                            <CmxSelectDropdownItem value="">{t('splitPayment.cardBrandPlaceholder')}</CmxSelectDropdownItem>
-                                            {cardBrands.map((brand) => (
-                                              <CmxSelectDropdownItem key={brand.card_brand_code} value={brand.card_brand_code}>
-                                                {isRTL ? (brand.name2 || brand.name) : brand.name}
-                                              </CmxSelectDropdownItem>
-                                            ))}
-                                          </CmxSelectDropdownContent>
-                                        </CmxSelectDropdown>
-                                      </div>
-                                      <CmxInput
-                                        label={t('splitPayment.cardLast4')}
-                                        value={activeLeg.card_last4 ?? ''}
-                                        dir="ltr"
-                                        maxLength={4}
-                                        inputMode="numeric"
-                                        placeholder="0000"
-                                        onChange={(event) => updateLeg(activeLegIndex, 'card_last4', event.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.authCode')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.auth_code ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                        }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'auth_code', event.target.value || undefined)}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {activeLeg.method === PAYMENT_METHODS.CHECK && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <CmxInput
-                                        ref={checkNumberInputRef}
-                                        label={t('splitPayment.checkNumber')}
-                                        required
-                                        value={activeLeg.checkNumber ?? ''}
-                                        dir="ltr"
-                                        error={errors.checkNumber?.message}
-                                        placeholder={t('checkNumber.placeholder')}
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkNumber', nextValue);
-                                          setValue('checkNumber', nextValue ?? '', { shouldValidate: true, shouldDirty: true });
-                                        }}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.checkBankName')}
-                                        value={activeLeg.checkBank ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkBank', nextValue);
-                                          setValue('checkBank', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                        }}
-                                      />
-                                      <CmxInput
-                                        ref={checkDateInputRef}
-                                        type="date"
-                                        label={t('splitPayment.checkDueDate')}
-                                        value={activeLeg.checkDate ?? ''}
-                                        // BVM Phase 6 Sub-item 4: floor the picker
-                                        // at today's local date so the operator
-                                        // cannot accidentally tender a back-dated
-                                        // check. validateCheckDueDate also catches
-                                        // pasted/typed values that bypass the picker.
-                                        min={todayYyyyMmDd()}
-                                        error={
-                                          validateCheckDueDate(activeLeg.checkDate)
-                                            ? t(`splitPayment.${validateCheckDueDate(activeLeg.checkDate)!}`)
-                                            : undefined
-                                        }
-                                        onChange={(event) => {
-                                          const nextValue = event.target.value || undefined;
-                                          updateLeg(activeLegIndex, 'checkDate', nextValue);
-                                          setValue('checkDate', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {activeLeg.method === PAYMENT_METHODS.BANK_TRANSFER && (
-                                    <CmxInput
-                                      label={t('splitPayment.bankReference')}
-                                      required={activeLegOption?.requires_reference}
-                                      value={activeLeg.bank_reference ?? ''}
-                                      dir="ltr"
-                                      placeholder="—"
-                                      error={
-                                        activeLegOption?.requires_reference &&
-                                        !legHasRequiredPaymentReference(activeLeg, true)
-                                          ? t('splitPayment.validation.referenceRequiredField')
-                                          : undefined
-                                      }
-                                      onChange={(event) => updateLeg(activeLegIndex, 'bank_reference', event.target.value || undefined)}
-                                    />
-                                  )}
-
-                                  {GATEWAY_METHOD_CODES.includes(activeLeg.method) && (
-                                    <div className="grid gap-3 md:grid-cols-3">
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayCode')}
-                                        value={activeLeg.gateway_code ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        readOnly
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayTransactionId')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.gateway_transaction_id ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                        }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_transaction_id', event.target.value || undefined)}
-                                      />
-                                      <CmxInput
-                                        label={t('splitPayment.gatewayReference')}
-                                        required={activeLegOption?.requires_reference}
-                                        value={activeLeg.gateway_reference ?? ''}
-                                        dir="ltr"
-                                        placeholder="—"
-                                        error={
-                                          activeLegOption?.requires_reference &&
-                                          !legHasRequiredPaymentReference(activeLeg, true)
-                                            ? t('splitPayment.validation.referenceRequiredField')
-                                            : undefined
-                                      }
-                                        onChange={(event) => updateLeg(activeLegIndex, 'gateway_reference', event.target.value || undefined)}
-                                      />
-                                    </div>
-                                  )}
-                                  {activeLeg.method === PAYMENT_METHODS.CARD && (
-                                    <div className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                      <ShieldCheck className="h-4 w-4 text-cyan-700" />
-                                      {t('security.cardPayment')}
-                                    </div>
-                                  )}
-                                  {!creditMethodCodes.includes(activeLeg.method) &&
-                                  activeLeg.method !== PAYMENT_METHODS.CARD &&
-                                  activeLeg.method !== PAYMENT_METHODS.CHECK &&
-                                  activeLeg.method !== PAYMENT_METHODS.BANK_TRANSFER &&
-                                  !GATEWAY_METHOD_CODES.includes(activeLeg.method) ? (
-                                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                                      {t('workspace.noDetailsDescription')}
-                                    </div>
-                                  ) : null}
+                                  {/* Per-method leg detail fields — shared single-source
+                                      component (also used by the split-tender dialog). */}
+                                  <PaymentLegDetailFields
+                                    leg={activeLeg}
+                                    legIndex={activeLegIndex}
+                                    option={activeLegOption}
+                                    updateLeg={updateLeg}
+                                    branchPaymentTerminals={branchPaymentTerminals}
+                                    cardBrands={cardBrands}
+                                    creditMethodCodes={creditMethodCodes}
+                                    onCheckNumberChange={(value) =>
+                                      setValue('checkNumber', value, { shouldValidate: true, shouldDirty: true })
+                                    }
+                                    onCheckBankChange={(value) =>
+                                      setValue('checkBank', value, { shouldValidate: false, shouldDirty: true })
+                                    }
+                                    onCheckDateChange={(value) =>
+                                      setValue('checkDate', value, { shouldValidate: false, shouldDirty: true })
+                                    }
+                                    checkNumberError={errors.checkNumber?.message}
+                                    checkNumberInputRef={checkNumberInputRef}
+                                    checkDateInputRef={checkDateInputRef}
+                                  />
                                 </div>
                               </div>
                             </>
@@ -3876,10 +4341,10 @@ export function PaymentFullView({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={handleBlockedSubmitAttempt}
+                          onClick={handleRequiredAction}
                           className="w-full rounded-xl border-rose-200 bg-white text-rose-800 hover:bg-rose-100"
                         >
-                          {t('workspace.fixAction')}
+                          {requiredActionCopy.actionLabel ?? t('workspace.fixAction')}
                         </CmxButton>
                       </CmxCardContent>
                     </CmxCard>
@@ -4031,6 +4496,26 @@ export function PaymentFullView({
                     </CmxButton>
                   ) : null}
                 </div>
+                {/* Phase 5: a routed server rejection surfaces as an in-view
+                    guard naming the same cause as the server (shared footer —
+                    visible in both faces; cleared on the next attempt). */}
+                {serverGuard ? (
+                  <PaymentSubmitGuard
+                    reason={serverGuard.reason}
+                    message={serverGuard.message}
+                    actionLabel={serverGuardActionLabel}
+                    onAction={showServerGuardAction ? handleServerGuardAction : undefined}
+                    isRTL={isRTL}
+                  />
+                ) : b2bCreditClientGuard ? (
+                  <PaymentSubmitGuard
+                    reason="B2B_CREDIT_EXCEEDED"
+                    message={t('b2b.creditExceeded')}
+                    actionLabel={t('capabilities.B2B_ACCOUNT_BILLING.action')}
+                    onAction={() => setB2bDialogOpen(true)}
+                    isRTL={isRTL}
+                  />
+                ) : null}
                 {validationItems.length > 0 ? (
                   <CmxSummaryMessage
                     type="warning"
@@ -4047,11 +4532,14 @@ export function PaymentFullView({
                   <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
                     {tCommon('cancel')}
                   </CmxButton>
-                  {payExtraIntent ? (
+                  {payExtraIntent &&
+                  stripExtraAmount > moneyEpsilon &&
+                  !overpaymentResolutionPayload ? (
                     <PaymentValidateButton
                       onClick={runValidatePayment}
                       disabled={!canEnablePayExtra}
-                      className="w-full rounded-2xl"
+                      isRTL={isRTL}
+                      className="flex-1"
                     />
                   ) : null}
                   <CmxButton
@@ -4088,7 +4576,7 @@ export function PaymentFullView({
       </CmxDialog>
 
       <CmxDialog open={cashDrawerDialogOpen} onOpenChange={setCashDrawerDialogOpen}>
-        <CmxDialogContent className="max-w-lg">
+        <CmxDialogContent className="max-w-lg" scrollBody draggable>
           <CmxDialogHeader>
             <CmxDialogTitle>{t('cashDrawer.dialogTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
@@ -4184,7 +4672,7 @@ export function PaymentFullView({
           if (!nextOpen) setPendingSubmission(null);
         }}
       >
-        <CmxDialogContent data-testid="payment-submit-confirm" className="max-w-lg">
+        <CmxDialogContent data-testid="payment-submit-confirm" className="max-w-lg" scrollBody draggable>
           <CmxDialogHeader>
             <CmxDialogTitle>{t('submitConfirm.title')}</CmxDialogTitle>
           </CmxDialogHeader>
@@ -4296,9 +4784,12 @@ export function PaymentFullView({
         }}
       />
 
-      <PaymentExtraReceiptDialog
+      {/* Overpayment-routing capability surface (ADR #5) — the adapter wraps the
+          battle-tested extra-receipt dialog, routing open/confirm/back through the
+          typed engine actions and adding capability open-observability. */}
+      <OverpaymentRoutingDialog
         open={extraReceiptDialogOpen}
-        onOpenChange={setExtraReceiptDialogOpen}
+        actions={overpaymentRoutingActions}
         excessAmount={extraReceiptDialogExcessAmount}
         currencyCode={currencyCode}
         formatAmount={formatAmount}
@@ -4337,12 +4828,9 @@ export function PaymentFullView({
         canSaveAdvance={canSaveAdvanceOverpayment}
         canSaveCredit={canSaveCreditOverpayment}
         canSaveWallet={canWalletOverpayment}
-        onConfirm={() => {
-          if (!confirmExtraReceiptSelection()) {
-            cmxMessage.error(t('validatePayment.requiredBeforeSubmit'));
-          }
+        onConfirmFailed={() => {
+          cmxMessage.error(t('validatePayment.requiredBeforeSubmit'));
         }}
-        onBack={() => setExtraReceiptDialogOpen(false)}
         confirmDisabled={!overpaymentResolutionPayload}
         isRTL={isRTL}
       />

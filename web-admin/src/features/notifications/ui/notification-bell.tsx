@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { Bell } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { CmxButton } from '@ui/primitives/cmx-button'
+import {
+  TOPBAR_POPOVER_OPEN_EVENT,
+  type TopbarPopoverOpenDetail,
+} from '@lib/session-activity'
 import { useNotificationBell } from '../hooks/use-notification-bell'
 import { NotificationItem } from './notification-item'
 
@@ -18,6 +22,18 @@ export function NotificationBell() {
   const t = useTranslations('notifications')
 
   const { unreadCount, recentNotifications, markRead, markAllRead } = useNotificationBell()
+
+  // Close when Session Activity (or another top-bar popover) opens
+  useEffect(() => {
+    const handleOtherOpen = (event: Event) => {
+      const detail = (event as CustomEvent<TopbarPopoverOpenDetail>).detail
+      if (detail?.id && detail.id !== 'notifications') {
+        setOpen(false)
+      }
+    }
+    window.addEventListener(TOPBAR_POPOVER_OPEN_EVENT, handleOtherOpen)
+    return () => window.removeEventListener(TOPBAR_POPOVER_OPEN_EVENT, handleOtherOpen)
+  }, [])
 
   // Close on outside click or Escape key
   useEffect(() => {
@@ -45,12 +61,26 @@ export function NotificationBell() {
     await markAllRead()
   }
 
+  const handleToggle = () => {
+    setOpen((prev) => {
+      const next = !prev
+      if (next && typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<TopbarPopoverOpenDetail>(TOPBAR_POPOVER_OPEN_EVENT, {
+            detail: { id: 'notifications' },
+          })
+        )
+      }
+      return next
+    })
+  }
+
   return (
     <div className="relative">
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
         aria-label={t('title')}
         aria-expanded={open}
         className="relative p-2 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))]"

@@ -67,7 +67,7 @@ export function AppProviders({
               <AlertDialogProvider>
                 <PermissionsInspectorProvider>
                   {children}
-                  <Toaster position={toastPosition} richColors />
+                  <Toaster position={toastPosition} richColors closeButton />
                 </PermissionsInspectorProvider>
               </AlertDialogProvider>
             </RoleProvider>

@@ -5,6 +5,7 @@
 
 import type { MessageType, MessageOptions, MessageResult } from '../types';
 import { alertDialogManager } from '../utils/alert-dialog-manager';
+import { recordSessionMessage } from '@lib/session-activity';
 
 /**
  * Display a message using browser alert/confirm dialogs
@@ -96,6 +97,16 @@ export async function showAlertPromise<T>(
       window.alert(successMessage);
     }
 
+    recordSessionMessage({
+      type: 'success',
+      title: successMessage,
+      description: options?.description,
+      method: 'alert',
+      source: options?.sessionActivitySource,
+      skipSessionLog: options?.skipSessionLog,
+      forceSessionLog: options?.forceSessionLog,
+    });
+
     return result;
   } catch (error) {
     const errorMessage =
@@ -106,6 +117,16 @@ export async function showAlertPromise<T>(
     if (typeof window !== 'undefined') {
       window.alert(errorMessage);
     }
+
+    recordSessionMessage({
+      type: 'error',
+      title: errorMessage,
+      description: options?.description,
+      method: 'alert',
+      source: options?.sessionActivitySource,
+      skipSessionLog: options?.skipSessionLog,
+      forceSessionLog: options?.forceSessionLog,
+    });
 
     throw error;
   }

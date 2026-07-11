@@ -44,7 +44,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
-import { resolvePaymentOverpaymentPolicy } from '@/lib/payments/overpayment-policy';
+import {
+  resolvePaymentOverpaymentPolicy,
+  resolveSupportsRetainedOverpayment,
+} from '@/lib/payments/overpayment-policy';
 import { cmxMessage } from '@ui/feedback';
 import {
   deriveCashTenderedAmount,
@@ -207,10 +210,10 @@ export function usePaymentLegs({
           giftCardAmount: giftCardSettlementAmount,
           decimalPlaces,
           walletBalance: getLegStoredValueCap(target),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const cashTendered = policy.isCash
           ? deriveCashTenderedAmount(value, appliedAmount, policy.supportsChangeReturn, decimalPlaces)
@@ -231,14 +234,22 @@ export function usePaymentLegs({
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
+      // If this method already has a leg, only activate it — never overwrite
+      // amount / cashTendered the cashier already entered.
+      const existingIndex = paymentLegs.findIndex(
+        (leg) =>
+          leg.method === option.payment_method_code &&
+          (leg.gateway_code ?? '') === (option.gateway_code ?? '')
+      );
+      if (existingIndex >= 0) {
+        setActiveLegIndex(existingIndex);
+        focusAmountEditor();
+        return;
+      }
+
       setIsDirtySinceOpen(true);
       setPaymentLegs((prev) => {
-        const existingIndex = prev.findIndex(
-          (leg) =>
-            leg.method === option.payment_method_code &&
-            (leg.gateway_code ?? '') === (option.gateway_code ?? '')
-        );
-        const targetIndex = existingIndex >= 0 ? existingIndex : prev.length;
+        const targetIndex = prev.length;
         const policy = resolvePaymentOverpaymentPolicy({
           paymentMethodCode: option.payment_method_code,
           supportsChangeReturn: option.supports_change_return,
@@ -255,15 +266,14 @@ export function usePaymentLegs({
           walletBalance: getLegStoredValueCap({
             method: option.payment_method_code as PaymentLeg['method'],
             amount: defaultAmount,
-            ...(existingIndex >= 0 ? prev[existingIndex] : {}),
           }),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const nextLeg: PaymentLeg = {
-          legRef: existingIndex >= 0 ? prev[existingIndex].legRef ?? crypto.randomUUID() : crypto.randomUUID(),
+          legRef: crypto.randomUUID(),
           method: option.payment_method_code as PaymentLeg['method'],
           amount: nextAmount,
           ...(policy.isCash ? { cashTendered: nextAmount } : {}),
@@ -271,17 +281,6 @@ export function usePaymentLegs({
             ? { gateway_code: option.gateway_code ?? undefined }
             : {}),
         };
-
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            ...nextLeg,
-            amount: nextAmount,
-          };
-          setActiveLegIndex(existingIndex);
-          return updated;
-        }
 
         const legEpsilon = Math.pow(10, -(decimalPlaces + 1));
         const allPlaceholdersZero =
@@ -302,6 +301,7 @@ export function usePaymentLegs({
       focusAmountEditor,
       getLegStoredValueCap,
       giftCardSettlementAmount,
+      paymentLegs,
       saleTotal,
       setIsDirtySinceOpen,
     ]
@@ -334,10 +334,10 @@ export function usePaymentLegs({
             method: option.payment_method_code as PaymentLeg['method'],
             amount: defaultAmount,
           }),
-          supportsOverpayment:
-            payExtraIntentRef.current && policy.isCash && policy.supportsChangeReturn
-              ? true
-              : !policy.isCash && policy.supportsOverpayment,
+          supportsOverpayment: resolveSupportsRetainedOverpayment({
+            payExtraIntent: payExtraIntentRef.current,
+            policy,
+          }),
         });
         const nextLeg: PaymentLeg = {
           legRef: crypto.randomUUID(),

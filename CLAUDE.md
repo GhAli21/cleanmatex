@@ -20,8 +20,8 @@
 # CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 22-03-2026
-**Last Update Description:** Added /storybook skill + storybook-generator agent to mandatory loading table
+**Last Update:** 10-07-2026
+**Last Update Description:** Added CRITICAL RULE #15 — no silent money mutation (prevent or explain, never auto-correct user-editable amounts)
 
 ---
 
@@ -313,7 +313,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.

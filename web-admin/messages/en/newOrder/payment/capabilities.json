@@ -1,0 +1,58 @@
+{
+  "dialog": {
+    "errorFallback": "Something went wrong in this dialog. Your payment entries are safe — close and try again.",
+    "required": "Required"
+  },
+  "SPLIT_TENDER": {
+    "title": "Split payment",
+    "action": "Split payment",
+    "description": "Take this payment with more than one method — for example cash and card together."
+  },
+  "GIFT_CARD": {
+    "title": "Gift card",
+    "action": "Gift card",
+    "description": "Look up a gift card, enter its PIN if required, and apply an amount to this order."
+  },
+  "PROMO_CODE": {
+    "title": "Promo code",
+    "action": "Promo code",
+    "description": "Enter a promo code to apply its discount to this order."
+  },
+  "CUSTOMER_CREDIT": {
+    "title": "Store credit",
+    "action": "Store credit",
+    "description": "Apply the customer's wallet, advance, or credit-note balance to this order."
+  },
+  "B2B_ACCOUNT_BILLING": {
+    "title": "Account billing",
+    "action": "Account billing",
+    "description": "Add the contract and accounting details to bill this order to the customer's account."
+  },
+  "FX_ROUNDING": {
+    "title": "Currency & rounding",
+    "action": "Currency & rounding",
+    "description": "This order settles at a non-base exchange rate; the applied rate and any rounding are shown for reference.",
+    "exchangeRate": "Exchange rate",
+    "rounding": "Rounding adjustment"
+  },
+  "PAY_LATER": {
+    "title": "Balance policy",
+    "action": "Pay later",
+    "description": "Choose how the remaining balance on this order is settled."
+  },
+  "CASH_CARD_SPLIT": {
+    "title": "Cash + card split",
+    "action": "Cash + card",
+    "description": "Split this payment between cash and card."
+  },
+  "CASH_DRAWER": {
+    "title": "Cash drawer",
+    "action": "Cash drawer",
+    "description": "Select or open the cash drawer session used to take cash for this order."
+  },
+  "OVERPAYMENT_ROUTING": {
+    "title": "Extra amount",
+    "action": "Extra amount",
+    "description": "Choose what to do with an overpayment — return change, or keep it as store credit or a receipt."
+  }
+}

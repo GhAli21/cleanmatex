@@ -1,0 +1,25 @@
+{
+  "title": "Session activity",
+  "badgeLabel": "{count} unread session messages",
+  "empty": "No messages in this session",
+  "emptyDesc": "Errors and warnings from this browser session appear here so you can re-read them after a toast disappears. This is separate from Notifications.",
+  "clearLog": "Clear log",
+  "clearLogConfirmTitle": "Clear session activity?",
+  "clearLogConfirmBody": "This removes all messages from the current session log. It cannot be undone.",
+  "markAllRead": "Mark all as read",
+  "copyMessage": "Copy message",
+  "copied": "Copied",
+  "copyFailed": "Could not copy message",
+  "filters": {
+    "all": "All",
+    "errors": "Errors",
+    "warnings": "Warnings"
+  },
+  "item": {
+    "justNow": "Just now",
+    "markRead": "Mark as read",
+    "typeError": "Error",
+    "typeWarning": "Warning",
+    "typeInfo": "Info"
+  }
+}

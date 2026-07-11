@@ -2,8 +2,9 @@
   "simple": "Simple",
   "advanced": "Advanced",
   "toggleLabel": "Payment view",
-  "simpleDisabledHint": "Advanced options are in use — Simple mode is unavailable until they are cleared",
-  "escalatedTitle": "Switched to Advanced mode",
+  "suggestTitle": "Advanced options may help",
+  "suggestAction": "Switch to Advanced",
+  "suggestDismiss": "Dismiss suggestion",
   "reasons": {
     "SPLIT_PAYMENT": "split payment in use",
     "CUSTOMER_CREDIT": "customer credit applied",
@@ -26,6 +27,9 @@
     "change": "Change",
     "remaining": "Remaining",
     "manage": "Manage",
-    "changePolicy": "Change"
+    "changePolicy": "Change",
+    "quickActionsTitle": "More ways to pay",
+    "advancedLegActiveTitle": "Advanced payment method in use",
+    "advancedLegActiveHint": "That method is edited in Advanced. Pick a method below, or open More options to continue there."
   }
 }

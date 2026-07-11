@@ -5,6 +5,10 @@ import {
   PAYMENT_MODAL_MODE,
   SIMPLE_MODE_METHOD_CHIP_LIMIT,
   deriveSimpleModeMethodOptions,
+  isB2BCreditLimitBlocking,
+  isLegOnSimpleFace,
+  resolveSimpleFaceActiveLegIndex,
+  toSettlementOptionKey,
   type SimpleModeMethodOptionLike,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
@@ -71,10 +75,120 @@ describe('deriveSimpleModeMethodOptions', () => {
     ]);
     expect(result).toHaveLength(SIMPLE_MODE_METHOD_CHIP_LIMIT);
     expect(result[0]?.id).toBe('cash');
-    expect(result.map((entry) => entry.id)).toEqual(['cash', 'card', 'mobile']);
+    // Cash first, then catalog order — capped at the chip limit (limit-agnostic).
+    expect(result.map((entry) => entry.id)).toEqual(
+      ['cash', 'card', 'mobile', 'gw'].slice(0, SIMPLE_MODE_METHOD_CHIP_LIMIT),
+    );
   });
 
   it('returns an empty row for an empty catalog', () => {
     expect(deriveSimpleModeMethodOptions([])).toEqual([]);
+  });
+});
+
+describe('resolveSimpleFaceActiveLegIndex', () => {
+  const chips = [
+    option('cash', 'CASH'),
+    option('card', 'CARD'),
+    option('mobile', 'MOBILE_PAYMENT'),
+  ];
+
+  it('keeps the current index when the active leg is already on a Simple chip', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CASH' },
+          { method: 'CARD' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 1,
+      })
+    ).toBe(1);
+  });
+
+  it('retargets off-chip active legs (e.g. Stripe) to the first chip that has a leg', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CASH' },
+          { method: 'CARD' },
+          { method: 'CHECK' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 3,
+      })
+    ).toBe(0);
+  });
+
+  it('leaves the index unchanged when no chip-visible leg exists', () => {
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [
+          { method: 'CHECK' },
+          { method: 'STRIPE', gateway_code: 'STRIPE' },
+        ],
+        simpleOptions: chips,
+        currentIndex: 1,
+      })
+    ).toBe(1);
+  });
+
+  it('matches gateway identity so CARD is not confused with STRIPE', () => {
+    const gatewayChips = [
+      option('cash', 'CASH'),
+      option('card', 'CARD'),
+      { id: 'stripe', payment_method_code: 'STRIPE', gateway_code: 'STRIPE' },
+    ];
+    expect(
+      isLegOnSimpleFace(
+        { method: 'STRIPE', gateway_code: 'STRIPE' },
+        gatewayChips
+      )
+    ).toBe(true);
+    expect(
+      isLegOnSimpleFace({ method: 'STRIPE', gateway_code: 'STRIPE' }, chips)
+    ).toBe(false);
+  });
+
+  it('treats a draft leg without a method code as never Simple-editable', () => {
+    expect(isLegOnSimpleFace({}, chips)).toBe(false);
+    expect(isLegOnSimpleFace({ method: null }, chips)).toBe(false);
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [{ method: undefined }, { method: 'CASH' }],
+        simpleOptions: chips,
+        currentIndex: 0,
+      })
+    ).toBe(1);
+  });
+
+  it(`toSettlementOptionKey joins method and gateway`, () => {
+    expect(toSettlementOptionKey('STRIPE', 'STRIPE')).toBe('STRIPE::STRIPE');
+    expect(toSettlementOptionKey('CASH', null)).toBe('CASH::');
+    expect(toSettlementOptionKey('CARD')).toBe('CARD::');
+  });
+});
+
+describe('isB2BCreditLimitBlocking', () => {
+  it('blocks only when CREDIT_INVOICE has remaining and wouldExceed', () => {
+    expect(
+      isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance: 10,
+        outstandingPolicy: 'CREDIT_INVOICE',
+      })
+    ).toBe(true);
+  });
+
+  it('does not block a fully settled B2B cash/card payment', () => {
+    expect(
+      isB2BCreditLimitBlocking({
+        wouldExceed: true,
+        remainingBalance: 0,
+        outstandingPolicy: 'NONE',
+      })
+    ).toBe(false);
   });
 });

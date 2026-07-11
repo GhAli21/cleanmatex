@@ -8,6 +8,7 @@ Quick navigation to feature-level documentation.
 - [Order Financial Platform](Order_Fin/README.md) — Multi-leg payments, stored value, loyalty, promotions, tax engine, reconciliation, outbox pattern
 - [Business Voucher Module](Business_Voucher_Module/README.md) — Universal finance transaction layer: receipt/payment/refund/adjustment vouchers with line-level roles, cashier restrictions, idempotent posting, reversal engine
 - [Notification & Communication Hub](Notification_And_Communication_Hub/ROADMAP.md) — Multi-tenant, multi-channel notification system (IN_APP/EMAIL/SMS/WhatsApp/Push); Supabase Realtime bell; pg_cron outbox; migs 0344–0356 (CMX-PRD-019)
+- [Session Activity](Session_Activity/README.md) — Client-side session message log (errors/warnings) in the top bar; UX recovery for ephemeral toasts; not an audit trail
 
 ## How to Add a New Feature Entry
 
