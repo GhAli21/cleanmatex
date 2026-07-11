@@ -1,7 +1,7 @@
 {
   "submit": "تأكيد",
   "submitChargeOnly": "{submit} — {currency} {amount}",
-  "submitWithUnpaid": "{submit} — {currency} {payNow} · {unpaid}: {currency} {remaining}",
+  "submitWithUnpaid": "{submit} — {currency} {payNow} · {currency} {remaining} {unpaid}",
   "submitPayment": "تأكيد الدفع",
   "processing": "جاري المعالجة...",
   "processPayment": "معالجة الدفع",

@@ -23,5 +23,5 @@
   "paidCheck": "مدفوع (شيك)",
   "deferredPayOnCollection": "الدفع عند الاستلام (إجمالي الطلب)",
   "deferredInvoice": "فاتورة (إجمالي الطلب)",
-  "notPaidBalance": "غير المدفوع بعد هذا الدفع"
+  "notPaidBalance": "سيبقى مستحقًا"
 }

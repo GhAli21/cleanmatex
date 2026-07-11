@@ -4,6 +4,8 @@
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
 **Last update:** 2026-07-11 (**QA round 5 fixes** — dialog footers pinned + movable dialogs + Cancel buttons; client-side B2B credit guard with "Account billing" button; credit exceeds-by amount; `expressLabel` i18n; tsc regression fix)
 
+**Post-ship addendum (2026-07-11):** movable keypad + inline manual discounts + full-story receipt landed on the Simple face — a follow-on UI enhancement, not a new phase of this (closed) program. See [`Simple_Discounts_Keypad_Receipt_Feature_Docs.md`](./Simple_Discounts_Keypad_Receipt_Feature_Docs.md). Uncommitted, pending user review/commit.
+
 ## Phase board
 
 | Phase | Scope | Status | Gates |

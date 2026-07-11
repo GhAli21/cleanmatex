@@ -15,23 +15,32 @@
  * See `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md`.
  */
 
-import { useState, type ReactNode, type RefObject } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
+import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { Banknote, CreditCard, EllipsisVertical, Keyboard } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
+import type { PaymentFormData } from '@features/orders/model/payment-form-schema';
 import type {
   CheckoutSettlementOption,
   PaymentTerminalOption,
 } from '@features/orders/hooks/use-payment-catalog';
 import type { PaymentEngineActions } from '@features/orders/payment/engine/payment-engine-actions';
 import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
+import { PaymentDiscountFields } from '@features/orders/payment/primitives/payment-discount-fields';
 import { CmxButton, CmxMoneyField, CmxSkeleton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxKeypad, KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
+import { KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
+import { CmxKeypadPopover } from '@ui/overlays';
 import { SummaryRow } from './payment-modal/summary-row';
+import {
+  OrderValueBreakdownPanel,
+  type OrderValueBreakdownModel,
+  type OrderValueBreakdownLabels,
+} from './payment-modal/order-value-breakdown-panel';
 import {
   PaymentQuickTenderChips,
   type PaymentQuickTenderChipItem,
@@ -63,8 +72,17 @@ export interface PaymentSimpleViewProps {
     fallback: string
   ) => string;
   onMethodSelect: (option: CheckoutSettlementOption) => void;
-  /** Switches to the Full face (advanced methods, credits, discounts…). */
+  /** Switches to the Full face (splits, gift cards, B2B/AR, promo…). */
   onMoreOptions: () => void;
+  // ---- manual discount (shared PaymentDiscountFields; hidden when the
+  // tenant has the Discounts & Credits section turned off, or no positive
+  // order total exists yet to discount against) ----
+  showDiscounts: boolean;
+  discountControl: Control<PaymentFormData>;
+  discountSetValue: UseFormSetValue<PaymentFormData>;
+  discountErrors: Pick<FieldErrors<PaymentFormData>, 'amountDiscount' | 'percentDiscount'>;
+  /** Order total the discount is clamped against (pre-discount value). */
+  discountTotal: number;
   // ---- amount editor ----
   amountInputRef: RefObject<HTMLInputElement | null>;
   activeAmountDraft: string;
@@ -88,6 +106,11 @@ export interface PaymentSimpleViewProps {
   /** Resolved "Drawer • session" display, or null while unbound. */
   cashDrawerDisplay: string | null;
   onManageCashDrawer: () => void;
+  // ---- full-story order value (gross → discounts → tax), shared with the
+  // Full-view financial inspector via the same computed model ----
+  orderValueBreakdown: OrderValueBreakdownModel;
+  orderValueBreakdownLabels: OrderValueBreakdownLabels;
+  orderValueBreakdownTaxLoading?: boolean;
   // ---- receipt ----
   saleTotal: number;
   amountAppliedToOrder: number;
@@ -128,6 +151,11 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     getOptionDisplayName,
     onMethodSelect,
     onMoreOptions,
+    showDiscounts,
+    discountControl,
+    discountSetValue,
+    discountErrors,
+    discountTotal,
     amountInputRef,
     activeAmountDraft,
     amountValue,
@@ -145,6 +173,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     cashDrawerRequired,
     cashDrawerDisplay,
     onManageCashDrawer,
+    orderValueBreakdown,
+    orderValueBreakdownLabels,
+    orderValueBreakdownTaxLoading,
     saleTotal,
     amountAppliedToOrder,
     displayChangeAmount,
@@ -161,6 +192,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [showKeypad, setShowKeypad] = useState(false);
+  const keypadTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   return (
     <div
@@ -245,6 +277,20 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             </div>
           ) : null}
 
+          {/* Manual discount — same OMR/% fields as the Full workbench (shared
+              PaymentDiscountFields primitive), so a plain discount no longer
+              requires escalating out of Simple. */}
+          {showDiscounts ? (
+            <PaymentDiscountFields
+              control={discountControl}
+              setValue={discountSetValue}
+              errors={discountErrors}
+              total={discountTotal}
+              decimalPlaces={decimalPlaces}
+              className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+            />
+          ) : null}
+
           {/* Amount hero */}
           <div>
             <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -269,6 +315,24 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                   className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
                 />
               </div>
+              {/* Movable keypad trigger — opens the draggable CmxKeypadPopover
+                  anchored here; replaces the old inline show/hide keypad. */}
+              <button
+                ref={keypadTriggerRef}
+                type="button"
+                data-testid="payment-simple-keypad-toggle"
+                aria-pressed={showKeypad}
+                aria-label={t('mode.simpleView.keypadTitle')}
+                disabled={!activeLeg}
+                onClick={() => setShowKeypad((prev) => !prev)}
+                className={`flex min-w-14 items-center justify-center rounded-e-2xl border-s border-slate-200 px-4 transition-colors disabled:opacity-40 ${
+                  showKeypad
+                    ? 'bg-cyan-50 text-cyan-700'
+                    : 'bg-slate-50 text-slate-500 hover:text-cyan-700'
+                }`}
+              >
+                <Keyboard className="h-5 w-5" />
+              </button>
             </div>
             {amountCapHint ? (
               <p
@@ -285,53 +349,49 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             ) : null}
           </div>
 
-          {/* Quick tender + keypad toggle */}
-          <div className="space-y-3">
-            <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <PaymentQuickTenderChips
-                items={quickTenderItems}
-                onSelect={onQuickTenderSelect}
-                disabled={!activeLeg || submitBusy}
-                isRTL={isRTL}
-              />
-              <CmxButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                data-testid="payment-simple-keypad-toggle"
-                aria-pressed={showKeypad}
-                onClick={() => setShowKeypad((prev) => !prev)}
-                className="min-h-[44px] rounded-xl text-slate-600"
-              >
-                <Keyboard className="me-2 h-4 w-4" />
-                {showKeypad ? t('mode.simpleView.hideKeypad') : t('mode.simpleView.showKeypad')}
-              </CmxButton>
-            </div>
-            {showKeypad ? (
-              <div className="max-w-md">
-                <CmxKeypad
-                  keys={KEYPAD_PAYMENT_4COL}
-                  disabled={!activeLeg}
-                  onKeyPress={onKeypadPress}
-                  onKeyLongPress={(key) => {
-                    if (key === 'backspace') onKeypadPress('clear');
-                  }}
-                  getKeyVariant={PAYMENT_KEY_VARIANT}
-                  getKeyClassName={PAYMENT_KEY_CLASS}
-                  getKeyAriaLabel={(key) => {
-                    if (key === 'backspace') return t('workspace.backspace');
-                    if (key === 'clear') return tCommon('clear');
-                    return undefined;
-                  }}
-                  renderKeyLabel={(key) => {
-                    if (key === 'backspace') return '⌫';
-                    if (key === 'clear') return tCommon('clear');
-                    return key;
-                  }}
-                />
-              </div>
-            ) : null}
+          {/* Quick tender */}
+          <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <PaymentQuickTenderChips
+              items={quickTenderItems}
+              onSelect={onQuickTenderSelect}
+              disabled={!activeLeg || submitBusy}
+              isRTL={isRTL}
+            />
           </div>
+
+          {/* Movable, non-modal numeric keypad — launched from the amount-field
+              trigger above; remembers its position per device. */}
+          <CmxKeypadPopover
+            open={showKeypad}
+            onClose={() => setShowKeypad(false)}
+            anchorRef={keypadTriggerRef}
+            storageKey="cmx:payment-keypad-pos"
+            isRTL={isRTL}
+            disabled={!activeLeg}
+            title={t('mode.simpleView.keypadTitle')}
+            echo={`${currencyCode} ${formatAmount(amountValue ?? 0)}`}
+            dockLabel={t('mode.simpleView.keypadDock')}
+            closeLabel={t('mode.simpleView.keypadClose')}
+            hint={t('mode.simpleView.keypadHint')}
+            restoredAnnouncement={t('mode.simpleView.keypadRestored')}
+            keys={KEYPAD_PAYMENT_4COL}
+            onKeyPress={onKeypadPress}
+            onKeyLongPress={(key) => {
+              if (key === 'backspace') onKeypadPress('clear');
+            }}
+            getKeyVariant={PAYMENT_KEY_VARIANT}
+            getKeyClassName={PAYMENT_KEY_CLASS}
+            getKeyAriaLabel={(key) => {
+              if (key === 'backspace') return t('workspace.backspace');
+              if (key === 'clear') return tCommon('clear');
+              return undefined;
+            }}
+            renderKeyLabel={(key) => {
+              if (key === 'backspace') return '⌫';
+              if (key === 'clear') return tCommon('clear');
+              return key;
+            }}
+          />
 
           {/* Per-method detail fields — shared single-source component (also used
               by the Full workbench + the split dialog). For CASH it shows the
@@ -407,10 +467,24 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('mode.simpleView.receiptTitle')}
           </p>
+          {/* Full-story breakdown (gross → discounts → tax) — only surfaced
+              once there's a discount to explain; otherwise the single Order
+              Total row below already tells the whole story. */}
+          {orderValueBreakdown.discountRows.length > 0 ? (
+            <div className="pb-2">
+              <OrderValueBreakdownPanel
+                model={orderValueBreakdown}
+                labels={orderValueBreakdownLabels}
+                isRTL={isRTL}
+                taxLoading={orderValueBreakdownTaxLoading}
+              />
+            </div>
+          ) : null}
           <SummaryRow
             label={t('rightRail.orderTotal')}
             value={`${currencyCode} ${formatAmount(saleTotal)}`}
             loading={totalsLoading}
+            bold={orderValueBreakdown.discountRows.length > 0}
           />
           <SummaryRow
             label={t('rightRail.totalSettledNow')}

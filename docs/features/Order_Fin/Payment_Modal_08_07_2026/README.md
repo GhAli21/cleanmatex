@@ -20,6 +20,7 @@ what gets submitted.
 | [`Manual_QA_Checklist.md`](./Manual_QA_Checklist.md) | Annotatable manual QA (sections 1–5 + QA round 4 findings + §6 QA-R4.5 + **§7 Simple↔Advanced active-leg / gateway identity**). |
 | [`Pay_Extra_Top_Strip_QA_R4_5_Spec.md`](./Pay_Extra_Top_Strip_QA_R4_5_Spec.md) | Normative spec for strangler **4g** — pay-extra top strip + hard overpayment gate (QA-R4.5). |
 | [`Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md`](./Pay_Extra_Top_Strip_QA_R4_5_Feature_Docs.md) | Permissions, i18n, APIs, tests, rollout notes for QA-R4.5. |
+| [`Simple_Discounts_Keypad_Receipt_Feature_Docs.md`](./Simple_Discounts_Keypad_Receipt_Feature_Docs.md) | Follow-on: movable keypad, inline manual discounts, and full-story receipt on the Simple face (2026-07-11). Layered on the shipped program, not part of its phase board. |
 
 ## Source of truth
 

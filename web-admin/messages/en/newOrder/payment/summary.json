@@ -23,5 +23,5 @@
   "paidCheck": "Paid (check)",
   "deferredPayOnCollection": "Pay on collection (order total)",
   "deferredInvoice": "Invoice (order total)",
-  "notPaidBalance": "Not paid after this payment"
+  "notPaidBalance": "will remain due"
 }

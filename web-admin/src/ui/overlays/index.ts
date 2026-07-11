@@ -4,3 +4,5 @@
  */
 
 export * from './cmx-dialog';
+export * from './cmx-keypad-popover';
+export * from './cmx-keypad-popover.geometry';

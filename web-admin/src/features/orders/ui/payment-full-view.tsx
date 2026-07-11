@@ -33,9 +33,6 @@ import {
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
   getSuggestedStoredValueAmount,
-  parseDecimalDraft,
-  syncDiscountFromPercent,
-  syncDiscountPercentFromAmount,
   todayYyyyMmDd,
   validateCheckDueDate,
   legHasRequiredPaymentReference,
@@ -54,6 +51,11 @@ import {
 } from './payment-modal/quick-tender-chips';
 import { PaymentModeToggle } from './payment-modal/payment-mode-toggle';
 import { SummaryRow } from './payment-modal/summary-row';
+import {
+  OrderValueBreakdownPanel,
+  type OrderValueBreakdownModel,
+  type OrderValueBreakdownRow,
+} from './payment-modal/order-value-breakdown-panel';
 import { PaymentDockedSummaryBar } from './payment-modal/docked-summary-bar';
 import { PaymentSimpleView } from './payment-simple-view';
 import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-picker';
@@ -104,6 +106,7 @@ import { OverpaymentRoutingDialog } from '@features/orders/payment/capabilities/
 import { useB2bContracts } from '@features/orders/hooks/use-b2b-contracts';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
 import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
+import { PaymentDiscountFields } from '@features/orders/payment/primitives/payment-discount-fields';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
@@ -162,22 +165,15 @@ import { showErrorToast } from '@ui/components/cmx-toast';
 
 // SummaryRow extracted to './payment-modal/summary-row' in Phase 4 — shared by
 // the Full right rail, the submit-confirm summary, and the Simple receipt card.
+// OrderValueBreakdownRow/Model/Panel extracted to
+// './payment-modal/order-value-breakdown-panel' in the same phase — the Full
+// financial inspector and the Simple full-story receipt render one shared
+// model computed once by this container.
 
 type RightRailSummaryItem = {
   label: string;
   value: string;
   negative?: boolean;
-};
-
-type OrderValueBreakdownRow = RightRailSummaryItem & {
-  id: string;
-};
-
-type OrderValueBreakdownModel = {
-  grossRows: OrderValueBreakdownRow[];
-  discountRows: OrderValueBreakdownRow[];
-  taxRows: OrderValueBreakdownRow[];
-  totalRow: OrderValueBreakdownRow;
 };
 
 function FinalOrderTotalPanel({
@@ -202,80 +198,6 @@ function FinalOrderTotalPanel({
       <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
         {help}
       </p>
-    </div>
-  );
-}
-
-function OrderValueBreakdownPanel({
-  model,
-  labels,
-  isRTL,
-  taxLoading,
-}: {
-  model: OrderValueBreakdownModel;
-  labels: {
-    grossValue: string;
-    grossValueHelp: string;
-    discounts: string;
-    discountsHelp: string;
-    taxes: string;
-    taxesHelp: string;
-  };
-  isRTL: boolean;
-  taxLoading?: boolean;
-}) {
-  return (
-    <div className="space-y-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <p className="text-sm font-semibold text-slate-900">{labels.grossValue}</p>
-            <p className="mt-1 text-xs text-slate-500">{labels.grossValueHelp}</p>
-          </div>
-          <div className="mt-3 space-y-2">
-            {model.grossRows.map((row) => (
-              <SummaryRow key={row.id} label={row.label} value={row.value} />
-            ))}
-          </div>
-        </div>
-
-        {model.discountRows.length > 0 ? (
-          <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <p className="text-sm font-semibold text-rose-900">{labels.discounts}</p>
-              <p className="mt-1 text-xs text-rose-700">{labels.discountsHelp}</p>
-            </div>
-            <div className="mt-3 space-y-2">
-              {model.discountRows.map((row) => (
-                <SummaryRow key={row.id} label={row.label} value={row.value} negative />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {taxLoading ? (
-          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
-              <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
-            </div>
-            <div className="mt-3 space-y-2">
-              <CmxSkeleton className="h-4 w-full" />
-              <CmxSkeleton className="h-4 w-3/4" />
-            </div>
-          </div>
-        ) : model.taxRows.length > 0 ? (
-          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
-              <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
-            </div>
-            <div className="mt-3 space-y-2">
-              {model.taxRows.map((row) => (
-                <SummaryRow key={row.id} label={row.label} value={row.value} />
-              ))}
-            </div>
-          </div>
-        ) : null}
     </div>
   );
 }
@@ -465,9 +387,6 @@ export function PaymentFullView({
   const costCenterCode = watch('costCenterCode');
   const poNumber = watch('poNumber');
 
-  const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
-  const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
-
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -561,8 +480,6 @@ export function PaymentFullView({
   useEffect(() => {
     if (open) {
       setCreditLimitOverride(false);
-      setAmountDiscountFocused(false);
-      setAmountDiscountDraft('');
       setIsDirtySinceOpen(false);
       setConfirmCloseOpen(false);
       setSubmitConfirmOpen(false);
@@ -859,23 +776,6 @@ export function PaymentFullView({
     }, 120);
     return () => window.clearTimeout(timer);
   }, [mode]);
-
-  const sanitizeAmountDiscountDraft = useCallback(
-    (raw: string): string => {
-      let s = raw.replace(/[^\d.]/g, '');
-      if (s.startsWith('.')) s = `0${s}`;
-      const di = s.indexOf('.');
-      if (di !== -1) {
-        s = s.slice(0, di + 1) + s.slice(di + 1).replace(/\./g, '');
-        const frac = s.slice(di + 1);
-        if (frac.length > decimalPlaces) {
-          s = s.slice(0, di + 1 + decimalPlaces);
-        }
-      }
-      return s;
-    },
-    [decimalPlaces]
-  );
 
   // Payment icon helper
   const getPaymentIcon = (id: string) => {
@@ -2430,6 +2330,11 @@ export function PaymentFullView({
                   getOptionDisplayName={getCheckoutOptionDisplayName}
                   onMethodSelect={handleMethodSelect}
                   onMoreOptions={handleSimpleMoreOptions}
+                  showDiscounts={showDiscountsCreditsSection}
+                  discountControl={control}
+                  discountSetValue={setValue}
+                  discountErrors={errors}
+                  discountTotal={total}
                   amountInputRef={amountInputRef}
                   activeAmountDraft={
                     simpleFaceActiveLeg ? activeAmountDraft : ''
@@ -2466,6 +2371,16 @@ export function PaymentFullView({
                   cashDrawerRequired={cashDrawerRequired}
                   cashDrawerDisplay={cashDrawerDisplay}
                   onManageCashDrawer={handleSimpleManageDrawer}
+                  orderValueBreakdown={orderValueBreakdownModel}
+                  orderValueBreakdownLabels={{
+                    grossValue: t('orderValue.grossValue'),
+                    grossValueHelp: t('orderValue.grossValueHelp'),
+                    discounts: t('orderValue.discounts'),
+                    discountsHelp: t('orderValue.discountsHelp'),
+                    taxes: t('orderValue.taxes'),
+                    taxesHelp: t('orderValue.taxesHelp'),
+                  }}
+                  orderValueBreakdownTaxLoading={totalsLoading && items.length > 0 && !serverTotals}
                   saleTotal={saleTotal}
                   amountAppliedToOrder={amountAppliedToOrder}
                   displayChangeAmount={displayChangeAmount}
@@ -3386,74 +3301,16 @@ export function PaymentFullView({
                     >
                           <div className={`grid gap-4 ${showGiftCardWorkspace ? '' : 'xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]'}`}>
                             <div className="space-y-4">
-                              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                <div>
-                                  <p className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {t('rightRail.discounts')}
-                                  </p>
-                                  <p className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {t('rightRail.discountsHelp')}
-                                  </p>
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  <Controller
-                                    name="amountDiscount"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <CmxInput
-                                        ref={amountDiscountInputRef}
-                                        data-testid="payment-discount-amount"
-                                        label={t('manualDiscount.amount')}
-                                        value={amountDiscountFocused ? amountDiscountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
-                                        dir="ltr"
-                                        placeholder={t('manualDiscount.amountPlaceholder')}
-                                        onFocus={() => {
-                                          setAmountDiscountFocused(true);
-                                          setAmountDiscountDraft(formatDecimalDraft(field.value ?? 0, decimalPlaces));
-                                        }}
-                                        onBlur={() => {
-                                          setAmountDiscountFocused(false);
-                                          const raw = sanitizeAmountDiscountDraft(amountDiscountDraft.trim());
-                                          const nextAmount = Math.max(0, Math.min(parseDecimalDraft(raw), total));
-                                          field.onChange(nextAmount);
-                                          setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
-                                          setAmountDiscountDraft('');
-                                        }}
-                                        onChange={(event) => {
-                                          const nextDraft = sanitizeAmountDiscountDraft(event.target.value);
-                                          setAmountDiscountDraft(nextDraft);
-                                          const nextAmount = Math.max(0, Math.min(parseDecimalDraft(nextDraft), total));
-                                          field.onChange(nextAmount);
-                                          setValue('percentDiscount', syncDiscountPercentFromAmount(total, nextAmount));
-                                        }}
-                                      />
-                                    )}
-                                  />
-                                  <Controller
-                                    name="percentDiscount"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <CmxInput
-                                        ref={percentDiscountInputRef}
-                                        label={t('manualDiscount.percent')}
-                                        value={field.value ? String(field.value) : ''}
-                                        dir="ltr"
-                                        placeholder={t('manualDiscount.percentPlaceholder')}
-                                        onChange={(event) => {
-                                          const nextPercent = Math.max(0, Math.min(100, Number.parseFloat(event.target.value) || 0));
-                                          field.onChange(nextPercent);
-                                          setValue('amountDiscount', syncDiscountFromPercent(total, nextPercent, decimalPlaces));
-                                        }}
-                                      />
-                                    )}
-                                  />
-                                </div>
-                                {(errors.percentDiscount || errors.amountDiscount) ? (
-                                  <p className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                    {errors.percentDiscount?.message || errors.amountDiscount?.message}
-                                  </p>
-                                ) : null}
-                              </div>
+                              <PaymentDiscountFields
+                                control={control}
+                                setValue={setValue}
+                                errors={errors}
+                                total={total}
+                                decimalPlaces={decimalPlaces}
+                                amountInputRef={amountDiscountInputRef}
+                                percentInputRef={percentDiscountInputRef}
+                                className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                              />
 
                               {!NEW_ORDER_PROMO_GIFT_DISABLED ? (
                                 <div className="space-y-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
