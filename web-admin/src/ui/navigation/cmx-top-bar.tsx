@@ -16,6 +16,7 @@ import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { CmxPermissionsInspectorTrigger } from './permissions-inspector'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { NotificationBell } from '@features/notifications/ui/notification-bell'
+import { SessionActivityTrigger } from '@features/session-activity'
 
 export default function CmxTopBar() {
   const pathname = usePathname()
@@ -76,6 +77,8 @@ export default function CmxTopBar() {
             <CmxLanguageSwitcher />
 
             <CmxPermissionsInspectorTrigger title={t('permissionsDialog.title')} />
+
+            <SessionActivityTrigger />
 
             <NotificationBell />
 

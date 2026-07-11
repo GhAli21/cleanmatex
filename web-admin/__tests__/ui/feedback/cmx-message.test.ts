@@ -5,11 +5,13 @@
 import { cmxMessage } from '@/src/ui/feedback/cmx-message';
 import { MessageType, DisplayMethod } from '@/src/ui/feedback/types';
 import { setMessageConfig, resetMessageConfig } from '@/src/ui/feedback/message-config';
+import { sessionActivityStore } from '@/lib/session-activity/session-activity-store';
 
 describe('cmxMessage', () => {
   beforeEach(() => {
     // Reset config before each test
     resetMessageConfig();
+    sessionActivityStore.resetForTests();
   });
 
   describe('success', () => {
@@ -129,6 +131,31 @@ describe('cmxMessage', () => {
       
       expect(result1).toBeDefined();
       expect(result2).toBeDefined();
+    });
+  });
+
+  describe('session activity capture', () => {
+    it('records error and warning toasts', () => {
+      // force bypasses throttle leftover from prior tests on the singleton
+      cmxMessage.error('Payment failed', { force: true });
+      cmxMessage.warning('Low stock', { force: true });
+      expect(sessionActivityStore.getSnapshot().entries).toHaveLength(2);
+      expect(sessionActivityStore.getUnreadCount()).toBe(2);
+    });
+
+    it('does not record success by default', () => {
+      cmxMessage.success('Saved', { force: true });
+      expect(sessionActivityStore.getSnapshot().entries).toHaveLength(0);
+    });
+
+    it('skips inline method', () => {
+      cmxMessage.error('Hidden inline', { method: DisplayMethod.INLINE, force: true });
+      expect(sessionActivityStore.getSnapshot().entries).toHaveLength(0);
+    });
+
+    it('honors skipSessionLog', () => {
+      cmxMessage.error('Internal', { skipSessionLog: true, force: true });
+      expect(sessionActivityStore.getSnapshot().entries).toHaveLength(0);
     });
   });
 });

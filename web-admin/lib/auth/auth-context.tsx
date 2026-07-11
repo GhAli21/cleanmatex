@@ -10,6 +10,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { sessionActivityStore } from '@lib/session-activity'
 import {
   getUserPermissions,
   getUserWorkflowRoles,
@@ -414,6 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear browser storage
       localStorage.removeItem('permissions_cache')
+      sessionActivityStore.clear()
       sessionStorage.clear()
 
       // Track logout event
@@ -612,7 +614,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 7. Fetch permissions for new tenant
       await refreshPermissions()
 
-      // 7. Reload the page to ensure all queries use new tenant context
+      // Clear session UX log so prior tenant messages do not leak
+      sessionActivityStore.clear()
+
+      // 8. Reload the page to ensure all queries use new tenant context
       window.location.reload()
     } catch (error) {
       console.error('Error switching tenant:', error)

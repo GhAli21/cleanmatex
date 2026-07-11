@@ -15,6 +15,7 @@ import {
   type ConfirmDialogOptions,
   type ErrorExtractionOptions,
 } from './types';
+import { recordSessionMessage } from '@lib/session-activity';
 import { getMessageConfig, setMessageConfig } from './message-config';
 import { showToastMessage, showToastPromise } from './methods/toast-method';
 import { showAlertMessage, showAlertPromise } from './methods/alert-method';
@@ -349,18 +350,37 @@ class CmxMessage {
     try {
       const method = options?.method ?? getMessageConfig().defaultMethod;
 
+      let result: MessageResultOrAsync;
       switch (method) {
         case DisplayMethod.TOAST:
-          return showToastMessage(type, message, options);
+          result = showToastMessage(type, message, options);
+          break;
         case DisplayMethod.ALERT:
-          return showAlertMessage(type, message, options);
+          result = showAlertMessage(type, message, options);
+          break;
         case DisplayMethod.CONSOLE:
-          return showConsoleMessage(type, message, options);
+          result = showConsoleMessage(type, message, options);
+          break;
         case DisplayMethod.INLINE:
-          return showInlineMessage(type, message, options);
+          result = showInlineMessage(type, message, options);
+          break;
         default:
-          return showToastMessage(type, message, options);
+          result = showToastMessage(type, message, options);
+          break;
       }
+
+      // Capture toast/alert only (inline/console skipped by recorder policy)
+      recordSessionMessage({
+        type,
+        title: message,
+        description: options?.description,
+        method,
+        source: options?.sessionActivitySource,
+        skipSessionLog: options?.skipSessionLog,
+        forceSessionLog: options?.forceSessionLog,
+      });
+
+      return result;
     } catch (error) {
       console.error('cmxMessage showDirect error:', error);
       
