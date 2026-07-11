@@ -85,22 +85,35 @@ export function deriveOutstandingPolicy(
 }
 
 /**
- * Credit-limit preview (`wouldExceed`) is computed against the full sale total
- * for B2B customers. Submit only enforces it when a receivable is actually
- * created (`CREDIT_INVOICE` with remaining balance) — match that here so a
- * fully cash/card-settled B2B order is not blocked by credit attention.
+ * True when a B2B order must be blocked for exceeding the customer's credit
+ * limit. Mirrors the server rule exactly (`checkCreditLimit` +
+ * `assertCreditWithinPolicy`):
+ *
+ * - Only a **receivable** counts — blocking applies solely to the unpaid
+ *   `CREDIT_INVOICE` portion (`remainingBalance`), so any amount paid now
+ *   (cash/card/gift) reduces credit exposure and can bring the order within
+ *   the limit. A fully cash/card-settled B2B order is never blocked.
+ * - The receivable must exceed the **available** credit
+ *   (`available = creditLimit − currentBalance`). At-or-below the limit passes.
+ * - No credit limit configured (`creditLimit <= 0`) means no credit control —
+ *   never blocked (matches the server's `creditLimit <= 0 → allowed`).
+ *
+ * There is no cashier override: exceeding is hard-denied; the customer pays the
+ * balance down or an admin raises the limit in customer settings.
  */
 export function isB2BCreditLimitBlocking(params: {
-  wouldExceed: boolean;
+  creditLimit: number;
+  available: number;
   remainingBalance: number;
   outstandingPolicy: OutstandingPolicy | string;
   epsilon?: number;
 }): boolean {
   const epsilon = params.epsilon ?? 0.001;
+  if (params.creditLimit <= 0) return false;
   return (
-    params.wouldExceed &&
+    params.outstandingPolicy === 'CREDIT_INVOICE' &&
     params.remainingBalance > epsilon &&
-    params.outstandingPolicy === 'CREDIT_INVOICE'
+    params.remainingBalance > params.available + epsilon
   );
 }
 

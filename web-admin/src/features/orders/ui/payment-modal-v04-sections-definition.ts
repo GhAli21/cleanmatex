@@ -40,7 +40,6 @@ export const PAYMENT_MODAL_INSPECTOR_TAB_IDS = {
   ORDER_VALUE: 'ORDER_VALUE',
   TAX_BREAKDOWN: 'TAX_BREAKDOWN',
   DISCOUNTS: 'DISCOUNTS',
-  WARNINGS: 'WARNINGS',
   B2B_AR: 'B2B_AR',
   PAYMENT_NOTES: 'PAYMENT_NOTES',
 } as const;
@@ -89,7 +88,6 @@ export interface PaymentModalSectionVisibilityContext {
 export interface PaymentModalInspectorTabContext {
   hasTaxBreakdown: boolean;
   hasDiscountBreakdown: boolean;
-  hasWarnings: boolean;
   isB2B: boolean;
 }
 
@@ -262,10 +260,6 @@ export function derivePaymentInspectorTabs(
 
   if (context.hasDiscountBreakdown) {
     tabs.push(PAYMENT_MODAL_INSPECTOR_TAB_IDS.DISCOUNTS);
-  }
-
-  if (context.hasWarnings) {
-    tabs.push(PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS);
   }
 
   if (context.isB2B) {

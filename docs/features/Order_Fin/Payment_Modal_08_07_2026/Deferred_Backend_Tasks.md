@@ -5,33 +5,39 @@ Owner: Order Financial Platform. Source: user decisions of 2026-07-09.
 
 ---
 
-## 1. Credit-limit override — gated exception (HIGH PRIORITY)
+## 1. Credit-limit override — ❌ CANCELLED by user decision (2026-07-11)
 
-**Context.** Phase 0B of the program hard-denies B2B credit-limit exceedance by
-default: the orchestrator no longer honors the client `creditLimitOverride`
-boolean (`web-admin/lib/services/order-submit-orchestrator.service.ts:377`).
-Before 0B, any user with `orders:create` could bypass the limit with only an
-audit stamp (`creditLimitOverrideBy`/`creditLimitOverrideAt`, `:628-631`).
+**Decision (user, 2026-07-11):** keep the hard block permanently — exceeding the
+B2B credit limit is **never** allowed via a cashier/manager override. If the
+limit is reached the customer **pays the balance down**, or an **administrator
+raises the credit limit from the B2B customer edit screen** (out of this
+program's scope). The gated-override feature is therefore **not being built**.
 
-**Task.** Re-enable override **only** under a two-part gate — BOTH required;
-permission alone is never sufficient:
+**What shipped instead (2026-07-11):**
+- The misleading override affordance (the "I confirm override of credit limit"
+  checkbox, `creditExceededWarn`/`creditOverrideConfirm` copy, the `warn`-mode
+  softening, and the dead `CREDIT_LIMIT_OVERRIDE` right-rail warning subsystem)
+  was **removed**. Exceeding always blocks with an **actionable** message that
+  names the two real exits (pay down, or admin raises the limit).
+- **Credit-check-amount bug fixed:** the credit limit is now checked against the
+  **receivable actually created** (the unpaid `CREDIT_INVOICE` portion), not the
+  full sale total — server (`order-submit-orchestrator.service.ts`,
+  `checkCreditLimit(customerId, unpaidBalance)`) and client
+  (`isB2BCreditLimitBlocking` compares `remainingBalance > available`) now agree.
+  So a customer can pay part now (cash/card/gift) to bring the credit portion
+  within their available limit and the order proceeds — the correct,
+  market-standard behavior.
+- The frozen submit payload still carries `creditLimitOverride` (always false,
+  server-ignored — Phase 0B); the schema is unchanged.
 
-1. **Explicit enablement** policy/config, defaults **OFF** (tenant-level setting
-   consumed per the settings contract — design decision at implementation time).
-2. **New permission** `orders:override_credit_limit`.
-
-**Definition of done (all mandatory — no TS-only permission):**
-- [ ] Backend enforcement in the orchestrator (honor `creditLimitOverride` only when both gates hold; keep audit stamping)
-- [ ] DB seed migration for `orders:override_credit_limit` (next free `supabase/migrations/` seq; migration workflow: create SQL → STOP → user applies)
-- [ ] Enablement setting definition + consumption path
-- [ ] Tests: denied-without-permission · denied-without-enablement · allowed-with-both · audit stamp present
-- [ ] i18n/support reason message (EN/AR) for the denial
-- [ ] Docs: permission inventory refresh (`/rebuild-platform-info-inventories`), feature docs, RBAC role review (`/update-rbac-role` if roles change)
-
-**Until shipped:** exceeding the limit is a hard `B2B_CREDIT_EXCEEDED` denial for
-everyone. The UI override affordance is removed in program Phase 5; between 0B
-and Phase 5 the affordance may still render but the server rejects it
-(accepted interim seam — not a bug).
+**Recorded future consideration (NOT a gap, do not build without a driver):**
+At real B2B scale, the industry-standard release valve is a **permissioned,
+audited, per-order override** (finance-manager role approves one order with a
+mandatory reason, fully logged) — the pure hard block can strand a corporate
+customer at the counter. Revisit only when B2B volume warrants it; if pursued,
+gate on BOTH an explicit tenant enablement setting (default OFF) AND a new
+`orders:override_credit_limit` permission, with a DB seed migration + audit
+stamping + EN/AR denial copy + inventory refresh.
 
 ---
 

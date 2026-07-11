@@ -87,9 +87,8 @@ export interface PaymentValidationItemsContext<TOption> {
   remainingBalance: number;
   effectiveOutstandingPolicy: OutstandingPolicy;
 
-  creditLimitWouldExceed: boolean;
-  creditLimitMode?: 'warn' | 'block';
-  creditLimitOverride: boolean;
+  creditLimitValue: number;
+  creditLimitAvailable: number;
 }
 
 /**
@@ -200,16 +199,16 @@ export function derivePaymentValidationItems<TOption>(
   }
   if (
     isB2BCreditLimitBlocking({
-      wouldExceed: ctx.creditLimitWouldExceed,
+      creditLimit: ctx.creditLimitValue,
+      available: ctx.creditLimitAvailable,
       remainingBalance: ctx.remainingBalance,
       outstandingPolicy: ctx.effectiveOutstandingPolicy,
     })
   ) {
-    if (ctx.creditLimitMode === 'warn' && !ctx.creditLimitOverride) {
-      items.push(t('b2b.creditExceededWarn'));
-    } else if (ctx.creditLimitMode !== 'warn') {
-      items.push(t('b2b.creditExceeded'));
-    }
+    // Credit-limit exceedance is always blocked (no cashier override — pay the
+    // balance or raise the limit in customer settings). Mirrors the server-side
+    // hard-deny; the `warn` mode no longer softens it client-side.
+    items.push(t('b2b.creditExceeded'));
   }
 
   return [...new Set(items)];

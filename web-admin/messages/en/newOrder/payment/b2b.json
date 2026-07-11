@@ -10,7 +10,5 @@
   "creditUsed": "Used",
   "creditAvailable": "Available",
   "creditExceedsBy": "Exceeds available by",
-  "creditExceeded": "Order total exceeds available credit. Payment will be blocked.",
-  "creditExceededWarn": "Order exceeds available credit. You may override with confirmation below.",
-  "creditOverrideConfirm": "I confirm override of credit limit"
+  "creditExceeded": "This order exceeds the customer's available credit. To continue, collect payment to bring the balance within the limit, or have an administrator raise the credit limit in the customer's settings."
 }

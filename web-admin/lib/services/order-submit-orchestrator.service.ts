@@ -374,7 +374,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     // inert. The gate takes no override input by design; see
     // `assertCreditWithinPolicy` and Deferred_Backend_Tasks.md for the future
     // gated re-enable (enablement policy + permission, BOTH required).
-    const creditCheck = await checkCreditLimit(input.customerId, serverSaleTotal);
+    // Check the RECEIVABLE actually created (`unpaidBalance`), NOT the full
+    // sale total: the credit limit caps outstanding balance, so any amount paid
+    // now (cash/card/gift) reduces exposure. Checking the full total wrongly
+    // rejected orders the customer partially paid down to fit their available
+    // credit (2026-07-11 fix).
+    const creditCheck = await checkCreditLimit(input.customerId, unpaidBalance);
     assertCreditWithinPolicy(creditCheck);
   }
 

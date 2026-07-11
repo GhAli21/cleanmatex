@@ -172,22 +172,48 @@ describe('resolveSimpleFaceActiveLegIndex', () => {
 });
 
 describe('isB2BCreditLimitBlocking', () => {
-  it('blocks only when CREDIT_INVOICE has remaining and wouldExceed', () => {
+  it('blocks when the CREDIT_INVOICE receivable exceeds available credit', () => {
+    // limit 100, available 40, full 70 on account → 70 > 40 → blocked
     expect(
       isB2BCreditLimitBlocking({
-        wouldExceed: true,
-        remainingBalance: 10,
+        creditLimit: 100,
+        available: 40,
+        remainingBalance: 70,
         outstandingPolicy: 'CREDIT_INVOICE',
       })
     ).toBe(true);
   });
 
+  it('does NOT block once part is paid so the receivable fits available (pay-to-fit)', () => {
+    // available 40, only 40 left on account → 40 not > 40 → allowed
+    expect(
+      isB2BCreditLimitBlocking({
+        creditLimit: 100,
+        available: 40,
+        remainingBalance: 40,
+        outstandingPolicy: 'CREDIT_INVOICE',
+      })
+    ).toBe(false);
+  });
+
   it('does not block a fully settled B2B cash/card payment', () => {
     expect(
       isB2BCreditLimitBlocking({
-        wouldExceed: true,
+        creditLimit: 100,
+        available: 0,
         remainingBalance: 0,
         outstandingPolicy: 'NONE',
+      })
+    ).toBe(false);
+  });
+
+  it('does not apply credit control when the customer has no credit limit', () => {
+    expect(
+      isB2BCreditLimitBlocking({
+        creditLimit: 0,
+        available: 0,
+        remainingBalance: 500,
+        outstandingPolicy: 'CREDIT_INVOICE',
       })
     ).toBe(false);
   });

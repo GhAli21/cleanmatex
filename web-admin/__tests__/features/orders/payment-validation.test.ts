@@ -43,9 +43,8 @@ function baseCtx(
     invalidImmediateAmount: false,
     remainingBalance: 0,
     effectiveOutstandingPolicy: 'PAY_ON_COLLECTION',
-    creditLimitWouldExceed: false,
-    creditLimitMode: undefined,
-    creditLimitOverride: false,
+    creditLimitValue: 0,
+    creditLimitAvailable: 0,
     ...overrides,
   };
 }
@@ -101,52 +100,56 @@ describe('derivePaymentValidationItems', () => {
     expect(items).toContain('remainder.validation.required');
   });
 
-  it('honors credit-limit warn vs block modes only when billing to account with remainder', () => {
-    expect(
-      derivePaymentValidationItems(
-        baseCtx({
-          creditLimitWouldExceed: true,
-          creditLimitMode: 'warn',
-          creditLimitOverride: false,
-          remainingBalance: 10,
-          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
-        })
-      )
-    ).toContain('b2b.creditExceededWarn');
-    expect(
-      derivePaymentValidationItems(
-        baseCtx({
-          creditLimitWouldExceed: true,
-          creditLimitMode: 'warn',
-          creditLimitOverride: true,
-          remainingBalance: 10,
-          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
-        })
-      )
-    ).not.toContain('b2b.creditExceededWarn');
-    expect(
-      derivePaymentValidationItems(
-        baseCtx({
-          creditLimitWouldExceed: true,
-          creditLimitMode: 'block',
-          remainingBalance: 10,
-          effectiveOutstandingPolicy: 'CREDIT_INVOICE',
-        })
-      )
-    ).toContain('b2b.creditExceeded');
+  it('blocks (always) when the credit-invoice receivable exceeds available credit', () => {
+    // Order 70 fully on account: currentBalance 60, limit 100 → available 40.
+    // Receivable 70 > 40 → blocked. No override path exists.
+    const items = derivePaymentValidationItems(
+      baseCtx({
+        creditLimitValue: 100,
+        creditLimitAvailable: 40,
+        remainingBalance: 70,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+      })
+    );
+    expect(items).toContain('b2b.creditExceeded');
+  });
+
+  it('does NOT block when the customer pays part now so the receivable fits available credit', () => {
+    // Same customer (available 40), but 30 paid now → only 40 on account.
+    // Receivable 40 is not > available 40 → allowed (pay-to-fit; 2026-07-11 fix).
+    const items = derivePaymentValidationItems(
+      baseCtx({
+        creditLimitValue: 100,
+        creditLimitAvailable: 40,
+        remainingBalance: 40,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+      })
+    );
+    expect(items).not.toContain('b2b.creditExceeded');
   });
 
   it('does not block on credit limit when the order is fully settled (cash/card)', () => {
     const items = derivePaymentValidationItems(
       baseCtx({
-        creditLimitWouldExceed: true,
-        creditLimitMode: 'block',
+        creditLimitValue: 100,
+        creditLimitAvailable: 0,
         remainingBalance: 0,
         effectiveOutstandingPolicy: 'NONE',
       })
     );
     expect(items).not.toContain('b2b.creditExceeded');
-    expect(items).not.toContain('b2b.creditExceededWarn');
+  });
+
+  it('does not apply credit control when the customer has no credit limit', () => {
+    const items = derivePaymentValidationItems(
+      baseCtx({
+        creditLimitValue: 0,
+        creditLimitAvailable: 0,
+        remainingBalance: 500,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+      })
+    );
+    expect(items).not.toContain('b2b.creditExceeded');
   });
 
   it('emits one message per terminal-required leg', () => {
