@@ -168,6 +168,33 @@ export function useOrderSubmission() {
             state.setLoading(true);
             setServerGuard(null);
 
+            // ---- TEMPORARY QA HOOK (remove before production merge) ----
+            // Lets manual QA exercise the server-error → in-view guard path
+            // (Manual_QA_Checklist §6.10 / §4.x) without staging a real server
+            // rejection race. Opt-in ONLY via a URL param a real user never
+            // sets: `?qaServerGuard=OVERPAYMENT_RESOLUTION_REQUIRED` (or any
+            // typed server code). It short-circuits submit and drives the exact
+            // client 422 handling (routeServerErrorToGuard → serverGuard →
+            // PaymentSubmitGuard). Tracked for removal in Deferred_Backend_Tasks.
+            if (typeof window !== 'undefined') {
+                const qaGuardCode = new URLSearchParams(window.location.search).get('qaServerGuard');
+                if (qaGuardCode) {
+                    const guardRoute = routeServerErrorToGuard(qaGuardCode);
+                    const qaMessage = t('payment.rightRail.requiredAction.overpaymentMessage', {
+                        amount: '',
+                        default: `[QA] Simulated server rejection: ${qaGuardCode}`,
+                    });
+                    if (guardRoute) {
+                        setServerGuard({ ...guardRoute, message: qaMessage });
+                    }
+                    cmxMessage.error(qaMessage);
+                    setIsSubmitting(false);
+                    state.setLoading(false);
+                    return;
+                }
+            }
+            // ---- END TEMPORARY QA HOOK ----
+
             // Check if we're in edit mode
             const isEditMode = state.state.isEditMode && state.state.editingOrderId;
 

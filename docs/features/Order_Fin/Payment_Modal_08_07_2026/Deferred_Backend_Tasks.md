@@ -51,3 +51,29 @@ behavior without a revert.
 - [ ] Update `Payment_Modal_Implementation_STATUS.md` + architecture doc
 
 **Do not** build new logic that depends on the `false` branch in the meantime.
+
+---
+
+## 3. QA server-guard debug hook removal (MANDATORY before production merge)
+
+**Context.** `submitOrder` in
+`web-admin/src/features/orders/hooks/use-order-submission.ts` has a TEMPORARY,
+opt-in QA hook (marked `TEMPORARY QA HOOK` … `END TEMPORARY QA HOOK`). When the
+URL carries `?qaServerGuard=<SERVER_ERROR_CODE>` (e.g.
+`OVERPAYMENT_RESOLUTION_REQUIRED`), it short-circuits submit and drives the
+real client-side server-error→guard path (`routeServerErrorToGuard` →
+`serverGuard` → `PaymentSubmitGuard`) so manual QA can verify Manual_QA_Checklist
+§6.10 / §4.x without staging a real server-rejection race. It never fires
+without the explicit URL param (a real cashier never sets it), but it must not
+ship to production.
+
+**Task (after QA sign-off):**
+- [ ] Delete the `TEMPORARY QA HOOK` block from `use-order-submission.ts`
+- [ ] Confirm no other code references `qaServerGuard`
+- [ ] Gates green (eslint 0 / tsc 0 / jest / build)
+
+**Usage while it exists:** open the payment modal on any order, append
+`?qaServerGuard=OVERPAYMENT_RESOLUTION_REQUIRED` to the New Order URL, click
+Submit → the footer guard + "Route extra amount" corrective button appear
+(§6.10). Other codes: `CASH_DRAWER_SESSION_CLOSED`, `B2B_CREDIT_EXCEEDED`,
+`SPLIT_AMOUNT_MISMATCH`, `OUTSTANDING_POLICY_REQUIRED`.
