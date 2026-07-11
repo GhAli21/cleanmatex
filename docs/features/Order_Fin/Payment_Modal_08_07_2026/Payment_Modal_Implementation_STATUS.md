@@ -255,6 +255,20 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 - **§6.10 QA hook (`0eb74446`, seq 59):** temporary `?qaServerGuard=<CODE>` URL param to drive the server-error→guard path without a real rejection race. Tracked for MANDATORY pre-merge removal in `Deferred_Backend_Tasks.md` §3.
 - **User QA verdicts (their annotations):** §1 all pass · §2 all pass (2.1c/2.2/2.6 now pass after seq 58) · §3 all pass · §4.1/4.2/4.3/4.4/4.5 pass · §5.2/5.3 pass (5.1 skipped single-currency; 5.4 = same as 6.9 which passed) · §6.1–6.6/6.8(N/A)/6.9/6.10 pass, §6.7 fixed this round · §7 all pass. **Remaining unverified after this round: §6.7 re-test on new preview.**
 
+## Pre-merge hardening (2026-07-11, seq 64)
+
+Started the pre-merge cleanup after QA sign-off (all checklist sections pass):
+- **QA server-guard debug hook REMOVED** (`?qaServerGuard=` short-circuit in `use-order-submission.ts`) — Deferred_Backend_Tasks §3 closed.
+- **Kill-switch `PAYMENT_MODE_USER_CONTROLLED` REMOVED** and the amended-ADR user-controlled behavior is now the ONLY path — Deferred_Backend_Tasks §2 closed:
+  - Deleted the constant + the `PaymentModalConfig.userControlledMode` field (config + config test).
+  - Container: removed the dead render-time auto-escalation block, the `handleModeChange` Simple-return refusal, the `autoEscalated` state + all its setters, the legacy amber escalation banner, and the `PAYMENT_MODE_USER_CONTROLLED` render guard on the FX renderer (now unconditional).
+  - `PaymentModeToggle`: removed `simpleDisabled`/`simpleDisabledReason` (both segments always clickable) + updated its story (H9).
+  - Removed orphaned i18n keys `mode.escalatedTitle` + `mode.simpleDisabledHint` (EN+AR).
+  - **ADR status flipped** → "Accepted & Implemented (2026-07-11)".
+- Gates: payment module 32 suites / **286 tests** (one kill-switch config assertion removed) · tsc 0 · eslint 0 · i18n ✓ · next build ✓.
+
+**Remaining before merge:** (1) `/security-review` re-run on the branch, (2) branch-cleanup decision on the 6 FOREIGN commits (POS/cash-drawer/RBAC-admin-bypass/auth) — recommend NOT bundling them into the payment release, (3) user applies any pending migrations, (4) **user** merges to `main`. Deferred (post-merge, non-blocking): residual Full-workbench strangler routing + reason-code catalog (Phase 4/6 tail); credit-limit override gated re-enable (Deferred §1, HIGH-PRIORITY separate task).
+
 ## Decisions log
 
 - 2026-07-11 — **B2B credit limit vs full payment:** preview `wouldExceed` is against sale total for all B2B customers, but submit only enforces credit when `CREDIT_INVOICE` has remaining. Client validation/right-rail now match via `isB2BCreditLimitBlocking` — fully cash/card-settled B2B orders are not blocked by Credit Limit Attention.

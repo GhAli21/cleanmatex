@@ -1,6 +1,5 @@
 import {
   DEFAULT_PAYMENT_MODAL_CONFIG,
-  PAYMENT_MODE_USER_CONTROLLED,
   resolvePaymentModalConfig,
 } from '@features/orders/payment/config/payment-modal-config';
 import {
@@ -9,13 +8,6 @@ import {
 } from '@features/orders/payment/presets/preset-keys';
 
 describe('payment-modal-config (L2 boundary)', () => {
-  it('defaults to user-controlled mode (amended ADR) via the kill-switch', () => {
-    expect(PAYMENT_MODE_USER_CONTROLLED).toBe(true);
-    expect(DEFAULT_PAYMENT_MODAL_CONFIG.userControlledMode).toBe(
-      PAYMENT_MODE_USER_CONTROLLED,
-    );
-  });
-
   it('opens in Simple and offers only the active presets', () => {
     expect(DEFAULT_PAYMENT_MODAL_CONFIG.defaultPreset).toBe(PAYMENT_PRESET.SIMPLE);
     expect(DEFAULT_PAYMENT_MODAL_CONFIG.presets).toEqual(ACTIVE_PAYMENT_PRESETS);

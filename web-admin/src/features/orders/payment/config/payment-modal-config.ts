@@ -25,21 +25,6 @@ import {
 } from '../presets/preset-keys';
 
 /**
- * TEMPORARY kill-switch (clarification #5).
- *
- * `true` = the amended-ADR behavior: the cashier controls Simple/Full, the modal
- * never auto-escalates and never locks Simple, and complexity is surfaced as a
- * dismissible suggestion. `false` = the legacy auto-escalate-and-lock behavior,
- * retained only so QA can flip back without a revert.
- *
- * This constant is scheduled for removal after QA sign-off, before production
- * hardening — tracked in
- * `docs/features/Order_Fin/Payment_Modal_08_07_2026/Deferred_Backend_Tasks.md`.
- * Do not build long-lived logic that depends on the `false` branch.
- */
-export const PAYMENT_MODE_USER_CONTROLLED = true;
-
-/**
  * Presentation override for a single capability, resolved by config.
  * `undefined` (the default) means "use the capability's own rule".
  */
@@ -54,11 +39,6 @@ export type PaymentCapabilityPresentationOverride =
  * this config only enables presets and applies coarse per-capability overrides.
  */
 export interface PaymentModalConfig {
-  /**
-   * When true, the cashier controls the Simple/Full view and the modal never
-   * force-escalates or locks Simple (amended ADR). Mirrors the kill-switch.
-   */
-  userControlledMode: boolean;
   /** Presets available in this deployment. */
   presets: PaymentPresetKey[];
   /** Preset the modal opens in. */
@@ -86,11 +66,11 @@ export interface PaymentModalConfigContext {
 
 /**
  * Code-default configuration (this phase's single source of config truth).
- * Opens in Simple, both active presets available, no capability overrides,
- * user-controlled mode driven by the kill-switch.
+ * Opens in Simple, both active presets available, no capability overrides.
+ * The cashier always controls Simple/Full (amended ADR) — the modal never
+ * auto-escalates or locks Simple.
  */
 export const DEFAULT_PAYMENT_MODAL_CONFIG: PaymentModalConfig = {
-  userControlledMode: PAYMENT_MODE_USER_CONTROLLED,
   presets: ACTIVE_PAYMENT_PRESETS,
   defaultPreset: PAYMENT_PRESET.SIMPLE,
   capabilityOverrides: {},

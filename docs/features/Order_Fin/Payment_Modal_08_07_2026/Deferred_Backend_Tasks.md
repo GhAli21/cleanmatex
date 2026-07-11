@@ -35,45 +35,29 @@ and Phase 5 the affordance may still render but the server rejects it
 
 ---
 
-## 2. Kill-switch removal (post-QA, before production hardening)
+## 2. Kill-switch removal — ✅ DONE (2026-07-11, seq 64)
 
-**Context.** `PAYMENT_MODE_USER_CONTROLLED` in
-`web-admin/src/features/orders/payment/config/payment-modal-config.ts` is a
-TEMPORARY constant letting QA flip back to legacy auto-escalate-and-lock
-behavior without a revert.
+**Context.** `PAYMENT_MODE_USER_CONTROLLED` was a TEMPORARY constant letting QA
+flip back to legacy auto-escalate-and-lock behavior without a revert.
 
-**Task (after QA sign-off of the program):**
-- [ ] Delete the constant; `PaymentModalConfig.userControlledMode` becomes always-true (or the field is removed)
-- [ ] Delete the legacy auto-escalation/lock branch it gated (container decision layer)
-- [ ] Delete `simpleDisabled` from `payment-mode-toggle.tsx` if (as expected) it is unused by then — see plan handoff rule H9
-- [ ] Remove any tests that exist only to cover the legacy branch; keep user-controlled tests
-- [ ] Gates green (eslint 0 / tsc 0 / jest incl. oracle / build / i18n)
-- [ ] Update `Payment_Modal_Implementation_STATUS.md` + architecture doc
-
-**Do not** build new logic that depends on the `false` branch in the meantime.
+**Completed after QA sign-off:**
+- [x] Deleted the constant and the `PaymentModalConfig.userControlledMode` field
+- [x] Deleted the legacy auto-escalation/lock branch it gated (container decision layer) + `autoEscalated` state + legacy escalation banner
+- [x] Deleted `simpleDisabled`/`simpleDisabledReason` from `payment-mode-toggle.tsx` + its story (H9)
+- [x] Updated the config test (removed kill-switch assertions); no legacy-only tests existed
+- [x] Removed orphaned i18n keys `mode.escalatedTitle` + `mode.simpleDisabledHint` (EN+AR)
+- [x] Gates green (eslint 0 / tsc 0 / jest incl. oracle / build / i18n)
+- [x] ADR status flipped to Accepted & Implemented; STATUS updated
 
 ---
 
-## 3. QA server-guard debug hook removal (MANDATORY before production merge)
+## 3. QA server-guard debug hook removal — ✅ DONE (2026-07-11, seq 64)
 
-**Context.** `submitOrder` in
-`web-admin/src/features/orders/hooks/use-order-submission.ts` has a TEMPORARY,
-opt-in QA hook (marked `TEMPORARY QA HOOK` … `END TEMPORARY QA HOOK`). When the
-URL carries `?qaServerGuard=<SERVER_ERROR_CODE>` (e.g.
-`OVERPAYMENT_RESOLUTION_REQUIRED`), it short-circuits submit and drives the
-real client-side server-error→guard path (`routeServerErrorToGuard` →
-`serverGuard` → `PaymentSubmitGuard`) so manual QA can verify Manual_QA_Checklist
-§6.10 / §4.x without staging a real server-rejection race. It never fires
-without the explicit URL param (a real cashier never sets it), but it must not
-ship to production.
+**Context.** `submitOrder` in `use-order-submission.ts` had a TEMPORARY, opt-in
+QA hook driven by `?qaServerGuard=<SERVER_ERROR_CODE>` to exercise the
+server-error→guard path without staging a real rejection race.
 
-**Task (after QA sign-off):**
-- [ ] Delete the `TEMPORARY QA HOOK` block from `use-order-submission.ts`
-- [ ] Confirm no other code references `qaServerGuard`
-- [ ] Gates green (eslint 0 / tsc 0 / jest / build)
-
-**Usage while it exists:** open the payment modal on any order, append
-`?qaServerGuard=OVERPAYMENT_RESOLUTION_REQUIRED` to the New Order URL, click
-Submit → the footer guard + "Route extra amount" corrective button appear
-(§6.10). Other codes: `CASH_DRAWER_SESSION_CLOSED`, `B2B_CREDIT_EXCEEDED`,
-`SPLIT_AMOUNT_MISMATCH`, `OUTSTANDING_POLICY_REQUIRED`.
+**Completed after QA sign-off:**
+- [x] Deleted the `TEMPORARY QA HOOK` block from `use-order-submission.ts`
+- [x] Confirmed no other code references `qaServerGuard`
+- [x] Gates green (eslint 0 / tsc 0 / jest / build)

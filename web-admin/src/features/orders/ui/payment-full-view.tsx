@@ -70,11 +70,8 @@ import { PaymentValidateButton } from './payment-modal/pay-extra/payment-validat
 import { PayExtraWorkbenchHint } from './payment-modal/pay-extra/pay-extra-workbench-hint';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 // Composable payment system (Phase 4 strangler — capability renderer wired in
-// section by section behind PAYMENT_MODE_USER_CONTROLLED; oracle green each step).
-import {
-  PAYMENT_MODE_USER_CONTROLLED,
-  resolvePaymentModalConfig,
-} from '@features/orders/payment/config/payment-modal-config';
+// section by section; oracle green each step).
+import { resolvePaymentModalConfig } from '@features/orders/payment/config/payment-modal-config';
 import { PAYMENT_CAPABILITY } from '@features/orders/payment/capabilities/capability-keys';
 import { evaluateCapabilities } from '@features/orders/payment/capabilities/registry';
 import {
@@ -487,14 +484,10 @@ export function PaymentFullView({
   // swaps the dialog body; header, footer CTA, and confirm dialogs are shared,
   // and every slice keeps its state across flips (it lives in the engine).
   const [mode, setMode] = useState<PaymentModalMode>(initialMode);
-  const [autoEscalated, setAutoEscalated] = useState(false);
-  // Composable-payment mode control (Phase 5). The kill-switch — read through the
-  // config boundary — decides whether the cashier controls Simple/Full. When
-  // true (the amended-ADR default) the modal never auto-escalates and never locks
-  // Simple; complexity surfaces as a dismissible suggestion. When false, the
-  // legacy auto-escalate-and-lock behavior is retained for QA rollback.
+  // Composable-payment mode control (amended ADR): the cashier always controls
+  // Simple/Full. The modal never auto-escalates and never locks Simple;
+  // complexity surfaces as a dismissible suggestion.
   const paymentModalConfig = useMemo(() => resolvePaymentModalConfig(), []);
-  const userControlledMode = paymentModalConfig.userControlledMode;
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
   // Capability dialogs openable in-place from the Simple fast lane (ADR: a
   // complication is a focused dialog, never a mode change).
@@ -577,7 +570,6 @@ export function PaymentFullView({
       setSubmitConfirmOpen(false);
       setPendingSubmission(null);
       setMode(initialMode);
-      setAutoEscalated(false);
       setSuggestionDismissed(false);
       setSplitDialogOpen(false);
       setCreditDialogOpen(false);
@@ -843,29 +835,13 @@ export function PaymentFullView({
     handleCreateCashDrawerSession,
   } = cashDrawer;
 
-  // Legacy auto-escalation (render-time Pattern A), retained ONLY under the
-  // kill-switch for QA rollback: the moment any advanced condition trips, Simple
-  // flips to Full and the banner explains why. Under user-controlled mode (the
-  // amended-ADR default) this is disabled — Simple stays selected and a
-  // dismissible suggestion is offered instead.
-  if (!userControlledMode && open && mode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) {
-    setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(true);
-  }
-
   /**
-   * Manual Simple ⇄ Advanced switch. Under user-controlled mode the cashier may
-   * always return to Simple (engine state survives). Only the legacy kill-switch
-   * path refuses the return while `needsAdvanced` holds.
+   * Manual Simple ⇄ Advanced switch. The cashier may always return to Simple
+   * (engine state survives) — the modal never refuses the return or locks Simple.
    */
-  const handleModeChange = useCallback(
-    (nextMode: PaymentModalMode) => {
-      if (!userControlledMode && nextMode === PAYMENT_MODAL_MODE.SIMPLE && needsAdvanced) return;
-      setMode(nextMode);
-      setAutoEscalated(false);
-    },
-    [needsAdvanced, userControlledMode]
-  );
+  const handleModeChange = useCallback((nextMode: PaymentModalMode) => {
+    setMode(nextMode);
+  }, []);
 
   // Preserve focus across face switches: when the previously-focused control
   // unmounted with the old face, land on the shared amount editor (both faces
@@ -1841,11 +1817,9 @@ export function PaymentFullView({
 
   const handleSimpleMoreOptions = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
   }, []);
   const handleSimpleManageDrawer = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
     window.setTimeout(() => {
       expandSection(PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER);
       cashDrawerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1853,7 +1827,6 @@ export function PaymentFullView({
   }, [expandSection]);
   const handleSimpleChangePolicy = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    setAutoEscalated(false);
     window.setTimeout(() => {
       expandSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
       balancePolicySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1861,16 +1834,13 @@ export function PaymentFullView({
   }, [expandSection]);
   // A blocked submit in Simple opens Full so the cashier can see and fix the
   // blocker (the workbench owns the focus-first-issue flow). This is a
-  // user-initiated action, not auto-escalation — under user-controlled mode we
-  // still open Full to fix, but without the "we escalated you" banner framing;
-  // only the legacy path stamps `autoEscalated`.
+  // user-initiated action, not auto-escalation.
   const handleSimpleBlockedSubmitAttempt = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
-    if (!userControlledMode && needsAdvanced) setAutoEscalated(true);
     window.setTimeout(() => {
       handleBlockedSubmitAttempt();
     }, 150);
-  }, [handleBlockedSubmitAttempt, needsAdvanced, userControlledMode]);
+  }, [handleBlockedSubmitAttempt]);
 
   const displayAmountCapNotice = amountCapNotice;
   const displayAmountCapTitle =
@@ -2266,8 +2236,6 @@ export function PaymentFullView({
                 <PaymentModeToggle
                   mode={mode}
                   onModeChange={handleModeChange}
-                  simpleDisabled={!userControlledMode && needsAdvanced}
-                  simpleDisabledReason={t('mode.simpleDisabledHint')}
                   simpleLabel={t('mode.simple')}
                   fullLabel={t('mode.advanced')}
                   groupLabel={t('mode.toggleLabel')}
@@ -2313,45 +2281,24 @@ export function PaymentFullView({
               />
             ) : null}
 
-            {/* Mode feedback. Under user-controlled mode (amended ADR): a
-                dismissible suggestion while Simple is selected and advanced
-                conditions are present — never a forced switch. Under the legacy
-                kill-switch path: the auto-escalation banner. Both are polite
-                live regions. */}
-            {userControlledMode ? (
-              mode === PAYMENT_MODAL_MODE.SIMPLE &&
-              needsAdvanced &&
-              !suggestionDismissed &&
-              needsAdvancedReasons.length > 0 ? (
-                <PaymentModeSuggestion
-                  title={t('mode.suggestTitle')}
-                  reasons={needsAdvancedReasons
-                    .slice(0, 3)
-                    .map((reason) => t(`mode.reasons.${reason}`))}
-                  actionLabel={t('mode.suggestAction')}
-                  onAccept={() => handleModeChange(PAYMENT_MODAL_MODE.FULL)}
-                  dismissLabel={t('mode.suggestDismiss')}
-                  onDismiss={() => setSuggestionDismissed(true)}
-                  isRTL={isRTL}
-                />
-              ) : null
-            ) : mode === PAYMENT_MODAL_MODE.FULL && autoEscalated && needsAdvancedReasons.length > 0 ? (
-              <div
-                role="status"
-                aria-live="polite"
-                data-testid="payment-escalation-banner"
-                className={`flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
-              >
-                <CircleAlert className="h-4 w-4 shrink-0 text-amber-600" />
-                <p className="min-w-0">
-                  <span className="font-semibold">{t('mode.escalatedTitle')}</span>
-                  {' — '}
-                  {needsAdvancedReasons
-                    .slice(0, 3)
-                    .map((reason) => t(`mode.reasons.${reason}`))
-                    .join(' · ')}
-                </p>
-              </div>
+            {/* Mode feedback (amended ADR): a dismissible suggestion while Simple
+                is selected and advanced conditions are present — never a forced
+                switch. Polite live region. */}
+            {mode === PAYMENT_MODAL_MODE.SIMPLE &&
+            needsAdvanced &&
+            !suggestionDismissed &&
+            needsAdvancedReasons.length > 0 ? (
+              <PaymentModeSuggestion
+                title={t('mode.suggestTitle')}
+                reasons={needsAdvancedReasons
+                  .slice(0, 3)
+                  .map((reason) => t(`mode.reasons.${reason}`))}
+                actionLabel={t('mode.suggestAction')}
+                onAccept={() => handleModeChange(PAYMENT_MODAL_MODE.FULL)}
+                dismissLabel={t('mode.suggestDismiss')}
+                onDismiss={() => setSuggestionDismissed(true)}
+                isRTL={isRTL}
+              />
             ) : null}
 
             {/* Split-tender capability dialog — opened in-place from the Simple
@@ -2601,27 +2548,25 @@ export function PaymentFullView({
                 {/* Phase 4 strangler: FX/rounding reference line routed through the
                     capability renderer (additive — this line was never rendered
                     before). Double-gated: registry availability + the line's own
-                    epsilon null-guard. Behind the kill-switch. */}
-                {PAYMENT_MODE_USER_CONTROLLED ? (
-                  <CapabilityViewRenderer
-                    plan={migratedCapabilityPlan}
-                    isRTL={isRTL}
-                    renderInline={(slot) =>
-                      slot.key === PAYMENT_CAPABILITY.FX_ROUNDING ? (
-                        <FxRoundingLine
-                          exchangeRate={currencyConfig?.currencyExRate ?? 1}
-                          roundingAmount={0}
-                          moneyEpsilon={moneyEpsilon}
-                          currencyCode={currencyCode}
-                          formatAmount={formatAmount}
-                        />
-                      ) : null
-                    }
-                    dialogButtonLabel={() => ''}
-                    onOpenCapability={() => undefined}
-                    resolveGuard={() => null}
-                  />
-                ) : null}
+                    epsilon null-guard. */}
+                <CapabilityViewRenderer
+                  plan={migratedCapabilityPlan}
+                  isRTL={isRTL}
+                  renderInline={(slot) =>
+                    slot.key === PAYMENT_CAPABILITY.FX_ROUNDING ? (
+                      <FxRoundingLine
+                        exchangeRate={currencyConfig?.currencyExRate ?? 1}
+                        roundingAmount={0}
+                        moneyEpsilon={moneyEpsilon}
+                        currencyCode={currencyCode}
+                        formatAmount={formatAmount}
+                      />
+                    ) : null
+                  }
+                  dialogButtonLabel={() => ''}
+                  onOpenCapability={() => undefined}
+                  resolveGuard={() => null}
+                />
                 <div className="space-y-3">
                   <div>
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">

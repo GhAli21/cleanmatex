@@ -1,6 +1,6 @@
 # ADR — Payment Modal: Single Engine with User-Controlled Simple / Full Views
 
-- **Status:** Amended (2026-07-08) — originally Accepted (2026-06-27)
+- **Status:** Accepted & Implemented (2026-07-11) — amended 2026-07-08, originally Accepted 2026-06-27. The user-controlled Simple/Full behavior is now the only path in code; the temporary `PAYMENT_MODE_USER_CONTROLLED` kill-switch and the legacy auto-escalate-and-lock branch have been removed.
 - **Area:** Order Financial Platform — `web-admin` checkout / payment
 - **Supersedes:** ad-hoc parallel payment modals (v3, enhanced-02 — retired to `.bak`)
 - **Related:** `docs/features/Order_Fin/Payment_Modal_Review/Payment_Modal_v4_UX_Review_and_Engine_Plan.md`

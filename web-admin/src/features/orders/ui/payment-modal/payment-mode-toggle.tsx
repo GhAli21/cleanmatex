@@ -12,10 +12,6 @@ import {
 export interface PaymentModeToggleProps {
   mode: PaymentModalMode;
   onModeChange: (mode: PaymentModalMode) => void;
-  /** Locks the Simple segment while `needsAdvanced` holds. */
-  simpleDisabled?: boolean;
-  /** Tooltip/title explaining why Simple is locked. */
-  simpleDisabledReason?: string;
   /** Resolved segment labels (i18n stays in the caller). */
   simpleLabel: string;
   fullLabel: string;
@@ -26,17 +22,14 @@ export interface PaymentModeToggleProps {
 }
 
 /**
- * Simple ⇄ Advanced segmented control for Payment Modal v4 (Phase 4 — single
- * engine, two faces). Purely presentational: the caller owns the mode state,
- * the auto-escalation rule, and every label. The Simple segment is disabled
- * while advanced conditions hold (`simpleDisabled`), matching the locked
- * program decision — the modal never silently drops advanced state.
+ * Simple ⇄ Advanced segmented control for Payment Modal v4 (single engine, two
+ * faces). Purely presentational: the caller owns the mode state and every
+ * label. The cashier always controls the view — both segments are always
+ * clickable (amended ADR: the modal never locks Simple or drops engine state).
  */
 export function PaymentModeToggle({
   mode,
   onModeChange,
-  simpleDisabled = false,
-  simpleDisabledReason,
   simpleLabel,
   fullLabel,
   groupLabel,
@@ -46,16 +39,9 @@ export function PaymentModeToggle({
   const segments: {
     value: PaymentModalMode;
     label: string;
-    disabled: boolean;
-    title?: string;
   }[] = [
-    {
-      value: PAYMENT_MODAL_MODE.SIMPLE,
-      label: simpleLabel,
-      disabled: simpleDisabled,
-      title: simpleDisabled ? simpleDisabledReason : undefined,
-    },
-    { value: PAYMENT_MODAL_MODE.FULL, label: fullLabel, disabled: false },
+    { value: PAYMENT_MODAL_MODE.SIMPLE, label: simpleLabel },
+    { value: PAYMENT_MODAL_MODE.FULL, label: fullLabel },
   ];
 
   return (
@@ -73,12 +59,10 @@ export function PaymentModeToggle({
             type="button"
             variant="ghost"
             size="sm"
-            disabled={segment.disabled}
             aria-pressed={selected}
-            title={segment.title}
             data-testid={`payment-mode-${segment.value}`}
             onClick={() => {
-              if (!selected && !segment.disabled) onModeChange(segment.value);
+              if (!selected) onModeChange(segment.value);
             }}
             className={`min-h-[44px] rounded-lg px-3 text-sm font-semibold ${
               selected
