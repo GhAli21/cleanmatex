@@ -103,6 +103,8 @@ export function CustomerCreditDialog({
       onOpenChange={onOpenChange}
       title={t('capabilities.CUSTOMER_CREDIT.title')}
       description={t('capabilities.CUSTOMER_CREDIT.description')}
+      cancelLabel={tCommon('cancel')}
+      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}

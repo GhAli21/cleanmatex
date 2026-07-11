@@ -59,20 +59,79 @@ export function CmxDialog({ open, onOpenChange, children }: CmxDialogProps) {
 export interface CmxDialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   bodyPadding?: 'default' | 'compact' | 'none';
+  /**
+   * Pin the dialog header and footer and scroll ONLY the body children.
+   * Without this, tall dialogs scroll the whole content — the footer
+   * (Cancel/Confirm) can sit below the fold and look missing.
+   */
+  scrollBody?: boolean;
+  /**
+   * Let the user move the dialog by dragging its header
+   * (`CmxDialogHeader`). Buttons/inputs inside the header still work.
+   * Position resets when the dialog closes (content unmounts).
+   */
+  draggable?: boolean;
 }
 
 export function CmxDialogContent({
   children,
   bodyPadding = 'default',
+  scrollBody = false,
+  draggable = false,
   className = '',
+  style,
   ...props
 }: CmxDialogContentProps) {
   const context = React.useContext(DialogContext);
+  const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
+  const dragStateRef = React.useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+  } | null>(null);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggable) return;
+    const target = event.target as HTMLElement;
+    if (!target.closest('[data-cmx-dialog-header]')) return;
+    // Keep interactive header elements (close button, toggles) fully usable.
+    if (target.closest('button, a, input, select, textarea, [role="button"]')) return;
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseX: dragOffset.x,
+      baseY: dragOffset.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setDragOffset({
+      x: drag.baseX + (event.clientX - drag.startX),
+      y: drag.baseY + (event.clientY - drag.startY),
+    });
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStateRef.current?.pointerId !== event.pointerId) return;
+    dragStateRef.current = null;
+  };
+
+  const hasDragOffset = dragOffset.x !== 0 || dragOffset.y !== 0;
 
   return (
     <div
       className={cn(
-        'relative rounded-lg shadow-xl max-h-[90vh] overflow-y-auto',
+        'relative rounded-lg shadow-xl max-h-[90vh]',
+        scrollBody
+          ? 'flex flex-col overflow-hidden [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:min-h-0 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:flex-1 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:overflow-y-auto [&>[data-cmx-dialog-header]]:shrink-0 [&>[data-cmx-dialog-footer]]:shrink-0'
+          : 'overflow-y-auto',
+        draggable && '[&_[data-cmx-dialog-header]]:cursor-move [&_[data-cmx-dialog-header]]:select-none',
         'bg-[rgb(var(--cmx-background-rgb,255_255_255))]',
         'ring-1 ring-[rgb(var(--cmx-border-rgb,226_232_240))]',
         bodyPadding === 'default' &&
@@ -81,6 +140,15 @@ export function CmxDialogContent({
           '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-3',
         className
       )}
+      style={
+        hasDragOffset
+          ? { ...style, transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }
+          : style
+      }
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
       {...props}
     >
       {context && (

@@ -959,9 +959,13 @@ export interface SimpleModeMethodOptionLike {
   requires_reference?: boolean | null;
 }
 
-/** Minimal leg shape for Simple-face active-leg retargeting (no money fields). */
+/**
+ * Minimal leg shape for Simple-face active-leg retargeting (no money fields).
+ * `method` is optional to match the RHF draft-leg shape — a leg without a
+ * method code can never match a chip, so it is never Simple-editable.
+ */
 export interface SimpleFaceLegLike {
-  method: string;
+  method?: string | null;
   gateway_code?: string | null;
 }
 
@@ -993,6 +997,7 @@ export function isLegOnSimpleFace(
   leg: SimpleFaceLegLike,
   simpleOptions: SimpleModeMethodOptionLike[]
 ): boolean {
+  if (!leg.method) return false;
   const key = settlementOptionKey(leg.method, leg.gateway_code);
   return simpleOptions.some(
     (option) =>
@@ -1025,7 +1030,8 @@ export function resolveSimpleFaceActiveLegIndex(params: {
   for (const option of simpleOptions) {
     const key = settlementOptionKey(option.payment_method_code, option.gateway_code);
     const idx = paymentLegs.findIndex(
-      (leg) => settlementOptionKey(leg.method, leg.gateway_code) === key
+      (leg) =>
+        !!leg.method && settlementOptionKey(leg.method, leg.gateway_code) === key
     );
     if (idx >= 0) return idx;
   }

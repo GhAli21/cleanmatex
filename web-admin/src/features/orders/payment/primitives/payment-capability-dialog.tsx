@@ -110,6 +110,8 @@ export function PaymentCapabilityDialog({
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent
         className={maxWidthClassName}
+        scrollBody
+        draggable
         data-testid={`payment-capability-dialog-${capabilityKey}`}
       >
         <PaymentDialogErrorBoundary

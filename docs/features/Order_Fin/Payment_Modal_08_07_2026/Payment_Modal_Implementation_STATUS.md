@@ -2,7 +2,7 @@
 
 **Branch:** `feature/payment-modal-composable-capabilities` (one final merge; small commits per phase)
 **Plan:** [`Payment_Modal_Implementation_Plan.md`](./Payment_Modal_Implementation_Plan.md) · **ADR:** [`../ADR/ADR_payment_modal_single_engine_two_mode.md`](../ADR/ADR_payment_modal_single_engine_two_mode.md) (amended 2026-07-08)
-**Last update:** 2026-07-11 (**Simple↔Advanced active-leg binding** + split gateway identity — Advanced Stripe no longer drives Simple amount/details; method highlight = active; split dialog uses `method::gateway`)
+**Last update:** 2026-07-11 (**QA round 5 fixes** — dialog footers pinned + movable dialogs + Cancel buttons; client-side B2B credit guard with "Account billing" button; credit exceeds-by amount; `expressLabel` i18n; tsc regression fix)
 
 ## Phase board
 
@@ -234,6 +234,17 @@ Run: `cd web-admin && npm run storybook` → open `http://localhost:6006` → **
 | Follow-up — Simple↔Advanced active-leg / gateway identity (2026-07-11) | ✅ — `resolveSimpleFaceActiveLegIndex` + `simpleFaceActiveLeg` gate amount/draft/details/cap/quick-tender; Simple + Advanced method/credit chips highlight **active** (not leg-exists); split dialog option map + method change use `method::gateway` (`toSettlementOptionKey`); credit re-select matches gateway; Manual QA §7 |
 
 **Last update:** 2026-07-11 — Simple↔Advanced active-leg binding + split gateway identity (see Decisions log).
+
+## QA round 5 (2026-07-11 — user checklist annotations + screenshots 2.1c_xx / 4.2_01)
+
+- **Committed tsc regression FIXED (was red on HEAD `77346c89`):** `SimpleFaceLegLike.method` now optional (RHF draft legs have optional `method`; a method-less leg is never Simple-editable — explicit guards in `isLegOnSimpleFace`/`resolveSimpleFaceActiveLegIndex` + regression test), and the wallet "Applied" tag at `payment-full-view.tsx` referenced an undefined `selected` after the seq-53 highlight rename → now `hasLeg`. tsc 0 restored.
+- **2.1c / 2.2 / 2.6 ROOT CAUSE — dialog footer below the fold.** The extra-receipt routing dialog (and any tall capability dialog) scrolled as one block inside `CmxDialogContent` (`max-h-[90vh] overflow-y-auto`) — with 7 destination cards the **Back/Confirm footer sat below the viewport**, so choosing a destination visibly did nothing ("no state change") and 2.6 saw "no Cancel button". Fix: new **opt-in `CmxDialogContent` props** `scrollBody` (pins `[data-cmx-dialog-header]`/`[data-cmx-dialog-footer]`, scrolls only the body children) and `draggable` (move the dialog by its header — pointer-capture drag, interactive header elements excluded, position resets on close; user request "all windows movable"). Applied to: `PaymentExtraReceiptDialog`, `PaymentCapabilityDialog` shell (all 8 capability dialogs), the container cash-drawer + submit-confirm dialogs. Non-payment dialogs unaffected (opt-in, plain-clsx `cn` respected — no tailwind-merge assumptions).
+- **2.6 Cancel buttons:** every capability dialog (split/gift/promo/credit/B2B/cash-drawer/pay-later) now passes `cancelLabel`/`onCancel` (= close, engine state intact — matches the checklist expectation "state never lost either way"; dialogs are live-commit so Cancel does not revert edits).
+- **4.2 "where is the button???" — client-side B2B credit guard.** The §4.2 server 422 guard could never appear because the CLIENT preview already refuses submit (`isB2BCreditLimitBlocking`) — only validation text rendered, no corrective action. New `b2bCreditClientGuard`: when no server guard is present and the client preview blocks on credit (non-warn mode), the shared footer renders the SAME `PaymentSubmitGuard` (`data-reason=B2B_CREDIT_EXCEEDED`) with **"Account billing"** opening the in-place B2B dialog (both faces). Display/UX only — Phase 0B server hard-deny remains the enforcement point. §4.3/§4.4 were unfindable for the same reason; re-test via this client guard (or a race where the preview is stale → real 422).
+- **4.2 credit "diff":** B2B dialog credit snapshot now shows **"Exceeds available by: {amount}"** (`exceedsBy = max(0, saleTotal − available)`, mirroring the preview basis per the 2026-07-11 decision) next to Used/Available. New i18n `b2b.creditExceedsBy` (EN+AR).
+- **§1 note MISSING_MESSAGE fixed:** the modal header Express badge called `t('expressLabel')` under `newOrder.payment` — key lives at `newOrder.topBar.expressLabel`; now resolved via a `newOrder.topBar` translator (no new key).
+- **4.5 "How???" (answered):** force a generic non-typed failure via browser DevTools → Network → Offline, then Submit — expect toast only, no guard, no view switch.
+- Gates: payment module 32 suites / **287 tests** · tsc 0 · eslint 0 · i18n ✓ · next build ✓.
 
 ## Decisions log
 

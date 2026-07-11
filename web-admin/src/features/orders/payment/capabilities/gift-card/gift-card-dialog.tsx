@@ -141,6 +141,8 @@ export function GiftCardDialog({
       onOpenChange={onOpenChange}
       title={t('capabilities.GIFT_CARD.title')}
       description={t('capabilities.GIFT_CARD.description')}
+      cancelLabel={tCommon('cancel')}
+      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}

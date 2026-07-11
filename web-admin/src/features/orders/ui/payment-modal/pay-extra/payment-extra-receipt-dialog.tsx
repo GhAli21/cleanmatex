@@ -95,7 +95,7 @@ export function PaymentExtraReceiptDialog({
 
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
-      <CmxDialogContent className="max-w-lg">
+      <CmxDialogContent className="max-w-lg" scrollBody draggable>
         <CmxDialogHeader>
           <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
             {tValidate('excessFound', { amount: formattedExcess })}

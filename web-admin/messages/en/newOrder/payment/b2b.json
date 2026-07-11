@@ -9,6 +9,7 @@
   "creditLimit": "Credit Limit",
   "creditUsed": "Used",
   "creditAvailable": "Available",
+  "creditExceedsBy": "Exceeds available by",
   "creditExceeded": "Order total exceeds available credit. Payment will be blocked.",
   "creditExceededWarn": "Order exceeds available credit. You may override with confirmation below.",
   "creditOverrideConfirm": "I confirm override of credit limit"

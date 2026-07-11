@@ -81,6 +81,8 @@ export function CashDrawerSelectDialog({
       onOpenChange={onOpenChange}
       title={t('cashDrawer.title')}
       description={t('cashDrawer.messages.selectionRequired')}
+      cancelLabel={tCommon('cancel')}
+      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       confirmDisabled={!selectedSessionId}

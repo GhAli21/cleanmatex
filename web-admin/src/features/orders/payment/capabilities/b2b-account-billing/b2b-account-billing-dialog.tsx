@@ -48,6 +48,8 @@ export interface B2BCreditLimitInfo {
   currentBalance: number;
   available: number;
   wouldExceed: boolean;
+  /** How much the order total exceeds the available credit (display-only). */
+  exceedsBy?: number;
 }
 
 /**
@@ -117,6 +119,8 @@ export function B2BAccountBillingDialog({
       description={t('capabilities.B2B_ACCOUNT_BILLING.description')}
       required={required}
       requiredLabel={t('capabilities.dialog.required')}
+      cancelLabel={tCommon('cancel')}
+      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
@@ -188,6 +192,12 @@ export function B2BAccountBillingDialog({
             <p className="mt-1 text-xs text-slate-600">
               {t('b2b.creditUsed')}: {currencyCode} {formatAmount(creditLimit.currentBalance)} •{' '}
               {t('b2b.creditAvailable')}: {currencyCode} {formatAmount(creditLimit.available)}
+              {creditLimit.wouldExceed && (creditLimit.exceedsBy ?? 0) > 0 ? (
+                <span className="font-semibold text-amber-800" data-testid="b2b-credit-exceeds-by">
+                  {' '}
+                  • {t('b2b.creditExceedsBy')}: {currencyCode} {formatAmount(creditLimit.exceedsBy ?? 0)}
+                </span>
+              ) : null}
             </p>
             {creditLimit.wouldExceed ? (
               <p className="mt-2 text-xs font-medium text-amber-800" data-testid="b2b-credit-exceeded">

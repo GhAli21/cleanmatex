@@ -431,6 +431,7 @@ export function PaymentFullView({
 }: PaymentFullViewProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
+  const tTopBar = useTranslations('newOrder.topBar');
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
   // Uppercase/letter-spacing is meaningless (and harmful) for Arabic script —
@@ -1608,8 +1609,13 @@ export function PaymentFullView({
       currentBalance: creditLimit.currentBalance,
       available: creditLimit.available,
       wouldExceed: creditLimit.wouldExceed,
+      // Preview compares the full sale total against available credit
+      // (decision log 2026-07-11) — surface the shortfall, display-only.
+      exceedsBy: creditLimit.wouldExceed
+        ? Math.max(0, saleTotal - creditLimit.available)
+        : 0,
     };
-  }, [serverTotals?.creditLimit]);
+  }, [serverTotals?.creditLimit, saleTotal]);
   // Typed actions the split-tender dialog may call (leg editing only).
   const splitTenderActions = useMemo(
     () => ({
@@ -1940,6 +1946,22 @@ export function PaymentFullView({
     serverGuard && showServerGuardAction
       ? t(`capabilities.${serverGuard.capability}.action`)
       : undefined;
+  // QA §4.2: when the CLIENT preview already blocks submit on B2B credit,
+  // the server 422 guard can never fire (submit is refused pre-flight) — so
+  // the cashier saw only validation text with no corrective button. Surface
+  // the same footer guard + "Account billing" action pre-submit. Display/UX
+  // only — the server hard-deny (Phase 0B) stays the enforcement point.
+  const b2bCreditClientGuard =
+    !serverGuard &&
+    !!serverTotals?.creditLimit?.wouldExceed &&
+    serverTotals.creditLimit.mode !== 'warn' &&
+    isB2BCreditLimitBlocking({
+      wouldExceed: true,
+      remainingBalance,
+      outstandingPolicy: effectiveOutstandingPolicy,
+      epsilon: moneyEpsilon,
+    });
+
   const handleServerGuardAction = useCallback(() => {
     switch (serverGuardAffordance) {
       case SERVER_GUARD_AFFORDANCE.SPLIT_DIALOG:
@@ -2236,7 +2258,7 @@ export function PaymentFullView({
             <CmxDialogHeader className="flex items-center justify-between border-b bg-white">
               <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
-                {isExpress && <Badge variant="secondary" className="text-xs">{t('expressLabel')}</Badge>}
+                {isExpress && <Badge variant="secondary" className="text-xs">{tTopBar('expressLabel')}</Badge>}
                 <Badge variant="secondary" className="text-xs">{currencyCode}</Badge>
               </div>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -2823,7 +2845,7 @@ export function PaymentFullView({
                                         {balanceLabel}
                                       </span>
                                     )}
-                                    {isWalletOption && selected && !walletLegExceedsLiveBalance && (
+                                    {isWalletOption && hasLeg && !walletLegExceedsLiveBalance && (
                                       <span className="mt-1 text-xs font-medium text-cyan-700">
                                         {t('customerCredits.applied')}
                                       </span>
@@ -4539,6 +4561,14 @@ export function PaymentFullView({
                     onAction={showServerGuardAction ? handleServerGuardAction : undefined}
                     isRTL={isRTL}
                   />
+                ) : b2bCreditClientGuard ? (
+                  <PaymentSubmitGuard
+                    reason="B2B_CREDIT_EXCEEDED"
+                    message={t('b2b.creditExceeded')}
+                    actionLabel={t('capabilities.B2B_ACCOUNT_BILLING.action')}
+                    onAction={() => setB2bDialogOpen(true)}
+                    isRTL={isRTL}
+                  />
                 ) : null}
                 {validationItems.length > 0 ? (
                   <CmxSummaryMessage
@@ -4597,7 +4627,7 @@ export function PaymentFullView({
       </CmxDialog>
 
       <CmxDialog open={cashDrawerDialogOpen} onOpenChange={setCashDrawerDialogOpen}>
-        <CmxDialogContent className="max-w-lg">
+        <CmxDialogContent className="max-w-lg" scrollBody draggable>
           <CmxDialogHeader>
             <CmxDialogTitle>{t('cashDrawer.dialogTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
@@ -4693,7 +4723,7 @@ export function PaymentFullView({
           if (!nextOpen) setPendingSubmission(null);
         }}
       >
-        <CmxDialogContent data-testid="payment-submit-confirm" className="max-w-lg">
+        <CmxDialogContent data-testid="payment-submit-confirm" className="max-w-lg" scrollBody draggable>
           <CmxDialogHeader>
             <CmxDialogTitle>{t('submitConfirm.title')}</CmxDialogTitle>
           </CmxDialogHeader>

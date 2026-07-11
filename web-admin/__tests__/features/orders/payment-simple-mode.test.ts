@@ -152,6 +152,18 @@ describe('resolveSimpleFaceActiveLegIndex', () => {
     ).toBe(false);
   });
 
+  it('treats a draft leg without a method code as never Simple-editable', () => {
+    expect(isLegOnSimpleFace({}, chips)).toBe(false);
+    expect(isLegOnSimpleFace({ method: null }, chips)).toBe(false);
+    expect(
+      resolveSimpleFaceActiveLegIndex({
+        paymentLegs: [{ method: undefined }, { method: 'CASH' }],
+        simpleOptions: chips,
+        currentIndex: 0,
+      })
+    ).toBe(1);
+  });
+
   it(`toSettlementOptionKey joins method and gateway`, () => {
     expect(toSettlementOptionKey('STRIPE', 'STRIPE')).toBe('STRIPE::STRIPE');
     expect(toSettlementOptionKey('CASH', null)).toBe('CASH::');
