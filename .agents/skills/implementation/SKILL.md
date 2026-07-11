@@ -15,6 +15,7 @@ agents:
 3. **Understand multi-tenancy**: Use `/multitenancy` skill
 4. **Review database conventions**: Use `/database` skill
 5. **for frontend rules follow**: Use `/frontend` skill
+6. **Review money-field behavior**: `docs/dev/rules/no-silent-money-mutation.md`
 
 ## Implementation Checklist
 
@@ -25,6 +26,7 @@ agents:
 - [ ] Design database schema if needed
 - [ ] Plan API endpoints structure
 - [ ] Design UI components structure
+- [ ] Identify any user-editable money fields and apply `docs/dev/rules/no-silent-money-mutation.md`
 
 ### Phase 2: Database
 - [ ] Check if tables exist (use table-check-workflow)
@@ -62,12 +64,14 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] Add i18n translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`
 - [ ] Support RTL layout
 - [ ] Use Cmx Design System components
+- [ ] For editable money fields, prevent invalid entry or explain inline; never rewrite typed money as a side effect
 
 ### Phase 5: Testing & Build
 - [ ] Run `npm run build` and fix issues
 - [ ] Test multi-tenant isolation
 - [ ] Test CRUD operations
 - [ ] Test edge cases
+- [ ] Test money-entry flows against `docs/dev/rules/no-silent-money-mutation.md`
 - [ ] Update common_issues.md if new issues found
 
 ### Phase 6: Documentation
@@ -130,6 +134,7 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] New constants match exact DB string values (no reformatting)
 - [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
 - [ ] New permission codes have a DB seed migration
+- [ ] No silent mutation of user-editable money fields; blocked/gated flows explain why and how to proceed
 
 ## Platform info inventories (conditional)
 
@@ -145,3 +150,4 @@ See `docs/features/_templates/implementation_requirements.md` for feature-level 
 
 - [prd-rules.md](./prd-rules.md) - PRD implementation rules
 - [code-review.md](./code-review.md) - Code review checklist
+- `docs/dev/rules/no-silent-money-mutation.md` - Canonical money-field behavior rule

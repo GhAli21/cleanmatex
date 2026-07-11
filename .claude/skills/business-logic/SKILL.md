@@ -39,6 +39,17 @@ const validTransitions = {
 
 ## Pricing Rules
 
+### Money-Field Behavior (hard rule)
+
+**No silent money mutation** — the system must never auto-change a user-editable
+amount/money field unless that adjustment is an explicit, documented,
+user-expected default of the field (e.g. cash tendered → change derivation).
+Prevent invalid entry (gate/disable with a clear reason, incl. permission
+name + code) or explain the adjustment inline the moment it happens; never
+rewrite money as a side effect of a toggle, mode switch, or dialog close —
+block the transition with guidance instead.
+Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
+
 ### Base Pricing
 
 - Price per item based on service type

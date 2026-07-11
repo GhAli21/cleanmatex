@@ -1,0 +1,17 @@
+---
+description: The system must never silently change user-editable money/amount fields — prevent or explain, never auto-correct
+alwaysApply: true
+---
+
+# No Silent Money Mutation
+
+Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
+
+Apply that document as the authoritative rule text.
+
+Short form:
+
+1. Prevent invalid money entry first.
+2. Explain unavoidable adjustments inline at the moment they happen.
+3. Never rewrite user-entered money as a side effect of a toggle, mode switch,
+   dialog close, or state transition.

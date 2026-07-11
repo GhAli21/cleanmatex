@@ -18,6 +18,7 @@ Use this skill to review existing changes or diffs before accepting them.
 - validation completeness
 - tenant / auth / permission safety
 - API contract safety
+- money-field behavior safety (`docs/dev/rules/no-silent-money-mutation.md`)
 - UI state handling:
   - loading
   - empty
@@ -36,3 +37,4 @@ Return:
 - Do not modify files unless explicitly asked.
 - Be critical and concrete.
 - Prefer actionable findings over vague commentary.
+- Flag any silent mutation of a user-editable money field as a correctness issue.

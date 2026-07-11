@@ -46,6 +46,13 @@ author: CleanMateX Team
 - Keep the locale file tree and leaf-key sets aligned across both locales
 - See [i18n skill](../../../.claude/skills/i18n/SKILL.md)
 
+## Money-Field Behavior
+
+- List every user-editable money field and affected flow
+- Confirm the feature follows [no-silent-money-mutation](../../dev/rules/no-silent-money-mutation.md)
+- Document where invalid entry is prevented, where inline explanation appears, and which transitions are blocked instead of rewriting money
+- For permission-gated money actions, name the permission and code shown to the user
+
 ## API Routes
 
 - `METHOD /api/v1/[path]` — Description

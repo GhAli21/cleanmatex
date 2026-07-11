@@ -39,6 +39,7 @@ alwaysApply: true
 - Use floating labels or placeholders, never both.
 - Validate inputs inline with clear error messages.
 - Group related fields and use progressive disclosure for complex forms.
+- For editable money fields, apply `docs/dev/rules/no-silent-money-mutation.md`: prevent invalid entry first, explain unavoidable adjustments inline, and never rewrite typed money as a side effect of a toggle or mode change.
 
 ## Branding & Theme
 - Apply CleanMateX brand colors, fonts, and iconography consistently.

@@ -56,6 +56,7 @@ Always:
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). Drift between DB values and TS constants causes silent bugs.
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
+15. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
 
 ---
 
