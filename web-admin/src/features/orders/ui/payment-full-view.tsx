@@ -1806,6 +1806,12 @@ export function PaymentFullView({
       : effectiveOutstandingPolicy === 'CREDIT_INVOICE'
         ? t('remainder.invoiceOutstanding')
         : t('remainder.fullPayment');
+  const remainingPolicyDetail =
+    effectiveOutstandingPolicy === 'PAY_ON_COLLECTION'
+      ? t('rightRail.payOnCollectionHelp')
+      : effectiveOutstandingPolicy === 'CREDIT_INVOICE'
+        ? t('rightRail.invoiceOutstandingHelp')
+        : null;
 
   const handleSimpleMoreOptions = useCallback(() => {
     setMode(PAYMENT_MODAL_MODE.FULL);
@@ -4694,13 +4700,26 @@ export function PaymentFullView({
                   />
                 ) : null}
                 <SummaryRow label={t('submitConfirm.paymentMethod')} value={summaryMethodLabel} />
+                {remainingBalance > moneyEpsilon ? (
+                  <SummaryRow label={t('rightRail.balancePolicy')} value={simplePolicyLabel} />
+                ) : null}
               </div>
             </div>
             {remainingBalance > moneyEpsilon ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {t('submitConfirm.remainingNotice', {
-                  amount: `${currencyCode} ${formatAmount(remainingBalance)}`,
-                })}
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 space-y-1">
+                <p>
+                  {t('submitConfirm.remainingNotice', {
+                    amount: `${currencyCode} ${formatAmount(remainingBalance)}`,
+                  })}
+                </p>
+                {remainingPolicyDetail ? (
+                  <p>
+                    {t('submitConfirm.remainingDestination', {
+                      policy: simplePolicyLabel,
+                      detail: remainingPolicyDetail,
+                    })}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
