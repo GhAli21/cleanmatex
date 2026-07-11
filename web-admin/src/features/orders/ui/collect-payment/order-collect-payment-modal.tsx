@@ -45,6 +45,7 @@ import { PayExtraTopStrip } from '@features/orders/ui/payment-modal/pay-extra/pa
 import { attemptPayExtraIntentChange } from '@features/orders/ui/payment-modal/pay-extra/attempt-pay-extra-intent-change';
 import { PaymentValidateButton } from '@features/orders/ui/payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from '@features/orders/ui/payment-modal/pay-extra/payment-extra-receipt-dialog';
+import { getExtraReceiptDestinationLabel } from '@features/orders/ui/payment-modal/allocation/extra-receipt-resolution-summary';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
@@ -368,6 +369,22 @@ export function OrderCollectPaymentModal({
 
   const needsResolution = payExtra.overpaymentBlocksSubmit;
 
+  // Strip mirror displays off the PRE-resolution excess (persists after
+  // routing); `unresolvedExcess` zeroes on resolution, which hid the emerald
+  // "resolved" state (QA §6.7). Destination label appears once routed.
+  const stripExtraAmount = allocationExcessAmount;
+  const stripDestinationLabel = useMemo(() => {
+    if (!overpaymentResolution || stripExtraAmount <= SETTLEMENT_MONEY_EPSILON) {
+      return null;
+    }
+    return getExtraReceiptDestinationLabel(allocation.extraReceiptMode, tPayment);
+  }, [
+    allocation.extraReceiptMode,
+    overpaymentResolution,
+    stripExtraAmount,
+    tPayment,
+  ]);
+
   const handlePayExtraIntentAttempt = useCallback(
     (next: boolean) => {
       attemptPayExtraIntentChange({
@@ -554,15 +571,16 @@ export function OrderCollectPaymentModal({
             ariaDisabled={payExtraStripAriaDisabled}
             isRTL={isRTL}
             extraAmountLabel={
-              unresolvedExcess > SETTLEMENT_MONEY_EPSILON
-                ? formatMoneyWithCode(unresolvedExcess)
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON
+                ? formatMoneyWithCode(stripExtraAmount)
                 : null
             }
+            extraDestinationLabel={stripDestinationLabel}
             extraUnresolved={
-              unresolvedExcess > SETTLEMENT_MONEY_EPSILON && !overpaymentResolution
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON && !overpaymentResolution
             }
             extraResolved={
-              unresolvedExcess > SETTLEMENT_MONEY_EPSILON && Boolean(overpaymentResolution)
+              stripExtraAmount > SETTLEMENT_MONEY_EPSILON && Boolean(overpaymentResolution)
             }
           />
 

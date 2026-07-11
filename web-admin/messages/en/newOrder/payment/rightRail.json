@@ -3,6 +3,7 @@
   "orderTotal": "Order Total",
   "appliedAmount": "Applied",
   "cashTendered": "Cash Tendered",
+  "cashNotNeeded": "This cash is not needed — the order is already covered by other methods. Return it to the customer.",
   "totalSettledNow": "Total Settled Now",
   "remainingBalance": "Remaining Balance",
   "overpaidAmount": "Overpaid Amount",

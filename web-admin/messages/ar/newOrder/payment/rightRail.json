@@ -3,6 +3,7 @@
   "orderTotal": "إجمالي الطلب",
   "appliedAmount": "المطبّق",
   "cashTendered": "النقد المستلم",
+  "cashNotNeeded": "هذا النقد غير مطلوب — الطلب مغطّى بالفعل بوسائل دفع أخرى. أعِده إلى العميل.",
   "totalSettledNow": "إجمالي المسوّى الآن",
   "remainingBalance": "الرصيد المتبقي",
   "overpaidAmount": "المبلغ الزائد",

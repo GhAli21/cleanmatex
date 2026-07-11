@@ -60,7 +60,7 @@ import { PaymentModalV4CreditNotePicker } from './payment-modal-v4-credit-note-p
 import {
   ExtraReceiptHandlingCard,
 } from './payment-modal/allocation/extra-receipt-handling-card';
-import { getExtraReceiptResolutionSummary } from './payment-modal/allocation/extra-receipt-resolution-summary';
+import { getExtraReceiptResolutionSummary, getExtraReceiptDestinationLabel } from './payment-modal/allocation/extra-receipt-resolution-summary';
 import { AutoAllocationPreviewDrawer } from './payment-modal/allocation/auto-allocation-preview-drawer';
 import { ManualAllocationDrawer } from './payment-modal/allocation/manual-allocation-drawer';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
@@ -1910,25 +1910,22 @@ export function PaymentFullView({
     ((!canAllocateOverpayment && !payExtraIntent) ||
       (payExtraIntent && unresolvedOverpaymentAmount > moneyEpsilon));
 
+  // The strip mirror displays off the PRE-resolution excess, which persists
+  // after routing — `unresolvedOverpaymentAmount` zeroes the moment a payload
+  // resolves, so keying the mirror to it made the emerald "resolved" state
+  // (amount + destination) vanish instead of showing (QA §6.7).
+  const stripExtraAmount = extraReceiptDialogExcessAmount;
   const extraDestinationLabel = useMemo(() => {
-    if (!overpaymentResolutionPayload || unresolvedOverpaymentAmount <= moneyEpsilon) {
+    if (!overpaymentResolutionPayload || stripExtraAmount <= moneyEpsilon) {
       return null;
     }
-    return getExtraReceiptResolutionSummary(
-      allocation.extraReceiptMode,
-      unresolvedOverpaymentAmount,
-      currencyCode,
-      formatAmount,
-      t
-    );
+    return getExtraReceiptDestinationLabel(allocation.extraReceiptMode, t);
   }, [
     allocation.extraReceiptMode,
-    currencyCode,
-    formatAmount,
     moneyEpsilon,
     overpaymentResolutionPayload,
     t,
-    unresolvedOverpaymentAmount,
+    stripExtraAmount,
   ]);
 
   // ---- Server-error → capability guard (Phase 5, hardening #2) ----
@@ -2290,16 +2287,16 @@ export function PaymentFullView({
               ariaDisabled={payExtraStripAriaDisabled}
               isRTL={isRTL}
               extraAmountLabel={
-                unresolvedOverpaymentAmount > moneyEpsilon
-                  ? `${currencyCode} ${formatAmount(unresolvedOverpaymentAmount)}`
+                stripExtraAmount > moneyEpsilon
+                  ? `${currencyCode} ${formatAmount(stripExtraAmount)}`
                   : null
               }
               extraDestinationLabel={extraDestinationLabel}
               extraUnresolved={
-                unresolvedOverpaymentAmount > moneyEpsilon && !overpaymentResolutionPayload
+                stripExtraAmount > moneyEpsilon && !overpaymentResolutionPayload
               }
               extraResolved={
-                unresolvedOverpaymentAmount > moneyEpsilon && Boolean(overpaymentResolutionPayload)
+                stripExtraAmount > moneyEpsilon && Boolean(overpaymentResolutionPayload)
               }
             />
 

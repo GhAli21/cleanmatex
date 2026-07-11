@@ -136,6 +136,10 @@ export function PaymentLegDetailFields({
   const cashApplied = leg.amount ?? 0;
   const cashTendered = leg.cashTendered ?? cashApplied;
   const cashChange = Math.max(0, cashTendered - cashApplied);
+  // QA §4.3: a cash leg that applies nothing (other methods already cover the
+  // order) but still holds a tendered figure reads like an active payment.
+  // Call it out explicitly — display only, engine amounts untouched.
+  const cashNotNeeded = showCash && cashApplied <= 0.0001 && cashTendered > 0.0001;
   const money = (n: number) => `${currencyCode ?? ''} ${formatAmount ? formatAmount(n) : n}`.trim();
 
   const isPlainMethod =
@@ -402,6 +406,15 @@ export function PaymentLegDetailFields({
             </span>
           </div>
         </div>
+      ) : null}
+
+      {cashNotNeeded ? (
+        <p
+          className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+          data-testid="leg-cash-not-needed"
+        >
+          {t('rightRail.cashNotNeeded')}
+        </p>
       ) : null}
 
       {isPlainMethod ? (
