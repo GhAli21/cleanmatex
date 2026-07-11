@@ -119,7 +119,6 @@ import {
 import {
   deriveBalanceStatusLabel,
   deriveRequiredActionCopy,
-  deriveRightRailWarningMessages,
   RIGHT_RAIL_BALANCE_STATUS,
   RIGHT_RAIL_REQUIRED_ACTION,
 } from './payment-modal-v4.right-rail';
@@ -143,7 +142,7 @@ import {
 // Cmx component imports
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxCheckbox } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
@@ -510,7 +509,6 @@ export function PaymentFullView({
   const checkDateInputRef = useRef<HTMLInputElement | null>(null);
   const payOnCollectionPolicyButtonRef = useRef<HTMLButtonElement | null>(null);
   const creditLimitCardRef = useRef<HTMLDivElement | null>(null);
-  const creditLimitOverrideRef = useRef<HTMLInputElement | null>(null);
   const couponCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
   const cashDrawerSelectorCardRef = useRef<HTMLDivElement | null>(null);
@@ -1196,25 +1194,18 @@ export function PaymentFullView({
       return;
     }
 
-    if (serverTotals?.creditLimit?.wouldExceed) {
-      // Only focus credit UI when a receivable is actually on the path —
-      // fully settled cash/card B2B orders must not be treated as credit blocks.
-      const creditBlocks = isB2BCreditLimitBlocking({
-        wouldExceed: true,
+    if (
+      isB2BCreditLimitBlocking({
+        creditLimit: serverTotals?.creditLimit?.creditLimit ?? 0,
+        available: serverTotals?.creditLimit?.available ?? 0,
         remainingBalance,
         outstandingPolicy: effectiveOutstandingPolicy,
         epsilon: moneyEpsilon,
-      });
-      if (creditBlocks) {
-        if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
-          scrollAndFocusTarget(creditLimitOverrideRef.current);
-          return;
-        }
-        scrollAndFocusTarget(creditLimitCardRef.current);
-      }
+      })
+    ) {
+      scrollAndFocusTarget(creditLimitCardRef.current);
     }
   }, [
-    creditLimitOverride,
     creditNoteLegsMissingReference,
     customerCreditOptions,
     errors.amountDiscount?.message,
@@ -1236,8 +1227,8 @@ export function PaymentFullView({
     remainingBalance,
     scrollAndFocusTarget,
     scrollToWorkbenchSection,
-    serverTotals?.creditLimit?.mode,
-    serverTotals?.creditLimit?.wouldExceed,
+    serverTotals?.creditLimit?.creditLimit,
+    serverTotals?.creditLimit?.available,
     setValue,
     t,
     terminalRequiredLegs,
@@ -1300,7 +1291,6 @@ export function PaymentFullView({
         formatAmount,
         unresolvedOverpaymentAmount,
         cashDrawerBlockingMessage,
-        creditLimitMode: serverTotals?.creditLimit?.mode,
         liveWalletBalanceDisplay,
         firstValidationItem: validationItems[0],
       }),
@@ -1314,7 +1304,6 @@ export function PaymentFullView({
       formatAmount,
       unresolvedOverpaymentAmount,
       cashDrawerBlockingMessage,
-      serverTotals?.creditLimit?.mode,
       liveWalletBalanceDisplay,
       validationItems,
     ]
@@ -1409,10 +1398,6 @@ export function PaymentFullView({
     },
     [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
   );
-  const warningMessages = useMemo(
-    () => deriveRightRailWarningMessages(rightRailState.warningCodes, t),
-    [rightRailState.warningCodes, t]
-  );
 
   const hasDiscountBreakdown =
     totals.manualDiscount > moneyEpsilon ||
@@ -1457,7 +1442,6 @@ export function PaymentFullView({
       derivePaymentInspectorTabs({
         hasTaxBreakdown: displayTaxBreakdown.length > 0,
         hasDiscountBreakdown,
-        hasWarnings: warningMessages.length > 0,
         isB2B: customerType === 'b2b' && !!customerId,
       }),
     [
@@ -1465,7 +1449,6 @@ export function PaymentFullView({
       customerType,
       displayTaxBreakdown.length,
       hasDiscountBreakdown,
-      warningMessages.length,
     ]
   );
   const showAmountEditorSection = visiblePaymentSectionIds.has(
@@ -1580,18 +1563,27 @@ export function PaymentFullView({
   const b2bCreditLimitInfo = useMemo(() => {
     const creditLimit = serverTotals?.creditLimit;
     if (!creditLimit) return null;
+    // Exceedance is judged on the RECEIVABLE being created (the unpaid
+    // CREDIT_INVOICE portion = remainingBalance), not the full sale total — so
+    // paying part now reduces exposure and can clear the block. Mirrors the
+    // server rule (2026-07-11 fix).
+    const exceeds = isB2BCreditLimitBlocking({
+      creditLimit: creditLimit.creditLimit,
+      available: creditLimit.available,
+      remainingBalance,
+      outstandingPolicy: effectiveOutstandingPolicy,
+      epsilon: moneyEpsilon,
+    });
+    const creditPortion =
+      effectiveOutstandingPolicy === 'CREDIT_INVOICE' ? remainingBalance : 0;
     return {
       creditLimit: creditLimit.creditLimit,
       currentBalance: creditLimit.currentBalance,
       available: creditLimit.available,
-      wouldExceed: creditLimit.wouldExceed,
-      // Preview compares the full sale total against available credit
-      // (decision log 2026-07-11) — surface the shortfall, display-only.
-      exceedsBy: creditLimit.wouldExceed
-        ? Math.max(0, saleTotal - creditLimit.available)
-        : 0,
+      wouldExceed: exceeds,
+      exceedsBy: exceeds ? Math.max(0, creditPortion - creditLimit.available) : 0,
     };
-  }, [serverTotals?.creditLimit, saleTotal]);
+  }, [serverTotals?.creditLimit, effectiveOutstandingPolicy, remainingBalance, moneyEpsilon]);
   // Typed actions the split-tender dialog may call (leg editing only).
   const splitTenderActions = useMemo(
     () => ({
@@ -1924,10 +1916,9 @@ export function PaymentFullView({
   // only — the server hard-deny (Phase 0B) stays the enforcement point.
   const b2bCreditClientGuard =
     !serverGuard &&
-    !!serverTotals?.creditLimit?.wouldExceed &&
-    serverTotals.creditLimit.mode !== 'warn' &&
     isB2BCreditLimitBlocking({
-      wouldExceed: true,
+      creditLimit: serverTotals?.creditLimit?.creditLimit ?? 0,
+      available: serverTotals?.creditLimit?.available ?? 0,
       remainingBalance,
       outstandingPolicy: effectiveOutstandingPolicy,
       epsilon: moneyEpsilon,
@@ -4008,26 +3999,6 @@ export function PaymentFullView({
                                   },
                                 ]
                               : []),
-                            ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS)
-                              ? [
-                                  {
-                                    id: PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS,
-                                    label: t('rightRail.warnings'),
-                                    content: (
-                                      <div className="space-y-2">
-                                        {warningMessages.map((warning) => (
-                                          <div
-                                            key={warning}
-                                            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
-                                          >
-                                            {warning}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ),
-                                  },
-                                ]
-                              : []),
                             ...(inspectorTabIds.includes(PAYMENT_MODAL_INSPECTOR_TAB_IDS.B2B_AR)
                               ? [
                                   {
@@ -4062,27 +4033,27 @@ export function PaymentFullView({
                                             )}
                                           />
                                         </div>
-                                        {serverTotals?.creditLimit?.creditLimit && serverTotals.creditLimit.creditLimit > 0 ? (
+                                        {b2bCreditLimitInfo && b2bCreditLimitInfo.creditLimit > 0 ? (
                                           <div
                                             ref={creditLimitCardRef}
-                                            className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}
+                                            className={`rounded-xl border p-3 ${b2bCreditLimitInfo.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}
                                           >
                                             <p className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                               <CircleAlert className="h-4 w-4 text-amber-600" />
                                               {t('b2b.creditLimit')}
                                             </p>
                                             <p className="mt-1 text-xs text-slate-600">
-                                              {t('b2b.creditUsed')}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable')}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
+                                              {t('b2b.creditUsed')}: {currencyCode} {formatAmount(b2bCreditLimitInfo.currentBalance)} • {t('b2b.creditAvailable')}: {currencyCode} {formatAmount(b2bCreditLimitInfo.available)}
+                                              {b2bCreditLimitInfo.wouldExceed && b2bCreditLimitInfo.exceedsBy > 0 ? (
+                                                <span className="font-semibold text-amber-800">
+                                                  {' '}• {t('b2b.creditExceedsBy')}: {currencyCode} {formatAmount(b2bCreditLimitInfo.exceedsBy)}
+                                                </span>
+                                              ) : null}
                                             </p>
-                                            {serverTotals.creditLimit.wouldExceed && serverTotals.creditLimit.mode === 'warn' ? (
-                                              <div className="mt-2">
-                                                <CmxCheckbox
-                                                  ref={creditLimitOverrideRef}
-                                                  checked={creditLimitOverride}
-                                                  onChange={(event) => setCreditLimitOverride(event.target.checked)}
-                                                  label={t('b2b.creditOverrideConfirm')}
-                                                />
-                                              </div>
+                                            {b2bCreditLimitInfo.wouldExceed ? (
+                                              <p className="mt-2 text-xs font-medium text-amber-800">
+                                                {t('b2b.creditExceeded')}
+                                              </p>
                                             ) : null}
                                           </div>
                                         ) : null}

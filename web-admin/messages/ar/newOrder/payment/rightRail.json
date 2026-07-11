@@ -33,10 +33,6 @@
   "currencyRounding": "العملة / التقريب",
   "b2bArDetails": "تفاصيل B2B / الذمم",
   "paymentNotes": "ملاحظات الدفع",
-  "warnings": "تنبيهات",
-  "warningMessages": {
-    "creditLimitOverride": "تم تفعيل تجاوز حد الائتمان لهذه التسوية من نوع B2B."
-  },
   "statuses": {
     "blocked": "محظور",
     "overpaid": "مدفوع بزيادة",
@@ -52,8 +48,7 @@
     "cashDrawerTitle": "درج النقد مطلوب",
     "cashDrawerFallback": "اربط هذه الدفعة النقدية بجلسة درج نقد مفتوحة قبل الإرسال.",
     "creditLimitTitle": "تنبيه حد الائتمان",
-    "creditLimitWarn": "هذا الطلب يتجاوز الائتمان المتاح للعميل. أكّد التجاوز للمتابعة.",
-    "creditLimitBlock": "هذا الطلب يتجاوز الائتمان المتاح للعميل ولا يمكن إرساله.",
+    "creditLimitBlock": "هذا الطلب يتجاوز الائتمان المتاح للعميل. حصّل دفعة لخفض الرصيد ضمن الحد، أو ارفع حد الائتمان من إعدادات العميل.",
     "reviewAccountBilling": "مراجعة فوترة الحساب",
     "giftCardPinTitle": "الرقم السري لبطاقة الهدية مطلوب",
     "checkTitle": "تفاصيل الشيك مطلوبة",

@@ -1,10 +1,8 @@
 import {
   deriveBalanceStatusLabel,
   deriveRequiredActionCopy,
-  deriveRightRailWarningMessages,
   RIGHT_RAIL_BALANCE_STATUS,
   RIGHT_RAIL_REQUIRED_ACTION,
-  RIGHT_RAIL_WARNING,
 } from '@features/orders/ui/payment-modal-v4.right-rail';
 import type { RequiredActionCopyContext } from '@features/orders/ui/payment-modal-v4.right-rail';
 
@@ -23,7 +21,6 @@ function copyCtx(
     formatAmount: (n) => n.toFixed(3),
     unresolvedOverpaymentAmount: 0,
     cashDrawerBlockingMessage: null,
-    creditLimitMode: undefined,
     liveWalletBalanceDisplay: 'OMR 0.000',
     firstValidationItem: undefined,
     ...overrides,
@@ -73,17 +70,12 @@ describe('deriveRequiredActionCopy', () => {
     expect(copy?.message).toBe('No open session');
   });
 
-  it('uses warn vs block copy for credit-limit action', () => {
-    expect(
-      deriveRequiredActionCopy(
-        copyCtx({ requiredAction: RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT, creditLimitMode: 'warn' })
-      )?.message
-    ).toBe('rightRail.requiredAction.creditLimitWarn');
-    expect(
-      deriveRequiredActionCopy(
-        copyCtx({ requiredAction: RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT, creditLimitMode: 'block' })
-      )?.message
-    ).toBe('rightRail.requiredAction.creditLimitBlock');
+  it('uses the actionable block copy for the credit-limit action (no override)', () => {
+    const copy = deriveRequiredActionCopy(
+      copyCtx({ requiredAction: RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT })
+    );
+    expect(copy?.message).toBe('rightRail.requiredAction.creditLimitBlock');
+    expect(copy?.actionLabel).toBe('rightRail.requiredAction.reviewAccountBilling');
   });
 
   it('falls back to the first validation item for GENERIC, else a default key', () => {
@@ -98,14 +90,3 @@ describe('deriveRequiredActionCopy', () => {
   });
 });
 
-describe('deriveRightRailWarningMessages', () => {
-  it('maps the credit-limit override code to its message', () => {
-    expect(
-      deriveRightRailWarningMessages([RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE], t)
-    ).toEqual(['rightRail.warningMessages.creditLimitOverride']);
-  });
-
-  it('returns no messages when there are no warning codes', () => {
-    expect(deriveRightRailWarningMessages([], t)).toEqual([]);
-  });
-});

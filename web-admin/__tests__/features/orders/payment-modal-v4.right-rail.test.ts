@@ -3,7 +3,6 @@ import {
   derivePaymentModalRightRailState,
   RIGHT_RAIL_BALANCE_STATUS,
   RIGHT_RAIL_REQUIRED_ACTION,
-  RIGHT_RAIL_WARNING,
   type PaymentModalRightRailInput,
 } from '@features/orders/ui/payment-modal-v4.right-rail';
 
@@ -17,9 +16,8 @@ function makeInput(
     effectiveOutstandingPolicy: 'NONE',
     epsilon: 0.0001,
     cashDrawerBlockingMessage: null,
-    creditLimitWouldExceed: false,
-    creditLimitMode: 'block',
-    creditLimitOverride: false,
+    creditLimitValue: 0,
+    creditLimitAvailable: 0,
     pinRequired: false,
     hasCheckLegWithoutNumber: false,
     walletLegExceedsLiveBalance: false,
@@ -43,13 +41,13 @@ describe('payment-modal-v4 right rail', () => {
       formatAmount: (value) => value.toFixed(3),
       unresolvedOverpaymentAmount: 0,
       cashDrawerBlockingMessage: null,
-      creditLimitMode: 'block',
       liveWalletBalanceDisplay: 'OMR 0.000',
     });
 
     expect(copy?.actionLabel).toBe(
       'rightRail.requiredAction.reviewAccountBilling'
     );
+    expect(copy?.message).toBe('rightRail.requiredAction.creditLimitBlock');
   });
 
   it('derives blocked status when blocking issues exist', () => {
@@ -149,14 +147,13 @@ describe('payment-modal-v4 right rail', () => {
     expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.CASH_DRAWER);
   });
 
-  it('requires credit-limit confirmation when warn mode has no override', () => {
+  it('surfaces the credit-limit action when the receivable exceeds available credit', () => {
     const state = derivePaymentModalRightRailState(
       makeInput({
         hasBlockingIssues: true,
-        creditLimitWouldExceed: true,
-        creditLimitMode: 'warn',
-        creditLimitOverride: false,
-        remainingBalance: 12,
+        creditLimitValue: 100,
+        creditLimitAvailable: 40,
+        remainingBalance: 70,
         effectiveOutstandingPolicy: 'CREDIT_INVOICE',
       })
     );
@@ -164,12 +161,26 @@ describe('payment-modal-v4 right rail', () => {
     expect(state.requiredAction).toBe(RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT);
   });
 
-  it('does not surface credit-limit action when fully settled despite wouldExceed preview', () => {
+  it('does not surface the credit-limit action once the receivable fits available credit (pay-to-fit)', () => {
     const state = derivePaymentModalRightRailState(
       makeInput({
         hasBlockingIssues: false,
-        creditLimitWouldExceed: true,
-        creditLimitMode: 'block',
+        creditLimitValue: 100,
+        creditLimitAvailable: 40,
+        remainingBalance: 40,
+        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
+      })
+    );
+
+    expect(state.requiredAction).toBeNull();
+  });
+
+  it('does not surface credit-limit action when fully settled (cash/card)', () => {
+    const state = derivePaymentModalRightRailState(
+      makeInput({
+        hasBlockingIssues: false,
+        creditLimitValue: 100,
+        creditLimitAvailable: 0,
         remainingBalance: 0,
         effectiveOutstandingPolicy: 'NONE',
       })
@@ -235,19 +246,4 @@ describe('payment-modal-v4 right rail', () => {
     expect(state.showCurrencyRounding).toBe(true);
   });
 
-  it('emits a non-blocking warning when credit-limit override is enabled', () => {
-    const state = derivePaymentModalRightRailState(
-      makeInput({
-        creditLimitWouldExceed: true,
-        creditLimitMode: 'warn',
-        creditLimitOverride: true,
-        remainingBalance: 12,
-        effectiveOutstandingPolicy: 'CREDIT_INVOICE',
-      })
-    );
-
-    expect(state.warningCodes).toEqual([
-      RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE,
-    ]);
-  });
 });

@@ -135,7 +135,6 @@ describe('payment-modal-v04 section definitions', () => {
     const tabs = derivePaymentInspectorTabs({
       hasTaxBreakdown: true,
       hasDiscountBreakdown: true,
-      hasWarnings: true,
       isB2B: true,
     });
 
@@ -143,7 +142,6 @@ describe('payment-modal-v04 section definitions', () => {
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.ORDER_VALUE,
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.TAX_BREAKDOWN,
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.DISCOUNTS,
-      PAYMENT_MODAL_INSPECTOR_TAB_IDS.WARNINGS,
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.B2B_AR,
       PAYMENT_MODAL_INSPECTOR_TAB_IDS.PAYMENT_NOTES,
     ]);
@@ -153,7 +151,6 @@ describe('payment-modal-v04 section definitions', () => {
     const tabs = derivePaymentInspectorTabs({
       hasTaxBreakdown: false,
       hasDiscountBreakdown: false,
-      hasWarnings: false,
       isB2B: false,
     });
 

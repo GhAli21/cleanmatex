@@ -33,10 +33,6 @@
   "currencyRounding": "Currency / Rounding",
   "b2bArDetails": "B2B / AR Details",
   "paymentNotes": "Payment Notes",
-  "warnings": "Warnings",
-  "warningMessages": {
-    "creditLimitOverride": "Credit-limit override is enabled for this B2B settlement."
-  },
   "statuses": {
     "blocked": "Blocked",
     "overpaid": "Overpaid",
@@ -52,8 +48,7 @@
     "cashDrawerTitle": "Cash Drawer Required",
     "cashDrawerFallback": "Bind this cash payment to an open cash drawer session before submitting.",
     "creditLimitTitle": "Credit Limit Attention",
-    "creditLimitWarn": "This order exceeds the customer's available credit. Confirm the override to continue.",
-    "creditLimitBlock": "This order exceeds the customer's available credit and cannot be submitted.",
+    "creditLimitBlock": "This order exceeds the customer's available credit. Collect payment to bring the balance within the limit, or raise the credit limit in the customer's settings.",
     "reviewAccountBilling": "Review account billing",
     "giftCardPinTitle": "Gift Card PIN Required",
     "checkTitle": "Check Details Required",

@@ -47,22 +47,6 @@ export type RightRailRequiredActionKind =
   (typeof RIGHT_RAIL_REQUIRED_ACTION)[keyof typeof RIGHT_RAIL_REQUIRED_ACTION];
 
 /**
- * Non-blocking warning codes that can be rendered separately from blockers.
- *
- * The modal already owns strict validation; this warning list exists only for
- * cashier-facing heads-up states that should not disable submission.
- */
-export const RIGHT_RAIL_WARNING = {
-  CREDIT_LIMIT_OVERRIDE: 'CREDIT_LIMIT_OVERRIDE',
-} as const;
-
-/**
- * Union of non-blocking warning codes supported by the right rail.
- */
-export type RightRailWarningCode =
-  (typeof RIGHT_RAIL_WARNING)[keyof typeof RIGHT_RAIL_WARNING];
-
-/**
  * Inputs required to derive the cashier-facing right-rail state.
  */
 export interface PaymentModalRightRailInput {
@@ -72,9 +56,10 @@ export interface PaymentModalRightRailInput {
   effectiveOutstandingPolicy: OutstandingPolicy;
   epsilon: number;
   cashDrawerBlockingMessage: string | null;
-  creditLimitWouldExceed: boolean;
-  creditLimitMode?: 'warn' | 'block';
-  creditLimitOverride: boolean;
+  /** Customer credit limit (0 = no credit control). */
+  creditLimitValue: number;
+  /** Available credit = creditLimit − currentBalance. */
+  creditLimitAvailable: number;
   pinRequired: boolean;
   hasCheckLegWithoutNumber: boolean;
   walletLegExceedsLiveBalance: boolean;
@@ -92,7 +77,6 @@ export interface PaymentModalRightRailState {
   requiredAction: RightRailRequiredActionKind | null;
   showBalancePolicy: boolean;
   showCurrencyRounding: boolean;
-  warningCodes: RightRailWarningCode[];
 }
 
 /**
@@ -107,8 +91,8 @@ export interface PaymentModalRightRailState {
  *   effectiveOutstandingPolicy: 'PAY_ON_COLLECTION',
  *   epsilon: 0.0001,
  *   cashDrawerBlockingMessage: null,
- *   creditLimitWouldExceed: false,
- *   creditLimitOverride: false,
+ *   creditLimitValue: 0,
+ *   creditLimitAvailable: 0,
  *   pinRequired: false,
  *   hasCheckLegWithoutNumber: false,
  *   walletLegExceedsLiveBalance: false,
@@ -131,27 +115,12 @@ export function derivePaymentModalRightRailState(
   const showCurrencyRounding =
     Math.abs(exchangeRate - 1) > input.epsilon ||
     Math.abs(roundingAmount) > input.epsilon;
-  const warningCodes: RightRailWarningCode[] = [];
-
-  if (
-    isB2BCreditLimitBlocking({
-      wouldExceed: input.creditLimitWouldExceed,
-      remainingBalance: input.remainingBalance,
-      outstandingPolicy: input.effectiveOutstandingPolicy,
-      epsilon: input.epsilon,
-    }) &&
-    input.creditLimitMode === 'warn' &&
-    input.creditLimitOverride
-  ) {
-    warningCodes.push(RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE);
-  }
 
   return {
     balanceStatus,
     requiredAction,
     showBalancePolicy,
     showCurrencyRounding,
-    warningCodes,
   };
 }
 
@@ -198,13 +167,12 @@ function deriveRequiredAction(
 
   if (
     isB2BCreditLimitBlocking({
-      wouldExceed: input.creditLimitWouldExceed,
+      creditLimit: input.creditLimitValue,
+      available: input.creditLimitAvailable,
       remainingBalance: input.remainingBalance,
       outstandingPolicy: input.effectiveOutstandingPolicy,
       epsilon: input.epsilon,
-    }) &&
-    (input.creditLimitMode === 'block' ||
-      (input.creditLimitMode === 'warn' && !input.creditLimitOverride))
+    })
   ) {
     return RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT;
   }
@@ -293,7 +261,6 @@ export interface RequiredActionCopyContext {
   formatAmount: (value: number) => string;
   unresolvedOverpaymentAmount: number;
   cashDrawerBlockingMessage: string | null;
-  creditLimitMode?: 'warn' | 'block';
   liveWalletBalanceDisplay: string;
   /** `validationItems[0]` — used as the GENERIC fallback message. */
   firstValidationItem?: string;
@@ -332,10 +299,7 @@ export function deriveRequiredActionCopy(
     case RIGHT_RAIL_REQUIRED_ACTION.CREDIT_LIMIT:
       return {
         title: t('rightRail.requiredAction.creditLimitTitle'),
-        message:
-          ctx.creditLimitMode === 'warn'
-            ? t('rightRail.requiredAction.creditLimitWarn')
-            : t('rightRail.requiredAction.creditLimitBlock'),
+        message: t('rightRail.requiredAction.creditLimitBlock'),
         actionLabel: t('rightRail.requiredAction.reviewAccountBilling'),
       };
     case RIGHT_RAIL_REQUIRED_ACTION.GIFT_CARD_PIN:
@@ -375,22 +339,3 @@ export function deriveRequiredActionCopy(
   }
 }
 
-/**
- * Maps non-blocking warning codes to cashier-facing messages.
- *
- * @param warningCodes Derived non-blocking warning codes.
- * @param t Translate function.
- * @returns Localized warning messages.
- */
-export function deriveRightRailWarningMessages(
-  warningCodes: RightRailWarningCode[],
-  t: RightRailTranslate
-): string[] {
-  const warnings: string[] = [];
-  warningCodes.forEach((warningCode) => {
-    if (warningCode === RIGHT_RAIL_WARNING.CREDIT_LIMIT_OVERRIDE) {
-      warnings.push(t('rightRail.warningMessages.creditLimitOverride'));
-    }
-  });
-  return warnings;
-}
