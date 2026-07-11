@@ -1673,11 +1673,15 @@ export function PaymentFullView({
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
+    // QA §4.4: label the amount that actually SETTLES the order
+    // (`amountAppliedToOrder`, matching the rail's "Total Settled Now"), not the
+    // raw leg sum — which in an unresolved-overpay state overstates what is paid
+    // toward the order (the excess is returned/routed, or blocks submit).
     if (remainingBalance > epsilon) {
       return t('actions.submitWithUnpaid', {
         submit: t('actions.submit'),
         currency: currencyCode,
-        payNow: formatAmount(settledNowAmount),
+        payNow: formatAmount(amountAppliedToOrder),
         unpaid: t('summary.notPaidBalance'),
         remaining: formatAmount(remainingBalance),
       });
@@ -1685,9 +1689,9 @@ export function PaymentFullView({
     return t('actions.submitChargeOnly', {
       submit: t('actions.submit'),
       currency: currencyCode,
-      amount: formatAmount(settledNowAmount > 0 ? settledNowAmount : saleTotal),
+      amount: formatAmount(amountAppliedToOrder > 0 ? amountAppliedToOrder : saleTotal),
     });
-  }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, settledNowAmount]);
+  }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, amountAppliedToOrder]);
 
   // Quick-tender fast lane (finding 1.2): chip values come from the pure
   // deriver; selection routes through the SAME capped `updateLeg` write path as
