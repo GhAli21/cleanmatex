@@ -48,7 +48,7 @@ Prevent invalid entry (gate/disable with a clear reason, incl. permission
 name + code) or explain the adjustment inline the moment it happens; never
 rewrite money as a side effect of a toggle, mode switch, or dialog close —
 block the transition with guidance instead.
-See `.cursor/rules/no-silent-money-mutation.mdc` and CLAUDE.md CRITICAL RULE #15.
+Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
 
 ### Base Pricing
 

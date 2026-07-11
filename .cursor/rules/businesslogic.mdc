@@ -171,6 +171,8 @@ async function canMoveToReady(orderId: string): Promise<{
 
 ## Pricing Calculation
 
+Apply `docs/dev/rules/no-silent-money-mutation.md` to any user-editable money flow, including payments, discounts, credits, refunds, vouchers, and totals adjustments.
+
 ### Basic Pricing Structure
 ```typescript
 interface PricingRule {

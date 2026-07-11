@@ -23,6 +23,12 @@ user-invocable: true
 - Create test data for multiple tenants
 - Verify cross-tenant access is blocked
 
+### Money-Field Behavior Testing
+- Apply `docs/dev/rules/no-silent-money-mutation.md` for any payment, pricing, refund, wallet, discount, or voucher flow
+- Verify invalid money entry is prevented or clearly blocked
+- Verify unavoidable money adjustments are explained inline at the moment they occur
+- Verify toggles, mode switches, dialog close, and state transitions never silently rewrite typed money
+
 ## Test Structure
 
 ```typescript
@@ -210,7 +216,9 @@ jest.mock('@/lib/db/tenant-context', () => ({
 - [ ] Error handling tests
 - [ ] Input validation tests
 - [ ] RLS policy tests
+- [ ] Money-field rule tests: no silent mutation, blocked transitions, inline explanation, permission-gated guidance with permission name + code
 
 ## Additional Resources
 
 - See [reference.md](./reference.md) for complete testing documentation
+- `docs/dev/rules/no-silent-money-mutation.md` - Canonical money-field behavior rule

@@ -24,6 +24,8 @@
 
 ## Testing Pyramid
 
+Apply `docs/dev/rules/no-silent-money-mutation.md` to payment, pricing, refund, wallet, voucher, and discount tests. Cover blocked transitions, inline explanations, and the absence of silent money rewrites.
+
 ```
         /\
        /E2E\      <- 10% - Critical user flows

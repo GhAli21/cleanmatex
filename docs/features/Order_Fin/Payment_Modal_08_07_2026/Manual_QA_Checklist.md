@@ -10,6 +10,8 @@ Canonical rule reference: `docs/dev/rules/no-silent-money-mutation.md`
 
 Legend: `[ ]` not run · `[x]` pass · `[!]` FAIL (add a note + screenshot)
 
+screenshots are in F:\JhApps_doc\CleanMateX_Jh\Dev\Payment Modal Screen\08_07_2026_01\QA_Test\
+
 ---
 
 ## 1 · Mode reversal (core ADR behavior)
@@ -72,8 +74,8 @@ MISSING_MESSAGE: newOrder.payment.expressLabel
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
 | 5.1 | FX line | Non-base-currency order (exchange rate ≠ 1) — skip if single-currency | "Currency & rounding — Exchange rate" line at top of the Advanced payment-tools rail | [ ] | skipped because of single-currency
-| 5.2 | Blocked submit in Simple | Submit with a blocker active | Opens Advanced to fix (user-initiated); no "we escalated you" banner | [ ] |
-| 5.3 | RTL | Switch to Arabic; walk sections 1–4 | Suggestion, quick-actions, dialogs, guard banner: correct alignment/icon side; no raw i18n keys | [ ] |
+| 5.2 | Blocked submit in Simple | Submit with a blocker active | Opens Advanced to fix (user-initiated); no "we escalated you" banner | [ yes] |
+| 5.3 | RTL | Switch to Arabic; walk sections 1–4 | Suggestion, quick-actions, dialogs, guard banner: correct alignment/icon side; no raw i18n keys | [ yes] |
 | 5.4 | Narrow / tablet | Window below ~1280px | Receipt rail becomes slide-over; docked total/change bar shows; guard banner doesn't break the footer | [ ] |
 
 ---
@@ -100,7 +102,7 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 - **4.3 — OPEN (UX decision): a zero-applied cash leg still looks like an active payment.** The Simple amount editor shows 50.000 for a leg contributing 0.000. Recommendation: when `applied = 0 ∧ tendered > 0`, show an explicit inline note "This cash is not needed — the order is covered by other methods" (display-only, i18n EN+AR). → your call: ______
 - **4.4 — OPEN (informational): submit label vs rail.** "Submit — OMR 10.000" (real legs incl. overpay) vs "Total Settled Now 7.897" (applied). Legacy pre-program semantics, blocked anyway until the 2.103 is resolved — suggest leaving as-is unless it keeps confusing cashiers. → your call: ______
 
-- **4.5 — APPROVED DESIGN (2026-07-10, user-approved): pay-extra top strip + hard overpayment gate.** To implement after this checklist pass, as the `OVERPAYMENT_ROUTING` inline surface through the capability renderer (strangler 4g):
+- **Already Implemented** **4.5 — APPROVED DESIGN (2026-07-10, user-approved): pay-extra top strip + hard overpayment gate.** To implement after this checklist pass, as the `OVERPAYMENT_ROUTING` inline surface through the capability renderer (strangler 4g):
   1. **Top-of-workbench strip:** "Customer is paying extra" toggle + read-only mirror "Extra: OMR X → destination" (never an editable second money field). Amber while unresolved, emerald once resolved — never red (red = blocked/error only).
   2. **Hard gate:** non-change-capable overpay (card/gateway/transfer) is **capped while the toggle is OFF**, even when the method config supports overpayment. The cap is explained inline at the moment it happens: "Capped at remaining — customer paying extra? Enable 'Customer is paying extra' above." Engine rule becomes `supportsOverpayment && payExtraIntent` (first deliberate lift of the money-model freeze — own commit + new oracle fixtures + ADR/plan note). **Cash over-tender stays exempt** — it is change, not extra.
   3. **Toggle ON gate:** requires the overpayment-allocation permission. Without it: `aria-disabled` (not native `disabled` — click must still fire) + `cmxMessage` naming the permission **name and code**. Server re-enforces regardless.
@@ -120,9 +122,9 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 
 | # | Check | Steps | Expected | Notes / result |
 |---|-------|-------|----------|----------------|
-| 6.1 | Strip placement | Open Payment Modal (Simple + Advanced); RTL | "Customer is paying extra" strip under header, above mode banners; not mid-workbench | [ ] |
-| 6.2 | Hard gate — Full | Toggle OFF; enter card amount > remaining (method supports overpayment) | Amount capped at remaining; amber hint points to strip | [ ] |
-| 6.3 | Hard gate — Simple / Split / Collect | Same over-remaining entry on each surface | Cap + amber hint (Collect); Split via engine cap; Simple shows amountCapHint | [ ] |
+| 6.1 | Strip placement | Open Payment Modal (Simple + Advanced); RTL | "Customer is paying extra" strip under header, above mode banners; not mid-workbench | [ yes] |
+| 6.2 | Hard gate — Full | Toggle OFF; enter card amount > remaining (method supports overpayment) | Amount capped at remaining; amber hint points to strip | [ yes] | already I change the implementation to allow only if Toggle ON
+| 6.3 | Hard gate — Simple / Split / Collect | Same over-remaining entry on each surface | Cap + amber hint (Collect); Split via engine cap; Simple shows amountCapHint | [ same] |
 | 6.4 | Cash change exempt | Toggle OFF; cash tender > due | Change returned; no forced toggle; applied capped | [ ] |
 | 6.5 | Toggle ON without allocate perm | User without `orders:overpayment_allocate` clicks toggle | Toast/message with permission **name + code**; toggle stays OFF | [ ] |
 | 6.6 | Toggle OFF while extra | Enable toggle, create extra, try turn OFF | Blocked; message names reduce-legs or validate/route; amounts unchanged | [ ] |
@@ -131,9 +133,6 @@ Scenario reproduced: order total **7.897**, split with **CARD 10.000** + **CASH 
 | 6.9 | Tablet | Narrow window | Strip + banners + keypad usable; receipt slide-over OK | [ ] |
 | 6.10 | Server guard | Trigger overpayment server rejection | Guard still opens routing dialog; strip consistent | [ ] |
 
-My Notes:
-1. 
-2. 
 
 ---
 
