@@ -4,7 +4,7 @@
  * Promo Code Create / Edit Dialog
  *
  * Full field set for org_promotions_mst: identity, discount, limits,
- * validity, stacking, and enablement. Empty promo code = auto-apply.
+ * validity, stacking, enablement, and is_auto_apply.
  */
 
 import { useEffect, useState } from 'react';
@@ -94,6 +94,7 @@ const schema = z.object({
   valid_from: z.string().min(1, 'Required'),
   valid_to: z.string().optional(),
   is_enabled: z.boolean().default(true),
+  is_auto_apply: z.boolean().default(false),
   stackable: z.boolean().default(false),
   stacking_group: z.string().max(100).optional(),
   max_stacking_discount: optionalPositiveOrNull,
@@ -147,6 +148,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       valid_from: toLocalDatetimeInput(new Date().toISOString()),
       valid_to: '',
       is_enabled: true,
+      is_auto_apply: false,
       stackable: false,
       stacking_group: '',
       max_stacking_discount: null,
@@ -192,6 +194,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         valid_from: toLocalDatetimeInput(promo.valid_from),
         valid_to: toLocalDatetimeInput(promo.valid_to),
         is_enabled: promo.is_enabled,
+        is_auto_apply: promo.is_auto_apply ?? false,
         stackable: promo.stackable ?? false,
         stacking_group: promo.stacking_group ?? '',
         max_stacking_discount: promo.max_stacking_discount ?? null,
@@ -217,6 +220,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         valid_from: toLocalDatetimeInput(new Date().toISOString()),
         valid_to: '',
         is_enabled: true,
+        is_auto_apply: false,
         stackable: false,
         stacking_group: '',
         max_stacking_discount: null,
@@ -263,8 +267,14 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       return;
     }
 
+    const code = values.promo_code.trim().toUpperCase() || null;
+    if (!code && !values.is_auto_apply) {
+      form.setError('promo_code', { message: t('errors.codeOrAutoRequired') });
+      return;
+    }
+
     const payload = {
-      promo_code: values.promo_code.trim().toUpperCase() || null,
+      promo_code: code,
       promo_name: values.promo_name,
       promo_name2: values.promo_name2 || null,
       description: values.description || null,
@@ -291,6 +301,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         : new Date().toISOString(),
       valid_to: values.valid_to ? new Date(values.valid_to).toISOString() : null,
       is_enabled: values.is_enabled,
+      is_auto_apply: values.is_auto_apply,
       stackable: values.stackable,
       stacking_group: values.stacking_group || null,
       max_stacking_discount: toOptionalNumber(values.max_stacking_discount),
@@ -670,19 +681,38 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
             </div>
           </section>
 
-          <div className="flex items-center gap-2">
-            <Controller
-              control={form.control}
-              name="is_enabled"
-              render={({ field }) => (
-                <CmxSwitch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  id="is_enabled"
-                />
-              )}
-            />
-            <Label htmlFor="is_enabled">{tCommon('enabled')}</Label>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Controller
+                control={form.control}
+                name="is_enabled"
+                render={({ field }) => (
+                  <CmxSwitch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    id="is_enabled"
+                  />
+                )}
+              />
+              <Label htmlFor="is_enabled">{tCommon('enabled')}</Label>
+            </div>
+            <div className="flex items-start gap-2">
+              <Controller
+                control={form.control}
+                name="is_auto_apply"
+                render={({ field }) => (
+                  <CmxSwitch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    id="is_auto_apply"
+                  />
+                )}
+              />
+              <div>
+                <Label htmlFor="is_auto_apply">{t('fields.autoApply')}</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('fields.autoApplyHint')}</p>
+              </div>
+            </div>
           </div>
 
           <CmxDialogFooter>

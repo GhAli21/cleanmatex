@@ -45,10 +45,16 @@ jest.mock('@/lib/utils/logger', () => ({
 // ---------------------------------------------------------------------------
 
 import { prisma } from '@/lib/db/prisma';
-import { applyPromoCodeTx, getBestDiscount, evaluatePromoCode } from '@/lib/services/discount-service';
+import {
+  applyPromoCodeTx,
+  getBestDiscount,
+  evaluatePromoCode,
+  evaluateBestAutoApplyPromo,
+} from '@/lib/services/discount-service';
 
 const mockDiscountRulesFindMany = prisma.org_discount_rules_cf.findMany as jest.Mock;
 const mockPromoFindFirst = prisma.org_promotions_mst.findFirst as jest.Mock;
+const mockPromoFindMany = prisma.org_promotions_mst.findMany as jest.Mock;
 const mockUsageCount = prisma.org_promotion_usage_dtl.count as jest.Mock;
 
 // Minimal valid promo row (lower-case discount_type, matching real DB storage).
@@ -71,6 +77,7 @@ function makePromoRow(overrides: Record<string, unknown> = {}) {
     valid_to: null,
     is_active: true,
     is_enabled: true,
+    is_auto_apply: false,
     rec_status: 1,
     ...overrides,
   };
@@ -377,5 +384,19 @@ describe('discount-service — evaluatePromoCode (unified validator)', () => {
     const r = await evaluatePromoCode({ ...base, customerId: 'cust-1' });
     expect(r).toMatchObject({ isValid: false, errorCode: 'CUSTOMER_LIMIT_EXCEEDED' });
     expect(mockUsageCount.mock.calls[0][0].where).toMatchObject({ voided_at: null, customer_id: 'cust-1' });
+  });
+
+  it('evaluateBestAutoApplyPromo selects by is_auto_apply (not null promo_code)', async () => {
+    mockPromoFindMany.mockResolvedValue([
+      makePromoRow({ id: 'auto-1', is_auto_apply: true, promo_code: 'AUTO10', discount_value: 10 }),
+    ]);
+    const r = await evaluateBestAutoApplyPromo(base);
+    expect(mockPromoFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ is_auto_apply: true }),
+      })
+    );
+    expect(r?.isValid).toBe(true);
+    expect(r?.promo?.id).toBe('auto-1');
   });
 });

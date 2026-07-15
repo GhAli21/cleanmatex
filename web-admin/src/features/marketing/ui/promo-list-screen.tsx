@@ -122,12 +122,20 @@ export function PromoListScreen() {
           {
             key: 'promo_code',
             header: t('fields.code'),
-            render: (row: PromoCode) =>
-              row.promo_code ? (
-                <span className="font-mono font-medium">{row.promo_code}</span>
-              ) : (
-                <Badge variant="outline">{t('fields.autoApply')}</Badge>
-              ),
+            render: (row: PromoCode) => (
+              <div className="flex flex-col gap-0.5">
+                {row.promo_code ? (
+                  <span className="font-mono font-medium">{row.promo_code}</span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">—</span>
+                )}
+                {row.is_auto_apply && (
+                  <Badge variant="outline" className="w-fit text-xs">
+                    {t('fields.autoApply')}
+                  </Badge>
+                )}
+              </div>
+            ),
           },
           {
             key: 'promo_name',

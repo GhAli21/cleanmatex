@@ -100,6 +100,8 @@ const makePromo = (overrides: Record<string, unknown> = {}) => ({
   min_order_amount: new Decimal('0'),
   current_uses:     0,
   is_active:        true,
+  is_enabled:       true,
+  is_auto_apply:    false,
   rec_status:       1,
   valid_from:       new Date(Date.now() - 86400_000),
   valid_to:         null,
@@ -113,12 +115,17 @@ const makePromo = (overrides: Record<string, unknown> = {}) => ({
 describe('promotion-engine.service — getAutoApplyPromotions', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns auto-apply promotions', async () => {
-    const promos = [makePromo({ promo_code: null })];
+  it('returns auto-apply promotions filtered by is_auto_apply', async () => {
+    const promos = [makePromo({ is_auto_apply: true, promo_code: 'SUMMER10' })];
     mockPromoFindMany.mockResolvedValue(promos);
 
     const result = await getAutoApplyPromotions(TENANT, 100);
     expect(result).toBe(promos);
+    expect(mockPromoFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ is_auto_apply: true }),
+      })
+    );
   });
 });
 

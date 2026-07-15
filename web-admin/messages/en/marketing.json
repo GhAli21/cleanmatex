@@ -22,7 +22,7 @@
     "fields": {
       "code": "Code",
       "codePlaceholder": "SUMMER20",
-      "codeHint": "Leave empty for an auto-apply promotion (no code at checkout).",
+      "codeHint": "Optional. Leave empty for auto-only promos; set a code for typed entry (can combine with Auto-apply).",
       "name": "Name",
       "name2": "Name (Arabic)",
       "description": "Description",
@@ -40,7 +40,8 @@
       "unlimited": "Unlimited",
       "unlimitedPerCustomer": "Unlimited per customer",
       "maxUsesHint": "Turn on Unlimited to store no usage cap (null in the database).",
-      "autoApply": "Auto",
+      "autoApply": "Auto-apply",
+      "autoApplyHint": "When on, checkout can apply this promotion without typing a code. You may also set a code for manual entry.",
       "minOrder": "Min Order Amount",
       "minOrderAmount": "Min Order Amount",
       "maxOrderAmount": "Max Order Amount",
@@ -72,7 +73,8 @@
       "maxUsesRequired": "Enter a max uses value, or turn on Unlimited",
       "maxUsesPerCustomerRequired": "Enter a per-customer limit, or turn on Unlimited per customer",
       "percentageMax": "Percentage discount cannot exceed 100",
-      "validToBeforeFrom": "Valid To must be on or after Valid From"
+      "validToBeforeFrom": "Valid To must be on or after Valid From",
+      "codeOrAutoRequired": "Enter a promo code and/or enable Auto-apply"
     }
   },
   "giftCards": {

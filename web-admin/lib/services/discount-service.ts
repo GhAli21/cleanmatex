@@ -245,7 +245,8 @@ export async function evaluatePromoCode(params: {
 }
 
 /**
- * Best valid auto-apply promotion (null promo_code) for the order context.
+ * Best valid auto-apply promotion for the order context.
+ * Selected by `is_auto_apply = true` (not by null promo_code).
  * Used when checkout has no typed code.
  */
 export async function evaluateBestAutoApplyPromo(
@@ -258,7 +259,7 @@ export async function evaluateBestAutoApplyPromo(
     const rows = await prisma.org_promotions_mst.findMany({
       where: {
         tenant_org_id: tenantId,
-        promo_code: null,
+        is_auto_apply: true,
         is_active: true,
         is_enabled: true,
         rec_status: 1,
@@ -907,6 +908,7 @@ function mapPromoCodeToType(promoCode: any): PromoCode {
     valid_to: promoCode.valid_to?.toISOString(),
     is_active: promoCode.is_active,
     is_enabled: promoCode.is_enabled,
+    is_auto_apply: Boolean(promoCode.is_auto_apply),
     metadata: promoCode.metadata
       ? JSON.parse(promoCode.metadata as string)
       : undefined,

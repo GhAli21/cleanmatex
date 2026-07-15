@@ -79,6 +79,7 @@ function mapPromoRow(row: {
   valid_to: Date | null;
   is_active: boolean;
   is_enabled: boolean;
+  is_auto_apply: boolean;
   metadata: unknown;
   created_at: Date;
   created_by: string | null;
@@ -107,7 +108,7 @@ function mapPromoRow(row: {
     applicable_categories: (row.applicable_categories as string[] | null) ?? undefined,
     applicable_customer_grps: row.applicable_customer_grps ?? undefined,
     max_uses: row.max_uses,
-    max_uses_per_customer: row.max_uses_per_customer ?? 1,
+    max_uses_per_customer: row.max_uses_per_customer,
     current_uses: row.current_uses ?? 0,
     stackable: row.stackable,
     stacking_group: row.stacking_group,
@@ -116,6 +117,7 @@ function mapPromoRow(row: {
     valid_to: row.valid_to?.toISOString() ?? null,
     is_active: row.is_active,
     is_enabled: row.is_enabled,
+    is_auto_apply: row.is_auto_apply,
     metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     created_at: row.created_at.toISOString(),
     created_by: row.created_by ?? undefined,
@@ -144,7 +146,7 @@ const optionalPositiveInt = z.preprocess(
 );
 
 const promoFormSchema = z.object({
-  // Empty / omitted = auto-apply promotion (no typed code)
+  // Optional typed code — independent of is_auto_apply
   promo_code: z
     .string()
     .max(50)
@@ -185,6 +187,7 @@ const promoFormSchema = z.object({
     .or(z.literal(''))
     .transform((v) => (v && v.length > 0 ? v : null)),
   is_enabled: z.boolean().default(true),
+  is_auto_apply: z.boolean().default(false),
   stackable: z.boolean().default(false),
   stacking_group: z.string().max(100).optional().nullable(),
   max_stacking_discount: optionalPositiveNumber,
@@ -201,6 +204,13 @@ const promoFormSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: 'Valid To must be on or after Valid From',
       path: ['valid_to'],
+    });
+  }
+  if (!data.promo_code && !data.is_auto_apply) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Enter a promo code and/or enable Auto-apply',
+      path: ['promo_code'],
     });
   }
 });
@@ -354,6 +364,7 @@ export async function createPromoCode(
           valid_from: new Date(parsed.data.valid_from),
           valid_to: parsed.data.valid_to ? new Date(parsed.data.valid_to) : null,
           is_enabled: parsed.data.is_enabled,
+          is_auto_apply: parsed.data.is_auto_apply,
           is_active: true,
           rec_status: 1,
           created_at: new Date(),
@@ -463,6 +474,7 @@ export async function updatePromoCode(
             valid_to: data.valid_to ? new Date(data.valid_to) : null,
           }),
           ...(data.is_enabled != null && { is_enabled: data.is_enabled }),
+          ...(data.is_auto_apply != null && { is_auto_apply: data.is_auto_apply }),
           ...(data.stackable != null && { stackable: data.stackable }),
           ...(data.stacking_group !== undefined && {
             stacking_group: data.stacking_group || null,

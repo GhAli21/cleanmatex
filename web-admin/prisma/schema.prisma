@@ -2411,6 +2411,7 @@ model org_promotions_mst {
   valid_to                 DateTime? @db.Timestamptz(6)
   is_active                Boolean   @default(true)
   is_enabled               Boolean   @default(true)
+  is_auto_apply            Boolean   @default(false)
   metadata                 Json?
   created_at               DateTime  @default(now()) @db.Timestamptz(6)
   created_by               String?   @db.VarChar(120)

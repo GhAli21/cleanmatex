@@ -31,7 +31,7 @@ async function getPromotion(tenantId: string, promoId: string) {
 
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
- * Return all auto-apply promotions (NULL promo_code) for the given order context.
+ * Return all auto-apply promotions (`is_auto_apply = true`) for the order context.
  */
 export async function getAutoApplyPromotions(tenantId: string, _orderAmount: number) {
   const now = new Date();
@@ -39,7 +39,7 @@ export async function getAutoApplyPromotions(tenantId: string, _orderAmount: num
     prisma.org_promotions_mst.findMany({
       where: {
         tenant_org_id: tenantId,
-        promo_code:    null,
+        is_auto_apply: true,
         is_active:     true,
         is_enabled:    true,
         rec_status:    1,
@@ -162,6 +162,7 @@ export async function createPromotion(tenantId: string, data: {
   discountValue: number; maxDiscountAmount?: number;
   minOrderAmount?: number; startsAt?: Date; expiresAt?: Date;
   maxUses?: number; maxUsesPerCustomer?: number;
+  isAutoApply?: boolean;
   createdBy?: string;
 }) {
   return withTenantContext(tenantId, () =>
@@ -186,6 +187,7 @@ export async function createPromotion(tenantId: string, data: {
         max_uses_per_customer:    data.maxUsesPerCustomer ?? 1,
         current_uses:             0,
         is_active:                true,
+        is_auto_apply:            data.isAutoApply ?? !data.promoCode,
         rec_status:               1,
         created_by:               data.createdBy ?? null,
       },

@@ -224,7 +224,7 @@ export async function calculateOrderTotals(
   );
 
   let promoDiscount = 0;
-  /** Resolved promo id for usage logging (typed code or auto-apply). */
+  /** Resolved promo id for usage logging (typed code or is_auto_apply promo). */
   let resolvedPromoId: string | undefined = promoCodeId;
 
   const resolveTypedOrAutoPromo = async (orderBase: number) => {

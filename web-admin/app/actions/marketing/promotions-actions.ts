@@ -93,6 +93,7 @@ export interface CreatePromotionInput {
   expiresAt?: string;
   maxUses?: number;
   maxUsesPerCustomer?: number;
+  isAutoApply?: boolean;
 }
 
 /**
@@ -116,6 +117,7 @@ export async function createPromotionAction(input: CreatePromotionInput) {
       expiresAt: parseEnd(input.expiresAt) ?? undefined,
       maxUses: input.maxUses,
       maxUsesPerCustomer: input.maxUsesPerCustomer,
+      isAutoApply: input.isAutoApply ?? !input.promoCode,
       createdBy: auth.userId,
     });
     revalidatePath('/dashboard/marketing/promotions');
@@ -176,6 +178,7 @@ export async function updatePromotionAction(input: UpdatePromotionInput) {
           ...(input.maxUsesPerCustomer !== undefined && {
             max_uses_per_customer: input.maxUsesPerCustomer ?? null,
           }),
+          ...(input.isAutoApply !== undefined && { is_auto_apply: input.isAutoApply }),
           updated_at: new Date(),
         },
       })

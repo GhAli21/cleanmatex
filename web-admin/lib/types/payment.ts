@@ -285,7 +285,7 @@ export interface PromoCode {
   id: string;
   tenant_org_id: string;
 
-  // Code details — null = auto-apply (no typed code)
+  // Code details — optional; auto-apply is controlled by is_auto_apply
   promo_code: string | null;
   promo_name: string;
   promo_name2?: string; // Arabic name
@@ -307,7 +307,7 @@ export interface PromoCode {
 
   // Usage limits
   max_uses?: number | null;
-  max_uses_per_customer: number;
+  max_uses_per_customer: number | null;
   current_uses: number;
 
   // Stacking
@@ -322,6 +322,8 @@ export interface PromoCode {
   // Status
   is_active: boolean;
   is_enabled: boolean;
+  /** When true, checkout may apply without a typed code. */
+  is_auto_apply: boolean;
   metadata?: Record<string, any>;
 
   // Audit fields
