@@ -2,13 +2,27 @@
   "title": "التسويق",
   "promos": {
     "title": "رموز الترويج",
+    "description": "إدارة رموز الترويج والعروض التلقائية",
     "create": "إنشاء رمز ترويجي",
     "edit": "تعديل رمز ترويجي",
     "archive": "أرشفة",
     "confirmArchive": "هل أنت متأكد من أرشفة رمز الترويج هذا؟ لن يتمكن العملاء من استخدامه بعد الآن.",
     "usageReport": "تقرير الاستخدام",
+    "activate": "تفعيل",
+    "deactivate": "إيقاف",
+    "activated": "تم تفعيل العرض",
+    "deactivated": "تم إيقاف العرض",
+    "sections": {
+      "identity": "الهوية",
+      "discount": "الخصم",
+      "limits": "حدود الاستخدام والطلب",
+      "validity": "فترة الصلاحية",
+      "stacking": "التراكم"
+    },
     "fields": {
       "code": "الرمز",
+      "codePlaceholder": "SUMMER20",
+      "codeHint": "اتركه فارغاً لعرض يُطبَّق تلقائياً (بدون رمز عند الدفع).",
       "name": "الاسم",
       "name2": "الاسم (عربي)",
       "description": "الوصف",
@@ -21,14 +35,30 @@
       "currentUses": "الاستخدامات الحالية",
       "validFrom": "صالح من",
       "validTo": "صالح حتى",
+      "validToHint": "اتركه فارغاً بدون انتهاء. الأوقات حسب منطقتك الزمنية المحلية.",
+      "noExpiry": "بدون انتهاء",
+      "unlimited": "غير محدود",
+      "maxUsesHint": "فعّل «غير محدود» لحفظ بدون حد استخدام (قيمة فارغة في قاعدة البيانات).",
+      "autoApply": "تلقائي",
       "minOrder": "الحد الأدنى للطلب",
       "minOrderAmount": "الحد الأدنى لمبلغ الطلب",
       "maxOrderAmount": "الحد الأقصى لمبلغ الطلب",
       "categories": "الفئات المنطبقة",
       "applicableCategories": "الفئات المنطبقة",
+      "categoriesPlaceholder": "WASH_FOLD, DRY_CLEAN",
+      "categoriesHint": "رموز الفئات مفصولة بفواصل. اتركه فارغاً لجميع الفئات.",
+      "applicableCustomerGroups": "مجموعات العملاء المنطبقة",
+      "customerGroupsPlaceholder": "VIP, LOYALTY",
+      "stackable": "قابل للتراكم مع عروض أخرى",
+      "stackingGroup": "مجموعة التراكم",
+      "maxStackingDiscount": "الحد الأقصى لخصم التراكم",
       "isActive": "نشط",
       "isEnabled": "مفعل",
       "metadata": "البيانات الوصفية"
+    },
+    "discountTypeLabels": {
+      "percentage": "نسبة مئوية",
+      "fixed_amount": "مبلغ ثابت"
     },
     "status": {
       "active": "نشط",
@@ -37,7 +67,8 @@
     },
     "errors": {
       "codeExists": "رمز الترويج موجود بالفعل",
-      "maxUsesExceeded": "تم الوصول للحد الأقصى — لا يمكن الحفظ"
+      "maxUsesExceeded": "تم الوصول للحد الأقصى — لا يمكن الحفظ",
+      "maxUsesRequired": "أدخل الحد الأقصى للاستخدام، أو فعّل «غير محدود»"
     }
   },
   "giftCards": {

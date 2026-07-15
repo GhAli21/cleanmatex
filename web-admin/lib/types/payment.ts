@@ -285,8 +285,8 @@ export interface PromoCode {
   id: string;
   tenant_org_id: string;
 
-  // Code details
-  promo_code: string;
+  // Code details — null = auto-apply (no typed code)
+  promo_code: string | null;
   promo_name: string;
   promo_name2?: string; // Arabic name
   description?: string;
@@ -296,20 +296,28 @@ export interface PromoCode {
   discount_type: PromoDiscountType;
   discount_value: number;
   max_discount_amount?: number;
+  /** Upper-case campaign type mirrored from `org_promotions_mst.promo_type`. */
+  promo_type?: string | null;
 
   // Validation rules
   min_order_amount: number;
   max_order_amount?: number;
   applicable_categories?: string[];
+  applicable_customer_grps?: string[];
 
   // Usage limits
-  max_uses?: number;
+  max_uses?: number | null;
   max_uses_per_customer: number;
   current_uses: number;
 
+  // Stacking
+  stackable?: boolean;
+  stacking_group?: string | null;
+  max_stacking_discount?: number | null;
+
   // Validity
   valid_from: string;
-  valid_to?: string;
+  valid_to?: string | null;
 
   // Status
   is_active: boolean;

@@ -2,13 +2,27 @@
   "title": "Marketing",
   "promos": {
     "title": "Promo Codes",
+    "description": "Manage typed promo codes and auto-apply promotions",
     "create": "Create Promo Code",
     "edit": "Edit Promo Code",
     "archive": "Archive",
     "confirmArchive": "Are you sure you want to archive this promo code? Customers will no longer be able to use it.",
     "usageReport": "Usage Report",
+    "activate": "Enable",
+    "deactivate": "Disable",
+    "activated": "Promotion enabled",
+    "deactivated": "Promotion disabled",
+    "sections": {
+      "identity": "Identity",
+      "discount": "Discount",
+      "limits": "Usage & order limits",
+      "validity": "Validity window",
+      "stacking": "Stacking"
+    },
     "fields": {
       "code": "Code",
+      "codePlaceholder": "SUMMER20",
+      "codeHint": "Leave empty for an auto-apply promotion (no code at checkout).",
       "name": "Name",
       "name2": "Name (Arabic)",
       "description": "Description",
@@ -21,14 +35,30 @@
       "currentUses": "Current Uses",
       "validFrom": "Valid From",
       "validTo": "Valid To",
+      "validToHint": "Leave empty for no expiry. Times use your local timezone.",
+      "noExpiry": "No expiry",
+      "unlimited": "Unlimited",
+      "maxUsesHint": "Turn on Unlimited to store no usage cap (null in the database).",
+      "autoApply": "Auto",
       "minOrder": "Min Order Amount",
       "minOrderAmount": "Min Order Amount",
       "maxOrderAmount": "Max Order Amount",
       "categories": "Applicable Categories",
       "applicableCategories": "Applicable Categories",
+      "categoriesPlaceholder": "WASH_FOLD, DRY_CLEAN",
+      "categoriesHint": "Comma-separated category codes. Leave empty for all categories.",
+      "applicableCustomerGroups": "Applicable Customer Groups",
+      "customerGroupsPlaceholder": "VIP, LOYALTY",
+      "stackable": "Stackable with other promotions",
+      "stackingGroup": "Stacking Group",
+      "maxStackingDiscount": "Max Stacking Discount",
       "isActive": "Active",
       "isEnabled": "Enabled",
       "metadata": "Metadata"
+    },
+    "discountTypeLabels": {
+      "percentage": "Percentage",
+      "fixed_amount": "Fixed Amount"
     },
     "status": {
       "active": "Active",
@@ -37,7 +67,8 @@
     },
     "errors": {
       "codeExists": "Promo code already exists",
-      "maxUsesExceeded": "Usage limit already reached — cannot save"
+      "maxUsesExceeded": "Usage limit already reached — cannot save",
+      "maxUsesRequired": "Enter a max uses value, or turn on Unlimited"
     }
   },
   "giftCards": {

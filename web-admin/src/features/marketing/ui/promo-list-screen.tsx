@@ -9,19 +9,27 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { PlusCircle, Search, Archive, Edit, BarChart2 } from 'lucide-react';
+import {
+  PlusCircle,
+  Search,
+  Archive,
+  Edit,
+  BarChart2,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
-import { CmxConfirmDialog } from '@ui/feedback';
+import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
 import { usePromoCodes } from '../hooks/use-promos';
 import type { PromoCode } from '@/lib/types/payment';
 import { PromoFormDialog } from './promo-form-dialog';
 import { PromoUsageTable } from './promo-usage-table';
 
 /**
- *
+ * Marketing promo list — canonical admin surface for org_promotions_mst.
  */
 export function PromoListScreen() {
   const t = useTranslations('marketing.promos');
@@ -39,20 +47,34 @@ export function PromoListScreen() {
 
   const handleArchive = useCallback(
     async (id: string) => {
-      const { archivePromoCode } = await import(
-        '@/app/actions/marketing/promo-actions'
-      );
+      const { archivePromoCode } = await import('@/app/actions/marketing/promo-actions');
       await archivePromoCode(id);
       refetch();
     },
     [refetch]
   );
 
+  const handleToggleEnabled = useCallback(
+    async (row: PromoCode) => {
+      const { setPromoCodeEnabled } = await import('@/app/actions/marketing/promo-actions');
+      const result = await setPromoCodeEnabled(row.id, !row.is_enabled);
+      if (result.success === false) {
+        cmxMessage.error(result.error);
+        return;
+      }
+      cmxMessage.success(row.is_enabled ? t('deactivated') : t('activated'));
+      refetch();
+    },
+    [refetch, t]
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-xl font-semibold">{t('title')}</h2>
+        <div>
+          <h2 className="text-xl font-semibold">{t('title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
+        </div>
         <CmxButton
           variant="primary"
           size="sm"
@@ -64,7 +86,6 @@ export function PromoListScreen() {
         </CmxButton>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -72,7 +93,10 @@ export function PromoListScreen() {
             className="ps-8"
             placeholder={tCommon('search')}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
         <div className="flex gap-1">
@@ -81,7 +105,10 @@ export function PromoListScreen() {
               key={s}
               variant={status === s ? 'primary' : 'outline'}
               size="sm"
-              onClick={() => { setStatus(s); setPage(1); }}
+              onClick={() => {
+                setStatus(s);
+                setPage(1);
+              }}
             >
               {tCommon(s)}
             </CmxButton>
@@ -89,83 +116,116 @@ export function PromoListScreen() {
         </div>
       </div>
 
-      {/* Table */}
       <CmxDataTable
         isLoading={isLoading}
         columns={[
-          { key: 'promo_code', header: t('fields.code'), render: (row: PromoCode) => (
-            <span className="font-mono font-medium">{row.promo_code}</span>
-          )},
-          { key: 'promo_name', header: t('fields.name'), render: (row: PromoCode) => row.promo_name },
-          { key: 'promo_name2', header: t('fields.name2'), render: (row: PromoCode) => row.promo_name2 || '—' },
-          { key: 'description', header: t('fields.description'), render: (row: PromoCode) => row.description || '—' },
-          { key: 'description2', header: t('fields.description2'), render: (row: PromoCode) => row.description2 || '—' },
-          { key: 'discount_type', header: t('fields.discountType'), render: (row: PromoCode) => row.discount_type },
-          { key: 'discount_value', header: t('fields.discountValue'), render: (row: PromoCode) => row.discount_value.toFixed(3) },
-          { key: 'max_discount_amount', header: t('fields.maxDiscountAmount'), render: (row: PromoCode) => row.max_discount_amount?.toFixed(3) || '—' },
-          { key: 'min_order_amount', header: t('fields.minOrderAmount'), render: (row: PromoCode) => row.min_order_amount.toFixed(3) },
-          { key: 'max_order_amount', header: t('fields.maxOrderAmount'), render: (row: PromoCode) => row.max_order_amount?.toFixed(3) || '—' },
-          { key: 'applicable_categories', header: t('fields.applicableCategories'), render: (row: PromoCode) => row.applicable_categories ? row.applicable_categories.join(', ') : '—' },
-          { key: 'max_uses', header: t('fields.maxUses'), render: (row: PromoCode) => (
-            row.max_uses != null
-              ? `${row.current_uses ?? 0} / ${row.max_uses}`
-              : '—'
-          )},
-          { key: 'max_uses_per_customer', header: t('fields.maxUsesPerCustomer'), render: (row: PromoCode) => row.max_uses_per_customer },
-          { key: 'current_uses', header: t('fields.currentUses'), render: (row: PromoCode) => row.current_uses },
-          { key: 'valid_from', header: t('fields.validFrom'), render: (row: PromoCode) => new Date(row.valid_from).toLocaleDateString() },
-          { key: 'valid_to', header: t('fields.validTo'), render: (row: PromoCode) => (
-            row.valid_to
-              ? new Date(row.valid_to).toLocaleDateString()
-              : '—'
-          )},
-          { key: 'is_active', header: t('fields.isActive'), render: (row: PromoCode) => (
-            <Badge variant={row.is_active ? 'default' : 'secondary'}>
-              {row.is_active ? tCommon('active') : tCommon('inactive')}
-            </Badge>
-          )},
-          { key: 'is_enabled', header: t('fields.isEnabled'), render: (row: PromoCode) => (
-            <Badge variant={row.is_enabled ? 'default' : 'secondary'}>
-              {row.is_enabled ? tCommon('enabled') : tCommon('disabled')}
-            </Badge>
-          )},
-          { key: 'metadata', header: t('fields.metadata'), render: (row: PromoCode) => row.metadata ? JSON.stringify(row.metadata, null, 2) : '—' },
-          { key: 'actions', header: tCommon('actions'), render: (row: PromoCode) => (
-            <div className="flex gap-1">
-              <CmxButton
-                variant="ghost"
-                size="xs"
-                title={tCommon('edit')}
-                onClick={() => setEditingPromo(row)}
-              >
-                <Edit className="h-4 w-4" />
-              </CmxButton>
-              <CmxButton
-                variant="ghost"
-                size="xs"
-                title={t('usageReport')}
-                onClick={() => setViewingUsagePromoId(row.id)}
-              >
-                <BarChart2 className="h-4 w-4" />
-              </CmxButton>
-              <CmxConfirmDialog
-                title={t('archive')}
-                description={t('confirmArchive')}
-                confirmLabel={t('archive')}
-                cancelLabel={tCommon('cancel')}
-                onConfirm={() => handleArchive(row.id)}
-                trigger={
-                  <CmxButton
-                    variant="ghost"
-                    size="xs"
-                    title={t('archive')}
-                  >
-                    <Archive className="h-4 w-4" />
-                  </CmxButton>
-                }
-              />
-            </div>
-          )},
+          {
+            key: 'promo_code',
+            header: t('fields.code'),
+            render: (row: PromoCode) =>
+              row.promo_code ? (
+                <span className="font-mono font-medium">{row.promo_code}</span>
+              ) : (
+                <Badge variant="outline">{t('fields.autoApply')}</Badge>
+              ),
+          },
+          {
+            key: 'promo_name',
+            header: t('fields.name'),
+            render: (row: PromoCode) => row.promo_name,
+          },
+          {
+            key: 'discount_type',
+            header: t('fields.discountType'),
+            render: (row: PromoCode) =>
+              t(`discountTypeLabels.${row.discount_type}` as 'discountTypeLabels.percentage'),
+          },
+          {
+            key: 'discount_value',
+            header: t('fields.discountValue'),
+            render: (row: PromoCode) => (
+              <span className="tabular-nums">
+                {row.discount_value.toFixed(3)}
+                {row.discount_type === 'percentage' ? '%' : ''}
+              </span>
+            ),
+          },
+          {
+            key: 'max_uses',
+            header: t('fields.maxUses'),
+            render: (row: PromoCode) =>
+              row.max_uses != null
+                ? `${row.current_uses ?? 0} / ${row.max_uses}`
+                : t('fields.unlimited'),
+          },
+          {
+            key: 'valid_from',
+            header: t('fields.validFrom'),
+            render: (row: PromoCode) => new Date(row.valid_from).toLocaleString(),
+          },
+          {
+            key: 'valid_to',
+            header: t('fields.validTo'),
+            render: (row: PromoCode) =>
+              row.valid_to ? new Date(row.valid_to).toLocaleString() : t('fields.noExpiry'),
+          },
+          {
+            key: 'is_enabled',
+            header: t('fields.isEnabled'),
+            render: (row: PromoCode) => (
+              <Badge variant={row.is_enabled ? 'default' : 'secondary'}>
+                {row.is_enabled ? tCommon('enabled') : tCommon('disabled')}
+              </Badge>
+            ),
+          },
+          {
+            key: 'actions',
+            header: tCommon('actions'),
+            render: (row: PromoCode) => (
+              <div className="flex gap-1">
+                <CmxButton
+                  variant="ghost"
+                  size="xs"
+                  title={tCommon('edit')}
+                  onClick={() => setEditingPromo(row)}
+                >
+                  <Edit className="h-4 w-4" />
+                </CmxButton>
+                <CmxButton
+                  variant="ghost"
+                  size="xs"
+                  title={row.is_enabled ? t('deactivate') : t('activate')}
+                  onClick={() => handleToggleEnabled(row)}
+                >
+                  {row.is_enabled ? (
+                    <ToggleRight className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CmxButton>
+                <CmxButton
+                  variant="ghost"
+                  size="xs"
+                  title={t('usageReport')}
+                  onClick={() => setViewingUsagePromoId(row.id)}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                </CmxButton>
+                <CmxConfirmDialog
+                  title={t('archive')}
+                  description={t('confirmArchive')}
+                  confirmLabel={t('archive')}
+                  cancelLabel={tCommon('cancel')}
+                  onConfirm={() => handleArchive(row.id)}
+                  trigger={
+                    <CmxButton variant="ghost" size="xs" title={t('archive')}>
+                      <Archive className="h-4 w-4" />
+                    </CmxButton>
+                  }
+                />
+              </div>
+            ),
+          },
         ]}
         data={promoCodes}
         totalCount={total}
@@ -174,22 +234,25 @@ export function PromoListScreen() {
         onPageChange={setPage}
       />
 
-      {/* Create dialog */}
       <PromoFormDialog
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
-        onSuccess={() => { setShowCreateDialog(false); refetch(); }}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
 
-      {/* Edit dialog */}
       <PromoFormDialog
         open={!!editingPromo}
         promo={editingPromo ?? undefined}
         onClose={() => setEditingPromo(null)}
-        onSuccess={() => { setEditingPromo(null); refetch(); }}
+        onSuccess={() => {
+          setEditingPromo(null);
+          refetch();
+        }}
       />
 
-      {/* Usage report dialog */}
       {viewingUsagePromoId && (
         <PromoUsageTable
           promoCodeId={viewingUsagePromoId}
