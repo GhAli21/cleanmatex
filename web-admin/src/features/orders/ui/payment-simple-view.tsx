@@ -3,14 +3,14 @@
 /**
  * Payment Modal V4 — Simple face (Phase 4, single engine two modes).
  *
- * The ~80% cash/card fast lane: method chips, one hero amount editor,
- * quick-tender chips, an optional keypad, and a compact receipt card. Purely
- * presentational — every value and handler comes from the engine via
- * `PaymentFullView` (the mounted container that owns mode state), so this face
- * can never fork finance logic or the submit payload. Anything advanced
- * (splits, gift cards, B2B/AR, overpayment routing, drawer conflicts) trips
- * `computeNeedsAdvanced` in the engine and the container escalates to the Full
- * face with all state intact.
+ * The ~80% cash/card fast lane: optional left capability-tile rail, method
+ * chips, one hero amount editor, quick-tender chips, an optional keypad, and a
+ * compact receipt card. Purely presentational — every value and handler comes
+ * from the engine via `PaymentFullView` (the mounted container that owns mode
+ * state), so this face can never fork finance logic or the submit payload.
+ * Anything advanced (splits, gift cards, B2B/AR, overpayment routing, drawer
+ * conflicts) trips `computeNeedsAdvanced` in the engine and the container
+ * escalates to the Full face with all state intact.
  *
  * See `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md`.
  */
@@ -122,8 +122,8 @@ export interface PaymentSimpleViewProps {
   // ---- remaining-balance policy ----
   policyLabel: string;
   onChangeBalancePolicy: () => void;
-  // ---- capability quick actions (rendered below the receipt) ----
-  /** Optional capability quick-action buttons for the fast lane; omit for none. */
+  // ---- capability quick actions (left rail on md+; below pay/receipt on mobile) ----
+  /** Optional capability quick-action tiles for the fast lane; omit for none. */
   quickActions?: ReactNode;
 }
 
@@ -194,13 +194,32 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
   const [showKeypad, setShowKeypad] = useState(false);
   const keypadTriggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const hasQuickActions = quickActions != null;
+
   return (
     <div
       data-testid="payment-simple-view"
-      className="mx-auto grid w-full max-w-[1100px] items-start gap-4 md:grid-cols-[minmax(420px,1.4fr)_minmax(300px,1fr)]"
+      data-has-quick-actions={hasQuickActions ? 'true' : undefined}
+      className={`mx-auto grid w-full items-stretch gap-3 ${
+        hasQuickActions
+          ? 'max-w-[1280px] md:grid-cols-[minmax(168px,200px)_minmax(0,1.45fr)_minmax(280px,1fr)]'
+          : 'max-w-[1100px] md:grid-cols-[minmax(420px,1.4fr)_minmax(300px,1fr)]'
+      }`}
     >
+      {/* ---- QUICK ACTIONS rail (left on md+; after pay/receipt on mobile) ---- */}
+      {hasQuickActions ? (
+        <div
+          data-testid="payment-simple-quick-actions-rail"
+          className="order-3 min-w-0 md:order-1 md:self-stretch"
+        >
+          {quickActions}
+        </div>
+      ) : null}
+
       {/* ---- PAY column ---- */}
-      <CmxCard className="border-slate-200 bg-white shadow-sm">
+      <CmxCard
+        className={`border-slate-200 bg-white shadow-sm ${hasQuickActions ? 'order-1 h-full md:order-2' : ''}`}
+      >
         <CmxCardContent className="space-y-5 pt-5">
           {/* Method chips */}
           <div>
@@ -462,7 +481,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
       </CmxCard>
 
       {/* ---- RECEIPT column ---- */}
-      <CmxCard className="border-slate-200 bg-white shadow-sm">
+      <CmxCard
+        className={`border-slate-200 bg-white shadow-sm ${hasQuickActions ? 'order-2 h-full md:order-3' : ''}`}
+      >
         <CmxCardContent className="space-y-1.5 pt-5">
           <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('mode.simpleView.receiptTitle')}
@@ -526,10 +547,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           </p>
         </CmxCardContent>
       </CmxCard>
-
-      {/* Capability quick actions — common advanced tenders on the fast lane
-          (only the available ones render; driven by the capability plan). */}
-      {quickActions}
     </div>
   );
 }

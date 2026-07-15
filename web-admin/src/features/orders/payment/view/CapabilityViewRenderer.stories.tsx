@@ -100,6 +100,25 @@ export const ActionsOnly: Story = {
   args: { plan: [dialogSplit, dialogB2BRequired] },
 };
 
+/** Simple-mode left rail: stacked icon tiles. */
+export const TileStackActions: Story = {
+  args: {
+    plan: [dialogSplit, dialogB2BRequired],
+    actionVariant: 'tile',
+    actionLayout: 'stack',
+    dialogButtonIcon: () => (
+      <span className="inline-block h-5 w-5 rounded-md bg-teal-200" aria-hidden />
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-[200px] space-y-3 rounded-2xl border border-slate-200 p-3">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 /** All three regions: an inline surface, dialog openers, and a blocked guard. */
 export const InlineActionsAndGuard: Story = {
   args: { plan: [inlineFx, dialogSplit, dialogB2BRequired, guardDrawer] },

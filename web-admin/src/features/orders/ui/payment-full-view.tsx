@@ -89,6 +89,7 @@ import {
   selectDialogSlots,
 } from '@features/orders/payment/view/capability-view-plan';
 import { CapabilityViewRenderer } from '@features/orders/payment/view/capability-view-renderer';
+import { getCapabilityActionIcon } from '@features/orders/payment/view/capability-action-icons';
 import {
   SERVER_GUARD_AFFORDANCE,
   resolveServerGuardAffordance,
@@ -2392,16 +2393,27 @@ export function PaymentFullView({
                   onChangeBalancePolicy={handleSimpleChangePolicy}
                   quickActions={
                     simpleQuickActionsPlan.length > 0 ? (
-                      <CmxCard className="border-slate-200 bg-white shadow-sm">
-                        <CmxCardContent className="space-y-2 pt-5">
-                          <p className={`text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <CmxCard className="h-full border-slate-200 bg-white shadow-sm md:sticky md:top-0">
+                        <CmxCardContent className="flex h-full flex-col gap-2.5 pt-4 pb-4">
+                          <p
+                            className={`text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                          >
                             {t('mode.simpleView.quickActionsTitle')}
                           </p>
+                          {/* Tile rail: fills the left column with no dead gap;
+                              2-col grid on narrow screens when stacked below pay. */}
                           <CapabilityViewRenderer
                             plan={simpleQuickActionsPlan}
                             isRTL={isRTL}
+                            actionVariant="tile"
+                            actionLayout="stack"
+                            className="min-h-0 flex-1"
                             renderInline={() => null}
                             dialogButtonLabel={(slot) => t(`capabilities.${slot.key}.action`)}
+                            dialogButtonIcon={(slot) => {
+                              const Icon = getCapabilityActionIcon(slot.key);
+                              return <Icon />;
+                            }}
                             requiredBadgeLabel={t('capabilities.dialog.required')}
                             onOpenCapability={(slot) => {
                               // Every quick-action opens its capability dialog
