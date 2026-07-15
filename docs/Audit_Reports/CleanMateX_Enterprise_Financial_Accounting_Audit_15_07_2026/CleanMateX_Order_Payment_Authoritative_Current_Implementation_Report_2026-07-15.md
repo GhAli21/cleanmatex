@@ -108,8 +108,35 @@ base_cur_*  = round4(amount × currency_ex_rate) (:88)
 status ladder: OVERPAID → PAID → PARTIALLY_PAID → PENDING_COLLECTION → UNPAID (:450–472)
 ```
 
-Persists ~45 canonical `org_orders_mst` columns + engine version 5, JSON snapshot, md5 hash, trace id, 12 warning codes, snapshot status CURRENT/MISMATCH/RECALCULATION_REQUIRED. Tax-base buckets (non-taxable/exempt/zero-rated/out-of-scope) hardcoded 0 (:694–697).
-`SNAPSHOT WRITER: IMPLEMENTED` · `INPUT SEMANTICS (refunds, rounding, tax docs, charges): PARTIAL`.
+Persists ~45 canonical `org_orders_mst` columns + engine version 5, JSON snapshot, md5 hash, trace id, warning codes, snapshot status CURRENT/MISMATCH/RECALCULATION_REQUIRED. Tax-base buckets (non-taxable/exempt/zero-rated/out-of-scope) hardcoded 0 (:694–697).
+
+## 5.1 Payment lifecycle status sets (constants/order-financial.ts:464–469)
+
+| Set | Values | Snapshot treatment |
+|---|---|---|
+| COMPLETED | COMPLETED, CAPTURED, SETTLED | counted in `total_paid_amount` |
+| PENDING | PENDING, PROCESSING, CAPTURE_PENDING | `pending_payment_amount`; NOT paid |
+| AUTHORIZED | AUTHORIZED | `authorized_payment_amount`; NOT paid |
+| FAILED | FAILED, CANCELLED, EXPIRED, VOIDED, REFUSED, REVERSED | `failed_payment_amount`; NOT paid |
+
+Note: the FAILED vocabulary (CANCELLED/VOIDED/REVERSED…) exists and the snapshot aggregates it correctly, but **no service performs those transitions** — the only implemented transition is PENDING → COMPLETED via `verifyPaymentTx` (H8). The status registry is ahead of the runtime.
+
+## 5.2 Warning codes emitted by `buildWarningCodes` (write:361–429)
+
+| Code | Trigger | Effect on snapshot status |
+|---|---|---|
+| ORDER_TOTAL_COMPONENT_MISMATCH | header total ≠ recomputed (tol 0.001) | MISMATCH |
+| DISCOUNT_TOTAL_MISMATCH / TAX_TOTAL_MISMATCH / OUTSTANDING_MISMATCH | header vs recomputed drift | MISMATCH |
+| PENDING_PAYMENT_COUNTED_AS_PAID | any `pending_payment_amount > 0` — fires on every by-design pending leg (misleading name; flags healthy check/bank orders as MISMATCH) | MISMATCH |
+| AUTHORIZED_PAYMENT_COUNTED_AS_PAID | any authorized amount > 0 | MISMATCH |
+| GIFT_CARD_DOUBLE_COUNTED | GC applied > total credits | MISMATCH |
+| CREDIT_APPLICATION_COUNTED_AS_DISCOUNT | credit-type rows found in discounts table | MISMATCH |
+| AR_RECEIVABLE_MISMATCH | AR invoice outstanding ≠ `ar_receivable_amount` | MISMATCH |
+| TAX_DOCUMENT_TOTAL_MISMATCH | linked tax doc total ≠ order total (inert — no docs issued, §41) | MISMATCH |
+| REFUND_SOURCE_UNCLASSIFIED / PAYMENT_TARGET_UNCLASSIFIED | heuristic classification failed | RECALCULATION_REQUIRED |
+| LEGACY_FIELD_USED_IN_SUMMARY | header-total fallback used (no detail rows) | RECALCULATION_REQUIRED |
+
+`SNAPSHOT WRITER: IMPLEMENTED` · `INPUT SEMANTICS (refunds, rounding, tax docs, charges): PARTIAL` · `PENDING-warning semantics: misleading for by-design pending methods (H8)`.
 
 # 6. Payment and Settlement
 
@@ -119,8 +146,8 @@ Persists ~45 canonical `org_orders_mst` columns + engine version 5, JSON snapsho
 | Leg default status | IMPLEMENTED_WITH_CONSTRAINTS | fallback hardcodes CASH/CARD→COMPLETED, gateway→PROCESSING (planner:35) |
 | Split + partial at submit | IMPLEMENTED | remainder → PAY_ON_COLLECTION or CREDIT_INVOICE (planner:174) |
 | Tendered/change | IMPLEMENTED | change = subMoney(tendered, amount); tendered<amount throws (planner:289) |
-| Overpayment disposition | IMPLEMENTED | validator + `org_fin_overpay_disp_dtl` + allocation preview executor |
-| Payment verification | IMPLEMENTED | verifyPaymentTx: FOR UPDATE, idempotent, outbox |
+| Overpayment disposition | IMPLEMENTED | validator + `org_fin_overpay_disp_dtl` + allocation preview executor; resolution codes (settlement-catalog.ts:14–24): REDUCE_PAYMENT, RETURN_CASH_CHANGE, VOID_OR_REFUND_EXCESS, SAVE_AS_CUSTOMER_ADVANCE, SAVE_TO_CUSTOMER_WALLET, SAVE_AS_CUSTOMER_CREDIT, RESTORE_STORED_VALUE, ALLOCATE_TO_CUSTOMER_BALANCES, AUTO_ALLOCATE_TO_CUSTOMER_BALANCES |
+| Payment verification | IMPLEMENTED_WITH_CONSTRAINTS | verifyPaymentTx: FOR UPDATE, idempotent, outbox; route + per-payment UI button exist; verify-only — no cancel/fail transition, no pending worklist (H8) |
 | Gateway capture/webhook | NOT_FOUND | legs park in PENDING/PROCESSING; manual verify only |
 | Later collection | PARTIAL | see §32 — no BVM, weak idempotency, recon conflict |
 | AR invoice at submit | IMPLEMENTED | receivable-only, sized to `correctedOutstanding` (orchestrator:639–655) |
@@ -138,6 +165,18 @@ Concern: loyalty points = `ceil(amount / (option.minAmount ?? 1))` — `min_amou
 # 8. Refunds, Reversals, and Voids
 
 Workflow `PENDING_APPROVAL → APPROVED → PROCESSED` with maker-checker, `fn_next_fin_doc_no` REF- numbering, caps vs paid+credits−refunded and per-source remainders, FOR UPDATE process lock, `uq_refund_idempotency`.
+
+## 8.1 Stage-by-stage controls (order-refund.service.ts)
+
+| Stage | Function | Controls executed | Financial effect |
+|---|---|---|---|
+| Initiate | `initiateRefund` (:142) | amount>0; MANUAL_EXCEPTION forbids lineage + requires note (:167–176); idempotent replay (:183); refundable-balance cap (:203); per-payment remainder cap (:231–248); per-credit-app remainder cap (:251–295); POS-session gate; REF- number via row-locked sequence (:303) | none — row only (`PENDING_APPROVAL` or `APPROVED` if `approvalRequired=false`) |
+| Approve | `approveRefund` (:365) | status guard PENDING_APPROVAL; approver stamped in row + metadata; outbox APPROVED stage | none |
+| Process | `processRefund` (:418) | FOR UPDATE on refund row (:430); re-check refundable balance; WALLET → `topUpWalletTx`; CREDIT_NOTE → `issueCreditNoteTx` (idem `refund-${id}-cn`); CASH/ORIGINAL_METHOD → **record-only**; snapshot recalc; outbox PROCESSED stage | wallet/CN ledger credit only; no drawer OUT, no gateway call, no voucher, no GL, no reopen of due |
+
+Refund vocabularies (constants/order-financial.ts): `REFUND_METHODS` = ORIGINAL_METHOD, CASH, CREDIT_NOTE, WALLET (:181–186); `REFUND_SOURCE_TYPES` = REAL_PAYMENT_REFUND, GIFT_CARD_RESTORE, WALLET_RESTORE, CUSTOMER_ADVANCE_RESTORE, CUSTOMER_CREDIT_ISSUE, CREDIT_NOTE_ISSUE, MANUAL_EXCEPTION (:148–156) — the source-type registry exists but the write path never populates the column (C1).
+
+## 8.2 Missing execution semantics
 
 **Critical missing semantics (confirmed):** `initiateRefund` create block (order-refund.service.ts:311–335) writes neither `refund_source_type` nor `reopens_due_amount` (lineage only in metadata JSON). The snapshot classifier then relies on the legacy heuristic fallback (order-financial-write.service.ts:215–248), and outstanding never reopens:
 
@@ -183,7 +222,19 @@ Runtime callers: **only** `dispatchInvoiceCreatedInTransaction` (ar-invoice.serv
 
 Framework: `runReconciliation` executes 35 checks (reconciliation.service.ts:73–117) persisted to `org_fin_recon_runs_mst`; per-order live routes exist.
 
-**Critical formula divergence (confirmed):** reconciliation expects `outstanding = max(0, total − completedPayments − activeCredits + processedRefunds)` (order-checks.ts:200) vs snapshot `… + reopens_due` (§5). Differences: payment status set, credit status filter (recon sums `is_active` credit apps regardless of `application_status` :140), all refunds vs classified reopen. Reconciliation re-implements formulas instead of calling shared aggregation.
+**Critical formula divergence (confirmed) — side by side:**
+
+```text
+Reconciliation (order-checks.ts:198–200)                Snapshot (order-financial-write.service.ts:779–786)
+expectedOutstanding =                                   outstanding =
+  max(0, total_amount                                     max(0, totalAmount
+    − Σ payments WHERE status = 'COMPLETED' (literal)       − Σ payments IN COMPLETED lifecycle set (§5.1)
+    − Σ credit apps WHERE is_active (ANY status, :140)      − Σ credit apps WHERE status = APPLIED
+    + Σ PROCESSED refunds (ALL sources))                    + refund_reopens_due (never written — always 0)
+                                                            + credit_reversal_reopens_due (hardcoded 0))
+```
+
+Four independent drift sources: payment-status set (literal `'COMPLETED'` misses CAPTURED/SETTLED), credit-status filter (recon counts PENDING/REVERSED apps), refund treatment (all refunds vs never-populated reopen), and reversal semantics. Any processed refund — and any REVERSED credit app left `is_active` — produces a permanent OUTSTANDING_TOTAL_MATCH / CREDIT_APP_BALANCE blocker on a snapshot that is internally self-consistent. Reconciliation re-implements formulas instead of calling shared aggregation.
 Other issues: TAX_CALCULATION / DISCOUNT_VALIDATION constants unimplemented (:66–71); voucher-link checks conflict with the collect path; drawer aggregate unfiltered.
 `FRAMEWORK: IMPLEMENTED` · `FORMULA AUTHORITY: PARTIAL` · `AS CLOSING CONTROL: NOT_READY`. Rule: **reconciliation must consume the snapshot's shared aggregation.**
 
@@ -273,11 +324,15 @@ Superseded by the deduplicated backlog in **§50** (single source). Headline set
 | H5 | HIGH | Later-collection retry can duplicate payment + drawer rows | order-settlement.service.ts:640 |
 | H6 | HIGH | Financial outbox never consumed; retry/dead-letter machinery idle | §45 |
 | H7 | HIGH | Loyalty earning is disconnected — `queueEarnPoints` emits `LOYALTY_EARN` into the financial outbox, but no runtime outbox consumer or direct `processEarnPoints` caller exists; qualifying settled orders therefore do not actually credit loyalty points | loyalty.service.ts:141 |
+| H8 | HIGH | Pending-payment back-office lifecycle is verify-only: no cancel/fail/reject/bounce transition, no reason capture; the plan counts PENDING legs at full value (`outstandingPolicy='NONE'`, no AR/POC fallback), so an unverified/failed PENDING leg strands the order with real outstanding and no policy; the verification audit trail (actor in `PAYMENT_VERIFIED` payload only; row stamps generic `updated_by`) never reaches history because the outbox consumer is inactive (H6) | order-settlement.service.ts:515–533; planner:169–181 |
 | M1 | MED | 'OMR'/'USD'/0.05/0.06 hardcoded defaults | §15 |
 | M2 | MED | Drawer expected-cash weak filtering | cash-drawer.service.ts:1428 |
 | M3 | MED | Charges supported downstream, never written at submit | orchestrator:989 |
 | M4 | MED | Item-edit math diverges from tax mode | lib/db/orders.ts:919 |
 | M5 | MED | Precision/tolerance differ across layers | §15 |
+| M6 | MED | `collectPaymentTx` ignores `default_creation_status` (column not even selected) and hardcodes non-gateway → COMPLETED — a CHECK/BANK method configured PENDING is counted as paid instantly at later collection, before clearing | order-settlement.service.ts:827 |
+| M7 | LOW | Drawer wiring and drawer-close do not gate on payment status — only material if a drawer-required method is configured PENDING (CASH is normally COMPLETED instantly); defensive gate recommended | cash-drawer-wiring.handler.ts:22–29 |
+| M8 | LOW | `allow_status_override` is CONFIGURED_ONLY — stored on the leg, never consulted in status resolution | planner:93 |
 
 # 22. Safe and Restricted Operational Scope
 
@@ -400,11 +455,26 @@ Canonical `OrderAmendmentService`, financial delta model, immutable amendment re
 | ORDER_PAYMENT_TIMING_CHANGED | NOT_FOUND (payment_type_code set at submit) | — | — | — | — | NOT_FOUND |
 | ORDER_REOPENED / TRANSFERRED / VOIDED | workflow transitions exist; financial re-eval NOT_FOUND | — | — | — | — | NOT_FOUND |
 
-Confirmed unsafe pattern: `addOrderItems/deleteOrderItem → recalculateOrderTotals → direct org_orders_mst.total_amount write (0.05 VAT fallback, inclusive split) → snapshot recalc masks the drift`. Common controls absent across all mutations: before/after amendment record, financial delta, additional-due collection, overpayment resolution on decrease, AR/tax-document adjustment, approval gates, per-mutation idempotency.
+**Confirmed unsafe pattern (step by step):**
+
+```text
+POST /api/v1/preparation/[id]/items                      (route)
+→ addOrderItems (lib/db/orders.ts)                       (direct row insert, pricing-calculator math)
+→ recalculateOrderTotals (:867)                          (independent recompute)
+   → total = Σ item.total_price                          (assumes line totals are tax-INCLUSIVE)
+   → vatRate = order.vat_rate ?? 0.05                    (hardcoded fallback, :917)
+   → subtotal = total / (1 + vatRate); tax = total − subtotal
+   → UPDATE org_orders_mst SET subtotal/tax/total        (UNSAFE_DIRECT_UPDATE — no delta, no approval)
+→ recalculateOrderFinancialSnapshot                      (canonical recalc then trusts the poisoned inputs)
+```
+
+For a TAX_EXCLUSIVE tenant the reverse-split misstates subtotal and tax; because the snapshot rebuilds from the same headers/items, the drift is masked rather than flagged. No settlement consequence is evaluated: adding items to a PAID order silently increases `outstanding` with no policy, and removing items creates `overpaid_amount` with no disposition prompt.
+
+Common controls absent across all mutations: before/after amendment record, financial delta, additional-due collection, overpayment resolution on decrease, AR/tax-document adjustment, approval gates, per-mutation idempotency.
 
 # 30. Order Cancellation Matrix
 
-Common engine: `unwindOrderFinancialsOnCancel` + workflow transition (workflow-service-enhanced). Legend: SV=stored value.
+Common engine: `unwindOrderFinancialsOnCancel` + workflow transition (workflow-service-enhanced). Paid-value dispositions (mandatory when `paidNet > 0`, else throws `CANCEL_DISPOSITION_REQUIRED`): `REFUND` → one refund row per payment (post-tx, keyed, inherits §8 gaps) · `STORE_CREDIT` → credit note for `paidNet` (idem `cancel-${orderId}-store-credit`) · `KEEP_ON_ACCOUNT` → no mutation, outbox event is the audit record. Legend: SV=stored value.
 
 | Scenario | Refund/reversal | SV restore | Drawer | BVM | AR/Tax doc | GL | Snapshot | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -442,7 +512,34 @@ Row statuses on `org_order_payments_dtl.payment_status`; canonical sets in ORDER
 
 **Bank transfer** — DECLARED (leg with bank_reference, PENDING) IMPLEMENTED; VERIFIED via verifyPaymentTx; CLEARED/REJECTED/REVERSED NOT_FOUND; no bank clearing account model → **PARTIAL**.
 
-All families: no cash/bank **clearing-account** concept, no GL per event (§39), reconciliation covers link/amount checks only.
+All families: no cash/bank **clearing-account** concept, no GL per event (§39), reconciliation covers link/amount checks only. D9 `default_creation_status='PENDING'` is honored at submit (config beats the CASH/CARD→COMPLETED fallback; explicit request can force PENDING but never COMPLETED) but ignored by `collectPaymentTx` (M6); the only transition out of PENDING is verify — no cancel/fail/bounce, no pending worklist, no durable verification audit (H8).
+
+## 31.1 Pending-payment lifecycle — current vs required (H8 / B30)
+
+`default_creation_status='PENDING'` is the designed contract for non-instant methods (check, bank transfer, gateway-confirmed) — cash normally completes instantly and rarely intersects this lifecycle (M7 is defensive only).
+
+**Current state (verified):**
+
+| Element | Status | Evidence |
+|---|---|---|
+| Backend transition PENDING→COMPLETED | IMPLEMENTED — locked, idempotent, snapshot recalc, outbox | verifyPaymentTx (order-settlement.service.ts:459) |
+| API route | IMPLEMENTED — `POST /orders/[id]/payments/[paymentId]/verify`, `orders:verify_payment` | route file |
+| UI | PARTIAL — per-payment Verify button on the order Financial tab only | order-payments-credits-tables.tsx:283 |
+| Cross-order pending worklist screen | NOT_FOUND | — |
+| Cancel / fail / bounce / reject transition | NOT_FOUND — status values exist in the FAILED set (§5.1) but nothing writes them; non-PENDING rows throw on verify | order-settlement.service.ts:515 |
+| Reason capture on transition | NOT_FOUND | — |
+| Durable actor audit | PARTIAL — row stamps generic `updated_by`/`paid_at` (:528–533); `verified_by` only in the outbox payload, which is never consumed (H6) → no history entry materializes | :549–570 |
+| Failure fallback on outstanding policy | NOT_FOUND — plan counted the PENDING leg at full value, so a failed leg leaves outstanding>0 with `outstandingPolicy='NONE'`, no AR/POC reclassification | planner:169–181 |
+
+**Required target state (recommendation — no design or plan yet):**
+
+| Requirement | Content |
+|---|---|
+| Worklist screen | tenant/branch-scoped list of PENDING/AUTHORIZED legs (method, amount, age, reference, order link) for accountants/back office |
+| Actions | VERIFY → COMPLETED; CANCEL → CANCELLED; FAIL/BOUNCE → FAILED (check/bank); each with mandatory reason and per-action permission (`orders:verify_payment` exists; cancel/fail codes missing — §43) |
+| Financial consequence | on CANCEL/FAIL: snapshot recalc (statuses already aggregate correctly, §5.1) + outstanding-policy re-evaluation (offer POC / AR / re-tender), drawer/gateway compensation where a movement was recorded |
+| Audit | dedicated `verified_by/verified_at` (and cancelled/failed equivalents + reason) on the payment row, or a working outbox→history consumer (B7) — every user action must produce a durable, user-visible log entry |
+| Idempotency | replay-safe per transition (verify already is; cancel/fail must be) |
 
 # 32. Split, Partial, Later Collection, and Pay-on-Collection Matrix
 
@@ -535,7 +632,17 @@ GL: only invoice-created posts (ORDER_INVOICED). Allocations, write-offs, credit
 | GIFT_CARD_LIABILITY_CREATED | NOT_FOUND (report-only liability read) |
 | LOYALTY_LIABILITY_CREATED / RELEASED | NOT_FOUND |
 
-Payment-received ≠ receivable ≠ contract liability ≠ tax liability ≠ revenue is **not modeled**; prepaid orders conflate cash receipt with settlement. IFRS 15 treatment (performance obligation, breakage, points liability): NOT_FOUND. Target-state requirement, not a regression.
+**Layer separation not modeled (target-state requirement, not a regression):**
+
+| Layer | What should record it | Current reality |
+|---|---|---|
+| Payment received | payment fact + voucher + (target) GL cash/clearing entry | fact + voucher exist; GL absent |
+| Receivable created | AR invoice + GL AR/revenue entry | AR invoice + ORDER_INVOICED journal exist (only for CREDIT_INVOICE) |
+| Contract liability created | deferred-revenue / advance / GC / loyalty liability postings | ledgers exist; no liability postings |
+| Tax liability created | tax facts + tax document + GL VAT-payable entry | tax facts only |
+| Revenue earned | recognition event at fulfillment trigger | nothing — cash orders never recognize revenue in GL |
+
+Prepaid orders conflate cash receipt with settlement. IFRS 15 treatment (performance obligation, breakage, points liability): NOT_FOUND.
 
 # 38. BVM Operational Document Catalogue
 
@@ -569,7 +676,23 @@ Event codes: ERP_LITE_TXN_EVENT_CODES (erp-lite-posting.ts:69–86). Engine supp
 | AR_PAYMENT_ALLOCATED / CUSTOMER_ADVANCE_* / WALLET_* / LOYALTY_* | no code | — | NOT_FOUND |
 | CASH_VARIANCE_RECORDED / GATEWAY_FEE / CHARGEBACK / ROUNDING_GAIN_LOSS / FX_GAIN_LOSS | no code | — | NOT_FOUND |
 
-Usage-map/account resolution and expected debit/credit lines come from governance packages (`org_fin_gov_assign_mst` + usage codes like CASH_MAIN); exception handling writes `org_fin_post_exc_tr`. Reversal: engine repost/retry exists; journal reversal event NOT_FOUND. BVM↔GL reconciliation: NOT_FOUND.
+Usage-map/account resolution and expected debit/credit lines come from governance packages (`org_fin_gov_assign_mst` + usage codes; `ERP_LITE_PAYMENT_USAGE_MAP` maps CASH→CASH_MAIN etc., erp-lite-posting.ts:98); exception handling writes `org_fin_post_exc_tr`. Reversal: engine repost/retry exists; journal reversal event NOT_FOUND. BVM↔GL reconciliation: NOT_FOUND.
+
+**Target-state journal sketch for the disconnected/missing events** (recommendation — account resolution stays governance-driven; this fixes only the debit/credit shape):
+
+| Event | Dr | Cr |
+|---|---|---|
+| ORDER_PAYMENT_RECEIVED (cash/card) | Cash/Clearing (per method usage code) | AR — order / Contract liability |
+| ORDER_REVENUE_RECOGNIZED (fulfillment trigger, §37) | Contract liability / AR | Service revenue (+ VAT payable split) |
+| ORDER_REFUND_ISSUED (real payment) | Revenue reversal / Refund expense | Cash/Clearing |
+| GIFT_CARD_SOLD | Cash/Clearing | GC liability |
+| GIFT_CARD_REDEEMED | GC liability | AR — order / revenue |
+| GIFT_CARD_EXPIRED (breakage) | GC liability | Breakage income |
+| WALLET_TOPPED_UP / ADVANCE_RECEIVED | Cash/Clearing | Wallet/Advance liability |
+| WALLET_APPLIED / ADVANCE_APPLIED | Wallet/Advance liability | AR — order |
+| LOYALTY_LIABILITY_CREATED / RELEASED | Loyalty expense ↔ Loyalty liability | Loyalty liability ↔ revenue/contra |
+| CASH_VARIANCE_RECORDED | Over/short expense (or income) | Cash |
+| ROUNDING_GAIN_LOSS / FX_GAIN_LOSS | Rounding/FX loss | Rounding/FX gain |
 
 # 40. Cash, Safe, Bank, and Gateway Controls
 
@@ -622,6 +745,7 @@ Confirmed permission codes (lib/constants/permissions/): `orders:create`, `order
 | Action | Permission | Maker-checker | Reason required | Threshold | Status |
 |---|---|---|---|---|---|
 | Refund request/approve/process | yes (two codes) | yes | manual-exception: yes | NOT_FOUND | IMPLEMENTED (controls only) |
+| Payment verify / cancel-fail | `orders:verify_payment` / NOT_FOUND | no | no | no | PARTIAL — verify gated; cancel/fail actions absent; actor audit not durable (H8) |
 | Order adjustment | yes (+autoApprove flag) | partial | yes | NOT_FOUND | IMPLEMENTED_WITH_CONSTRAINTS |
 | Voucher reversal | yes | no | UNVERIFIED | no | PARTIAL |
 | AR write-off | yes + approve-sensitive | partial | UNVERIFIED | no | PARTIAL |
@@ -668,6 +792,12 @@ Recommendation (evidence-backed): unify PAYMENT_METHODS into one module; add exp
 
 Net: the platform emits durable financial events and retry metadata that **nothing processes** — the primary operational-recovery gap.
 
+**Required recovery paths (target-state, ordered by dependency):**
+1. Scheduled financial-outbox processor (claimBatch → handler registry → markProcessed/scheduleRetry; dead-letter after max attempts) — unblocks order history, loyalty earn (H7), and any future GL-event fan-out.
+2. Pending-payment aging sweep — surface PENDING legs older than N days to the §31.1 worklist; escalate unverified checks/transfers.
+3. Stored-value expiry runners (gift card exists as `expireGiftCards`; wallet/loyalty need equivalents) + idempotency-key TTL cleaner.
+4. ERP posting retry runner over `org_fin_post_exc_tr` + scheduled reconciliation run with drift alerting; snapshot-repair sweep over `RECALCULATION_REQUIRED` rows.
+
 # 46. Reporting and Receipt Consistency
 
 | Output | Source | Status |
@@ -691,7 +821,7 @@ Net: the platform emits durable financial events and retry metadata that **nothi
 | OrderSettlementPlannerService | order-settlement-planner.service.ts | IMPLEMENTED | reuse for later collection |
 | OrderSettlementService | order-settlement.service.ts | IMPLEMENTED | retire non-wiring branch |
 | LaterCollectionService | collectPaymentTx (embedded) | PARTIAL | BVM + idempotency + planner reuse |
-| PaymentLifecycleService / PaymentReversalService | verifyPaymentTx only | PARTIAL / NOT_FOUND | full status transitions, void/reversal |
+| PaymentLifecycleService / PaymentReversalService | verifyPaymentTx only | PARTIAL / NOT_FOUND | cancel/fail/bounce transitions, cross-order pending worklist screen, mandatory reason + durable verification audit, void/reversal |
 | RefundClassificationService | classifyRefunds (snapshot-side) | PARTIAL | write-side classification |
 | RefundExecutionService | processRefund | PARTIAL | cash drawer, gateway, BVM, GL, reopen |
 | OrderFinancialUnwindService | order-cancel-financials.service.ts | IMPLEMENTED_WITH_CONSTRAINTS | loyalty, tax, GL parity |
@@ -743,6 +873,8 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | Refund cash / original card | ✗ | ✗ | ✗ | ✗ | wrong due | **✗ permanent blocker** | classify tests only | NOT_READY | C1/C2 |
 | Refund to wallet / credit note | ✗ | — | ✗ | ✗ | ✓ | ✗ | partial | PARTIAL | source-type, GL |
 | Gateway failure / verification | — | — | — | ✗ | ✓ | info/warn | partial | PARTIAL | callback |
+| D9 PENDING method at submit → verify | ✓ | — | ✗ | ✗ | ✓ | warn (MISMATCH) | partial | READY_WITH_CONSTRAINTS | no cancel path, no worklist (H8) |
+| D9 PENDING method at later collection | ✗ | ✓ | ✗ | ✗ | wrong paid | ✗ | none | NOT_READY | config ignored (M6) |
 | Gateway chargeback | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | none | NOT_IMPLEMENTED | family absent |
 | Tax-inclusive order | ✓(snap) | ✓ | ✗ | ✗ | ✓ | ✗ | partial | NOT_READY | preview/submit branch |
 | Tax-exempt customer | — | ✓ | ✗ | ✗ | ✓ | ✓ | jest | READY_WITH_CONSTRAINTS | — |
@@ -790,6 +922,9 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | B27 | Missing permissions: price override, manual-discount threshold, cash variance approval, SV adjustments, closed-period, rate override | MEDIUM | CONTROL_GAP | §43 | — |
 | B28 | Test coverage for §49 NOT_READY rows (refund-outstanding, collect retry, amendments) | HIGH | CONTROL_GAP | §49 | B1–B5 |
 | B29 | Stale docs: reports claiming refund lineage "Phase 6 backfilled" — runtime never writes it | LOW | MAINTENANCE_RISK | mig 0340 vs service | — |
+| B30 | Pending-payment lifecycle workstation: cross-order pending worklist screen + verify/cancel/fail/bounce actions with mandatory reason, durable actor audit (verified_by/cancelled_by columns or working history consumer), and outstanding-policy fallback when a PENDING leg fails | HIGH | BLOCKS_FEATURE / CONTROL_GAP | H8; order-settlement.service.ts:515–533 | B7 (audit trail) |
+| B31 | `collectPaymentTx` must read and honor `default_creation_status` (and per-leg explicit status) instead of hardcoding COMPLETED for non-gateway methods | MEDIUM | CONTROL_GAP | M6; order-settlement.service.ts:827 | B4 |
+| B32 | Gate drawer movements on effective payment status; implement or remove `allow_status_override` | LOW | CONTROL_GAP | M7/M8 | — |
 
 # 51. Final Readiness Verdict
 

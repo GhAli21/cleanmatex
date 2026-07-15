@@ -5,10 +5,12 @@
  * inside (L4 primitive of the composable payment program).
  *
  * One capability = one small dialog: title, optional required badge, body,
- * cancel/confirm footer. The shell owns the chrome, the error boundary
- * (hardening #11), and open/dismiss observability (safe metadata only —
- * hardening #12). Bodies read engine-derived state and call typed engine
- * actions; the shell itself holds NO finance logic (locked program decision).
+ * Done footer (header X / Esc also dismiss). Cancel is optional and omitted
+ * for self-committing payment dialogs where it duplicates dismiss. The shell
+ * owns the chrome, the error boundary (hardening #11), and open/dismiss
+ * observability (safe metadata only — hardening #12). Bodies read
+ * engine-derived state and call typed engine actions; the shell itself holds
+ * NO finance logic (locked program decision).
  *
  * Focus trap, `Esc`-to-close, `aria-modal`, and focus-return come from
  * `CmxDialog` (Radix-based) — not re-implemented here.
@@ -42,13 +44,16 @@ export interface PaymentCapabilityDialogProps {
   title: string;
   /** Optional resolved one-line description under the title. */
   description?: string;
-  /** Marks a REQUIRED gate (e.g. B2B missing fields): shows the badge and
-   * hides the cancel path is NOT implied — required gates still allow cancel;
-   * submit stays guarded by the registry. */
+  /** Marks a REQUIRED gate (e.g. B2B missing fields): shows the badge.
+   * Dismiss remains via header X / Esc / Done; submit stays registry-guarded. */
   required?: boolean;
   /** Resolved label for the required badge (rendered only when `required`). */
   requiredLabel?: string;
-  /** Resolved cancel label; omit `onCancel` to hide the cancel button. */
+  /**
+   * Optional cancel path. Prefer omit for self-committing payment capability
+   * dialogs (Done + header X are enough). Pass both `cancelLabel` and
+   * `onCancel` only when cancel must differ from dismiss.
+   */
   cancelLabel?: string;
   onCancel?: () => void;
   /** Resolved confirm label; omit `onConfirm` to hide the confirm button

@@ -191,8 +191,6 @@ export function SplitTenderDialog({
       onOpenChange={onOpenChange}
       title={t('capabilities.SPLIT_TENDER.title')}
       description={t('capabilities.SPLIT_TENDER.description')}
-      cancelLabel={tCommon('cancel')}
-      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}

@@ -119,8 +119,6 @@ export function B2BAccountBillingDialog({
       description={t('capabilities.B2B_ACCOUNT_BILLING.description')}
       required={required}
       requiredLabel={t('capabilities.dialog.required')}
-      cancelLabel={tCommon('cancel')}
-      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}

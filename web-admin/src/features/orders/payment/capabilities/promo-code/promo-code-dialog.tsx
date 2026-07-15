@@ -92,8 +92,6 @@ export function PromoCodeDialog({
       onOpenChange={onOpenChange}
       title={t('capabilities.PROMO_CODE.title')}
       description={t('capabilities.PROMO_CODE.description')}
-      cancelLabel={tCommon('cancel')}
-      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}

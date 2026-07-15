@@ -90,8 +90,6 @@ export function PayLaterDialog({
       onOpenChange={onOpenChange}
       title={t('capabilities.PAY_LATER.title')}
       description={t('capabilities.PAY_LATER.description')}
-      cancelLabel={tCommon('cancel')}
-      onCancel={() => onOpenChange(false)}
       confirmLabel={tCommon('done')}
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
