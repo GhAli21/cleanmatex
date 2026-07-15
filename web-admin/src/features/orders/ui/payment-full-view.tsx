@@ -902,6 +902,7 @@ export function PaymentFullView({
       EXPIRED:                 t('promoCode.errors.expired'),
       MAX_USES_EXCEEDED:       t('promoCode.errors.maxUsesExceeded'),
       CATEGORY_NOT_APPLICABLE: t('promoCode.errors.categoryNotApplicable'),
+      CUSTOMER_GROUP_NOT_APPLICABLE: t('promoCode.errors.customerGroupNotApplicable'),
       CUSTOMER_LIMIT_EXCEEDED: t('promoCode.errors.customerLimitExceeded'),
     };
     return (errorCode && codeMap[errorCode]) ?? promoCodeResult.error ?? t('promoCode.errors.validationFailed');

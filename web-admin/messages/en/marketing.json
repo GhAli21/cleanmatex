@@ -38,6 +38,7 @@
       "validToHint": "Leave empty for no expiry. Times use your local timezone.",
       "noExpiry": "No expiry",
       "unlimited": "Unlimited",
+      "unlimitedPerCustomer": "Unlimited per customer",
       "maxUsesHint": "Turn on Unlimited to store no usage cap (null in the database).",
       "autoApply": "Auto",
       "minOrder": "Min Order Amount",
@@ -68,7 +69,10 @@
     "errors": {
       "codeExists": "Promo code already exists",
       "maxUsesExceeded": "Usage limit already reached — cannot save",
-      "maxUsesRequired": "Enter a max uses value, or turn on Unlimited"
+      "maxUsesRequired": "Enter a max uses value, or turn on Unlimited",
+      "maxUsesPerCustomerRequired": "Enter a per-customer limit, or turn on Unlimited per customer",
+      "percentageMax": "Percentage discount cannot exceed 100",
+      "validToBeforeFrom": "Valid To must be on or after Valid From"
     }
   },
   "giftCards": {

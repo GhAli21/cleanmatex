@@ -766,14 +766,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['loyalty:view_config'],
       },
       {
-        key: 'marketing_promotions',
-        label: 'Promotions',
-        label2: 'العروض الترويجية',
-        path: '/dashboard/marketing/promotions',
-        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-        permissions: ['promotions:view'],
-      },
-      {
         key: 'marketing_campaigns',
         label: 'Campaigns',
         label2: 'الحملات الإعلانية',

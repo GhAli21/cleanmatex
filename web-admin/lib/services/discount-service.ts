@@ -43,6 +43,7 @@ export type PromoEvalErrorCode =
   | 'MIN_ORDER_NOT_MET'
   | 'MAX_ORDER_EXCEEDED'
   | 'CATEGORY_NOT_APPLICABLE'
+  | 'CUSTOMER_GROUP_NOT_APPLICABLE'
   | 'CUSTOMER_LIMIT_EXCEEDED';
 
 /** Canonical result of evaluating a promo code against an order context. */
@@ -53,6 +54,155 @@ export interface PromoEvaluation {
   /** The resolved promotion row (present whenever the code was found). */
   promo?: PromoRow;
   discountAmount?: number;
+}
+
+export interface PromoEvalContext {
+  tenantId: string;
+  orderTotal: number;
+  customerId?: string;
+  serviceCategories?: string[];
+}
+
+function normalizeCodeList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((v) => String(v ?? '').trim().toUpperCase())
+    .filter(Boolean);
+}
+
+/**
+ * Evaluate an already-loaded promo row against order context.
+ * Shared by typed-code and auto-apply paths.
+ */
+async function evaluatePromoRow(
+  promo: PromoRow,
+  ctx: PromoEvalContext
+): Promise<PromoEvaluation> {
+  const { tenantId, orderTotal, customerId, serviceCategories } = ctx;
+
+  const moneyCfg = await tenantSettingsService.getCurrencyConfig(tenantId);
+  const fmtMoney = (amount: number) =>
+    formatMoneyAmountWithCode(amount, {
+      currencyCode: moneyCfg.currencyCode,
+      decimalPlaces: moneyCfg.decimalPlaces,
+      locale: 'en',
+    });
+
+  if (!promo.is_active || !promo.is_enabled || promo.rec_status !== 1) {
+    return { isValid: false, errorCode: 'NOT_FOUND', error: 'Promo code not found or is no longer active', promo };
+  }
+
+  const now = new Date();
+  const validFrom = new Date(promo.valid_from);
+  const validTo = promo.valid_to ? new Date(promo.valid_to) : null;
+  if (now < validFrom) {
+    return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code is not yet valid', promo };
+  }
+  if (validTo && now > validTo) {
+    return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code has expired', promo };
+  }
+
+  if (promo.max_uses !== null && promo.current_uses !== null && promo.current_uses >= promo.max_uses) {
+    return { isValid: false, errorCode: 'MAX_USES_EXCEEDED', error: 'Promo code has reached maximum usage limit', promo };
+  }
+
+  const minOrder = Number(promo.min_order_amount ?? 0);
+  if (orderTotal < minOrder) {
+    return { isValid: false, errorCode: 'MIN_ORDER_NOT_MET', error: `Order total must be at least ${fmtMoney(minOrder)}`, promo };
+  }
+  if (promo.max_order_amount != null && orderTotal > Number(promo.max_order_amount)) {
+    return {
+      isValid: false,
+      errorCode: 'MAX_ORDER_EXCEEDED',
+      error: `Promo code only valid for orders up to ${fmtMoney(Number(promo.max_order_amount))}`,
+      promo,
+    };
+  }
+
+  // Category restriction: non-empty list requires every order category to be
+  // in the allow-list (fail closed when the order has no categories).
+  const applicableCategories = normalizeCodeList(promo.applicable_categories);
+  if (applicableCategories.length > 0) {
+    const orderCats = normalizeCodeList(serviceCategories ?? []);
+    if (orderCats.length === 0) {
+      return {
+        isValid: false,
+        errorCode: 'CATEGORY_NOT_APPLICABLE',
+        error: 'Promo code not applicable to selected services',
+        promo,
+      };
+    }
+    const allAllowed = orderCats.every((cat) => applicableCategories.includes(cat));
+    if (!allAllowed) {
+      return {
+        isValid: false,
+        errorCode: 'CATEGORY_NOT_APPLICABLE',
+        error: 'Promo code not applicable to selected services',
+        promo,
+      };
+    }
+  }
+
+  // Customer group restriction: match customer type and/or category code.
+  const applicableGroups = normalizeCodeList(promo.applicable_customer_grps);
+  if (applicableGroups.length > 0) {
+    if (!customerId) {
+      return {
+        isValid: false,
+        errorCode: 'CUSTOMER_GROUP_NOT_APPLICABLE',
+        error: 'Promo code is not available for this customer',
+        promo,
+      };
+    }
+    const customer = await prisma.org_customers_mst.findFirst({
+      where: { id: customerId, tenant_org_id: tenantId, is_active: true },
+      select: {
+        type: true,
+        org_customer_category_cf: { select: { code: true } },
+      },
+    });
+    const customerTokens = normalizeCodeList([
+      customer?.type,
+      customer?.org_customer_category_cf?.code,
+    ]);
+    const groupMatch = customerTokens.some((token) => applicableGroups.includes(token));
+    if (!groupMatch) {
+      return {
+        isValid: false,
+        errorCode: 'CUSTOMER_GROUP_NOT_APPLICABLE',
+        error: 'Promo code is not available for this customer',
+        promo,
+      };
+    }
+  }
+
+  if (customerId && promo.max_uses_per_customer !== null && promo.max_uses_per_customer !== undefined) {
+    const usedByCustomer = await prisma.org_promotion_usage_dtl.count({
+      where: {
+        tenant_org_id: tenantId,
+        promo_code_id: promo.id,
+        customer_id: customerId,
+        voided_at: null,
+      },
+    });
+    if (usedByCustomer >= promo.max_uses_per_customer) {
+      return {
+        isValid: false,
+        errorCode: 'CUSTOMER_LIMIT_EXCEEDED',
+        error: 'You have reached the maximum usage limit for this promo code',
+        promo,
+      };
+    }
+  }
+
+  const discountAmount = calculatePromoDiscount(
+    orderTotal,
+    promo.discount_type,
+    Number(promo.discount_value),
+    promo.max_discount_amount != null ? Number(promo.max_discount_amount) : undefined,
+  );
+
+  return { isValid: true, promo, discountAmount };
 }
 
 /**
@@ -90,67 +240,44 @@ export async function evaluatePromoCode(params: {
       return { isValid: false, errorCode: 'NOT_FOUND', error: 'Promo code not found or is no longer active' };
     }
 
-    const moneyCfg = await tenantSettingsService.getCurrencyConfig(tenantId);
-    const fmtMoney = (amount: number) =>
-      formatMoneyAmountWithCode(amount, {
-        currencyCode: moneyCfg.currencyCode,
-        decimalPlaces: moneyCfg.decimalPlaces,
-        locale: 'en',
-      });
+    return evaluatePromoRow(promo, { tenantId, orderTotal, customerId, serviceCategories });
+  });
+}
 
-    // Validity window
-    const now = new Date();
-    const validFrom = new Date(promo.valid_from);
-    const validTo = promo.valid_to ? new Date(promo.valid_to) : null;
-    if (now < validFrom) {
-      return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code is not yet valid', promo };
-    }
-    if (validTo && now > validTo) {
-      return { isValid: false, errorCode: 'EXPIRED', error: 'Promo code has expired', promo };
-    }
+/**
+ * Best valid auto-apply promotion (null promo_code) for the order context.
+ * Used when checkout has no typed code.
+ */
+export async function evaluateBestAutoApplyPromo(
+  ctx: PromoEvalContext
+): Promise<PromoEvaluation | null> {
+  const { tenantId } = ctx;
+  const now = new Date();
 
-    // Global usage cap — uses the atomic `current_uses` counter, the same value
-    // the apply path enforces under lock (reversals decrement it).
-    if (promo.max_uses !== null && promo.current_uses !== null && promo.current_uses >= promo.max_uses) {
-      return { isValid: false, errorCode: 'MAX_USES_EXCEEDED', error: 'Promo code has reached maximum usage limit', promo };
-    }
+  return withTenantContext(tenantId, async () => {
+    const rows = await prisma.org_promotions_mst.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        promo_code: null,
+        is_active: true,
+        is_enabled: true,
+        rec_status: 1,
+        valid_from: { lte: now },
+        AND: [{ OR: [{ valid_to: null }, { valid_to: { gte: now } }] }],
+      },
+      orderBy: { discount_value: 'desc' },
+      take: 25,
+    });
 
-    // Order-amount thresholds
-    const minOrder = Number(promo.min_order_amount ?? 0);
-    if (orderTotal < minOrder) {
-      return { isValid: false, errorCode: 'MIN_ORDER_NOT_MET', error: `Order total must be at least ${fmtMoney(minOrder)}`, promo };
-    }
-    if (promo.max_order_amount != null && orderTotal > Number(promo.max_order_amount)) {
-      return { isValid: false, errorCode: 'MAX_ORDER_EXCEEDED', error: `Promo code only valid for orders up to ${fmtMoney(Number(promo.max_order_amount))}`, promo };
-    }
-
-    // Applicable service categories (only enforced when the caller supplies them)
-    if (promo.applicable_categories && serviceCategories && serviceCategories.length > 0) {
-      const applicable = promo.applicable_categories as string[];
-      const hasMatch = serviceCategories.some((cat) => applicable.includes(cat));
-      if (!hasMatch) {
-        return { isValid: false, errorCode: 'CATEGORY_NOT_APPLICABLE', error: 'Promo code not applicable to selected services', promo };
+    let best: PromoEvaluation | null = null;
+    for (const promo of rows) {
+      const result = await evaluatePromoRow(promo, ctx);
+      if (!result.isValid || result.discountAmount == null) continue;
+      if (!best || (result.discountAmount ?? 0) > (best.discountAmount ?? 0)) {
+        best = result;
       }
     }
-
-    // Per-customer usage cap — excludes voided (reversed) usages.
-    if (customerId && promo.max_uses_per_customer !== null && promo.max_uses_per_customer !== undefined) {
-      const usedByCustomer = await prisma.org_promotion_usage_dtl.count({
-        where: { tenant_org_id: tenantId, promo_code_id: promo.id, customer_id: customerId, voided_at: null },
-      });
-      if (usedByCustomer >= promo.max_uses_per_customer) {
-        return { isValid: false, errorCode: 'CUSTOMER_LIMIT_EXCEEDED', error: 'You have reached the maximum usage limit for this promo code', promo };
-      }
-    }
-
-    const discountAmount = calculatePromoDiscount(
-      orderTotal,
-      promo.discount_type,
-      Number(promo.discount_value),
-      promo.max_discount_amount != null ? Number(promo.max_discount_amount) : undefined,
-    );
-
-    return { isValid: true, promo, discountAmount };
+    return best;
   });
 }
 

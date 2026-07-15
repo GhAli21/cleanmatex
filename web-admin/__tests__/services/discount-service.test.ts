@@ -14,9 +14,10 @@ jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
-    org_promotions_mst: { findFirst: jest.fn() },
+    org_promotions_mst: { findFirst: jest.fn(), findMany: jest.fn() },
     org_promotion_usage_dtl: { count: jest.fn() },
     org_discount_rules_cf: { findMany: jest.fn() },
+    org_customers_mst: { findFirst: jest.fn() },
   },
 }));
 
@@ -62,6 +63,7 @@ function makePromoRow(overrides: Record<string, unknown> = {}) {
     min_order_amount: 0,
     max_order_amount: null,
     applicable_categories: null,
+    applicable_customer_grps: null,
     max_uses: null,
     current_uses: 0,
     max_uses_per_customer: null,
@@ -341,6 +343,32 @@ describe('discount-service — evaluatePromoCode (unified validator)', () => {
     mockPromoFindFirst.mockResolvedValue(makePromoRow({ applicable_categories: ['DRY_CLEAN'] }));
     const r = await evaluatePromoCode({ ...base, serviceCategories: ['WASH_FOLD'] });
     expect(r).toMatchObject({ isValid: false, errorCode: 'CATEGORY_NOT_APPLICABLE' });
+  });
+
+  it('CATEGORY_NOT_APPLICABLE when order has no categories but promo is restricted', async () => {
+    mockPromoFindFirst.mockResolvedValue(makePromoRow({ applicable_categories: ['DRY_CLEAN'] }));
+    const r = await evaluatePromoCode({ ...base, serviceCategories: [] });
+    expect(r).toMatchObject({ isValid: false, errorCode: 'CATEGORY_NOT_APPLICABLE' });
+  });
+
+  it('CATEGORY_NOT_APPLICABLE when mixed cart has a non-allowed category', async () => {
+    mockPromoFindFirst.mockResolvedValue(makePromoRow({ applicable_categories: ['DRY_CLEAN'] }));
+    const r = await evaluatePromoCode({
+      ...base,
+      serviceCategories: ['DRY_CLEAN', 'WASH_FOLD'],
+    });
+    expect(r).toMatchObject({ isValid: false, errorCode: 'CATEGORY_NOT_APPLICABLE' });
+  });
+
+  it('allows promo when every order category is in the allow-list', async () => {
+    mockPromoFindFirst.mockResolvedValue(
+      makePromoRow({ applicable_categories: ['DRY_CLEAN', 'WASH_FOLD'] })
+    );
+    const r = await evaluatePromoCode({
+      ...base,
+      serviceCategories: ['dry_clean'],
+    });
+    expect(r.isValid).toBe(true);
   });
 
   it('CUSTOMER_LIMIT_EXCEEDED counts only non-voided usages', async () => {

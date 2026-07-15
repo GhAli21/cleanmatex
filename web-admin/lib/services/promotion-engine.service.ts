@@ -33,7 +33,7 @@ async function getPromotion(tenantId: string, promoId: string) {
 /**
  * Return all auto-apply promotions (NULL promo_code) for the given order context.
  */
-export async function getAutoApplyPromotions(tenantId: string, orderAmount: number) {
+export async function getAutoApplyPromotions(tenantId: string, _orderAmount: number) {
   const now = new Date();
   return withTenantContext(tenantId, () =>
     prisma.org_promotions_mst.findMany({
@@ -41,9 +41,10 @@ export async function getAutoApplyPromotions(tenantId: string, orderAmount: numb
         tenant_org_id: tenantId,
         promo_code:    null,
         is_active:     true,
+        is_enabled:    true,
         rec_status:    1,
         valid_from:    { lte: now },
-        OR: [{ valid_to: null }, { valid_to: { gte: now } }],
+        AND: [{ OR: [{ valid_to: null }, { valid_to: { gte: now } }] }],
       },
       orderBy: { discount_value: 'desc' },
     })
@@ -192,11 +193,15 @@ export async function createPromotion(tenantId: string, data: {
   );
 }
 
-export async function togglePromotionActive(tenantId: string, promoId: string, isActive: boolean) {
+/**
+ * Enable/disable a promotion without archiving it.
+ * Writes `is_enabled` (same semantics as /promos), not `is_active`.
+ */
+export async function togglePromotionActive(tenantId: string, promoId: string, isEnabled: boolean) {
   return withTenantContext(tenantId, () =>
     prisma.org_promotions_mst.update({
       where: { id: promoId, tenant_org_id: tenantId },
-      data:  { is_active: isActive, updated_at: new Date() },
+      data:  { is_enabled: isEnabled, updated_at: new Date() },
     })
   );
 }

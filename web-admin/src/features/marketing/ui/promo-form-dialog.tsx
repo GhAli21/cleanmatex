@@ -90,6 +90,7 @@ const schema = z.object({
   max_uses: optionalPositiveIntOrNull,
   max_uses_unlimited: z.boolean().default(true),
   max_uses_per_customer: optionalPositiveIntOrNull,
+  max_uses_per_customer_unlimited: z.boolean().default(false),
   valid_from: z.string().min(1, 'Required'),
   valid_to: z.string().optional(),
   is_enabled: z.boolean().default(true),
@@ -142,6 +143,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       max_uses: null,
       max_uses_unlimited: true,
       max_uses_per_customer: 1,
+      max_uses_per_customer_unlimited: false,
       valid_from: toLocalDatetimeInput(new Date().toISOString()),
       valid_to: '',
       is_enabled: true,
@@ -154,6 +156,10 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
   const discountType = useWatch({ control: form.control, name: 'discount_type' });
   const stackable = useWatch({ control: form.control, name: 'stackable' });
   const maxUsesUnlimited = useWatch({ control: form.control, name: 'max_uses_unlimited' });
+  const maxUsesPerCustomerUnlimited = useWatch({
+    control: form.control,
+    name: 'max_uses_per_customer_unlimited',
+  });
 
   const promoSignature = promo?.id ?? 'create';
   const [prevPromoSignature, setPrevPromoSignature] = useState(promoSignature);
@@ -165,6 +171,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
   useEffect(() => {
     if (promo) {
       const unlimited = promo.max_uses == null;
+      const perCustomerUnlimited = promo.max_uses_per_customer == null;
       form.reset({
         promo_code: promo.promo_code ?? '',
         promo_name: promo.promo_name,
@@ -180,7 +187,8 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         applicable_customer_grps: promo.applicable_customer_grps?.join(', ') ?? '',
         max_uses: unlimited ? null : promo.max_uses,
         max_uses_unlimited: unlimited,
-        max_uses_per_customer: promo.max_uses_per_customer ?? 1,
+        max_uses_per_customer: perCustomerUnlimited ? null : promo.max_uses_per_customer,
+        max_uses_per_customer_unlimited: perCustomerUnlimited,
         valid_from: toLocalDatetimeInput(promo.valid_from),
         valid_to: toLocalDatetimeInput(promo.valid_to),
         is_enabled: promo.is_enabled,
@@ -205,6 +213,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         max_uses: null,
         max_uses_unlimited: true,
         max_uses_per_customer: 1,
+        max_uses_per_customer_unlimited: false,
         valid_from: toLocalDatetimeInput(new Date().toISOString()),
         valid_to: '',
         is_enabled: true,
@@ -228,6 +237,32 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       return;
     }
 
+    const maxUsesPerCustomer = values.max_uses_per_customer_unlimited
+      ? null
+      : toOptionalNumber(values.max_uses_per_customer);
+
+    if (!values.max_uses_per_customer_unlimited && maxUsesPerCustomer == null) {
+      form.setError('max_uses_per_customer', { message: t('errors.maxUsesPerCustomerRequired') });
+      return;
+    }
+
+    if (
+      values.discount_type === 'percentage' &&
+      values.discount_value > 100
+    ) {
+      form.setError('discount_value', { message: t('errors.percentageMax') });
+      return;
+    }
+
+    if (
+      values.valid_to &&
+      values.valid_from &&
+      new Date(values.valid_to) < new Date(values.valid_from)
+    ) {
+      form.setError('valid_to', { message: t('errors.validToBeforeFrom') });
+      return;
+    }
+
     const payload = {
       promo_code: values.promo_code.trim().toUpperCase() || null,
       promo_name: values.promo_name,
@@ -239,10 +274,18 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       max_discount_amount: toOptionalNumber(values.max_discount_amount),
       min_order_amount: values.min_order_amount,
       max_order_amount: toOptionalNumber(values.max_order_amount),
-      applicable_categories: splitCsv(values.applicable_categories ?? ''),
-      applicable_customer_grps: splitCsv(values.applicable_customer_grps ?? ''),
+      // Empty → null (all services / all groups). Never persist [] — that
+      // blocks every order because category matching treats [] as a restriction.
+      applicable_categories: (() => {
+        const cats = splitCsv(values.applicable_categories ?? '');
+        return cats.length > 0 ? cats : null;
+      })(),
+      applicable_customer_grps: (() => {
+        const grps = splitCsv(values.applicable_customer_grps ?? '');
+        return grps.length > 0 ? grps : null;
+      })(),
       max_uses: maxUses,
-      max_uses_per_customer: toOptionalNumber(values.max_uses_per_customer) ?? 1,
+      max_uses_per_customer: maxUsesPerCustomer,
       valid_from: values.valid_from
         ? new Date(values.valid_from).toISOString()
         : new Date().toISOString(),
@@ -295,7 +338,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
                   render={({ field }) => (
                     <CmxInput
                       className="uppercase"
-                      disabled={isEdit && !!promo?.promo_code}
+                      disabled={isEdit && !!promo?.promo_code && promo.promo_code.length > 0}
                       placeholder={t('fields.codePlaceholder')}
                       value={field.value}
                       onBlur={field.onBlur}
@@ -470,32 +513,64 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
                 <p className="text-xs text-muted-foreground">{t('fields.maxUsesHint')}</p>
               </div>
 
-              <div>
-                <Label>{t('fields.maxUsesPerCustomer')}</Label>
-                <Controller
-                  control={form.control}
-                  name="max_uses_per_customer"
-                  render={({ field }) => (
-                    <CmxInput
-                      type="number"
-                      step="1"
-                      min="1"
-                      value={field.value == null ? '' : String(field.value)}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === '') {
-                          field.onChange(null);
-                          return;
-                        }
-                        const n = Number(raw);
-                        field.onChange(Number.isFinite(n) && n > 0 ? Math.floor(n) : null);
-                      }}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Controller
+                    control={form.control}
+                    name="max_uses_per_customer_unlimited"
+                    render={({ field }) => (
+                      <CmxSwitch
+                        id="max_uses_per_customer_unlimited"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          if (checked) {
+                            form.setValue('max_uses_per_customer', null, { shouldValidate: true });
+                          } else if (form.getValues('max_uses_per_customer') == null) {
+                            form.setValue('max_uses_per_customer', 1, { shouldValidate: true });
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="max_uses_per_customer_unlimited">
+                    {t('fields.unlimitedPerCustomer')}
+                  </Label>
+                </div>
+                {!maxUsesPerCustomerUnlimited && (
+                  <div>
+                    <Label>{t('fields.maxUsesPerCustomer')}</Label>
+                    <Controller
+                      control={form.control}
+                      name="max_uses_per_customer"
+                      render={({ field }) => (
+                        <CmxInput
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={field.value == null ? '' : String(field.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              field.onChange(null);
+                              return;
+                            }
+                            const n = Number(raw);
+                            field.onChange(Number.isFinite(n) && n > 0 ? Math.floor(n) : null);
+                          }}
+                        />
+                      )}
                     />
-                  )}
-                />
+                    {form.formState.errors.max_uses_per_customer && (
+                      <p className="text-destructive text-xs mt-1">
+                        {form.formState.errors.max_uses_per_customer.message}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

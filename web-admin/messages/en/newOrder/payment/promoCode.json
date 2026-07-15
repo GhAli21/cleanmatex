@@ -16,6 +16,7 @@
     "minOrderNotMet": "Order total must be at least {amount}",
     "maxOrderExceeded": "Promo code only valid for orders up to {amount}",
     "categoryNotApplicable": "Promo code not applicable to selected services",
+    "customerGroupNotApplicable": "Promo code is not available for this customer",
     "customerLimitExceeded": "You have reached the maximum usage limit for this promo code",
     "validationFailed": "Failed to validate promo code"
   },

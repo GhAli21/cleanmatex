@@ -990,21 +990,32 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     cashDrawerBlockingMessage,
   } = cashDrawer;
 
-  // Promo handlers
+  // Promo handlers — validate against the same money base as server calculateOrderTotals
+  // (checkoutAmount includes prefs; then subtract manual %/amount discount).
   const handleValidatePromoCode = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!promoCode?.trim()) return;
     setPromoCodeValidating(true);
     setPromoCodeResult(null);
     try {
+      const checkoutBase = checkoutAmount ?? total;
+      let manualDiscount = 0;
+      if ((percentDiscount ?? 0) > 0) {
+        manualDiscount = Math.min((checkoutBase * percentDiscount) / 100, checkoutBase);
+      } else if ((amountDiscount ?? 0) > 0) {
+        manualDiscount = Math.min(amountDiscount, checkoutBase);
+      }
+      const orderTotalForPromo = Math.max(0, checkoutBase - manualDiscount);
+
       const result = await validatePromoCodeAction(tenantOrgId, {
         promo_code: promoCode,
-        order_total: total,
+        order_total: orderTotalForPromo,
         customer_id: customerId,
         service_categories: serviceCategories,
       });
       setPromoCodeResult(result);
-      if (result.isValid && result.promoCode && result.discountAmount) {
+      // Allow zero discountAmount (edge) — only require a valid promo identity.
+      if (result.isValid && result.promoCode && result.discountAmount != null) {
         const applied = { code: promoCode, id: result.promoCode.id, discount: result.discountAmount };
         setAppliedPromoCode(applied);
         setValue('promoCode', promoCode);

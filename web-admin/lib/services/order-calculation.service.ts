@@ -12,7 +12,11 @@ import { createClient } from '@/lib/supabase/server';
 import { pricingService } from './pricing.service';
 import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
-import { validatePromoCode, getBestDiscount } from './discount-service';
+import {
+  validatePromoCode,
+  getBestDiscount,
+  evaluateBestAutoApplyPromo,
+} from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import { calculateTax } from './tax-engine.service';
 import type { PriceResult } from '@/lib/types/pricing';
@@ -220,40 +224,58 @@ export async function calculateOrderTotals(
   );
 
   let promoDiscount = 0;
-  if (promoCode?.trim()) {
-    // If the best auto rule does not allow stacking with a promo code,
-    // compare the two and keep only the larger discount.
-    if (bestRule && !bestRule.rule.can_stack_with_promo) {
-      const promoResult = await validatePromoCode({
-        promo_code: promoCode,
-        order_total: afterManualDiscount,
-        customer_id: customerId,
-        service_categories: serviceCategories,
-      });
-      const promoAmt = promoResult.isValid && promoResult.discountAmount != null
-        ? round(Math.min(promoResult.discountAmount, afterManualDiscount), decimalPlaces)
-        : 0;
+  /** Resolved promo id for usage logging (typed code or auto-apply). */
+  let resolvedPromoId: string | undefined = promoCodeId;
 
-      if (promoAmt >= autoRuleDiscount) {
-        // Promo wins — suppress the auto rule discount.
-        autoRuleDiscount = 0;
-        promoDiscount = promoAmt;
-      }
-      // else: auto rule wins — promoDiscount stays 0.
-    } else {
-      // Stackable path: apply both auto rule and promo.
+  const resolveTypedOrAutoPromo = async (orderBase: number) => {
+    if (promoCode?.trim()) {
       const promoResult = await validatePromoCode({
         promo_code: promoCode,
-        order_total: afterAutoRuleDiscount,
+        order_total: orderBase,
         customer_id: customerId,
         service_categories: serviceCategories,
       });
       if (promoResult.isValid && promoResult.discountAmount != null) {
-        promoDiscount = round(
-          Math.min(promoResult.discountAmount, afterAutoRuleDiscount),
-          decimalPlaces
-        );
+        return {
+          amount: round(Math.min(promoResult.discountAmount, orderBase), decimalPlaces),
+          promoId: promoResult.promoCode?.id,
+          sourceName: promoCode.toUpperCase(),
+        };
       }
+      return { amount: 0, promoId: undefined as string | undefined, sourceName: 'Promo Code' };
+    }
+
+    const auto = await evaluateBestAutoApplyPromo({
+      tenantId,
+      orderTotal: orderBase,
+      customerId,
+      serviceCategories,
+    });
+    if (auto?.isValid && auto.discountAmount != null && auto.promo) {
+      return {
+        amount: round(Math.min(auto.discountAmount, orderBase), decimalPlaces),
+        promoId: auto.promo.id,
+        sourceName: auto.promo.promo_name ?? 'Auto Promo',
+      };
+    }
+    return { amount: 0, promoId: undefined as string | undefined, sourceName: 'Promo Code' };
+  };
+
+  let promoSourceName = 'Promo Code';
+  if (bestRule && !bestRule.rule.can_stack_with_promo) {
+    const resolved = await resolveTypedOrAutoPromo(afterManualDiscount);
+    if (resolved.amount >= autoRuleDiscount && resolved.amount > 0) {
+      autoRuleDiscount = 0;
+      promoDiscount = resolved.amount;
+      resolvedPromoId = resolved.promoId ?? resolvedPromoId;
+      promoSourceName = resolved.sourceName;
+    }
+  } else {
+    const resolved = await resolveTypedOrAutoPromo(afterAutoRuleDiscount);
+    promoDiscount = resolved.amount;
+    if (resolved.amount > 0) {
+      resolvedPromoId = resolved.promoId ?? resolvedPromoId;
+      promoSourceName = resolved.sourceName;
     }
   }
 
@@ -366,8 +388,8 @@ export async function calculateOrderTotals(
   if (promoDiscount > 0) {
     discountLines.push({
       sourceType:    DISCOUNT_SOURCE_TYPE.PROMO_CODE,
-      sourceId:      promoCodeId ?? undefined,
-      sourceName:    promoCode ? promoCode.toUpperCase() : 'Promo Code',
+      sourceId:      resolvedPromoId,
+      sourceName:    promoSourceName,
       discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
       discountAmount: promoDiscount,
     });

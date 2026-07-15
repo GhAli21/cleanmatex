@@ -23,7 +23,7 @@ The platform is **not consistent across the full order-to-cash lifecycle**. Conf
 1. Refund processing writes neither `refund_source_type` nor `reopens_due_amount` → paid orders stay `PAID` after cash refunds, and refund classification falls back to heuristics.
 2. Snapshot and reconciliation compute outstanding with **different formulas** → permanent false blockers after refunds.
 3. Later collection (`collectPaymentTx`) bypasses BVM, has weak idempotency, and trips the platform's own voucher-link reconciliation invariant.
-4. ERP-Lite payment, refund, and gift-card dispatchers exist but have **no runtime callers** (DISCONNECTED). Wallet, customer-advance, loyalty, and AR-allocation accounting event codes or posting paths were **not found** (NOT_FOUND). POS settlements therefore never reach the GL.
+4. ERP-Lite payment, refund, gift-card, and wallet-settlement (`ORDER_SETTLED_WALLET`) dispatchers/event codes exist but have **no runtime callers** (DISCONNECTED). Wallet top-up, customer-advance, loyalty-liability, and AR-allocation accounting event codes were **not found** (NOT_FOUND). POS settlements therefore never reach the GL.
 5. Gift-card **sale** and wallet **top-up** write their stored-value ledger rows (GC SALE txn, wallet TOP_UP txn), but no tender/payment fact, BVM voucher, cash-drawer movement, or ERP-Lite GL posting is created (§33).
 6. The financial **outbox has no consumer** — loyalty earning is a concrete victim: `queueEarnPoints` only emits `LOYALTY_EARN` and nothing processes it (H7); `expireGiftCards` has no scheduler (§45).
 7. Tax-inclusive pricing, tax documents/e-invoice, currency rounding, FX gain/loss, order amendments, and gateway callbacks are partial, disconnected, or not found.
@@ -136,7 +136,7 @@ Note: the FAILED vocabulary (CANCELLED/VOIDED/REVERSED…) exists and the snapsh
 | REFUND_SOURCE_UNCLASSIFIED / PAYMENT_TARGET_UNCLASSIFIED | heuristic classification failed | RECALCULATION_REQUIRED |
 | LEGACY_FIELD_USED_IN_SUMMARY | header-total fallback used (no detail rows) | RECALCULATION_REQUIRED |
 
-`SNAPSHOT WRITER: IMPLEMENTED` · `INPUT SEMANTICS (refunds, rounding, tax docs, charges): PARTIAL` · `PENDING-warning semantics: misleading for by-design pending methods (H8)`.
+`SNAPSHOT WRITER: IMPLEMENTED` · `INPUT SEMANTICS (refunds, rounding, tax docs, charges): PARTIAL` · `PENDING-warning semantics: confirmed warning-logic defect (M9/B33)`.
 
 # 6. Payment and Settlement
 
@@ -146,7 +146,7 @@ Note: the FAILED vocabulary (CANCELLED/VOIDED/REVERSED…) exists and the snapsh
 | Leg default status | IMPLEMENTED_WITH_CONSTRAINTS | fallback hardcodes CASH/CARD→COMPLETED, gateway→PROCESSING (planner:35) |
 | Split + partial at submit | IMPLEMENTED | remainder → PAY_ON_COLLECTION or CREDIT_INVOICE (planner:174) |
 | Tendered/change | IMPLEMENTED | change = subMoney(tendered, amount); tendered<amount throws (planner:289) |
-| Overpayment disposition | IMPLEMENTED | validator + `org_fin_overpay_disp_dtl` + allocation preview executor; resolution codes (settlement-catalog.ts:14–24): REDUCE_PAYMENT, RETURN_CASH_CHANGE, VOID_OR_REFUND_EXCESS, SAVE_AS_CUSTOMER_ADVANCE, SAVE_TO_CUSTOMER_WALLET, SAVE_AS_CUSTOMER_CREDIT, RESTORE_STORED_VALUE, ALLOCATE_TO_CUSTOMER_BALANCES, AUTO_ALLOCATE_TO_CUSTOMER_BALANCES |
+| Overpayment disposition | IMPLEMENTED | validator + `org_fin_overpay_disp_dtl` + allocation preview executor; resolution codes (settlement-catalog.ts:14–24): RETURN_CASH_CHANGE, VOID_OR_REFUND_EXCESS, SAVE_AS_CUSTOMER_ADVANCE, SAVE_TO_CUSTOMER_WALLET, SAVE_AS_CUSTOMER_CREDIT, RESTORE_STORED_VALUE, ALLOCATE_TO_CUSTOMER_BALANCES, AUTO_ALLOCATE_TO_CUSTOMER_BALANCES; `REDUCE_PAYMENT` is catalogued but **not executable** — the executor throws MISMATCH if it reaches disposition (client-side-only resolution, overpayment-disposition.service.ts:137–138) |
 | Payment verification | IMPLEMENTED_WITH_CONSTRAINTS | verifyPaymentTx: FOR UPDATE, idempotent, outbox; route + per-payment UI button exist; verify-only — no cancel/fail transition, no pending worklist (H8) |
 | Gateway capture/webhook | NOT_FOUND | legs park in PENDING/PROCESSING; manual verify only |
 | Later collection | PARTIAL | see §32 — no BVM, weak idempotency, recon conflict |
@@ -215,7 +215,7 @@ Flow `createBizVoucher → addVoucherLine → postBizVoucher → postAndWireBizV
 # 12. ERP-Lite Accounting Layer
 
 Engine (`ErpLitePostingEngineService`): governance packages/rules, usage-code→account resolution, open-period check, balanced journals (`org_fin_journal_mst/_dtl`), logs/exceptions/snapshots, per-(doc,event,key) idempotency, preview/execute/retry/repost. Adapter (`ErpLiteAutoPostService`): dispatchers for invoice, payment, refund, petty cash, 6 gift-card events.
-Runtime callers: **only** `dispatchInvoiceCreatedInTransaction` (ar-invoice.service.ts:1663), `dispatchExpenseRecordedInTransaction` (erp-lite-expenses.service.ts:244), and `dispatchPettyCashTransactionInTransaction` (erp-lite-expenses.service.ts:412). Payment, refund, and gift-card posting is DISCONNECTED (dispatchers exist, no callers); wallet, advance, loyalty, AR-allocation, and the other missing event families are NOT_FOUND (no event codes or posting paths exist) — full event matrix in §39.
+Runtime callers: **only** `dispatchInvoiceCreatedInTransaction` (ar-invoice.service.ts:1663), `dispatchExpenseRecordedInTransaction` (erp-lite-expenses.service.ts:244), and `dispatchPettyCashTransactionInTransaction` (erp-lite-expenses.service.ts:412). Payment, refund, gift-card, and wallet-settlement posting is DISCONNECTED (dispatchers/event codes exist — including `ORDER_SETTLED_WALLET`, erp-lite-posting.ts:73 — but no callers); wallet top-up, advance, loyalty-liability, AR-allocation, and the other missing event families are NOT_FOUND (no event codes exist) — full event matrix in §39.
 `ENGINE: IMPLEMENTED` · `ORDER-TO-CASH GL INTEGRATION: NOT_READY` · `BVM→GL BRIDGE: NOT_FOUND`.
 
 # 13. Reconciliation
@@ -324,7 +324,7 @@ Superseded by the deduplicated backlog in **§50** (single source). Headline set
 | H5 | HIGH | Later-collection retry can duplicate payment + drawer rows | order-settlement.service.ts:640 |
 | H6 | HIGH | Financial outbox never consumed; retry/dead-letter machinery idle | §45 |
 | H7 | HIGH | Loyalty earning is disconnected — `queueEarnPoints` emits `LOYALTY_EARN` into the financial outbox, but no runtime outbox consumer or direct `processEarnPoints` caller exists; qualifying settled orders therefore do not actually credit loyalty points | loyalty.service.ts:141 |
-| H8 | HIGH | Pending-payment back-office lifecycle is verify-only: no cancel/fail/reject/bounce transition, no reason capture; the plan counts PENDING legs at full value (`outstandingPolicy='NONE'`, no AR/POC fallback), so an unverified/failed PENDING leg strands the order with real outstanding and no policy; the verification audit trail (actor in `PAYMENT_VERIFIED` payload only; row stamps generic `updated_by`) never reaches history because the outbox consumer is inactive (H6) | order-settlement.service.ts:515–533; planner:169–181 |
+| H8 | HIGH | Pending-payment back-office lifecycle is verify-only: no cancel/fail/reject/bounce transition, no reason capture; the plan counts PENDING legs at full value (`outstandingPolicy='NONE'`, no AR/POC fallback), so an unverified/failed PENDING leg strands the order with real outstanding and no policy; the verification audit trail (actor in `PAYMENT_VERIFIED` payload only; row stamps generic `updated_by`) never reaches history because the outbox consumer is inactive (H6); verify also accepts **only** PENDING — gateway legs created as PROCESSING (planner:36) cannot be completed through the sole existing transition | order-settlement.service.ts:515–533; planner:169–181 |
 | M1 | MED | 'OMR'/'USD'/0.05/0.06 hardcoded defaults | §15 |
 | M2 | MED | Drawer expected-cash weak filtering | cash-drawer.service.ts:1428 |
 | M3 | MED | Charges supported downstream, never written at submit | orchestrator:989 |
@@ -333,10 +333,11 @@ Superseded by the deduplicated backlog in **§50** (single source). Headline set
 | M6 | MED | `collectPaymentTx` ignores `default_creation_status` (column not even selected) and hardcodes non-gateway → COMPLETED — a CHECK/BANK method configured PENDING is counted as paid instantly at later collection, before clearing | order-settlement.service.ts:827 |
 | M7 | LOW | Drawer wiring and drawer-close do not gate on payment status — only material if a drawer-required method is configured PENDING (CASH is normally COMPLETED instantly); defensive gate recommended | cash-drawer-wiring.handler.ts:22–29 |
 | M8 | LOW | `allow_status_override` is CONFIGURED_ONLY — stored on the leg, never consulted in status resolution | planner:93 |
+| M9 | MED | `PENDING_PAYMENT_COUNTED_AS_PAID` is emitted whenever `pending_payment_amount > 0`, even though pending payments are excluded from `total_paid_amount` — valid pending-method orders are therefore incorrectly marked MISMATCH | order-financial-write.service.ts:361–429 |
 
 # 22. Safe and Restricted Operational Scope
 
-**Safe with current constraints:** tax-exclusive checkout; configured split tender; cash tendered/change; GC/wallet/advance/CN application at settlement; pay-on-collection creation; AR invoice creation; initial BVM voucher; drawer movement from submit; manual payment verification.
+**Safe with current constraints:** tax-exclusive checkout; configured split tender; cash tendered/change; GC/wallet/advance/CN application at settlement; pay-on-collection creation; AR invoice creation; initial BVM voucher; drawer movement from submit; manual verification of confirmed valid pending payments, with a temporary compensating audit procedure.
 **Restrict / compensate manually:** tax-inclusive pricing; automated refunds; gateway refunds; voucher reversal as void; later collection without BVM compensation; reconciliation as closing blocker; ERP trial balance for POS; tax-document amendments; rounding automation; post-payment edits; currency change after settlement; GC sale / wallet top-up without manual cash capture.
 
 # 23. Required Canonical Architecture Decisions
@@ -396,7 +397,7 @@ Registry of transaction types found (from constants, services, outbox events, mi
 |---|---|---|---|---|---|---|---|---|---|
 | ORDER_SETTLED (submit) | IMPLEMENTED | submitOrder tx | payments, credit apps, drawer mov. | RECEIPT_VOUCHER + lines | CASH_SALE IN + change OUT | PAYMENT_RECEIVED / ORDER_SETTLED_* — DISCONNECTED | per-leg refund/reversal | strong sub-keys | GL not wired |
 | PAYMENT_RECEIVED (later) | PARTIAL | collectPaymentTx | payments, drawer mov. | NONE | CASH_SALE/CASH_OUT | PAYMENT_RECEIVED — DISCONNECTED | refund only | weak | no voucher; dup-retry risk |
-| PAYMENT_VERIFIED | IMPLEMENTED | verifyPaymentTx | payment status flip + outbox | none | none | — | n/a | idempotent replay | outbox unconsumed |
+| PAYMENT_VERIFIED | IMPLEMENTED_WITH_CONSTRAINTS | verifyPaymentTx | payment status flip + outbox | none | none | — | n/a | idempotent replay | outbox unconsumed; verify-only lifecycle (H8) |
 | PAYMENT_FAILED / CANCELLED / VOID | PARTIAL / NOT_FOUND | status constants only | payment_status values exist | — | — | — | — | — | no transition service |
 | OVERPAYMENT_DISPOSED | IMPLEMENTED | executeOverpaymentDispositionTx | org_fin_overpay_disp_dtl (+wallet/advance/CN) | linked voucher optional | change OUT when cash | — | required | keyed | GL none |
 
@@ -522,7 +523,7 @@ All families: no cash/bank **clearing-account** concept, no GL per event (§39),
 
 | Element | Status | Evidence |
 |---|---|---|
-| Backend transition PENDING→COMPLETED | IMPLEMENTED — locked, idempotent, snapshot recalc, outbox | verifyPaymentTx (order-settlement.service.ts:459) |
+| Backend transition PENDING→COMPLETED | IMPLEMENTED — locked, idempotent, snapshot recalc, outbox; rejects every other status, so PROCESSING gateway legs (planner:36) have **no completion path at all** | verifyPaymentTx (order-settlement.service.ts:459) |
 | API route | IMPLEMENTED — `POST /orders/[id]/payments/[paymentId]/verify`, `orders:verify_payment` | route file |
 | UI | PARTIAL — per-payment Verify button on the order Financial tab only | order-payments-credits-tables.tsx:283 |
 | Cross-order pending worklist screen | NOT_FOUND | — |
@@ -546,7 +547,7 @@ All families: no cash/bank **clearing-account** concept, no GL per event (§39),
 | Flow | Planner | BVM | Voucher links | Drawer | Idem | Status filter | Snapshot | Recon | ERP | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Initial full / partial / split | buildSettlementPlan | yes | yes | yes | strong | resolved per D9 | yes | passes | disconnected | IMPLEMENTED |
-| Leg pending → verified later | plan + verifyPaymentTx | yes (line status) | yes | yes | replay-safe | PENDING excluded from paid | yes | GATEWAY_PENDING info/warn | disconnected | IMPLEMENTED |
+| Leg pending → verified later | plan + verifyPaymentTx | yes (line status) | yes | yes | replay-safe | PENDING excluded from paid | yes | GATEWAY_PENDING info/warn | disconnected | IMPLEMENTED_WITH_CONSTRAINTS |
 | Leg failed | status constant only | — | — | — | — | FAILED excluded | summed separately | — | — | PARTIAL (no transition path) |
 | Later partial/full/multiple collections | **collectPaymentTx — NOT the planner** | **none** | **none** | yes | **weak (optional key; unguarded inserts)** | COMPLETED/PENDING only | yes | **ORDER_PAYMENT_LINK blocker** | disconnected | PARTIAL |
 | Collection retry | same | — | — | dup risk | weak | — | dup paid risk | — | — | PARTIAL |
@@ -673,7 +674,7 @@ Event codes: ERP_LITE_TXN_EVENT_CODES (erp-lite-posting.ts:69–86). Engine supp
 | GIFT_CARD_SOLD/REDEEMED/EXPIRED/REFUNDED/VOIDED/BONUS_GRANTED | yes (6) | **none** | DISCONNECTED |
 | ORDER_REVENUE_RECOGNIZED | no code | — | NOT_FOUND |
 | ORDER_PAYMENT_REVERSED / ORDER_CREDIT_NOTE_ISSUED | no code | — | NOT_FOUND |
-| AR_PAYMENT_ALLOCATED / CUSTOMER_ADVANCE_* / WALLET_* / LOYALTY_* | no code | — | NOT_FOUND |
+| AR_PAYMENT_ALLOCATED / CUSTOMER_ADVANCE_* / WALLET_TOPPED_UP / LOYALTY_* | no code | — | NOT_FOUND (wallet **settlement** is covered by `ORDER_SETTLED_WALLET` above — DISCONNECTED, not NOT_FOUND) |
 | CASH_VARIANCE_RECORDED / GATEWAY_FEE / CHARGEBACK / ROUNDING_GAIN_LOSS / FX_GAIN_LOSS | no code | — | NOT_FOUND |
 
 Usage-map/account resolution and expected debit/credit lines come from governance packages (`org_fin_gov_assign_mst` + usage codes; `ERP_LITE_PAYMENT_USAGE_MAP` maps CASH→CASH_MAIN etc., erp-lite-posting.ts:98); exception handling writes `org_fin_post_exc_tr`. Reversal: engine repost/retry exists; journal reversal event NOT_FOUND. BVM↔GL reconciliation: NOT_FOUND.
@@ -922,9 +923,10 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | B27 | Missing permissions: price override, manual-discount threshold, cash variance approval, SV adjustments, closed-period, rate override | MEDIUM | CONTROL_GAP | §43 | — |
 | B28 | Test coverage for §49 NOT_READY rows (refund-outstanding, collect retry, amendments) | HIGH | CONTROL_GAP | §49 | B1–B5 |
 | B29 | Stale docs: reports claiming refund lineage "Phase 6 backfilled" — runtime never writes it | LOW | MAINTENANCE_RISK | mig 0340 vs service | — |
-| B30 | Pending-payment lifecycle workstation: cross-order pending worklist screen + verify/cancel/fail/bounce actions with mandatory reason, durable actor audit (verified_by/cancelled_by columns or working history consumer), and outstanding-policy fallback when a PENDING leg fails | HIGH | BLOCKS_FEATURE / CONTROL_GAP | H8; order-settlement.service.ts:515–533 | B7 (audit trail) |
+| B30 | Pending-payment lifecycle workstation: cross-order pending worklist screen + verify/cancel/fail/bounce actions with mandatory reason, durable actor audit (verified_by/cancelled_by columns or working history consumer), outstanding-policy fallback when a PENDING leg fails, and a completion path for PROCESSING gateway legs (verify currently accepts PENDING only) | HIGH | BLOCKS_FEATURE / CONTROL_GAP | H8; order-settlement.service.ts:515–533 | B7 only for outbox-based durable history; the pending-payment worklist and lifecycle transitions are independent |
 | B31 | `collectPaymentTx` must read and honor `default_creation_status` (and per-leg explicit status) instead of hardcoding COMPLETED for non-gateway methods | MEDIUM | CONTROL_GAP | M6; order-settlement.service.ts:827 | B4 |
 | B32 | Gate drawer movements on effective payment status; implement or remove `allow_status_override` | LOW | CONTROL_GAP | M7/M8 | — |
+| B33 | Correct pending-payment warning semantics so a valid PENDING leg does not emit `PENDING_PAYMENT_COUNTED_AS_PAID` or force MISMATCH unless the pending amount was actually included in paid totals | MEDIUM | CONTROL_GAP | §5.2 / M9 | B2 |
 
 # 51. Final Readiness Verdict
 

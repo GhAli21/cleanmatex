@@ -16,6 +16,7 @@
     "minOrderNotMet": "إجمالي الطلب يجب أن يكون على الأقل {amount}",
     "maxOrderExceeded": "كود الخصم صالح فقط للطلبات حتى {amount}",
     "categoryNotApplicable": "كود الخصم غير قابل للتطبيق على الخدمات المحددة",
+    "customerGroupNotApplicable": "كود الخصم غير متاح لهذا العميل",
     "customerLimitExceeded": "لقد وصلت إلى الحد الأقصى لاستخدام هذا الكود",
     "validationFailed": "فشل التحقق من كود الخصم"
   },

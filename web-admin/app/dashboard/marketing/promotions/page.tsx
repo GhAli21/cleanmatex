@@ -1,25 +1,15 @@
 /**
- * Promotions Management Page
- *
- * Full promotions list with create / edit / activate / deactivate.
- * Route: /dashboard/marketing/promotions
+ * Legacy Promotions route — consolidated into Promo Codes (/promos).
+ * Keeps bookmarks working while avoiding the dual-admin drift.
  */
 
-import { PromotionsListClient } from '@/src/features/marketing/ui/promotions-list-client';
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
-import { MARKETING_MARKETING_PROMOTIONS_ACCESS } from '@features/marketing/access/marketing-access'
+import { redirect } from 'next/navigation';
 
 export const metadata = { title: 'Promotions — CleanMateX' };
 
 /**
- *
+ * Redirect to the canonical promotions admin surface.
  */
 export default function PromotionsPage() {
-  return (
-    <RequireAnyPermission permissions={MARKETING_MARKETING_PROMOTIONS_ACCESS.page.permissions ?? []}>
-      <div className="container mx-auto py-6">
-      <PromotionsListClient />
-    </div>
-    </RequireAnyPermission>
-  );
+  redirect('/dashboard/marketing/promos');
 }

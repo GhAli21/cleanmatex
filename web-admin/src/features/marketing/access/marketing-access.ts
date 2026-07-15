@@ -608,11 +608,15 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
 },
   {
     routePattern: '/dashboard/marketing/promotions',
-    label: 'Promotions',
+    label: 'Promotions (redirect → /promos)',
     page: {
-      permissions: ['promotions:view'],
+      permissions: ['promotions:read'],
       requireAllPermissions: true,
     },
+    notes: [
+      'Legacy route redirects to /dashboard/marketing/promos (canonical promo admin).',
+      'Nav entry marketing_promotions deactivated in migration 0402.',
+    ],
     apiDependencies: [
       {
         label: 'Notifications Campaigns',
@@ -661,28 +665,21 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       create: {
         label: 'Create',
         requirement: {
-          permissions: ['orders:create'],
-          requireAllPermissions: true,
-        },
-      },
-      export: {
-        label: 'Export',
-        requirement: {
-          permissions: ['orders:export'],
+          permissions: ['promotions:write'],
           requireAllPermissions: true,
         },
       },
       read: {
         label: 'Read',
         requirement: {
-          permissions: ['orders:read'],
+          permissions: ['promotions:read'],
           requireAllPermissions: true,
         },
       },
       update: {
         label: 'Update',
         requirement: {
-          permissions: ['orders:update'],
+          permissions: ['promotions:write'],
           requireAllPermissions: true,
         },
       },

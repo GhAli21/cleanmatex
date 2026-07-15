@@ -13,8 +13,23 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { getPromoCodeUsage } from '@/lib/services/discount-service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { logger } from '@/lib/utils/logger';
 import type { PromoCode, PromoCodeUsage, PromoDiscountType } from '@/lib/types/payment';
+
+async function canReadPromos(): Promise<boolean> {
+  return (
+    (await hasPermissionServer('promotions:read')) ||
+    (await hasPermissionServer('promotions:view'))
+  );
+}
+
+async function canWritePromos(): Promise<boolean> {
+  return (
+    (await hasPermissionServer('promotions:write')) ||
+    (await hasPermissionServer('promotions:manage'))
+  );
+}
 
 function rowDiscountTypeToPromo(raw: string | null | undefined): PromoDiscountType {
   const v = (raw ?? '').toLowerCase();
@@ -173,9 +188,22 @@ const promoFormSchema = z.object({
   stackable: z.boolean().default(false),
   stacking_group: z.string().max(100).optional().nullable(),
   max_stacking_discount: optionalPositiveNumber,
+}).superRefine((data, ctx) => {
+  if (data.discount_type === 'percentage' && data.discount_value > 100) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Percentage discount cannot exceed 100',
+      path: ['discount_value'],
+    });
+  }
+  if (data.valid_to && data.valid_from && new Date(data.valid_to) < new Date(data.valid_from)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Valid To must be on or after Valid From',
+      path: ['valid_to'],
+    });
+  }
 });
-
-type PromoFormInput = z.infer<typeof promoFormSchema>;
 
 function revalidatePromoPaths() {
   revalidatePath('/dashboard/marketing/promos');
@@ -202,6 +230,9 @@ export async function listPromoCodes(params: {
     const auth = await getAuthContext();
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    if (!(await canReadPromos())) {
+      return { success: false, error: 'Permission denied' };
     }
     const { tenantId } = auth;
 
@@ -267,6 +298,9 @@ export async function createPromoCode(
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
     }
+    if (!(await canWritePromos())) {
+      return { success: false, error: 'Permission denied' };
+    }
     const { tenantId, userId } = auth;
 
     const parsed = promoFormSchema.safeParse(input);
@@ -303,10 +337,16 @@ export async function createPromoCode(
           max_discount_amount: parsed.data.max_discount_amount ?? null,
           min_order_amount: parsed.data.min_order_amount,
           max_order_amount: parsed.data.max_order_amount ?? null,
-          applicable_categories: parsed.data.applicable_categories ?? undefined,
-          applicable_customer_grps: parsed.data.applicable_customer_grps ?? [],
+          applicable_categories:
+            parsed.data.applicable_categories && parsed.data.applicable_categories.length > 0
+              ? parsed.data.applicable_categories
+              : null,
+          applicable_customer_grps:
+            parsed.data.applicable_customer_grps && parsed.data.applicable_customer_grps.length > 0
+              ? parsed.data.applicable_customer_grps
+              : [],
           max_uses: parsed.data.max_uses ?? null,
-          max_uses_per_customer: parsed.data.max_uses_per_customer ?? 1,
+          max_uses_per_customer: parsed.data.max_uses_per_customer ?? null,
           current_uses: 0,
           stackable: parsed.data.stackable,
           stacking_group: parsed.data.stacking_group || null,
@@ -346,6 +386,9 @@ export async function updatePromoCode(
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
     }
+    if (!(await canWritePromos())) {
+      return { success: false, error: 'Permission denied' };
+    }
     const { tenantId, userId } = auth;
 
     const parsed = promoFormSchema.partial().safeParse(input);
@@ -362,9 +405,28 @@ export async function updatePromoCode(
       }
 
       const data = parsed.data;
+
+      if (data.promo_code !== undefined && data.promo_code !== existing.promo_code) {
+        if (data.promo_code) {
+          const clash = await prisma.org_promotions_mst.findFirst({
+            where: {
+              tenant_org_id: tenantId,
+              promo_code: data.promo_code,
+              is_active: true,
+              NOT: { id },
+            },
+            select: { id: true },
+          });
+          if (clash) {
+            return { success: false, error: 'Promo code already exists for this tenant' };
+          }
+        }
+      }
+
       const row = await prisma.org_promotions_mst.update({
         where: { id },
         data: {
+          ...(data.promo_code !== undefined && { promo_code: data.promo_code }),
           ...(data.promo_name != null && { promo_name: data.promo_name }),
           ...(data.promo_name2 !== undefined && { promo_name2: data.promo_name2 || null }),
           ...(data.description !== undefined && { description: data.description || null }),
@@ -380,15 +442,21 @@ export async function updatePromoCode(
           ...(data.min_order_amount != null && { min_order_amount: data.min_order_amount }),
           ...(data.max_order_amount !== undefined && { max_order_amount: data.max_order_amount }),
           ...(data.applicable_categories !== undefined && {
-            applicable_categories: data.applicable_categories ?? undefined,
+            applicable_categories:
+              data.applicable_categories && data.applicable_categories.length > 0
+                ? data.applicable_categories
+                : null,
           }),
           ...(data.applicable_customer_grps !== undefined && {
-            applicable_customer_grps: data.applicable_customer_grps ?? [],
+            applicable_customer_grps:
+              data.applicable_customer_grps && data.applicable_customer_grps.length > 0
+                ? data.applicable_customer_grps
+                : [],
           }),
           // Explicit null clears the cap (unlimited). Do not skip when null.
           ...(data.max_uses !== undefined && { max_uses: data.max_uses ?? null }),
           ...(data.max_uses_per_customer !== undefined && {
-            max_uses_per_customer: data.max_uses_per_customer ?? 1,
+            max_uses_per_customer: data.max_uses_per_customer ?? null,
           }),
           ...(data.valid_from != null && { valid_from: new Date(data.valid_from) }),
           ...(data.valid_to !== undefined && {
@@ -431,6 +499,9 @@ export async function setPromoCodeEnabled(
     const auth = await getAuthContext();
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    if (!(await canWritePromos())) {
+      return { success: false, error: 'Permission denied' };
     }
     const { tenantId, userId } = auth;
 
@@ -476,6 +547,9 @@ export async function archivePromoCode(
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
     }
+    if (!(await canWritePromos())) {
+      return { success: false, error: 'Permission denied' };
+    }
     const { tenantId, userId } = auth;
 
     return withTenantContext(tenantId, async () => {
@@ -515,6 +589,9 @@ export async function getPromoCodeUsageAction(
     const auth = await getAuthContext();
     if (!auth.tenantId) {
       return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    if (!(await canReadPromos())) {
+      return { success: false, error: 'Permission denied' };
     }
     const { tenantId } = auth;
 
