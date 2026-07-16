@@ -60,6 +60,19 @@ describe('useFocusTrap', () => {
     container.remove();
   });
 
+  it('allows focus in a portaled select listbox (ArrowUp/Down navigation)', () => {
+    const container = document.createElement('div');
+    const listbox = document.createElement('div');
+    listbox.setAttribute('data-cmx-select-root', '');
+    listbox.setAttribute('role', 'listbox');
+    listbox.tabIndex = -1;
+    document.body.append(container, listbox);
+
+    expect(isAllowedFocusOutside(container, listbox)).toBe(true);
+    listbox.remove();
+    container.remove();
+  });
+
   it('lists only enabled visible focusables', () => {
     const root = document.createElement('div');
     root.innerHTML = `

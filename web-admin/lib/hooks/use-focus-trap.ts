@@ -77,7 +77,8 @@ function isDialogVisible(el: HTMLElement): boolean {
 
 /**
  * True when focus may leave `container` without being pulled back.
- * Allows the floating keypad popover and nested aria-modal dialogs.
+ * Allows floating surfaces that intentionally portal to `document.body`
+ * (keypad popover, select listbox) and nested aria-modal dialogs.
  *
  * @param container - Trap root.
  * @param target - Element receiving focus.
@@ -90,6 +91,8 @@ export function isAllowedFocusOutside(
   if (!(target instanceof Element)) return false;
   if (container.contains(target)) return true;
   if (target.closest('[data-cmx-keypad-popover="true"]')) return true;
+  // CmxSelectDropdownContent portals to body; ArrowUp/Down need focus there.
+  if (target.closest('[data-cmx-select-root]')) return true;
   const nestedDialog = target.closest('[role="dialog"][aria-modal="true"]');
   if (
     nestedDialog instanceof HTMLElement &&
