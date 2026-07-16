@@ -209,6 +209,18 @@ export function SplitTenderDialog({
     }
   }, [open, activeLegIndex, paymentLegs.length, editableLegs]);
 
+  /** Enter on an amount field: next editable leg, or Done when on the last. */
+  const handleAmountEnterConfirm = (legIndex: number) => {
+    const position = editableLegs.findIndex((entry) => entry.index === legIndex);
+    const next = position >= 0 ? editableLegs[position + 1] : undefined;
+    if (next) {
+      actions.setActiveLegIndex(next.index);
+      setAmountFocusNonce((prev) => prev + 1);
+      return;
+    }
+    onOpenChange(false);
+  };
+
   // The engine floors `remainingBalance` at 0 (`max(0, due − settled)`), so
   // over-allocation can never be read from it — detect it by comparing the two
   // figures this balance line already renders (legs total vs amount due).
@@ -325,6 +337,9 @@ export function SplitTenderDialog({
                         type="button"
                         variant="ghost"
                         size="sm"
+                        // Skip in Tab cycle — cashiers Tab method → amount → next row.
+                        // Still mouse/keyboard-activatable when focused via click.
+                        tabIndex={-1}
                         onClick={() => actions.removeLegAt(index)}
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}
@@ -351,6 +366,8 @@ export function SplitTenderDialog({
                           ? `${index}:${leg.method}:${leg.gateway_code ?? ''}:${paymentLegs.length}:${amountFocusNonce}`
                           : null
                       }
+                      onEnterConfirm={() => handleAmountEnterConfirm(index)}
+                      moneyEpsilon={moneyEpsilon}
                       inputRef={(node) => {
                         legAmountRefs.current[index] = node;
                       }}
@@ -463,6 +480,7 @@ export function SplitTenderDialog({
                         type="button"
                         variant="ghost"
                         size="sm"
+                        tabIndex={-1}
                         onClick={() => actions.removeLegAt(index)}
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}

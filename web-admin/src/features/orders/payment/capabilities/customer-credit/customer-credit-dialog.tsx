@@ -210,6 +210,8 @@ export function CustomerCreditDialog({
                       type="button"
                       variant="ghost"
                       size="sm"
+                      // Skip in Tab cycle — Tab stays on instruments → amount → Done.
+                      tabIndex={-1}
                       onClick={() => refetchStoredValueSummary()}
                       disabled={storedValueFetching}
                       aria-label={t('customerCredits.refreshBalance')}
@@ -309,6 +311,9 @@ export function CustomerCreditDialog({
                           ? `${legIndex}:${option.payment_method_code}:${selectedLeg.creditReferenceId ?? ''}:${amountFocusNonce}`
                           : null
                       }
+                      // Enter (keyboard) commits amount and closes — same as Done.
+                      onEnterConfirm={() => onOpenChange(false)}
+                      moneyEpsilon={moneyEpsilon}
                       isRTL={isRTL}
                       amountAriaLabel={t('customerCredits.amountLabel', {
                         method: optionLabel,

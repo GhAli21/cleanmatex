@@ -29,6 +29,7 @@ import {
   applyKeypadInput,
   deriveOutstandingPolicy,
   formatDecimalDraft,
+  parseDecimalDraft,
   getDisplayChangeAmount,
   getRemainingToAllocate,
   getSuggestedDefaultLegAmount,
@@ -423,6 +424,8 @@ export function PaymentFullView({
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const giftCardDetailsRef = useRef<HTMLDivElement | null>(null);
   const giftCardAmountInputRef = useRef<HTMLInputElement | null>(null);
+  /** Draft for Advanced inline gift-card amount (dialog keeps its own draft). */
+  const [giftCardAmountDraft, setGiftCardAmountDraft] = useState('');
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const amountDiscountInputRef = useRef<HTMLInputElement | null>(null);
   const percentDiscountInputRef = useRef<HTMLInputElement | null>(null);
@@ -1564,6 +1567,14 @@ export function PaymentFullView({
     }
     return items;
   }, [appliedGiftCard, currencyCode, formatAmount, storedValueSummaryItems, t]);
+  /** Cap for Advanced inline gift-card Exact / Fill (balance ∩ remaining due). */
+  const advancedGiftCardMaxApply = useMemo(() => {
+    if (!giftCardDetails) return 0;
+    return Math.max(
+      0,
+      Math.min(giftCardDetails.balance, Math.max(0, remainingBalance)),
+    );
+  }, [giftCardDetails, remainingBalance]);
   const isQuickActionActive = useCallback(
     (slot: { key: string }) => {
       switch (slot.key) {
@@ -2407,6 +2418,7 @@ export function PaymentFullView({
               moneyEpsilon={moneyEpsilon}
               currencyCode={currencyCode}
               formatAmount={formatAmount}
+              decimalPlaces={decimalPlaces}
               pinInputRef={pinInputRef}
               giftCardAmountInputRef={giftCardAmountInputRef}
             />
@@ -3242,6 +3254,7 @@ export function PaymentFullView({
                               fillRemainingDisabled={
                                 !activeLeg || activeLegRemainingCap <= moneyEpsilon
                               }
+                              moneyEpsilon={moneyEpsilon}
                               remainingHint={
                                 activeLeg
                                   ? t('workspace.remainingForLeg', {
@@ -3637,6 +3650,7 @@ export function PaymentFullView({
                                                   type="button"
                                                   variant="outline"
                                                   size="sm"
+                                                  tabIndex={-1}
                                                   className="h-9 shrink-0"
                                                   onClick={() => setPinVisible((value) => !value)}
                                                   aria-label={pinVisible ? t('giftCard.hidePin') : t('giftCard.showPin')}
@@ -3647,34 +3661,74 @@ export function PaymentFullView({
                                             ) : null}
                                             {giftCardDetails ? (
                                               <>
-                                                <Controller
-                                                  name="giftCardAmount"
-                                                  control={control}
-                                                  render={({ field }) => (
-                                                    <CmxInput
-                                                      {...field}
-                                                      ref={(node) => {
-                                                        field.ref(node);
-                                                        giftCardAmountInputRef.current = node;
-                                                      }}
-                                                      type="number"
-                                                      label={t('giftCard.applyAmount')}
-                                                      value={field.value ?? ''}
-                                                      dir="ltr"
-                                                      min="0"
-                                                      step="0.001"
-                                                      inputMode="decimal"
-                                                      placeholder={t('giftCard.amountPlaceholder')}
-                                                      onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
-                                                      onKeyDown={(event) => {
-                                                        if (event.key === 'Enter') {
-                                                          event.preventDefault();
-                                                          event.stopPropagation();
-                                                          handleApplyGiftCard();
-                                                        }
-                                                      }}
-                                                    />
-                                                  )}
+                                                <PaymentAmountMoneyField
+                                                  size="compact"
+                                                  currencyCode={currencyCode}
+                                                  decimalPlaces={decimalPlaces}
+                                                  formatAmount={formatAmount}
+                                                  value={giftCardAmount ?? null}
+                                                  draftValue={giftCardAmountDraft}
+                                                  onValueChange={(value, draft) => {
+                                                    setGiftCardAmountDraft(draft);
+                                                    setValue('giftCardAmount', value ?? 0);
+                                                  }}
+                                                  onKeypadPress={(key) => {
+                                                    const baseDraft =
+                                                      giftCardAmountDraft !== ''
+                                                        ? giftCardAmountDraft
+                                                        : giftCardAmount != null && giftCardAmount > 0
+                                                          ? formatAmount(giftCardAmount)
+                                                          : '';
+                                                    const nextDraft = applyKeypadInput(
+                                                      baseDraft,
+                                                      key,
+                                                      decimalPlaces,
+                                                    );
+                                                    setGiftCardAmountDraft(nextDraft);
+                                                    setValue(
+                                                      'giftCardAmount',
+                                                      parseDecimalDraft(nextDraft),
+                                                    );
+                                                  }}
+                                                  inputRef={giftCardAmountInputRef}
+                                                  focusToken={`${giftCardDetails.id}:${giftCardDetails.number}`}
+                                                  onEnterConfirm={() => {
+                                                    if ((giftCardAmount ?? 0) > moneyEpsilon) {
+                                                      handleApplyGiftCard();
+                                                    }
+                                                  }}
+                                                  moneyEpsilon={moneyEpsilon}
+                                                  isRTL={isRTL}
+                                                  amountAriaLabel={t('giftCard.applyAmount')}
+                                                  keypadTitle={t('mode.simpleView.keypadTitle')}
+                                                  keypadDock={t('mode.simpleView.keypadDock')}
+                                                  keypadClose={t('mode.simpleView.keypadClose')}
+                                                  keypadHint={t('mode.simpleView.keypadHint')}
+                                                  keypadRestored={t('mode.simpleView.keypadRestored')}
+                                                  keypadStorageKey="cmx:payment-keypad-pos-gift-card-advanced"
+                                                  showExact
+                                                  exactLabel={t('quickTender.exact')}
+                                                  exactAriaLabel={t('quickTender.exactAria', {
+                                                    amount: `${currencyCode} ${formatAmount(advancedGiftCardMaxApply)}`,
+                                                  })}
+                                                  onExact={() => {
+                                                    const draft = formatAmount(advancedGiftCardMaxApply);
+                                                    setGiftCardAmountDraft(draft);
+                                                    setValue('giftCardAmount', advancedGiftCardMaxApply);
+                                                  }}
+                                                  exactDisabled={advancedGiftCardMaxApply <= moneyEpsilon}
+                                                  showFillRemaining
+                                                  fillRemainingLabel={t('splitPayment.fillRemaining')}
+                                                  onFillRemaining={() => {
+                                                    const draft = formatAmount(advancedGiftCardMaxApply);
+                                                    setGiftCardAmountDraft(draft);
+                                                    setValue('giftCardAmount', advancedGiftCardMaxApply);
+                                                  }}
+                                                  fillRemainingDisabled={
+                                                    advancedGiftCardMaxApply <= moneyEpsilon
+                                                  }
+                                                  placeholder={t('giftCard.amountPlaceholder')}
+                                                  testId="advanced-gift-card-amount"
                                                 />
                                                 <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                   <CmxButton

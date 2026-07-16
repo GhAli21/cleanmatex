@@ -62,6 +62,7 @@ const baseProps = {
   moneyEpsilon: 0.0005,
   currencyCode: 'KWD',
   formatAmount: (n: number) => n.toFixed(3),
+  decimalPlaces: 3,
   pinInputRef: React.createRef<HTMLInputElement>(),
   giftCardAmountInputRef: React.createRef<HTMLInputElement>(),
 };
@@ -142,6 +143,40 @@ describe('GiftCardDialog', () => {
 
     fireEvent.click(screen.getByTestId('gift-card-pin-toggle'));
     expect(actions.setGiftCardPinVisible).toHaveBeenCalledWith(true);
+  });
+
+  it('uses the shared amount field with keypad for apply amount', () => {
+    render(
+      <GiftCardDialog
+        {...baseProps}
+        actions={buildActions()}
+        giftCardNumber="GC-100"
+        giftCardDetails={details}
+        giftCardAmount={0}
+      />,
+    );
+    expect(screen.getByTestId('gift-card-amount-input')).toBeInTheDocument();
+    expect(screen.getByTestId('gift-card-amount-keypad-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('gift-card-amount-exact')).toBeInTheDocument();
+  });
+
+  it('seeds keypad presses from giftCardAmount when the local draft is empty', async () => {
+    const onGiftCardAmountChange = jest.fn();
+    render(
+      <GiftCardDialog
+        {...baseProps}
+        actions={buildActions()}
+        giftCardNumber="GC-100"
+        giftCardDetails={details}
+        giftCardAmount={12}
+        onGiftCardAmountChange={onGiftCardAmountChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('gift-card-amount-keypad-toggle'));
+    // Empty local draft must seed from 12 before +10 → 22 (not 10).
+    fireEvent.click(screen.getByRole('button', { name: 'Add 10' }));
+    expect(onGiftCardAmountChange).toHaveBeenCalledWith(22);
   });
 
   it('applies an amount when positive and clears the card', () => {

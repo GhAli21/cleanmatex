@@ -17,19 +17,22 @@
  * re-validates the redemption on submit.
  */
 
+import { useState, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import type { RefObject } from 'react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { applyKeypadInput, parseMoneyDraft } from '@/lib/money/money-draft';
 import type { ValidateGiftCardResult } from '@/lib/types/payment';
 import type {
   AppliedGiftCard,
   GiftCardDetails,
 } from '@features/orders/hooks/use-gift-card-and-promo';
 import { CmxButton, CmxInput } from '@ui/primitives';
+import type { PaymentKeypadKey } from '@ui/utilities';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
+import { PaymentAmountMoneyField } from '../../primitives/payment-amount-money-field';
 import { SummaryRow } from '@features/orders/ui/payment-modal/summary-row';
 
 /**
@@ -84,6 +87,8 @@ export interface GiftCardDialogProps {
   moneyEpsilon: number;
   currencyCode: string;
   formatAmount: (n: number) => string;
+  /** Tenant currency decimal places (amount field / keypad). */
+  decimalPlaces: number;
 
   // ---- DOM refs owned by the container, consumed by engine focus logic ----
   pinInputRef: RefObject<HTMLInputElement | null>;
@@ -119,12 +124,14 @@ export function GiftCardDialog({
   moneyEpsilon,
   currencyCode,
   formatAmount,
+  decimalPlaces,
   pinInputRef,
   giftCardAmountInputRef,
 }: GiftCardDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const [amountDraft, setAmountDraft] = useState('');
 
   // Mirror of the legacy view's `showGiftCardWorkspace` (the kill-flag branch is
   // handled upstream by the capability's availability, so it isn't repeated here).
@@ -133,6 +140,26 @@ export function GiftCardDialog({
     !giftCardNumber.trim() ||
     giftCardValidating ||
     (pinRequired && !giftCardPin.trim());
+
+  const maxApplyAmount = giftCardDetails
+    ? Math.max(
+        0,
+        Math.min(giftCardDetails.balance, Math.max(0, remainingBalance)),
+      )
+    : 0;
+
+  const handleGiftCardKeypadPress = (key: PaymentKeypadKey) => {
+    // Prefer live draft; if parent set an amount without typing, seed from value.
+    const baseDraft =
+      amountDraft !== ''
+        ? amountDraft
+        : giftCardAmount != null && giftCardAmount > 0
+          ? formatAmount(giftCardAmount)
+          : '';
+    const nextDraft = applyKeypadInput(baseDraft, key, decimalPlaces);
+    setAmountDraft(nextDraft);
+    onGiftCardAmountChange(parseMoneyDraft(nextDraft));
+  };
 
   return (
     <PaymentCapabilityDialog
@@ -268,6 +295,7 @@ export function GiftCardDialog({
                     type="button"
                     variant="outline"
                     size="sm"
+                    tabIndex={-1}
                     className="h-9 shrink-0"
                     onClick={() => actions.setGiftCardPinVisible(!pinVisible)}
                     aria-label={pinVisible ? t('giftCard.hidePin') : t('giftCard.showPin')}
@@ -280,27 +308,66 @@ export function GiftCardDialog({
 
               {giftCardDetails ? (
                 <div className="flex flex-col gap-2">
-                  <CmxInput
-                    ref={giftCardAmountInputRef}
-                    type="number"
-                    label={t('giftCard.applyAmount')}
-                    value={giftCardAmount ?? ''}
-                    dir="ltr"
-                    min="0"
-                    step="0.001"
-                    inputMode="decimal"
-                    placeholder={t('giftCard.amountPlaceholder')}
-                    onChange={(event) =>
-                      onGiftCardAmountChange(Number.parseFloat(event.target.value) || 0)
+                  <p
+                    className={`text-xs font-semibold text-slate-500 ${
+                      isRTL ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {t('giftCard.applyAmount')}
+                  </p>
+                  <PaymentAmountMoneyField
+                    size="compact"
+                    currencyCode={currencyCode}
+                    decimalPlaces={decimalPlaces}
+                    formatAmount={formatAmount}
+                    value={giftCardAmount ?? null}
+                    draftValue={amountDraft}
+                    onValueChange={(value, draft) => {
+                      setAmountDraft(draft);
+                      onGiftCardAmountChange(value ?? 0);
+                    }}
+                    onKeypadPress={handleGiftCardKeypadPress}
+                    inputRef={giftCardAmountInputRef}
+                    focusToken={
+                      open && giftCardDetails
+                        ? `${giftCardDetails.id}:${giftCardDetails.number}`
+                        : null
                     }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        event.stopPropagation();
+                    onEnterConfirm={() => {
+                      if ((giftCardAmount ?? 0) > moneyEpsilon) {
                         actions.applyGiftCard();
                       }
                     }}
-                    data-testid="gift-card-amount-input"
+                    moneyEpsilon={moneyEpsilon}
+                    isRTL={isRTL}
+                    amountAriaLabel={t('giftCard.applyAmount')}
+                    keypadTitle={t('mode.simpleView.keypadTitle')}
+                    keypadDock={t('mode.simpleView.keypadDock')}
+                    keypadClose={t('mode.simpleView.keypadClose')}
+                    keypadHint={t('mode.simpleView.keypadHint')}
+                    keypadRestored={t('mode.simpleView.keypadRestored')}
+                    keypadStorageKey="cmx:payment-keypad-pos-gift-card"
+                    showExact
+                    exactLabel={t('quickTender.exact')}
+                    exactAriaLabel={t('quickTender.exactAria', {
+                      amount: `${currencyCode} ${formatAmount(maxApplyAmount)}`,
+                    })}
+                    onExact={() => {
+                      const draft = formatAmount(maxApplyAmount);
+                      setAmountDraft(draft);
+                      onGiftCardAmountChange(maxApplyAmount);
+                    }}
+                    exactDisabled={maxApplyAmount <= moneyEpsilon}
+                    showFillRemaining
+                    fillRemainingLabel={t('splitPayment.fillRemaining')}
+                    onFillRemaining={() => {
+                      const draft = formatAmount(maxApplyAmount);
+                      setAmountDraft(draft);
+                      onGiftCardAmountChange(maxApplyAmount);
+                    }}
+                    fillRemainingDisabled={maxApplyAmount <= moneyEpsilon}
+                    placeholder={t('giftCard.amountPlaceholder')}
+                    testId="gift-card-amount"
                   />
                   <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <CmxButton
@@ -318,7 +385,11 @@ export function GiftCardDialog({
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={actions.clearGiftCard}
+                      tabIndex={-1}
+                      onClick={() => {
+                        setAmountDraft('');
+                        actions.clearGiftCard();
+                      }}
                       className="flex-1"
                       data-testid="gift-card-clear"
                     >

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 // The @ui barrels transitively pull next-intl (ESM) and the Supabase-backed
 // auth/currency contexts. This component is purely presentational and takes
@@ -81,10 +81,71 @@ describe('CmxKeypadPopover', () => {
     expect(onKeyPress).toHaveBeenCalledWith('7');
   });
 
-  it('closes on Escape', () => {
+  it('closes on Escape and restores focus to the anchor', () => {
+    jest.useFakeTimers();
     const { onClose } = renderPopover();
+    const anchor = screen.getByRole('button', { name: 'anchor' });
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+    jest.runAllTimers();
+    expect(anchor).toHaveFocus();
+    jest.useRealTimers();
+  });
+
+  it('maps hardware digits to onKeyPress while open', () => {
+    const { onKeyPress } = renderPopover();
+    fireEvent.keyDown(window, { key: '5', code: 'Digit5' });
+    expect(onKeyPress).toHaveBeenCalledWith('5');
+  });
+
+  it('dismisses when pointer lands outside the pad and trigger', () => {
+    const { onClose } = renderPopover();
+    fireEvent.pointerDown(document.body);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not dismiss when pointer lands on the trigger', () => {
+    const { onClose } = renderPopover();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'anchor' }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('does not dismiss when focus moves to a linked amount field', () => {
+    const onClose = jest.fn();
+    const linkedRef = React.createRef<HTMLInputElement>();
+    function Harness() {
+      const anchorRef = React.useRef<HTMLButtonElement | null>(null);
+      return (
+        <>
+          <button ref={anchorRef} type="button">
+            anchor
+          </button>
+          <input ref={linkedRef} aria-label="linked-amount" />
+          <CmxKeypadPopover
+            open
+            onClose={onClose}
+            anchorRef={anchorRef}
+            linkedFieldRefs={[linkedRef]}
+            storageKey={STORAGE_KEY}
+            title="Keypad"
+            dockLabel="Dock to bottom"
+            closeLabel="Close keypad"
+            keys={KEYPAD_PAYMENT_4COL}
+            onKeyPress={jest.fn()}
+          />
+        </>
+      );
+    }
+    render(<Harness />);
+    fireEvent.focusIn(screen.getByLabelText('linked-amount'));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('autofocuses home key 7 when keyboard mode opens', async () => {
+    renderPopover();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enter 7' })).toHaveFocus();
+    });
   });
 
   it('closes via the close button', () => {

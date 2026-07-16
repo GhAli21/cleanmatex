@@ -10,14 +10,26 @@
  * - Optional Exact / Fill remaining actions
  * - Optional remaining-cap hint
  *
+ * Keyboard (market-style cashier flow):
+ * - Digits type into the amount while it is focused
+ * - Tab: Amount → Keypad button → Exact → Fill → next field/row
+ * - Enter on amount: Exact if empty / commit (+ optional onEnterConfirm)
+ * - Enter / click on keypad button: open pad; focus home key (7 → 1)
+ * - Inside pad: arrows move, Enter activates, hardware numpad feeds amount
+ * - Esc: close pad and return focus to the keypad button
+ * - Click / Tab outside the pad session: dismiss (amount field stays "inside"
+ *   so the pad stays open while typing; Exact / next row still dismiss)
+ *
  * No money math here — the container/engine owns capping, drafts, and keypad
  * application. This primitive is presentational + interaction chrome only.
  */
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
   type MutableRefObject,
   type ReactNode,
   type Ref,
@@ -76,6 +88,18 @@ export interface PaymentAmountMoneyFieldProps {
    * lands in that leg's amount field (dialogs suppress the background editor).
    */
   focusToken?: string | number | null;
+  /**
+   * After Enter commits a non-empty amount (or after Exact when empty).
+   * Use for dialog Done / advance-to-next-leg. Not used for payment submit.
+   */
+  onEnterConfirm?: () => void;
+  /** Treat amounts at/below this as empty for Enter → Exact. */
+  moneyEpsilon?: number;
+  /**
+   * When false, Exact / Fill are skipped in the Tab cycle (keypad button stays
+   * in Tab). Defaults to true.
+   */
+  secondaryActionsInTabOrder?: boolean;
   amountAriaLabel: string;
   keypadTitle: string;
   keypadDock: string;
@@ -120,6 +144,9 @@ export function PaymentAmountMoneyField({
   inputRef,
   onFocus,
   focusToken = null,
+  onEnterConfirm,
+  moneyEpsilon = 0,
+  secondaryActionsInTabOrder = true,
   amountAriaLabel,
   keypadTitle,
   keypadDock,
@@ -145,11 +172,20 @@ export function PaymentAmountMoneyField({
   const keypadTriggerRef = useRef<HTMLButtonElement | null>(null);
   const localInputRef = useRef<HTMLInputElement | null>(null);
   const isHero = size === 'hero';
+  const actionTabIndex = secondaryActionsInTabOrder ? undefined : -1;
 
   const assignInputRef = (node: HTMLInputElement | null) => {
     localInputRef.current = node;
     assignRef(inputRef, node);
   };
+
+  const toggleKeypad = () => {
+    onFocus?.();
+    setShowKeypad((prev) => !prev);
+  };
+
+  // Stable identity — avoids rebinding outside-dismiss listeners every render.
+  const linkedFieldRefs = useMemo(() => [localInputRef], []);
 
   // Focus after method/credit selection (token change). Timeout lets the field
   // mount when a new Store-credit amount editor appears under the option.
@@ -164,7 +200,42 @@ export function PaymentAmountMoneyField({
     return () => window.clearTimeout(timer);
   }, [focusToken, disabled]);
 
-  const showActions = (showExact && onExact) || (showFillRemaining && onFillRemaining);
+  const showActions =
+    (showExact && onExact && exactLabel) ||
+    (showFillRemaining && onFillRemaining && fillRemainingLabel);
+
+  const handleAmountKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return;
+
+    if (event.key !== 'Enter') return;
+
+    // Never let Enter bubble into the payment-modal submit shortcut path.
+    event.preventDefault();
+    event.stopPropagation();
+    onFocus?.();
+
+    const amount = value ?? 0;
+    const isEmpty = amount <= moneyEpsilon;
+    const canExact = Boolean(showExact && onExact && !exactDisabled);
+    const canFill = Boolean(
+      showFillRemaining && onFillRemaining && !fillRemainingDisabled,
+    );
+
+    if (isEmpty && canExact) {
+      onExact?.();
+      onEnterConfirm?.();
+      return;
+    }
+    if (isEmpty && canFill) {
+      onFillRemaining?.();
+      onEnterConfirm?.();
+      return;
+    }
+
+    // Commit the typed draft, then optional confirm (dialog Done / next leg).
+    localInputRef.current?.blur();
+    onEnterConfirm?.();
+  };
 
   return (
     <div className={`space-y-2 ${className}`} data-testid={testId}>
@@ -191,6 +262,7 @@ export function PaymentAmountMoneyField({
             aria-label={amountAriaLabel}
             onValueChange={(nextValue, draft) => onValueChange(nextValue, draft)}
             onFocus={onFocus}
+            onKeyDown={handleAmountKeyDown}
             placeholder={placeholder ?? formatAmount(0)}
             disabled={disabled}
             className={
@@ -205,12 +277,11 @@ export function PaymentAmountMoneyField({
           type="button"
           data-testid={`${testId}-keypad-toggle`}
           aria-pressed={showKeypad}
+          aria-expanded={showKeypad}
+          aria-haspopup="dialog"
           aria-label={keypadTitle}
           disabled={disabled}
-          onClick={() => {
-            onFocus?.();
-            setShowKeypad((prev) => !prev);
-          }}
+          onClick={toggleKeypad}
           className={`flex items-center justify-center rounded-e-2xl border-s border-slate-200 transition-colors disabled:opacity-40 ${
             isHero ? 'min-w-14 px-4' : 'min-w-11 px-3'
           } ${
@@ -230,6 +301,7 @@ export function PaymentAmountMoneyField({
               type="button"
               variant="outline"
               size="xs"
+              tabIndex={actionTabIndex}
               disabled={disabled || exactDisabled}
               onClick={() => {
                 onFocus?.();
@@ -247,6 +319,7 @@ export function PaymentAmountMoneyField({
               type="button"
               variant="outline"
               size="xs"
+              tabIndex={actionTabIndex}
               disabled={disabled || fillRemainingDisabled}
               onClick={() => {
                 onFocus?.();
@@ -276,9 +349,12 @@ export function PaymentAmountMoneyField({
         open={showKeypad}
         onClose={() => setShowKeypad(false)}
         anchorRef={keypadTriggerRef}
+        linkedFieldRefs={linkedFieldRefs}
         storageKey={keypadStorageKey}
         isRTL={isRTL}
         disabled={disabled}
+        keyboardMode
+        restoreFocusOnClose
         title={keypadTitle}
         echo={`${currencyCode} ${formatAmount(value ?? 0)}`}
         dockLabel={keypadDock}

@@ -5,6 +5,10 @@
  * The parent owns the actual input semantics, while this component handles
  * accessible button rendering, focus-safe pointer behavior, and Tailwind-friendly
  * visual customization hooks.
+ *
+ * Optional {@link CmxKeypadProps.keyboardNavigation} enables a market-style
+ * keyboard grid: roving tabindex, arrow keys, Enter/Space to activate, and
+ * optional auto-focus on a safe home key (digit 7, then 1 — never backspace).
  * @module ui/utilities
  */
 
@@ -70,6 +74,18 @@ export interface CmxKeypadProps<T extends CmxKeypadKey = CmxKeypadKey> {
   renderKeyLabel?: (key: T, index: number) => React.ReactNode
   /** Builds per-key aria labels for assistive technology. */
   getKeyAriaLabel?: (key: T, index: number) => string | undefined
+  /**
+   * When true, keys form an arrow-navigable grid (roving tabindex).
+   * Enter/Space activate the focused key.
+   */
+  keyboardNavigation?: boolean
+  /**
+   * When true with keyboardNavigation, focus the home key on mount
+   * (prefer digit 7, then 1, then first interactive key — never backspace).
+   */
+  autoFocusHomeKey?: boolean
+  /** Flip ArrowLeft/ArrowRight for RTL layouts. */
+  isRTL?: boolean
 }
 
 const GRID_COLUMN_CLASS: Record<NonNullable<CmxKeypadProps['columns']>, string> = {
@@ -94,6 +110,9 @@ const GAP_CLASS: Record<NonNullable<CmxKeypadProps['gap']>, string> = {
   lg: 'gap-3',
 }
 
+/** Preferred home keys for keyboard mode — never start on delete/clear. */
+const HOME_KEY_PREFERENCE = ['7', '1', '0'] as const
+
 function getDefaultKeyAriaLabel(
   key: string,
   msgs?: CmxKeypadProps['ariaLabelMessages']
@@ -112,30 +131,82 @@ function getDefaultKeyLabel(key: string): React.ReactNode {
 }
 
 /**
+ * Resolves the preferred home-key index for keyboard focus.
+ *
+ * @param keys - Keypad key list.
+ * @param isInteractive - Whether a key index is focusable.
+ * @returns Index into `keys`, or -1 when none.
+ */
+export function resolveKeypadHomeIndex(
+  keys: readonly string[],
+  isInteractive: (index: number) => boolean
+): number {
+  for (const preferred of HOME_KEY_PREFERENCE) {
+    const index = keys.findIndex(
+      (key, i) => String(key) === preferred && isInteractive(i)
+    )
+    if (index >= 0) return index
+  }
+  for (let i = 0; i < keys.length; i += 1) {
+    if (isInteractive(i)) return i
+  }
+  return -1
+}
+
+/**
+ * Moves from a grid index in a direction, skipping spacers/disabled cells.
+ *
+ * @param fromIndex - Current key index.
+ * @param key - Arrow key name.
+ * @param keys - Full key list (including spacers).
+ * @param columns - Grid column count.
+ * @param isInteractive - Whether a key index is focusable.
+ * @param isRTL - Flip horizontal arrows.
+ * @returns Next interactive index, or `fromIndex` when blocked.
+ */
+export function resolveKeypadArrowIndex(
+  fromIndex: number,
+  key: string,
+  keys: readonly string[],
+  columns: number,
+  isInteractive: (index: number) => boolean,
+  isRTL = false
+): number {
+  const row = Math.floor(fromIndex / columns)
+  const col = fromIndex % columns
+  const rowCount = Math.ceil(keys.length / columns)
+
+  let nextRow = row
+  let nextCol = col
+  let horizontal = key
+
+  if (isRTL) {
+    if (key === 'ArrowLeft') horizontal = 'ArrowRight'
+    else if (key === 'ArrowRight') horizontal = 'ArrowLeft'
+  }
+
+  if (horizontal === 'ArrowRight') nextCol = col + 1
+  else if (horizontal === 'ArrowLeft') nextCol = col - 1
+  else if (key === 'ArrowDown') nextRow = row + 1
+  else if (key === 'ArrowUp') nextRow = row - 1
+  else return fromIndex
+
+  // Walk in that direction until an interactive cell or edge.
+  while (nextRow >= 0 && nextRow < rowCount && nextCol >= 0 && nextCol < columns) {
+    const index = nextRow * columns + nextCol
+    if (index < keys.length && isInteractive(index)) return index
+    if (horizontal === 'ArrowRight') nextCol += 1
+    else if (horizontal === 'ArrowLeft') nextCol -= 1
+    else if (key === 'ArrowDown') nextRow += 1
+    else if (key === 'ArrowUp') nextRow -= 1
+  }
+  return fromIndex
+}
+
+/**
  * Renders a configurable keypad that stays friendly to touch-heavy payment flows.
  *
  * @param props - Keypad layout, interaction, and styling configuration.
- * @param props.keys
- * @param props.onKeyPress
- * @param props.onKeyLongPress
- * @param props.longPressMs
- * @param props.preserveInputFocus
- * @param props.disabled
- * @param props.columns
- * @param props.keyHeight
- * @param props.gap
- * @param props.defaultVariant
- * @param props.size
- * @param props.ariaLabelMessages
- * @param props.buttonClassName
- * @param props.className
- * @param props.gridClassName
- * @param props.headerSlot
- * @param props.isKeyDisabled
- * @param props.getKeyVariant
- * @param props.getKeyClassName
- * @param props.renderKeyLabel
- * @param props.getKeyAriaLabel
  * @returns A reusable keypad utility surface.
  */
 export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
@@ -160,14 +231,97 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
   getKeyClassName,
   renderKeyLabel,
   getKeyAriaLabel,
+  keyboardNavigation = false,
+  autoFocusHomeKey = false,
+  isRTL = false,
 }: CmxKeypadProps<T>) {
   const longPressRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFiredRef = React.useRef(false)
+  const buttonRefs = React.useRef<Array<HTMLButtonElement | null>>([])
+
+  const isInteractive = React.useCallback(
+    (index: number) => {
+      const keyValue = String(keys[index] ?? '')
+      if (keyValue === '') return false
+      if (disabled) return false
+      return isKeyDisabled?.(keys[index] as T, index) !== true
+    },
+    [disabled, isKeyDisabled, keys]
+  )
+
+  const homeIndex = React.useMemo(
+    () => resolveKeypadHomeIndex(keys.map(String), isInteractive),
+    [keys, isInteractive]
+  )
+
+  const [focusIndex, setFocusIndex] = React.useState(() =>
+    homeIndex >= 0 ? homeIndex : 0
+  )
+
+  React.useEffect(() => {
+    if (homeIndex >= 0) setFocusIndex(homeIndex)
+  }, [homeIndex])
+
+  React.useEffect(() => {
+    if (!keyboardNavigation || !autoFocusHomeKey || homeIndex < 0) return
+    const timer = window.setTimeout(() => {
+      buttonRefs.current[homeIndex]?.focus()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [keyboardNavigation, autoFocusHomeKey, homeIndex])
+
+  const moveFocus = (nextIndex: number) => {
+    if (nextIndex < 0 || !isInteractive(nextIndex)) return
+    setFocusIndex(nextIndex)
+    buttonRefs.current[nextIndex]?.focus()
+  }
+
+  const handleGridKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!keyboardNavigation || disabled) return
+    const { key } = event
+    if (
+      key === 'ArrowRight' ||
+      key === 'ArrowLeft' ||
+      key === 'ArrowUp' ||
+      key === 'ArrowDown'
+    ) {
+      event.preventDefault()
+      const next = resolveKeypadArrowIndex(
+        focusIndex,
+        key,
+        keys.map(String),
+        columns,
+        isInteractive,
+        isRTL
+      )
+      moveFocus(next)
+      return
+    }
+    if (key === 'Home') {
+      event.preventDefault()
+      moveFocus(homeIndex)
+      return
+    }
+    if (key === 'End') {
+      event.preventDefault()
+      for (let i = keys.length - 1; i >= 0; i -= 1) {
+        if (isInteractive(i)) {
+          moveFocus(i)
+          break
+        }
+      }
+    }
+  }
 
   return (
     <div className={cn('w-full', className)}>
       {headerSlot}
-      <div className={cn('grid', GRID_COLUMN_CLASS[columns], GAP_CLASS[gap], gridClassName)}>
+      <div
+        role={keyboardNavigation ? 'group' : undefined}
+        aria-disabled={disabled || undefined}
+        onKeyDown={keyboardNavigation ? handleGridKeyDown : undefined}
+        className={cn('grid', GRID_COLUMN_CLASS[columns], GAP_CLASS[gap], gridClassName)}
+      >
         {keys.map((key, index) => {
           const keyValue = String(key)
 
@@ -178,16 +332,31 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
 
           const variant = getKeyVariant?.(key, index) ?? defaultVariant
           const keyDisabled = disabled || isKeyDisabled?.(key, index) === true
+          const tabIndex = keyboardNavigation
+            ? focusIndex === index
+              ? 0
+              : -1
+            : undefined
 
           return (
             <CmxButton
               key={`${keyValue}-${index}`}
+              ref={(node) => {
+                buttonRefs.current[index] = node
+              }}
               type="button"
+              tabIndex={tabIndex}
               variant={variant}
               size={size}
               disabled={keyDisabled}
-              aria-label={getKeyAriaLabel?.(key, index) ?? getDefaultKeyAriaLabel(keyValue, ariaLabelMessages)}
+              aria-label={
+                getKeyAriaLabel?.(key, index) ??
+                getDefaultKeyAriaLabel(keyValue, ariaLabelMessages)
+              }
               aria-disabled={keyDisabled || undefined}
+              onFocus={() => {
+                if (keyboardNavigation) setFocusIndex(index)
+              }}
               onMouseDown={preserveInputFocus ? (event) => event.preventDefault() : undefined}
               onPointerDown={(event) => {
                 if (preserveInputFocus) event.preventDefault()

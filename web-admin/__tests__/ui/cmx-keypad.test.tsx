@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Prevent jest from loading tenant-currency-context (which imports next-intl ESM)
 // via the @ui/primitives barrel → cmx-money-field-controller.
@@ -8,8 +8,16 @@ jest.mock('@/lib/context/tenant-currency-context', () => ({
   useTenantCurrency: () => ({ decimalPlaces: 3 }),
 }));
 
-import { CmxKeypad } from '@/src/ui/utilities/cmx-keypad';
-import { KEYPAD_NUMERIC_3COL, KEYPAD_PIN_3COL } from '@/src/ui/utilities/cmx-keypad-presets';
+import {
+  CmxKeypad,
+  resolveKeypadArrowIndex,
+  resolveKeypadHomeIndex,
+} from '@/src/ui/utilities/cmx-keypad';
+import {
+  KEYPAD_NUMERIC_3COL,
+  KEYPAD_PAYMENT_4COL,
+  KEYPAD_PIN_3COL,
+} from '@/src/ui/utilities/cmx-keypad-presets';
 
 describe('CmxKeypad', () => {
   it('renders all non-spacer keys as buttons', () => {
@@ -130,5 +138,53 @@ describe('CmxKeypad', () => {
       />
     );
     expect(screen.getByTestId('header')).toBeInTheDocument();
+  });
+
+  it('resolveKeypadHomeIndex prefers 7 then 1 (never backspace)', () => {
+    const keys = [...KEYPAD_PAYMENT_4COL];
+    const interactive = (i: number) => keys[i] !== '';
+    expect(keys[resolveKeypadHomeIndex(keys, interactive)]).toBe('7');
+    expect(resolveKeypadHomeIndex(['backspace', 'clear', '1'], () => true)).toBe(2);
+  });
+
+  it('resolveKeypadArrowIndex moves across the payment grid', () => {
+    const keys = [...KEYPAD_PAYMENT_4COL];
+    const interactive = () => true;
+    // index of 7 is 8 (col 0) — right → 8, up → 4; left stays (edge).
+    const seven = keys.indexOf('7');
+    expect(keys[resolveKeypadArrowIndex(seven, 'ArrowRight', keys, 4, interactive)]).toBe('8');
+    expect(keys[resolveKeypadArrowIndex(seven, 'ArrowUp', keys, 4, interactive)]).toBe('4');
+    expect(resolveKeypadArrowIndex(seven, 'ArrowLeft', keys, 4, interactive)).toBe(seven);
+  });
+
+  it('keyboard navigation autofocuses the home key (7)', async () => {
+    render(
+      <CmxKeypad
+        keys={KEYPAD_PAYMENT_4COL}
+        columns={4}
+        onKeyPress={jest.fn()}
+        keyboardNavigation
+        autoFocusHomeKey
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enter 7' })).toHaveFocus();
+    });
+  });
+
+  it('arrow keys move focus inside the keypad', () => {
+    render(
+      <CmxKeypad
+        keys={KEYPAD_PAYMENT_4COL}
+        columns={4}
+        onKeyPress={jest.fn()}
+        keyboardNavigation
+        autoFocusHomeKey
+      />
+    );
+    const seven = screen.getByRole('button', { name: 'Enter 7' });
+    seven.focus();
+    fireEvent.keyDown(seven.parentElement!, { key: 'ArrowRight' });
+    expect(screen.getByRole('button', { name: 'Enter 8' })).toHaveFocus();
   });
 });

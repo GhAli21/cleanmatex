@@ -7,8 +7,14 @@
  * where they left it (per-device, via `storageKey`).
  *
  * Design contract:
- * - **Non-modal**: it never traps focus or locks scroll, so the linked input
- *   keeps focus and physical-keyboard entry continues while it is open.
+ * - **Non-modal**: it never locks scroll; drag/dock stay available.
+ * - **Keyboard mode** (default on): Enter on the trigger focuses a safe home
+ *   key (7 → 1); arrows move the grid; Enter/Space activate; hardware digits /
+ *   numpad / Backspace map to `onKeyPress`; Escape closes and restores focus
+ *   to `anchorRef` (capture phase so parent dialogs do not dismiss first).
+ * - **Dismiss outside** (default on): pointer down or focus outside the pad,
+ *   trigger, and optional linked amount field closes the pad (focus stays).
+ *   Hardware digits are NOT double-applied while the linked field is focused.
  * - **Bounded**: drag positions are always clamped inside the viewport and snap
  *   flush to nearby edges, so it can never be lost off-screen.
  * - **Persistent**: the last position is saved and restored on next open; a dock
@@ -64,6 +70,24 @@ export interface CmxKeypadPopoverProps<T extends CmxKeypadKey = CmxKeypadKey> {
   hint?: React.ReactNode;
   /** Announced politely when a saved position is restored on open. */
   restoredAnnouncement?: string;
+  /**
+   * Enables arrow-grid focus, home-key autofocus, hardware digit mapping, and
+   * Escape → close + restore focus to the anchor. Defaults to true.
+   */
+  keyboardMode?: boolean;
+  /** When true (default), Escape restores focus to `anchorRef` after close. */
+  restoreFocusOnClose?: boolean;
+  /**
+   * When true (default), pointer-down or focus outside the pad (and outside
+   * the trigger / linked fields) dismisses the keypad. Focus stays where the
+   * user moved.
+   */
+  dismissOnOutside?: boolean;
+  /**
+   * Amount inputs that belong to this pad session. Focus/click here keeps the
+   * pad open; hardware digits go to the input (not also via onKeyPress).
+   */
+  linkedFieldRefs?: ReadonlyArray<React.RefObject<HTMLElement | null>>;
 
   // ---- keypad passthrough ----
   keys: readonly T[];
@@ -75,6 +99,34 @@ export interface CmxKeypadPopoverProps<T extends CmxKeypadKey = CmxKeypadKey> {
   getKeyClassName?: CmxKeypadProps<T>['getKeyClassName'];
   renderKeyLabel?: CmxKeypadProps<T>['renderKeyLabel'];
   getKeyAriaLabel?: CmxKeypadProps<T>['getKeyAriaLabel'];
+}
+
+/**
+ * Maps a hardware keyboard event to a keypad key present in `keys`, or null.
+ *
+ * @param event - Window keydown event.
+ * @param keys - Active keypad key list.
+ * @returns Matching key value, or null when unmapped.
+ */
+export function mapHardwareKeyToKeypadKey<T extends CmxKeypadKey>(
+  event: KeyboardEvent,
+  keys: readonly T[]
+): T | null {
+  const keySet = new Set(keys.map(String));
+  const { key, code } = event;
+
+  if (/^[0-9]$/.test(key) && keySet.has(key)) return key as T;
+  // Numpad digits often report key=0-9 already; also accept Numpad* codes.
+  if (/^Numpad[0-9]$/.test(code)) {
+    const digit = code.slice('Numpad'.length);
+    if (keySet.has(digit)) return digit as T;
+  }
+  if ((key === '.' || code === 'NumpadDecimal') && keySet.has('.')) {
+    return '.' as T;
+  }
+  if (key === 'Backspace' && keySet.has('backspace')) return 'backspace' as T;
+  if ((key === 'Delete' || key === 'Clear') && keySet.has('clear')) return 'clear' as T;
+  return null;
 }
 
 const PANEL_WIDTH_CLASS = 'w-72'; // 18rem / 288px — matches measured geometry
@@ -137,6 +189,10 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
   closeLabel,
   hint,
   restoredAnnouncement,
+  keyboardMode = true,
+  restoreFocusOnClose = true,
+  dismissOnOutside = true,
+  linkedFieldRefs,
   keys,
   onKeyPress,
   onKeyLongPress,
@@ -149,10 +205,75 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
 }: CmxKeypadPopoverProps<T>) {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const dragRef = React.useRef<{ dx: number; dy: number } | null>(null);
+  const onKeyPressRef = React.useRef(onKeyPress);
+  const onCloseRef = React.useRef(onClose);
   const [mounted, setMounted] = React.useState(false);
   const [pos, setPos] = React.useState<CmxKeypadPoint | null>(null);
   const [animate, setAnimate] = React.useState(false);
   const [restored, setRestored] = React.useState(false);
+
+  React.useEffect(() => {
+    onKeyPressRef.current = onKeyPress;
+  }, [onKeyPress]);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const closeAndRestoreFocus = React.useCallback(() => {
+    onCloseRef.current();
+    if (!restoreFocusOnClose) return;
+    window.setTimeout(() => {
+      anchorRef.current?.focus();
+    }, 0);
+  }, [anchorRef, restoreFocusOnClose]);
+
+  const isInsidePadSession = React.useCallback(
+    (node: EventTarget | null) => {
+      if (!(node instanceof Node)) return false;
+      if (panelRef.current?.contains(node)) return true;
+      if (anchorRef.current?.contains(node)) return true;
+      if (linkedFieldRefs) {
+        for (const ref of linkedFieldRefs) {
+          if (ref.current?.contains(node)) return true;
+        }
+      }
+      return false;
+    },
+    [anchorRef, linkedFieldRefs]
+  );
+
+  const isInsideLinkedField = React.useCallback(
+    (node: EventTarget | null) => {
+      if (!(node instanceof Node) || !linkedFieldRefs) return false;
+      for (const ref of linkedFieldRefs) {
+        if (ref.current?.contains(node)) return true;
+      }
+      return false;
+    },
+    [linkedFieldRefs]
+  );
+
+  // Click / Tab outside the pad session dismisses — leave focus where the
+  // cashier moved (do not yank back to the keypad button).
+  React.useEffect(() => {
+    if (!open || !dismissOnOutside) return;
+    const dismissIfOutside = (target: EventTarget | null) => {
+      if (isInsidePadSession(target)) return;
+      onCloseRef.current();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      dismissIfOutside(event.target);
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      dismissIfOutside(event.target);
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('focusin', onFocusIn, true);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('focusin', onFocusIn, true);
+    };
+  }, [open, dismissOnOutside, isInsidePadSession]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -201,15 +322,52 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
     return () => window.removeEventListener('resize', onResize);
   }, [open]);
 
-  // Escape closes.
+  // Escape closes (capture) + optional hardware digit / numpad → onKeyPress.
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        closeAndRestoreFocus();
+        return;
+      }
+      if (!keyboardMode || disabled) return;
+      // Let arrow / Enter / Space reach the focused grid cell.
+      if (
+        e.key === 'ArrowUp' ||
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'Enter' ||
+        e.key === ' ' ||
+        e.key === 'Home' ||
+        e.key === 'End' ||
+        e.key === 'Tab'
+      ) {
+        return;
+      }
+      const mapped = mapHardwareKeyToKeypadKey(e, keys);
+      if (!mapped) return;
+      // Linked amount field owns typing — avoid double-applying digits.
+      if (isInsideLinkedField(e.target) || isInsideLinkedField(document.activeElement)) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyPressRef.current(mapped);
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [
+    open,
+    keyboardMode,
+    disabled,
+    keys,
+    closeAndRestoreFocus,
+    isInsideLinkedField,
+  ]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Ignore drags that start on the handle's action buttons.
@@ -300,6 +458,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
         <button
           type="button"
           data-kp-btn
+          tabIndex={-1}
           onClick={handleDock}
           aria-label={dockLabel}
           className={cn(
@@ -312,7 +471,8 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
         <button
           type="button"
           data-kp-btn
-          onClick={onClose}
+          tabIndex={-1}
+          onClick={closeAndRestoreFocus}
           aria-label={closeLabel}
           className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800"
         >
@@ -333,6 +493,11 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
           renderKeyLabel={renderKeyLabel}
           getKeyAriaLabel={getKeyAriaLabel}
           keyHeight="lg"
+          keyboardNavigation={keyboardMode}
+          autoFocusHomeKey={keyboardMode}
+          isRTL={isRTL}
+          // Keyboard mode owns focus inside the pad; touch still works.
+          preserveInputFocus={!keyboardMode}
         />
       </div>
 

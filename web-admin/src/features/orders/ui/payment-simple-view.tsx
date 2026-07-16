@@ -244,43 +244,99 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               </div>
             ) : (
               <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                {methodOptions.map((option) => {
-                  const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
-                  const isActive =
-                    activeLeg != null &&
-                    `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
-                  const hasLeg = paymentLegs.some(
-                    (leg) => `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
-                  );
-                  return (
-                    <CmxButton
-                      key={methodKey}
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      data-testid={`payment-simple-method-${methodKey
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-')
-                        .replace(/^-|-$/g, '')}`}
-                      aria-pressed={isActive}
-                      onClick={() => onMethodSelect(option)}
-                      className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
-                        isActive
-                          ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
-                          : hasLeg
-                            ? 'border-slate-300 bg-slate-50 text-slate-800 hover:border-slate-400'
-                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                      } ${isRTL ? 'flex-row-reverse' : ''}`}
-                    >
-                      {option.payment_method_code === PAYMENT_METHODS.CASH ? (
-                        <Banknote className="me-2 h-4 w-4" />
-                      ) : (
-                        <CreditCard className="me-2 h-4 w-4" />
-                      )}
-                      {getOptionDisplayName(option, option.payment_method_code)}
-                    </CmxButton>
-                  );
-                })}
+                <div
+                  role="radiogroup"
+                  aria-label={t('mode.simpleView.methodLabel')}
+                  className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key !== 'ArrowRight' &&
+                      event.key !== 'ArrowLeft' &&
+                      event.key !== 'ArrowDown' &&
+                      event.key !== 'ArrowUp' &&
+                      event.key !== 'Home' &&
+                      event.key !== 'End'
+                    ) {
+                      return;
+                    }
+                    const buttons = Array.from(
+                      event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                        'button[role="radio"]:not(:disabled)',
+                      ),
+                    );
+                    if (buttons.length === 0) return;
+                    const currentIndex = buttons.findIndex(
+                      (button) => button === document.activeElement,
+                    );
+                    if (currentIndex < 0) return;
+
+                    let nextIndex = currentIndex;
+                    if (event.key === 'Home') {
+                      nextIndex = 0;
+                    } else if (event.key === 'End') {
+                      nextIndex = buttons.length - 1;
+                    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                      const delta = event.key === 'ArrowDown' ? 1 : -1;
+                      nextIndex =
+                        (currentIndex + delta + buttons.length) % buttons.length;
+                    } else {
+                      // ArrowLeft / ArrowRight — flip direction in RTL.
+                      const visualNext =
+                        (event.key === 'ArrowRight' && !isRTL) ||
+                        (event.key === 'ArrowLeft' && isRTL);
+                      const delta = visualNext ? 1 : -1;
+                      nextIndex =
+                        (currentIndex + delta + buttons.length) % buttons.length;
+                    }
+
+                    event.preventDefault();
+                    const nextButton = buttons[nextIndex];
+                    nextButton?.focus();
+                    nextButton?.click();
+                  }}
+                >
+                  {methodOptions.map((option) => {
+                    const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                    const isActive =
+                      activeLeg != null &&
+                      `${activeLeg.method}::${activeLeg.gateway_code ?? ''}` === methodKey;
+                    const hasLeg = paymentLegs.some(
+                      (leg) => `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                    );
+                    return (
+                      <CmxButton
+                        key={methodKey}
+                        type="button"
+                        role="radio"
+                        variant="outline"
+                        size="lg"
+                        data-testid={`payment-simple-method-${methodKey
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/^-|-$/g, '')}`}
+                        aria-checked={isActive}
+                        tabIndex={
+                          isActive || (!activeLeg && methodOptions[0] === option) ? 0 : -1
+                        }
+                        onClick={() => onMethodSelect(option)}
+                        className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
+                          isActive
+                            ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+                            : hasLeg
+                              ? 'border-slate-300 bg-slate-50 text-slate-800 hover:border-slate-400'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                        } ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
+                        {option.payment_method_code === PAYMENT_METHODS.CASH ? (
+                          <Banknote className="me-2 h-4 w-4" />
+                        ) : (
+                          <CreditCard className="me-2 h-4 w-4" />
+                        )}
+                        {getOptionDisplayName(option, option.payment_method_code)}
+                      </CmxButton>
+                    );
+                  })}
+                </div>
                 <CmxButton
                   type="button"
                   variant="outline"
