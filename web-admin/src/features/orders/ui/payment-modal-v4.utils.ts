@@ -860,16 +860,24 @@ export interface DeriveQuickTenderChipsInput {
   /** Whether the active leg is cash (tender chips are cash-only). */
   isCash: boolean;
   epsilon?: number;
+  /**
+   * Include an Exact chip. Default false — Exact lives on
+   * {@link PaymentAmountMoneyField}; chips are denomination shortcuts only.
+   */
+  includeExact?: boolean;
 }
 
 /**
- * Pure chip-row deriver for the quick-tender fast lane: `[Exact] [Next d1]
- * [Next d2] [note] [note]` (cash) or `[Exact]` (non-cash). Values are decimal-
- * rounded, deduped, and strictly greater than the exact amount so every chip is
- * a meaningful one-tap action. Returns `[]` when nothing remains to settle.
+ * Pure chip-row deriver for the quick-tender fast lane: cash denomination
+ * shortcuts (`[Next d1] [Next d2] [note] [note]`), optionally with Exact when
+ * `includeExact` is set. Exact is off by default because the shared amount
+ * field already exposes it (avoids a duplicate Exact button). Values are
+ * decimal-rounded, deduped, and strictly greater than the exact remaining so
+ * every chip is a meaningful one-tap action. Returns `[]` when nothing remains
+ * to settle (or non-cash with Exact omitted).
  *
  * @param input - {@link DeriveQuickTenderChipsInput}.
- * @returns Chips ordered `exact` first, then ascending tender values (max 5).
+ * @returns Chips ordered optional `exact` first, then ascending tender values.
  */
 export function deriveQuickTenderChips({
   remaining,
@@ -877,10 +885,13 @@ export function deriveQuickTenderChips({
   decimalPlaces,
   isCash,
   epsilon = 0.001,
+  includeExact = false,
 }: DeriveQuickTenderChipsInput): QuickTenderChipModel[] {
   if (!(remaining > epsilon)) return [];
 
-  const chips: QuickTenderChipModel[] = [{ id: 'exact', kind: 'exact' }];
+  const chips: QuickTenderChipModel[] = includeExact
+    ? [{ id: 'exact', kind: 'exact' }]
+    : [];
   if (!isCash) return chips;
 
   const round = (value: number) => Number(value.toFixed(decimalPlaces));
@@ -907,7 +918,8 @@ export function deriveQuickTenderChips({
   }
 
   tenderValues.sort((left, right) => left - right);
-  for (const value of tenderValues.slice(0, 4)) {
+  const maxTenderChips = includeExact ? 4 : 5;
+  for (const value of tenderValues.slice(0, maxTenderChips)) {
     chips.push({ id: `tender-${value}`, kind: 'tender', tenderAmount: value });
   }
   return chips;

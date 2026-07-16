@@ -29,12 +29,11 @@ export interface PaymentQuickTenderChipsProps {
 }
 
 /**
- * Quick-tender fast lane (UX finding 1.2): a one-tap chip row above the keypad
- * — `[Exact] [Next 5] [Next 10] [50] [100]` — shared by the Full view now and
- * the Simple view in Phase 4. Purely presentational: chip values come from the
- * pure `deriveQuickTenderChips` deriver and every selection is applied by the
- * caller through the same capped `updateLeg` path as the keypad, so chips can
- * never bypass overpayment / pay-extra gates.
+ * Quick-tender fast lane (UX finding 1.2): one-tap denomination chips
+ * (cash round-ups / notes). Exact is owned by {@link PaymentAmountMoneyField}
+ * so this row does not duplicate it. Purely presentational: values come from
+ * `deriveQuickTenderChips`; selection uses the same capped `updateLeg` path as
+ * the keypad.
  */
 export function PaymentQuickTenderChips({
   items,

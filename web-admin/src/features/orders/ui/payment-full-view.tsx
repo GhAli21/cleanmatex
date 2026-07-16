@@ -1716,10 +1716,9 @@ export function PaymentFullView({
     });
   }, [t, currencyCode, decimalPlaces, remainingBalance, saleTotal, amountAppliedToOrder]);
 
-  // Quick-tender fast lane (finding 1.2): chip values come from the pure
-  // deriver; selection routes through the SAME capped `updateLeg` write path as
-  // the keypad (never bypasses overpayment / pay-extra gates). Exact reuses
-  // `fillLegRemaining` — the existing remaining-cap action for every method.
+  // Quick-tender fast lane (finding 1.2): cash denomination chips only.
+  // Exact lives on PaymentAmountMoneyField (not duplicated here). Selection
+  // routes through the SAME capped `updateLeg` path as the keypad.
   const quickTenderChipItems = useMemo<PaymentQuickTenderChipItem[]>(() => {
     if (!activeLeg) return [];
     return deriveQuickTenderChips({
@@ -1728,6 +1727,7 @@ export function PaymentFullView({
       decimalPlaces,
       isCash: activeLeg.method === PAYMENT_METHODS.CASH,
       epsilon: moneyEpsilon,
+      includeExact: false,
     }).map((chip) =>
       chip.kind === 'exact'
         ? {
@@ -1878,13 +1878,11 @@ export function PaymentFullView({
       cashDrawerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 120);
   }, [expandSection]);
+  // Same surface as the Pay later quick action — stay in Simple (ADR: capability
+  // dialog in-place, never escalate to Advanced for balance policy).
   const handleSimpleChangePolicy = useCallback(() => {
-    setMode(PAYMENT_MODAL_MODE.FULL);
-    window.setTimeout(() => {
-      expandSection(PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY);
-      balancePolicySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
-  }, [expandSection]);
+    setPayLaterDialogOpen(true);
+  }, []);
   // A blocked submit in Simple opens Full so the cashier can see and fix the
   // blocker (the workbench owns the focus-first-issue flow). This is a
   // user-initiated action, not auto-escalation.

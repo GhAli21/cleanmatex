@@ -2,6 +2,7 @@
 // Chips are input assistance only — the applied amount always routes through the
 // same capped `updateLeg` path as the keypad, so these tests only cover the
 // chip VALUES (denominations, round-ups, dedupe, ordering), not gating.
+// Exact defaults off (lives on PaymentAmountMoneyField).
 import {
   deriveQuickTenderChips,
   deriveQuickTenderDenominations,
@@ -37,25 +38,47 @@ describe('deriveQuickTenderChips', () => {
     ).toEqual([]);
   });
 
-  it('non-cash legs only get the Exact chip', () => {
+  it('non-cash legs get no chips by default (Exact is on the amount field)', () => {
     const chips = deriveQuickTenderChips({
       remaining: 37.5,
       currencyCode: 'USD',
       decimalPlaces: 2,
       isCash: false,
     });
+    expect(chips).toEqual([]);
+  });
+
+  it('non-cash can opt into Exact via includeExact', () => {
+    const chips = deriveQuickTenderChips({
+      remaining: 37.5,
+      currencyCode: 'USD',
+      decimalPlaces: 2,
+      isCash: false,
+      includeExact: true,
+    });
     expect(chips).toEqual([{ id: 'exact', kind: 'exact' }]);
   });
 
-  it('cash: exact first, then ascending round-ups and flat notes (USD 37.50)', () => {
+  it('cash: denomination chips only by default (USD 37.50)', () => {
     const chips = deriveQuickTenderChips({
       remaining: 37.5,
       currencyCode: 'USD',
       decimalPlaces: 2,
       isCash: true,
     });
-    expect(chips[0]).toEqual({ id: 'exact', kind: 'exact' });
     // next-5 = 40, next-10 = 40 (dedupe), notes 50 + 100
+    expect(chips.map((chip) => chip.tenderAmount)).toEqual([40, 50, 100]);
+  });
+
+  it('cash with includeExact: Exact first, then tender chips', () => {
+    const chips = deriveQuickTenderChips({
+      remaining: 37.5,
+      currencyCode: 'USD',
+      decimalPlaces: 2,
+      isCash: true,
+      includeExact: true,
+    });
+    expect(chips[0]).toEqual({ id: 'exact', kind: 'exact' });
     expect(chips.slice(1).map((chip) => chip.tenderAmount)).toEqual([40, 50, 100]);
   });
 
@@ -67,8 +90,8 @@ describe('deriveQuickTenderChips', () => {
       isCash: true,
     });
     // next-1 = 4, next-5 = 5, notes 20 + 50
-    expect(chips.slice(1).map((chip) => chip.tenderAmount)).toEqual([4, 5, 20, 50]);
-    for (const chip of chips.slice(1)) {
+    expect(chips.map((chip) => chip.tenderAmount)).toEqual([4, 5, 20, 50]);
+    for (const chip of chips) {
       expect(chip.tenderAmount).toBeCloseTo(Number((chip.tenderAmount ?? 0).toFixed(3)), 10);
     }
   });
@@ -81,10 +104,10 @@ describe('deriveQuickTenderChips', () => {
       isCash: true,
     });
     // next-5/next-10 == 50 == exact → dropped; note 50 == exact → dropped; only 100 stays.
-    expect(chips.map((chip) => chip.id)).toEqual(['exact', 'tender-100']);
+    expect(chips.map((chip) => chip.id)).toEqual(['tender-100']);
   });
 
-  it('caps the row at Exact + 4 tender chips', () => {
+  it('caps the row at 5 tender chips when Exact is omitted', () => {
     const chips = deriveQuickTenderChips({
       remaining: 3.2,
       currencyCode: 'USD',
@@ -92,7 +115,7 @@ describe('deriveQuickTenderChips', () => {
       isCash: true,
     });
     expect(chips.length).toBeLessThanOrEqual(5);
-    expect(chips[0].kind).toBe('exact');
+    expect(chips.every((chip) => chip.kind === 'tender')).toBe(true);
   });
 
   it('floating-point remainders do not produce phantom round-ups (epsilon guard)', () => {
@@ -103,6 +126,6 @@ describe('deriveQuickTenderChips', () => {
       isCash: true,
     });
     // 40.0000000001 is "40" for money purposes → next-5 stays 40 → dropped as exact-equal.
-    expect(chips.map((chip) => chip.tenderAmount ?? null)).toEqual([null, 50, 100]);
+    expect(chips.map((chip) => chip.tenderAmount ?? null)).toEqual([50, 100]);
   });
 });

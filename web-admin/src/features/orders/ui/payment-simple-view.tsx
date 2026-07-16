@@ -429,7 +429,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             ) : null}
           </div>
 
-          {/* Quick tender (cash round-ups + Exact shortcut) */}
+          {/* Cash denomination shortcuts only — Exact is on the amount field above. */}
           <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <PaymentQuickTenderChips
               items={quickTenderItems}
