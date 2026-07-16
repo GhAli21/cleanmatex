@@ -15,6 +15,7 @@
  */
 
 import {
+  useEffect,
   useRef,
   useState,
   type MutableRefObject,
@@ -69,6 +70,12 @@ export interface PaymentAmountMoneyFieldProps {
   /** Optional external input ref (container focus helpers). */
   inputRef?: Ref<HTMLInputElement | null>;
   onFocus?: () => void;
+  /**
+   * When this token changes (and is non-null), focus + select the amount input.
+   * Used after selecting a payment method / credit instrument so the cashier
+   * lands in that leg's amount field (dialogs suppress the background editor).
+   */
+  focusToken?: string | number | null;
   amountAriaLabel: string;
   keypadTitle: string;
   keypadDock: string;
@@ -112,6 +119,7 @@ export function PaymentAmountMoneyField({
   size = 'compact',
   inputRef,
   onFocus,
+  focusToken = null,
   amountAriaLabel,
   keypadTitle,
   keypadDock,
@@ -142,6 +150,19 @@ export function PaymentAmountMoneyField({
     localInputRef.current = node;
     assignRef(inputRef, node);
   };
+
+  // Focus after method/credit selection (token change). Timeout lets the field
+  // mount when a new Store-credit amount editor appears under the option.
+  useEffect(() => {
+    if (focusToken == null || disabled) return;
+    const timer = window.setTimeout(() => {
+      const input = localInputRef.current;
+      if (!input || input.disabled) return;
+      input.focus();
+      input.select();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [focusToken, disabled]);
 
   const showActions = (showExact && onExact) || (showFillRemaining && onFillRemaining);
 

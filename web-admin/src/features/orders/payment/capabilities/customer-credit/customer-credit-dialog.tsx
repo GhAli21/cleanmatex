@@ -15,6 +15,7 @@
  * leg; the server re-validates on submit. Live-commit model (engine owns state).
  */
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, RefreshCw, Wallet } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -128,6 +129,10 @@ export function CustomerCreditDialog({
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  // Bumped on every instrument tap so focus lands in that option's amount
+  // field even when re-selecting the already-active credit leg (background
+  // focusAmountEditor is suppressed while this dialog is open).
+  const [amountFocusNonce, setAmountFocusNonce] = useState(0);
 
   return (
     <PaymentCapabilityDialog
@@ -226,7 +231,10 @@ export function CustomerCreditDialog({
                   size="lg"
                   disabled={disabled}
                   aria-pressed={selected}
-                  onClick={() => actions.selectCustomerCredit(option)}
+                  onClick={() => {
+                    actions.selectCustomerCredit(option);
+                    setAmountFocusNonce((prev) => prev + 1);
+                  }}
                   className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
                     selected
                       ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm ring-1 ring-cyan-200'
@@ -296,6 +304,11 @@ export function CustomerCreditDialog({
                       }
                       onKeypadPress={onKeypadPress}
                       onFocus={() => actions.setActiveLegIndex(legIndex)}
+                      focusToken={
+                        isActiveEditor
+                          ? `${legIndex}:${option.payment_method_code}:${selectedLeg.creditReferenceId ?? ''}:${amountFocusNonce}`
+                          : null
+                      }
                       isRTL={isRTL}
                       amountAriaLabel={t('customerCredits.amountLabel', {
                         method: optionLabel,

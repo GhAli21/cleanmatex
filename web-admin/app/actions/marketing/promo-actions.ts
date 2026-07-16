@@ -145,7 +145,8 @@ const optionalPositiveInt = z.preprocess(
   z.union([z.number().int().positive(), z.null()]).optional()
 );
 
-const promoFormSchema = z.object({
+/** Base object schema — refinements live separately so `.partial()` works on update. */
+const promoFormObjectSchema = z.object({
   // Optional typed code — independent of is_auto_apply
   promo_code: z
     .string()
@@ -191,28 +192,57 @@ const promoFormSchema = z.object({
   stackable: z.boolean().default(false),
   stacking_group: z.string().max(100).optional().nullable(),
   max_stacking_discount: optionalPositiveNumber,
-}).superRefine((data, ctx) => {
-  if (data.discount_type === 'percentage' && data.discount_value > 100) {
+});
+
+type PromoFormObject = z.infer<typeof promoFormObjectSchema>;
+
+function refinePromoFormData(
+  data: Partial<PromoFormObject>,
+  ctx: z.RefinementCtx,
+  opts: { requireIdentity: boolean }
+) {
+  if (
+    data.discount_type === 'percentage' &&
+    data.discount_value != null &&
+    data.discount_value > 100
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Percentage discount cannot exceed 100',
       path: ['discount_value'],
     });
   }
-  if (data.valid_to && data.valid_from && new Date(data.valid_to) < new Date(data.valid_from)) {
+  if (
+    data.valid_to &&
+    data.valid_from &&
+    new Date(data.valid_to) < new Date(data.valid_from)
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Valid To must be on or after Valid From',
       path: ['valid_to'],
     });
   }
-  if (!data.promo_code && !data.is_auto_apply) {
+  if (opts.requireIdentity && !data.promo_code && !data.is_auto_apply) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Enter a promo code and/or enable Auto-apply',
       path: ['promo_code'],
     });
   }
+}
+
+const promoFormSchema = promoFormObjectSchema.superRefine((data, ctx) => {
+  refinePromoFormData(data, ctx, { requireIdentity: true });
+});
+
+/** Update accepts partial payloads; refinements apply only to provided fields. */
+const promoFormUpdateSchema = promoFormObjectSchema.partial().superRefine((data, ctx) => {
+  // Identity is enforced in the action against existing+patch merge when only
+  // one of the fields is present. Zod can require it only when both are sent.
+  const hasFullIdentity =
+    data.promo_code !== undefined && data.is_auto_apply !== undefined;
+  refinePromoFormData(data, ctx, { requireIdentity: hasFullIdentity });
 });
 
 function revalidatePromoPaths() {
@@ -402,7 +432,9 @@ export async function updatePromoCode(
     }
     const { tenantId, userId } = auth;
 
-    const parsed = promoFormSchema.partial().safeParse(input);
+    // Form sends a full payload; use update schema (partial + refinements) so
+    // Zod never throws ".partial() cannot be used on … refinements".
+    const parsed = promoFormUpdateSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
     }
@@ -416,6 +448,18 @@ export async function updatePromoCode(
       }
 
       const data = parsed.data;
+
+      // Full-form saves always include identity fields — enforce code and/or auto.
+      const nextCode =
+        data.promo_code !== undefined ? data.promo_code : existing.promo_code;
+      const nextAuto =
+        data.is_auto_apply !== undefined ? data.is_auto_apply : existing.is_auto_apply;
+      if (!nextCode && !nextAuto) {
+        return {
+          success: false,
+          error: 'Enter a promo code and/or enable Auto-apply',
+        };
+      }
 
       if (data.promo_code !== undefined && data.promo_code !== existing.promo_code) {
         if (data.promo_code) {
@@ -492,7 +536,10 @@ export async function updatePromoCode(
     });
   } catch (error) {
     logger.error('updatePromoCode failed', error as Error, { id });
-    return { success: false, error: 'Failed to update promo code' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update promo code',
+    };
   }
 }
 

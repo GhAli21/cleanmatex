@@ -19196,6 +19196,7 @@ export type Database = {
           exchange_rate: number
           id: string
           is_active: boolean
+          is_auto_apply: boolean
           is_enabled: boolean
           max_discount_amount: number | null
           max_order_amount: number | null
@@ -19235,6 +19236,7 @@ export type Database = {
           exchange_rate?: number
           id?: string
           is_active?: boolean
+          is_auto_apply?: boolean
           is_enabled?: boolean
           max_discount_amount?: number | null
           max_order_amount?: number | null
@@ -19274,6 +19276,7 @@ export type Database = {
           exchange_rate?: number
           id?: string
           is_active?: boolean
+          is_auto_apply?: boolean
           is_enabled?: boolean
           max_discount_amount?: number | null
           max_order_amount?: number | null

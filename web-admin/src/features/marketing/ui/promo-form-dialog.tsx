@@ -314,6 +314,13 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
 
     if (result.success === false) {
       setServerError(result.error);
+      // Tall dialog: keep failure visible near the Save button (see footer alert).
+      requestAnimationFrame(() => {
+        document.getElementById('promo-form-server-error')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      });
     } else {
       onSuccess();
     }
@@ -714,6 +721,12 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
               </div>
             </div>
           </div>
+
+          {serverError && (
+            <Alert id="promo-form-server-error" variant="destructive">
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          )}
 
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={onClose}>

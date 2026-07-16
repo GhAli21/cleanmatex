@@ -15,7 +15,7 @@
  * in a distinct muted style. Amount editing uses {@link PaymentAmountMoneyField}.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -161,6 +161,9 @@ export function SplitTenderDialog({
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  // Bumped when method changes / leg is added so focus lands in that row's
+  // amount field (background focusAmountEditor is suppressed while open).
+  const [amountFocusNonce, setAmountFocusNonce] = useState(0);
 
   // Composite key — method alone collides when multiple gateway rows share a
   // payment_method_code (e.g. PAYMENT_GATEWAY + STRIPE vs HYPERPAY).
@@ -287,6 +290,7 @@ export function SplitTenderDialog({
                           const nextOption = optionByKey.get(key);
                           if (nextOption) {
                             applyLegSettlementOption(actions, index, nextOption);
+                            setAmountFocusNonce((prev) => prev + 1);
                           }
                         }}
                       >
@@ -342,6 +346,11 @@ export function SplitTenderDialog({
                       }
                       onKeypadPress={onKeypadPress}
                       onFocus={() => actions.setActiveLegIndex(index)}
+                      focusToken={
+                        isActiveEditor
+                          ? `${index}:${leg.method}:${leg.gateway_code ?? ''}:${paymentLegs.length}:${amountFocusNonce}`
+                          : null
+                      }
                       inputRef={(node) => {
                         legAmountRefs.current[index] = node;
                       }}
@@ -476,6 +485,7 @@ export function SplitTenderDialog({
             const option = optionByKey.get(key);
             if (option) {
               actions.addLeg(option, remainingBalance > 0 ? remainingBalance : 0);
+              setAmountFocusNonce((prev) => prev + 1);
             }
           }}
         >

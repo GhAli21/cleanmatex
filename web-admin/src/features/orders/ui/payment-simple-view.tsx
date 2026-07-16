@@ -337,6 +337,11 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               onKeypadPress={onKeypadPress}
               inputRef={amountInputRef}
               disabled={!activeLeg}
+              focusToken={
+                activeLeg
+                  ? `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`
+                  : null
+              }
               isRTL={isRTL}
               amountAriaLabel={t('workspace.editingAmount')}
               keypadTitle={t('mode.simpleView.keypadTitle')}
