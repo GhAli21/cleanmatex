@@ -1,7 +1,8 @@
 {
   "dialog": {
     "errorFallback": "Something went wrong in this dialog. Your payment entries are safe — close and try again.",
-    "required": "Required"
+    "required": "Required",
+    "applied": "Applied"
   },
   "SPLIT_TENDER": {
     "title": "Split payment",

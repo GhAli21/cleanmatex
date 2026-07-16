@@ -35,6 +35,9 @@
     "changePolicy": "Change",
     "quickActionsTitle": "More ways to pay",
     "advancedLegActiveTitle": "Advanced payment method in use",
-    "advancedLegActiveHint": "That method is edited in Advanced. Pick a method below, or open More options to continue there."
+    "advancedLegActiveHint": "That method is edited in Advanced. Pick a method below, or open More options to continue there.",
+    "settledNowTenders": "{count} tenders in Settled now",
+    "settledNowExpand": "Show details",
+    "settledNowCollapse": "Hide details"
   }
 }

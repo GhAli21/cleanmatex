@@ -108,6 +108,7 @@ import { useB2bContracts } from '@features/orders/hooks/use-b2b-contracts';
 import { PaymentModeSuggestion } from '@features/orders/payment/primitives/payment-mode-suggestion';
 import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { PaymentDiscountFields } from '@features/orders/payment/primitives/payment-discount-fields';
+import { PaymentAmountMoneyField } from '@features/orders/payment/primitives/payment-amount-money-field';
 import { OVERPAYMENT_RESOLUTION_PERMISSIONS } from '@/lib/constants/settlement-catalog';
 import { buildPaymentPayload } from '@features/orders/hooks/use-payment-submit';
 import { usePaymentShortcuts } from '@features/orders/hooks/use-payment-shortcuts';
@@ -1486,20 +1487,150 @@ export function PaymentFullView({
       exceedsBy: exceeds ? Math.max(0, creditPortion - creditLimit.available) : 0,
     };
   }, [serverTotals?.creditLimit, effectiveOutstandingPolicy, remainingBalance, moneyEpsilon]);
-  // Typed actions the split-tender dialog may call (leg editing only).
+  // Typed actions the split-tender dialog may call (leg editing + fill).
   const splitTenderActions = useMemo(
     () => ({
       updateLeg: legs.updateLeg,
       addLeg: legs.addLeg,
       removeLegAt: legs.removeLegAt,
       setActiveLegIndex: legs.setActiveLegIndex,
+      fillLegRemaining,
     }),
-    [legs]
+    [legs, fillLegRemaining]
   );
-  // Typed actions for the customer-credit + gift-card dialogs.
+  // Typed actions for the customer-credit dialog (select + amount edit path).
   const customerCreditActions = useMemo(
-    () => ({ selectCustomerCredit: handleCustomerCreditSelect }),
-    [handleCustomerCreditSelect]
+    () => ({
+      selectCustomerCredit: handleCustomerCreditSelect,
+      updateLeg: legs.updateLeg,
+      setActiveLegIndex: legs.setActiveLegIndex,
+      fillLegRemaining,
+    }),
+    [handleCustomerCreditSelect, legs, fillLegRemaining]
+  );
+  // Shared amount write path for Split / Store credit dialogs — activates the
+  // target leg, syncs the draft, and routes through the same capped `updateLeg`
+  // as the main amount editor (no second money path).
+  const handleDialogLegAmountChange = useCallback(
+    (legIndex: number, value: number | null, draft: string) => {
+      const leg = paymentLegs[legIndex];
+      if (!leg) return;
+      setActiveLegIndex(legIndex);
+      setActiveAmountDraft(draft);
+      const option = getMethodOption(leg.method, leg.gateway_code);
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: leg.method,
+        supportsChangeReturn: option?.supports_change_return,
+        supportsOverpayment: option?.supports_overpayment,
+        requiresCashDrawer: option?.requires_cash_drawer,
+      });
+      const cappedAmount = deriveLegAppliedAmount({
+        rawAmount: value,
+        paymentLegs,
+        legIndex,
+        saleTotal,
+        giftCardAmount: giftCardSettlementAmount,
+        decimalPlaces,
+        walletBalance: getLegStoredValueCap(leg),
+        supportsOverpayment: resolveSupportsRetainedOverpayment({
+          payExtraIntent: payExtraIntentRef.current,
+          policy,
+        }),
+      });
+      notifyIfLegAmountCapped(leg, value, cappedAmount);
+      updateLeg(legIndex, 'amount', value ?? 0);
+    },
+    [
+      decimalPlaces,
+      getLegStoredValueCap,
+      getMethodOption,
+      giftCardSettlementAmount,
+      notifyIfLegAmountCapped,
+      paymentLegs,
+      payExtraIntentRef,
+      saleTotal,
+      setActiveAmountDraft,
+      setActiveLegIndex,
+      updateLeg,
+    ]
+  );
+  const simpleCreditSummaryItems = useMemo(() => {
+    const items = [...storedValueSummaryItems];
+    if (appliedGiftCard) {
+      items.push({
+        label: t('giftCard.title'),
+        value: `${currencyCode} ${formatAmount(appliedGiftCard.amount)}`,
+      });
+    }
+    return items;
+  }, [appliedGiftCard, currencyCode, formatAmount, storedValueSummaryItems, t]);
+  const isQuickActionActive = useCallback(
+    (slot: { key: string }) => {
+      switch (slot.key) {
+        case PAYMENT_CAPABILITY.SPLIT_TENDER:
+        case PAYMENT_CAPABILITY.CASH_CARD_SPLIT:
+          return splitDialogOpen;
+        case PAYMENT_CAPABILITY.CUSTOMER_CREDIT:
+          return creditDialogOpen;
+        case PAYMENT_CAPABILITY.GIFT_CARD:
+          return giftDialogOpen;
+        case PAYMENT_CAPABILITY.PROMO_CODE:
+          return promoDialogOpen;
+        case PAYMENT_CAPABILITY.PAY_LATER:
+          return payLaterDialogOpen;
+        case PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING:
+          return b2bDialogOpen;
+        case PAYMENT_CAPABILITY.OVERPAYMENT_ROUTING:
+          return extraReceiptDialogOpen;
+        default:
+          return false;
+      }
+    },
+    [
+      b2bDialogOpen,
+      creditDialogOpen,
+      extraReceiptDialogOpen,
+      giftDialogOpen,
+      payLaterDialogOpen,
+      promoDialogOpen,
+      splitDialogOpen,
+    ]
+  );
+  const isQuickActionApplied = useCallback(
+    (slot: { key: string }) => {
+      switch (slot.key) {
+        case PAYMENT_CAPABILITY.SPLIT_TENDER:
+        case PAYMENT_CAPABILITY.CASH_CARD_SPLIT:
+          return paymentLegs.length > 1;
+        case PAYMENT_CAPABILITY.CUSTOMER_CREDIT:
+          return customerCreditEntries.length > 0;
+        case PAYMENT_CAPABILITY.GIFT_CARD:
+          return !!appliedGiftCard;
+        case PAYMENT_CAPABILITY.PROMO_CODE:
+          return !!appliedPromoCode;
+        case PAYMENT_CAPABILITY.PAY_LATER:
+          return (
+            effectiveOutstandingPolicy === 'PAY_ON_COLLECTION' ||
+            effectiveOutstandingPolicy === 'CREDIT_INVOICE'
+          );
+        case PAYMENT_CAPABILITY.B2B_ACCOUNT_BILLING:
+          return effectiveOutstandingPolicy === 'CREDIT_INVOICE';
+        case PAYMENT_CAPABILITY.OVERPAYMENT_ROUTING:
+          return payExtraIntent || unresolvedOverpaymentAmount > moneyEpsilon;
+        default:
+          return false;
+      }
+    },
+    [
+      appliedGiftCard,
+      appliedPromoCode,
+      customerCreditEntries.length,
+      effectiveOutstandingPolicy,
+      moneyEpsilon,
+      payExtraIntent,
+      paymentLegs.length,
+      unresolvedOverpaymentAmount,
+    ]
   );
   const giftCardActions = useMemo(
     () => ({
@@ -2208,6 +2339,10 @@ export function PaymentFullView({
               actions={splitTenderActions}
               paymentLegs={paymentLegs}
               activeLegIndex={activeLegIndex}
+              activeAmountDraft={activeAmountDraft}
+              onSplitAmountChange={handleDialogLegAmountChange}
+              onKeypadPress={handleKeypadPress}
+              activeLegRemainingCap={activeLegRemainingCap}
               methodOptions={realPaymentOptions}
               getOptionDisplayName={getCheckoutOptionDisplayName}
               amountDue={saleTotal}
@@ -2229,6 +2364,10 @@ export function PaymentFullView({
               actions={customerCreditActions}
               creditOptions={customerCreditOptions}
               paymentLegs={paymentLegs}
+              activeLegIndex={activeLegIndex}
+              activeAmountDraft={activeAmountDraft}
+              onCreditAmountChange={handleDialogLegAmountChange}
+              onKeypadPress={handleKeypadPress}
               getOptionDisplayName={getCheckoutOptionDisplayName}
               storedValueSummary={storedValueSummary}
               storedValueLoading={storedValueLoading}
@@ -2238,8 +2377,11 @@ export function PaymentFullView({
               walletHasAvailableBalance={walletHasAvailableBalance}
               liveWalletBalanceDisplay={liveWalletBalanceDisplay}
               walletLegExceedsLiveBalance={walletLegExceedsLiveBalance}
+              activeLegRemainingCap={activeLegRemainingCap}
+              moneyEpsilon={moneyEpsilon}
               currencyCode={currencyCode}
               formatAmount={formatAmount}
+              decimalPlaces={decimalPlaces}
             />
 
             <GiftCardDialog
@@ -2363,6 +2505,13 @@ export function PaymentFullView({
                     if (!simpleFaceActiveLeg) return;
                     handleKeypadPress(key);
                   }}
+                  onExactAmount={() => {
+                    if (!simpleFaceActiveLeg) return;
+                    fillLegRemaining(activeLegIndex);
+                  }}
+                  exactAmountDisabled={activeLegRemainingCap <= moneyEpsilon}
+                  realPaymentSummaryItems={realPaymentSummaryItems}
+                  storedValueSummaryItems={simpleCreditSummaryItems}
                   activeLegOption={
                     simpleFaceActiveLeg ? activeLegOption : undefined
                   }
@@ -2416,6 +2565,9 @@ export function PaymentFullView({
                               return <Icon />;
                             }}
                             requiredBadgeLabel={t('capabilities.dialog.required')}
+                            appliedBadgeLabel={t('capabilities.dialog.applied')}
+                            isActionActive={isQuickActionActive}
+                            isActionApplied={isQuickActionApplied}
                             onOpenCapability={(slot) => {
                               // Every quick-action opens its capability dialog
                               // in-place (Simple stays selected — ADR). CASH_CARD_SPLIT
@@ -3049,30 +3201,51 @@ export function PaymentFullView({
                         contentClassName="grid gap-4 pt-4 xl:grid-cols-[minmax(260px,0.9fr)_minmax(360px,1.1fr)]"
                       >
                           <div className="space-y-3">
-                            <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
-                              <div className="flex min-w-[88px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-lg font-semibold text-cyan-700">
-                                {currencyCode}
-                              </div>
-                              <div className="min-w-0 flex-1 px-3">
-                                <CmxMoneyField
-                                  ref={amountInputRef}
-                                  data-testid="payment-amount-editor"
-                                  draftValue={activeAmountDraft}
-                                  value={
-                                    activeLeg?.method === PAYMENT_METHODS.CASH
-                                      ? activeLeg.cashTendered ?? activeLeg.amount ?? null
-                                      : activeLeg?.amount ?? null
-                                  }
-                                  decimalPlaces={decimalPlaces}
-                                  showZero
-                                  aria-label={t('workspace.editingAmount')}
-                                  onValueChange={handleAmountValueChange}
-                                  placeholder={formatAmount(0)}
-                                  disabled={!activeLeg}
-                                  className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
-                                />
-                              </div>
-                            </div>
+                            <PaymentAmountMoneyField
+                              size="hero"
+                              currencyCode={currencyCode}
+                              decimalPlaces={decimalPlaces}
+                              formatAmount={formatAmount}
+                              value={
+                                activeLeg?.method === PAYMENT_METHODS.CASH
+                                  ? activeLeg.cashTendered ?? activeLeg.amount ?? null
+                                  : activeLeg?.amount ?? null
+                              }
+                              draftValue={activeAmountDraft}
+                              onValueChange={handleAmountValueChange}
+                              onKeypadPress={handleKeypadPress}
+                              inputRef={amountInputRef}
+                              disabled={!activeLeg}
+                              isRTL={isRTL}
+                              amountAriaLabel={t('workspace.editingAmount')}
+                              keypadTitle={t('mode.simpleView.keypadTitle')}
+                              keypadDock={t('mode.simpleView.keypadDock')}
+                              keypadClose={t('mode.simpleView.keypadClose')}
+                              keypadHint={t('mode.simpleView.keypadHint')}
+                              keypadRestored={t('mode.simpleView.keypadRestored')}
+                              keypadStorageKey="cmx:payment-keypad-pos-advanced"
+                              showExact
+                              exactLabel={t('quickTender.exact')}
+                              exactAriaLabel={t('quickTender.exactAria', {
+                                amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
+                              })}
+                              onExact={() => fillLegRemaining(activeLegIndex)}
+                              exactDisabled={!activeLeg || activeLegRemainingCap <= moneyEpsilon}
+                              showFillRemaining
+                              fillRemainingLabel={t('splitPayment.fillRemaining')}
+                              onFillRemaining={() => fillLegRemaining(activeLegIndex)}
+                              fillRemainingDisabled={
+                                !activeLeg || activeLegRemainingCap <= moneyEpsilon
+                              }
+                              remainingHint={
+                                activeLeg
+                                  ? t('workspace.remainingForLeg', {
+                                      amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
+                                    })
+                                  : t('workspace.keypadHint')
+                              }
+                              testId="payment-amount-editor"
+                            />
                             {activeLeg?.method === 'WALLET' && (
                               <div className={`rounded-xl border px-3 py-2 text-xs ${
                                 walletLegExceedsLiveBalance
@@ -3113,28 +3286,6 @@ export function PaymentFullView({
                                 title={displayAmountCapTitle}
                                 items={[displayAmountCapNotice.message]}
                               />
-                            ) : null}
-                            <p className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
-                              {t('workspace.keypadHint')}
-                            </p>
-                            {activeLeg ? (
-                              <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                <p className="text-xs text-slate-600">
-                                  {t('workspace.remainingForLeg', {
-                                    amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
-                                  })}
-                                </p>
-                                <CmxButton
-                                  type="button"
-                                  variant="outline"
-                                  size="xs"
-                                  disabled={activeLegRemainingCap <= moneyEpsilon}
-                                  onClick={() => fillLegRemaining(activeLegIndex)}
-                                  className="min-h-[44px] shrink-0 rounded-lg border-cyan-200 text-cyan-700"
-                                >
-                                  {t('splitPayment.fillRemaining')}
-                                </CmxButton>
-                              </div>
                             ) : null}
                           </div>
                           <div className="min-w-0 space-y-3">

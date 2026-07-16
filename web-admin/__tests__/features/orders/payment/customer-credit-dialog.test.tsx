@@ -55,10 +55,24 @@ const summaryWithNote = {
   creditNotes: [{ id: 'cn-1', remaining_balance: 20 }],
 } as unknown as StoredValueSummaryResponse;
 
+function buildActions(overrides: Partial<{ selectCustomerCredit: jest.Mock }> = {}) {
+  return {
+    selectCustomerCredit: jest.fn(),
+    updateLeg: jest.fn(),
+    setActiveLegIndex: jest.fn(),
+    fillLegRemaining: jest.fn(),
+    ...overrides,
+  };
+}
+
 const baseProps = {
   open: true,
   onOpenChange: jest.fn(),
   paymentLegs: [] as PaymentLeg[],
+  activeLegIndex: 0,
+  activeAmountDraft: '',
+  onCreditAmountChange: jest.fn(),
+  onKeypadPress: jest.fn(),
   getOptionDisplayName: (
     opt: CheckoutSettlementOption | null | undefined,
     fallback: string,
@@ -71,19 +85,22 @@ const baseProps = {
   walletHasAvailableBalance: true,
   liveWalletBalanceDisplay: 'KWD 30.000',
   walletLegExceedsLiveBalance: false,
+  activeLegRemainingCap: 10,
+  moneyEpsilon: 0.0005,
   currencyCode: 'KWD',
   formatAmount: (n: number) => n.toFixed(3),
+  decimalPlaces: 3,
 };
 
 describe('CustomerCreditDialog', () => {
   it('renders the empty state when no instruments are offered', () => {
-    render(<CustomerCreditDialog {...baseProps} actions={{ selectCustomerCredit: jest.fn() }} creditOptions={[]} />);
+    render(<CustomerCreditDialog {...baseProps} actions={buildActions()} creditOptions={[]} />);
     expect(screen.getByTestId('customer-credit-empty')).toBeInTheDocument();
     expect(screen.queryByTestId('customer-credit-list')).not.toBeInTheDocument();
   });
 
   it('selects a wallet instrument through the typed action', () => {
-    const actions = { selectCustomerCredit: jest.fn() };
+    const actions = buildActions();
     const wallet = option('WALLET', { credit_application_type: 'WALLET', available_balance: 30 });
     render(<CustomerCreditDialog {...baseProps} actions={actions} creditOptions={[wallet]} />);
 
@@ -98,7 +115,7 @@ describe('CustomerCreditDialog', () => {
     render(
       <CustomerCreditDialog
         {...baseProps}
-        actions={{ selectCustomerCredit: jest.fn() }}
+        actions={buildActions()}
         creditOptions={[wallet]}
         walletHasAvailableBalance={false}
       />,
@@ -112,7 +129,7 @@ describe('CustomerCreditDialog', () => {
   it('gates the credit-note card on availability', () => {
     const note = option('CREDIT_NOTE');
     const { rerender } = render(
-      <CustomerCreditDialog {...baseProps} actions={{ selectCustomerCredit: jest.fn() }} creditOptions={[note]} />,
+      <CustomerCreditDialog {...baseProps} actions={buildActions()} creditOptions={[note]} />,
     );
     // Notes available in summary → enabled with the select hint.
     expect(screen.getByTestId('payment-credit-method-credit_note')).toBeEnabled();
@@ -120,7 +137,7 @@ describe('CustomerCreditDialog', () => {
     rerender(
       <CustomerCreditDialog
         {...baseProps}
-        actions={{ selectCustomerCredit: jest.fn() }}
+        actions={buildActions()}
         creditOptions={[note]}
         storedValueSummary={{ ...summaryWithNote, creditNotes: [] } as unknown as StoredValueSummaryResponse}
       />,
@@ -134,7 +151,7 @@ describe('CustomerCreditDialog', () => {
     const { rerender } = render(
       <CustomerCreditDialog
         {...baseProps}
-        actions={{ selectCustomerCredit: jest.fn() }}
+        actions={buildActions()}
         creditOptions={[wallet]}
         refetchStoredValueSummary={refetch}
       />,
@@ -145,7 +162,7 @@ describe('CustomerCreditDialog', () => {
     rerender(
       <CustomerCreditDialog
         {...baseProps}
-        actions={{ selectCustomerCredit: jest.fn() }}
+        actions={buildActions()}
         creditOptions={[wallet]}
         refetchStoredValueSummary={refetch}
         storedValueFetching
@@ -159,7 +176,7 @@ describe('CustomerCreditDialog', () => {
     render(
       <CustomerCreditDialog
         {...baseProps}
-        actions={{ selectCustomerCredit: jest.fn() }}
+        actions={buildActions()}
         creditOptions={[wallet]}
         paymentLegs={[leg('WALLET')]}
         walletLegExceedsLiveBalance
@@ -168,5 +185,20 @@ describe('CustomerCreditDialog', () => {
     expect(screen.getByTestId('payment-credit-method-wallet')).toHaveTextContent(
       'newOrder.payment.customerCredits.walletBalanceExceeded',
     );
+  });
+
+  it('shows the shared amount field when a wallet leg is already applied', () => {
+    const wallet = option('WALLET', { credit_application_type: 'WALLET', available_balance: 30 });
+    render(
+      <CustomerCreditDialog
+        {...baseProps}
+        actions={buildActions()}
+        creditOptions={[wallet]}
+        paymentLegs={[leg('WALLET')]}
+        activeAmountDraft="10"
+      />,
+    );
+    expect(screen.getByTestId('customer-credit-amount-field-wallet')).toBeInTheDocument();
+    expect(screen.getByTestId('customer-credit-amount-field-wallet-keypad-toggle')).toBeInTheDocument();
   });
 });

@@ -29,6 +29,10 @@
   "settledTotal": "Settled Total",
   "fillRemaining": "Fill remaining",
   "noRemainingToFill": "No remaining balance is available for this payment leg.",
+  "editableSection": "Payment methods",
+  "appliedCreditsSection": "Credits & stored value",
+  "appliedCreditsHint": "View only here — change amounts from Store credit.",
+  "readOnlyBadge": "Applied",
   "validation": {
     "sumMismatch": "Sum of payment legs must equal order total",
     "amountMustBePositive": "Each leg amount must be greater than 0",

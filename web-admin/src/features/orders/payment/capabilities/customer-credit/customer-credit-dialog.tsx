@@ -4,17 +4,15 @@
  * Customer-credit capability dialog.
  *
  * Renders the customer's stored-value instruments — wallet (live balance),
- * advance, and credit notes — as selectable cards, ported from the legacy
- * `payment-full-view` "Store credit" panel. Selecting one calls the engine's
- * typed `selectCustomerCredit` action, which owns the branching (CREDIT_NOTE →
- * opens the engine's credit-note picker; reference-required → info toast;
- * wallet/advance → upserts a settlement leg at a suggested amount). No money
- * math here — balances arrive engine-derived and the engine caps the leg; the
- * server re-validates on submit.
+ * advance, and credit notes — as selectable cards. Selecting one calls the
+ * engine's typed `selectCustomerCredit` action (CREDIT_NOTE → picker;
+ * wallet/advance → upserts/activates a settlement leg). Once a leg exists for
+ * an instrument, the shared {@link PaymentAmountMoneyField} appears so the
+ * cashier can edit the applied amount with Exact / Fill remaining / keypad —
+ * same control as Split payment and the Simple amount editor.
  *
- * Live-commit model (engine owns state — ADR state-survival); the footer is a
- * single "Done" that closes. The credit-note picker stays a separate
- * engine-managed dialog (not embedded here).
+ * No money math here — balances arrive engine-derived and the engine caps the
+ * leg; the server re-validates on submit. Live-commit model (engine owns state).
  */
 
 import { useTranslations } from 'next-intl';
@@ -23,18 +21,20 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type { CheckoutSettlementOption } from '@features/orders/hooks/use-payment-catalog';
 import type { StoredValueSummaryResponse } from '@features/orders/hooks/use-payment-engine';
+import type { PaymentKeypadKey } from '@features/orders/ui/payment-modal-v4.utils';
 import { CmxButton, CmxSkeleton } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
+import { PaymentAmountMoneyField } from '../../primitives/payment-amount-money-field';
 
 /**
  * Typed engine actions the customer-credit dialog may call — nothing more.
  */
 export type CustomerCreditDialogActions = Pick<
   PaymentEngineActions,
-  'selectCustomerCredit'
+  'selectCustomerCredit' | 'updateLeg' | 'setActiveLegIndex' | 'fillLegRemaining'
 >;
 
 /**
@@ -48,6 +48,14 @@ export interface CustomerCreditDialogProps {
   creditOptions: CheckoutSettlementOption[];
   /** Current settlement legs (drives each option's `selected` state). */
   paymentLegs: PaymentLeg[];
+  /** Active leg index — amount draft/keypad bind to this session. */
+  activeLegIndex: number;
+  /** Engine draft for the active amount editor session. */
+  activeAmountDraft: string;
+  /** Writes amount for a credit leg (container owns capping + draft sync). */
+  onCreditAmountChange: (legIndex: number, value: number | null, draft: string) => void;
+  /** Keypad presses for the active credit-leg amount session. */
+  onKeypadPress: (key: PaymentKeypadKey) => void;
   /** Resolves an option's bilingual display name. */
   getOptionDisplayName: (
     option: CheckoutSettlementOption | null | undefined,
@@ -64,8 +72,26 @@ export interface CustomerCreditDialogProps {
   /** Preformatted "CUR 0.000" live wallet balance (engine-derived). */
   liveWalletBalanceDisplay: string;
   walletLegExceedsLiveBalance: boolean;
+  /** Remaining-to-allocate for the active credit leg (engine-derived). */
+  activeLegRemainingCap: number;
+  moneyEpsilon: number;
   currencyCode: string;
   formatAmount: (n: number) => string;
+  decimalPlaces: number;
+}
+
+/**
+ * Finds the settlement leg index for a credit option, or -1.
+ */
+function findCreditLegIndex(
+  paymentLegs: PaymentLeg[],
+  option: CheckoutSettlementOption,
+): number {
+  return paymentLegs.findIndex(
+    (leg) =>
+      leg.method === option.payment_method_code &&
+      (leg.gateway_code ?? '') === (option.gateway_code ?? ''),
+  );
 }
 
 /**
@@ -80,6 +106,10 @@ export function CustomerCreditDialog({
   actions,
   creditOptions,
   paymentLegs,
+  activeLegIndex,
+  activeAmountDraft,
+  onCreditAmountChange,
+  onKeypadPress,
   getOptionDisplayName,
   storedValueSummary,
   storedValueLoading,
@@ -89,8 +119,11 @@ export function CustomerCreditDialog({
   walletHasAvailableBalance,
   liveWalletBalanceDisplay,
   walletLegExceedsLiveBalance,
+  activeLegRemainingCap,
+  moneyEpsilon,
   currencyCode,
   formatAmount,
+  decimalPlaces,
 }: CustomerCreditDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -118,17 +151,27 @@ export function CustomerCreditDialog({
         <div className="flex flex-col gap-2" data-testid="customer-credit-list">
           {creditOptions.map((option) => {
             const optionLabel = getOptionDisplayName(option, option.payment_method_code);
-            const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
+            const legIndex = findCreditLegIndex(paymentLegs, option);
+            const selected = legIndex >= 0;
+            const selectedLeg = selected ? paymentLegs[legIndex] : undefined;
+            const isActiveEditor = selected && legIndex === activeLegIndex;
             const isWalletOption =
               option.credit_application_type === 'WALLET' ||
               option.payment_method_code === 'WALLET';
             const isCreditNoteOption = option.payment_method_code === 'CREDIT_NOTE';
             const creditNotesAvailable = (storedValueSummary?.creditNotes.length ?? 0) > 0;
+            const creditNoteReady =
+              isCreditNoteOption &&
+              selected &&
+              !!selectedLeg?.creditReferenceId?.trim();
+            const showAmountEditor =
+              selected && (!isCreditNoteOption || creditNoteReady);
             const disabled =
               (isCreditNoteOption
                 ? storedValueLoading || !creditNotesAvailable
                 : option.requires_credit_reference_selection) ||
-              (isWalletOption && (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
+              (isWalletOption &&
+                (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
             const balanceLabel = isWalletOption
               ? storedValueLoading
                 ? t('customerCredits.loadingBalance')
@@ -146,10 +189,15 @@ export function CustomerCreditDialog({
                   : t('customerCredits.available', {
                       amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
                     });
+
             return (
               <div key={option.id} className="space-y-2">
                 {isWalletOption ? (
-                  <div className={`flex items-center justify-between gap-2 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div
+                    className={`flex items-center justify-between gap-2 px-1 ${
+                      isRTL ? 'flex-row-reverse' : ''
+                    }`}
+                  >
                     <Badge variant="secondary" className="rounded-full bg-cyan-50 text-cyan-700">
                       {t('customerCredits.liveBadge')}
                     </Badge>
@@ -177,14 +225,19 @@ export function CustomerCreditDialog({
                   variant="outline"
                   size="lg"
                   disabled={disabled}
+                  aria-pressed={selected}
                   onClick={() => actions.selectCustomerCredit(option)}
                   className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
                     selected
-                      ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm'
+                      ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm ring-1 ring-cyan-200'
                       : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
                   } ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
-                  <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
+                  <span
+                    className={`flex w-full items-start gap-3 ${
+                      isRTL ? 'flex-row-reverse text-right' : 'text-left'
+                    }`}
+                  >
                     <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
                       <Wallet className="h-5 w-5" />
                     </span>
@@ -215,9 +268,73 @@ export function CustomerCreditDialog({
                           })}
                         </span>
                       ) : null}
+                      {isCreditNoteOption && creditNoteReady ? (
+                        <span className="mt-1 text-xs font-medium text-cyan-700">
+                          {t('customerCredits.creditNoteSelected', {
+                            id: selectedLeg?.creditReferenceId ?? '',
+                          })}
+                        </span>
+                      ) : null}
                     </span>
                   </span>
                 </CmxButton>
+
+                {showAmountEditor && selectedLeg ? (
+                  <div
+                    className="rounded-2xl border border-cyan-100 bg-slate-50/80 p-3"
+                    data-testid={`customer-credit-amount-${option.payment_method_code.toLowerCase()}`}
+                  >
+                    <PaymentAmountMoneyField
+                      size="compact"
+                      currencyCode={currencyCode}
+                      decimalPlaces={decimalPlaces}
+                      formatAmount={formatAmount}
+                      value={selectedLeg.amount ?? null}
+                      draftValue={isActiveEditor ? activeAmountDraft : undefined}
+                      onValueChange={(value, draft) =>
+                        onCreditAmountChange(legIndex, value, draft)
+                      }
+                      onKeypadPress={onKeypadPress}
+                      onFocus={() => actions.setActiveLegIndex(legIndex)}
+                      isRTL={isRTL}
+                      amountAriaLabel={t('customerCredits.amountLabel', {
+                        method: optionLabel,
+                      })}
+                      keypadTitle={t('mode.simpleView.keypadTitle')}
+                      keypadDock={t('mode.simpleView.keypadDock')}
+                      keypadClose={t('mode.simpleView.keypadClose')}
+                      keypadHint={t('mode.simpleView.keypadHint')}
+                      keypadRestored={t('mode.simpleView.keypadRestored')}
+                      keypadStorageKey="cmx:payment-keypad-pos-store-credit"
+                      showExact
+                      exactLabel={t('quickTender.exact')}
+                      exactAriaLabel={t('quickTender.exactAria', {
+                        amount: `${currencyCode} ${formatAmount(
+                          isActiveEditor ? activeLegRemainingCap : selectedLeg.amount ?? 0,
+                        )}`,
+                      })}
+                      onExact={() => actions.fillLegRemaining(legIndex)}
+                      exactDisabled={
+                        (isActiveEditor ? activeLegRemainingCap : 0) <= moneyEpsilon &&
+                        (selectedLeg.amount ?? 0) <= moneyEpsilon
+                      }
+                      showFillRemaining
+                      fillRemainingLabel={t('splitPayment.fillRemaining')}
+                      onFillRemaining={() => actions.fillLegRemaining(legIndex)}
+                      fillRemainingDisabled={
+                        (isActiveEditor ? activeLegRemainingCap : 0) <= moneyEpsilon
+                      }
+                      remainingHint={
+                        isActiveEditor
+                          ? t('workspace.remainingForLeg', {
+                              amount: `${currencyCode} ${formatAmount(activeLegRemainingCap)}`,
+                            })
+                          : t('customerCredits.amountEditHint')
+                      }
+                      testId={`customer-credit-amount-field-${option.payment_method_code.toLowerCase()}`}
+                    />
+                  </div>
+                ) : null}
               </div>
             );
           })}

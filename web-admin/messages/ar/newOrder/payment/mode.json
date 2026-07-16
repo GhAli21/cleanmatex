@@ -35,6 +35,9 @@
     "changePolicy": "تغيير",
     "quickActionsTitle": "طرق دفع أخرى",
     "advancedLegActiveTitle": "طريقة دفع متقدمة قيد الاستخدام",
-    "advancedLegActiveHint": "تُعدَّل هذه الطريقة في الوضع المتقدم. اختر طريقة أدناه، أو افتح خيارات إضافية للمتابعة هناك."
+    "advancedLegActiveHint": "تُعدَّل هذه الطريقة في الوضع المتقدم. اختر طريقة أدناه، أو افتح خيارات إضافية للمتابعة هناك.",
+    "settledNowTenders": "{count} طرق في التسوية الآن",
+    "settledNowExpand": "عرض التفاصيل",
+    "settledNowCollapse": "إخفاء التفاصيل"
   }
 }

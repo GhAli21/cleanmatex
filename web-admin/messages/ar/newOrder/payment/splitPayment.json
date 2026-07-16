@@ -29,6 +29,10 @@
   "settledTotal": "إجمالي المُسوّى",
   "fillRemaining": "ملء المتبقي",
   "noRemainingToFill": "لا يوجد رصيد متبقٍ متاح لهذا القسط.",
+  "editableSection": "طرق الدفع",
+  "appliedCreditsSection": "الأرصدة والقيمة المخزّنة",
+  "appliedCreditsHint": "للعرض فقط هنا — عدّل المبالغ من رصيد المتجر.",
+  "readOnlyBadge": "مُطبَّق",
   "validation": {
     "sumMismatch": "مجموع أقساط الدفع يجب أن يساوي إجمالي الطلب",
     "amountMustBePositive": "يجب أن يكون مبلغ كل قسط أكبر من صفر",

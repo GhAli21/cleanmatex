@@ -54,6 +54,7 @@ function buildActions() {
     addLeg: jest.fn(),
     removeLegAt: jest.fn(),
     setActiveLegIndex: jest.fn(),
+    fillLegRemaining: jest.fn(),
   };
 }
 
@@ -61,6 +62,10 @@ const baseProps = {
   open: true,
   onOpenChange: jest.fn(),
   activeLegIndex: 0,
+  activeAmountDraft: '',
+  onSplitAmountChange: jest.fn(),
+  onKeypadPress: jest.fn(),
+  activeLegRemainingCap: 10,
   methodOptions: [option('CASH'), option('CARD')],
   getOptionDisplayName: (
     opt: CheckoutSettlementOption | null | undefined,
@@ -88,12 +93,45 @@ describe('SplitTenderDialog', () => {
       />,
     );
 
-    const list = screen.getByTestId('split-tender-leg-list');
-    expect(list.querySelectorAll('li')).toHaveLength(2);
+    expect(screen.getByTestId('split-tender-editable-list').querySelectorAll('li')).toHaveLength(2);
+    expect(screen.queryByTestId('split-tender-readonly-section')).not.toBeInTheDocument();
     expect(screen.getByTestId('split-tender-balance')).toHaveAttribute(
       'data-balance-state',
       'allocated',
     );
+  });
+
+  it('lists editable real-payment legs first and credit legs as read-only below', () => {
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        actions={buildActions()}
+        creditMethodCodes={['WALLET', 'ADVANCE', 'CREDIT_NOTE']}
+        paymentLegs={[
+          leg('WALLET', 1),
+          leg('CARD', 10),
+          leg('ADVANCE', 1.5),
+          leg('CASH', 5),
+        ]}
+        legsTotal={17.5}
+        remainingBalance={25}
+      />,
+    );
+
+    const editable = screen.getByTestId('split-tender-editable-list');
+    const readonly = screen.getByTestId('split-tender-readonly-list');
+    expect(editable.querySelectorAll('li')).toHaveLength(2);
+    expect(readonly.querySelectorAll('li')).toHaveLength(2);
+    expect(screen.getByTestId('split-tender-editable-leg-1')).toBeInTheDocument(); // CARD
+    expect(screen.getByTestId('split-tender-editable-leg-3')).toBeInTheDocument(); // CASH
+    expect(screen.getByTestId('split-tender-readonly-leg-0')).toBeInTheDocument(); // WALLET
+    expect(screen.getByTestId('split-tender-readonly-leg-2')).toBeInTheDocument(); // ADVANCE
+    expect(screen.getByTestId('split-tender-readonly-section')).toHaveTextContent(
+      'newOrder.payment.splitPayment.appliedCreditsSection',
+    );
+    // Read-only rows do not host the amount editor / keypad.
+    expect(screen.queryByTestId('split-tender-amount-0')).not.toBeInTheDocument();
+    expect(screen.getByTestId('split-tender-amount-1')).toBeInTheDocument();
   });
 
   it('shows a CASH leg over-tender as change (tendered − applied)', () => {

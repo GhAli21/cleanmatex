@@ -26,6 +26,7 @@
  */
 
 import type { ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { PaymentSubmitGuard } from '../primitives/payment-submit-guard';
 import {
@@ -76,6 +77,18 @@ export interface CapabilityViewRendererProps {
   dialogButtonIcon?: (slot: CapabilityViewSlot) => ReactNode;
   /** Resolved required-badge label, shown on a required dialog slot's button. */
   requiredBadgeLabel?: string;
+  /**
+   * Whether this capability's dialog/tool is the current open/selected action.
+   * Drives Active visual + `aria-pressed`.
+   */
+  isActionActive?: (slot: CapabilityViewSlot) => boolean;
+  /**
+   * Whether this capability already affects the current settlement
+   * (legs applied, gift/promo applied, pay-later policy, …).
+   */
+  isActionApplied?: (slot: CapabilityViewSlot) => boolean;
+  /** Resolved "Applied" badge label for applied (not merely active) tiles. */
+  appliedBadgeLabel?: string;
   /** Opens the capability's dialog; container owns the dialog mount + open state. */
   onOpenCapability: (slot: CapabilityViewSlot) => void;
   /**
@@ -100,16 +113,22 @@ function CapabilityActionButton({
   label,
   icon,
   requiredBadgeLabel,
+  appliedBadgeLabel,
   isRTL,
   variant,
+  isActive,
+  isApplied,
   onOpen,
 }: {
   slot: CapabilityViewSlot;
   label: string;
   icon?: ReactNode;
   requiredBadgeLabel?: string;
+  appliedBadgeLabel?: string;
   isRTL: boolean;
   variant: CapabilityActionVariant;
+  isActive: boolean;
+  isApplied: boolean;
   onOpen: () => void;
 }) {
   const { evaluated } = slot;
@@ -124,53 +143,90 @@ function CapabilityActionButton({
         {requiredBadgeLabel}
       </span>
     ) : null;
+  const appliedBadge =
+    isApplied && !isActive && appliedBadgeLabel ? (
+      <span
+        data-testid={`capability-action-applied-${slot.key}`}
+        className={`inline-flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 ${
+          isRTL ? 'flex-row-reverse' : ''
+        }`}
+      >
+        <Check className="h-3 w-3" aria-hidden />
+        {appliedBadgeLabel}
+      </span>
+    ) : null;
 
   if (variant === 'tile') {
+    const tileStateClass = isActive
+      ? 'border-teal-500 bg-teal-50 text-teal-950 ring-2 ring-teal-200 hover:bg-teal-100'
+      : isApplied
+        ? 'border-teal-300 bg-teal-50/70 text-teal-900 hover:border-teal-400 hover:bg-teal-50'
+        : evaluated.required
+          ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+          : 'border-slate-200 bg-white text-slate-800 hover:border-teal-300 hover:bg-teal-50/60';
+
     return (
       <CmxButton
         type="button"
-        variant={evaluated.required ? 'primary' : 'outline'}
+        variant={evaluated.required || isActive ? 'primary' : 'outline'}
         size="md"
         onClick={onOpen}
         aria-haspopup="dialog"
+        aria-pressed={isActive}
+        aria-current={isActive ? 'true' : undefined}
         data-testid={`capability-action-${slot.key}`}
         data-capability={slot.key}
         data-required={evaluated.required ? 'true' : undefined}
+        data-active={isActive ? 'true' : undefined}
+        data-applied={isApplied ? 'true' : undefined}
         data-reason={reason}
         data-variant="tile"
-        className={`h-auto min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-slate-200 px-2 py-3 text-center shadow-none hover:border-teal-300 hover:bg-teal-50/60 ${
-          evaluated.required
-            ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
-            : 'bg-white text-slate-800'
-        }`}
+        className={`h-auto min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-center shadow-none ${tileStateClass}`}
       >
         {icon ? (
-          <span className="flex h-8 w-8 items-center justify-center text-teal-700 [&_svg]:h-5 [&_svg]:w-5" aria-hidden>
+          <span
+            className={`flex h-8 w-8 items-center justify-center [&_svg]:h-5 [&_svg]:w-5 ${
+              isActive || isApplied ? 'text-teal-700' : 'text-teal-700'
+            }`}
+            aria-hidden
+          >
             {icon}
           </span>
         ) : null}
         <span className="min-w-0 text-xs font-semibold leading-snug">{label}</span>
         {requiredBadge}
+        {appliedBadge}
       </CmxButton>
     );
   }
 
+  const chipStateClass = isActive
+    ? 'border-teal-500 bg-teal-50 text-teal-900 ring-1 ring-teal-200'
+    : isApplied
+      ? 'border-teal-300 bg-teal-50/60 text-teal-900'
+      : '';
+
   return (
     <CmxButton
       type="button"
-      variant={evaluated.required ? 'primary' : 'outline'}
+      variant={evaluated.required || isActive ? 'primary' : 'outline'}
       size="sm"
       onClick={onOpen}
       aria-haspopup="dialog"
+      aria-pressed={isActive}
+      aria-current={isActive ? 'true' : undefined}
       data-testid={`capability-action-${slot.key}`}
       data-capability={slot.key}
       data-required={evaluated.required ? 'true' : undefined}
+      data-active={isActive ? 'true' : undefined}
+      data-applied={isApplied ? 'true' : undefined}
       data-reason={reason}
-      className={isRTL ? 'flex-row-reverse' : ''}
+      className={`${isRTL ? 'flex-row-reverse' : ''} ${chipStateClass}`}
     >
       {icon ? <span className="shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5" aria-hidden>{icon}</span> : null}
       <span className="min-w-0">{label}</span>
       {requiredBadge}
+      {appliedBadge}
     </CmxButton>
   );
 }
@@ -188,6 +244,9 @@ export function CapabilityViewRenderer({
   dialogButtonLabel,
   dialogButtonIcon,
   requiredBadgeLabel,
+  isActionActive,
+  isActionApplied,
+  appliedBadgeLabel,
   onOpenCapability,
   resolveGuard,
   className,
@@ -244,8 +303,11 @@ export function CapabilityViewRenderer({
               label={dialogButtonLabel(slot)}
               icon={dialogButtonIcon?.(slot)}
               requiredBadgeLabel={requiredBadgeLabel}
+              appliedBadgeLabel={appliedBadgeLabel}
               isRTL={isRTL}
               variant={actionVariant}
+              isActive={isActionActive?.(slot) === true}
+              isApplied={isActionApplied?.(slot) === true}
               onOpen={() => onOpenCapability(slot)}
             />
           ))}

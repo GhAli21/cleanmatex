@@ -15,10 +15,10 @@
  * See `docs/features/Order_Fin/ADR/ADR_payment_modal_single_engine_two_mode.md`.
  */
 
-import { useRef, useState, type ReactNode, type RefObject } from 'react';
+import { type ReactNode, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
-import { Banknote, CreditCard, EllipsisVertical, Keyboard } from 'lucide-react';
+import { Banknote, CreditCard, EllipsisVertical } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
@@ -31,11 +31,14 @@ import type {
 import type { PaymentEngineActions } from '@features/orders/payment/engine/payment-engine-actions';
 import { PaymentLegDetailFields } from '@features/orders/payment/primitives/payment-leg-detail-fields';
 import { PaymentDiscountFields } from '@features/orders/payment/primitives/payment-discount-fields';
-import { CmxButton, CmxMoneyField, CmxSkeleton } from '@ui/primitives';
+import { PaymentAmountMoneyField } from '@features/orders/payment/primitives/payment-amount-money-field';
+import { CmxButton, CmxSkeleton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { KEYPAD_PAYMENT_4COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities';
-import { CmxKeypadPopover } from '@ui/overlays';
 import { SummaryRow } from './payment-modal/summary-row';
+import {
+  SettlementNowBreakdown,
+  type SettlementNowLineItem,
+} from './payment-modal/settlement-now-breakdown';
 import {
   OrderValueBreakdownPanel,
   type OrderValueBreakdownModel,
@@ -95,6 +98,9 @@ export interface PaymentSimpleViewProps {
   quickTenderItems: PaymentQuickTenderChipItem[];
   onQuickTenderSelect: (item: PaymentQuickTenderChipItem) => void;
   onKeypadPress: (key: PaymentKeypadKey) => void;
+  /** Exact / fill-remaining for the active Simple leg (engine-capped). */
+  onExactAmount: () => void;
+  exactAmountDisabled?: boolean;
   // ---- per-method detail fields (shared PaymentLegDetailFields) ----
   activeLegOption: CheckoutSettlementOption | undefined;
   updateLeg: PaymentEngineActions['updateLeg'];
@@ -119,6 +125,10 @@ export interface PaymentSimpleViewProps {
   settled: boolean;
   balanceStatusLabel: string;
   balanceStatusAnnouncement: string;
+  /** Real-payment lines for expandable Settlement Now (Simple receipt). */
+  realPaymentSummaryItems: SettlementNowLineItem[];
+  /** Credit / stored-value lines (includes gift card when applied). */
+  storedValueSummaryItems: SettlementNowLineItem[];
   // ---- remaining-balance policy ----
   policyLabel: string;
   onChangeBalancePolicy: () => void;
@@ -169,6 +179,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     quickTenderItems,
     onQuickTenderSelect,
     onKeypadPress,
+    onExactAmount,
+    exactAmountDisabled = false,
     branchPaymentTerminals,
     cashDrawerRequired,
     cashDrawerDisplay,
@@ -183,16 +195,15 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     settled,
     balanceStatusLabel,
     balanceStatusAnnouncement,
+    realPaymentSummaryItems,
+    storedValueSummaryItems,
     policyLabel,
     onChangeBalancePolicy,
     quickActions,
   } = props;
 
   const t = useTranslations('newOrder.payment');
-  const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const [showKeypad, setShowKeypad] = useState(false);
-  const keypadTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const hasQuickActions = quickActions != null;
 
@@ -310,57 +321,40 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             />
           ) : null}
 
-          {/* Amount hero */}
+          {/* Amount hero — shared PaymentAmountMoneyField (keypad / Exact) */}
           <div>
             <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t('mode.simpleView.amountLabel')}
             </p>
-            <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
-              <div className="flex min-w-[88px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-lg font-semibold text-cyan-700">
-                {currencyCode}
-              </div>
-              <div className="min-w-0 flex-1 px-3">
-                <CmxMoneyField
-                  ref={amountInputRef}
-                  data-testid="payment-amount-editor"
-                  draftValue={activeAmountDraft}
-                  value={amountValue}
-                  decimalPlaces={decimalPlaces}
-                  showZero
-                  aria-label={t('workspace.editingAmount')}
-                  onValueChange={onAmountValueChange}
-                  placeholder={formatAmount(0)}
-                  disabled={!activeLeg}
-                  className="h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
-                />
-              </div>
-              {/* Movable keypad trigger — opens the draggable CmxKeypadPopover
-                  anchored here; replaces the old inline show/hide keypad. */}
-              <button
-                ref={keypadTriggerRef}
-                type="button"
-                data-testid="payment-simple-keypad-toggle"
-                aria-pressed={showKeypad}
-                aria-label={t('mode.simpleView.keypadTitle')}
-                disabled={!activeLeg}
-                onClick={() => setShowKeypad((prev) => !prev)}
-                className={`flex min-w-14 items-center justify-center rounded-e-2xl border-s border-slate-200 px-4 transition-colors disabled:opacity-40 ${
-                  showKeypad
-                    ? 'bg-cyan-50 text-cyan-700'
-                    : 'bg-slate-50 text-slate-500 hover:text-cyan-700'
-                }`}
-              >
-                <Keyboard className="h-5 w-5" />
-              </button>
-            </div>
-            {amountCapHint ? (
-              <p
-                className={`mt-2 text-xs text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}
-                role="status"
-              >
-                {amountCapHint}
-              </p>
-            ) : null}
+            <PaymentAmountMoneyField
+              size="hero"
+              currencyCode={currencyCode}
+              decimalPlaces={decimalPlaces}
+              formatAmount={formatAmount}
+              value={amountValue}
+              draftValue={activeAmountDraft}
+              onValueChange={onAmountValueChange}
+              onKeypadPress={onKeypadPress}
+              inputRef={amountInputRef}
+              disabled={!activeLeg}
+              isRTL={isRTL}
+              amountAriaLabel={t('workspace.editingAmount')}
+              keypadTitle={t('mode.simpleView.keypadTitle')}
+              keypadDock={t('mode.simpleView.keypadDock')}
+              keypadClose={t('mode.simpleView.keypadClose')}
+              keypadHint={t('mode.simpleView.keypadHint')}
+              keypadRestored={t('mode.simpleView.keypadRestored')}
+              keypadStorageKey="cmx:payment-keypad-pos"
+              showExact
+              exactLabel={t('quickTender.exact')}
+              exactAriaLabel={t('quickTender.exactAria', {
+                amount: `${currencyCode} ${formatAmount(amountValue ?? 0)}`,
+              })}
+              onExact={onExactAmount}
+              exactDisabled={!activeLeg || exactAmountDisabled || submitBusy}
+              remainingHint={amountCapHint ?? undefined}
+              testId="payment-amount-editor"
+            />
             {!activeLeg ? (
               <p className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {t('mode.simpleView.pickMethodHint')}
@@ -368,7 +362,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             ) : null}
           </div>
 
-          {/* Quick tender */}
+          {/* Quick tender (cash round-ups + Exact shortcut) */}
           <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <PaymentQuickTenderChips
               items={quickTenderItems}
@@ -377,40 +371,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               isRTL={isRTL}
             />
           </div>
-
-          {/* Movable, non-modal numeric keypad — launched from the amount-field
-              trigger above; remembers its position per device. */}
-          <CmxKeypadPopover
-            open={showKeypad}
-            onClose={() => setShowKeypad(false)}
-            anchorRef={keypadTriggerRef}
-            storageKey="cmx:payment-keypad-pos"
-            isRTL={isRTL}
-            disabled={!activeLeg}
-            title={t('mode.simpleView.keypadTitle')}
-            echo={`${currencyCode} ${formatAmount(amountValue ?? 0)}`}
-            dockLabel={t('mode.simpleView.keypadDock')}
-            closeLabel={t('mode.simpleView.keypadClose')}
-            hint={t('mode.simpleView.keypadHint')}
-            restoredAnnouncement={t('mode.simpleView.keypadRestored')}
-            keys={KEYPAD_PAYMENT_4COL}
-            onKeyPress={onKeypadPress}
-            onKeyLongPress={(key) => {
-              if (key === 'backspace') onKeypadPress('clear');
-            }}
-            getKeyVariant={PAYMENT_KEY_VARIANT}
-            getKeyClassName={PAYMENT_KEY_CLASS}
-            getKeyAriaLabel={(key) => {
-              if (key === 'backspace') return t('workspace.backspace');
-              if (key === 'clear') return tCommon('clear');
-              return undefined;
-            }}
-            renderKeyLabel={(key) => {
-              if (key === 'backspace') return '⌫';
-              if (key === 'clear') return tCommon('clear');
-              return key;
-            }}
-          />
 
           {/* Per-method detail fields — shared single-source component (also used
               by the Full workbench + the split dialog). For CASH it shows the
@@ -507,10 +467,27 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             loading={totalsLoading}
             bold={orderValueBreakdown.discountRows.length > 0}
           />
-          <SummaryRow
-            label={t('rightRail.totalSettledNow')}
-            value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`}
-            loading={totalsLoading}
+          <SettlementNowBreakdown
+            currencyCode={currencyCode}
+            formatAmount={formatAmount}
+            amountAppliedToOrder={amountAppliedToOrder}
+            realPaymentItems={realPaymentSummaryItems}
+            creditItems={storedValueSummaryItems}
+            totalsLoading={totalsLoading}
+            isRTL={isRTL}
+            moneyEpsilon={moneyEpsilon}
+            labels={{
+              totalSettledNow: t('rightRail.totalSettledNow'),
+              realPaymentsReceived: t('rightRail.realPaymentsReceived'),
+              creditsApplied: t('rightRail.creditsApplied'),
+              noneApplied: t('rightRail.noneApplied'),
+              tendersSummary: t('mode.simpleView.settledNowTenders', {
+                count:
+                  realPaymentSummaryItems.length + storedValueSummaryItems.length,
+              }),
+              expand: t('mode.simpleView.settledNowExpand'),
+              collapse: t('mode.simpleView.settledNowCollapse'),
+            }}
           />
           {remainingBalance > moneyEpsilon ? (
             <SummaryRow

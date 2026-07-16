@@ -4,15 +4,18 @@
  * Split-tender capability dialog (ADR condition #1 — "cash AND card" and any
  * N-leg split is a focused dialog, never a mode change).
  *
- * Pure view over engine facts: leg rows (method + amount + remove), an
- * add-method picker, and a live balance line. Every number rendered here
+ * Pure view over engine facts: leg rows (method + shared amount field + remove),
+ * an add-method picker, and a live balance line. Every number rendered here
  * (legs total, remaining) is **engine-derived and passed in** — this dialog
- * performs no money math; edits flow through typed engine actions only
- * (`updateLeg` / `addLeg` / `removeLegAt`), which own capping, change policy,
- * and reconciliation.
+ * performs no money math; edits flow through typed engine actions only, which
+ * own capping, change policy, and reconciliation.
+ *
+ * Layout: **editable real-payment legs first**, then a separator, then
+ * **read-only customer-credit / stored-value legs** (managed via Store credit)
+ * in a distinct muted style. Amount editing uses {@link PaymentAmountMoneyField}.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -24,7 +27,8 @@ import {
   type CheckoutSettlementOption,
   type PaymentTerminalOption,
 } from '@features/orders/hooks/use-payment-catalog';
-import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -32,10 +36,12 @@ import {
   CmxSelectDropdownTrigger,
   CmxSelectDropdownValue,
 } from '@ui/forms';
+import type { PaymentKeypadKey } from '@features/orders/ui/payment-modal-v4.utils';
 import { toSettlementOptionKey } from '@features/orders/ui/payment-modal-v4.utils';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
+import { PaymentAmountMoneyField } from '../../primitives/payment-amount-money-field';
 import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fields';
 
 /**
@@ -43,7 +49,7 @@ import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fiel
  */
 export type SplitTenderDialogActions = Pick<
   PaymentEngineActions,
-  'updateLeg' | 'addLeg' | 'removeLegAt' | 'setActiveLegIndex'
+  'updateLeg' | 'addLeg' | 'removeLegAt' | 'setActiveLegIndex' | 'fillLegRemaining'
 >;
 
 /**
@@ -57,6 +63,14 @@ export interface SplitTenderDialogProps {
   paymentLegs: PaymentLeg[];
   /** Active leg index — its amount field receives focus on open / add / method change. */
   activeLegIndex: number;
+  /** Engine draft for the active amount editor session. */
+  activeAmountDraft: string;
+  /** Writes amount for a split leg (container owns capping + draft sync). */
+  onSplitAmountChange: (legIndex: number, value: number | null, draft: string) => void;
+  /** Keypad presses for the active split-leg amount session. */
+  onKeypadPress: (key: PaymentKeypadKey) => void;
+  /** Remaining-to-allocate for the active leg (engine-derived). */
+  activeLegRemainingCap: number;
   /** Real payment-method options selectable for split legs. */
   methodOptions: CheckoutSettlementOption[];
   /** Resolves an option's bilingual display name. */
@@ -109,6 +123,11 @@ function applyLegSettlementOption(
 }
 
 /**
+ * A payment leg paired with its original index in `paymentLegs`.
+ */
+type SplitLegEntry = { leg: PaymentLeg; index: number };
+
+/**
  * Renders the split-tender dialog. Commit model: edits apply to engine state
  * live (the engine owns state — ADR state-survival invariant), so the footer
  * is a single "Done" that closes the dialog.
@@ -122,6 +141,10 @@ export function SplitTenderDialog({
   actions,
   paymentLegs,
   activeLegIndex,
+  activeAmountDraft,
+  onSplitAmountChange,
+  onKeypadPress,
+  activeLegRemainingCap,
   methodOptions,
   getOptionDisplayName,
   amountDue,
@@ -134,7 +157,6 @@ export function SplitTenderDialog({
   branchPaymentTerminals,
   cardBrands,
   creditMethodCodes,
-  payExtraIntent = false,
 }: SplitTenderDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -149,25 +171,44 @@ export function SplitTenderDialog({
     ]),
   );
 
-  // Focus the active leg's amount field when the dialog opens or a leg is added /
-  // its method changes, so the cursor lands in the dialog (QA 1.1) rather than the
-  // background editor. The engine sets `activeLegIndex` on add / method select.
+  const creditMethodSet = useMemo(
+    () => new Set(creditMethodCodes),
+    [creditMethodCodes],
+  );
+
+  // Editable = real payment methods for this dialog. Credits / stored value
+  // stay visible below as read-only (edit them from Store credit).
+  const { editableLegs, readOnlyLegs } = useMemo(() => {
+    const editable: SplitLegEntry[] = [];
+    const readOnly: SplitLegEntry[] = [];
+    paymentLegs.forEach((leg, index) => {
+      const entry = { leg, index };
+      if (creditMethodSet.has(leg.method)) {
+        readOnly.push(entry);
+      } else {
+        editable.push(entry);
+      }
+    });
+    return { editableLegs: editable, readOnlyLegs: readOnly };
+  }, [creditMethodSet, paymentLegs]);
+
+  // Focus the active *editable* leg's amount field when the dialog opens or a
+  // leg is added / its method changes (QA 1.1).
   const legAmountRefs = useRef<Array<HTMLInputElement | null>>([]);
   useEffect(() => {
     if (!open) return;
+    const activeIsEditable = editableLegs.some((entry) => entry.index === activeLegIndex);
+    if (!activeIsEditable) return;
     const input = legAmountRefs.current[activeLegIndex];
     if (input) {
       input.focus();
       input.select();
     }
-  }, [open, activeLegIndex, paymentLegs.length]);
+  }, [open, activeLegIndex, paymentLegs.length, editableLegs]);
 
   // The engine floors `remainingBalance` at 0 (`max(0, due − settled)`), so
   // over-allocation can never be read from it — detect it by comparing the two
   // figures this balance line already renders (legs total vs amount due).
-  // Display thresholding only; capping/change policy stay engine-owned. QA
-  // round 4: a card leg overpaying the order previously showed "Fully
-  // Allocated" here because the 'over' branch was unreachable.
   const overAllocatedAmount = legsTotal - amountDue;
   const balanceState =
     overAllocatedAmount > moneyEpsilon
@@ -206,104 +247,228 @@ export function SplitTenderDialog({
           </span>
         </div>
 
-        <ul className="flex flex-col gap-2" data-testid="split-tender-leg-list">
-          {paymentLegs.map((leg, index) => {
-            const legKey = toSettlementOptionKey(leg.method, leg.gateway_code);
-            const option = optionByKey.get(legKey);
-            return (
-              <li
-                key={leg.legRef ?? `${leg.method}-${index}`}
-                className="flex flex-col gap-2 rounded-xl border border-slate-100 p-2"
+        <div data-testid="split-tender-leg-list" className="flex flex-col gap-3">
+          {/* ---- Editable real-payment legs ---- */}
+          <div className="flex flex-col gap-2">
+            {editableLegs.length > 0 ? (
+              <p
+                className={`text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                  isRTL ? 'text-right' : 'text-left'
+                }`}
+                data-testid="split-tender-editable-heading"
               >
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <CmxSelectDropdown
-                  value={legKey}
-                  onValueChange={(key) => {
-                    const nextOption = optionByKey.get(key);
-                    if (nextOption) {
-                      applyLegSettlementOption(actions, index, nextOption);
-                    }
-                  }}
-                >
-                  <CmxSelectDropdownTrigger
-                    className="h-10 w-36 shrink-0"
-                    aria-label={t('splitPayment.method')}
-                    data-testid={`split-tender-method-${index}`}
+                {t('splitPayment.editableSection')}
+              </p>
+            ) : null}
+
+            <ul className="flex flex-col gap-2" data-testid="split-tender-editable-list">
+              {editableLegs.map(({ leg, index }) => {
+                const legKey = toSettlementOptionKey(leg.method, leg.gateway_code);
+                const option = optionByKey.get(legKey);
+                const isActiveEditor = index === activeLegIndex;
+                const displayAmount =
+                  leg.method === PAYMENT_METHODS.CASH
+                    ? leg.cashTendered ?? leg.amount
+                    : leg.amount;
+                return (
+                  <li
+                    key={leg.legRef ?? `${leg.method}-${index}`}
+                    data-testid={`split-tender-editable-leg-${index}`}
+                    className={`flex flex-col gap-2 rounded-xl border p-2 ${
+                      isActiveEditor
+                        ? 'border-cyan-300 bg-cyan-50/40'
+                        : 'border-slate-200 bg-white'
+                    }`}
                   >
-                    <CmxSelectDropdownValue
-                      placeholder={getOptionDisplayName(option, leg.method)}
-                    />
-                  </CmxSelectDropdownTrigger>
-                  <CmxSelectDropdownContent>
-                    {methodOptions.map((methodOption) => (
-                      <CmxSelectDropdownItem
-                        key={methodOption.id}
-                        value={toSettlementOptionKey(
-                          methodOption.payment_method_code,
-                          methodOption.gateway_code,
-                        )}
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CmxSelectDropdown
+                        value={legKey}
+                        onValueChange={(key) => {
+                          const nextOption = optionByKey.get(key);
+                          if (nextOption) {
+                            applyLegSettlementOption(actions, index, nextOption);
+                          }
+                        }}
                       >
-                        {getOptionDisplayName(
-                          methodOption,
-                          methodOption.payment_method_code,
-                        )}
-                      </CmxSelectDropdownItem>
-                    ))}
-                  </CmxSelectDropdownContent>
-                </CmxSelectDropdown>
+                        <CmxSelectDropdownTrigger
+                          className="h-10 min-w-0 flex-1"
+                          aria-label={t('splitPayment.method')}
+                          data-testid={`split-tender-method-${index}`}
+                        >
+                          <CmxSelectDropdownValue
+                            placeholder={getOptionDisplayName(option, leg.method)}
+                          />
+                        </CmxSelectDropdownTrigger>
+                        <CmxSelectDropdownContent>
+                          {methodOptions.map((methodOption) => (
+                            <CmxSelectDropdownItem
+                              key={methodOption.id}
+                              value={toSettlementOptionKey(
+                                methodOption.payment_method_code,
+                                methodOption.gateway_code,
+                              )}
+                            >
+                              {getOptionDisplayName(
+                                methodOption,
+                                methodOption.payment_method_code,
+                              )}
+                            </CmxSelectDropdownItem>
+                          ))}
+                        </CmxSelectDropdownContent>
+                      </CmxSelectDropdown>
 
-                <CmxMoneyField
-                  ref={(el) => {
-                    legAmountRefs.current[index] = el;
-                  }}
-                  // For CASH the field is the TENDERED amount (engine caps the
-                  // applied amount and derives change) — consistent with the main
-                  // amount editor. Other methods edit the applied amount directly.
-                  value={
-                    leg.method === PAYMENT_METHODS.CASH
-                      ? leg.cashTendered ?? leg.amount
-                      : leg.amount
-                  }
-                  decimalPlaces={decimalPlaces}
-                  showZero
-                  onValueChange={(value) => {
-                    actions.setActiveLegIndex(index);
-                    actions.updateLeg(index, 'amount', value ?? 0);
-                  }}
-                  onFocus={() => actions.setActiveLegIndex(index)}
-                  aria-label={t('splitPayment.amount')}
-                  data-testid={`split-tender-amount-${index}`}
-                  className="h-10 flex-1"
-                />
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => actions.removeLegAt(index)}
+                        aria-label={t('splitPayment.remove')}
+                        data-testid={`split-tender-remove-${index}`}
+                        disabled={paymentLegs.length <= 1}
+                      >
+                        <Trash2 className="h-4 w-4 text-slate-500" />
+                      </CmxButton>
+                    </div>
 
-                <CmxButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => actions.removeLegAt(index)}
-                  aria-label={t('splitPayment.remove')}
-                  data-testid={`split-tender-remove-${index}`}
-                  disabled={paymentLegs.length <= 1}
-                >
-                  <Trash2 className="h-4 w-4 text-slate-500" />
-                </CmxButton>
-                </div>
-                <PaymentLegDetailFields
-                  leg={leg}
-                  legIndex={index}
-                  option={option}
-                  updateLeg={actions.updateLeg}
-                  branchPaymentTerminals={branchPaymentTerminals}
-                  cardBrands={cardBrands}
-                  creditMethodCodes={creditMethodCodes}
-                  showCashTenderedChange
-                  currencyCode={currencyCode}
-                  formatAmount={formatAmount}
-                />
-              </li>
-            );
-          })}
-        </ul>
+                    <PaymentAmountMoneyField
+                      size="compact"
+                      currencyCode={currencyCode}
+                      decimalPlaces={decimalPlaces}
+                      formatAmount={formatAmount}
+                      value={displayAmount ?? null}
+                      draftValue={isActiveEditor ? activeAmountDraft : undefined}
+                      onValueChange={(value, draft) =>
+                        onSplitAmountChange(index, value, draft)
+                      }
+                      onKeypadPress={onKeypadPress}
+                      onFocus={() => actions.setActiveLegIndex(index)}
+                      inputRef={(node) => {
+                        legAmountRefs.current[index] = node;
+                      }}
+                      isRTL={isRTL}
+                      amountAriaLabel={t('splitPayment.amount')}
+                      keypadTitle={t('mode.simpleView.keypadTitle')}
+                      keypadDock={t('mode.simpleView.keypadDock')}
+                      keypadClose={t('mode.simpleView.keypadClose')}
+                      keypadHint={t('mode.simpleView.keypadHint')}
+                      keypadRestored={t('mode.simpleView.keypadRestored')}
+                      keypadStorageKey="cmx:payment-keypad-pos-split"
+                      showExact
+                      exactLabel={t('quickTender.exact')}
+                      exactAriaLabel={t('quickTender.exactAria', {
+                        amount: `${currencyCode} ${formatAmount(
+                          isActiveEditor ? activeLegRemainingCap : displayAmount ?? 0,
+                        )}`,
+                      })}
+                      onExact={() => actions.fillLegRemaining(index)}
+                      exactDisabled={
+                        (isActiveEditor ? activeLegRemainingCap : 0) <= moneyEpsilon &&
+                        (displayAmount ?? 0) <= moneyEpsilon
+                      }
+                      showFillRemaining
+                      fillRemainingLabel={t('splitPayment.fillRemaining')}
+                      onFillRemaining={() => actions.fillLegRemaining(index)}
+                      fillRemainingDisabled={
+                        (isActiveEditor ? activeLegRemainingCap : 0) <= moneyEpsilon
+                      }
+                      testId={`split-tender-amount-${index}`}
+                    />
+
+                    <PaymentLegDetailFields
+                      leg={leg}
+                      legIndex={index}
+                      option={option}
+                      updateLeg={actions.updateLeg}
+                      branchPaymentTerminals={branchPaymentTerminals}
+                      cardBrands={cardBrands}
+                      creditMethodCodes={creditMethodCodes}
+                      showCashTenderedChange
+                      currencyCode={currencyCode}
+                      formatAmount={formatAmount}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* ---- Read-only credits / stored value ---- */}
+          {readOnlyLegs.length > 0 ? (
+            <div
+              className="flex flex-col gap-2"
+              data-testid="split-tender-readonly-section"
+            >
+              <div
+                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                role="separator"
+                aria-label={t('splitPayment.appliedCreditsSection')}
+              >
+                <div className="h-px flex-1 bg-violet-200" />
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-violet-700">
+                  {t('splitPayment.appliedCreditsSection')}
+                </span>
+                <div className="h-px flex-1 bg-violet-200" />
+              </div>
+              <p
+                className={`text-xs text-violet-700/80 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                {t('splitPayment.appliedCreditsHint')}
+              </p>
+
+              <ul className="flex flex-col gap-2" data-testid="split-tender-readonly-list">
+                {readOnlyLegs.map(({ leg, index }) => {
+                  const label = getOptionDisplayName(undefined, leg.method);
+                  return (
+                    <li
+                      key={leg.legRef ?? `${leg.method}-${index}`}
+                      data-testid={`split-tender-readonly-leg-${index}`}
+                      className={`flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2.5 ${
+                        isRTL ? 'flex-row-reverse' : ''
+                      }`}
+                    >
+                      <div
+                        className={`min-w-0 flex flex-1 flex-col gap-0.5 ${
+                          isRTL ? 'items-end text-right' : 'items-start text-left'
+                        }`}
+                      >
+                        <div
+                          className={`flex flex-wrap items-center gap-2 ${
+                            isRTL ? 'flex-row-reverse' : ''
+                          }`}
+                        >
+                          <span className="text-sm font-semibold text-violet-950">
+                            {label}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="rounded-full bg-violet-100 text-[10px] font-semibold uppercase tracking-wide text-violet-800"
+                          >
+                            {t('splitPayment.readOnlyBadge')}
+                          </Badge>
+                        </div>
+                        <span className="font-mono text-sm font-semibold tabular-nums text-violet-900">
+                          {currencyCode} {formatAmount(leg.amount ?? 0)}
+                        </span>
+                      </div>
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => actions.removeLegAt(index)}
+                        aria-label={t('splitPayment.remove')}
+                        data-testid={`split-tender-remove-${index}`}
+                        disabled={paymentLegs.length <= 1}
+                        className="shrink-0 text-violet-700 hover:bg-violet-100 hover:text-violet-900"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </CmxButton>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </div>
 
         <CmxSelectDropdown
           value=""
