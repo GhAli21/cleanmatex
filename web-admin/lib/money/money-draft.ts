@@ -72,6 +72,18 @@ export function formatMoneyDraft(
  * @param key
  * @param decimalPlaces
  */
+/**
+ * True when the draft already has a full fractional part (e.g. "1.000" at dp=3).
+ * Further digit appends would be truncated by {@link sanitizeMoneyDraft} and look
+ * like a dead keypad — POS UX starts a new entry instead.
+ */
+function isCompleteMoneyDraft(draft: string, decimalPlaces: number): boolean {
+  if (decimalPlaces <= 0) return false
+  const dot = draft.indexOf('.')
+  if (dot === -1) return false
+  return draft.length - dot - 1 >= decimalPlaces
+}
+
 export function applyKeypadInput(
   currentDraft: string,
   key: string,
@@ -89,6 +101,12 @@ export function applyKeypadInput(
   if (key === '.') {
     if (currentDraft.includes('.')) return currentDraft
     return currentDraft === '' ? '0.' : `${currentDraft}.`
+  }
+
+  // Digit: if the value is already fully padded (common after blur / Exact),
+  // replace instead of appending — append would be a no-op at max decimals.
+  if (/^\d$/.test(key) && isCompleteMoneyDraft(currentDraft, decimalPlaces)) {
+    return sanitizeMoneyDraft(key, decimalPlaces)
   }
 
   return sanitizeMoneyDraft(`${currentDraft}${key}`, decimalPlaces)

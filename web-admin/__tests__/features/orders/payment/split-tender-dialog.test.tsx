@@ -171,7 +171,7 @@ describe('SplitTenderDialog', () => {
     );
   });
 
-  it('disables remove for a single leg; removes by index with two legs', () => {
+  it('allows removing the last leg (clear all) and removes by index with two legs', () => {
     const actions = buildActions();
     const { rerender } = render(
       <SplitTenderDialog
@@ -182,7 +182,9 @@ describe('SplitTenderDialog', () => {
         remainingBalance={0}
       />,
     );
-    expect(screen.getByTestId('split-tender-remove-0')).toBeDisabled();
+    expect(screen.getByTestId('split-tender-remove-0')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('split-tender-remove-0'));
+    expect(actions.removeLegAt).toHaveBeenCalledWith(0);
 
     rerender(
       <SplitTenderDialog

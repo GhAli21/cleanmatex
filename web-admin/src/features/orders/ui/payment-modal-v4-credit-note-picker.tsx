@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -44,6 +45,18 @@ export function PaymentModalV4CreditNotePicker({
 }: PaymentModalV4CreditNotePickerProps) {
   const t = useTranslations('newOrder.payment.customerCredits');
   const { decimalPlaces } = useTenantCurrency();
+  const firstNoteRef = useRef<HTMLButtonElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
+
+  // CmxDialog does not auto-move focus on open — land on the first note (or Cancel).
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      const target = firstNoteRef.current ?? cancelRef.current;
+      target?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open, notes.length]);
 
   return (
     <CmxDialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -59,14 +72,18 @@ export function PaymentModalV4CreditNotePicker({
               {t('creditNotePickerEmpty')}
             </p>
           ) : (
-            notes.map((note) => {
+            notes.map((note, index) => {
               const selected = note.id === selectedNoteId;
               return (
                 <CmxButton
                   key={note.id}
+                  ref={index === 0 ? firstNoteRef : undefined}
                   type="button"
                   variant="outline"
                   onClick={() => onSelect(note.id)}
+                  data-testid={
+                    index === 0 ? 'credit-note-picker-first-option' : undefined
+                  }
                   className={`h-auto w-full justify-between gap-3 rounded-xl border px-3 py-3 ${
                     selected
                       ? 'border-cyan-300 bg-cyan-50'
@@ -88,7 +105,13 @@ export function PaymentModalV4CreditNotePicker({
           )}
         </div>
         <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
-          <CmxButton type="button" variant="outline" onClick={onClose}>
+          <CmxButton
+            ref={cancelRef}
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            data-testid="credit-note-picker-cancel"
+          >
             {t('creditNotePickerCancel')}
           </CmxButton>
         </CmxDialogFooter>

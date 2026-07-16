@@ -79,6 +79,11 @@ export interface CustomerCreditDialogProps {
   currencyCode: string;
   formatAmount: (n: number) => string;
   decimalPlaces: number;
+  /**
+   * When the nested credit-note picker is open, suppress amount autofocus so
+   * keyboard focus can land in the picker (CmxDialog does not steal focus itself).
+   */
+  creditNotePickerOpen?: boolean;
 }
 
 /**
@@ -125,6 +130,7 @@ export function CustomerCreditDialog({
   currencyCode,
   formatAmount,
   decimalPlaces,
+  creditNotePickerOpen = false,
 }: CustomerCreditDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -235,7 +241,11 @@ export function CustomerCreditDialog({
                   aria-pressed={selected}
                   onClick={() => {
                     actions.selectCustomerCredit(option);
-                    setAmountFocusNonce((prev) => prev + 1);
+                    // Credit note opens a nested picker — do not yank focus to
+                    // an amount field behind it (Advance/Wallet editor).
+                    if (!isCreditNoteOption) {
+                      setAmountFocusNonce((prev) => prev + 1);
+                    }
                   }}
                   className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
                     selected
@@ -307,7 +317,7 @@ export function CustomerCreditDialog({
                       onKeypadPress={onKeypadPress}
                       onFocus={() => actions.setActiveLegIndex(legIndex)}
                       focusToken={
-                        isActiveEditor
+                        isActiveEditor && !creditNotePickerOpen
                           ? `${legIndex}:${option.payment_method_code}:${selectedLeg.creditReferenceId ?? ''}:${amountFocusNonce}`
                           : null
                       }

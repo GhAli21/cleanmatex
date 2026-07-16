@@ -148,6 +148,36 @@ describe('CmxKeypadPopover', () => {
     });
   });
 
+  it('ArrowUp from the top row moves focus to Close; ArrowLeft to Dock', async () => {
+    renderPopover();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enter 7' })).toHaveFocus();
+    });
+    // Grid: 7 → 4 → 1 → Close (top edge)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Enter 7' }), {
+      key: 'ArrowUp',
+    });
+    expect(screen.getByRole('button', { name: 'Enter 4' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Enter 4' }), {
+      key: 'ArrowUp',
+    });
+    expect(screen.getByRole('button', { name: 'Enter 1' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Enter 1' }), {
+      key: 'ArrowUp',
+    });
+    expect(screen.getByTestId('cmx-keypad-popover-close')).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByTestId('cmx-keypad-popover-close'), {
+      key: 'ArrowLeft',
+    });
+    expect(screen.getByTestId('cmx-keypad-popover-dock')).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByTestId('cmx-keypad-popover-dock'), {
+      key: 'ArrowDown',
+    });
+    expect(screen.getByRole('button', { name: 'Enter 7' })).toHaveFocus();
+  });
+
   it('closes via the close button', () => {
     const { onClose } = renderPopover();
     fireEvent.click(screen.getByRole('button', { name: 'Close keypad' }));

@@ -86,6 +86,13 @@ export interface CmxKeypadProps<T extends CmxKeypadKey = CmxKeypadKey> {
   autoFocusHomeKey?: boolean
   /** Flip ArrowLeft/ArrowRight for RTL layouts. */
   isRTL?: boolean
+  /**
+   * Called when an arrow key presses against the grid edge (no next cell).
+   * Return true if the parent handled focus (e.g. keypad chrome Close).
+   */
+  onArrowBoundary?: (
+    direction: 'up' | 'down' | 'left' | 'right'
+  ) => boolean
 }
 
 const GRID_COLUMN_CLASS: Record<NonNullable<CmxKeypadProps['columns']>, string> = {
@@ -234,6 +241,7 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
   keyboardNavigation = false,
   autoFocusHomeKey = false,
   isRTL = false,
+  onArrowBoundary,
 }: CmxKeypadProps<T>) {
   const longPressRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFiredRef = React.useRef(false)
@@ -279,6 +287,16 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
   const handleGridKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!keyboardNavigation || disabled) return
     const { key } = event
+    // Prefer the DOM-focused key over React state (focusIndex can lag one frame).
+    const target = event.target
+    const focusedIndex =
+      target instanceof Element
+        ? buttonRefs.current.findIndex(
+            (node) => node != null && (node === target || node.contains(target))
+          )
+        : -1
+    const fromIndex = focusedIndex >= 0 ? focusedIndex : focusIndex
+
     if (
       key === 'ArrowRight' ||
       key === 'ArrowLeft' ||
@@ -287,13 +305,24 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
     ) {
       event.preventDefault()
       const next = resolveKeypadArrowIndex(
-        focusIndex,
+        fromIndex,
         key,
         keys.map(String),
         columns,
         isInteractive,
         isRTL
       )
+      if (next === fromIndex && onArrowBoundary) {
+        const direction =
+          key === 'ArrowUp'
+            ? 'up'
+            : key === 'ArrowDown'
+              ? 'down'
+              : key === 'ArrowLeft'
+                ? 'left'
+                : 'right'
+        if (onArrowBoundary(direction)) return
+      }
       moveFocus(next)
       return
     }
@@ -349,6 +378,8 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
               variant={variant}
               size={size}
               disabled={keyDisabled}
+              data-keypad-home={index === homeIndex ? 'true' : undefined}
+              data-keypad-key={keyValue}
               aria-label={
                 getKeyAriaLabel?.(key, index) ??
                 getDefaultKeyAriaLabel(keyValue, ariaLabelMessages)
@@ -385,7 +416,11 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
               }}
               className={cn(
                 KEY_HEIGHT_CLASS[keyHeight],
+                // Always-visible focus ring so arrow navigation is obvious (CLEAR
+                // especially — red fill can hide a subtle default ring).
                 'rounded-2xl border-slate-200 text-2xl font-semibold text-slate-800 shadow-sm',
+                'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-white',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2',
                 buttonClassName,
                 getKeyClassName?.(key, index)
               )}

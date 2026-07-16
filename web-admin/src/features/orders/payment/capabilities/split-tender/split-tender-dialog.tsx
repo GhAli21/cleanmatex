@@ -15,7 +15,7 @@
  * in a distinct muted style. Amount editing uses {@link PaymentAmountMoneyField}.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -195,19 +195,10 @@ export function SplitTenderDialog({
     return { editableLegs: editable, readOnlyLegs: readOnly };
   }, [creditMethodSet, paymentLegs]);
 
-  // Focus the active *editable* leg's amount field when the dialog opens or a
-  // leg is added / its method changes (QA 1.1).
-  const legAmountRefs = useRef<Array<HTMLInputElement | null>>([]);
-  useEffect(() => {
-    if (!open) return;
-    const activeIsEditable = editableLegs.some((entry) => entry.index === activeLegIndex);
-    if (!activeIsEditable) return;
-    const input = legAmountRefs.current[activeLegIndex];
-    if (input) {
-      input.focus();
-      input.select();
-    }
-  }, [open, activeLegIndex, paymentLegs.length, editableLegs]);
+  // Focus is owned by PaymentAmountMoneyField.focusToken (bumped via
+  // amountFocusNonce on add / method change / Enter→next). Do NOT re-focus on
+  // every paymentLegs identity change — amount blur commits update the legs
+  // array and would yank focus back into the amount field (Tab appears stuck).
 
   /** Enter on an amount field: next editable leg, or Done when on the last. */
   const handleAmountEnterConfirm = (legIndex: number) => {
@@ -343,7 +334,6 @@ export function SplitTenderDialog({
                         onClick={() => actions.removeLegAt(index)}
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}
-                        disabled={paymentLegs.length <= 1}
                       >
                         <Trash2 className="h-4 w-4 text-slate-500" />
                       </CmxButton>
@@ -363,14 +353,11 @@ export function SplitTenderDialog({
                       onFocus={() => actions.setActiveLegIndex(index)}
                       focusToken={
                         isActiveEditor
-                          ? `${index}:${leg.method}:${leg.gateway_code ?? ''}:${paymentLegs.length}:${amountFocusNonce}`
+                          ? `${index}:${leg.method}:${leg.gateway_code ?? ''}:${amountFocusNonce}`
                           : null
                       }
                       onEnterConfirm={() => handleAmountEnterConfirm(index)}
                       moneyEpsilon={moneyEpsilon}
-                      inputRef={(node) => {
-                        legAmountRefs.current[index] = node;
-                      }}
                       isRTL={isRTL}
                       amountAriaLabel={t('splitPayment.amount')}
                       keypadTitle={t('mode.simpleView.keypadTitle')}
@@ -484,7 +471,6 @@ export function SplitTenderDialog({
                         onClick={() => actions.removeLegAt(index)}
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}
-                        disabled={paymentLegs.length <= 1}
                         className="shrink-0 text-violet-700 hover:bg-violet-100 hover:text-violet-900"
                       >
                         <Trash2 className="h-4 w-4" />

@@ -9,9 +9,10 @@
  * Design contract:
  * - **Non-modal**: it never locks scroll; drag/dock stay available.
  * - **Keyboard mode** (default on): Enter on the trigger focuses a safe home
- *   key (7 → 1); arrows move the grid; Enter/Space activate; hardware digits /
- *   numpad / Backspace map to `onKeyPress`; Escape closes and restores focus
- *   to `anchorRef` (capture phase so parent dialogs do not dismiss first).
+ *   key (7 → 1); arrows move the grid; ArrowUp from the top row reaches Close
+ *   (ArrowLeft → Dock); Enter/Space activate; hardware digits / numpad /
+ *   Backspace map to `onKeyPress`; Escape closes and restores focus to
+ *   `anchorRef` (capture phase so parent dialogs do not dismiss first).
  * - **Dismiss outside** (default on): pointer down or focus outside the pad,
  *   trigger, and optional linked amount field closes the pad (focus stays).
  *   Hardware digits are NOT double-applied while the linked field is focused.
@@ -204,6 +205,8 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
   getKeyAriaLabel,
 }: CmxKeypadPopoverProps<T>) {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const dockBtnRef = React.useRef<HTMLButtonElement | null>(null);
+  const closeBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const dragRef = React.useRef<{ dx: number; dy: number } | null>(null);
   const onKeyPressRef = React.useRef(onKeyPress);
   const onCloseRef = React.useRef(onClose);
@@ -211,6 +214,50 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
   const [pos, setPos] = React.useState<CmxKeypadPoint | null>(null);
   const [animate, setAnimate] = React.useState(false);
   const [restored, setRestored] = React.useState(false);
+
+  const focusHomeKey = React.useCallback(() => {
+    const home = panelRef.current?.querySelector<HTMLButtonElement>(
+      '[data-keypad-home="true"]'
+    );
+    home?.focus();
+  }, []);
+
+  /** ArrowUp from the top key row lands on Close (Dock is ArrowLeft from Close). */
+  const handleArrowBoundary = React.useCallback(
+    (direction: 'up' | 'down' | 'left' | 'right') => {
+      if (!keyboardMode || disabled) return false;
+      if (direction === 'up') {
+        closeBtnRef.current?.focus();
+        return true;
+      }
+      return false;
+    },
+    [disabled, keyboardMode]
+  );
+
+  const handleChromeKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    which: 'dock' | 'close'
+  ) => {
+    if (!keyboardMode) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusHomeKey();
+      return;
+    }
+    if (event.key === 'ArrowLeft' && which === 'close') {
+      event.preventDefault();
+      dockBtnRef.current?.focus();
+      return;
+    }
+    if (event.key === 'ArrowRight' && which === 'dock') {
+      event.preventDefault();
+      closeBtnRef.current?.focus();
+    }
+  };
+
+  const chromeBtnClass =
+    'grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-cyan-500';
 
   React.useEffect(() => {
     onKeyPressRef.current = onKeyPress;
@@ -456,25 +503,29 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
           <span className="ms-auto tabular-nums text-sm font-bold text-slate-900">{echo}</span>
         ) : null}
         <button
+          ref={dockBtnRef}
           type="button"
           data-kp-btn
+          data-testid="cmx-keypad-popover-dock"
+          // Keep out of Tab cycle (amount → keypad → Exact); arrows reach via Close.
           tabIndex={-1}
           onClick={handleDock}
+          onKeyDown={(event) => handleChromeKeyDown(event, 'dock')}
           aria-label={dockLabel}
-          className={cn(
-            'grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800',
-            echo == null && 'ms-auto'
-          )}
+          className={cn(chromeBtnClass, echo == null && 'ms-auto')}
         >
           <PanelBottom className="h-4 w-4" aria-hidden="true" />
         </button>
         <button
+          ref={closeBtnRef}
           type="button"
           data-kp-btn
+          data-testid="cmx-keypad-popover-close"
           tabIndex={-1}
           onClick={closeAndRestoreFocus}
+          onKeyDown={(event) => handleChromeKeyDown(event, 'close')}
           aria-label={closeLabel}
-          className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800"
+          className={chromeBtnClass}
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -496,6 +547,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
           keyboardNavigation={keyboardMode}
           autoFocusHomeKey={keyboardMode}
           isRTL={isRTL}
+          onArrowBoundary={handleArrowBoundary}
           // Keyboard mode owns focus inside the pad; touch still works.
           preserveInputFocus={!keyboardMode}
         />

@@ -59,6 +59,7 @@ export function PAYMENT_KEY_VARIANT(key: string): CmxButtonProps['variant'] {
 export function PAYMENT_KEY_CLASS(key: string): string | undefined {
   if (/^\+\d+$/.test(key)) return 'bg-slate-50 text-cyan-700'
   if (key === 'clear')
-    return 'bg-gradient-to-r from-rose-600 to-red-600 text-white hover:from-rose-700 hover:to-red-700 text-base font-bold uppercase tracking-[0.18em]'
+    // Amber ring + white offset so focus is obvious on the red CLEAR fill.
+    return 'bg-gradient-to-r from-rose-600 to-red-600 text-white hover:from-rose-700 hover:to-red-700 text-base font-bold uppercase tracking-[0.18em] focus:ring-amber-300 focus-visible:ring-amber-300'
   return 'bg-white'
 }

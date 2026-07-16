@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
+// test
 // Prevent jest from loading tenant-currency-context (which imports next-intl ESM)
 // via the @ui/primitives barrel → cmx-money-field-controller.
 jest.mock('@/lib/context/tenant-currency-context', () => ({
@@ -17,6 +18,7 @@ import {
   KEYPAD_NUMERIC_3COL,
   KEYPAD_PAYMENT_4COL,
   KEYPAD_PIN_3COL,
+  PAYMENT_KEY_CLASS,
 } from '@/src/ui/utilities/cmx-keypad-presets';
 
 describe('CmxKeypad', () => {
@@ -186,5 +188,27 @@ describe('CmxKeypad', () => {
     seven.focus();
     fireEvent.keyDown(seven.parentElement!, { key: 'ArrowRight' });
     expect(screen.getByRole('button', { name: 'Enter 8' })).toHaveFocus();
+  });
+
+  it('applies a visible focus ring on CLEAR and notifies arrow boundary at the top edge', () => {
+    const onArrowBoundary = jest.fn(() => true);
+    render(
+      <CmxKeypad
+        keys={KEYPAD_PAYMENT_4COL}
+        columns={4}
+        onKeyPress={jest.fn()}
+        keyboardNavigation
+        getKeyClassName={PAYMENT_KEY_CLASS}
+        onArrowBoundary={onArrowBoundary}
+      />
+    );
+    const clear = screen.getByRole('button', { name: 'Clear amount' });
+    expect(clear.className).toMatch(/focus:ring/);
+    expect(clear.className).toMatch(/amber/);
+
+    const one = screen.getByRole('button', { name: 'Enter 1' });
+    fireEvent.focus(one);
+    fireEvent.keyDown(one, { key: 'ArrowUp' });
+    expect(onArrowBoundary).toHaveBeenCalledWith('up');
   });
 });

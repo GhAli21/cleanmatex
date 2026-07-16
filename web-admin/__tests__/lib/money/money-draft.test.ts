@@ -124,4 +124,13 @@ describe('applyKeypadInput', () => {
   it('backspace on empty returns empty', () => {
     expect(applyKeypadInput('', 'backspace', 3)).toBe('');
   });
+
+  it('digit on a fully padded draft starts a new entry (not a silent no-op)', () => {
+    expect(applyKeypadInput('1.000', '5', 3)).toBe('5');
+    expect(applyKeypadInput('0.000', '6', 3)).toBe('6');
+  });
+
+  it('digit still appends when the fractional part is incomplete', () => {
+    expect(applyKeypadInput('1.0', '5', 3)).toBe('1.05');
+  });
 });

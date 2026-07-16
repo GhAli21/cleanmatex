@@ -184,7 +184,12 @@ export function usePaymentLegs({
       const next = prev.filter((_, currentIdx) => currentIdx !== idx);
       return next;
     });
-    setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
+    // Allow clearing the last leg (empty split). Clamp to 0 when the list is empty.
+    setActiveLegIndex((prev) => {
+      if (prev > idx) return prev - 1;
+      if (prev === idx) return Math.max(0, prev - 1);
+      return prev;
+    });
   }, [setIsDirtySinceOpen]);
 
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
@@ -315,42 +320,43 @@ export function usePaymentLegs({
   const addLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
       setIsDirtySinceOpen(true);
-      setPaymentLegs((prev) => {
-        const targetIndex = prev.length;
-        const policy = resolvePaymentOverpaymentPolicy({
-          paymentMethodCode: option.payment_method_code,
-          supportsChangeReturn: option.supports_change_return,
-          supportsOverpayment: option.supports_overpayment,
-          requiresCashDrawer: option.requires_cash_drawer,
-        });
-        const nextAmount = deriveLegAppliedAmount({
-          rawAmount: defaultAmount,
-          paymentLegs: prev,
-          legIndex: targetIndex,
-          saleTotal,
-          giftCardAmount: giftCardSettlementAmount,
-          decimalPlaces,
-          walletBalance: getLegStoredValueCap({
-            method: option.payment_method_code as PaymentLeg['method'],
-            amount: defaultAmount,
-          }),
-          supportsOverpayment: resolveSupportsRetainedOverpayment({
-            payExtraIntent: payExtraIntentRef.current,
-            policy,
-          }),
-        });
-        const nextLeg: PaymentLeg = {
-          legRef: crypto.randomUUID(),
-          method: option.payment_method_code as PaymentLeg['method'],
-          amount: nextAmount,
-          ...(policy.isCash ? { cashTendered: nextAmount } : {}),
-          ...(GATEWAY_METHOD_CODES.includes(option.payment_method_code)
-            ? { gateway_code: option.gateway_code ?? undefined }
-            : {}),
-        };
-        setActiveLegIndex(prev.length);
-        return [...prev, nextLeg];
+      // Compute next index from current legs — never call setActiveLegIndex inside
+      // the setPaymentLegs updater (can race and leave focus on the first leg).
+      const nextIndex = paymentLegs.length;
+      const policy = resolvePaymentOverpaymentPolicy({
+        paymentMethodCode: option.payment_method_code,
+        supportsChangeReturn: option.supports_change_return,
+        supportsOverpayment: option.supports_overpayment,
+        requiresCashDrawer: option.requires_cash_drawer,
       });
+      const nextAmount = deriveLegAppliedAmount({
+        rawAmount: defaultAmount,
+        paymentLegs,
+        legIndex: nextIndex,
+        saleTotal,
+        giftCardAmount: giftCardSettlementAmount,
+        decimalPlaces,
+        walletBalance: getLegStoredValueCap({
+          method: option.payment_method_code as PaymentLeg['method'],
+          amount: defaultAmount,
+        }),
+        supportsOverpayment: resolveSupportsRetainedOverpayment({
+          payExtraIntent: payExtraIntentRef.current,
+          policy,
+        }),
+      });
+      const nextLeg: PaymentLeg = {
+        legRef: crypto.randomUUID(),
+        method: option.payment_method_code as PaymentLeg['method'],
+        amount: nextAmount,
+        ...(policy.isCash ? { cashTendered: nextAmount } : {}),
+        ...(GATEWAY_METHOD_CODES.includes(option.payment_method_code)
+          ? { gateway_code: option.gateway_code ?? undefined }
+          : {}),
+      };
+      setPaymentLegs((prev) => [...prev, nextLeg]);
+      setActiveLegIndex(nextIndex);
+      setActiveAmountDraft(formatDecimalDraft(nextAmount, decimalPlaces));
       focusAmountEditor();
     },
     [
@@ -358,6 +364,7 @@ export function usePaymentLegs({
       focusAmountEditor,
       getLegStoredValueCap,
       giftCardSettlementAmount,
+      paymentLegs,
       saleTotal,
       setIsDirtySinceOpen,
     ]

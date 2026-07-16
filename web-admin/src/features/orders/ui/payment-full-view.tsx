@@ -2393,6 +2393,7 @@ export function PaymentFullView({
               currencyCode={currencyCode}
               formatAmount={formatAmount}
               decimalPlaces={decimalPlaces}
+              creditNotePickerOpen={creditNotePickerOpen}
             />
 
             <GiftCardDialog
