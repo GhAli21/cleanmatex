@@ -238,6 +238,72 @@ describe('SplitTenderDialog', () => {
     );
   });
 
+  it('blocks Done / dismiss while a leg is missing a required bank reference', () => {
+    const onOpenChange = jest.fn();
+    const bank = {
+      ...option('BANK_TRANSFER'),
+      requires_reference: true,
+    };
+    const bankLeg = {
+      method: 'BANK_TRANSFER',
+      amount: 1,
+      legRef: 'ref-bank',
+      bank_reference: undefined,
+    } as PaymentLeg;
+
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        onOpenChange={onOpenChange}
+        methodOptions={[option('CASH'), bank]}
+        actions={buildActions()}
+        paymentLegs={[bankLeg]}
+        legsTotal={1}
+        remainingBalance={41.5}
+      />,
+    );
+
+    const done = screen.getByTestId('payment-capability-confirm');
+    expect(done).toBeDisabled();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(done);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('allows Done after the required bank reference is provided', () => {
+    const onOpenChange = jest.fn();
+    const bank = {
+      ...option('BANK_TRANSFER'),
+      requires_reference: true,
+    };
+    const bankLeg = {
+      method: 'BANK_TRANSFER',
+      amount: 1,
+      legRef: 'ref-bank',
+      bank_reference: 'TXN-99',
+    } as PaymentLeg;
+
+    render(
+      <SplitTenderDialog
+        {...baseProps}
+        onOpenChange={onOpenChange}
+        methodOptions={[option('CASH'), bank]}
+        actions={buildActions()}
+        paymentLegs={[bankLeg]}
+        legsTotal={1}
+        remainingBalance={41.5}
+      />,
+    );
+
+    const done = screen.getByTestId('payment-capability-confirm');
+    expect(done).toBeEnabled();
+    fireEvent.click(done);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
   it('applies method + gateway_code on method change', () => {
     const actions = buildActions();
     const stripe = option('STRIPE', 'STRIPE');

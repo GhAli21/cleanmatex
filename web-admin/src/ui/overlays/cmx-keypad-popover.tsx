@@ -479,6 +479,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
       role="dialog"
       aria-modal="false"
       aria-label={title}
+      data-cmx-keypad-popover="true"
       dir={isRTL ? 'rtl' : 'ltr'}
       style={style}
       className={cn(

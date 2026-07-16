@@ -1,5 +1,6 @@
 import type { OutstandingPolicy, PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import { validateCheckDueDate } from '@/lib/utils/check-date';
 import {
   sanitizeMoneyDraft as sanitizeDecimalDraft,
   parseMoneyDraft as parseDecimalDraft,
@@ -513,6 +514,55 @@ export function legHasRequiredPaymentReference(
     leg.bank_reference?.trim() ||
     leg.checkNumber?.trim()
   );
+}
+
+/**
+ * Catalog flags used to decide whether a split leg blocks dialog dismiss.
+ * Matches the inline errors rendered by {@link PaymentLegDetailFields}.
+ */
+export type SplitLegDetailOptionFlags = {
+  requires_terminal?: boolean | null;
+  requires_reference?: boolean | null;
+};
+
+/**
+ * True when a split-payment leg has detail-field errors that must be fixed
+ * (or the leg deleted) before the Split dialog may close.
+ *
+ * Mirrors `PaymentLegDetailFields` validation: required terminal / reference,
+ * check number, and check due-date — not outstanding balance.
+ *
+ * @param leg - Settlement leg under edit.
+ * @param option - Catalog option for the leg's method/gateway.
+ * @returns Whether dismiss must stay blocked for this leg.
+ */
+export function splitLegHasBlockingDetailError(
+  leg: PaymentLegReferenceFields & {
+    method: string;
+    terminalId?: string;
+    checkNumber?: string;
+    checkDate?: string;
+  },
+  option: SplitLegDetailOptionFlags | null | undefined,
+): boolean {
+  if (option?.requires_terminal && !leg.terminalId?.trim()) {
+    return true;
+  }
+  if (
+    option?.requires_reference === true &&
+    !legHasRequiredPaymentReference(leg, true)
+  ) {
+    return true;
+  }
+  if (leg.method === PAYMENT_METHODS.CHECK) {
+    if (!leg.checkNumber?.trim()) {
+      return true;
+    }
+    if (validateCheckDueDate(leg.checkDate)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

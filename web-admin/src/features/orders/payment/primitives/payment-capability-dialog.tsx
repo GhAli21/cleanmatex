@@ -12,8 +12,8 @@
  * engine-derived state and call typed engine actions; the shell itself holds
  * NO finance logic (locked program decision).
  *
- * Focus trap, `Esc`-to-close, `aria-modal`, and focus-return come from
- * `CmxDialog` (Radix-based) — not re-implemented here.
+ * `Esc`-to-close and `aria-modal` come from `CmxDialog`. Initial focus on open
+ * is handled here (CmxDialog does not auto-move focus).
  *
  * i18n stays in the caller: all labels arrive resolved (same convention as
  * `payment-mode-toggle.tsx`).
@@ -98,6 +98,8 @@ export function PaymentCapabilityDialog({
   // Observability (hardening #12): capability key + event only — never
   // amounts, instruments, PINs, references, or payloads.
   const wasOpenRef = useRef(false);
+  const dialogTestId = `payment-capability-dialog-${capabilityKey}`;
+
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       logger.info('[payment] capability dialog opened', {
@@ -109,15 +111,47 @@ export function PaymentCapabilityDialog({
     wasOpenRef.current = open;
   }, [open, capabilityKey]);
 
+  // CmxDialog is not Radix — it does not move focus on open. Land keyboard
+  // focus inside the capability surface so cashiers are not stuck on the
+  // background "More ways to pay" tile that opened this dialog.
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      const root = document.querySelector<HTMLElement>(
+        `[data-testid="${dialogTestId}"]`,
+      );
+      if (!root) return;
+      const preferred = root.querySelector<HTMLElement>(
+        '[data-capability-initial-focus="true"]',
+      );
+      if (preferred && !preferred.hasAttribute('disabled')) {
+        preferred.focus();
+        return;
+      }
+      const candidates = root.querySelectorAll<HTMLElement>(
+        [
+          'button:not([disabled]):not([data-cmx-dialog-close]):not([tabindex="-1"])',
+          'input:not([disabled]):not([tabindex="-1"])',
+          'select:not([disabled]):not([tabindex="-1"])',
+          'textarea:not([disabled]):not([tabindex="-1"])',
+          '[role="combobox"]:not([disabled]):not([tabindex="-1"])',
+          '[tabindex="0"]',
+        ].join(','),
+      );
+      candidates[0]?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open, dialogTestId]);
+
   const close = () => onOpenChange(false);
 
   return (
-    <CmxDialog open={open} onOpenChange={onOpenChange}>
+    <CmxDialog open={open} onOpenChange={onOpenChange} autoFocus={false}>
       <CmxDialogContent
         className={maxWidthClassName}
         scrollBody
         draggable
-        data-testid={`payment-capability-dialog-${capabilityKey}`}
+        data-testid={dialogTestId}
       >
         <PaymentDialogErrorBoundary
           capabilityKey={capabilityKey}

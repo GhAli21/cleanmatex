@@ -15,7 +15,7 @@
  * in a distinct muted style. Amount editing uses {@link PaymentAmountMoneyField}.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -37,7 +37,10 @@ import {
   CmxSelectDropdownValue,
 } from '@ui/forms';
 import type { PaymentKeypadKey } from '@features/orders/ui/payment-modal-v4.utils';
-import { toSettlementOptionKey } from '@features/orders/ui/payment-modal-v4.utils';
+import {
+  splitLegHasBlockingDetailError,
+  toSettlementOptionKey,
+} from '@features/orders/ui/payment-modal-v4.utils';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
@@ -161,8 +164,8 @@ export function SplitTenderDialog({
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  // Bumped when method changes / leg is added so focus lands in that row's
-  // amount field (background focusAmountEditor is suppressed while open).
+  // Bumped when method changes / leg is added / dialog opens (with legs) so
+  // focus lands in that row's amount field.
   const [amountFocusNonce, setAmountFocusNonce] = useState(0);
 
   // Composite key — method alone collides when multiple gateway rows share a
@@ -195,10 +198,77 @@ export function SplitTenderDialog({
     return { editableLegs: editable, readOnlyLegs: readOnly };
   }, [creditMethodSet, paymentLegs]);
 
+  // When legs already exist, land in the active amount on open. Empty split
+  // uses data-capability-initial-focus on "+ Add payment method" instead.
+  useEffect(() => {
+    if (!open) return;
+    if (editableLegs.length === 0) return;
+    setAmountFocusNonce((prev) => prev + 1);
+    // Only when the dialog opens — not on every legs identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open transition only
+  }, [open]);
+
   // Focus is owned by PaymentAmountMoneyField.focusToken (bumped via
   // amountFocusNonce on add / method change / Enter→next). Do NOT re-focus on
   // every paymentLegs identity change — amount blur commits update the legs
   // array and would yank focus back into the amount field (Tab appears stuck).
+
+  /**
+   * Legs with detail-field errors (missing bank reference, terminal, etc.).
+   * Dialog may not dismiss until each is fixed or deleted.
+   */
+  const blockingEditableLegs = useMemo(
+    () =>
+      editableLegs.filter(({ leg }) => {
+        const option = methodOptions.find(
+          (candidate) =>
+            toSettlementOptionKey(
+              candidate.payment_method_code,
+              candidate.gateway_code,
+            ) === toSettlementOptionKey(leg.method, leg.gateway_code),
+        );
+        return splitLegHasBlockingDetailError(leg, option);
+      }),
+    [editableLegs, methodOptions],
+  );
+  const canDismiss = blockingEditableLegs.length === 0;
+
+  /** Focus the first invalid detail control so the cashier sees why Done is blocked. */
+  const focusFirstBlockingField = () => {
+    const first = blockingEditableLegs[0];
+    if (!first) return;
+    const row = document.querySelector<HTMLElement>(
+      `[data-testid="split-tender-editable-leg-${first.index}"]`,
+    );
+    const invalid = row?.querySelector<HTMLElement>(
+      'input[aria-invalid="true"], [aria-invalid="true"]',
+    );
+    if (invalid) {
+      invalid.focus();
+      return;
+    }
+    const fallback = row?.querySelector<HTMLElement>(
+      'input:not([disabled]):not([tabindex="-1"]), [role="combobox"]:not([disabled])',
+    );
+    fallback?.focus();
+  };
+
+  /** Close only when every editable leg passes detail validation. */
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !canDismiss) {
+      focusFirstBlockingField();
+      return;
+    }
+    onOpenChange(next);
+  };
+
+  const handleConfirmDone = () => {
+    if (!canDismiss) {
+      focusFirstBlockingField();
+      return;
+    }
+    onOpenChange(false);
+  };
 
   /** Enter on an amount field: next editable leg, or Done when on the last. */
   const handleAmountEnterConfirm = (legIndex: number) => {
@@ -209,7 +279,7 @@ export function SplitTenderDialog({
       setAmountFocusNonce((prev) => prev + 1);
       return;
     }
-    onOpenChange(false);
+    handleConfirmDone();
   };
 
   // The engine floors `remainingBalance` at 0 (`max(0, due − settled)`), so
@@ -235,11 +305,12 @@ export function SplitTenderDialog({
     <PaymentCapabilityDialog
       capabilityKey={PAYMENT_CAPABILITY.SPLIT_TENDER}
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={t('capabilities.SPLIT_TENDER.title')}
       description={t('capabilities.SPLIT_TENDER.description')}
       confirmLabel={tCommon('done')}
-      onConfirm={() => onOpenChange(false)}
+      onConfirm={handleConfirmDone}
+      confirmDisabled={!canDismiss}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
       isRTL={isRTL}
@@ -497,6 +568,9 @@ export function SplitTenderDialog({
             className="h-10 w-full border-dashed"
             aria-label={t('splitPayment.addMethod')}
             data-testid="split-tender-add-leg"
+            data-capability-initial-focus={
+              editableLegs.length === 0 ? 'true' : undefined
+            }
           >
             <CmxSelectDropdownValue placeholder={t('splitPayment.addMethod')} />
           </CmxSelectDropdownTrigger>

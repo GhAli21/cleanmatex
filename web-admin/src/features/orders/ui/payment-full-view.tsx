@@ -443,7 +443,18 @@ export function PaymentFullView({
   const financialInspectorSectionRef = useRef<HTMLDivElement | null>(null);
   const balancePolicySectionRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
-  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
+  // Nested surfaces own Tab / amount focus; parent trap yields while any is open.
+  const nestedPaymentSurfaceOpen =
+    splitDialogOpen ||
+    creditDialogOpen ||
+    giftDialogOpen ||
+    promoDialogOpen ||
+    payLaterDialogOpen ||
+    b2bDialogOpen ||
+    creditNotePickerOpen;
+  const focusTrapRef = useFocusTrap(open && !nestedPaymentSurfaceOpen, {
+    returnFocus: true,
+  });
 
   const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
@@ -2497,6 +2508,7 @@ export function PaymentFullView({
                     simpleFaceActiveLeg ? activeAmountDraft : ''
                   }
                   amountValue={simpleAmountValue}
+                  suppressAmountAutofocus={nestedPaymentSurfaceOpen}
                   onAmountValueChange={(value, draft) => {
                     if (!simpleFaceActiveLeg) return;
                     handleAmountValueChange(value, draft);
@@ -3230,7 +3242,7 @@ export function PaymentFullView({
                               inputRef={amountInputRef}
                               disabled={!activeLeg}
                               focusToken={
-                                activeLeg
+                                activeLeg && !nestedPaymentSurfaceOpen
                                   ? `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`
                                   : null
                               }

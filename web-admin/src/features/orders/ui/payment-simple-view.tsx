@@ -91,6 +91,11 @@ export interface PaymentSimpleViewProps {
   activeAmountDraft: string;
   amountValue: number | null;
   onAmountValueChange: (value: number | null, draft: string) => void;
+  /**
+   * When true, do not autofocus this amount field (e.g. Split / Store credit
+   * dialog is open and owns the amount cursor).
+   */
+  suppressAmountAutofocus?: boolean;
   /** Amber hard-gate / cash-cap notice from the engine (QA-R4.5). */
   amountCapHint?: string | null;
   /** Pay-extra intent — unlocks zero-amount method detail fields. */
@@ -170,6 +175,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
     activeAmountDraft,
     amountValue,
     onAmountValueChange,
+    suppressAmountAutofocus = false,
     amountCapHint,
     payExtraIntent: _payExtraIntent = false,
     activeLegOption,
@@ -394,7 +400,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               inputRef={amountInputRef}
               disabled={!activeLeg}
               focusToken={
-                activeLeg
+                activeLeg && !suppressAmountAutofocus
                   ? `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`
                   : null
               }

@@ -187,8 +187,9 @@ export function PaymentAmountMoneyField({
   // Stable identity — avoids rebinding outside-dismiss listeners every render.
   const linkedFieldRefs = useMemo(() => [localInputRef], []);
 
-  // Focus after method/credit selection (token change). Timeout lets the field
-  // mount when a new Store-credit amount editor appears under the option.
+  // Focus after method/credit selection (token change). Short delay lets the
+  // field mount and wins over select/dropdown focus-restore (e.g. Split
+  // "+ Add payment method" closing back onto its trigger).
   useEffect(() => {
     if (focusToken == null || disabled) return;
     const timer = window.setTimeout(() => {
@@ -196,7 +197,7 @@ export function PaymentAmountMoneyField({
       if (!input || input.disabled) return;
       input.focus();
       input.select();
-    }, 0);
+    }, 50);
     return () => window.clearTimeout(timer);
   }, [focusToken, disabled]);
 
