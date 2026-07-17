@@ -46,6 +46,7 @@
     "total": "TOTAL",
     "status": "STATUS",
     "details": "Details",
+    "viewProcessingDetails": "Open details",
     "moreItems": "more items",
     "edit": "Edit or process order",
     "complete": "Mark as cleaned/completed",

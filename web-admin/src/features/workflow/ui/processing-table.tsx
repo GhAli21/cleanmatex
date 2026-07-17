@@ -401,6 +401,16 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOr
             <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
               {order.current_status}
             </span>
+
+            {/* Link to processing details page */}
+            <Link
+              href={`/dashboard/processing/${order.id}`}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 whitespace-nowrap"
+              title={t('viewProcessingDetails')}
+              aria-label={t('viewProcessingDetails')}
+            >
+              {t('viewProcessingDetails')} →
+            </Link>
           </div>
         </td>
 
@@ -725,6 +735,12 @@ function ProcessingOrderCard({
 
       {/* Actions */}
       <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
+        <Link
+          href={`/dashboard/processing/${order.id}`}
+          className="text-xs text-blue-600 hover:text-blue-700 text-center py-1 font-medium"
+        >
+          {t('viewProcessingDetails')} →
+        </Link>
         <Link
           href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
           className="text-xs text-blue-600 hover:text-blue-700 text-center py-1"
