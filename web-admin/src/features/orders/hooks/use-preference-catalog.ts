@@ -10,6 +10,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { ServicePreference, PackingPreference, PreferenceKind } from '@/lib/types/service-preferences';
 
+/** Stable empty fallbacks — avoid `?? []` creating a new array every render. */
+const EMPTY_SERVICE_PREFS: ServicePreference[] = [];
+const EMPTY_PACKING_PREFS: PackingPreference[] = [];
+const EMPTY_PREFERENCE_KINDS: PreferenceKind[] = [];
+
 async function fetchServicePreferences(
   tenantId: string,
   branchId?: string | null
@@ -91,22 +96,29 @@ export function usePreferenceCatalog(
     staleTime: STALE_TIME,
   });
 
-  const allPrefsRaw = servicePrefsQuery.data ?? [];
+  const allPrefsRaw = servicePrefsQuery.data ?? EMPTY_SERVICE_PREFS;
 
   const allPrefs = useMemo(() => {
     if (!orderQuickBarPrefs) return allPrefsRaw;
     return allPrefsRaw.filter(preferenceVisibleInOrderQuickBar);
   }, [allPrefsRaw, orderQuickBarPrefs]);
 
-  const conditionCatalog = {
-    stains: allPrefs.filter((p) => p.preference_sys_kind === 'condition_stain'),
-    damages: allPrefs.filter((p) => p.preference_sys_kind === 'condition_damag'),
-    colors: allPrefs.filter((p) => p.preference_sys_kind === 'color'),
-  };
+  const conditionCatalog = useMemo(
+    () => ({
+      stains: allPrefs.filter((p) => p.preference_sys_kind === 'condition_stain'),
+      damages: allPrefs.filter((p) => p.preference_sys_kind === 'condition_damag'),
+      colors: allPrefs.filter((p) => p.preference_sys_kind === 'color'),
+    }),
+    [allPrefs]
+  );
 
   // service prefs only (exclude conditions and colors)
-  const servicePrefsOnly = allPrefs.filter(
-    (p) => !p.preference_sys_kind || p.preference_sys_kind === 'service_prefs'
+  const servicePrefsOnly = useMemo(
+    () =>
+      allPrefs.filter(
+        (p) => !p.preference_sys_kind || p.preference_sys_kind === 'service_prefs'
+      ),
+    [allPrefs]
   );
 
   // Map of kind_code → preferences for that kind (used by dynamic panel)
@@ -120,15 +132,18 @@ export function usePreferenceCatalog(
     return map;
   }, [allPrefs]);
 
+  const packingPrefs = packingPrefsQuery.data ?? EMPTY_PACKING_PREFS;
+  const preferenceKinds = kindsQuery.data ?? EMPTY_PREFERENCE_KINDS;
+
   return {
     servicePrefs: servicePrefsOnly,
-    packingPrefs: packingPrefsQuery.data ?? [],
+    packingPrefs,
     conditionCatalog,
     isLoading: servicePrefsQuery.isLoading || packingPrefsQuery.isLoading,
     hasServicePrefs: servicePrefsOnly.length > 0,
-    hasPackingPrefs: (packingPrefsQuery.data?.length ?? 0) > 0,
+    hasPackingPrefs: packingPrefs.length > 0,
     // new — dynamic kinds
-    preferenceKinds: kindsQuery.data ?? [],
+    preferenceKinds,
     kindsLoading: kindsQuery.isLoading,
     prefsByKind,
   };

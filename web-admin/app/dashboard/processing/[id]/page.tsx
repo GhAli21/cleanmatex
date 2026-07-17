@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -62,6 +62,8 @@ export default function ProcessingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations('processing');
+  const tModal = useTranslations('processing.modal');
+  const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
@@ -79,9 +81,9 @@ export default function ProcessingDetailPage() {
   const orderId = (params as any)?.id as string | undefined;
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     if (!currentTenant || !orderId) return;
-    
+
     setLoading(true);
     setError('');
     try {
@@ -118,11 +120,11 @@ export default function ProcessingDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentTenant, orderId, t]);
 
   useEffect(() => {
-    loadOrder();
-  }, [orderId, currentTenant]);
+    void loadOrder();
+  }, [loadOrder]);
 
   const handleRecordStep = async (itemId: string, stepCode: string, stepSeq: number) => {
     if (!orderId) return;
@@ -470,7 +472,7 @@ export default function ProcessingDetailPage() {
                         className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
                       >
                         <span>
-                          {t('viewPieces') || 'View Pieces'}
+                          {tPieces('viewPieces')}
                         </span>
                         {expandedItemIds.has(item.id) ? (
                           <ChevronUp className="w-4 h-4" />
@@ -521,7 +523,7 @@ export default function ProcessingDetailPage() {
             {/* Rack Location Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('rackLocationOrder') || 'Rack Location'}
+                {tModal('rackLocationOrder')}
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">

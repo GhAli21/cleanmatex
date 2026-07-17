@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
@@ -88,40 +88,64 @@ export function PiecePreferencesEditorDialog({
   const [packingCode, setPackingCode] = useState<string | undefined>(undefined);
   const [packingCfId, setPackingCfId] = useState<string | null | undefined>(undefined);
 
-  const loadServerServicePrefs = useCallback(async () => {
-    const res = await fetch(
-      `/api/v1/orders/${orderId}/items/${orderItemId}/pieces/${piece.id}/service-prefs`,
-      { credentials: 'include' }
-    );
-    const json = await res.json();
-    if (!res.ok || !json.success) {
-      throw new Error(json.error || t('errors.loadFailed'));
-    }
-    const rows = (json.data ?? []) as OrderPieceServicePref[];
-    setServerServiceRows(rows);
-    setSelectedServicePrefs(
-      rows.length > 0
-        ? rows.map((r) => ({
-            preference_code: r.preference_code,
-            source: r.source ?? PREFERENCE_SOURCES.MANUAL,
-            extra_price: Number(r.extra_price ?? 0),
-          }))
-        : piecePrefsToSelectorFormat(piece)
-    );
-  }, [orderId, orderItemId, piece, t]);
+  /** Prevents re-fetching service-prefs on every parent re-render while the dialog is open. */
+  const fetchedForOpenRef = useRef<string | null>(null);
+  const pieceId = piece.id;
 
+  const loadServerServicePrefs = useCallback(
+    async (fallbackPiece: OrderItemPiece) => {
+      const res = await fetch(
+        `/api/v1/orders/${orderId}/items/${orderItemId}/pieces/${fallbackPiece.id}/service-prefs`,
+        { credentials: 'include' }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || t('errors.loadFailed'));
+      }
+      const rows = (json.data ?? []) as OrderPieceServicePref[];
+      setServerServiceRows(rows);
+      setSelectedServicePrefs(
+        rows.length > 0
+          ? rows.map((r) => ({
+              preference_code: r.preference_code,
+              source: r.source ?? PREFERENCE_SOURCES.MANUAL,
+              extra_price: Number(r.extra_price ?? 0),
+            }))
+          : piecePrefsToSelectorFormat(fallbackPiece)
+      );
+    },
+    [orderId, orderItemId, t]
+  );
+
+  // Initialize form + fetch server prefs once per open/piece cycle.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      fetchedForOpenRef.current = null;
+      return;
+    }
+
+    const openKey = `${orderId}:${orderItemId}:${pieceId}`;
+    if (fetchedForOpenRef.current === openKey) return;
+    fetchedForOpenRef.current = openKey;
+
     setSelectedConditions([...(piece.conditions ?? [])]);
     setPackingCode(piece.packing_pref_code ?? undefined);
-    const packRow = packingPrefs.find((p) => p.code === piece.packing_pref_code);
-    setPackingCfId(packRow?.packing_cf_id ?? null);
-    void loadServerServicePrefs().catch((e) => {
+
+    void loadServerServicePrefs(piece).catch((e) => {
       setSelectedServicePrefs(piecePrefsToSelectorFormat(piece));
       setServerServiceRows([]);
       showErrorFrom(e, { fallback: t('errors.loadFailed') });
     });
-  }, [open, piece.id, piece.conditions, piece.packing_pref_code, piece.service_prefs, loadServerServicePrefs, showErrorFrom, t, packingPrefs]);
+    // Intentionally omit piece object / packingPrefs — unstable refs caused an infinite fetch loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open + pieceId gate the fetch cycle
+  }, [open, pieceId, orderId, orderItemId, loadServerServicePrefs, showErrorFrom, t]);
+
+  // Resolve packing CF id when catalog arrives (or packing code changes in the form).
+  useEffect(() => {
+    if (!open) return;
+    const packRow = packingPrefs.find((p) => p.code === packingCode);
+    setPackingCfId(packRow?.packing_cf_id ?? null);
+  }, [open, packingCode, packingPrefs]);
 
   const handleConditionToggle = (code: string) => {
     setSelectedConditions((prev) =>
