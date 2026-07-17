@@ -1,267 +1,161 @@
-# Software Documentation Rules and Guidelines
+# Documentation Pack Reference
 
-This document outlines comprehensive, structured, and scalable rules for creating, maintaining, and managing software feature documentation. These guidelines apply across all levels — features and their nested sub-components — ensuring clarity, consistency, and quality.
----
+Use this reference only when the task stays within the main `documentation` skill and needs pack details.
 
-*** Always follow these documentation rules consistently to ensure highly maintainable, navigable, and comprehensive project documentation***
+## 1. When To Stay In This Skill
 
----
+Stay here when:
 
-## 1. Folder and Lookup File Structure
+- the canonical folder is already known
+- the task is limited to one feature or sub-scope
+- the work is normal doc writing, updating, or pack completion
+- there is no active ambiguity about which folder is the source of truth
 
-### 1.1 Dedicated Feature Folders
+Switch to specialist skills when that is no longer true.
 
-> **RULE: `docs/features/` is the ONLY root for all documentation.**
-> Never create new files under `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level subfolder — those are legacy locations that receive no new content.
+## 2. Specialist Skill Routing
 
-- Each **feature** must have a dedicated folder under **`docs/features/`**, uniquely named after the feature (e.g. `docs/features/Feature_A`).
-- Duplicate folders for the same feature are not allowed, Unless the user ask or specify or mention something else .
-- Each feature folder contains documentation files and subfolders for components, services, screens, etc.
+### `/documentation-canonicalization`
 
-### 1.2 Sub-Component Folders
-- Inside each feature folder, every **component**, **service**, **screen**, or other logical subunit must have its own folder.
-- Each sub-component folder follows the same documentation structure and content rules as feature folders.
+Use when:
 
-### 1.3 Lookup Files for Consistency
-- A **root lookup file** `docs/folders_lookup.md` indexes all top-level feature folders:
-  - Format: `Feature Name 
-             Folder Path 
-			 Description 
-			 Version 
-			 Last Updated
-			 `
-- Each feature folder contains a **feature-level lookup file** `{Feature_Name}_lookup.md`, indexing all its immediate sub-component folders.
-- Each sub-component folder contains a **sub-component-level lookup file** `{ComponentName}_lookup.md` for any deeper nested sub-sub-components.
-- Lookup files prevent duplication and serve as centralized indices ensuring discoverability and consistency.
+- two or more folders appear to cover the same domain
+- a numbered PRD folder and a named feature folder overlap
+- there are multiple active-looking docs for the same workflow or API surface
+- the user asks which doc or folder should be canonical
 
----
+### `/documentation-audit`
 
-## 2. Feature Implementation Requirements Checklist
+Use when:
 
-When implementing any feature, add to the feature documentation a list of platform-level items that must be done or considered. Include this in `development_plan.md`, `README.md`, or a dedicated `implementation_requirements.md`.
+- the task is repo-wide or multi-folder
+- the user asks for coverage gaps, readiness tiers, stale docs, or missing file reports
+- the main output should be an audit or cleanup plan
 
-**Document which of the following apply** (mark N/A if not applicable):
+### `/documentation-pack-repair`
 
-- **Platform docs** — See [docs/platform/README.md](../../docs/platform/README.md) for permissions, settings, feature flags, and plan limits reference
-- **New permissions** — Add to `sys_permission_*` and assign to roles
-- **Navigation tree / screen** — Add new menu item or screen to sys tree
-- **settings** — use settings skill or same previous work
-- **feature flag** — Add to `sys_ff_*` if feature is gated
-- **plan limit / constraint** — Add to plan limits if feature is tiered
-- **i18n keys** — Add to `web-admin/messages/en/**` / `web-admin/messages/ar/**` (search existing first)
-- **API route(s)** — Document endpoint(s) and version
-- **Database migration(s)** — New tables, columns, indexes, RLS
-- **constants / types** — Add to `lib/constants/` and `lib/types/`
-- **RBAC / role changes** — Update role-permission mappings
-- **Environment variables** — New `.env` keys if needed
-- **Other** — Document any other platform-level requirements
+Use when:
 
-See also: [PRD Implementation Rules](../implementation/prd-rules.md#feature-implementation-requirements-documentation-checklist)
+- the canonical folder is already chosen
+- the task is to fill many missing standard files in that folder
+- the work benefits from a stricter file-by-file completion workflow
 
----
+### `/documentation-archive-migration`
 
-## 3. Documentation Folder Structure and Content
+Use when:
 
-Each feature or sub-component folder must include the following files with regularly updated content:
+- legacy docs need redirect stubs
+- historical docs should stop acting like active truth
+- old folders need to be converted into archive or support-only state
 
-- `README.md`  
-  A high-level overview of the entity (feature or component), purpose, scope, and navigation tips.
+## 3. Default Feature Pack
 
-- `development_plan.md`  
-  Roadmaps, planning details, milestones, and tasks related to the folder scope.
+For a feature or meaningful sub-scope, the standard pack is:
 
-- `progress_summary.md`  
-  Log of completed work, dates, and outstanding items with progress metrics.
-
-- `current_status.md`  
-  Snapshot of the current implementation state, blockers, or dependencies.
-
+- `README.md`
+- `development_plan.md`
+- `progress_summary.md`
+- `current_status.md`
 - `developer_guide.md`
-  Detailed developers documentation covering the implemented feature, including code structure, services, API calls, and overall code flow for clear understanding and maintainability, relevant at this level.
-
 - `developer_guide_mermaid.md`
-  A Flowchart file using mermaid.js that is part of developers documentation covering shows high-level code flow.
-  
-- `user_guide.md`  
-  Step-by-step user workflows, tutorials, UI walkthroughs, FAQs, and troubleshooting information relevant at this level.
+- `user_guide.md`
+- `user_guide_mermaid.md`
+- `deploy_guide.md`
+- `testing_guide_and_scenarios.md`
+- `CHANGELOG.md`
+- `version.txt`
+- `technical_docs/`
 
-- `user_guide_mermaid.md`  
-  A Flowchart file using mermaid.js that shows workflows, tutorials, UI walkthroughs, FAQs, and troubleshooting information relevant at this level.
+## 4. What Each File Should Cover
 
-- `deploy_guide.md`  
-  Step-by-step deploy workflows, requirements, FAQs, and troubleshooting information relevant at this level.
+### `README.md`
 
-- `testing_guide_and_scenarios.md`  
-  Clear test cases, edge cases, and acceptance criteria scoped to the feature/component.
+- overview
+- scope boundaries
+- main workflows or surfaces
+- links to the rest of the pack
 
-- `CHANGELOG.md`  
-  A detailed changelog tracking additions, fixes, changes, deprecations, removals, and security updates, following semantic versioning.
+### `development_plan.md`
 
-- `version.txt`  
-  Contains the current version string (e.g., `v1.2.0`).
+- milestones
+- sequencing
+- pending workstreams
 
-- `technical_docs/` folder for technical documentation files (names such as tech_<TOPIC_NAME>.md ) For this aspects and more:
-   1- architecture diagrams, 
-   2- API specifications, 
-   3- data models, 
-   4- A Flowchart files (names end with _mermaid.md) using mermaid.js that is part of developers documentation covering shows Detailed process flow, code flow, call flow, execution flow, API calls, , and overall code flow for clear understanding and maintainability, relevant at this level. You can create more than one file for this.
-   5- and deeper technical details.
+### `progress_summary.md`
 
----
+- completed work
+- in-progress work
+- pending work
 
-## 4. Content and Metadata Standards
+### `current_status.md`
 
-- Every markdown file should start with a metadata header:
-version: v1.2.0
-last_updated: yyyy-mm-dd
-author: Author Name
+- current implementation state
+- blockers
+- risks
+- next recommended actions
 
-- Documentation must be clear, concise, and language consistent.
-- Visual aids (diagrams, screenshots) should be incorporated where useful.
-- Cross-link related documents within and across folder hierarchies.
+### `developer_guide.md`
 
----
+- module structure
+- code flow
+- important files and services
+- API and data dependencies
 
-## 5. Versioning and Change Management
+### `developer_guide_mermaid.md`
 
-- Follow [Semantic Versioning](https://semver.org/) rules for every feature and sub-component independently.
-- Version format: `MAJOR.MINOR.PATCH` (e.g., `v2.0.1`).
-- `CHANGELOG.md` format example:
-Change Log
-[v1.2.0] - 2025-10-24
-Added
-New OAuth service integration.
+- request flow
+- service interaction flow
+- lifecycle flow
 
-Fixed
-Corrected UI rendering bug.
+### `user_guide.md`
 
-Security
-Updated token encryption.
+- user goals
+- main workflows
+- expected behaviors
+- troubleshooting notes
 
+### `user_guide_mermaid.md`
 
-- `CHANGELOG.md` must be updated with every session or release with meaningful summaries.
-- Release tags in VCS must mirror these versions.
+- workflow or decision flow for users
 
----
+### `deploy_guide.md`
 
-## 6. User Guide and Workflow Documentation
+- scope-specific rollout and operational notes only
 
-- Provide user-centric documentation describing:
-- How to use the feature/component.
-- Step-by-step workflows.
-- FAQs and common troubleshooting steps.
-- Support or escalation contacts.
-- generate a Flowchart file name it <FEATURE_NAME_PROCESS_NAME_user_guide_01xx.md> using mermaid.js that shows what is happening in details.
+### `testing_guide_and_scenarios.md`
 
----
+- functional scenarios
+- edge cases
+- failure cases
+- expected results
 
-## 7. Developer Guide and Code Flow Documentation
-Provide comprehensive developer-centric documentation describing:
-- Code structure, services, API calls, and overall code execution flow.
-- Detailed explanations of key functions, modules, and interactions.
-- Troubleshooting, debugging tips, and escalation contacts for implementation issues.
-- Generate a Flowchart file named <FEATURE_NAME_PROCESS_NAME_developer_guide_01xx.md> using mermaid.js illustrating the detailed code flow and service interactions.
+### `CHANGELOG.md`
 
----
+- meaningful state or documentation changes
 
-## 8. Testing Scenarios
+### `version.txt`
 
-- Document testing strategies and scenarios, including:
-- Functional test cases.
-- Integration and edge cases.
-- Instructions for setting up test environments.
-- Expected results to validate acceptance.
+- current version marker if that scope uses versioning
 
----
+## 5. Feature Coverage Checklist
 
-## 9. Regular Updates and Synchronization
+Document these when they apply:
 
-- Documentation files must be updated frequently during development sessions.
-- Critical to avoid progress and remaining/pending tasks loss by updating docs before the end or pause of any work session such as by Claude code sessions limits.
+- permissions and RBAC
+- navigation and route placement
+- settings, feature flags, and plan limits
+- i18n and bilingual impact
+- API routes and contracts
+- migrations, schema changes, and RLS
+- constants, types, and validation rules
+- environment variables and external integrations
+- testing scenarios and rollout risks
 
----
+## 6. Validation
 
-## 10. Automated Validation and Enforcement
+Before finishing:
 
-- Automated checks must run on start using and on commit the work to verify:
-- Folder and file names conform to naming standards referenced by lookup files.
-- Presence of all mandatory documents per folder.
-- Correct metadata header fields within markdown files.
-- Changelog correctness and version congruence.
-- Provide actionable reports for any violations.
-
----
-
-## 11. Versioning and Release Tag Enforcement Rules
-
-- Use strictly semantic versioning for all artifacts.
-- Ensure version tags are mirrored across documentation and VCS.
-- Block merges/releases missing valid version or changelog updates.
-
----
-
-## 12. Consolidated Checklist
-
-- [ ] Create and maintain unique feature folders.
-- [ ] Ensure sub-component folders replicate feature documentation structure.
-- [ ] Populate/maintain hierarchical lookup files.
-- [ ] Use standardized file naming and folder conventions.
-- [ ] Include all required files per folder with metadata headers.
-- [ ] Follow semantic versioning in `version.txt` and changelogs.
-- [ ] Maintain comprehensive `user_guide.md` and `testing_scenarios.md`.
-- [ ] Update documentation regularly and sync with development.
-- [ ] Employ automated checks and block non-compliant changes.
-- [ ] Tag releases in VCS consistent with documentation versions.
-
----
-
-## 13. Sample Folder Tree
-
-All new documentation lives under `docs/features/`. Do NOT add new files to `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level folder — those are legacy.
-
-docs/
-├── folders_lookup.md              ← root index for all feature folders
-├── features/                      ← THE ONLY TARGET for new documentation
-│ ├── Feature_A/
-│ │ ├── Feature_A_lookup.md
-│ │ ├── README.md
-│ │ ├── development_plan.md
-│ │ ├── progress_summary.md
-│ │ ├── current_status.md
-│ │ ├── developers_guide.md
-│ │ ├── user_guide.md
-│ │ ├── deploy_guide.md
-│ │ ├── testing_scenarios.md
-│ │ ├── CHANGELOG.md
-│ │ ├── version.txt
-│ │ ├── components/
-│ │ │ ├── Login_Form/
-│ │ │ │ ├── Login_Form_lookup.md
-│ │ │ │ ├── Purpose_responsibilities.md -- For Purpose & responsibilities
-│ │ │ │ ├── Implementation_details.md -- For Implementation details
-│ │ │ │ ├── Testing_scenarios.md -- For Testing scenarios (specific to This component)
-│ │ │ │ ├── README.md
-│ │ │ │ ├── development_plan.md
-│ │ │ │ ├── progress_summary.md
-│ │ │ │ ├── current_status.md
-│ │ │ │ ├── developers_guide.md -- For developers
-│ │ │ │ ├── user_guide.md -- For Usage instructions
-│ │ │ │ ├── testing_scenarios.md
-│ │ │ │ ├── CHANGELOG.md
-│ │ │ │ ├── version.txt
-│ │ │ │ └── technical_docs/
-│ │ │ │ ├── api_specs.md -- For APIs and interfaces
-│ │ │ │ └── data_models.md
-│ │ │ └── ...
-│ │ ├── services/
-│ │ │ └── ...
-│ │ └── screens/
-│ │ └── ...
-│ └── Feature_B/
-│ └── ...
-
----
-
-
-
-
+- verify the folder is still the canonical target
+- verify links are not obviously broken
+- verify status/progress/changelog do not contradict each other
+- verify technical claims match current repo artifacts

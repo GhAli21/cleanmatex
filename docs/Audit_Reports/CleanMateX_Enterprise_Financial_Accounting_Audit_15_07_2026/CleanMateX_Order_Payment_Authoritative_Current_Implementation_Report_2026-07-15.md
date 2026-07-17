@@ -927,6 +927,7 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | B31 | `collectPaymentTx` must read and honor `default_creation_status` (and per-leg explicit status) instead of hardcoding COMPLETED for non-gateway methods | MEDIUM | CONTROL_GAP | M6; order-settlement.service.ts:827 | B4 |
 | B32 | Gate drawer movements on effective payment status; implement or remove `allow_status_override` | LOW | CONTROL_GAP | M7/M8 | — |
 | B33 | Correct pending-payment warning semantics so a valid PENDING leg does not emit `PENDING_PAYMENT_COUNTED_AS_PAID` or force MISMATCH unless the pending amount was actually included in paid totals | MEDIUM | CONTROL_GAP | §5.2 / M9 | B2 |
+| B34 | Refund back-office UI: initiate-refund screen (payment/credit-leg picker from order detail), approval queue, process action — the maker-checker workflow is API-complete but UI-absent (Addendum A1) | HIGH | BLOCKS_FEATURE / CONTROL_GAP | A1 | B1 (classification display); B27 (impl) |
 
 # 51. Final Readiness Verdict
 
@@ -952,6 +953,22 @@ Columns: BVM / Cash / TaxDoc / GL / Snap / Recon; ✓ works, ✗ missing, — n/
 | **End-to-end order-to-cash** | **NOT_READY** |
 
 ---
+
+# Addenda (post-freeze, code-verified)
+
+## A1 — Refund workflow is UI-absent (verified 2026-07-16)
+
+The refund maker-checker workflow (§8) is **API-complete but has no usable UI**: no screen can initiate, approve, or process a standalone refund.
+
+| Layer | Surface | Verified state |
+|---|---|---|
+| Service + API | initiate/approve/process routes (`/orders/[id]/refund(s)`, `/orders/refunds/[refundId]/approve\|process`), permission-gated | IMPLEMENTED (controls only, per §8) |
+| Server action | `initiateOrderRefund` (app/actions/billing/refund-actions.ts:123) | **zero UI callers** |
+| Refunds page | `/dashboard/internal_fin/refunds` → refunds-list-client.tsx | **read-only list** — no initiate/approve/process actions |
+| Order detail | order-detail-client.tsx | refund appears only as an edit-history label |
+| Only creating path | cancel-order-dialog REFUND disposition → cancel unwind creates refund rows programmatically | refunds possible **only** via full order cancellation |
+
+Consequence: refunds on live orders (wrong item, partial complaint, goodwill) and the approval/processing of PENDING_APPROVAL rows are impossible without direct API calls. Classification for §43's refund permissions is unchanged (codes exist; no UI consumes them). New backlog item **B34** (refund back-office UI) added to §50. This also sets the general completeness rule for remediation: a capability with backend but no usable screen is PARTIAL, never complete.
 
 ```text
 AUTHORITATIVE REPORT STATUS:

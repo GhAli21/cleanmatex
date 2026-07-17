@@ -1,25 +1,61 @@
 # Documentation Map
 
-Use `docs/README.md` as the main documentation index.
+Use `docs/README.md` as the main documentation index for humans.
 
-## Key Areas
+Use `.claude/skills/documentation/` as the execution guidance for AI-driven documentation work.
 
-- requirements and specifications: `docs/`
-- plans: `docs/plan/`
-- feature docs: `docs/features/`
-- session tracking for this refresh: `docs/Refersh_documentations_10_03_2026/`
+## Main Repo Areas
+
+- main documentation hub: `docs/README.md`
+- feature documentation root: `docs/features/`
+- feature folder lookup index: `docs/folders_lookup.md`
+- implementation plans: `docs/plan/`
+- development rules and technical references: `docs/dev/`
 - shared database docs: `supabase/README.md`
-- module docs: `web-admin/README.md`, `cmx-api/README.md`
-- order source + remote intake (web-admin): `web-admin/docs/order-source-remote-intake.md`
+- web admin module docs: `web-admin/README.md`
+- API module docs: `cmx-api/README.md`
 
-## .claude/docs (AI guidance)
+## Documentation Pack Model
 
-- `settings-reference.md` — when to use sys_tenant_settings_cd vs Allsettings files
-- `nodejs-rules.md` — generic Node.js development rules
-- `web-admin-ui-imports.md` — mandatory Cmx imports for web-admin
-- `ui-general-rules.md` — audit UI pattern, naming suffixes, bilingual/money/branding
-- `Allsettings.md`, `Allsettings.json` — settings data (offline reference)
+For a feature or meaningful sub-scope, the target pack is:
+
+- overview: `README.md`
+- planning: `development_plan.md`
+- progress tracking: `progress_summary.md`
+- status snapshot: `current_status.md`
+- developer guide: `developer_guide.md`
+- developer flow diagram: `developer_guide_mermaid.md`
+- user guide: `user_guide.md`
+- user flow diagram: `user_guide_mermaid.md`
+- deployment/operations notes: `deploy_guide.md`
+- testing coverage: `testing_guide_and_scenarios.md`
+- change history: `CHANGELOG.md`
+- current version marker: `version.txt`
+- deeper technical references: `technical_docs/`
+
+## AI Guidance In `.claude`
+
+- `skills/documentation/SKILL.md` — lean default router for ordinary documentation work
+- `skills/documentation/reference.md` — pack rules and lightweight routing guidance
+- `skills/documentation-canonicalization/SKILL.md` — choose canonical docs when overlap or duplication exists
+- `skills/documentation-audit/SKILL.md` — audit pack completeness, stale structure, and cleanup priorities
+- `skills/documentation-pack-repair/SKILL.md` — complete missing pack files in a canonical folder
+- `skills/documentation-archive-migration/SKILL.md` — convert legacy docs into redirect or archive-safe state
+- `skills/code-documentation/SKILL.md` — inline code comments, JSDoc/TSDoc, SQL comments, Tailwind and config documentation
+- `docs/settings-reference.md` — settings guidance
+- `docs/web-admin-ui-imports.md` — required web-admin UI imports
+- `docs/ui-general-rules.md` — UI naming and frontend guardrails
+
+## Quick Routing
+
+- Need to write or improve feature docs: start with `docs/features/` and the documentation skill.
+- Need to resolve duplicate or overlapping doc sources: use `skills/documentation-canonicalization/`.
+- Need repo-wide doc health or cleanup planning: use `skills/documentation-audit/`.
+- Need to fill missing standard files in one known canonical folder: use `skills/documentation-pack-repair/`.
+- Need repo-wide navigation context: open `docs/README.md`.
+- Need implementation planning context: check `docs/plan/`.
+- Need code comment standards instead of feature docs: use `skills/code-documentation/`.
 
 ## Rule
 
-Do not rely on older typo paths or duplicate maps when `docs/README.md` already reflects the current repo layout.
+Do not rely on older duplicate maps or stale helper files when `docs/README.md` and the active documentation skill already describe the current structure.

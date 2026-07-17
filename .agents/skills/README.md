@@ -35,7 +35,11 @@ Each skill is organized in its own directory with:
 | **implementation** | Task | Feature development workflow, coding standards |
 | **dev-commands** | Task | Supabase, Prisma, Next.js commands |
 | **testing** | Task | Testing strategy, multi-tenant tests |
-| **documentation** | Task | Documentation standards and structure |
+| **documentation** | Task | Lean default skill for normal doc creation and pack updates |
+| **documentation-canonicalization** | Task | Choose canonical source-of-truth docs when overlap or duplication exists |
+| **documentation-audit** | Task | Audit pack completeness, stale structure, and cleanup priorities |
+| **documentation-pack-repair** | Task | Complete missing standard pack files inside a canonical folder |
+| **documentation-archive-migration** | Task | Convert legacy docs into redirect, support-only, or archive-ready state |
 | **code-documentation** | Reference | JSDoc/TSDoc, SQL migration comments, Tailwind annotations, config file documentation |
 
 ### Utility Skills
@@ -138,7 +142,7 @@ user-invocable: true
 1. **Organized** - Each skill has its own directory with related docs
 2. **Scalable** - Easy to add new skills or update existing ones
 3. **Discoverable** - Clear skill names and descriptions
-4. **Context-Aware** - Claude auto-invokes based on work being done
+4. **Context-Aware** - Lean routing skills can defer heavier specialist skills until needed
 5. **Best Practice** - Follows official Claude Code documentation
 
 ## Migration from Old Structure

@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-11T06:18:53.475Z
-Git SHA: b94b2cfa
+Generated: 2026-07-16T22:30:31.607Z
+Git SHA: df03d567
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 141 |
-| Permission usages | 266 |
+| Permission usages | 259 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
-| Navigation entries | 97 |
+| Navigation entries | 96 |
 | Flag catalog entries | 290 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -102,7 +102,7 @@ Git SHA: b94b2cfa
 | /dashboard/marketing/gift-cards/liability | Liability | gift_cards:read | — | 0 |
 | /dashboard/marketing/loyalty | Loyalty | loyalty:view_config | — | 0 |
 | /dashboard/marketing/promos | Promos | promotions:read | — | 0 |
-| /dashboard/marketing/promotions | Promotions | promotions:view | — | 0 |
+| /dashboard/marketing/promotions | Promotions (redirect → /promos) | promotions:read | — | 0 |
 | /dashboard/notifications | Notification Center | notifications:read | — | 0 |
 | /dashboard/notifications/delivery-log | Delivery Log | notifications:view_log | — | 0 |
 | /dashboard/notifications/settings | Channel Settings | notifications:configure | — | 0 |

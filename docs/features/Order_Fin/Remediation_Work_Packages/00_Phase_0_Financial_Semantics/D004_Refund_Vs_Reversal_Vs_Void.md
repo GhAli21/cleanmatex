@@ -2,13 +2,17 @@
 
 ## Metadata
 Decision ID: D004
-Status: PROPOSED
+Status: APPROVED (Expert)
+Approval type: Expert
+Selected option: Option B
+Approved decision: Option B — refund, reversal, and void are three distinct transaction types (the `transaction_type` facet of D002 v2); the effects table is the binding taxonomy; chargebacks, bounced payments, and rejected payments (B26/B10) are externally-initiated reversals and reopen due via payment-status change per D003 v2
+Rationale summary: auditors, drawers, and the GL treat "customer got money back", "we corrected an error", and "the tender never happened" differently; collapsing them creates phantom cash-outs and unexplained variances
 Decision type: Transaction-taxonomy policy
 Authoritative report sections: §8, §34, §5.1, H4, H8, B10, B13
 Blocks: B1, B9, B10, B13
 Affects: B26 (chargebacks reuse reversal semantics)
-Owner: —
-Approval date: —
+Owner: Expert (see Approval record)
+Approval date: 2026-07-16
 Supersedes: —
 
 ## Problem
@@ -47,14 +51,17 @@ The codebase has one refund workflow and a voucher "reversal" that unwinds nothi
 | Drawer/gateway | cash-out movement / gateway refund | compensating movement / gateway reversal-void | none (nothing moved) |
 | Tax | credit-note territory (B14) when sale reduced | tax facts follow the negated transaction | none |
 | GL (target) | REFUND_ISSUED journal | reversal journal of original event | none |
-| Order balance | per D003 | reopens by full amount automatically | reopens by leg amount automatically |
+| Order balance | per D003 v2 (commercial refunds do not reopen by default; rebill is explicit) | reopens by full amount automatically via status change (leg leaves COMPLETED set, D005 formula) | reopens by leg amount automatically via status change |
 | Timing | after settlement, within refundable balance | same period preferred; approval mandatory | before completion only |
 
 ### Option C — Two concepts (merge reversal into void)
 *Risks:* completed-transaction corrections would have no home or would masquerade as refunds; period reporting corrupted. Rejected.
 
 ## Recommended decision
-**Option B.** Refund = business return (D002/D003 govern classification/reopen). Reversal = maker-checker error correction with mandatory operational unwind. Void = pre-completion cancellation of PENDING/PROCESSING/AUTHORIZED legs (the missing half of H8's lifecycle). Chargebacks (future B26) are externally-initiated reversals.
+**Option B.** Refund = business return (D002/D003 govern classification/reopen). Reversal = maker-checker error correction with mandatory operational unwind. Void = pre-completion cancellation of PENDING/PROCESSING/AUTHORIZED legs (the missing half of H8's lifecycle). Chargebacks, bounced payments, and rejected/failed settlements (B26/B10) are externally-initiated reversals — they reopen due automatically via payment-status change (D003 v2), never via refund rows.
+
+## Approved decision (Expert)
+**Option B** as recommended — see `Approved decision:` in Metadata for the binding text. Approval type: Expert. Selected for domain correctness (three financially distinct undo semantics) and system integrity (each concept has its own lineage, effects, and reopen mechanism).
 
 ## Financial rationale
 Auditors, drawers, and the GL treat "customer got money back", "we corrected an error", and "the tender never happened" differently. Only the first touches refund liability reporting; only the second demands contra entries in the original context; only the third is cost-free. Collapsing them is how phantom cash-outs and unexplained variances are born.
@@ -77,9 +84,12 @@ No historical rows carry VOIDED/REVERSED from these flows; no backfill. Legacy "
 ## Approval record
 | Role | Name | Decision | Date | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| Expert approver | — | APPROVED (Expert) — Option B | 2026-07-16 | Expert-selected option applied for domain correctness and system integrity; rationale summary in Metadata |
 
 ## Revision history
 | Version | Date | Change | Author |
 |---|---|---|---|
 | 0.1 | 2026-07-15 | Initial proposal | Claude (audit follow-up) |
+| 0.2 | 2026-07-16 | Delegated approval recorded, then reverted per folder CLAUDE.md; recommendation unchanged | Claude |
+| 1.0 | 2026-07-16 | APPROVED — Option B | — |
+| 1.1 | 2026-07-16 | Expert correction pass: approval normalized to APPROVED (Expert); bounced/rejected payments added to externally-initiated reversals; order-balance row aligned to D003 v2 (status-change reopen mechanism) | Expert review |
