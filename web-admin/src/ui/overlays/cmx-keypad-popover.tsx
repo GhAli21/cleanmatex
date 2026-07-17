@@ -381,7 +381,8 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
         return;
       }
       if (!keyboardMode || disabled) return;
-      // Let arrow / Enter / Space reach the focused grid cell.
+      // Tab is owned by the dialog focus trap (cycles inside this pad). Let
+      // arrow / Enter / Space / Home / End reach the focused grid cell.
       if (
         e.key === 'ArrowUp' ||
         e.key === 'ArrowDown' ||
@@ -390,9 +391,13 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
         e.key === 'Enter' ||
         e.key === ' ' ||
         e.key === 'Home' ||
-        e.key === 'End' ||
-        e.key === 'Tab'
+        e.key === 'End'
       ) {
+        return;
+      }
+      // Escape already handled above; ignore bare Tab here so capture listeners
+      // on the dialog trap can wrap focus inside the pad.
+      if (e.key === 'Tab') {
         return;
       }
       const mapped = mapHardwareKeyToKeypadKey(e, keys);

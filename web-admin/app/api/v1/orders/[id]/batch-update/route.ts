@@ -246,14 +246,13 @@ export async function POST(
                 rack_location: update.rackLocation || undefined,
                 notes: update.notes || undefined,
                 is_rejected: update.isRejected ?? undefined,
-                color: update.color || undefined,
-                brand: update.brand || undefined,
+                // color/brand: owned by org_order_preferences_dtl — do not mutate via Processing batch-update
                 barcode: update.barcode || undefined,
                 has_stain: update.has_stain ?? undefined,
                 has_damage: update.has_damage ?? undefined,
                 updated_at: new Date().toISOString(),
                 updated_by: userId,
-                updated_info: authCheck.userName + ' updated piece_status=' + finalPieceStatus + ', is_ready=' + finalIsReady + ', last_step=' + update.currentStep + ', piece_stage=' + update.piece_stage + ', rack_location=' + update.rackLocation + ', notes=' + update.notes + ', is_rejected=' + update.isRejected + ', color=' + update.color + ', brand=' + update.brand + ', barcode=' + update.barcode + ', has_stain=' + update.has_stain + ', has_damage=' + update.has_damage || undefined,
+                updated_info: authCheck.userName + ' updated piece_status=' + finalPieceStatus + ', is_ready=' + finalIsReady + ', last_step=' + update.currentStep + ', piece_stage=' + update.piece_stage + ', rack_location=' + update.rackLocation + ', notes=' + update.notes + ', is_rejected=' + update.isRejected + ', barcode=' + update.barcode + ', has_stain=' + update.has_stain + ', has_damage=' + update.has_damage || undefined,
               },
             };
           })

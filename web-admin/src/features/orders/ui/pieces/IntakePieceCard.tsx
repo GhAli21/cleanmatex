@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceBaseCard } from './PieceBaseCard';
 import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea } from '@ui/primitives';
-import { EditIcon, SplitSquareHorizontal } from 'lucide-react';
+import { EditIcon } from 'lucide-react';
+import { formatCodeLabel } from '@/lib/utils/format-code-label';
 import type { OrderItemPiece } from '@/types/order';
 
 /**
@@ -20,6 +21,7 @@ export interface IntakePieceCardProps {
   onSplitToggle?: (pieceId: string, selected: boolean) => void;
   rejectColor?: string;
   readOnly?: boolean;
+  density?: 'comfortable' | 'compact';
 }
 
 /**
@@ -43,6 +45,7 @@ export function IntakePieceCard({
   onSplitToggle,
   rejectColor = '#10B981',
   readOnly = false,
+  density = 'comfortable',
 }: IntakePieceCardProps) {
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
@@ -59,46 +62,52 @@ export function IntakePieceCard({
     
     if (!hasPrefs) {
       return (
-        <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {t('prefSummaryNone')}
-        </p>
+        <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className="text-xs text-slate-600">{t('prefSummaryNone')}</p>
+          {!readOnly && onEditPreferences && (
+            <CmxButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="h-7 px-2 text-xs text-sky-700 hover:text-sky-800"
+              onClick={() => onEditPreferences(piece.id)}
+            >
+              {t('prefSummaryNoneCta')}
+            </CmxButton>
+          )}
+        </div>
       );
     }
 
     return (
-      <div className={`flex flex-wrap gap-1 mt-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
-        {/* Packing Preference */}
+      <div className={`flex flex-wrap gap-1 ${isRTL ? 'justify-end' : 'justify-start'}`}>
         {piece.packing_pref_code && (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-            {piece.packing_pref_code.replace(/_/g, ' ')}
+            {formatCodeLabel(piece.packing_pref_code)}
           </span>
         )}
         
-        {/* Service Preferences */}
         {(piece.service_prefs ?? []).map((p) => {
-          // Display extra price if it exists
           const priceDisplay = p.extra_price && p.extra_price > 0 ? ` (+${p.extra_price})` : '';
           return (
             <span
               key={p.preference_code}
               className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100"
             >
-              {p.preference_code.replace(/_/g, ' ')}{priceDisplay}
+              {formatCodeLabel(p.preference_code)}{priceDisplay}
             </span>
           );
         })}
         
-        {/* Conditions (Stain, Damage, etc.) */}
         {(piece.conditions ?? []).map((c) => (
           <span
             key={c}
             className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-100"
           >
-            {c.replace(/_/g, ' ')}
+            {formatCodeLabel(c)}
           </span>
         ))}
 
-        {/* Color */}
         {piece.color && (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-900 border border-purple-100">
             {typeof piece.color === 'object' ? (piece.color as { primary?: string })?.primary ?? '' : piece.color}
@@ -186,6 +195,7 @@ export function IntakePieceCard({
     <PieceBaseCard
       piece={piece}
       rejectColor={rejectColor}
+      density={density}
       detailsSlot={renderPreferences()}
       actionSlot={renderActions()}
       statusSlot={renderStatus()}

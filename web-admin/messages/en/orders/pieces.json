@@ -30,7 +30,8 @@
   "savePreferences": "Save",
   "conditionsSection": "Conditions & stains",
   "prefSummaryAria": "Preference summary",
-  "prefSummaryNone": "No service, packing, or condition preferences on this piece yet. Open Preferences to view catalog options and save changes.",
+  "prefSummaryNone": "No service, packing, or condition preferences on this piece yet.",
+  "prefSummaryNoneCta": "Open Preferences to choose catalog options.",
   "bulkSelectPiece": "Select piece {seq} for bulk actions",
   "status": {
     "intake": "Intake",

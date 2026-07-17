@@ -281,6 +281,8 @@ export interface OrderItemPiece {
   service_pref_charge?: number | null;
   /** Piece-level service prefs from org_order_preferences_dtl */
   service_prefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+  /** Piece-level color prefs from org_order_preferences_dtl (`preference_sys_kind=color`) */
+  color_prefs?: string[];
   /** Piece-level conditions (stains, damage, special) from org_order_preferences_dtl */
   conditions?: string[];
 
@@ -734,7 +736,9 @@ export interface ItemPiece {
   rackLocation: string; // Piece-level rack location
   isRejected: boolean;
   // Piece details from database
+  /** @deprecated Prefer colorPrefs from org_order_preferences_dtl */
   color?: string | null;
+  /** @deprecated Brand is no longer edited in Processing; unused legacy column */
   brand?: string | null;
   has_stain?: boolean | null;
   has_damage?: boolean | null;
@@ -748,6 +752,8 @@ export interface ItemPiece {
   // Service preferences (migration 0139)
   packingPrefCode?: string | null;
   servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+  /** Color preference codes from org_order_preferences_dtl */
+  colorPrefs?: string[];
 }
 
 /**

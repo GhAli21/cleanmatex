@@ -38,7 +38,25 @@
     },
     "detail": {
       "summaryTitle": "ملخص الطلب",
-      "bagsLabel": "الأكياس"
+      "bagsLabel": "الأكياس",
+      "statusLabel": "الحالة",
+      "fallbackItem": "صنف",
+      "noItemsYet": "لا توجد أصناف بعد. استخدم الإضافة السريعة أو الكتالوج قبل إكمال التحضير.",
+      "cannotPrepareTitle": "هذا الطلب غير متاح للتحضير",
+      "cannotPrepareBody": "التحضير متاح فقط للطلبات في حالة الاستلام أو قيد التحضير. الحالة الحالية: {status}.",
+      "viewProcessing": "فتح في المعالجة",
+      "viewOrder": "عرض تفاصيل الطلب",
+      "addItemsFailed": "تعذّر إضافة الأصناف",
+      "deleteItemFailed": "تعذّر حذف الصنف",
+      "completeRequiresItems": "أضف صنفاً واحداً على الأقل قبل إكمال التحضير",
+      "alreadyPastPreparation": "غادر هذا الطلب مرحلة التحضير بالفعل",
+      "draftAlreadySaved": "تُحفظ ملاحظات القطع ومواقع الرفوف والتفضيلات أثناء التعديل. لا حاجة لمسودة منفصلة.",
+      "completing": "جارٍ الإكمال…"
+    },
+    "presets": {
+      "addShirts": "+{count} قمصان",
+      "addPants": "+{count} بناطيل",
+      "noCatalog": "لا توجد منتجات متاحة للإضافة السريعة"
     },
     "workflowContextTitle": "سياق سير العمل",
     "workflowFlags": {
@@ -60,7 +78,8 @@
       "saveDraft": "حفظ كمسودة",
       "completeAndContinue": "إكمال ومتابعة",
       "preparationCompleteNote": "اكتمل التحضير",
-      "preparationCompleteSuccess": "تم إكمال التحضير"
+      "preparationCompleteSuccess": "تم إكمال التحضير",
+      "printItemLabels": "طباعة ملصقات الأصناف"
     }
   },
   "assembly": {

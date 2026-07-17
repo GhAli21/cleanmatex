@@ -115,17 +115,15 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
     onChange({ rackLocation: e.target.value });
   };
 
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ color: e.target.value });
-  };
-
-  const handleBrandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ brand: e.target.value });
-  };
-
   const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ barcode: e.target.value });
   };
+
+  const hasColorPrefs = (piece.colorPrefs?.length ?? 0) > 0;
+  const hasPrefTags =
+    hasColorPrefs ||
+    !!piece.packingPrefCode ||
+    (piece.servicePrefs?.length ?? 0) > 0;
 
   const handleUnReject = () => {
     onChange({ isRejected: false });
@@ -184,37 +182,18 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             )}
           </div>
 
-          {/* Piece Details: Color, Brand, Barcode - Display only if set */}
-          {(piece.color || piece.brand || piece.barcode) && (
+          {/* Preferences from org_order_preferences_dtl (color/packing/service) + barcode */}
+          {(hasPrefTags || piece.barcode) && (
             <div className="flex items-center gap-2 flex-wrap">
-              {piece.color && (
-                <CmxStatusBadge
-                  label={`${t('modal.color') || 'Color'}: ${piece.color}`}
-                  variant="outline"
-                  size="sm"
-                />
-              )}
-              {piece.brand && (
-                <CmxStatusBadge
-                  label={`${t('modal.brand') || 'Brand'}: ${piece.brand}`}
-                  variant="outline"
-                  size="sm"
-                />
-              )}
-              {piece.barcode && (
-                <CmxStatusBadge
-                  label={`${t('modal.barcode') || 'Barcode'}: ${piece.barcode}`}
-                  variant="outline"
-                  size="sm"
-                  className="font-mono"
-                />
-              )}
-            </div>
-          )}
-
-          {/* Service preferences and packing (migration 0139) */}
-          {(piece.packingPrefCode || (piece.servicePrefs?.length ?? 0) > 0) && (
-            <div className="flex items-center gap-2 flex-wrap">
+              {hasColorPrefs &&
+                piece.colorPrefs!.map((code) => (
+                  <CmxStatusBadge
+                    key={`color-${code}`}
+                    label={`${t('modal.color') || 'Color'}: ${code.replace(/_/g, ' ')}`}
+                    variant="outline"
+                    size="sm"
+                  />
+                ))}
               {piece.packingPrefCode && (
                 <>
                   <CmxStatusBadge
@@ -242,6 +221,14 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                     size="sm"
                   />
                 ))}
+              {piece.barcode && (
+                <CmxStatusBadge
+                  label={`${t('modal.barcode') || 'Barcode'}: ${piece.barcode}`}
+                  variant="outline"
+                  size="sm"
+                  className="font-mono"
+                />
+              )}
             </div>
           )}
 
@@ -346,46 +333,17 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
         )}
       </div>
 
-      {/* Piece Details Section - Color, Brand, Barcode */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        {/* Color */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            {t('modal.color') || 'Color'}
-          </label>
-          <CmxInput
-            value={piece.color || ''}
-            onChange={handleColorChange}
-            placeholder={t('modal.color') || 'Color'}
-            className="h-10 text-sm"
-          />
-        </div>
-
-        {/* Brand */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            {t('modal.brand') || 'Brand'}
-          </label>
-          <CmxInput
-            value={piece.brand || ''}
-            onChange={handleBrandChange}
-            placeholder={t('modal.brand') || 'Brand'}
-            className="h-10 text-sm"
-          />
-        </div>
-
-        {/* Barcode */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            {t('modal.barcode') || 'Barcode'}
-          </label>
-          <CmxInput
-            value={piece.barcode || ''}
-            onChange={handleBarcodeChange}
-            placeholder={t('modal.barcode') || 'Barcode'}
-            className="h-10 text-sm font-mono"
-          />
-        </div>
+      {/* Barcode (editable); color/brand are preference tags only */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          {t('modal.barcode') || 'Barcode'}
+        </label>
+        <CmxInput
+          value={piece.barcode || ''}
+          onChange={handleBarcodeChange}
+          placeholder={t('modal.barcode') || 'Barcode'}
+          className="h-10 text-sm font-mono max-w-md"
+        />
       </div>
 
       {/* Controls Grid */}

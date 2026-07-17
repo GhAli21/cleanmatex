@@ -22,6 +22,10 @@
     "supabase_remote_db": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+    },
+    "supabase_remote_mcp": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg&read_only=true&features=database%2Cdocs%2Cdevelopment%2Cfunctions"
     }
   }
 }

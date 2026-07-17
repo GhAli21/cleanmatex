@@ -92,5 +92,8 @@
     "supabase_local",
     "supabase_remote_db"
   ],
-  "outputStyle": "concise"
+  "outputStyle": "concise",
+  "disabledMcpjsonServers": [
+    "supabase"
+  ]
 }

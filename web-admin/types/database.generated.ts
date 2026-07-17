@@ -16318,6 +16318,7 @@ export type Database = {
           is_active: boolean
           metadata: Json
           order_id: string
+          original_credit_app_id: string | null
           original_payment_id: string | null
           pos_session_id: string | null
           processed_at: string | null
@@ -16326,6 +16327,7 @@ export type Database = {
           rec_order: number | null
           rec_status: number
           refund_amount: number
+          refund_context: string
           refund_method_code: string | null
           refund_no: string | null
           refund_reason: string | null
@@ -16351,6 +16353,7 @@ export type Database = {
           is_active?: boolean
           metadata?: Json
           order_id: string
+          original_credit_app_id?: string | null
           original_payment_id?: string | null
           pos_session_id?: string | null
           processed_at?: string | null
@@ -16359,6 +16362,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           refund_amount: number
+          refund_context: string
           refund_method_code?: string | null
           refund_no?: string | null
           refund_reason?: string | null
@@ -16384,6 +16388,7 @@ export type Database = {
           is_active?: boolean
           metadata?: Json
           order_id?: string
+          original_credit_app_id?: string | null
           original_payment_id?: string | null
           pos_session_id?: string | null
           processed_at?: string | null
@@ -16392,6 +16397,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           refund_amount?: number
+          refund_context?: string
           refund_method_code?: string | null
           refund_no?: string | null
           refund_reason?: string | null
@@ -16412,11 +16418,18 @@ export type Database = {
             referencedColumns: ["tenant_org_id", "id"]
           },
           {
-            foreignKeyName: "fk_refund_original_payment"
-            columns: ["original_payment_id"]
+            foreignKeyName: "fk_refund_orig_payment_tenant"
+            columns: ["tenant_org_id", "original_payment_id"]
             isOneToOne: false
             referencedRelation: "org_order_payments_dtl"
-            referencedColumns: ["id"]
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_refund_original_credit_app"
+            columns: ["tenant_org_id", "original_credit_app_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_credit_apps_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
           },
           {
             foreignKeyName: "org_order_refunds_dtl_cash_drawer_session_id_fkey"

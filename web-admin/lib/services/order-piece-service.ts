@@ -101,6 +101,8 @@ export class OrderPieceService {
     const pieceIds = pieces.map((p) => p.id);
     const piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
     const pieceConditionsMap: Record<string, string[]> = {};
+    /** Color prefs live in DTL (`preference_sys_kind=color`); piece.color JSONB is legacy. */
+    const pieceColorPrefsMap: Record<string, string[]> = {};
     /** Prefer DTL `packing_prefs` when present (authoritative vs denormalized piece row). */
     const piecePackingFromDtl: Record<string, string> = {};
 
@@ -121,6 +123,11 @@ export class OrderPieceService {
           source: row.prefs_source ?? 'manual',
           extra_price: Number(row.extra_price ?? 0),
         });
+      } else if (sysKind === 'color') {
+        if (!pieceColorPrefsMap[pieceId]) pieceColorPrefsMap[pieceId] = [];
+        if (typeof row.preference_code === 'string' && row.preference_code !== '') {
+          pieceColorPrefsMap[pieceId].push(row.preference_code);
+        }
       } else if (sysKind === 'packing_prefs') {
         piecePackingFromDtl[pieceId] = row.preference_code;
       } else if (
@@ -136,6 +143,7 @@ export class OrderPieceService {
     return pieces.map((p) => ({
       ...p,
       service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
+      color_prefs: pieceColorPrefsMap[p.id]?.length ? pieceColorPrefsMap[p.id] : undefined,
       conditions: pieceConditionsMap[p.id]?.length ? pieceConditionsMap[p.id] : undefined,
       packing_pref_code: piecePackingFromDtl[p.id] ?? p.packing_pref_code ?? null,
     }));

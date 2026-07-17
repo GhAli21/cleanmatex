@@ -208,6 +208,10 @@ export class WorkflowServiceEnhanced {
         });
       }
 
+      if (result.success && screen === 'preparation') {
+        await this.markPreparationCompleted(orderId, tenantId, userId);
+      }
+
       return {
         ok: result.success,
         from_status: order.current_status,
@@ -440,7 +444,44 @@ export class WorkflowServiceEnhanced {
       );
     }
 
+    if (screen === 'preparation') {
+      await this.markPreparationCompleted(orderId, tenantId, userId);
+    }
+
     return execPayload as TransitionResult;
+  }
+
+  /**
+   * Keep preparation_status in sync when leaving the preparation screen.
+   * Workflow transition alone only updates status/current_status; without this,
+   * orders stay preparation_status=pending after moving to processing.
+   */
+  private static async markPreparationCompleted(
+    orderId: string,
+    tenantId: string,
+    userId?: string | null
+  ): Promise<void> {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('org_orders_mst')
+      .update({
+        preparation_status: 'completed',
+        prepared_at: new Date().toISOString(),
+        ...(userId ? { prepared_by: userId } : {}),
+        updated_at: new Date().toISOString(),
+        ...(userId ? { updated_by: userId } : {}),
+      })
+      .eq('id', orderId)
+      .eq('tenant_org_id', tenantId)
+      .neq('preparation_status', 'completed');
+
+    if (error) {
+      console.error('[WorkflowServiceEnhanced] Failed to mark preparation completed', {
+        orderId,
+        tenantId,
+        error: error.message,
+      });
+    }
   }
 
   /**

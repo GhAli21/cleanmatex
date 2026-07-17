@@ -105,6 +105,45 @@ export function isAllowedFocusOutside(
 }
 
 /**
+ * Moves focus to the next/previous focusable inside `root`, wrapping at the
+ * ends. Always keeps focus inside `root` (prevents Tab escaping to the browser
+ * chrome when the surface uses a single roving tabindex).
+ *
+ * @param root - Surface that should own the Tab cycle.
+ * @param shiftKey - True for Shift+Tab (backward).
+ */
+export function cycleTabWithin(root: HTMLElement, shiftKey: boolean): void {
+  const focusable = getFocusableElements(root);
+  const active = document.activeElement as HTMLElement | null;
+
+  if (focusable.length === 0) {
+    // Keep focus on the current control when the surface uses tabindex=-1
+    // chrome (keypad dock/close) around a temporarily unlisted focus target.
+    if (active instanceof HTMLElement && root.contains(active)) {
+      active.focus();
+    }
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (active == null || !root.contains(active)) {
+    (shiftKey ? last : first)?.focus();
+    return;
+  }
+
+  const index = focusable.indexOf(active);
+  if (shiftKey) {
+    const prev = index <= 0 ? last : focusable[index - 1];
+    prev?.focus();
+    return;
+  }
+  const next = index < 0 || index >= focusable.length - 1 ? first : focusable[index + 1];
+  next?.focus();
+}
+
+/**
  * True when this container is the topmost open aria-modal dialog that should
  * own Tab trapping (nested dialogs win over their parents).
  *
@@ -158,35 +197,24 @@ export function useFocusTrap(open: boolean, options?: UseFocusTrapOptions) {
     if (!container) return;
     if (!isTopmostModalTrap(container)) return;
 
-    const focusable = getFocusableElements(container);
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
     const active = document.activeElement as HTMLElement | null;
 
-    // Focus is in an allowed outside surface (keypad) — do not steal Tab.
+    // Portaled keypad: trap Tab inside the pad (do not let the browser steal
+    // focus to the tab strip). Select listboxes keep their own Tab → close.
     if (active && !container.contains(active) && isAllowedFocusOutside(container, active)) {
+      const keypad = active.closest<HTMLElement>('[data-cmx-keypad-popover="true"]');
+      if (keypad) {
+        e.preventDefault();
+        e.stopPropagation();
+        cycleTabWithin(keypad, e.shiftKey);
+      }
       return;
     }
 
     // Own the full Tab cycle so focus cannot leave the dialog (also reliable
     // in environments where Tab does not move focus natively).
     e.preventDefault();
-
-    if (active == null || !container.contains(active)) {
-      (e.shiftKey ? last : first)?.focus();
-      return;
-    }
-
-    const index = focusable.indexOf(active);
-    if (e.shiftKey) {
-      const prev = index <= 0 ? last : focusable[index - 1];
-      prev?.focus();
-      return;
-    }
-    const next = index < 0 || index >= focusable.length - 1 ? first : focusable[index + 1];
-    next?.focus();
+    cycleTabWithin(container, e.shiftKey);
   }, []);
 
   const handleFocusIn = useCallback((e: FocusEvent) => {

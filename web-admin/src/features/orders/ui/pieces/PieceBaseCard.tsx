@@ -14,6 +14,7 @@ export interface PieceBaseCardProps {
   piece: OrderItemPiece;
   rejectColor?: string;
   className?: string;
+  density?: 'comfortable' | 'compact';
   /** Injected slots for context-specific modes */
   actionSlot?: React.ReactNode;
   detailsSlot?: React.ReactNode;
@@ -40,6 +41,7 @@ export function PieceBaseCard({
   piece,
   rejectColor = '#10B981',
   className = '',
+  density = 'comfortable',
   actionSlot,
   detailsSlot,
   statusSlot,
@@ -49,6 +51,7 @@ export function PieceBaseCard({
   
   const codeDisplay = piece.piece_code ? formatPieceCodeDisplay(piece.piece_code) : null;
   const isRejected = piece.is_rejected || false;
+  const compact = density === 'compact';
 
   // Service category is the only stable garment hint on the typed piece model.
   const serviceCategory = piece.service_category_code?.toLowerCase() ?? '';
@@ -58,7 +61,7 @@ export function PieceBaseCard({
 
   return (
     <CmxCard
-      className={`p-4 flex flex-col gap-3 ${
+      className={`${compact ? 'p-3 gap-2' : 'p-4 gap-3'} flex flex-col ${
         isRejected ? 'border-l-4' : 'border'
       } ${className}`}
       style={{
@@ -66,20 +69,20 @@ export function PieceBaseCard({
         borderLeftColor: isRejected ? rejectColor : undefined,
       }}
     >
-      {/* Top Header Row (Icon, ID, Actions) */}
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-start justify-between gap-4`}>
-        {/* Identity Block */}
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-3 min-w-0 flex-1`}>
-          <div className="flex-shrink-0 w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-slate-500">
-            <PieceIcon className="w-5 h-5" />
+      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-start justify-between gap-3`}>
+        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2.5 min-w-0 flex-1`}>
+          <div
+            className={`flex-shrink-0 ${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-slate-100 rounded-md flex items-center justify-center text-slate-600`}
+          >
+            <PieceIcon className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
           </div>
           <div className={`flex flex-col ${isRTL ? 'items-end' : 'items-start'} min-w-0`}>
-            <span className="font-medium text-sm text-gray-800 shrink-0">
+            <span className="font-medium text-sm text-gray-900 shrink-0">
               {t('piece')} {piece.piece_seq}
             </span>
             {codeDisplay && (
               <span
-                className="text-xs text-gray-400 truncate min-w-0"
+                className="text-xs text-gray-600 truncate min-w-0"
                 title={codeDisplay.full}
               >
                 {codeDisplay.short}
@@ -88,24 +91,17 @@ export function PieceBaseCard({
           </div>
         </div>
 
-        {/* Action Slot (e.g. Edit button, Bulk Checkbox) */}
         {actionSlot && (
-          <div className={`flex items-center shrink-0`}>
+          <div className="flex items-center shrink-0">
             {actionSlot}
           </div>
         )}
       </div>
 
-      {/* Details Slot (e.g. Preferences Pills, Care Warnings) */}
-      {detailsSlot && (
-        <div className={`w-full`}>
-          {detailsSlot}
-        </div>
-      )}
+      {detailsSlot && <div className="w-full">{detailsSlot}</div>}
 
-      {/* Status Slot (e.g. Notes, Rack location, Washing status) */}
       {statusSlot && (
-        <div className={`w-full pt-2 mt-1 border-t border-slate-100`}>
+        <div className="w-full pt-2 mt-0.5 border-t border-slate-100">
           {statusSlot}
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   useFocusTrap,
   isAllowedFocusOutside,
   getFocusableElements,
+  cycleTabWithin,
 } from '@/lib/hooks/use-focus-trap';
 
 function TrapHarness({ open }: { open: boolean }) {
@@ -71,6 +72,64 @@ describe('useFocusTrap', () => {
     expect(isAllowedFocusOutside(container, listbox)).toBe(true);
     listbox.remove();
     container.remove();
+  });
+
+  it('cycles Tab inside a keypad popover instead of escaping', async () => {
+    function Harness() {
+      const ref = useFocusTrap(true, { autoFocus: true });
+      return (
+        <div ref={ref} role="dialog" aria-modal="true">
+          <button type="button">In dialog</button>
+        </div>
+      );
+    }
+
+    render(<Harness />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'In dialog' })).toHaveFocus();
+    });
+
+    const keypad = document.createElement('div');
+    keypad.setAttribute('data-cmx-keypad-popover', 'true');
+    const seven = document.createElement('button');
+    seven.type = 'button';
+    seven.textContent = '7';
+    const eight = document.createElement('button');
+    eight.type = 'button';
+    eight.textContent = '8';
+    keypad.append(seven, eight);
+    document.body.appendChild(keypad);
+    seven.focus();
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(eight).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(seven).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(eight).toHaveFocus();
+
+    keypad.remove();
+  });
+
+  it('cycleTabWithin wraps a single roving-tabindex key onto itself', () => {
+    const keypad = document.createElement('div');
+    const seven = document.createElement('button');
+    seven.type = 'button';
+    seven.textContent = '7';
+    const eight = document.createElement('button');
+    eight.type = 'button';
+    eight.textContent = '8';
+    eight.tabIndex = -1;
+    keypad.append(seven, eight);
+    document.body.appendChild(keypad);
+    seven.focus();
+
+    cycleTabWithin(keypad, false);
+    expect(seven).toHaveFocus();
+
+    keypad.remove();
   });
 
   it('lists only enabled visible focusables', () => {

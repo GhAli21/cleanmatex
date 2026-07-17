@@ -13,6 +13,7 @@ import { ProcessingPieceCard } from './pieces/ProcessingPieceCard';
 import { SortingPieceCard } from './pieces/SortingPieceCard';
 import { AssemblyPieceCard } from './pieces/AssemblyPieceCard';
 import { QCPieceCard } from './pieces/QCPieceCard';
+import { PiecePreferencesEditorDialog } from './piece-preferences-editor-dialog';
 import { CmxButton } from '@ui/primitives';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
@@ -92,6 +93,7 @@ export function PieceList({
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [prefsPieceId, setPrefsPieceId] = React.useState<string | null>(null);
 
   const totalPages = Math.ceil(pieces.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
@@ -100,16 +102,18 @@ export function PieceList({
     ? pieces.slice(startIndex, endIndex)
     : pieces;
 
-  React.useEffect(() => {
-    // Reset to page 1 when pieces change significantly
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [pieces.length, totalPages, currentPage]);
+  const prefsPiece = prefsPieceId
+    ? pieces.find((p) => p.id === prefsPieceId) ?? null
+    : null;
+  const canEditPreferences = Boolean(orderId && orderItemId && !readOnly);
+
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   if (pieces.length === 0) {
     return (
-      <div className={`text-center py-8 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className={`text-center py-6 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
         <p className="text-sm">
           {emptyMessage || t('noPieces')}
         </p>
@@ -118,9 +122,8 @@ export function PieceList({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Pieces List */}
-      <div className="space-y-3">
+    <div className="space-y-3">
+      <div className={density === 'compact' ? 'space-y-2' : 'space-y-3'}>
         {paginatedPieces.map((piece) => {
           if (mode === 'processing') {
             return (
@@ -161,21 +164,43 @@ export function PieceList({
               />
             );
           }
-          // Default: intake
           return (
             <IntakePieceCard
               key={piece.id}
               piece={piece}
               onUpdate={onPieceUpdate}
+              onEditPreferences={
+                canEditPreferences
+                  ? (pieceId) => setPrefsPieceId(pieceId)
+                  : undefined
+              }
               readOnly={readOnly}
               showSplitCheckbox={showSplitCheckbox}
               isSelectedForSplit={selectedForSplit.has(piece.id)}
               onSplitToggle={onSplitToggle}
               rejectColor={rejectColor}
+              density={density}
             />
           );
         })}
       </div>
+
+      {prefsPiece && orderId && orderItemId && (
+        <PiecePreferencesEditorDialog
+          open={Boolean(prefsPiece)}
+          onOpenChange={(open) => {
+            if (!open) setPrefsPieceId(null);
+          }}
+          orderId={orderId}
+          orderItemId={orderItemId}
+          piece={prefsPiece}
+          branchId={branchId}
+          onSaved={async () => {
+            await onPreferencesSaved?.();
+            setPrefsPieceId(null);
+          }}
+        />
+      )}
 
       {/* Pagination */}
       {enablePagination && pieces.length > pageSize && (

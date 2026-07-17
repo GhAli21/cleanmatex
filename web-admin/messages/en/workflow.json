@@ -38,7 +38,25 @@
     },
     "detail": {
       "summaryTitle": "Order summary",
-      "bagsLabel": "Bags"
+      "bagsLabel": "Bags",
+      "statusLabel": "Status",
+      "fallbackItem": "Item",
+      "noItemsYet": "No items yet. Use quick add or the catalog to add items before completing preparation.",
+      "cannotPrepareTitle": "This order is not available for preparation",
+      "cannotPrepareBody": "Preparation is only available for orders in intake or preparing status. Current status: {status}.",
+      "viewProcessing": "Open in Processing",
+      "viewOrder": "View order details",
+      "addItemsFailed": "Could not add items",
+      "deleteItemFailed": "Could not delete item",
+      "completeRequiresItems": "Add at least one item before completing preparation",
+      "alreadyPastPreparation": "This order has already left preparation",
+      "draftAlreadySaved": "Piece notes, rack locations, and preferences save as you edit. No separate draft is required.",
+      "completing": "Completing…"
+    },
+    "presets": {
+      "addShirts": "+{count} Shirts",
+      "addPants": "+{count} Pants",
+      "noCatalog": "No products available for quick add"
     },
     "workflowContextTitle": "Workflow context",
     "workflowFlags": {
@@ -60,7 +78,8 @@
       "saveDraft": "Save Draft",
       "completeAndContinue": "Complete & Continue",
       "preparationCompleteNote": "Preparation complete",
-      "preparationCompleteSuccess": "Preparation completed"
+      "preparationCompleteSuccess": "Preparation completed",
+      "printItemLabels": "Print Item Labels"
     }
   },
   "assembly": {

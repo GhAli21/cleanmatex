@@ -1075,6 +1075,22 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/preparation/[orderId]',
     label: 'Preparation Details',
     page: {},
+    actions: {
+      completeAndContinue: {
+        label: 'Complete & Continue (to processing)',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      editPiecePreferences: {
+        label: 'Edit piece preferences',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
     apiDependencies: [
       {
         label: 'Preparation preview',
@@ -1086,6 +1102,12 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Preparation items',
         method: 'POST',
         path: '/api/v1/preparation/[id]/items',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Preparation item delete',
+        method: 'DELETE',
+        path: '/api/v1/preparation/[id]/items/[itemId]',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
       {
@@ -1143,7 +1165,7 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Complete preparation',
+        label: 'Complete preparation (legacy API)',
         method: 'POST',
         path: '/api/v1/preparation/[id]/complete',
         requirement: {
@@ -1151,8 +1173,28 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Transition order (Complete & Continue)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/transition',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Server action: get-order (prep)',
+        method: 'POST',
+        path: '/app/actions/orders/get-order',
+        notes: [
+          'Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.',
+        ],
+      },
     ],
-    notes: ORDER_NOTES,
+    notes: [
+      ...ORDER_NOTES,
+      'Detail page blocks Complete when order status is not intake/preparing/preparation; UI uses /api/v1/orders/[id]/transition to processing.',
+    ],
   },
   {
     routePattern: '/dashboard/processing',

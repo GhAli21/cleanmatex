@@ -99,9 +99,6 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     notes: dbPiece.notes || '',
     rackLocation: dbPiece.rack_location || '',
     isRejected: dbPiece.is_rejected || false,
-    // Include piece details
-    color: dbPiece.color || null,
-    brand: dbPiece.brand || null,
     has_stain: dbPiece.has_stain || null,
     has_damage: dbPiece.has_damage || null,
     barcode: dbPiece.barcode || null,
@@ -111,9 +108,10 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     piece_status: pieceStatus || null,
     piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
-    // Service preferences (migration 0139)
-    packingPrefCode: (dbPiece as any).packing_pref_code || null,
-    servicePrefs: (dbPiece as any).service_prefs || undefined,
+    // Preferences from org_order_preferences_dtl (color/brand columns are legacy)
+    packingPrefCode: dbPiece.packing_pref_code || null,
+    servicePrefs: dbPiece.service_prefs || undefined,
+    colorPrefs: dbPiece.color_prefs || undefined,
   };
 }
 
@@ -576,8 +574,6 @@ export function ProcessingModal({
       (current.notes || '') !== (original.notes || '') ||
       (current.rackLocation || '') !== (original.rackLocation || '') ||
       current.isRejected !== original.isRejected ||
-      (current.color || null) !== (original.color || null) ||
-      (current.brand || null) !== (original.brand || null) ||
       (current.barcode || null) !== (original.barcode || null) ||
       (current.has_stain ?? null) !== (original.has_stain ?? null) ||
       (current.has_damage ?? null) !== (original.has_damage ?? null)
@@ -603,8 +599,6 @@ export function ProcessingModal({
         notes: piece.notes || '',
         rackLocation: piece.rackLocation || '',
         isRejected: piece.isRejected || false,
-        color: piece.color || null,
-        brand: piece.brand || null,
         barcode: piece.barcode || null,
         has_stain: piece.has_stain || null,
         has_damage: piece.has_damage || null,
