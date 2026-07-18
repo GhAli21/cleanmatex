@@ -46,6 +46,37 @@ import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
 import { ProcessingPiecePrefsDialog } from './processing-piece-prefs-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
 
+type SplitSelectionContextValue = {
+  isSelected: (pieceId: string) => boolean;
+  toggle: (pieceId: string, selected: boolean) => void;
+};
+
+const SplitSelectionContext = React.createContext<SplitSelectionContextValue | null>(
+  null
+);
+
+function useSplitSelection(): SplitSelectionContextValue {
+  const ctx = React.useContext(SplitSelectionContext);
+  if (!ctx) {
+    throw new Error('useSplitSelection must be used within SplitSelectionContext');
+  }
+  return ctx;
+}
+
+function SplitSelectCell({ pieceId }: { pieceId: string }) {
+  const { isSelected, toggle } = useSplitSelection();
+  const t = useTranslations('processing.simpleModal');
+  return (
+    <div className="flex justify-center">
+      <CmxCheckbox
+        checked={isSelected(pieceId)}
+        onChange={(e) => toggle(pieceId, e.target.checked)}
+        aria-label={t('columns.split')}
+      />
+    </div>
+  );
+}
+
 export interface SimpleProcessingDialogProps {
   isOpen: boolean;
   orderId: string | null;
@@ -56,9 +87,6 @@ export interface SimpleProcessingDialogProps {
   onOpenFullEditor?: (orderId: string) => void;
 }
 
-/**
- * Format a relative time string for the Created metadata cell.
- */
 function formatRelativeTime(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
@@ -96,9 +124,14 @@ export function SimpleProcessingDialog({
   const { token: csrfToken } = useCSRFToken();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { splitOrderEnabled, trackByPiece, isLoading: settingsLoading } =
-    useTenantSettingsWithDefaults(tenantId);
+    useTenantSettingsWithDefaults(tenantId, null, null, isOpen);
   const getBilingual = useBilingual();
-  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog();
+  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog(
+    undefined,
+    false,
+    false,
+    isOpen
+  );
   const colorHexByCode = React.useMemo(
     () => buildColorHexByCode(conditionCatalog.colors),
     [conditionCatalog.colors]
@@ -274,6 +307,14 @@ export function SimpleProcessingDialog({
     []
   );
 
+  const splitSelectionValue = React.useMemo(
+    (): SplitSelectionContextValue => ({
+      isSelected: (pieceId: string) => selectedForSplit.has(pieceId),
+      toggle: handleSplitToggle,
+    }),
+    [selectedForSplit, handleSplitToggle]
+  );
+
   const pieceColumns = React.useMemo((): CmxInlineEditTableColumn<ItemPiece>[] => {
     const cols: CmxInlineEditTableColumn<ItemPiece>[] = [
       {
@@ -426,15 +467,7 @@ export function SimpleProcessingDialog({
         header: t('columns.split'),
         align: 'center',
         width: '4.75rem',
-        cell: (piece) => (
-          <div className="flex justify-center">
-            <CmxCheckbox
-              checked={selectedForSplit.has(piece.id)}
-              onChange={(e) => handleSplitToggle(piece.id, e.target.checked)}
-              aria-label={t('columns.split')}
-            />
-          </div>
-        ),
+        cell: (piece) => <SplitSelectCell pieceId={piece.id} />,
       });
     }
 
@@ -444,9 +477,7 @@ export function SimpleProcessingDialog({
     tModal,
     itemLabelById,
     splitOrderEnabled,
-    selectedForSplit,
     handlePieceChange,
-    handleSplitToggle,
     colorHexByCode,
     nameByCode,
   ]);
@@ -759,7 +790,8 @@ export function SimpleProcessingDialog({
                 }
               />
             ) : (
-              <CmxInlineEditTable
+              <SplitSelectionContext.Provider value={splitSelectionValue}>
+                <CmxInlineEditTable
                 caption={t('description')}
                 columns={pieceColumns}
                 data={pieceRows}
@@ -791,6 +823,7 @@ export function SimpleProcessingDialog({
                   piece.isRejected ? 'bg-destructive/5' : undefined
                 }
               />
+              </SplitSelectionContext.Provider>
             )}
           </div>
 

@@ -86,6 +86,54 @@ export interface BatchUpdatePiecesParams {
   }>;
 }
 
+export interface BulkPieceUpdateEntry {
+  pieceId: string;
+  orderItemId: string;
+  updates: UpdatePieceParams['updates'];
+}
+
+export interface BatchUpdatePiecesBulkParams {
+  tenantId: string;
+  orderId: string;
+  updates: BulkPieceUpdateEntry[];
+}
+
+/** Columns required by Processing modal / Simple dialog piece surfaces */
+export const PROCESSING_PIECE_SELECT = `
+  id,
+  tenant_org_id,
+  order_id,
+  order_item_id,
+  piece_seq,
+  piece_code,
+  piece_status,
+  piece_stage,
+  is_ready,
+  is_rejected,
+  last_step,
+  last_step_at,
+  last_step_by,
+  notes,
+  rack_location,
+  barcode,
+  scan_state,
+  has_stain,
+  has_damage,
+  packing_pref_code,
+  rec_status
+`.replace(/\s+/g, ' ').trim();
+
+const PIECE_HISTORY_TRACKED_KEYS = [
+  'piece_status',
+  'is_ready',
+  'is_rejected',
+  'scan_state',
+  'rack_location',
+  'piece_stage',
+  'barcode',
+  'notes',
+] as const;
+
 export class OrderPieceService {
   /**
    * Merge PIECE-level `org_order_preferences_dtl` rows into mapped pieces (`service_prefs`, `conditions`).
@@ -824,7 +872,7 @@ export class OrderPieceService {
 
       const { data: pieces, error } = await supabase
         .from('org_order_item_pieces_dtl')
-        .select('*')
+        .select(PROCESSING_PIECE_SELECT)
         .eq('tenant_org_id', tenantId)
         .eq('order_id', orderId)
         .order('order_item_id', { ascending: true })
@@ -840,7 +888,7 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      const mapped = mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]);
+      const mapped = mapOrderPiecesFromDb(pieces as unknown as OrderPieceDbModel[]);
       const enriched = await this.attachPieceLevelPreferencesFromDtl(supabase, tenantId, mapped);
 
       return { success: true, pieces: enriched };
@@ -1102,6 +1150,165 @@ export class OrderPieceService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Batch update multiple pieces with one history batch insert and one
+   * quantity_ready sync per touched order item (Processing batch-update path).
+   */
+  static async batchUpdatePiecesBulk(
+    params: BatchUpdatePiecesBulkParams
+  ): Promise<{
+    success: boolean;
+    updated?: number;
+    errors?: Array<{ pieceId: string; error: string }>;
+  }> {
+    if (params.updates.length === 0) {
+      return { success: true, updated: 0 };
+    }
+
+    try {
+      const supabase = await createClient();
+      const pieceIds = params.updates.map((entry) => entry.pieceId);
+
+      const { data: existingPieces, error: fetchError } = await supabase
+        .from('org_order_item_pieces_dtl')
+        .select(
+          'id, order_item_id, piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
+        )
+        .eq('tenant_org_id', params.tenantId)
+        .eq('order_id', params.orderId)
+        .in('id', pieceIds);
+
+      if (fetchError) {
+        return {
+          success: false,
+          updated: 0,
+          errors: [{ pieceId: 'unknown', error: fetchError.message }],
+        };
+      }
+
+      const beforeById = new Map(
+        (existingPieces ?? []).map((row) => [row.id as string, row as Record<string, unknown>])
+      );
+
+      const errors: Array<{ pieceId: string; error: string }> = [];
+      const historyRows: Array<{
+        tenant_org_id: string;
+        order_id: string;
+        order_item_id: string;
+        order_piece_id: string;
+        action_code: string;
+        from_value: string | null;
+        to_value: string | null;
+        done_by: string | null;
+      }> = [];
+      const touchedItemIds = new Set<string>();
+      let updatedCount = 0;
+
+      for (const entry of params.updates) {
+        const before = beforeById.get(entry.pieceId);
+        if (!before) {
+          errors.push({ pieceId: entry.pieceId, error: 'Piece not found' });
+          continue;
+        }
+
+        const updateData: Record<string, unknown> = {
+          ...entry.updates,
+          updated_at: entry.updates.updated_at ?? new Date().toISOString(),
+        };
+
+        if (updateData.last_step_at instanceof Date) {
+          updateData.last_step_at = updateData.last_step_at.toISOString();
+        }
+
+        const { data: after, error: updateError } = await supabase
+          .from('org_order_item_pieces_dtl')
+          .update(updateData)
+          .eq('id', entry.pieceId)
+          .eq('tenant_org_id', params.tenantId)
+          .eq('order_id', params.orderId)
+          .select(
+            'piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
+          )
+          .single();
+
+        if (updateError || !after) {
+          errors.push({
+            pieceId: entry.pieceId,
+            error: updateError?.message ?? 'Update failed',
+          });
+          continue;
+        }
+
+        updatedCount++;
+        touchedItemIds.add(entry.orderItemId);
+
+        const doneBy =
+          typeof entry.updates.updated_by === 'string' ? entry.updates.updated_by : null;
+
+        for (const key of PIECE_HISTORY_TRACKED_KEYS) {
+          const prev = before[key];
+          const next = (after as Record<string, unknown>)[key];
+          if (prev === next) continue;
+          historyRows.push({
+            tenant_org_id: params.tenantId,
+            order_id: params.orderId,
+            order_item_id: entry.orderItemId,
+            order_piece_id: entry.pieceId,
+            action_code: key,
+            from_value: prev == null ? null : String(prev),
+            to_value: next == null ? null : String(next),
+            done_by: doneBy,
+          });
+        }
+      }
+
+      if (historyRows.length > 0) {
+        const { error: histError } = await supabase
+          .from('org_order_piece_hist_tr')
+          .insert(historyRows);
+        if (histError) {
+          log.error(
+            '[OrderPieceService] batchUpdatePiecesBulk history insert failed',
+            new Error(histError.message),
+            { tenantId: params.tenantId, orderId: params.orderId, rowCount: historyRows.length }
+          );
+        }
+      }
+
+      for (const itemId of touchedItemIds) {
+        await this.syncItemQuantityReady(params.tenantId, itemId);
+      }
+
+      return {
+        success: errors.length === 0,
+        updated: updatedCount,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    } catch (error) {
+      log.error(
+        '[OrderPieceService] Exception in batchUpdatePiecesBulk',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          feature: 'order_pieces',
+          action: 'batch_update_pieces_bulk',
+          tenantId: params.tenantId,
+          orderId: params.orderId,
+          updateCount: params.updates.length,
+        }
+      );
+      return {
+        success: false,
+        updated: 0,
+        errors: [
+          {
+            pieceId: 'unknown',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        ],
       };
     }
   }

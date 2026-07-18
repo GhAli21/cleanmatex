@@ -161,11 +161,14 @@ export function ProcessingPiecePrefsDialog({
     enabled: open && !!orderId && !!pieceId,
   });
 
-  const invalidateRelated = React.useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
-    await queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+  const invalidatePrefsCache = React.useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey });
-  }, [orderId, queryClient, queryKey]);
+  }, [queryClient, queryKey]);
+
+  const invalidatePieceChipCache = React.useCallback(async () => {
+    await invalidatePrefsCache();
+    await queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+  }, [invalidatePrefsCache, orderId, queryClient]);
 
   const addMutation = useMutation({
     mutationFn: async (body: {
@@ -198,7 +201,7 @@ export function ProcessingPiecePrefsDialog({
           })
         );
       }
-      await invalidateRelated();
+      await invalidatePieceChipCache();
     },
     onError: (err: Error) => {
       cmxMessage.error(err.message || t('addFailed'));
@@ -226,7 +229,7 @@ export function ProcessingPiecePrefsDialog({
     onSuccess: async () => {
       cmxMessage.success(t('deleteSuccess'));
       setDeleteTarget(null);
-      await invalidateRelated();
+      await invalidatePieceChipCache();
     },
     onError: (err: Error) => {
       cmxMessage.error(err.message || t('deleteFailed'));
@@ -259,7 +262,7 @@ export function ProcessingPiecePrefsDialog({
       return json;
     },
     onSuccess: async () => {
-      await refetch();
+      await invalidatePrefsCache();
     },
     onError: (err: Error) => {
       cmxMessage.error(err.message || t('confirmFailed'));
@@ -288,7 +291,7 @@ export function ProcessingPiecePrefsDialog({
     onSuccess: async (_json, vars) => {
       cmxMessage.success(t('noteSuccess'));
       setNoteDraftByPref((prev) => ({ ...prev, [vars.prefId]: '' }));
-      await refetch();
+      await invalidatePrefsCache();
     },
     onError: (err: Error) => {
       cmxMessage.error(err.message || t('noteFailed'));

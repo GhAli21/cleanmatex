@@ -79,7 +79,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
     },
     onSuccess: () => {
       onConfirmSuccess?.();
-      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+      }
     },
   });
 
@@ -113,9 +115,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   };
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    console.log('[ProcessingPieceRow] Notes change:', { pieceId: piece.id, value });
-    onChange({ notes: value });
+    onChange({ notes: e.target.value });
   };
 
   const handleRackChange = (e: React.ChangeEvent<HTMLInputElement>) => {

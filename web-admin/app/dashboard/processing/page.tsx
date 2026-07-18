@@ -9,7 +9,8 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -28,8 +29,22 @@ import { ProcessingHeader } from '@features/workflow/ui/processing-header';
 import { ProcessingStatsCards } from '@features/workflow/ui/processing-stats-cards';
 import { ProcessingFiltersBar } from '@features/workflow/ui/processing-filters-bar';
 import { ProcessingTable } from '@features/workflow/ui/processing-table';
-import { ProcessingModal } from '@features/workflow/ui/processing-modal';
-import { SimpleProcessingDialog } from '@features/workflow/ui/simple-processing-dialog';
+
+const ProcessingModal = dynamic(
+  () =>
+    import('@features/workflow/ui/processing-modal').then((m) => m.ProcessingModal),
+  { ssr: false }
+);
+
+const SimpleProcessingDialog = dynamic(
+  () =>
+    import('@features/workflow/ui/simple-processing-dialog').then(
+      (m) => m.SimpleProcessingDialog
+    ),
+  { ssr: false }
+);
+
+const FALLBACK_STATUSES = ['processing'] as const;
 
 /**
  *
@@ -48,23 +63,30 @@ export default function ProcessingPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimpleOpen, setIsSimpleOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [simpleOrderId, setSimpleOrderId] = useState<string | null>(null);
 
-  const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } = useScreenOrders<any>('processing', {
-    page,
-    limit: 20,
-    enabled: !!currentTenant && !authLoading,
-    useOldWfCodeOrNew: useNewWorkflowSystem,
-    fallbackStatuses: ['processing'],
-    additionalFilters: {
-      include_items: true,
-      ...((filters as unknown) as Record<string, string | number | boolean | undefined | null>),
-    },
-  });
+  const sortByApi = sortField === 'ready_by_at' ? 'ready_by' : sortField;
+
+  const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } =
+    useScreenOrders<any>('processing', {
+      page,
+      limit: 20,
+      enabled: !!currentTenant && !authLoading,
+      useOldWfCodeOrNew: useNewWorkflowSystem,
+      fallbackStatuses: [...FALLBACK_STATUSES],
+      sortBy: sortByApi,
+      sortOrder: sortDirection,
+      additionalFilters: {
+        include_items: 'preview',
+        ...((filters as unknown) as Record<
+          string,
+          string | number | boolean | undefined | null
+        >),
+      },
+    });
 
   const orders: ProcessingOrder[] = useMemo(() => {
     return (rawOrders ?? []).map((order: any) => {
@@ -75,7 +97,9 @@ export default function ProcessingPage() {
       const customerName =
         customerData.name ||
         customerData.display_name ||
-        (customerData.first_name ? `${customerData.first_name} ${customerData.last_name || ''}`.trim() : '') ||
+        (customerData.first_name
+          ? `${customerData.first_name} ${customerData.last_name || ''}`.trim()
+          : '') ||
         t('unknownCustomer');
 
       const orderItems = order.org_order_items_dtl || order.items || [];
@@ -123,14 +147,12 @@ export default function ProcessingPage() {
     });
   }, [rawOrders, t]);
 
-  // Client-side status search filter (kept for UX)
   const filteredOrders = useMemo(() => {
     if (!statusFilter.trim()) return orders;
     const q = statusFilter.toLowerCase();
     return orders.filter((o) => (o.current_status || '').toLowerCase().includes(q));
   }, [orders, statusFilter]);
 
-  // Calculate stats
   const stats = useMemo(() => {
     const totalOrders = filteredOrders.length;
     const totalPieces = filteredOrders.reduce((sum, order) => sum + order.total_items, 0);
@@ -142,73 +164,52 @@ export default function ProcessingPage() {
     return {
       orders: totalOrders,
       pieces: totalPieces,
-      weight: 0, // TODO: Implement weight calculation when weight exists in API
+      weight: 0,
       value: totalValue,
       unpaid: unpaidValue,
     } as ProcessingStats;
   }, [filteredOrders]);
 
-  // Sorting handler
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (field === sortField) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-  };
+  }, [sortField]);
 
-  const sortedOrders = useMemo(() => {
-    const sorted = [...filteredOrders];
-    sorted.sort((a, b) => {
-      const aValue = a[sortField] as any;
-      const bValue = b[sortField] as any;
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      if (nextPage < 1 || nextPage > pagination.totalPages) return;
+      setPage(nextPage);
+    },
+    [pagination.totalPages]
+  );
 
-      if (sortField === 'ready_by_at') {
-        const aDate = new Date(aValue).getTime();
-        const bDate = new Date(bValue).getTime();
-        return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
-      }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      return sortDirection === 'asc'
-        ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
-        : String(bValue ?? '').localeCompare(String(aValue ?? ''));
-    });
-    return sorted;
-  }, [filteredOrders, sortField, sortDirection]);
-
-  const handlePageChange = (nextPage: number) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages) return;
-    setPage(nextPage);
-  };
-
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setIsModalOpen(false);
     setSelectedOrderId(null);
-  };
+  }, []);
 
-  const handleSimpleClose = () => {
+  const handleSimpleClose = useCallback(() => {
     setIsSimpleOpen(false);
     setSimpleOrderId(null);
-  };
+  }, []);
 
-  const handleModalRefresh = () => {
+  const handleModalRefresh = useCallback(() => {
     refetch();
-  };
+  }, [refetch]);
 
-  const openModal = (orderId: string) => {
+  const openModal = useCallback((orderId: string) => {
     setSelectedOrderId(orderId);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const openSimpleModal = (orderId: string) => {
+  const openSimpleModal = useCallback((orderId: string) => {
     setSimpleOrderId(orderId);
     setIsSimpleOpen(true);
-  };
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
@@ -233,35 +234,36 @@ export default function ProcessingPage() {
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
           <div className="p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-sm text-gray-600">{tOrders('loadingOrders') || tCommon('loading')}</p>
+            <p className="text-sm text-gray-600">
+              {tOrders('loadingOrders') || tCommon('loading')}
+            </p>
           </div>
         </div>
       ) : (
         <ProcessingTable
-          orders={sortedOrders}
+          orders={filteredOrders}
           sortField={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}
-          onRefresh={refetch}
+          onRefresh={handleModalRefresh}
           onEditClick={openModal}
           onSimpleProcessClick={openSimpleModal}
           selectedOrderId={selectedOrderId ?? simpleOrderId}
         />
       )}
 
-      {/* Pagination Controls */}
       {pagination.totalPages > 1 && (
         <div
-          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-            }`}
+          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${
+            isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
+          }`}
         >
           <div>
-            {tOrders('showing')}{' '}
-            {(pagination.page - 1) * pagination.limit + 1}{' '}
+            {tOrders('showing')} {(pagination.page - 1) * pagination.limit + 1}{' '}
             {tOrders('to')}{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
-            {tOrders('of')}{' '}
-            {pagination.total} {tOrders('orders')?.toLowerCase() || 'orders'}
+            {tOrders('of')} {pagination.total}{' '}
+            {tOrders('orders')?.toLowerCase() || 'orders'}
           </div>
           <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
@@ -284,30 +286,26 @@ export default function ProcessingPage() {
         </div>
       )}
 
-      {/* Full Processing Modal */}
-      {currentTenant && (
+      {currentTenant && isModalOpen ? (
         <ProcessingModal
-          isOpen={isModalOpen}
+          isOpen
           orderId={selectedOrderId}
           tenantId={currentTenant.tenant_id}
           onClose={handleModalClose}
           onRefresh={handleModalRefresh}
         />
-      )}
+      ) : null}
 
-      {/* Simple Processing Dialog */}
-      {currentTenant && (
+      {currentTenant && isSimpleOpen ? (
         <SimpleProcessingDialog
-          isOpen={isSimpleOpen}
+          isOpen
           orderId={simpleOrderId}
           tenantId={currentTenant.tenant_id}
           onClose={handleSimpleClose}
           onRefresh={handleModalRefresh}
           onOpenFullEditor={openModal}
         />
-      )}
+      ) : null}
     </div>
   );
 }
-
-

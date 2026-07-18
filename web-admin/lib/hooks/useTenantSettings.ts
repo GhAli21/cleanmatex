@@ -78,9 +78,16 @@ export function useTenantSetting(
 export function useTenantSettingsWithDefaults(
   tenantId: string,
   branchId?: string | null,
-  userId?: string | null
+  userId?: string | null,
+  /** When false, skip network fetch (defaults returned). */
+  enabled = true
 ) {
-  const { data, isLoading, error } = useTenantSettings({ tenantId, branchId, userId });
+  const { data, isLoading, error } = useTenantSettings({
+    tenantId,
+    branchId,
+    userId,
+    enabled,
+  });
 
   // Return defaults while loading or on error. Pieces are always used (trackByPiece forced true).
   const base = data || {

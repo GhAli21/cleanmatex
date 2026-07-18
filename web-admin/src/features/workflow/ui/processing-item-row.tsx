@@ -9,7 +9,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
 import { CmxButton } from '@ui/primitives';
 import { ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
 import type { OrderItem, ItemPiece, ProcessingStepConfig } from '@/types/order';
@@ -33,6 +32,8 @@ interface ProcessingItemRowProps {
   rejectColor: string;
   orderId?: string;
   tenantId?: string;
+  /** Prefetched processing steps for this item's service category */
+  processingSteps: ProcessingStepConfig[];
   /** Show Confirm button for pieces with service prefs (Enterprise) */
   processingConfirmationEnabled?: boolean;
   /** Called after piece prefs confirmed */
@@ -57,6 +58,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   rejectColor,
   orderId,
   tenantId,
+  processingSteps,
   processingConfirmationEnabled = false,
   onConfirmSuccess,
   colorHexByCode = null,
@@ -68,38 +70,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   const readyCount = pieces.filter(p => p.is_ready === true).length;
   const totalCount = item.quantity;
   const progressPercentage = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
-
-  // Fetch processing steps for this item's service category
-  const serviceCategoryCode = item.service_category_code;
-  const { data: processingStepsData } = useQuery<{ success: boolean; data?: ProcessingStepConfig[] }>({
-    queryKey: ['processing-steps', tenantId, serviceCategoryCode],
-    queryFn: async () => {
-      if (!tenantId || !serviceCategoryCode) return { success: false };
-      const response = await fetch(`/api/v1/processing-steps/${encodeURIComponent(serviceCategoryCode)}`);
-      if (!response.ok) {
-        console.error('[ProcessingItemRow] Failed to fetch processing steps:', response.statusText);
-        return { success: false };
-      }
-      return response.json();
-    },
-    enabled: !!tenantId && !!serviceCategoryCode,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  const processingSteps: ProcessingStepConfig[] = processingStepsData?.data || [];
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[ProcessingItemRow] Props:', {
-      itemId: item.id,
-      trackByPiece,
-      splitOrderEnabled,
-      rejectEnabled,
-      piecesCount: pieces.length,
-      serviceCategoryCode,
-      processingStepsCount: processingSteps.length,
-    });
-  }, [item.id, trackByPiece, splitOrderEnabled, rejectEnabled, pieces.length, serviceCategoryCode, processingSteps.length]);
 
   return (
     <Card
@@ -130,7 +100,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               </div>
             </div>
 
-            {/* Progress Bar */}
             {trackByPiece && totalCount > 0 && (
               <div className="mb-3">
                 <CmxProgressIndicator
@@ -143,7 +112,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               </div>
             )}
 
-            {/* Status Info */}
             <div className="flex items-center gap-3 flex-wrap">
               {item.item_last_step && (
                 <CmxStatusBadge
@@ -178,7 +146,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
             </div>
           </div>
 
-          {/* Pieces Button - Only show if trackByPiece is enabled */}
           {trackByPiece && (
             <CmxButton
               variant="ghost"
@@ -200,7 +167,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
         </div>
       </CardHeader>
 
-      {/* Pieces Detail - Only show if trackByPiece is enabled AND expanded */}
       {trackByPiece && isExpanded && (
         <CardContent className="pt-0" id={`pieces-${item.id}`} role="region" aria-label={`Pieces for ${item.org_product_data_mst?.product_name || item.product_name || 'item'}`}>
           <div className="space-y-3">
@@ -229,7 +195,6 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
         </CardContent>
       )}
 
-      {/* Item-Level View - Show if trackByPiece is disabled */}
       {!trackByPiece && (
         <CardContent>
           <div className="text-sm text-gray-600 space-y-2">

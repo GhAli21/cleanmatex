@@ -9,7 +9,7 @@
 'use client';
 
 import * as React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import {
   CmxDialog,
@@ -41,6 +41,11 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
 import { buildColorHexByCode } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { buildPrefNameByCode } from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
+import {
+  groupPiecesByItemId,
+  hasProcessingPieceChanged,
+  normalizeOrderStateResponse,
+} from '@features/workflow/lib/processing-piece-map';
 import { ProcessingModalFilters } from './processing-modal-filters';
 import { ProcessingItemRow } from './processing-item-row';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
@@ -147,10 +152,15 @@ export function ProcessingModal({
     rejectColor,
     processingConfirmationEnabled,
     isLoading: settingsLoading,
-  } = useTenantSettingsWithDefaults(tenantId);
+  } = useTenantSettingsWithDefaults(tenantId, null, null, isOpen);
 
   const getBilingual = useBilingual();
-  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog();
+  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog(
+    undefined,
+    false,
+    false,
+    isOpen
+  );
   const colorHexByCode = React.useMemo(
     () => buildColorHexByCode(conditionCatalog.colors),
     [conditionCatalog.colors]
@@ -169,17 +179,6 @@ export function ProcessingModal({
       ),
     [servicePrefs, packingPrefs, conditionCatalog, getBilingual]
   );
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[ProcessingModal] Settings loaded:', {
-      tenantId,
-      trackByPiece,
-      splitOrderEnabled,
-      rejectEnabled,
-      settingsLoading,
-    });
-  }, [tenantId, trackByPiece, splitOrderEnabled, rejectEnabled, settingsLoading]);
 
   // State management
   const [expandedItemIds, setExpandedItemIds] = React.useState<Set<string>>(new Set());
@@ -202,87 +201,76 @@ export function ProcessingModal({
     showRejectedOnTop: false,
   });
 
-  // Fetch order data
   const { data: orderData, isLoading: orderLoading, error: orderError } = useQuery({
     queryKey: ['order-processing', orderId],
     queryFn: async () => {
-      console.log('[ProcessingModal] Fetching order:', orderId);
-
       const response = await fetch(`/api/v1/orders/${orderId}/state`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[ProcessingModal] API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const json = await response.json();
-      console.log('[ProcessingModal] Raw API Response:', json);
-
-      // ✅ CORRECTED: Check actual format first (Format 3)
-      let normalizedData;
-      if (json.success && json.order && json.items) {
-        // Format 3: { success: true, order: {}, items: [] } - ACTUAL FORMAT
-        normalizedData = { order: json.order, items: json.items };
-        console.log('[ProcessingModal] Format: success.order wrapper (actual format)');
-      } else if (json.success && json.data) {
-        // Format 1: { success: true, data: { order: {}, items: [] } }
-        normalizedData = json.data;
-        console.log('[ProcessingModal] Format: success.data wrapper');
-      } else if (json.order && json.items) {
-        // Format 2: { order: {}, items: [] }
-        normalizedData = { order: json.order, items: json.items };
-        console.log('[ProcessingModal] Format: direct order.items');
-      } else {
-        // ❌ Unexpected format
-        console.error('[ProcessingModal] Unexpected response format:', json);
-        normalizedData = { order: null, items: [] };
-      }
-
-      console.log('[ProcessingModal] Normalized Data:', {
-        hasOrder: !!normalizedData.order,
-        orderId: normalizedData.order?.id,
-        itemsCount: normalizedData.items?.length || 0,
-        items: normalizedData.items?.map((i: any) => ({ id: i.id, description: i.description }))
-      });
-
-      return normalizedData;
+      return normalizeOrderStateResponse(await response.json());
     },
     enabled: isOpen && !!orderId,
     retry: 1,
-    staleTime: 30000,  // Consider data fresh for 30 seconds
-    gcTime: 5 * 60 * 1000,  // Keep in cache for 5 minutes
-    refetchOnWindowFocus: false,  // Don't refetch when window regains focus
-    refetchOnMount: false,  // Don't refetch on mount if data exists
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  const order: Order | null = orderData?.order || null;
-  const items: OrderItem[] = orderData?.items || [];
-  // Customer data might be in orderData or nested in order
-  const customerData = (orderData as any)?.customer || (order as any)?.customer || null;
+  const order: Order | null = (orderData?.order as unknown as Order | null) ?? null;
+  const items: OrderItem[] = (orderData?.items as unknown as OrderItem[]) ?? [];
+  const customerData = (orderData?.customer as Record<string, unknown> | null) ?? null;
 
-  // Fetch processing steps for the order's service category
-  const serviceCategoryCode = order?.service_category_code;
-  const { data: processingStepsData } = useQuery<{ success: boolean; data?: ProcessingStepConfig[] }>({
-    queryKey: ['processing-steps', tenantId, serviceCategoryCode],
-    queryFn: async () => {
-      if (!tenantId || !serviceCategoryCode) return { success: false };
-      const response = await fetch(`/api/v1/processing-steps/${encodeURIComponent(serviceCategoryCode)}`);
-      if (!response.ok) {
-        console.error('[ProcessingModal] Failed to fetch processing steps:', response.statusText);
-        return { success: false };
+  const categoryCodesToFetch = React.useMemo(() => {
+    const codes = new Set<string>();
+    if (order?.service_category_code) {
+      codes.add(order.service_category_code);
+    }
+    items.forEach((item) => {
+      if (item.service_category_code) {
+        codes.add(item.service_category_code);
       }
-      return response.json();
-    },
-    enabled: isOpen && !!orderId && !!tenantId && !!serviceCategoryCode,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+    expandedItemIds.forEach((itemId) => {
+      const item = items.find((entry) => entry.id === itemId);
+      if (item?.service_category_code) {
+        codes.add(item.service_category_code);
+      }
+    });
+    return Array.from(codes);
+  }, [order, items, expandedItemIds]);
+
+  const processingStepsQueries = useQueries({
+    queries: categoryCodesToFetch.map((serviceCategoryCode) => ({
+      queryKey: ['processing-steps', tenantId, serviceCategoryCode],
+      queryFn: async (): Promise<{ success: boolean; data?: ProcessingStepConfig[] }> => {
+        const response = await fetch(
+          `/api/v1/processing-steps/${encodeURIComponent(serviceCategoryCode)}`
+        );
+        if (!response.ok) {
+          return { success: false };
+        }
+        return response.json();
+      },
+      enabled: isOpen && !!tenantId && !!serviceCategoryCode,
+      staleTime: 5 * 60 * 1000,
+    })),
   });
 
-  const processingSteps: ProcessingStepConfig[] = processingStepsData?.data || [];
+  const processingStepsByCategory = React.useMemo(() => {
+    const map = new Map<string, ProcessingStepConfig[]>();
+    categoryCodesToFetch.forEach((code, index) => {
+      map.set(code, processingStepsQueries[index]?.data?.data || []);
+    });
+    return map;
+  }, [categoryCodesToFetch, processingStepsQueries]);
+
+  const orderProcessingSteps =
+    processingStepsByCategory.get(order?.service_category_code || '') || [];
 
   // Fetch all pieces for the order in a single query (optimized)
   const { data: piecesData, isLoading: piecesLoading, error: piecesError } = useQuery({
@@ -303,8 +291,8 @@ export function ProcessingModal({
     refetchOnMount: false,
   });
 
-  // Group pieces by itemId for O(1) lookup
-  const piecesByItemId = React.useMemo(() => {
+  // Group DB pieces by itemId for initial hydrate only
+  const dbPiecesByItemId = React.useMemo(() => {
     const grouped = new Map<string, ItemPiece[]>();
 
     if (!piecesData?.pieces || !Array.isArray(piecesData.pieces)) {
@@ -321,62 +309,39 @@ export function ProcessingModal({
       grouped.get(itemId)!.push(itemPiece);
     });
 
-    // Sort pieces by piece_seq within each item
-    grouped.forEach((pieces) => {
-      pieces.sort((a, b) => a.pieceNumber - b.pieceNumber);
+    grouped.forEach((pieceList) => {
+      pieceList.sort((a, b) => a.pieceNumber - b.pieceNumber);
     });
 
     return grouped;
   }, [piecesData]);
 
-  // ✅ Comprehensive debug logging
-  React.useEffect(() => {
-    if (!isOpen) return;
-
-    console.log('[ProcessingModal] State Update:', {
-      isOpen,
-      orderId,
-      orderLoading,
-      hasError: !!orderError,
-      errorMessage: orderError instanceof Error ? orderError.message : 'none',
-      hasOrderData: !!orderData,
-      hasOrder: !!order,
-      itemsCount: items.length,
-    });
-
-    if (orderError) {
-      console.error('[ProcessingModal] Error Details:', orderError);
-    }
-
-    if (!orderLoading && !orderError && !order) {
-      console.warn('[ProcessingModal] No order data but no error - possible format mismatch');
-    }
-  }, [isOpen, orderId, orderLoading, orderError, orderData, order, items]);
-
-  // Track if piece states have been initialized for current order
-  const initializedOrderIdRef = React.useRef<string | null>(null);
+  // Stable piece arrays for row props (one array ref per item while pieceStates unchanged)
+  const piecesByItemId = React.useMemo(
+    () => groupPiecesByItemId(pieceStates),
+    [pieceStates]
+  );
 
   // Initialize piece states when items and pieces data load
-  // Uses React Query data for trackByPiece mode, generates pieces otherwise
+  const initializedOrderIdRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     if (!isOpen || !orderId || items.length === 0) return;
 
     // Only initialize if this is a new order (not already initialized)
     if (initializedOrderIdRef.current !== orderId) {
+      if (trackByPiece && piecesLoading) return;
+
       const initialStates = new Map<string, ItemPiece>();
 
       if (trackByPiece) {
-        // If trackByPiece is enabled, use pieces from React Query
-        // Pieces are already grouped by itemId in piecesByItemId
-        piecesByItemId.forEach((pieces, itemId) => {
-          pieces.forEach(piece => {
+        dbPiecesByItemId.forEach((pieces) => {
+          pieces.forEach((piece) => {
             initialStates.set(piece.id, piece);
           });
         });
 
-        // If no pieces found in DB but items exist, generate fallback (shouldn't happen if pieces are auto-created)
-        if (piecesByItemId.size === 0 && !piecesLoading) {
-          console.warn('[ProcessingModal] No DB pieces found, generating fallback for items');
+        if (dbPiecesByItemId.size === 0 && !piecesLoading) {
           items.forEach(item => {
             const generatedPieces = generatePieces(item);
             generatedPieces.forEach(piece => {
@@ -406,9 +371,8 @@ export function ProcessingModal({
         let hasNewPieces = false;
 
         items.forEach(item => {
-          if (trackByPiece && piecesByItemId.has(item.id)) {
-            // Use DB pieces if available
-            const dbPieces = piecesByItemId.get(item.id) || [];
+          if (trackByPiece && dbPiecesByItemId.has(item.id)) {
+            const dbPieces = dbPiecesByItemId.get(item.id) || [];
             dbPieces.forEach(piece => {
               if (!newMap.has(piece.id)) {
                 newMap.set(piece.id, piece);
@@ -431,7 +395,7 @@ export function ProcessingModal({
         return hasNewPieces ? newMap : prev;
       });
     }
-  }, [isOpen, orderId, items, trackByPiece, piecesByItemId, piecesLoading]);
+  }, [isOpen, orderId, items, trackByPiece, dbPiecesByItemId, piecesLoading]);
 
   // Set initial rack location from order
   React.useEffect(() => {
@@ -588,30 +552,12 @@ export function ProcessingModal({
     },
   });
 
-  // Helper function to check if a piece has changed
-  const hasPieceChanged = (current: ItemPiece, original: ItemPiece | undefined): boolean => {
-    if (!original) return true; // New piece, consider it changed
-
-    return (
-      (current.is_ready ?? false) !== (original.is_ready ?? false) ||
-      current.currentStep !== original.currentStep ||
-      (current.piece_stage || null) !== (original.piece_stage || null) ||
-      (current.notes || '') !== (original.notes || '') ||
-      (current.rackLocation || '') !== (original.rackLocation || '') ||
-      current.isRejected !== original.isRejected ||
-      (current.barcode || null) !== (original.barcode || null) ||
-      (current.has_stain ?? null) !== (original.has_stain ?? null) ||
-      (current.has_damage ?? null) !== (original.has_damage ?? null)
-    );
-  };
-
-  // Handle update button click
-  const handleUpdate = () => {
+  const handleUpdate = React.useCallback(() => {
     // Only collect pieces that have actually changed
     const updates = Array.from(pieceStates.values())
       .filter(piece => {
         const original = originalPieceStates.get(piece.id);
-        return hasPieceChanged(piece, original);
+        return hasProcessingPieceChanged(piece, original);
       })
       .map(piece => ({
         pieceId: piece.id, // Use the ID (could be DB ID or generated ID)
@@ -645,44 +591,36 @@ export function ProcessingModal({
       count: updates.length,
     });
 
-    console.log('[ProcessingModal] Saving updates:', {
-      updatesCount: updates.length,
-      itemQuantityReady,
-      orderRackLocation: rackLocation,
-    });
-
     updateMutation.mutate({
       updates,
       itemQuantityReady,
       orderRackLocation: rackLocation,
     });
-  };
+  }, [
+    pieceStates,
+    originalPieceStates,
+    items,
+    rackLocation,
+    updateMutation,
+  ]);
 
-  // Handle split confirmation
-  const handleSplitConfirm = (reason: string) => {
+  const handleSplitConfirm = React.useCallback((reason: string) => {
     const pieceIds = Array.from(selectedForSplit);
     splitMutation.mutate({ pieceIds, reason });
-  };
+  }, [selectedForSplit, splitMutation]);
 
-  // Handle piece state change
-  const handlePieceChange = (pieceId: string, updates: Partial<ItemPiece>) => {
-    console.log('[ProcessingModal] Piece change:', { pieceId, updates });
+  const handlePieceChange = React.useCallback((pieceId: string, updates: Partial<ItemPiece>) => {
     setPieceStates(prev => {
       const newMap = new Map(prev);
       const piece = newMap.get(pieceId);
       if (piece) {
-        const updatedPiece = { ...piece, ...updates };
-        console.log('[ProcessingModal] Updating piece:', { pieceId, oldNotes: piece.notes, newNotes: updatedPiece.notes });
-        newMap.set(pieceId, updatedPiece);
-      } else {
-        console.warn('[ProcessingModal] Piece not found:', pieceId);
+        newMap.set(pieceId, { ...piece, ...updates });
       }
       return newMap;
     });
-  };
+  }, []);
 
-  // Handle split selection toggle
-  const handleSplitToggle = (pieceId: string, selected: boolean) => {
+  const handleSplitToggle = React.useCallback((pieceId: string, selected: boolean) => {
     setSelectedForSplit(prev => {
       const newSet = new Set(prev);
       if (selected) {
@@ -692,10 +630,9 @@ export function ProcessingModal({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  // Handle item expansion
-  const handleToggleExpand = (itemId: string) => {
+  const handleToggleExpand = React.useCallback((itemId: string) => {
     setExpandedItemIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -705,30 +642,24 @@ export function ProcessingModal({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  // Get pieces for an item
-  // Prioritizes pieceStates (contains user edits) over piecesByItemId (stale DB data)
-  // Falls back to piecesByItemId only if pieces not found in pieceStates
+  const onConfirmSuccess = React.useCallback(() => {
+    if (orderId) {
+      queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+    }
+  }, [orderId, queryClient]);
+
   const getPiecesForItem = React.useCallback((itemId: string): ItemPiece[] => {
-    // First, check pieceStates for pieces matching the itemId (these contain user edits)
-    const piecesFromState = Array.from(pieceStates.values())
-      .filter(piece => piece.itemId === itemId)
-      .sort((a, b) => a.pieceNumber - b.pieceNumber);
-
-    // If pieces found in state, return them (they contain the latest user edits)
-    if (piecesFromState.length > 0) {
-      return piecesFromState;
+    const fromState = piecesByItemId.get(itemId);
+    if (fromState && fromState.length > 0) {
+      return fromState;
     }
-
-    // Fallback to piecesByItemId only if no pieces in state (for initial load or edge cases)
-    if (trackByPiece && piecesByItemId.has(itemId)) {
-      return piecesByItemId.get(itemId) || [];
+    if (trackByPiece && dbPiecesByItemId.has(itemId)) {
+      return dbPiecesByItemId.get(itemId) || [];
     }
-
-    // Return empty array if no pieces found
     return [];
-  }, [trackByPiece, piecesByItemId, pieceStates]);
+  }, [trackByPiece, piecesByItemId, dbPiecesByItemId]);
 
   // Filter and sort items based on filters
   const filteredAndSortedItems = React.useMemo(() => {
@@ -781,7 +712,13 @@ export function ProcessingModal({
   // Loading states - separate for order vs pieces
   const isLoading = orderLoading || settingsLoading;
   const isPiecesLoading = piecesLoading && trackByPiece;
-  const hasChanges = pieceStates.size > 0;
+  const hasChanges = React.useMemo(() => {
+    const piecesDirty = Array.from(pieceStates.values()).some((piece) =>
+      hasProcessingPieceChanged(piece, originalPieceStates.get(piece.id))
+    );
+    const rackDirty = rackLocation !== (order?.rack_location ?? '');
+    return piecesDirty || rackDirty;
+  }, [pieceStates, originalPieceStates, rackLocation, order?.rack_location]);
 
   // Calculate overall progress
   const overallProgress = React.useMemo(() => {
@@ -795,12 +732,11 @@ export function ProcessingModal({
   // Calculate overall order step and completed steps using dynamic steps from service category
   const { overallCurrentStep, overallCompletedSteps } = React.useMemo(() => {
     const allPieces = Array.from(pieceStates.values());
-    if (allPieces.length === 0 || processingSteps.length === 0) {
+    if (allPieces.length === 0 || orderProcessingSteps.length === 0) {
       return { overallCurrentStep: null, overallCompletedSteps: new Set<ProcessingStep>() };
     }
 
-    // Get active steps sorted by step_seq
-    const activeSteps = processingSteps
+    const activeSteps = orderProcessingSteps
       .filter(step => step.is_active)
       .sort((a, b) => a.step_seq - b.step_seq)
       .map(step => step.step_code as ProcessingStep);
@@ -843,7 +779,7 @@ export function ProcessingModal({
       overallCurrentStep: overallStep,
       overallCompletedSteps: completedSteps,
     };
-  }, [pieceStates, processingSteps]);
+  }, [pieceStates, orderProcessingSteps]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -866,7 +802,7 @@ export function ProcessingModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, hasChanges, updateMutation.isPending, splitMutation.isPending, onClose]);
+  }, [isOpen, hasChanges, updateMutation.isPending, splitMutation.isPending, onClose, handleUpdate]);
 
   return (
     <>
@@ -898,19 +834,21 @@ export function ProcessingModal({
                         <div className="flex items-center gap-1.5">
                           <User className="h-4 w-4" />
                           <span>
-                            {customerData.name ||
-                              customerData.phone ||
-                              customerData.display_name ||
-                              'Unknown Customer'}
+                            {String(
+                              customerData.name ||
+                                customerData.phone ||
+                                customerData.display_name ||
+                                'Unknown Customer'
+                            )}
                           </span>
                         </div>
                       )}
-                      {customerData?.phone && (
+                      {customerData?.phone ? (
                         <div className="flex items-center gap-1.5">
                           <Phone className="h-4 w-4" />
-                          <span>{customerData.phone}</span>
+                          <span>{String(customerData.phone)}</span>
                         </div>
-                      )}
+                      ) : null}
                       {order.ready_by && (
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
@@ -979,7 +917,6 @@ export function ProcessingModal({
                   <CmxButton
                     variant="primary"
                     onClick={() => {
-                      console.log('[ProcessingModal] Retrying fetch for order:', orderId);
                       queryClient.invalidateQueries({
                         queryKey: ['order-processing', orderId]
                       });
@@ -1039,9 +976,12 @@ export function ProcessingModal({
                           orderId={orderId || undefined}
                           tenantId={tenantId}
                           processingConfirmationEnabled={processingConfirmationEnabled}
+                          processingSteps={
+                            processingStepsByCategory.get(item.service_category_code || '') || []
+                          }
                           colorHexByCode={colorHexByCode}
                           nameByCode={nameByCode}
-                          onConfirmSuccess={() => orderId && queryClient.invalidateQueries({ queryKey: ['order', orderId] })}
+                          onConfirmSuccess={onConfirmSuccess}
                         />
                       ))}
                       {/* Show loading indicator for pieces if still loading */}

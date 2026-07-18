@@ -78,20 +78,9 @@ export async function GET(
 
         const pieces = result.pieces || [];
 
-        // Group pieces by order_item_id for efficient client-side lookup
-        const groupedByItemId: Record<string, typeof pieces> = {};
-        pieces.forEach(piece => {
-            const itemId = piece.order_item_id;
-            if (!groupedByItemId[itemId]) {
-                groupedByItemId[itemId] = [];
-            }
-            groupedByItemId[itemId].push(piece);
-        });
-
         return NextResponse.json({
             success: true,
             pieces,
-            groupedByItemId,
             count: pieces.length,
         });
     } catch (error) {

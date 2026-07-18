@@ -5,13 +5,15 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle, ListChecks } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback/cmx-message';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
+import { normalizeOrderStateResponse } from '@features/workflow/lib/processing-piece-map';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -26,6 +28,53 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
+
+function formatProcessingDate(dateString: string): string {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear().toString().slice(-2);
+  const hours = date.getHours();
+  const ampm = hours >= 12 ? 'pm' : 'am';
+  const hour12 = hours % 12 || 12;
+  return `${day}/${month}/${year} ${hour12}${ampm}`;
+}
+
+function useProcessingDialogPrefetch() {
+  const queryClient = useQueryClient();
+
+  return React.useCallback((orderId: string) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['order-processing', orderId],
+      queryFn: async () => {
+        const response = await fetch(`/api/v1/orders/${orderId}/state`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            (errorData as { error?: string }).error || `HTTP ${response.status}`
+          );
+        }
+        return normalizeOrderStateResponse(await response.json());
+      },
+      staleTime: 30000,
+    });
+
+    void queryClient.prefetchQuery({
+      queryKey: ['order-pieces', orderId],
+      queryFn: async () => {
+        const response = await fetch(`/api/v1/orders/${orderId}/pieces`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            (errorData as { error?: string }).error || `HTTP ${response.status}`
+          );
+        }
+        return response.json();
+      },
+      staleTime: 30000,
+    });
+  }, [queryClient]);
+}
 
 function ProcessingSortableHeader({
   field,
@@ -83,6 +132,9 @@ export function ProcessingTable({
 }: ProcessingTableProps) {
   const t = useTranslations('processing.table');
   const [isMobile, setIsMobile] = React.useState(false);
+  const [markReadyOrder, setMarkReadyOrder] = useState<ProcessingOrder | null>(null);
+  const [markReadyBusyId, setMarkReadyBusyId] = useState<string | null>(null);
+  const [markReadySuccessId, setMarkReadySuccessId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -94,16 +146,39 @@ export function ProcessingTable({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
-    const hours = date.getHours();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    const hour12 = hours % 12 || 12;
-    return `${day}/${month}/${year} ${hour12}${ampm}`;
-  };
+  const handleMarkReadyClick = useCallback((order: ProcessingOrder) => {
+    setMarkReadyOrder(order);
+  }, []);
+
+  const handleMarkReadyClose = useCallback(() => {
+    setMarkReadyOrder(null);
+  }, []);
+
+  const handleMarkReadySuccess = useCallback(
+    (orderId: string) => {
+      setMarkReadyOrder(null);
+      setMarkReadyBusyId(null);
+      setMarkReadySuccessId(orderId);
+      window.setTimeout(() => {
+        onRefresh();
+        setMarkReadySuccessId(null);
+      }, 1500);
+    },
+    [onRefresh]
+  );
+
+  const handleMarkReadyBusy = useCallback((orderId: string | null) => {
+    setMarkReadyBusyId(orderId);
+  }, []);
+
+  const sharedMarkReadyDialog = (
+    <SharedMarkReadyDialog
+      order={markReadyOrder}
+      onClose={handleMarkReadyClose}
+      onBusy={handleMarkReadyBusy}
+      onSuccess={handleMarkReadySuccess}
+    />
+  );
 
   if (orders.length === 0) {
     return (
@@ -119,7 +194,6 @@ export function ProcessingTable({
     );
   }
 
-  // ✅ Mobile card view
   if (isMobile) {
     return (
       <>
@@ -128,78 +202,80 @@ export function ProcessingTable({
             <ProcessingOrderCard
               key={order.id}
               order={order}
-              formatDate={formatDate}
-              onRefresh={onRefresh}
+              formatDate={formatProcessingDate}
               onEditClick={onEditClick}
               onSimpleProcessClick={onSimpleProcessClick}
+              onMarkReadyClick={handleMarkReadyClick}
+              markReadyBusy={markReadyBusyId === order.id}
+              markReadySuccess={markReadySuccessId === order.id}
               index={index}
               selectedOrderId={selectedOrderId}
             />
           ))}
         </div>
-        {/* Render dialogs */}
-        {orders.map((order) => (
-          <OrderRowDialog
-            key={`dialog-${order.id}`}
-            order={order}
-            onRefresh={onRefresh}
-          />
-        ))}
+        {sharedMarkReadyDialog}
       </>
     );
   }
 
-  // Desktop table view
   return (
-    <ProcessingTableDesktop
-      orders={orders}
-      sortField={sortField}
-      onSort={onSort}
-      onRefresh={onRefresh}
-      onEditClick={onEditClick}
-      onSimpleProcessClick={onSimpleProcessClick}
-      formatDate={formatDate}
-      selectedOrderId={selectedOrderId}
-    />
+    <>
+      <ProcessingTableDesktop
+        orders={orders}
+        sortField={sortField}
+        onSort={onSort}
+        onEditClick={onEditClick}
+        onSimpleProcessClick={onSimpleProcessClick}
+        onMarkReadyClick={handleMarkReadyClick}
+        markReadyBusyId={markReadyBusyId}
+        markReadySuccessId={markReadySuccessId}
+        formatDate={formatProcessingDate}
+        selectedOrderId={selectedOrderId}
+      />
+      {sharedMarkReadyDialog}
+    </>
   );
 }
 
 interface OrderRowProps {
   order: ProcessingOrder;
   formatDate: (date: string) => string;
-  onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
+  onMarkReadyClick: (order: ProcessingOrder) => void;
+  markReadyBusy: boolean;
+  markReadySuccess: boolean;
   index: number;
   selectedOrderId?: string | null;
 }
 
-function OrderRow({
+const OrderRow = React.memo(function OrderRow({
   order,
   formatDate,
-  onRefresh,
   onEditClick,
   onSimpleProcessClick,
+  onMarkReadyClick,
+  markReadyBusy,
+  markReadySuccess,
   index,
   selectedOrderId,
 }: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
-  const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
+  const tProcessing = useTranslations('processing');
   const { formatMoneyWithCode } = useTenantCurrency();
+  const prefetchProcessingDialogs = useProcessingDialogPrefetch();
   const isPaid = isOrderPaidStatus(order.payment_status);
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
 
-  // State for loading and success message
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingEdit, setIsLoadingEdit] = useState(false);  // ✅ NEW
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const successMessage = markReadySuccess
+    ? t('markReadySuccess') || 'Order marked as ready successfully'
+    : null;
 
-  // Determine row highlight color
   const rowHighlight = isUrgent ? 'border-l-4 border-l-pink-500' : 'border-l-4 border-l-blue-200';
 
-  // ✅ Visual hierarchy: Alternating row colors with green for selected row
   const rowBgColor = isSelected
     ? 'bg-green-50'
     : index % 2 === 0
@@ -208,43 +284,14 @@ function OrderRow({
   const hoverColor = isSelected ? 'hover:bg-green-100' : 'hover:bg-blue-50/50';
 
   const handleStatusToggleClick = () => {
-    // Dispatch custom event to open dialog
-    window.dispatchEvent(new CustomEvent(`open-confirm-dialog-${order.id}`, {
-      detail: { orderId: order.id }
-    }));
+    onMarkReadyClick(order);
   };
 
-  // Listen for loading and success events
-  useEffect(() => {
-    const handleLoadingStart = () => setIsLoading(true);
-    const handleLoadingEnd = () => setIsLoading(false);
-    const handleSuccess = () => {
-      setSuccessMessage(t('markReadySuccess') || 'Order marked as ready successfully');
-      setTimeout(() => {
-        onRefresh();
-        setSuccessMessage(null);
-      }, 1500);
-    };
-
-    window.addEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
-    window.addEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
-    window.addEventListener(`mark-ready-success-${order.id}`, handleSuccess);
-
-    return () => {
-      window.removeEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
-      window.removeEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
-      window.removeEventListener(`mark-ready-success-${order.id}`, handleSuccess);
-    };
-  }, [order.id, onRefresh, t]);
-
-
   const handleEdit = () => {
-    console.log('[OrderRow] Edit clicked for order:', order.id);
     setIsLoadingEdit(true);
 
     if (onEditClick) {
       onEditClick(order.id);
-      // Reset loading after modal should open
       setTimeout(() => setIsLoadingEdit(false), 500);
     } else {
       router.push(`/dashboard/processing/${order.id}`);
@@ -384,6 +431,7 @@ function OrderRow({
             {/* Full processing editor */}
             <button
               onClick={handleEdit}
+              onMouseEnter={() => prefetchProcessingDialogs(order.id)}
               disabled={isLoadingEdit}
               className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
               title={isLoadingEdit ? (t('opening') || 'Opening...') : t('edit')}
@@ -400,6 +448,7 @@ function OrderRow({
             <button
               type="button"
               onClick={() => onSimpleProcessClick?.(order.id)}
+              onMouseEnter={() => prefetchProcessingDialogs(order.id)}
               disabled={!onSimpleProcessClick}
               className="p-2 hover:bg-sky-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={t('simpleProcess')}
@@ -410,13 +459,14 @@ function OrderRow({
 
             {/* Status Toggle Icon */}
             <button
+              type="button"
               onClick={handleStatusToggleClick}
-              disabled={isLoading}
+              disabled={markReadyBusy}
               className="p-2 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
-              title={isLoading ? (t('processing') || 'Processing...') : t('complete')}
+              title={markReadyBusy ? (t('processing') || 'Processing...') : t('complete')}
               aria-label={t('complete')}
             >
-              {isLoading ? (
+              {markReadyBusy ? (
                 <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
               ) : (
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -455,82 +505,94 @@ function OrderRow({
       )}
     </React.Fragment>
   );
-}
+});
 
-// Separate component for Dialog to render outside table structure
-function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefresh: () => void }) {
+/** Single shared Mark Ready confirm dialog for the whole table (desktop + mobile). */
+function SharedMarkReadyDialog({
+  order,
+  onClose,
+  onBusy,
+  onSuccess,
+}: {
+  order: ProcessingOrder | null;
+  onClose: () => void;
+  onBusy: (orderId: string | null) => void;
+  onSuccess: (orderId: string) => void;
+}) {
   const t = useTranslations('processing.table');
   const tDetail = useTranslations('processing.detail');
   const tCommon = useTranslations('common');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rackLocation, setRackLocation] = useState('');
   const [rackLocationError, setRackLocationError] = useState('');
 
-  // Listen for dialog open events from the row
-  useEffect(() => {
-    const handleOpenDialog = (event: CustomEvent) => {
-      if (event.detail.orderId === order.id) {
-        setShowConfirmDialog(true);
-      }
-    };
+  const resetForm = useCallback(() => {
+    setRackLocation('');
+    setRackLocationError('');
+    setIsLoading(false);
+  }, []);
 
-    window.addEventListener(`open-confirm-dialog-${order.id}`, handleOpenDialog as EventListener);
-    return () => {
-      window.removeEventListener(`open-confirm-dialog-${order.id}`, handleOpenDialog as EventListener);
-    };
-  }, [order.id]);
+  React.useEffect(() => {
+    if (order) {
+      resetForm();
+    }
+  }, [order?.id, resetForm]);
 
   const handleConfirm = async () => {
-    // Validate rack location
-    if (!rackLocation.trim()) {
-      setRackLocationError(tDetail('validation.rackLocationRequired') || 'Rack location is required');
+    if (!order) return;
+    const rack = rackLocation.trim();
+    if (!rack) {
+      setRackLocationError(
+        tDetail('validation.rackLocationRequired') || 'Rack location is required'
+      );
       return;
     }
 
-    window.dispatchEvent(new CustomEvent(`mark-ready-loading-start-${order.id}`));
-    setShowConfirmDialog(false);
+    const orderId = order.id;
+    onBusy(orderId);
+    setIsLoading(true);
+    onClose();
 
     try {
-      const res = await fetch(`/api/v1/orders/${order.id}/transition`, {
+      const res = await fetch(`/api/v1/orders/${orderId}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          toStatus: 'ready', //JhTodo: Change to 'ready' when ready status is implemented
+          toStatus: 'ready',
           notes: 'Processing completed via quick action',
           metadata: {
-            rack_location: rackLocation.trim()
-          }
+            rack_location: rack,
+          },
         }),
       });
 
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
-          // Reset rack location state
-          setRackLocation('');
-          setRackLocationError('');
-          // Dispatch success event
-          window.dispatchEvent(new CustomEvent(`mark-ready-success-${order.id}`));
-        } else {
-          window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
-          cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
-            description: json.error,
-            duration: 5000,
-          });
+          resetForm();
+          onSuccess(orderId);
+          return;
         }
+        onBusy(null);
+        setIsLoading(false);
+        cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+          description: json.error,
+          duration: 5000,
+        });
       } else {
-        window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
-        const error = await res.json().catch(() => ({ error: t('markReadyError') || 'Failed to update order status' }));
+        onBusy(null);
+        setIsLoading(false);
+        const error = await res
+          .json()
+          .catch(() => ({ error: t('markReadyError') || 'Failed to update order status' }));
         cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
           description: error.error,
           duration: 5000,
         });
       }
     } catch (error) {
+      onBusy(null);
       setIsLoading(false);
-      window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
-      console.error('Error updating order:', error);
       cmxMessage.error(t('markReadyError') || 'Error updating order status', {
         description: error instanceof Error ? error.message : 'Unknown error',
         duration: 5000,
@@ -538,24 +600,15 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
     }
   };
 
-  const handleCancel = () => {
-    setShowConfirmDialog(false);
-    // Reset rack location state
-    setRackLocation('');
-    setRackLocationError('');
-  };
-
   const handleOpenChange = (open: boolean) => {
-    setShowConfirmDialog(open);
     if (!open) {
-      // Reset rack location state when dialog closes
-      setRackLocation('');
-      setRackLocationError('');
+      resetForm();
+      onClose();
     }
   };
 
   return (
-    <CmxDialog open={showConfirmDialog} onOpenChange={handleOpenChange}>
+    <CmxDialog open={!!order} onOpenChange={handleOpenChange}>
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
           <CmxDialogTitle className="flex items-center gap-2">
@@ -563,7 +616,8 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
             {t('confirmMarkReady') || 'Confirm Mark as Ready'}
           </CmxDialogTitle>
           <CmxDialogDescription>
-            {t('confirmMarkReadyMessage') || `Are you sure you want to mark order ${order.order_no} as ready?`}
+            {t('confirmMarkReadyMessage') ||
+              `Are you sure you want to mark order ${order?.order_no ?? ''} as ready?`}
           </CmxDialogDescription>
         </CmxDialogHeader>
 
@@ -587,14 +641,15 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
             <p className="text-sm text-red-600">{rackLocationError}</p>
           )}
           <p className="text-xs text-gray-500">
-            {tDetail('rackLocationHelp') || 'Enter the rack location where this order is stored'}
+            {tDetail('rackLocationHelp') ||
+              'Enter the rack location where this order is stored'}
           </p>
         </div>
 
         <CmxDialogFooter>
           <CmxButton
             variant="secondary"
-            onClick={handleCancel}
+            onClick={() => handleOpenChange(false)}
             disabled={isLoading}
           >
             {tCommon('cancel') || 'Cancel'}
@@ -625,17 +680,21 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
 function ProcessingOrderCard({
   order,
   formatDate,
-  onRefresh,
   onEditClick,
   onSimpleProcessClick,
+  onMarkReadyClick,
+  markReadyBusy,
+  markReadySuccess,
   index,
   selectedOrderId,
 }: {
   order: ProcessingOrder;
   formatDate: (date: string) => string;
-  onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
+  onMarkReadyClick: (order: ProcessingOrder) => void;
+  markReadyBusy: boolean;
+  markReadySuccess: boolean;
   index: number;
   selectedOrderId?: string | null;
 }) {
@@ -647,6 +706,7 @@ function ProcessingOrderCard({
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const prefetchProcessingDialogs = useProcessingDialogPrefetch();
 
   const handleEdit = () => {
     setIsLoadingEdit(true);
@@ -778,6 +838,7 @@ function ProcessingOrderCard({
         <button
           type="button"
           onClick={() => onSimpleProcessClick?.(order.id)}
+          onMouseEnter={() => prefetchProcessingDialogs(order.id)}
           disabled={!onSimpleProcessClick}
           className="w-full px-3 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2"
         >
@@ -785,7 +846,9 @@ function ProcessingOrderCard({
           {t('simpleProcess')}
         </button>
         <button
+          type="button"
           onClick={handleEdit}
+          onMouseEnter={() => prefetchProcessingDialogs(order.id)}
           disabled={isLoadingEdit}
           className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait text-sm font-medium flex items-center justify-center gap-2"
         >
@@ -801,6 +864,29 @@ function ProcessingOrderCard({
             </>
           )}
         </button>
+        <button
+          type="button"
+          onClick={() => onMarkReadyClick(order)}
+          disabled={markReadyBusy}
+          className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {markReadyBusy ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('processing') || 'Processing...'}
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4" />
+              {t('complete')}
+            </>
+          )}
+        </button>
+        {markReadySuccess ? (
+          <p className="text-sm text-green-700 text-center">
+            {t('markReadySuccess') || 'Order marked as ready successfully'}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -811,86 +897,81 @@ function ProcessingTableDesktop({
   orders,
   sortField,
   onSort,
-  onRefresh,
   onEditClick,
   onSimpleProcessClick,
+  onMarkReadyClick,
+  markReadyBusyId,
+  markReadySuccessId,
   formatDate,
   selectedOrderId,
 }: {
   orders: ProcessingOrder[];
   sortField: SortField;
   onSort: (field: SortField) => void;
-  onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
+  onMarkReadyClick: (order: ProcessingOrder) => void;
+  markReadyBusyId: string | null;
+  markReadySuccessId: string | null;
   formatDate: (date: string) => string;
   selectedOrderId?: string | null;
 }) {
   const t = useTranslations('processing.table');
-  const tProcessing = useTranslations('processing'); // ✅ For progress
+  const tProcessing = useTranslations('processing');
 
   return (
-    <>
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <ProcessingSortableHeader field="id" sortField={sortField} onSort={onSort}>
-                  {t('id')}
-                </ProcessingSortableHeader>
-                <ProcessingSortableHeader field="ready_by_at" sortField={sortField} onSort={onSort}>
-                  {t('readyBy')}
-                </ProcessingSortableHeader>
-                <ProcessingSortableHeader field="customer_name" sortField={sortField} onSort={onSort}>
-                  {t('customer')}
-                </ProcessingSortableHeader>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
-                  {t('order')}
-                </th>
-                <ProcessingSortableHeader field="total_items" sortField={sortField} onSort={onSort}>
-                  {t('pcs')}
-                </ProcessingSortableHeader>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
-                  {tProcessing('progress')}
-                </th>
-                <ProcessingSortableHeader field="notes" sortField={sortField} onSort={onSort}>
-                  {t('notes')}
-                </ProcessingSortableHeader>
-                <ProcessingSortableHeader field="total" sortField={sortField} onSort={onSort}>
-                  {t('total')}
-                </ProcessingSortableHeader>
-                <ProcessingSortableHeader field="status" sortField={sortField} onSort={onSort}>
-                  {t('status')}
-                </ProcessingSortableHeader>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {orders.map((order, index) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  formatDate={formatDate}
-                  onRefresh={onRefresh}
-                  onEditClick={onEditClick}
-                  onSimpleProcessClick={onSimpleProcessClick}
-                  index={index}
-                  selectedOrderId={selectedOrderId}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-100 border-b-2 border-gray-300">
+            <tr>
+              <ProcessingSortableHeader field="id" sortField={sortField} onSort={onSort}>
+                {t('id')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="ready_by_at" sortField={sortField} onSort={onSort}>
+                {t('readyBy')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="customer_name" sortField={sortField} onSort={onSort}>
+                {t('customer')}
+              </ProcessingSortableHeader>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                {t('order')}
+              </th>
+              <ProcessingSortableHeader field="total_items" sortField={sortField} onSort={onSort}>
+                {t('pcs')}
+              </ProcessingSortableHeader>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                {tProcessing('progress')}
+              </th>
+              <ProcessingSortableHeader field="notes" sortField={sortField} onSort={onSort}>
+                {t('notes')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="total" sortField={sortField} onSort={onSort}>
+                {t('total')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="status" sortField={sortField} onSort={onSort}>
+                {t('status')}
+              </ProcessingSortableHeader>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {orders.map((order, index) => (
+              <OrderRow
+                key={order.id}
+                order={order}
+                formatDate={formatDate}
+                onEditClick={onEditClick}
+                onSimpleProcessClick={onSimpleProcessClick}
+                onMarkReadyClick={onMarkReadyClick}
+                markReadyBusy={markReadyBusyId === order.id}
+                markReadySuccess={markReadySuccessId === order.id}
+                index={index}
+                selectedOrderId={selectedOrderId}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {/* Render dialogs outside the table */}
-      {orders.map((order) => (
-        <OrderRowDialog
-          key={`dialog-${order.id}`}
-          order={order}
-          onRefresh={onRefresh}
-        />
-      ))}
-    </>
+    </div>
   );
 }

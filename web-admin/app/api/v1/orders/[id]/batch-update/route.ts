@@ -103,205 +103,172 @@ export async function POST(
     let stepsRecorded = 0;
     let rackLocationsSet = 0;
 
+    const bulkEntries: Array<{
+      pieceId: string;
+      orderItemId: string;
+      updates: Parameters<typeof OrderPieceService.batchUpdatePiecesBulk>[0]['updates'][number]['updates'];
+    }> = [];
+
     // Always update pieces in database
-    {
-      // Use OrderPieceService to update pieces
-      for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
-        // Resolve piece IDs - if pieceId is not a UUID, find by itemId + pieceNumber
-        const pieceUpdatesForService = await Promise.all(
-          pieceUpdates.map(async (update) => {
-            let actualPieceId = update.pieceId;
+    for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
+      const pieceUpdatesForService = await Promise.all(
+        pieceUpdates.map(async (update) => {
+          let actualPieceId = update.pieceId;
 
-            // Check if pieceId is a UUID (DB ID)
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(update.pieceId);
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            update.pieceId
+          );
 
-            // Get current piece data to check piece_status and is_ready
-            let currentPiece: any = null;
+          let currentPiece: { piece_status?: string; is_ready?: boolean | null } | null = null;
 
-            if (!isUUID) {
+          if (!isUUID) {
+            const { data: existingPiece, error: pieceError } = await supabase
+              .from('org_order_item_pieces_dtl')
+              .select('id, piece_status, is_ready')
+              .eq('tenant_org_id', tenantId)
+              .eq('order_item_id', itemId)
+              .eq('piece_seq', update.pieceNumber)
+              .eq('order_id', orderId)
+              .single();
 
-              // Generated ID format: itemId-piece-N
-              // Find piece by itemId + piece_seq
-              const { data: existingPiece, error: pieceError } = await supabase
-                .from('org_order_item_pieces_dtl')
-                .select('id, piece_status, is_ready')
-                .eq('tenant_org_id', tenantId)
-                .eq('order_item_id', itemId)
-                .eq('piece_seq', update.pieceNumber)
-                .eq('order_id', orderId)
-                .single();
-
-              if (!pieceError && existingPiece) {
-                log.info('[BatchUpdate] [002] Piece found', {
-                  feature: 'order_pieces',
-                  action: 'batch_update_piece_found',
-                  message: 'pieceError=' + pieceError?.message + ', existingPiece=' + JSON.stringify(existingPiece),
-                  pieceError,
-                  existingPiece,
-                  tenantId,
-                  orderId,
-                  itemId,
-                  pieceNumber: update.pieceNumber,
-                  pieceId: update.pieceId,
-                });
-                actualPieceId = existingPiece.id;
-                currentPiece = existingPiece;
-              } else {
-                // Piece doesn't exist yet - will need to create it
-                // For now, skip and log - pieces should be auto-created when item is created
-                log.warn('[BatchUpdate] [003] Piece not found, skipping', {
-                  feature: 'order_pieces',
-                  action: 'batch_update_piece_not_found',
-                  message: 'pieceError=' + pieceError?.message,
-                  pieceError,
-                  tenantId,
-                  orderId,
-                  itemId,
-                  pieceNumber: update.pieceNumber,
-                  pieceId: update.pieceId,
-                  //error: pieceError?.message,
-                });
-                return null;
-              }
-            } else {// UUID-based IDs
-              // Fetch current piece data for UUID-based IDs
-              const { data: existingPiece } = await supabase
-                .from('org_order_item_pieces_dtl')
-                .select('piece_status, is_ready')
-                .eq('id', actualPieceId)
-                .eq('tenant_org_id', tenantId)
-                .eq('order_id', orderId)
-                .eq('order_item_id', itemId)
-                .single();
-
-              if (existingPiece) {
-                currentPiece = existingPiece;
-              }
-            }
-
-            // Determine piece_status and is_ready based on rules
-            const currentStatus = currentPiece?.piece_status as 'intake' | 'processing' | 'qa' | 'ready' | undefined;
-            let finalPieceStatus: 'intake' | 'processing' | 'qa' | 'ready' = update.currentStep ? 'processing' : (currentStatus || 'processing');
-            // Use is_ready if provided, otherwise fall back to isReady, then current value, then false
-            let finalIsReady = update.is_ready ?? update.isReady ?? currentPiece?.is_ready ?? false;
-            log.info('[BatchUpdate] [004] Final piece status', {
-              feature: 'order_pieces',
-              action: 'batch_update_final_piece_status',
-              message: 'currentStatus=' + currentStatus + ', finalPieceStatus=' + finalPieceStatus + ', finalIsReady=' + finalIsReady,
-              currentStatus,
-              finalPieceStatus,
-              currentPiece,
-              finalIsReady,
-              tenantId,
-              orderId,
-              itemId,
-              pieceNumber: update.pieceNumber,
-              pieceId: update.pieceId,
-            });
-            // Apply rules:
-            // 1. If is_ready=true and piece_status='processing', set piece_status='ready'
-            if (finalIsReady === true && finalPieceStatus === 'processing') {
-              finalPieceStatus = 'ready';
-              log.info('[BatchUpdate] [005] Final piece status', {
+            if (!pieceError && existingPiece) {
+              log.info('[BatchUpdate] [002] Piece found', {
                 feature: 'order_pieces',
-                action: 'batch_update_final_piece_status',
-                message: 'Final piece status set to ready',
-                currentStatus,
-                finalPieceStatus,
-                currentPiece,
-                finalIsReady,
+                action: 'batch_update_piece_found',
                 tenantId,
                 orderId,
                 itemId,
                 pieceNumber: update.pieceNumber,
                 pieceId: update.pieceId,
               });
-            }
-            // 2. If is_ready=false and piece_status='ready', set piece_status='processing'
-            if (finalIsReady === false && finalPieceStatus === 'ready') {
-              finalPieceStatus = 'processing';
-              log.info('[BatchUpdate] [006] Final piece status', {
+              actualPieceId = existingPiece.id;
+              currentPiece = existingPiece;
+            } else {
+              log.warn('[BatchUpdate] [003] Piece not found, skipping', {
                 feature: 'order_pieces',
-                action: 'batch_update_final_piece_status',
-                message: 'Final piece status set to processing  because is_ready=false and finalPieceStatus=ready',
-                currentStatus,
-                finalPieceStatus,
-                currentPiece,
-                finalIsReady,
+                action: 'batch_update_piece_not_found',
+                pieceError,
                 tenantId,
                 orderId,
                 itemId,
                 pieceNumber: update.pieceNumber,
                 pieceId: update.pieceId,
               });
+              return null;
             }
+          } else {
+            const { data: existingPiece } = await supabase
+              .from('org_order_item_pieces_dtl')
+              .select('piece_status, is_ready')
+              .eq('id', actualPieceId)
+              .eq('tenant_org_id', tenantId)
+              .eq('order_id', orderId)
+              .eq('order_item_id', itemId)
+              .single();
 
-            return {
-              pieceId: actualPieceId,
-              updates: {
-                piece_status: finalPieceStatus as 'intake' | 'processing' | 'qa' | 'ready',
-                is_ready: finalIsReady,
-                last_step: update.currentStep || undefined,
-                piece_stage: update.piece_stage || undefined,
-                rack_location: update.rackLocation || undefined,
-                notes: update.notes || undefined,
-                is_rejected: update.isRejected ?? undefined,
-                // color/brand: owned by org_order_preferences_dtl — do not mutate via Processing batch-update
-                barcode: update.barcode || undefined,
-                has_stain: update.has_stain ?? undefined,
-                has_damage: update.has_damage ?? undefined,
-                updated_at: new Date().toISOString(),
-                updated_by: userId,
-                updated_info: authCheck.userName + ' updated piece_status=' + finalPieceStatus + ', is_ready=' + finalIsReady + ', last_step=' + update.currentStep + ', piece_stage=' + update.piece_stage + ', rack_location=' + update.rackLocation + ', notes=' + update.notes + ', is_rejected=' + update.isRejected + ', barcode=' + update.barcode + ', has_stain=' + update.has_stain + ', has_damage=' + update.has_damage || undefined,
-              },
-            };
-          })
-        );
+            if (existingPiece) {
+              currentPiece = existingPiece;
+            }
+          }
 
-        // Filter out null entries (pieces that don't exist)
-        const validUpdates = pieceUpdatesForService.filter((u): u is NonNullable<typeof u> => u !== null);
-        log.info('[BatchUpdate] [008] Valid updates', {
+          const currentStatus = currentPiece?.piece_status as
+            | 'intake'
+            | 'processing'
+            | 'qa'
+            | 'ready'
+            | undefined;
+          let finalPieceStatus: 'intake' | 'processing' | 'qa' | 'ready' = update.currentStep
+            ? 'processing'
+            : (currentStatus || 'processing');
+          let finalIsReady =
+            update.is_ready ?? update.isReady ?? currentPiece?.is_ready ?? false;
+
+          if (finalIsReady === true && finalPieceStatus === 'processing') {
+            finalPieceStatus = 'ready';
+          }
+          if (finalIsReady === false && finalPieceStatus === 'ready') {
+            finalPieceStatus = 'processing';
+          }
+
+          return {
+            pieceId: actualPieceId,
+            orderItemId: itemId,
+            updates: {
+              piece_status: finalPieceStatus,
+              is_ready: finalIsReady,
+              last_step: update.currentStep || undefined,
+              piece_stage: update.piece_stage || undefined,
+              rack_location: update.rackLocation || undefined,
+              notes: update.notes || undefined,
+              is_rejected: update.isRejected ?? undefined,
+              barcode: update.barcode || undefined,
+              has_stain: update.has_stain ?? undefined,
+              has_damage: update.has_damage ?? undefined,
+              updated_at: new Date().toISOString(),
+              updated_by: userId,
+              updated_info:
+                authCheck.userName +
+                ' updated piece_status=' +
+                finalPieceStatus +
+                ', is_ready=' +
+                finalIsReady +
+                ', last_step=' +
+                update.currentStep +
+                ', piece_stage=' +
+                update.piece_stage +
+                ', rack_location=' +
+                update.rackLocation +
+                ', notes=' +
+                update.notes +
+                ', is_rejected=' +
+                update.isRejected +
+                ', barcode=' +
+                update.barcode +
+                ', has_stain=' +
+                update.has_stain +
+                ', has_damage=' +
+                update.has_damage || undefined,
+            },
+          };
+        })
+      );
+
+      const validUpdates = pieceUpdatesForService.filter(
+        (u): u is NonNullable<typeof u> => u !== null
+      );
+
+      if (validUpdates.length === 0) {
+        continue;
+      }
+
+      bulkEntries.push(...validUpdates);
+
+      readyCount += pieceUpdates.filter((p) => p.isReady || p.is_ready === true).length;
+      stepsRecorded += new Set(
+        pieceUpdates.filter((p) => p.currentStep).map((p) => p.currentStep)
+      ).size;
+      rackLocationsSet += pieceUpdates.filter((p) => p.rackLocation).length;
+      itemsUpdated++;
+    }
+
+    if (bulkEntries.length > 0) {
+      const batchResult = await OrderPieceService.batchUpdatePiecesBulk({
+        tenantId,
+        orderId,
+        updates: bulkEntries,
+      });
+
+      if (!batchResult.success && batchResult.errors?.length) {
+        log.warn('[BatchUpdate] bulk update partial failure', {
           feature: 'order_pieces',
-          action: 'batch_update_valid_updates',
-          message: 'validUpdates=' + validUpdates.length + ', pieceUpdatesForService=' + pieceUpdatesForService.length,
-          //JSON.stringify(validUpdates) + ', pieceUpdatesForService=' + JSON.stringify(pieceUpdatesForService),
-          validUpdatesCount: validUpdates.length,
-          pieceUpdatesForServiceCount: pieceUpdatesForService.length,
+          action: 'batch_update_bulk',
           tenantId,
           orderId,
-          itemId: itemId,
+          errors: batchResult.errors,
         });
-
-        if (validUpdates.length === 0) {
-          continue; // Skip if no valid updates
-        }
-
-        const batchResult = await OrderPieceService.batchUpdatePieces({
-          tenantId,
-          updates: validUpdates,
-        });
-
-        if (batchResult.success) {
-          piecesUpdated += batchResult.updated || 0;
-
-          // Sync quantity_ready for this item
-          await OrderPieceService.syncItemQuantityReady(tenantId, itemId);
-
-          // Count ready pieces
-          const readyPieces = pieceUpdates.filter(p => p.isReady).length;
-          readyCount += readyPieces;
-
-          // Count steps
-          const stepsSet = new Set(pieceUpdates.filter(p => p.currentStep).map(p => p.currentStep));
-          stepsRecorded += stepsSet.size;
-
-          // Count rack locations
-          const rackLocations = pieceUpdates.filter(p => p.rackLocation).length;
-          rackLocationsSet += rackLocations;
-
-          itemsUpdated++;
-        }
       }
+
+      piecesUpdated = batchResult.updated ?? 0;
     }
 
     // Update order-level rack location if provided

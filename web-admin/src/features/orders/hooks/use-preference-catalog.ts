@@ -64,35 +64,38 @@ function preferenceVisibleInOrderQuickBar(p: ServicePreference): boolean {
  * @param branchId
  * @param quickBarOnlyKinds
  * @param orderQuickBarPrefs
+ * @param enabled - When false, skip catalog network fetches
  */
 export function usePreferenceCatalog(
   branchId?: string | null,
   quickBarOnlyKinds = false,
-  orderQuickBarPrefs = false
+  orderQuickBarPrefs = false,
+  enabled = true
 ) {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
 
   const STALE_TIME = 5 * 60 * 1000; // 5 minutes — catalog data rarely changes
+  const queryEnabled = enabled && !!tenantId;
 
   const servicePrefsQuery = useQuery({
     queryKey: ['preference-catalog', 'service', tenantId, branchId, orderQuickBarPrefs],
     queryFn: () => fetchServicePreferences(tenantId, branchId),
-    enabled: !!tenantId,
+    enabled: queryEnabled,
     staleTime: STALE_TIME,
   });
 
   const packingPrefsQuery = useQuery({
     queryKey: ['preference-catalog', 'packing', tenantId],
     queryFn: () => fetchPackingPreferences(tenantId),
-    enabled: !!tenantId,
+    enabled: queryEnabled,
     staleTime: STALE_TIME,
   });
 
   const kindsQuery = useQuery<PreferenceKind[]>({
     queryKey: ['preference-kinds', tenantId, quickBarOnlyKinds],
     queryFn: () => fetchPreferenceKinds(tenantId, quickBarOnlyKinds),
-    enabled: !!tenantId,
+    enabled: queryEnabled,
     staleTime: STALE_TIME,
   });
 

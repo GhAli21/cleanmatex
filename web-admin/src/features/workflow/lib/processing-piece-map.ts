@@ -81,6 +81,14 @@ export function normalizeOrderStateResponse(json: unknown): NormalizedOrderState
   const customer =
     (body.customer as Record<string, unknown> | undefined) ||
     (order?.customer as Record<string, unknown> | undefined) ||
+    (() => {
+      const orgCustomer = order?.org_customers_mst as
+        | Record<string, unknown>
+        | Record<string, unknown>[]
+        | undefined;
+      if (Array.isArray(orgCustomer)) return orgCustomer[0] ?? null;
+      return orgCustomer ?? null;
+    })() ||
     null;
 
   return { order, items, customer };
@@ -100,4 +108,47 @@ export function hasSimplePieceChanged(
     (current.rackLocation || '') !== (original.rackLocation || '') ||
     current.isRejected !== original.isRejected
   );
+}
+
+/**
+ * Full-modal dirty check (ready/step/stage/notes/rack/reject/barcode/conditions).
+ */
+export function hasProcessingPieceChanged(
+  current: ItemPiece,
+  original: ItemPiece | undefined
+): boolean {
+  if (!original) return true;
+
+  return (
+    (current.is_ready ?? false) !== (original.is_ready ?? false) ||
+    current.currentStep !== original.currentStep ||
+    (current.piece_stage || null) !== (original.piece_stage || null) ||
+    (current.notes || '') !== (original.notes || '') ||
+    (current.rackLocation || '') !== (original.rackLocation || '') ||
+    current.isRejected !== original.isRejected ||
+    (current.barcode || null) !== (original.barcode || null) ||
+    (current.has_stain ?? null) !== (original.has_stain ?? null) ||
+    (current.has_damage ?? null) !== (original.has_damage ?? null)
+  );
+}
+
+/**
+ * Group pieceStates Map values by itemId with stable sort by pieceNumber.
+ */
+export function groupPiecesByItemId(
+  pieceStates: Map<string, ItemPiece>
+): Map<string, ItemPiece[]> {
+  const grouped = new Map<string, ItemPiece[]>();
+  pieceStates.forEach((piece) => {
+    let list = grouped.get(piece.itemId);
+    if (!list) {
+      list = [];
+      grouped.set(piece.itemId, list);
+    }
+    list.push(piece);
+  });
+  grouped.forEach((pieceList) => {
+    pieceList.sort((a, b) => a.pieceNumber - b.pieceNumber);
+  });
+  return grouped;
 }

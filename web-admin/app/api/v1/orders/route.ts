@@ -210,7 +210,10 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status_filter');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const includeItems = searchParams.get('include_items') === 'true';
+    const includeItemsParam = searchParams.get('include_items');
+    const includeItemsFull = includeItemsParam === 'true';
+    const includeItemsPreview = includeItemsParam === 'preview';
+    const includeItems = includeItemsFull || includeItemsPreview;
     const createdAfter = searchParams.get('created_after');
     const updatedAfter = searchParams.get('updated_after');
     const search = searchParams.get('search')?.trim() || '';
@@ -279,7 +282,20 @@ export async function GET(request: NextRequest) {
           )
         )
         ${includeItems
-        ? `,
+        ? includeItemsPreview
+          ? `,
+        org_order_items_dtl(
+          id,
+          product_name,
+          product_name2,
+          quantity,
+          quantity_ready,
+          service_category_code,
+          item_is_rejected,
+          has_stain,
+          has_damage
+        )`
+          : `,
         org_order_items_dtl(
           id,
           product_name,
@@ -391,6 +407,8 @@ export async function GET(request: NextRequest) {
       order_no: 'order_no',
       received_at: 'received_at',
       ready_by: 'ready_by_at_new',
+      ready_by_at: 'ready_by_at_new',
+      ready_by_at_new: 'ready_by_at_new',
       created_at: 'created_at',
       total: 'total_amount',
     };
@@ -437,18 +455,27 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime;
+    const normalizedOrders =
+      includeItemsPreview && orders
+        ? orders.map((orderRow: Record<string, unknown>) => {
+            const rawItems = orderRow.org_order_items_dtl;
+            const items = Array.isArray(rawItems) ? rawItems.slice(0, 3) : rawItems;
+            return { ...orderRow, org_order_items_dtl: items };
+          })
+        : orders;
+
     logger.info('List orders success', {
       feature: 'orders',
       action: 'list',
       tenantId,
       durationMs: duration,
-      count: orders?.length || 0,
+      count: normalizedOrders?.length || 0,
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        orders: orders || [],
+        orders: normalizedOrders || [],
         pagination: {
           page,
           limit,
