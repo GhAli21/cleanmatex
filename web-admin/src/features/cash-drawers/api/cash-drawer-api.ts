@@ -236,6 +236,36 @@ export async function fetchCashDrawerSessionCloseSummary(
   return parseCashDrawerResponse<CashDrawerSessionCloseSummary>(response)
 }
 
+/**
+ * B16 — approve an over-threshold drawer-close variance (deferred maker-
+ * checker model). The approver must differ from the session's closer; the
+ * server re-enforces this (self-approval is rejected regardless of UI state).
+ *
+ * @param input route ids, mandatory reason, and CSRF token
+ * @returns the updated session row (raw API shape; re-fetch detail to refresh the DTO)
+ */
+export async function approveCashDrawerSessionVariance(input: {
+  drawerId: string
+  sessionId: string
+  reason: string
+  csrfToken: string | null
+}): Promise<unknown> {
+  const response = await fetch(
+    `/api/v1/cash-drawers/${input.drawerId}/session/${input.sessionId}/approve-variance`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCSRFHeader(input.csrfToken),
+      },
+      body: JSON.stringify({ reason: input.reason }),
+    },
+  )
+
+  return parseCashDrawerResponse<unknown>(response)
+}
+
 async function fetchCashDrawerJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { credentials: 'include' })
   return parseCashDrawerResponse<T>(response)

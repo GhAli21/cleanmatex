@@ -37,6 +37,10 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'View linked cash drawer close summary',
         requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
       },
+      approveCashDrawerVariance: {
+        label: 'Approve over-threshold cash drawer close variance (B16)',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+      },
     },
     apiDependencies: [
       {
@@ -105,10 +109,17 @@ export const POS_SESSIONS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/summary',
         requirement: { permissions: ['cash_drawer:view'], requireAllPermissions: true },
       },
+      {
+        label: 'Approve cash drawer close variance (B16)',
+        method: 'POST',
+        path: '/api/v1/cash-drawers/[drawerId]/session/[sessionId]/approve-variance',
+        requirement: { permissions: ['cash_drawer:approve_variance'], requireAllPermissions: true },
+      },
     ],
     notes: [
       'POS session is user-owned operational lineage; cash drawer session remains physical cash reconciliation truth.',
       'If the linked drawer is still open, the UI requires the drawer close step before retrying POS close.',
+      'B16: `cash_drawer:approve_variance` is seeded by B27 — the route stays fail-closed (permission denied) until that migration lands and a role is granted it.',
     ],
   },
 ];

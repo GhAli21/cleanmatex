@@ -77,6 +77,13 @@
     "notesOptional": "Notes (optional)",
     "closeNotes": "Close Notes",
     "forceCloseReason": "Force-Close Reason",
+    "varianceThreshold": "Variance Approval Threshold",
+    "varianceApprovalTitle": "Approve Cash Variance",
+    "varianceApprovalWarning": "This session closed with a variance beyond the drawer's approval threshold. Approving requires a different user than the one who closed the session.",
+    "varianceApprovalReasonPlaceholder": "Reason for the variance (required)",
+    "varianceApprovalPendingBanner": "This session's close variance exceeds the drawer's threshold and is awaiting supervisor approval.",
+    "varianceApprovedBanner": "Variance approved by {approver} on {date}.",
+    "approveVariance": "Approve Variance",
     "cashIn": "Cash In",
     "cashOut": "Cash Out",
     "pettyCash": "Petty Cash",
@@ -178,7 +185,13 @@
       "movementRecorded": "Movement recorded successfully.",
       "closeFailed": "Failed to close session.",
       "sessionClosed": "Session closed successfully.",
-      "summaryLoading": "Loading session reconciliation summary..."
+      "summaryLoading": "Loading session reconciliation summary...",
+      "varianceApproved": "Variance approved.",
+      "varianceApprovalFailed": "Failed to approve the variance.",
+      "varianceSelfApprovalBlocked": "You closed this session — a different supervisor must approve the variance.",
+      "varianceAlreadyApproved": "This variance was already approved.",
+      "varianceNotPendingApproval": "This session has no variance pending approval.",
+      "varianceReasonRequired": "A reason is required to approve the variance."
     }
   },
   "refunds": {

@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTransition } from 'react'
-import { ArrowLeft, Printer, ReceiptText, WalletCards } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { ArrowLeft, Printer, ReceiptText, ShieldAlert, ShieldCheck, WalletCards } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import {
@@ -14,10 +14,12 @@ import {
   useCashDrawerDateFormatter,
   useCashDrawerMoneyFormatter,
 } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
+import { CashDrawerVarianceApprovalDialog } from '@features/cash-drawers/ui/cash-drawer-variance-approval-dialog'
 import type { CashDrawerSessionDetail } from '@lib/types/cash-drawer'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 
 /**
  * Canonical session truth screen.
@@ -44,6 +46,10 @@ export function CashDrawerSessionDetailScreen({
 
   const money = useCashDrawerMoneyFormatter()
   const fmtDateTime = useCashDrawerDateFormatter()
+  const canApproveVariance = useHasPermissionCode('cash_drawer:approve_variance')
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
+
+  const varianceApproval = detail.session.varianceApproval
 
   const replaceSearchParams = (mutator: (params: URLSearchParams) => void) => {
     const nextParams = new URLSearchParams(searchParams.toString())
@@ -214,6 +220,36 @@ export function CashDrawerSessionDetailScreen({
         </div>
       </div>
 
+      {varianceApproval.pending ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
+            <span>{t('varianceApprovalPendingBanner')}</span>
+          </div>
+          <CmxButton
+            variant="primary"
+            size="sm"
+            disabled={!canApproveVariance}
+            onClick={() => setApprovalDialogOpen(true)}
+          >
+            {t('approveVariance')}
+          </CmxButton>
+        </div>
+      ) : varianceApproval.approved ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            {t('varianceApprovedBanner', {
+              approver: varianceApproval.approvedBy?.displayName ?? varianceApproval.approvedBy?.id ?? '—',
+              date: fmtDateTime(varianceApproval.approvedAt),
+            })}
+          </span>
+          {varianceApproval.reason ? (
+            <span className="italic text-emerald-800">— {varianceApproval.reason}</span>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <CashDrawerInfoTile
           label={tCommon('branch')}
@@ -268,6 +304,12 @@ export function CashDrawerSessionDetailScreen({
               label={t('variance')}
               value={money(detail.session.differenceAmount, detail.session.currencyCode)}
             />
+            {varianceApproval.required ? (
+              <CashDrawerInfoTile
+                label={t('varianceThreshold')}
+                value={money(varianceApproval.thresholdSnapshot, detail.session.currencyCode)}
+              />
+            ) : null}
             <CashDrawerInfoTile
               label={t('closeNotes')}
               value={detail.session.closeNotes ?? '—'}
@@ -383,6 +425,14 @@ export function CashDrawerSessionDetailScreen({
           />
         </CmxCardContent>
       </CmxCard>
+
+      <CashDrawerVarianceApprovalDialog
+        open={approvalDialogOpen}
+        onOpenChange={setApprovalDialogOpen}
+        drawerId={drawerId}
+        sessionId={sessionId}
+        onApproved={() => router.refresh()}
+      />
     </div>
   )
 }

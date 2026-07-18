@@ -19,7 +19,6 @@ import {
 import { CmxButton, CmxCheckbox, CmxInput, CmxSpinner } from '@ui/primitives';
 import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
 import { PieceKindPickerDialog } from '@/src/features/orders/ui/piece-preferences/piece-kind-picker-dialog';
@@ -59,13 +58,11 @@ export function ProcessingPiecePrefsDialog({
   orderId,
   itemId,
   pieceId,
-  tenantId,
   title,
 }: ProcessingPiecePrefsDialogProps) {
   const t = useTranslations('processing.simpleModal.prefsDialog');
   const getBilingual = useBilingual();
   const queryClient = useQueryClient();
-  const { processingConfirmationEnabled } = useTenantSettingsWithDefaults(tenantId);
   const { formatMoneyWithCode } = useTenantCurrency();
 
   const {
@@ -504,20 +501,18 @@ export function ProcessingPiecePrefsDialog({
                                 </div>
                               </div>
                               <div className="flex shrink-0 items-center gap-1">
-                                {processingConfirmationEnabled ? (
-                                  <CmxCheckbox
-                                    size="sm"
-                                    checked={row.processing_confirmed === true}
-                                    onChange={(e) => {
-                                      confirmMutation.mutate({
-                                        prefId: row.id,
-                                        processing_confirmed: e.target.checked,
-                                      });
-                                    }}
-                                    aria-label={t('confirmLabel')}
-                                    label={t('confirmShort')}
-                                  />
-                                ) : null}
+                                <CmxCheckbox
+                                  size="sm"
+                                  checked={row.processing_confirmed === true}
+                                  onChange={(e) => {
+                                    confirmMutation.mutate({
+                                      prefId: row.id,
+                                      processing_confirmed: e.target.checked,
+                                    });
+                                  }}
+                                  aria-label={t('confirmLabel')}
+                                  label={t('confirmShort')}
+                                />
                                 <CmxButton
                                   type="button"
                                   variant="ghost"

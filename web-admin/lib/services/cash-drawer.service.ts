@@ -26,6 +26,7 @@ import type {
   CashDrawerSessionListResult,
   CashDrawerSessionListRow,
   CashDrawerSessionSummarySnapshot,
+  CashDrawerVarianceApproval,
 } from '@lib/types/cash-drawer'
 
 function toNumber(value: Decimal | number | string | null | undefined): number {
@@ -67,6 +68,57 @@ export interface SessionCloseResult {
   session: Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.findFirstOrThrow>>
   variance: number
   isBalanced: boolean
+  /**
+   * B16: true when drawer-close v2 is on, a variance threshold is configured on
+   * the drawer, and |variance| exceeds it. The session still closes (deferred
+   * model) but is flagged pending a supervisor's variance approval.
+   */
+  varianceApprovalPending: boolean
+  /** The absolute variance threshold in effect at close (null = no gate configured). */
+  varianceThreshold: number | null
+}
+
+/** Stable error codes for the variance-approval action. */
+export const VARIANCE_APPROVAL_ERRORS = {
+  /** Session is not in a state that requires/permits variance approval. */
+  NOT_PENDING_APPROVAL: 'VARIANCE_NOT_PENDING_APPROVAL',
+  /** Variance was already approved — approval is single-shot. */
+  ALREADY_APPROVED: 'VARIANCE_ALREADY_APPROVED',
+  /** Maker/checker violation — the approver cannot be the closer. */
+  SELF_APPROVAL_BLOCKED: 'VARIANCE_SELF_APPROVAL_BLOCKED',
+  /** A non-empty reason is mandatory for a variance approval. */
+  REASON_REQUIRED: 'VARIANCE_REASON_REQUIRED',
+} as const;
+
+export type VarianceApprovalErrorCode =
+  (typeof VARIANCE_APPROVAL_ERRORS)[keyof typeof VARIANCE_APPROVAL_ERRORS];
+
+/** Typed error so the API/action can map an approval failure to a 4xx + code. */
+export class VarianceApprovalError extends Error {
+  readonly code: VarianceApprovalErrorCode;
+  constructor(code: VarianceApprovalErrorCode, message?: string) {
+    super(message ?? code);
+    this.name = 'VarianceApprovalError';
+    this.code = code;
+  }
+}
+
+/**
+ * B16: derive the variance-approval state of a (closed) session from its
+ * persisted columns — no extra status enum value is introduced.
+ * @param session a session row exposing the variance columns + difference
+ */
+export function deriveVarianceApprovalState(session: {
+  difference_amount: Decimal | number | null
+  variance_threshold_snapshot: Decimal | number | null
+  variance_approved_by: string | null
+  variance_approved_at: Date | null
+  variance_approval_reason: string | null
+}): { required: boolean; pending: boolean; approved: boolean } {
+  const threshold = session.variance_threshold_snapshot
+  const required = threshold != null
+  const approved = required && session.variance_approved_by != null
+  return { required, pending: required && !approved, approved }
 }
 
 /**
@@ -316,6 +368,37 @@ function buildSessionSnapshot(
     differenceAmount,
     paymentCount,
     movementCount,
+  }
+}
+
+/**
+ * B16: build the session-detail variance-approval block from the persisted
+ * columns (migration 0407). No new status enum value — required/pending/
+ * approved are derived, never stored redundantly.
+ * @param session session row exposing the variance columns
+ * @param actorMap resolved actor summaries keyed by user id
+ */
+function buildVarianceApprovalDetail(
+  session: {
+    variance_threshold_snapshot: Decimal | number | null
+    variance_approved_by: string | null
+    variance_approved_at: Date | null
+    variance_approval_reason: string | null
+  },
+  actorMap: Map<string, CashDrawerActorSummary>,
+): CashDrawerVarianceApproval {
+  const required = session.variance_threshold_snapshot != null
+  const approved = required && session.variance_approved_by != null
+
+  return {
+    required,
+    pending: required && !approved,
+    approved,
+    thresholdSnapshot:
+      session.variance_threshold_snapshot == null ? null : toNumber(session.variance_threshold_snapshot),
+    approvedBy: getActorSummary(actorMap, session.variance_approved_by),
+    approvedAt: toIsoString(session.variance_approved_at),
+    reason: session.variance_approval_reason,
   }
 }
 
@@ -1271,6 +1354,7 @@ export async function getCashDrawerSessionDetail(
     [
       summaryData.session.opened_by,
       summaryData.session.closed_by,
+      summaryData.session.variance_approved_by,
       ...pagedMovements.map((movement) => movement.performed_by),
       ...pagedPayments.map((payment) => payment.received_by),
     ],
@@ -1309,6 +1393,7 @@ export async function getCashDrawerSessionDetail(
     closedBy: getActorSummary(actorMap, summaryData.session.closed_by),
     closeNotes: summaryData.session.close_notes,
     forceCloseReason: summaryData.session.force_close_reason,
+    varianceApproval: buildVarianceApprovalDetail(summaryData.session, actorMap),
   }
 
   return {
@@ -1462,7 +1547,7 @@ export async function closeSession(
   // when drawer-close v2 is enabled (M2 fix); flag off keeps the legacy
   // unfiltered aggregate so the rollout is controlled and reversible.
   const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
-  const [cashPayments, movements] = await Promise.all([
+  const [cashPayments, movements, drawer] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_order_payments_dtl.aggregate({
         where: {
@@ -1486,6 +1571,13 @@ export async function closeSession(
         },
       }),
     ),
+    // B16: per-drawer variance-approval threshold (NULL = no gate).
+    withTenantContext(tenantId, () =>
+      prisma.org_cash_drawers_mst.findFirst({
+        where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
+        select: { variance_approval_threshold: true },
+      }),
+    ),
   ])
 
   const cashIn = toNumber(cashPayments._sum.amount)
@@ -1499,6 +1591,18 @@ export async function closeSession(
   const variance = params.physicalCount - expectedCash
   const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
 
+  // B16 (deferred-approval model): when drawer-close v2 is on and the drawer has
+  // a configured threshold, a not-balanced close whose |variance| exceeds it is
+  // flagged pending approval. The session still closes; a supervisor approves
+  // it separately via `approveSessionVariance`. Snapshotting the threshold both
+  // marks the pending state and preserves the value in effect at close time.
+  const varianceThreshold =
+    effectiveCashOnly && drawer?.variance_approval_threshold != null
+      ? toNumber(drawer.variance_approval_threshold)
+      : null
+  const varianceApprovalPending =
+    varianceThreshold != null && !isBalanced && Math.abs(variance) > varianceThreshold
+
   const updated = await withTenantContext(tenantId, () =>
     prisma.org_cash_drawer_sessions_mst.update({
       where: { id: sessionId },
@@ -1510,12 +1614,64 @@ export async function closeSession(
         closed_by: params.closedBy,
         closed_at: new Date(),
         close_notes: params.notes ?? null,
+        variance_threshold_snapshot: varianceApprovalPending ? varianceThreshold : null,
         updated_at: new Date(),
       },
     }),
   )
 
-  return { session: updated, variance, isBalanced }
+  return { session: updated, variance, isBalanced, varianceApprovalPending, varianceThreshold }
+}
+
+/**
+ * B16: approve an over-threshold drawer-close variance (deferred maker-checker
+ * model). Performed by a supervisor holding `cash_drawer:approve_variance`, who
+ * must differ from the session's closer. Single-shot and fully audited.
+ *
+ * @param tenantId tenant resolved server-side from the authenticated session
+ * @param sessionId closed session whose variance is pending approval
+ * @param params approver id (the authenticated supervisor) + mandatory reason
+ * @returns the updated session row
+ * @throws VarianceApprovalError on state / maker-checker / reason violations
+ */
+export async function approveSessionVariance(
+  tenantId: string,
+  sessionId: string,
+  params: { approvedBy: string; reason: string },
+): Promise<Awaited<ReturnType<typeof prisma.org_cash_drawer_sessions_mst.update>>> {
+  const reason = params.reason?.trim()
+  if (!reason) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED)
+  }
+
+  const session = await withTenantContext(tenantId, () =>
+    prisma.org_cash_drawer_sessions_mst.findFirstOrThrow({
+      where: { id: sessionId, tenant_org_id: tenantId },
+    }),
+  )
+
+  const state = deriveVarianceApprovalState(session)
+  if (!state.required) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL)
+  }
+  if (state.approved) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED)
+  }
+  if (session.closed_by && session.closed_by === params.approvedBy) {
+    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED)
+  }
+
+  return withTenantContext(tenantId, () =>
+    prisma.org_cash_drawer_sessions_mst.update({
+      where: { id: sessionId },
+      data: {
+        variance_approved_by: params.approvedBy,
+        variance_approved_at: new Date(),
+        variance_approval_reason: reason,
+        updated_at: new Date(),
+      },
+    }),
+  )
 }
 
 /**

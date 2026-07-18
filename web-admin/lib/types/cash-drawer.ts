@@ -196,6 +196,25 @@ export interface CashDrawerSessionLifecycleDetail {
   closedBy: CashDrawerActorSummary | null
   closeNotes: string | null
   forceCloseReason: string | null
+  /** B16: over-threshold variance requires a supervisor's separate approval. */
+  varianceApproval: CashDrawerVarianceApproval
+}
+
+/**
+ * B16: derived variance-approval state for a session (not a persisted enum —
+ * computed from `variance_threshold_snapshot` / `variance_approved_by`).
+ */
+export interface CashDrawerVarianceApproval {
+  /** True when this close exceeded the drawer's configured threshold. */
+  required: boolean
+  /** True when required and not yet approved. */
+  pending: boolean
+  /** True when required and approved. */
+  approved: boolean
+  thresholdSnapshot: number | null
+  approvedBy: CashDrawerActorSummary | null
+  approvedAt: string | null
+  reason: string | null
 }
 
 /**

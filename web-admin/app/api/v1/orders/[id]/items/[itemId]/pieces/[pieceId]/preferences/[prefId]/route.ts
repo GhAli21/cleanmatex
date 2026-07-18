@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { OrderPieceProcessingPreferenceService } from '@/lib/services/order-piece-processing-preference.service';
-import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { setProcessingPrefConfirmedSchema } from '@/lib/validations/processing-piece-preferences-schemas';
 import { PREF_DELETE_NOT_ALLOWED } from '@/lib/constants/order-preferences';
 import { log } from '@/lib/utils/logger';
@@ -125,19 +124,6 @@ export async function PATCH(
     }
 
     const supabase = await createClient();
-    const settings = await createTenantSettingsService(supabase).getProcessingSettings(
-      tenantId
-    );
-    if (!settings.processingConfirmationEnabled) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Processing confirmation is disabled for this tenant',
-        },
-        { status: 403 }
-      );
-    }
-
     const { data: piece } = await supabase
       .from('org_order_item_pieces_dtl')
       .select('id')

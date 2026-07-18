@@ -77,6 +77,13 @@
     "notesOptional": "ملاحظات (اختياري)",
     "closeNotes": "ملاحظات الإغلاق",
     "forceCloseReason": "سبب الإغلاق الإجباري",
+    "varianceThreshold": "حد اعتماد الفرق النقدي",
+    "varianceApprovalTitle": "اعتماد فرق النقدية",
+    "varianceApprovalWarning": "أُغلقت هذه الجلسة بفرق يتجاوز حد الاعتماد المحدد للدرج. يتطلب الاعتماد مستخدمًا مختلفًا عن الذي أغلق الجلسة.",
+    "varianceApprovalReasonPlaceholder": "سبب الفرق (مطلوب)",
+    "varianceApprovalPendingBanner": "فرق إغلاق هذه الجلسة يتجاوز حد الدرج وينتظر اعتماد المشرف.",
+    "varianceApprovedBanner": "تم اعتماد الفرق من قبل {approver} بتاريخ {date}.",
+    "approveVariance": "اعتماد الفرق",
     "cashIn": "إيداع نقدي",
     "cashOut": "سحب نقدي",
     "pettyCash": "مصروفات نثرية",
@@ -178,7 +185,13 @@
       "movementRecorded": "تم تسجيل الحركة بنجاح.",
       "closeFailed": "فشل إغلاق الجلسة.",
       "sessionClosed": "تم إغلاق الجلسة بنجاح.",
-      "summaryLoading": "جارٍ تحميل ملخص تسوية الجلسة..."
+      "summaryLoading": "جارٍ تحميل ملخص تسوية الجلسة...",
+      "varianceApproved": "تم اعتماد الفرق.",
+      "varianceApprovalFailed": "فشل اعتماد الفرق.",
+      "varianceSelfApprovalBlocked": "أنت من أغلق هذه الجلسة — يجب أن يعتمد الفرق مشرف آخر.",
+      "varianceAlreadyApproved": "تم اعتماد هذا الفرق مسبقًا.",
+      "varianceNotPendingApproval": "لا يوجد فرق بانتظار الاعتماد لهذه الجلسة.",
+      "varianceReasonRequired": "السبب مطلوب لاعتماد الفرق."
     }
   },
   "refunds": {
