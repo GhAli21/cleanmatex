@@ -18,6 +18,7 @@ import {
 } from '@ui/overlays';
 import { CmxButton, CmxCheckbox, CmxInput, CmxSpinner } from '@ui/primitives';
 import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
+import { useAuth } from '@/lib/auth/auth-context';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
@@ -37,6 +38,10 @@ import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PreferenceKind } from '@/lib/types/service-preferences';
 import type { OrderItemServicePref } from '@/src/features/orders/model/new-order-types';
 import type { ProcessingPiecePrefRow } from '@/lib/services/order-piece-processing-preference.service';
+import {
+  appendNotesFollowup,
+  canDeleteProcessingPref,
+} from '@/lib/utils/notes-followup';
 import { cn } from '@/lib/utils';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
@@ -68,6 +73,8 @@ export function ProcessingPiecePrefsDialog({
   const t = useTranslations('processing.simpleModal.prefsDialog');
   const getBilingual = useBilingual();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? '';
   const { formatMoneyWithCode } = useTenantCurrency();
 
   const {
@@ -161,14 +168,34 @@ export function ProcessingPiecePrefsDialog({
     enabled: open && !!orderId && !!pieceId,
   });
 
-  const invalidatePrefsCache = React.useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey });
+  const invalidatePrefsCache = React.useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
 
   const invalidatePieceChipCache = React.useCallback(async () => {
-    await invalidatePrefsCache();
+    await queryClient.invalidateQueries({ queryKey });
     await queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
-  }, [invalidatePrefsCache, orderId, queryClient]);
+  }, [orderId, queryClient, queryKey]);
+
+  const patchPrefInCache = React.useCallback(
+    (prefId: string, patch: (row: ProcessingPiecePrefRow) => ProcessingPiecePrefRow) => {
+      queryClient.setQueryData<ProcessingPiecePrefRow[]>(queryKey, (prev) => {
+        if (!prev) return prev;
+        return prev.map((row) => (row.id === prefId ? patch(row) : row));
+      });
+    },
+    [queryClient, queryKey]
+  );
+
+  const replacePrefInCache = React.useCallback(
+    (updated: ProcessingPiecePrefRow) => {
+      queryClient.setQueryData<ProcessingPiecePrefRow[]>(queryKey, (prev) => {
+        if (!prev) return [updated];
+        return prev.map((row) => (row.id === updated.id ? updated : row));
+      });
+    },
+    [queryClient, queryKey]
+  );
 
   const addMutation = useMutation({
     mutationFn: async (body: {
@@ -259,13 +286,42 @@ export function ProcessingPiecePrefsDialog({
           typeof json.error === 'string' ? json.error : t('confirmFailed')
         );
       }
-      return json;
+      return json as { success: true; data?: ProcessingPiecePrefRow };
     },
-    onSuccess: async () => {
-      await invalidatePrefsCache();
+    onMutate: async ({ prefId, processing_confirmed }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ProcessingPiecePrefRow[]>(queryKey);
+      patchPrefInCache(prefId, (row) => {
+        const nextConfirmed = processing_confirmed;
+        return {
+          ...row,
+          processing_confirmed: nextConfirmed,
+          confirmed_at: nextConfirmed ? new Date().toISOString() : null,
+          can_delete: canDeleteProcessingPref(
+            {
+              prefs_source: row.prefs_source,
+              created_by: row.created_by,
+              processing_confirmed: nextConfirmed,
+            },
+            currentUserId
+          ),
+        };
+      });
+      return { previous };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
       cmxMessage.error(err.message || t('confirmFailed'));
+    },
+    onSuccess: (json) => {
+      if (json.data) {
+        replacePrefInCache(json.data);
+      }
+    },
+    onSettled: () => {
+      invalidatePrefsCache();
     },
   });
 
@@ -286,15 +342,43 @@ export function ProcessingPiecePrefsDialog({
           typeof json.error === 'string' ? json.error : t('noteFailed')
         );
       }
-      return json;
+      return json as { success: true; data?: ProcessingPiecePrefRow };
     },
-    onSuccess: async (_json, vars) => {
-      cmxMessage.success(t('noteSuccess'));
-      setNoteDraftByPref((prev) => ({ ...prev, [vars.prefId]: '' }));
-      await invalidatePrefsCache();
+    onMutate: async ({ prefId, note_text }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ProcessingPiecePrefRow[]>(queryKey);
+      const draft = note_text.trim();
+      setNoteDraftByPref((prev) => ({ ...prev, [prefId]: '' }));
+      patchPrefInCache(prefId, (row) => ({
+        ...row,
+        notes_followup: appendNotesFollowup(row.notes_followup, {
+          note_text: draft,
+          note_source: 'ORDER_PROCESSING',
+          note_user_id: row.created_by ?? '',
+        }),
+      }));
+      return { previous, prefId, draft };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      if (context?.draft != null) {
+        setNoteDraftByPref((prev) => ({
+          ...prev,
+          [vars.prefId]: context.draft,
+        }));
+      }
       cmxMessage.error(err.message || t('noteFailed'));
+    },
+    onSuccess: (json) => {
+      cmxMessage.success(t('noteSuccess'));
+      if (json.data) {
+        replacePrefInCache(json.data);
+      }
+    },
+    onSettled: () => {
+      invalidatePrefsCache();
     },
   });
 
@@ -551,6 +635,10 @@ export function ProcessingPiecePrefsDialog({
                                 <CmxCheckbox
                                   size="sm"
                                   checked={row.processing_confirmed === true}
+                                  disabled={
+                                    confirmMutation.isPending &&
+                                    confirmMutation.variables?.prefId === row.id
+                                  }
                                   onChange={(e) => {
                                     confirmMutation.mutate({
                                       prefId: row.id,
@@ -638,7 +726,8 @@ export function ProcessingPiecePrefsDialog({
                                   type="button"
                                   size="sm"
                                   disabled={
-                                    noteMutation.isPending ||
+                                    (noteMutation.isPending &&
+                                      noteMutation.variables?.prefId === row.id) ||
                                     !(noteDraftByPref[row.id] || '').trim()
                                   }
                                   onClick={() =>
@@ -648,7 +737,8 @@ export function ProcessingPiecePrefsDialog({
                                     })
                                   }
                                 >
-                                  {noteMutation.isPending ? (
+                                  {noteMutation.isPending &&
+                                  noteMutation.variables?.prefId === row.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     t('saveNote')
