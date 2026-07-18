@@ -89,6 +89,6 @@ Rollback: revert commit
 
 **Tests:** `__tests__/services/b15-currency-tolerance-guard.test.ts` (18 — source guard over lib/services+lib/payments+lib/db, resolution contract, tolerance wiring, formatter degradation) + 3 non-OMR wallet cases added to `stored-value.service.test.ts`; targeted suites 38/38 green.
 
-**Gates (2026-07-18):** tsc clean (2 known pre-existing owner-file errors only) · eslint 0 · check:i18n ✓ · full jest + build recorded in RESUME at phase close.
+**Gates (2026-07-18, all green):** tsc clean (2 known pre-existing owner-file errors only) · eslint 0 · check:i18n ✓ · full jest **1967/1981** (the 14 failures are the same 4 known pre-existing owner suites; zero B15 fallout) · `npm run build` ✓.
 
 **Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending (non-OMR tenant fixture on staging per Rollout) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (after Preview QA)
