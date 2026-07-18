@@ -1,7 +1,7 @@
 # B33 — Pending Payment Warning Semantics
 
 ## Metadata
-Backlog ID: B33 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: NOT_STARTED
+Backlog ID: B33 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-17 (overnight continuation, after B02)** — awaiting owner commit → Preview QA → approval before VERIFIED
 Authoritative report sections: §5.1, §5.2, M9, H8, §50-B33
 Required decisions: [D001](00_Phase_0_Financial_Semantics/D001_Payment_Lifecycle_And_Status_Transitions.md), [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md), [D009](00_Phase_0_Financial_Semantics/D009_Pending_Payment_Failure_Fallback.md) (reference)
 Dependencies: [B02](B02_Shared_Financial_Aggregation.md) (impl — formula alignment); **independent of the B30 worklist — may be implemented separately**
@@ -75,4 +75,14 @@ Rollout: after B2 preferred; standalone acceptable with duplication flagged for 
 Rollback: revert commit
 
 ## Completion evidence
-Migration: — · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Migration:** none (as planned — statuses recompute on next recalc).
+
+**Implementation files (2026-07-17):**
+- `web-admin/lib/services/order-financial-write.service.ts` — `buildWarningCodes` gains the B02-module cross-check inputs `orderPaidAmount` (stored header paid BEFORE recalc) + `recomputedPaidAmount` (D005 completed-only total); `PENDING_PAYMENT_COUNTED_AS_PAID` / `AUTHORIZED_PAYMENT_COUNTED_AS_PAID` now fire ONLY when `orderPaidAmount − recomputedPaidAmount > tolerance` AND the corresponding non-completed bucket exists (the genuine leak) — by-design pending/authorized orders emit zero warnings and stay `CURRENT` through the unchanged status resolver; recalc select now reads `total_paid_amount` for the cross-check. No amount column changes.
+
+**Tests:** `__tests__/services/financial/order-financial-warning-codes.test.ts` — B33 matrix (healthy pending → CURRENT/no warnings incl. the D9-PENDING scenario; injected pending/authorized-counted-as-paid corruption still fires; excess without non-completed legs stays silent; both-bucket leak fires both) · `__tests__/services/order-financial-write.gateway-pending.test.ts` — rewritten from the superseded doc-19 rule-19/20 pin to the B33/M9 narrowed semantics (header comment documents the supersession). 43/43 green.
+
+**i18n note:** no locale keys exist for these warning codes (they render as codes in the financial-debug surface) — the "verify EN/AR label accuracy" item is N/A, checked 2026-07-17.
+
+**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** — pending (batch with B1/B2: D9-PENDING order stays CURRENT with visible pending bucket on Preview) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** —

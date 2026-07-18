@@ -128,7 +128,7 @@ Do not invent other top-level paths like `@/components` or `@/core` unless they 
 
 ### 3.1 Reusable UI → `src/ui/`
 
-- Always use Global Message Utility (`cmxMessage`) for all and any messages, errors, alerts ... so on
+- **Mandatory when applicable:** use Global Message Utility (`cmxMessage` / `useMessage()` from `@ui/feedback`) for user-facing success/error/warning/info/confirm feedback. Canonical: `docs/dev/rules/cmx-message.md`. Do not add new legacy toast helpers / `alert()`.
 
 - **Always use `tCommon` for common keys** (save, cancel, delete, edit, create, loading, error, etc.):
   ```ts

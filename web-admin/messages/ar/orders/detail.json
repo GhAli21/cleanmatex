@@ -174,9 +174,73 @@
         "GIFT_CARD_RESTORE": "استعادة بطاقة هدية",
         "WALLET_RESTORE": "استعادة المحفظة",
         "CUSTOMER_ADVANCE_RESTORE": "استعادة دفعة مقدمة",
-        "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد عميل",
-        "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن",
+        "CUSTOMER_CREDIT_RESTORE": "استعادة رصيد عميل",
+        "GOODWILL_CONCESSION": "تعويض ودّي",
+        "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد عميل (قديم)",
+        "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن (قديم)",
         "MANUAL_EXCEPTION": "استثناء يدوي"
+      },
+      "contextLabels": {
+        "STANDARD": "قياسي",
+        "PRICE_ADJUSTMENT_GOODWILL": "تعديل سعر / تعويض ودّي",
+        "CANCELLATION_UNWIND": "تسوية إلغاء الطلب",
+        "REFUND_AND_REBILL": "استرداد وإعادة فوترة",
+        "MANUAL_EXCEPTION": "استثناء يدوي"
+      },
+      "errors": {
+        "REFUND_SOURCE_LINEAGE_MISMATCH": "مصدر الاسترداد لا يطابق الدفعة أو الاعتماد الأصلي المُرسل",
+        "REFUND_IDEMPOTENCY_CONFLICT": "مفتاح الطلب هذا استُخدم سابقًا مع استرداد مختلف",
+        "REFUND_AND_REBILL_NOT_AVAILABLE": "الاسترداد مع إعادة الفوترة غير متاح بعد — يتطلب صلاحية إعادة فتح الطلب المخصصة",
+        "REFUND_CONTEXT_INVALID": "سياق الاسترداد مفقود أو غير صالح",
+        "REFUND_REOPEN_INVALID": "يجب أن يكون مبلغ إعادة الفتح بين صفر ومبلغ الاسترداد",
+        "REFUND_SELF_APPROVAL_BLOCKED": "لا يمكن اعتماد الاسترداد من قبل المستخدم الذي طلبه"
+      },
+      "initiate": {
+        "openButton": "استرداد…",
+        "title": "بدء استرداد",
+        "description": "اختر مصدر المبلغ الأصلي — يصنّف النظام الاسترداد بناءً على اختيارك. يجب أن يعتمده مستخدم آخر قبل التنفيذ.",
+        "sourceLeg": "مصدر الاسترداد",
+        "sourceLegPlaceholder": "اختر الدفعة أو الاعتماد المراد الاسترداد منه",
+        "paymentLeg": "دفعة — {code} ({remaining} {currency} قابلة للاسترداد)",
+        "creditLeg": "اعتماد — {code} ({remaining} {currency} قابلة للاستعادة)",
+        "goodwillLeg": "بدون مصدر — تعويض ودّي / تعديل سعر",
+        "goodwillHint": "الاسترداد الودّي ليس له تسوية أصلية تُعاد — السبب إلزامي ولا يصبح أي مبلغ مستحقًا من جديد.",
+        "amount": "مبلغ الاسترداد",
+        "capHint": "حتى {remaining} {currency} قابلة للاسترداد",
+        "destination": "الوجهة",
+        "destinations": {
+          "CASH": "نقدًا (تسجيل فقط)",
+          "ORIGINAL_METHOD": "طريقة الدفع الأصلية (تسجيل فقط)",
+          "WALLET": "محفظة العميل",
+          "CREDIT_NOTE": "إشعار دائن"
+        },
+        "recordOnlyHint": "تسجيل فقط — لا يتم صرف نقدي أو استدعاء بوابة دفع بعد؛ تتم التسوية الفعلية خارج النظام حاليًا.",
+        "context": "السياق",
+        "contexts": {
+          "STANDARD": "قياسي",
+          "PRICE_ADJUSTMENT_GOODWILL": "تعديل سعر / تعويض ودّي"
+        },
+        "reasonCode": "رمز السبب",
+        "reasonCodes": {
+          "DUPLICATE": "خصم مكرر",
+          "QUALITY": "مشكلة جودة",
+          "CANCELLED": "طلب ملغى",
+          "OVERCHARGE": "مبلغ زائد",
+          "OTHER": "أخرى"
+        },
+        "reasonRequired": "السبب (إلزامي)",
+        "reasonOptional": "السبب (اختياري)",
+        "cancel": "إلغاء",
+        "submit": "طلب الاسترداد",
+        "submitting": "جارٍ الطلب…",
+        "success": "تم طلب الاسترداد — بانتظار الاعتماد",
+        "errors": {
+          "submitFailed": "فشل طلب الاسترداد — يرجى المحاولة مرة أخرى",
+          "amountRequired": "أدخل مبلغ استرداد أكبر من صفر",
+          "amountExceedsLegCap": "المبلغ يتجاوز ما يمكن استرداده من المصدر المحدد",
+          "amountExceedsOverallCap": "المبلغ يتجاوز الرصيد القابل للاسترداد للطلب",
+          "reasonRequiredForGoodwill": "السبب إلزامي للاسترداد الودّي"
+        }
       },
       "reopensDueAmount": "يعيد فتح رصيد الطلب"
     },
@@ -216,6 +280,7 @@
       "verify": "التحقق",
       "applicationStatus": "حالة التطبيق",
       "sourceType": "نوع المصدر",
+      "context": "السياق",
       "reopensDue": "يعيد فتح الرصيد"
     },
     "verify": {

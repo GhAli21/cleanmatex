@@ -6685,8 +6685,17 @@ model org_order_refunds_dtl {
   refund_no                    String?
   reason_code                  String?
   idempotency_key              String?
-  refund_source_type           String                        @default("MANUAL_EXCEPTION")
+  // B01 (mig 0404): service-derived classification — the client-side
+  // MANUAL_EXCEPTION default was removed so a write path that forgets the
+  // classification fails loudly instead of silently mislabeling the refund.
+  refund_source_type           String
   reopens_due_amount           Decimal                       @default(0) @db.Decimal(19, 4)
+  // B01 (mig 0404): D002 v2 reason_context — NOT NULL, drives D003 v2 reopen rules
+  refund_context               String
+  // B01 (mig 0404): lineage promoted from metadata JSON; tenant-composite FK
+  // fk_refund_original_credit_app in DB (not modeled as a Prisma relation —
+  // repo pattern keeps composite tenant FKs as scalar + index)
+  original_credit_app_id       String?                       @db.Uuid
   created_at                   DateTime?                     @default(now()) @db.Timestamptz(6)
   created_by                   String?
   created_info                 String?
@@ -6698,14 +6707,18 @@ model org_order_refunds_dtl {
   rec_notes                    String?
   is_active                    Boolean                       @default(true)
   org_tenants_mst              org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  // FK repointed to the canonical order-payment table in migration 0283 (legacy ledger dropped by 0395; ADR-002)
-  org_order_payments_dtl       org_order_payments_dtl?       @relation("RefundOriginalPayment", fields: [original_payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_refund_original_payment")
+  // FK repointed to the canonical order-payment table in migration 0283 (legacy ledger dropped by 0395; ADR-002).
+  // B01 (mig 0404): the DB constraint is now the tenant-composite
+  // fk_refund_orig_payment_tenant (tenant_org_id, original_payment_id) —
+  // the relation stays single-column for client join ergonomics only.
+  org_order_payments_dtl       org_order_payments_dtl?       @relation("RefundOriginalPayment", fields: [original_payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_refund_orig_payment_tenant")
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst? @relation(fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_refund_idempotency")
   @@index([tenant_org_id], map: "idx_org_order_refunds_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_refunds_order")
   @@index([tenant_org_id, pos_session_id], map: "idx_ordref_possess")
+  @@index([tenant_org_id, original_credit_app_id], map: "idx_ord_refunds_credit_app")
   @@schema("public")
 }
 

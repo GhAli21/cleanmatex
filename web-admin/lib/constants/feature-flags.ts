@@ -56,6 +56,11 @@ export type FeatureFlagKey = keyof FeatureFlags;
 // ========================
 
 export const FLAG_CATALOG: FlagCatalogEntry[] = [
+  // B34 — refund back-office UI; independent + default OFF everywhere (Safety
+  // block: production activation only after B01+B02 VERIFIED). Key normalized
+  // from the spec's `order_fin.refund_ui` to catalog snake_case convention.
+  // HQ-side seeding into hq_ff_feature_flags_mst is a cleanmatexsaas follow-up.
+  { flag_key: 'order_fin_refund_ui', flag_name: 'Refund Back-office UI', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 10 },
   { flag_key: 'ai_damage_detection', flag_name: 'AI Damage Detection', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'barcode_scanning', flag_name: 'Barcode Scanning', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'image_recognition', flag_name: 'Image Recognition', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },

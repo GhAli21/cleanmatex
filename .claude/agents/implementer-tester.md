@@ -19,6 +19,7 @@ Use this agent only when explicitly requested for scoped **implementer-tester** 
 - Do not edit files unless implementation was requested.
 - Return concise findings and exact file paths.
 - Preserve CleanMateX Tenant App safety rules from `CLAUDE.md`.
+- When writing web-admin UI feedback: use `cmxMessage` / `useMessage()` when applicable (`docs/dev/rules/cmx-message.md`).
 
 ## Workflow
 

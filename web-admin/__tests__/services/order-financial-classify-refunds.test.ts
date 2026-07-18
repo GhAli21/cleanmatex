@@ -5,12 +5,15 @@ import {
 } from '@/lib/services/order-financial-write.service';
 
 /**
- * Phase 6 (ADR-030) — Refund source-lineage classification.
+ * Phase 6 (ADR-030) + B01 (D002 v2) — Refund source-lineage classification.
  *
  * classifyRefunds() routes each PROCESSED refund row into one of four buckets:
  *   • realPaymentRefundedAmount    — REAL_PAYMENT_REFUND
- *   • storedValueRestoredAmount    — GIFT_CARD_RESTORE | WALLET_RESTORE | CUSTOMER_ADVANCE_RESTORE
- *   • customerCreditIssuedAmount   — CUSTOMER_CREDIT_ISSUE | CREDIT_NOTE_ISSUE
+ *   • storedValueRestoredAmount    — GIFT_CARD_RESTORE | WALLET_RESTORE |
+ *                                    CUSTOMER_ADVANCE_RESTORE | CUSTOMER_CREDIT_RESTORE
+ *   • customerCreditIssuedAmount   — GOODWILL_CONCESSION with a CREDIT_NOTE destination,
+ *                                    plus the retired pre-0404 CUSTOMER_CREDIT_ISSUE /
+ *                                    CREDIT_NOTE_ISSUE values (read-only legacy)
  *   • hasUnclassifiedRefundSource  — MANUAL_EXCEPTION (flag only, no amount bucket)
  *
  * It also sums reopens_due_amount across every PROCESSED row regardless of source type.
@@ -67,6 +70,46 @@ describe('classifyRefunds — canonical refund_source_type path (Phase 6+)', () 
         makeRefund({ refund_amount: 15, refund_source_type: 'CUSTOMER_ADVANCE_RESTORE' }),
       ]);
       expect(result.storedValueRestoredAmount).toBe(15);
+    });
+
+    it('credits storedValueRestoredAmount for CUSTOMER_CREDIT_RESTORE (D002 v2)', () => {
+      const result = classifyRefunds([
+        makeRefund({ refund_amount: 12, refund_source_type: 'CUSTOMER_CREDIT_RESTORE' }),
+      ]);
+      expect(result.storedValueRestoredAmount).toBe(12);
+      expect(result.customerCreditIssuedAmount).toBe(0);
+    });
+  });
+
+  describe('GOODWILL_CONCESSION routing (D002 v2)', () => {
+    it('credits customerCreditIssuedAmount for a CREDIT_NOTE destination', () => {
+      const result = classifyRefunds([
+        makeRefund({
+          refund_amount: 18,
+          refund_source_type: 'GOODWILL_CONCESSION',
+          refund_method_code: 'CREDIT_NOTE',
+        }),
+      ]);
+      expect(result.customerCreditIssuedAmount).toBe(18);
+      // No prior settlement leg: net collected must be untouched.
+      expect(result.realPaymentRefundedAmount).toBe(0);
+      expect(result.storedValueRestoredAmount).toBe(0);
+      expect(result.refundedAmount).toBe(18);
+    });
+
+    it('counts a CASH goodwill payout in refundedAmount only', () => {
+      const result = classifyRefunds([
+        makeRefund({
+          refund_amount: 7,
+          refund_source_type: 'GOODWILL_CONCESSION',
+          refund_method_code: 'CASH',
+        }),
+      ]);
+      expect(result.refundedAmount).toBe(7);
+      expect(result.realPaymentRefundedAmount).toBe(0);
+      expect(result.storedValueRestoredAmount).toBe(0);
+      expect(result.customerCreditIssuedAmount).toBe(0);
+      expect(result.hasUnclassifiedRefundSource).toBe(false);
     });
   });
 

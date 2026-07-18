@@ -41,6 +41,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import {
   CREDIT_APPLICATION_STATUSES,
   CREDIT_APPLICATION_TYPES,
+  LEGACY_REFUND_SOURCE_TYPES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
@@ -55,6 +56,15 @@ import {
   toNumber,
   type CheckResult,
 } from './types';
+// B02 (D005): the shared aggregation authority — order-level balance checks
+// derive every component and the outstanding formula through it (never
+// re-derive status sets / credit filters / refund treatment locally) and
+// compare at the D005 order-level tolerance (0.001).
+import {
+  ORDER_FINANCIAL_COMPARISON_TOLERANCE,
+  aggregateOrderFinancials,
+  isCompletedPaymentStatus,
+} from '@/lib/services/order-financial-aggregation';
 
 interface PeriodWindow {
   periodFrom: Date;
@@ -129,42 +139,62 @@ export async function runOrderBalanceChecks(
   const results: CheckResult[] = [];
 
   for (const order of orders) {
-    const [payments, creditAgg, refundAgg] = await Promise.all([
+    // B02 (D005): fetch raw fact rows and derive every component through the
+    // shared aggregation authority — reconciliation verifies facts vs snapshot
+    // THROUGH the module and never re-derives its own status sets, credit
+    // filters, or refund treatment (the pre-B02 hardcoded completed-status
+    // string / any-active credits / "+ all processed refunds" drift was C2).
+    const [payments, creditRows, refundRows] = await Promise.all([
       withTenantContext(tenantOrgId, () =>
         prisma.org_order_payments_dtl.findMany({
           where: { tenant_org_id: tenantOrgId, order_id: order.id, is_active: true },
-          select: { amount: true, payment_status: true, gateway_code: true },
-        }),
-      ),
-      withTenantContext(tenantOrgId, () =>
-        prisma.org_order_credit_apps_dtl.aggregate({
-          where: { tenant_org_id: tenantOrgId, order_id: order.id, is_active: true },
-          _sum: { applied_amount: true },
-        }),
-      ),
-      withTenantContext(tenantOrgId, () =>
-        prisma.org_order_refunds_dtl.aggregate({
-          where: {
-            tenant_org_id: tenantOrgId,
-            order_id: order.id,
-            is_active: true,
-            refund_status: 'PROCESSED',
+          select: {
+            amount: true,
+            payment_status: true,
+            payment_nature_snapshot: true,
+            payment_method_code: true,
+            org_payment_method_id: true,
+            gateway_code: true,
+            gateway_reference: true,
+            tendered_amount: true,
+            check_no: true,
+            bank_reference: true,
           },
-          _sum: { refund_amount: true },
+        }),
+      ),
+      withTenantContext(tenantOrgId, () =>
+        prisma.org_order_credit_apps_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, order_id: order.id, is_active: true },
+          select: { applied_amount: true, application_status: true },
+        }),
+      ),
+      withTenantContext(tenantOrgId, () =>
+        prisma.org_order_refunds_dtl.findMany({
+          where: { tenant_org_id: tenantOrgId, order_id: order.id, is_active: true },
+          select: { refund_amount: true, refund_status: true, reopens_due_amount: true },
         }),
       ),
     ]);
 
-    const completedPaymentTotal = payments
-      .filter((row) => row.payment_status === 'COMPLETED')
-      .reduce((sum, row) => sum + toNumber(row.amount), 0);
+    const {
+      effectivePayments: completedPaymentTotal,
+      effectiveCredits: actualCredit,
+      processedRefunds,
+      outstanding: expectedOutstanding,
+    } = aggregateOrderFinancials({
+      totalAmount: toNumber(order.total_amount),
+      payments,
+      credits: creditRows,
+      refunds: refundRows,
+    });
+
     const pendingGatewayTotal = payments
-      .filter((row) => row.gateway_code && row.payment_status !== 'COMPLETED')
+      .filter((row) => row.gateway_code && !isCompletedPaymentStatus(row.payment_status))
       .reduce((sum, row) => sum + toNumber(row.amount), 0);
     const expectedPaid = toNumber(order.total_paid_amount);
     const paidDelta = completedPaymentTotal - expectedPaid;
 
-    if (Math.abs(paidDelta) >= RECONCILIATION_TOLERANCE) {
+    if (Math.abs(paidDelta) >= ORDER_FINANCIAL_COMPARISON_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.PAYMENT_TOTAL_MATCH,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
@@ -178,10 +208,9 @@ export async function runOrderBalanceChecks(
       });
     }
 
-    const actualCredit = toNumber(creditAgg._sum.applied_amount);
     const expectedCredit = toNumber(order.total_credit_applied_amount);
     const creditDelta = actualCredit - expectedCredit;
-    if (Math.abs(creditDelta) >= RECONCILIATION_TOLERANCE) {
+    if (Math.abs(creditDelta) >= ORDER_FINANCIAL_COMPARISON_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.CREDIT_APP_BALANCE,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
@@ -195,13 +224,15 @@ export async function runOrderBalanceChecks(
       });
     }
 
-    const processedRefunds = toNumber(refundAgg._sum.refund_amount);
+    // D005/D003 v2: outstanding comes from the shared module — the pre-B02
+    // "+ processedRefunds" term is gone (commercial refunds never reopen due;
+    // only explicit REFUND_AND_REBILL / MANUAL_EXCEPTION rows contribute,
+    // through the module's refundReopens component).
     const grossApplied = completedPaymentTotal + actualCredit;
-    const expectedOutstanding = Math.max(0, toNumber(order.total_amount) - grossApplied + processedRefunds);
     const actualOutstanding = toNumber(order.outstanding_amount);
     const outstandingDelta = expectedOutstanding - actualOutstanding;
 
-    if (Math.abs(outstandingDelta) >= RECONCILIATION_TOLERANCE) {
+    if (Math.abs(outstandingDelta) >= ORDER_FINANCIAL_COMPARISON_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.OUTSTANDING_TOTAL_MATCH,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
@@ -215,7 +246,7 @@ export async function runOrderBalanceChecks(
       });
     }
 
-    if (processedRefunds - grossApplied >= RECONCILIATION_TOLERANCE) {
+    if (processedRefunds - grossApplied >= ORDER_FINANCIAL_COMPARISON_TOLERANCE) {
       results.push({
         checkName: RECONCILIATION_CHECK_NAMES.REFUND_CONSISTENCY,
         severity: RECONCILIATION_SEVERITIES.BLOCKER,
@@ -318,7 +349,8 @@ export async function checkOrderPaymentLink(
       where: {
         tenant_org_id: tenantOrgId,
         created_at: { gte: window.periodFrom, lte: window.periodTo },
-        payment_status: 'COMPLETED',
+        // D005 frozen COMPLETED lifecycle set (B02 — no literal status strings)
+        payment_status: { in: [...ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED] },
         is_active: true,
         // Both backlink columns are required together — a row that has one
         // but not the other is still a wiring regression. Prisma `OR` over
@@ -1457,7 +1489,13 @@ export async function checkRefundSourceLineageClassification(
   tenantId: string,
   window: PeriodWindow,
 ): Promise<CheckResult[]> {
-  const validTypes = new Set<string>(Object.values(REFUND_SOURCE_TYPES));
+  // D002 v2 origin-only registry plus the retired pre-0404 values, which stay
+  // readable on historical rows (B01 compatibility) — only unknown values and
+  // MANUAL_EXCEPTION need finance review.
+  const validTypes = new Set<string>([
+    ...Object.values(REFUND_SOURCE_TYPES),
+    ...Object.values(LEGACY_REFUND_SOURCE_TYPES),
+  ]);
 
   const refunds = await withTenantContext(
     tenantId,

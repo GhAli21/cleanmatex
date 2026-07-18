@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-16T22:30:31.607Z",
-  "gitSha": "df03d567",
+  "generatedAt": "2026-07-17T21:40:15.744Z",
+  "gitSha": "c95dc015",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -37,7 +37,7 @@
     "planLimitUsages": 8,
     "accessContracts": 141,
     "navigationEntries": 96,
-    "flagCatalogEntries": 290
+    "flagCatalogEntries": 291
   },
   "permissionUsages": [
     {
@@ -12373,6 +12373,22 @@
     }
   ],
   "flagCatalog": [
+    {
+      "id": "flag_catalog:order_fin_refund_ui",
+      "kind": "flag_catalog_entry",
+      "flagKey": "order_fin_refund_ui",
+      "flagName": "Refund Back-office UI",
+      "planBindingType": "independent",
+      "dataType": "boolean",
+      "governanceCategory": "beta",
+      "uiGroup": "Billing Features",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
     {
       "id": "flag_catalog:ai_damage_detection",
       "kind": "flag_catalog_entry",

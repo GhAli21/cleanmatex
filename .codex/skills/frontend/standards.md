@@ -12,7 +12,7 @@ This document defines how frontend code should be written after the architecture
 - TanStack Query for interactive async client workflows.
 - React Hook Form + Zod for non-trivial forms.
 - next-intl / approved i18n helper for translations.
-- `cmxMessage` / approved message wrapper for all user-facing feedback.
+- **Mandatory:** `cmxMessage` / `useMessage()` from `@ui/feedback` for all applicable user-facing operational feedback (`docs/dev/rules/cmx-message.md`). No new legacy toast helpers.
 
 ## 2. TypeScript rules
 
@@ -197,17 +197,22 @@ Every list/table must have a meaningful empty state:
 
 ## 7. Messages and errors
 
-Use `cmxMessage` / approved wrapper for:
+**Mandatory** — use `cmxMessage` or `useMessage()` from `@ui/feedback` for:
 
 - success toasts,
 - error toasts,
 - warnings,
-- destructive confirmations,
-- permission denial,
-- validation summaries,
-- async operation feedback.
+- info / loading feedback,
+- imperative destructive confirmations (when not using `CmxConfirmDialog`),
+- permission denial toasts,
+- validation summaries shown as global feedback,
+- async operation feedback (`cmxMessage.promise`).
 
-Do not call raw `toast()` or `alert()` from feature code unless wrapped by Cmx feedback utilities.
+Canonical rule: `docs/dev/rules/cmx-message.md`.
+
+Do **not** call raw `toast()`, Sonner, `alert()`, `window.confirm`, or legacy `showSuccessToast` / `showErrorToast` / `showInfoToast` / `cmxToast` from new or edited feature code.
+
+Field-level RHF/Zod errors stay on the field. Persistent banners use `CmxSummaryMessage`. Dedicated dialog confirms use `CmxConfirmDialog`.
 
 Errors must be user-safe:
 

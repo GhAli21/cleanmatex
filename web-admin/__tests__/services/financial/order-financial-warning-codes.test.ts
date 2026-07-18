@@ -14,6 +14,8 @@ function makeInput(overrides: Partial<BuildWarningCodesInput> = {}): BuildWarnin
     recomputedTaxAmount: 10,
     orderOutstandingAmount: 0,
     recomputedOutstandingAmount: 0,
+    orderPaidAmount: 100,
+    recomputedPaidAmount: 100,
     pendingPaymentAmount: 0,
     authorizedPaymentAmount: 0,
     giftCardAppliedAmount: 0,
@@ -75,24 +77,72 @@ describe('buildWarningCodes', () => {
     });
   });
 
-  describe('PENDING_PAYMENT_COUNTED_AS_PAID', () => {
+  // B33 (M9): a by-design pending/authorized bucket is never a defect — the
+  // warning fires only when the stored header paid total exceeds the
+  // completed-only recomputation (a non-completed amount actually leaked
+  // into total_paid_amount) while such legs exist to explain the excess.
+  describe('PENDING_PAYMENT_COUNTED_AS_PAID (B33 narrowed semantics)', () => {
     it('is silent when no pending payments exist', () => {
       const result = buildWarningCodes(makeInput({ pendingPaymentAmount: 0 }));
       expect(result).not.toContain(C.PENDING_PAYMENT_COUNTED_AS_PAID);
     });
-    it('fires when a pending payment is counted toward the paid total', () => {
-      const result = buildWarningCodes(makeInput({ pendingPaymentAmount: 50 }));
+    it('stays silent for a healthy by-design pending order (D9-PENDING scenario → CURRENT)', () => {
+      const result = buildWarningCodes(makeInput({
+        pendingPaymentAmount: 50,
+        orderPaidAmount: 100,
+        recomputedPaidAmount: 100,
+      }));
+      expect(result).not.toContain(C.PENDING_PAYMENT_COUNTED_AS_PAID);
+      expect(result).toHaveLength(0); // healthy order stays CURRENT
+    });
+    it('fires when a pending amount actually leaked into the stored paid total', () => {
+      const result = buildWarningCodes(makeInput({
+        pendingPaymentAmount: 50,
+        orderPaidAmount: 150, // header includes the pending leg
+        recomputedPaidAmount: 100,
+      }));
       expect(result).toContain(C.PENDING_PAYMENT_COUNTED_AS_PAID);
+    });
+    it('stays silent when the header exceeds recomputed paid but no pending legs exist to explain it', () => {
+      const result = buildWarningCodes(makeInput({
+        pendingPaymentAmount: 0,
+        orderPaidAmount: 150,
+        recomputedPaidAmount: 100,
+      }));
+      expect(result).not.toContain(C.PENDING_PAYMENT_COUNTED_AS_PAID);
     });
   });
 
-  describe('AUTHORIZED_PAYMENT_COUNTED_AS_PAID', () => {
+  describe('AUTHORIZED_PAYMENT_COUNTED_AS_PAID (B33 narrowed semantics)', () => {
     it('is silent when no authorized payments exist', () => {
       const result = buildWarningCodes(makeInput({ authorizedPaymentAmount: 0 }));
       expect(result).not.toContain(C.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
     });
-    it('fires when an authorized-only payment is counted toward the paid total', () => {
-      const result = buildWarningCodes(makeInput({ authorizedPaymentAmount: 25 }));
+    it('stays silent for a healthy by-design authorized order', () => {
+      const result = buildWarningCodes(makeInput({
+        authorizedPaymentAmount: 25,
+        orderPaidAmount: 100,
+        recomputedPaidAmount: 100,
+      }));
+      expect(result).not.toContain(C.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
+      expect(result).toHaveLength(0);
+    });
+    it('fires when an authorized-only amount leaked into the stored paid total', () => {
+      const result = buildWarningCodes(makeInput({
+        authorizedPaymentAmount: 25,
+        orderPaidAmount: 125,
+        recomputedPaidAmount: 100,
+      }));
+      expect(result).toContain(C.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
+    });
+    it('fires both warnings when both non-completed buckets exist during a paid-total leak', () => {
+      const result = buildWarningCodes(makeInput({
+        pendingPaymentAmount: 50,
+        authorizedPaymentAmount: 25,
+        orderPaidAmount: 175,
+        recomputedPaidAmount: 100,
+      }));
+      expect(result).toContain(C.PENDING_PAYMENT_COUNTED_AS_PAID);
       expect(result).toContain(C.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
     });
   });

@@ -17,6 +17,7 @@ user-invocable: true
 7. Load locale messages on the server; consume them through `next-intl`.
 8. Run `npm run check:i18n` after translation changes.
 9. Preserve RTL behavior for Arabic surfaces.
+10. **Mandatory feedback API:** when showing user-facing success/error/warning/info/confirm feedback, resolve the i18n string first, then call `cmxMessage` or `useMessage()` from `@ui/feedback`. See `docs/dev/rules/cmx-message.md`. Do not use legacy toast helpers or `alert()` in new/edited feature code.
 
 ## Workflow Checklist
 

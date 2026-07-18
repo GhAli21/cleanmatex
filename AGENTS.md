@@ -5,8 +5,8 @@
 | Writing... | Mandatory rule |
 |---|---|
 | SQL / migration / function | Apply **Database Quick Rules** (see below) |
-| Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below) |
-| i18n / translation | Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**` |
+| Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below). **Use `cmxMessage` / `useMessage()`** for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`) |
+| i18n / translation | Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**`. Pass resolved strings into `cmxMessage` when showing feedback |
 | API route / service / backend | Use service layer, always filter by `tenant_org_id` |
 | Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
@@ -20,8 +20,8 @@
 # AGENTS.md — CleanMateX Tenant App · F:\jhapp\cleanmatex
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 22-03-2026
-**Last Update Description:** Added /storybook skill + storybook-generator agent to mandatory loading table
+**Last Update:** 18-07-2026
+**Last Update Description:** CRITICAL RULE #16 — mandatory `cmxMessage` / `useMessage()` for applicable web-admin user-facing feedback
 
 ---
 
@@ -57,6 +57,7 @@ Always:
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
 15. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
+16. **Always use `cmxMessage` when applicable** — apply `docs/dev/rules/cmx-message.md`. All web-admin user-facing success/error/warning/info/loading/confirm feedback must use `cmxMessage` or `useMessage()` from `@ui/feedback`. Do not add new legacy toast helpers (`showSuccessToast` / raw `toast()` / `alert()`). Not for field validation, `CmxSummaryMessage`, `CmxConfirmDialog`, or static i18n labels.
 
 ---
 
@@ -89,8 +90,8 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Task type | Rule to apply |
 |---|---|
 | Any SQL, migration, table, index, function | **Database Quick Rules** below |
-| Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only |
-| Any i18n key, translation, bilingual text | Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**` |
+| Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only; **`cmxMessage` / `useMessage()`** for applicable feedback |
+| Any i18n key, translation, bilingual text | Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**`; pass resolved strings into `cmxMessage` when showing feedback |
 | Any API route, service, backend logic | Service layer, tenant_org_id filter mandatory |
 | Any query touching `org_*` tables | Filter by `tenant_org_id` — NO EXCEPTIONS |
 | Any new feature implementation | Follow all CRITICAL RULES |
@@ -204,6 +205,7 @@ npm run build                      # Build (run after changes)
 - **Do NOT use raw `<button>`, `<input>`, `<select>`, `<form>`, `<dialog>`, `<table>`** in feature code — always use the Cmx wrapper.
 - **Do NOT import from `@/components/ui` or `@ui/compat`** — ESLint will fail the build.
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
+- **Mandatory feedback API:** use `cmxMessage` / `useMessage()` from `@ui/feedback` for all applicable user-facing success/error/warning/info/confirm feedback (`docs/dev/rules/cmx-message.md`). Pass i18n-resolved strings. Do not use legacy `showSuccessToast` / raw `toast()` / `alert()` in new or edited feature code.
 - Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
@@ -251,6 +253,7 @@ import { CmxSummaryMessage } from '@ui/feedback'
 import { CmxProgressIndicator } from '@ui/feedback'
 import { CmxStatusBadge } from '@ui/feedback'
 import { CmxConfirmDialog } from '@ui/feedback'
+import { cmxMessage, useMessage } from '@ui/feedback'
 
 // ── Data Display ─────────────────────────────────────────────────
 import { CmxDataTable } from '@ui/data-display'
@@ -265,9 +268,6 @@ import { CmxProgressSteps } from '@ui/navigation'
 // ── Page-level Patterns ──────────────────────────────────────────
 import { CmxCrudPageShell } from '@ui/patterns'
 import { CmxCardWithHeader } from '@ui/patterns'
-
-// ── Toast (imperative) ───────────────────────────────────────────
-import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'
 ```
 
 ### Banned Imports (ESLint will fail the build)
@@ -278,6 +278,8 @@ import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/
 ❌ import anything from '@ui/compat'                 // removed
 ❌ import anything from '@/components/ui'            // does not exist
 ❌ <button>, <input>, <select>, <form>, <dialog>     // raw HTML in feature code — use Cmx wrapper
+❌ showSuccessToast / showErrorToast / showInfoToast / cmxToast  // legacy — use cmxMessage / useMessage
+❌ alert() / window.confirm / raw toast()            // use cmxMessage
 ```
 
 ---
@@ -365,6 +367,7 @@ docs/         # All documentation
 - Reuse existing component conventions.
 - Maintain responsive behavior.
 - Preserve current i18n patterns.
+- Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`).
 - Preserve accessibility where present and improve it when directly relevant.
 - Keep UI changes visually consistent with existing screens.
 

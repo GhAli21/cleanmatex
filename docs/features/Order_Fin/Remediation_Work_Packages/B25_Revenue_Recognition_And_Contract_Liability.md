@@ -3,7 +3,7 @@
 ## Metadata
 Backlog ID: B25 · Severity: LOW→HIGH at GA · Classification: FUTURE_ENTERPRISE · Status: NOT_STARTED
 Authoritative report sections: §37, §39 target sketch, §50-B25
-Required decisions: [D012](00_Phase_0_Financial_Semantics/D012_Revenue_Recognition_Policy.md) (accounting-owner approval mandatory), [D008](00_Phase_0_Financial_Semantics/D008_Stored_Value_Funding_Treatment.md)
+Required decisions: [D012](00_Phase_0_Financial_Semantics/D012_Revenue_Recognition_Policy.md) (APPROVED (Expert) 2026-07-18 — IFRS 15 validated-completion model; the accounting-owner sign-off survives only as the implementation control for enabling an entity-specific over-time period-end adjustment), [D008](00_Phase_0_Financial_Semantics/D008_Stored_Value_Funding_Treatment.md) (APPROVED (Expert) 2026-07-18)
 Dependencies: [B06](B06_ERP_Order_To_Cash_Event_Wiring.md) (hard) · Blocks: —
 Recommended phase: Seq 13
 

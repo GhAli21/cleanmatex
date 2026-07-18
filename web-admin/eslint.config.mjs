@@ -32,6 +32,8 @@ const eslintConfig = [...nextVitals, {
     // Playwright artifacts — generated bundles inside trace viewers, never source
     "playwright-report/**",
     "test-results/**",
+    // Storybook static build output — generated bundles, gitignored, never source
+    "storybook-static/**",
   ],
 }, {
   // JSDoc — warn on production code only; noisy rules off (TypeScript is source of truth)

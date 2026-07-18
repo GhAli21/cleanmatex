@@ -5,8 +5,8 @@
 | Writing... | Load first |
 |---|---|
 | SQL / migration / function | `/database` |
-| Frontend / component / JSX | `/frontend` |
-| i18n / translation | `/i18n` |
+| Frontend / component / JSX | `/frontend` (includes mandatory `cmxMessage` when applicable) |
+| i18n / translation | `/i18n` (resolve keys; pass into `cmxMessage` for feedback) |
 | API route / service / backend | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
 | New feature | `/implementation` |
@@ -20,8 +20,8 @@
 # CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 10-07-2026
-**Last Update Description:** Added CRITICAL RULE #15 — no silent money mutation (prevent or explain, never auto-correct user-editable amounts)
+**Last Update:** 18-07-2026
+**Last Update Description:** Added CRITICAL RULE #16 — mandatory `cmxMessage` / `useMessage()` for applicable web-admin user-facing feedback
 
 ---
 
@@ -63,6 +63,7 @@ Communication style:
 13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`; `src/features/[feature name]/access/[feature name]-access.ts` ; `src/features/access/page-access-registry.ts` . See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
 15. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
+16. **Always use `cmxMessage` when applicable** — apply `docs/dev/rules/cmx-message.md`. All web-admin user-facing success/error/warning/info/loading/confirm feedback must use `cmxMessage` or `useMessage()` from `@ui/feedback`. Do not add new legacy toast helpers (`showSuccessToast` / raw `toast()` / `alert()`). Not for field validation, `CmxSummaryMessage`, `CmxConfirmDialog`, or static i18n labels.
 
 ---
 
@@ -230,7 +231,7 @@ npm run build                      # Build (run after changes)
 - **web-admin TS/UI (tsc):** Follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (discriminated unions, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod `Resolver`, Recharts `Legend` wrapper, `useState` widening, ARIA booleans)
 - **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` — `npx eslint . --quiet` in web-admin before done. See also `react-effects-patterns.md`, `react-rhf-and-table-lint.md`
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
-- Use `cmxMessages` when applicable
+- **Mandatory feedback API:** use `cmxMessage` / `useMessage()` from `@ui/feedback` for all applicable user-facing success/error/warning/info/confirm feedback (`docs/dev/rules/cmx-message.md`). Pass i18n-resolved strings. Do not use legacy `showSuccessToast` / raw `toast()` / `alert()` in new or edited feature code.
 - Add/update translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`; keep both locale trees aligned
 - Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
 - Run `npm run check:i18n` after translation changes
@@ -313,7 +314,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
@@ -360,6 +361,7 @@ docs/         # All documentation
 - Reuse existing component conventions.
 - Maintain responsive behavior.
 - Preserve current i18n patterns.
+- Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`).
 - Preserve accessibility where present and improve it when directly relevant.
 - Keep UI changes visually consistent with existing screens.
 

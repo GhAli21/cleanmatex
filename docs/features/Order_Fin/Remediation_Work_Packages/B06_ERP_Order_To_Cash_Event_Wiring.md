@@ -3,7 +3,7 @@
 ## Metadata
 Backlog ID: B6 · Severity: HIGH · Classification: CONTROL_GAP · Status: NOT_STARTED
 Authoritative report sections: H2, §12, §39, §50-B6
-Required decisions: [D007](00_Phase_0_Financial_Semantics/D007_BVM_And_ERP_Lite_Responsibilities.md), [D008](00_Phase_0_Financial_Semantics/D008_Stored_Value_Funding_Treatment.md), [D012](00_Phase_0_Financial_Semantics/D012_Revenue_Recognition_Policy.md) (partial — liability events)
+Required decisions: [D007](00_Phase_0_Financial_Semantics/D007_BVM_And_ERP_Lite_Responsibilities.md), [D008](00_Phase_0_Financial_Semantics/D008_Stored_Value_Funding_Treatment.md), [D012](00_Phase_0_Financial_Semantics/D012_Revenue_Recognition_Policy.md) — all APPROVED (Expert); B6 consumes D012's liability-event slice (recognition engine itself is B25)
 Dependencies: [B04](B04_Later_Collection_BVM_Parity.md) (impl), [B03](B03_Stored_Value_Funding_Capture.md) (impl — funding facts)
 Blocks: [B24](B24_AR_Allocation_Writeoff_And_Period_Controls.md), [B25](B25_Revenue_Recognition_And_Contract_Liability.md) (hard)
 Recommended phase: Seq 8

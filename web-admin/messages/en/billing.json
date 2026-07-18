@@ -185,6 +185,30 @@
     "title": "Refunds",
     "description": "View and manage order refunds",
     "noRefunds": "No refunds found",
+    "actions": {
+      "column": "Actions",
+      "approve": "Approve",
+      "process": "Process",
+      "selfApprovalBlocked": "You requested this refund — a different user must approve it",
+      "confirmApproveTitle": "Approve refund",
+      "confirmApproveBody": "Approve refund {refundNo} for {amount} {currency}? The refund becomes ready for processing.",
+      "confirmProcessTitle": "Process refund",
+      "confirmProcessBody": "Process refund {refundNo} for {amount} {currency}? The destination is executed and the order financials update.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "working": "Working…",
+      "approved": "Refund approved",
+      "processed": "Refund processed",
+      "failed": "The refund action failed — please retry"
+    },
+    "errors": {
+      "REFUND_SELF_APPROVAL_BLOCKED": "A refund cannot be approved by the user who requested it",
+      "REFUND_SOURCE_LINEAGE_MISMATCH": "The refund source does not match the supplied original payment or credit application",
+      "REFUND_IDEMPOTENCY_CONFLICT": "This request key was already used with a different refund",
+      "REFUND_AND_REBILL_NOT_AVAILABLE": "Refund-and-rebill is not available yet — it requires the dedicated order-reopen permission",
+      "REFUND_CONTEXT_INVALID": "The refund context is missing or invalid",
+      "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount"
+    },
     "initiateRefund": "Initiate Refund",
     "refundNo": "Refund #",
     "order": "Order",
@@ -220,9 +244,18 @@
       "GIFT_CARD_RESTORE": "Gift card balance restore",
       "WALLET_RESTORE": "Wallet balance restore",
       "CUSTOMER_ADVANCE_RESTORE": "Customer advance restore",
-      "CUSTOMER_CREDIT_ISSUE": "Customer credit issued",
-      "CREDIT_NOTE_ISSUE": "Credit note issued",
+      "CUSTOMER_CREDIT_RESTORE": "Customer credit restore",
+      "GOODWILL_CONCESSION": "Goodwill concession",
+      "CUSTOMER_CREDIT_ISSUE": "Customer credit issued (legacy)",
+      "CREDIT_NOTE_ISSUE": "Credit note issued (legacy)",
       "MANUAL_EXCEPTION": "Manual exception (unclassified)"
+    },
+    "contextLabels": {
+      "STANDARD": "Standard",
+      "PRICE_ADJUSTMENT_GOODWILL": "Price adjustment / goodwill",
+      "CANCELLATION_UNWIND": "Cancellation unwind",
+      "REFUND_AND_REBILL": "Refund and rebill",
+      "MANUAL_EXCEPTION": "Manual exception"
     },
     "reopensDueAmount": "Amount that reopens order balance"
   },

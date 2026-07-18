@@ -19,6 +19,8 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays/cmx-dialog';
 import { useMessage } from '@ui/feedback';
+import { useFeature } from '@features/auth/ui/RequireFeature';
+import { RefundInitiateDialog } from './refund-initiate-dialog';
 import type {
   OrderFinancialSummaryViewModel,
 } from '@features/orders/model/order-financial-summary-view';
@@ -62,6 +64,13 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   // hidden when the viewer lacks the right — keeps column alignment
   // stable across roles and removes the action surface for operators.
   const canVerifyPayment = useHasPermission('orders', 'verify_payment');
+  // B34: the initiate-refund action ships behind the order_fin_refund_ui flag
+  // (disabled by default in every environment — Safety block) and the
+  // existing orders:process_refund permission. Server enforcement remains
+  // authoritative; this only reveals the entry point.
+  const refundUiEnabled = useFeature('order_fin_refund_ui');
+  const canInitiateRefund = useHasPermission('orders', 'process_refund');
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const { payments, creditApplications, refunds, currencyCode, orderId } = viewModel;
   const th = `px-3 py-2 text-xs font-semibold uppercase text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`;
   const td = `px-3 py-2 text-sm ${isRTL ? 'text-right' : 'text-left'}`;
@@ -69,8 +78,13 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   return (
     <div className="space-y-6">
       <CmxCard>
-        <CmxCardHeader>
+        <CmxCardHeader className="flex-row items-center justify-between space-y-0">
           <CmxCardTitle>{t('realPaymentsTable')}</CmxCardTitle>
+          {refundUiEnabled && canInitiateRefund && (
+            <CmxButton size="sm" variant="outline" onClick={() => setRefundDialogOpen(true)}>
+              {t('refunds.initiate.openButton')}
+            </CmxButton>
+          )}
         </CmxCardHeader>
         <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
           <table className="w-full min-w-[720px] border-collapse">
@@ -196,6 +210,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                   <th className={th}>{t('col.reference')}</th>
                   <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
                   <th className={th}>{t('col.sourceType')}</th>
+                  <th className={th}>{t('col.context')}</th>
                   <th className={th}>{t('col.method')}</th>
                   <th className={th}>{t('col.reopensDue')}</th>
                   <th className={th}>{t('col.status')}</th>
@@ -218,6 +233,11 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                         ? t(`refunds.sourceTypeLabels.${r.refund_source_type}`)
                         : '—'}
                     </td>
+                    <td className={td}>
+                      {r.refund_context
+                        ? t(`refunds.contextLabels.${r.refund_context}`)
+                        : '—'}
+                    </td>
                     <td className={td}>{r.refund_method_code?.replace(/_/g, ' ') ?? '—'}</td>
                     <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
                       {r.reopens_due_amount > 0 ? (
@@ -237,6 +257,18 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
             </table>
           </CmxCardContent>
         </CmxCard>
+      )}
+
+      {refundUiEnabled && canInitiateRefund && (
+        <RefundInitiateDialog
+          orderId={orderId}
+          currencyCode={currencyCode}
+          payments={payments}
+          creditApplications={creditApplications}
+          refunds={refunds}
+          open={refundDialogOpen}
+          onOpenChange={setRefundDialogOpen}
+        />
       )}
     </div>
   );

@@ -174,9 +174,73 @@
         "GIFT_CARD_RESTORE": "Gift card restore",
         "WALLET_RESTORE": "Wallet restore",
         "CUSTOMER_ADVANCE_RESTORE": "Customer advance restore",
-        "CUSTOMER_CREDIT_ISSUE": "Customer credit issued",
-        "CREDIT_NOTE_ISSUE": "Credit note issued",
+        "CUSTOMER_CREDIT_RESTORE": "Customer credit restore",
+        "GOODWILL_CONCESSION": "Goodwill concession",
+        "CUSTOMER_CREDIT_ISSUE": "Customer credit issued (legacy)",
+        "CREDIT_NOTE_ISSUE": "Credit note issued (legacy)",
         "MANUAL_EXCEPTION": "Manual exception"
+      },
+      "contextLabels": {
+        "STANDARD": "Standard",
+        "PRICE_ADJUSTMENT_GOODWILL": "Price adjustment / goodwill",
+        "CANCELLATION_UNWIND": "Cancellation unwind",
+        "REFUND_AND_REBILL": "Refund and rebill",
+        "MANUAL_EXCEPTION": "Manual exception"
+      },
+      "errors": {
+        "REFUND_SOURCE_LINEAGE_MISMATCH": "The refund source does not match the supplied original payment or credit application",
+        "REFUND_IDEMPOTENCY_CONFLICT": "This request key was already used with a different refund",
+        "REFUND_AND_REBILL_NOT_AVAILABLE": "Refund-and-rebill is not available yet — it requires the dedicated order-reopen permission",
+        "REFUND_CONTEXT_INVALID": "The refund context is missing or invalid",
+        "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount",
+        "REFUND_SELF_APPROVAL_BLOCKED": "A refund cannot be approved by the user who requested it"
+      },
+      "initiate": {
+        "openButton": "Refund…",
+        "title": "Initiate refund",
+        "description": "Pick the source the money came from — the system classifies the refund from your selection. A second user must approve before processing.",
+        "sourceLeg": "Refund source",
+        "sourceLegPlaceholder": "Select the payment or credit to refund from",
+        "paymentLeg": "Payment — {code} ({remaining} {currency} refundable)",
+        "creditLeg": "Credit — {code} ({remaining} {currency} restorable)",
+        "goodwillLeg": "No source — goodwill / price concession",
+        "goodwillHint": "Goodwill refunds have no original settlement to return — a reason is required and nothing becomes collectible again.",
+        "amount": "Refund amount",
+        "capHint": "Up to {remaining} {currency} refundable",
+        "destination": "Destination",
+        "destinations": {
+          "CASH": "Cash (record-only)",
+          "ORIGINAL_METHOD": "Original method (record-only)",
+          "WALLET": "Customer wallet",
+          "CREDIT_NOTE": "Credit note"
+        },
+        "recordOnlyHint": "Recorded only — no drawer payout or gateway call happens yet; physical settlement is handled outside the system for now.",
+        "context": "Context",
+        "contexts": {
+          "STANDARD": "Standard",
+          "PRICE_ADJUSTMENT_GOODWILL": "Price adjustment / goodwill"
+        },
+        "reasonCode": "Reason code",
+        "reasonCodes": {
+          "DUPLICATE": "Duplicate charge",
+          "QUALITY": "Quality issue",
+          "CANCELLED": "Order cancelled",
+          "OVERCHARGE": "Overcharge",
+          "OTHER": "Other"
+        },
+        "reasonRequired": "Reason (required)",
+        "reasonOptional": "Reason (optional)",
+        "cancel": "Cancel",
+        "submit": "Request refund",
+        "submitting": "Requesting…",
+        "success": "Refund requested — awaiting approval",
+        "errors": {
+          "submitFailed": "The refund request failed — please retry",
+          "amountRequired": "Enter a refund amount greater than zero",
+          "amountExceedsLegCap": "The amount exceeds what is still refundable from the selected source",
+          "amountExceedsOverallCap": "The amount exceeds the order's refundable balance",
+          "reasonRequiredForGoodwill": "A reason is required for a goodwill refund"
+        }
       },
       "reopensDueAmount": "Reopens balance"
     },
@@ -216,6 +280,7 @@
       "verify": "Verify",
       "applicationStatus": "Application status",
       "sourceType": "Source type",
+      "context": "Context",
       "reopensDue": "Reopens balance"
     },
     "verify": {

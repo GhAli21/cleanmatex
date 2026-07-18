@@ -4,10 +4,10 @@ Unified API for displaying messages across the application with support for mult
 
 ## Current Authority Note
 
-This file remains useful, but current message-system guidance is:
+**Mandatory project rule:** use `cmxMessage` / `useMessage()` for all applicable web-admin user-facing operational feedback. Canonical: `docs/dev/rules/cmx-message.md` · Cursor: `.cursor/rules/cmx-message.mdc`.
 
-- prefer `cmxMessage` and `useMessage`
-- treat older toast-only helpers as legacy
+- use `cmxMessage` and `useMessage` for success/error/warning/info/loading/confirm feedback
+- treat older toast-only helpers (`showSuccessToast`, etc.) as legacy — do not add new call sites
 - use `../README.md`, `../../README.md`, and project-level rules as the higher authority when guidance conflicts
 
 ## Quick Start

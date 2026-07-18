@@ -109,7 +109,7 @@ Async action flow:
 
 1. User starts action.
 2. Control enters loading/disabled state.
-3. Result is shown through `cmxMessage` or inline feedback.
+3. Result is shown through **`cmxMessage` / `useMessage()`** (mandatory when applicable) or intentional inline UI (`CmxSummaryMessage` / field errors). See `docs/dev/rules/cmx-message.md`.
 4. UI refreshes or invalidates relevant data.
 5. User can recover from failure.
 

@@ -7,7 +7,7 @@ author: CleanMateX Team
 # Error Handling Patterns
 
 **CRITICAL**: Always handle errors gracefully and provide meaningful error messages to users and developers.
-**CRITICAL**: in frontend UI Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on
+**CRITICAL (mandatory when applicable):** in frontend UI always use Global Message Utility (`cmxMessage` or `useMessage()` from `@ui/feedback`) for user-facing success/error/warning/info/confirm feedback. Canonical: `docs/dev/rules/cmx-message.md`. Do not add new legacy toast helpers.
 ---
 
 ## Error Types

@@ -185,6 +185,30 @@
     "title": "المستردات",
     "description": "عرض وإدارة مستردات الطلبات",
     "noRefunds": "لا توجد مستردات",
+    "actions": {
+      "column": "إجراءات",
+      "approve": "اعتماد",
+      "process": "تنفيذ",
+      "selfApprovalBlocked": "أنت من طلب هذا الاسترداد — يجب أن يعتمده مستخدم آخر",
+      "confirmApproveTitle": "اعتماد الاسترداد",
+      "confirmApproveBody": "هل تريد اعتماد الاسترداد {refundNo} بمبلغ {amount} {currency}؟ سيصبح الاسترداد جاهزًا للتنفيذ.",
+      "confirmProcessTitle": "تنفيذ الاسترداد",
+      "confirmProcessBody": "هل تريد تنفيذ الاسترداد {refundNo} بمبلغ {amount} {currency}؟ سيتم تنفيذ وجهة الاسترداد وتحديث ماليات الطلب.",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "working": "جارٍ التنفيذ…",
+      "approved": "تم اعتماد الاسترداد",
+      "processed": "تم تنفيذ الاسترداد",
+      "failed": "فشل إجراء الاسترداد — يرجى المحاولة مرة أخرى"
+    },
+    "errors": {
+      "REFUND_SELF_APPROVAL_BLOCKED": "لا يمكن اعتماد الاسترداد من قبل المستخدم الذي طلبه",
+      "REFUND_SOURCE_LINEAGE_MISMATCH": "مصدر الاسترداد لا يطابق الدفعة أو الاعتماد الأصلي المُرسل",
+      "REFUND_IDEMPOTENCY_CONFLICT": "مفتاح الطلب هذا استُخدم سابقًا مع استرداد مختلف",
+      "REFUND_AND_REBILL_NOT_AVAILABLE": "الاسترداد مع إعادة الفوترة غير متاح بعد — يتطلب صلاحية إعادة فتح الطلب المخصصة",
+      "REFUND_CONTEXT_INVALID": "سياق الاسترداد مفقود أو غير صالح",
+      "REFUND_REOPEN_INVALID": "يجب أن يكون مبلغ إعادة الفتح بين صفر ومبلغ الاسترداد"
+    },
     "initiateRefund": "بدء استرداد",
     "refundNo": "رقم الاسترداد #",
     "order": "الطلب",
@@ -220,9 +244,18 @@
       "GIFT_CARD_RESTORE": "استعادة رصيد بطاقة الهدايا",
       "WALLET_RESTORE": "استعادة رصيد المحفظة",
       "CUSTOMER_ADVANCE_RESTORE": "استعادة سلفة العميل",
-      "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد للعميل",
-      "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن",
+      "CUSTOMER_CREDIT_RESTORE": "استعادة رصيد عميل",
+      "GOODWILL_CONCESSION": "تعويض ودّي",
+      "CUSTOMER_CREDIT_ISSUE": "إصدار رصيد للعميل (قديم)",
+      "CREDIT_NOTE_ISSUE": "إصدار إشعار دائن (قديم)",
       "MANUAL_EXCEPTION": "استثناء يدوي (غير مصنّف)"
+    },
+    "contextLabels": {
+      "STANDARD": "قياسي",
+      "PRICE_ADJUSTMENT_GOODWILL": "تعديل سعر / تعويض ودّي",
+      "CANCELLATION_UNWIND": "تسوية إلغاء الطلب",
+      "REFUND_AND_REBILL": "استرداد وإعادة فوترة",
+      "MANUAL_EXCEPTION": "استثناء يدوي"
     },
     "reopensDueAmount": "المبلغ الذي يعيد فتح رصيد الطلب"
   },

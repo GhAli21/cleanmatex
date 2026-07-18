@@ -17,6 +17,7 @@ user-invocable: true
 7. Load locale messages on the server; consume them through `next-intl`.
 8. Run `npm run check:i18n` after translation changes.
 9. Preserve RTL behavior for Arabic surfaces.
+10. **Mandatory feedback API:** when showing user-facing success/error/warning/info/confirm feedback, resolve the i18n string first, then call `cmxMessage` or `useMessage()` from `@ui/feedback`. See `docs/dev/rules/cmx-message.md`. Do not use legacy toast helpers or `alert()` in new/edited feature code.
 
 ## Workflow Checklist
 
@@ -53,10 +54,20 @@ Rules:
 
 ```typescript
 import { useTranslations } from 'next-intl'
+import { cmxMessage } from '@ui/feedback'
 
 const tCommon = useTranslations('common')
 const tOrders = useTranslations('orders')
+
+cmxMessage.success(tOrders('messages.saved'))
+cmxMessage.error(tCommon('error'))
 ```
+
+## User-facing feedback
+
+- Labels/headings/buttons: i18n keys only (no toast).
+- Operational feedback (save/delete/API result/permission denial toast): **`cmxMessage` / `useMessage()`** with an already-translated string.
+- Field validation stays under the form field; persistent banners use `CmxSummaryMessage`; dedicated confirms use `CmxConfirmDialog` when that is the UX.
 
 ## ICU And Placeholder Rules
 

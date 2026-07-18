@@ -66,7 +66,14 @@ export interface FeatureFlags {
   api_access: boolean;
   */
   // added by jehad
-  
+
+    /**
+     * B34 — Refund back-office UI (initiate/approve/process screens).
+     * Disabled by default in EVERY environment; production activation is
+     * gated on B01+B02 VERIFIED per the B34 Safety block (cash/original-method
+     * additionally on B09). HQ catalog seeding is a cleanmatexsaas follow-up.
+     */
+    order_fin_refund_ui: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

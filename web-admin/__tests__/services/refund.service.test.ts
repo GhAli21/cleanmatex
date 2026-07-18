@@ -76,16 +76,26 @@ const makeRefundRecord = (status = 'PENDING_APPROVAL') => ({
   refund_amount: new Decimal('30'),
   refund_method_code: 'CASH',
   currency_code: 'OMR',
+  refund_source_type: 'GOODWILL_CONCESSION',
+  refund_context: 'STANDARD',
+  original_payment_id: null,
+  original_credit_app_id: null,
+  reopens_due_amount: new Decimal('0'),
   metadata: {},
 });
 
+// B01: refundContext + idempotencyKey are mandatory; no lineage + a reason
+// note derives GOODWILL_CONCESSION (D002 v2).
 const baseParams = {
   orderId: ORDER,
   amount: 30,
   reason: 'QUALITY' as const,
   method: 'CASH' as const,
+  refundContext: 'STANDARD' as const,
+  notes: 'goodwill test reason',
   requestedBy: REQUESTER,
   currencyCode: 'OMR',
+  idempotencyKey: 'idem-base',
 };
 
 function installTxMock() {
@@ -141,6 +151,10 @@ describe('order-refund.service — initiateRefund', () => {
           refund_amount: 30,
           tenant_org_id: TENANT,
           reason_code: 'QUALITY',
+          // B01: the service is the only classifier — no lineage + reason
+          // note derives GOODWILL_CONCESSION; context is stamped verbatim.
+          refund_source_type: 'GOODWILL_CONCESSION',
+          refund_context: 'STANDARD',
         }),
       })
     );
@@ -195,6 +209,31 @@ describe('order-refund.service — approveRefund', () => {
     mockRefundFindFirstOrThrow.mockRejectedValue(new Error('No refund found'));
 
     await expect(approveRefund(TENANT, REFUND, APPROVER)).rejects.toThrow();
+  });
+
+  it('blocks self-approval (B34 maker≠checker) with the typed 403 code', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue({
+      ...makeRefundRecord('PENDING_APPROVAL'),
+      created_by: APPROVER, // approver is the requester
+    });
+
+    await expect(approveRefund(TENANT, REFUND, APPROVER)).rejects.toMatchObject({
+      code: 'REFUND_SELF_APPROVAL_BLOCKED',
+      httpStatus: 403,
+    });
+    expect(mockRefundUpdate).not.toHaveBeenCalled();
+  });
+
+  it('allows a different user to approve (maker≠checker satisfied)', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue({
+      ...makeRefundRecord('PENDING_APPROVAL'),
+      created_by: REQUESTER,
+    });
+    mockRefundUpdate.mockResolvedValue({ ...makeRefundRecord('APPROVED') });
+
+    await expect(approveRefund(TENANT, REFUND, APPROVER)).resolves.toMatchObject({
+      refund_status: 'APPROVED',
+    });
   });
 });
 
@@ -273,9 +312,30 @@ describe('order-refund.service — processRefund concurrency + idempotency (F-R2
     await processRefund(TENANT, REFUND, APPROVER);
 
     expect(mockQueryRaw).toHaveBeenCalledTimes(1); // lock acquired before issuing
+    // B01 §12: the wallet destination now carries its own idempotency key
+    // (defense-in-depth beside the FOR UPDATE lock).
     expect(mockTopUpWalletTx).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ tenantId: TENANT, amount: 30 })
+      expect.objectContaining({
+        tenantId: TENANT,
+        amount: 30,
+        idempotencyKey: `refund-${REFUND}-wallet`,
+      })
+    );
+  });
+
+  it('writes reopens_due_amount = 0 for a STANDARD commercial refund (D003 v2)', async () => {
+    mockRefundFindFirstOrThrow.mockResolvedValue(makeRefundRecord('APPROVED'));
+
+    await processRefund(TENANT, REFUND, APPROVER);
+
+    expect(mockRefundUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          refund_status: 'PROCESSED',
+          reopens_due_amount: 0,
+        }),
+      })
     );
   });
 });

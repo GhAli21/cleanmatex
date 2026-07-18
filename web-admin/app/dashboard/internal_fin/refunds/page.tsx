@@ -3,10 +3,16 @@
  *
  * Tenant-wide list of all refunds across all orders.
  * Route: /dashboard/internal_fin/refunds
+ *
+ * B34: the hub is actionable (approve/process) behind the
+ * `order_fin_refund_ui` feature flag — disabled by default in every
+ * environment; production activation gated per the B34 Safety block.
  */
 
 import { getTranslations } from 'next-intl/server';
 import { getAllRefunds } from '@/app/actions/billing/refund-actions';
+import { getAuthContext } from '@/lib/auth/server-auth';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import RefundsListClient from '@features/billing/ui/refunds-list-client';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { BILLING_INTERNAL_FIN_REFUNDS_ACCESS } from '@features/billing/access/billing-access'
@@ -28,7 +34,11 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
     ? Number(resolved.page)
     : 1;
 
-  const result = await getAllRefunds(page, 20);
+  const [result, actionsEnabled, auth] = await Promise.all([
+    getAllRefunds(page, 20),
+    currentTenantCan('order_fin_refund_ui').catch(() => false),
+    getAuthContext().catch(() => null),
+  ]);
 
   if (!result.success) {
     return (
@@ -58,6 +68,8 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
       <RefundsListClient
         refunds={items}
         pagination={{ page, pageSize, total }}
+        actionsEnabled={actionsEnabled}
+        currentUserId={auth?.userId ?? null}
       />
     </div>
   );

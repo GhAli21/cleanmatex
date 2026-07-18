@@ -27,6 +27,12 @@
 
 - Translation keys, bilingual fields, RTL checks, locale currency/date
 
+**User-facing feedback (web-admin)**
+
+- Applicable success/error/warning/info/confirm uses `cmxMessage` / `useMessage()`
+- No new legacy `showSuccessToast` / raw `toast()` / `alert()` in changed feature code
+- See `docs/dev/rules/cmx-message.md`
+
 **Docs**
 
 - API docs, comments, migration notes, README/CHANGELOG

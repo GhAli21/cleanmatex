@@ -6,7 +6,7 @@ Severity: CRITICAL
 Classification: BLOCKS_PRODUCTION
 Status: **IN_IMPLEMENTATION** — D002, D003, D004, D005, D010 APPROVED (Expert) 2026-07-16 (v2 semantics below are binding). **B01 is the named next package under the owner continuation directive recorded 2026-07-17 in [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md).** Migration `0404_b01_refund_lineage_and_context.sql` authored 2026-07-17 — **STOP-AND-WAIT: owner applies it before the service/tests phases continue.** See §1a for the verified actual-DB state corrections discovered at migration authoring.
 Authoritative report sections: C1, §8 / §8.1 / §8.2, §13, §21, §34, §50-B1
-Required decisions: [D002](00_Phase_0_Financial_Semantics/D002_Refund_Source_Classification.md) · [D003](00_Phase_0_Financial_Semantics/D003_Refund_Reopen_Due_Rules.md) · [D004](00_Phase_0_Financial_Semantics/D004_Refund_Vs_Reversal_Vs_Void.md) · [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md) · [D010](00_Phase_0_Financial_Semantics/D010_Financial_Idempotency_And_Lineage.md) — [D007](00_Phase_0_Financial_Semantics/D007_BVM_And_ERP_Lite_Responsibilities.md) referenced for boundary clarity only (no approval needed unless B1 scope grows into BVM/GL execution)
+Required decisions: [D002](00_Phase_0_Financial_Semantics/D002_Refund_Source_Classification.md) · [D003](00_Phase_0_Financial_Semantics/D003_Refund_Reopen_Due_Rules.md) · [D004](00_Phase_0_Financial_Semantics/D004_Refund_Vs_Reversal_Vs_Void.md) · [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md) · [D010](00_Phase_0_Financial_Semantics/D010_Financial_Idempotency_And_Lineage.md) — [D007](00_Phase_0_Financial_Semantics/D007_BVM_And_ERP_Lite_Responsibilities.md) referenced for boundary clarity (now APPROVED (Expert) 2026-07-18; B1's record-only execution boundary conforms)
 Dependencies: none (first implementation package); [B27](B27_Financial_Permissions_And_Approvals.md) supplies the order-reopen/rebill permission code — until it ships, the API rejects REFUND_AND_REBILL (see §13)
 Blocks: B2 (hard — consumes B1 facts), B9 (hard — classification input), B28 (test)
 Recommended phase: Seq 1 (first implementation wave)
@@ -241,9 +241,9 @@ Categories covered: unit, integration, database (constraints incl. conditional C
 
 1. Decision approvals (D002/D003/D004/D005/D010 — APPROVED (Expert), v2) recorded in Phase 0 index.
 2. This file revised to the v2 semantics → status `READY_FOR_IMPLEMENTATION`; **implementation starts only on an explicit owner instruction naming B01**.
-3. Migration prepared (additive; **stop-and-wait for owner application per project rule**). ✅ DONE 2026-07-17 — `supabase/migrations/0404_b01_refund_lineage_and_context.sql` (columns incl. `refund_context` NOT NULL + defensive copy-only backfill + composite FKs + **unconditional** v2 CHECKs + status-CHECK defect fix; empty-table premise per §1a, no cutover). **Awaiting owner apply.**
-4. Service implementation (initiate classification + context, process reopen per D003 v2, wallet destination key, API required key + reason_context, constants v2 alignment).
-5. Test matrix implemented; full jest + build gates green.
+3. Migration prepared (additive; **stop-and-wait for owner application per project rule**). ✅ DONE 2026-07-17 — `supabase/migrations/0404_b01_refund_lineage_and_context.sql` (columns incl. `refund_context` NOT NULL + defensive copy-only backfill + composite FKs + **unconditional** v2 CHECKs + status-CHECK defect fix; empty-table premise per §1a, no cutover). ✅ **Applied by owner 2026-07-17** (verified live: all v2 constraints + composite FKs present).
+4. Service implementation (initiate classification + context, process reopen per D003 v2, wallet destination key, API required key + reason_context, constants v2 alignment). ✅ DONE 2026-07-17 — see Completion evidence for the file list; also `topUpWalletTx` gained skip-on-existing `idempotencyKey` support (B01 §12), and the read-only Financial-tab refunds table gained the context column with EN/AR labels.
+5. Test matrix implemented; full jest + build gates green. ✅ DONE 2026-07-17 — `refund-b01-matrix.test.ts` (31 tests, §14 scenarios 1–18 incl. helper units) + updated refund/classify/integration suites; gate results recorded in Completion evidence.
 6. Compatibility mode verified on staging data (legacy rows unaffected).
 7. Data verification: sample refunds across all sources reconcile to §7 expectations.
 8. Commit → Preview deployment → QA executes §14 checklist on Preview → owner approval recorded → production promotion (owner release rule) · Rollback = revert service write path; columns/checks are additive and inert.
@@ -304,4 +304,26 @@ Required decision gates: D002, D003, D004, D005, D010 APPROVED (Expert) — reco
 Required verification gates: §14 test matrix fully green; staging legacy-row compatibility check passed; Preview QA approval recorded
 
 ## Completion evidence
-Migration: `0404_b01_refund_lineage_and_context.sql` (authored 2026-07-17; **not yet applied — owner apply pending**) · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Migration:** `supabase/migrations/0404_b01_refund_lineage_and_context.sql` — authored + applied by owner 2026-07-17 (live-verified: `chk_refund_source_type_v2`, `chk_refund_context_v2`, `chk_refund_reopen_context_v2`, `chk_refund_lineage_v2`, widened `chk_org_order_refunds_status`, `fk_refund_original_credit_app`, `fk_refund_orig_payment_tenant`).
+
+**Implementation files (2026-07-17):**
+- `web-admin/lib/constants/order-financial.ts` — REFUND_SOURCE_TYPES v2 (origin-only), LEGACY_REFUND_SOURCE_TYPES, REFUND_CONTEXTS, REFUND_ERROR_CODES
+- `web-admin/lib/types/order-financial.ts` — type re-exports
+- `web-admin/prisma/schema.prisma` — new columns mirrored; client-side `MANUAL_EXCEPTION` default removed; cap index; FK map updated
+- `web-admin/lib/services/order-refund.service.ts` — service-derived classification (lineage XOR, source↔lineage match, GOODWILL derivation, manual-exception rules), `refund_context` stamped at INSERT, D003 v2 reopen written once at process (`resolveReopensDueAmount`), column-based per-credit-app caps + process-time cap re-checks, payload-conflict idempotency (409), REFUND_AND_REBILL rejection until B27 (`rebillAuthorized` internal hook), wallet destination key `refund-${refundId}-wallet`, `RefundValidationError` + `mapCreditTypeToRefundSource` exported
+- `web-admin/lib/services/order-financial-write.service.ts` — `classifyRefunds` v2 (CUSTOMER_CREDIT_RESTORE → stored-value bucket; GOODWILL+CN → customer-credit-issued; legacy values read-only)
+- `web-admin/lib/services/stored-value.service.ts` — `topUpWalletTx` idempotencyKey skip-on-existing
+- `web-admin/lib/services/order-cancel-financials.service.ts` — passes `CANCELLATION_UNWIND`
+- `web-admin/lib/services/order-financial-summary.service.ts` — `OrderRefundRow` + serializer expose `refund_context` / `original_credit_app_id`
+- `web-admin/app/api/v1/orders/[id]/refund/route.ts`, `.../refunds/route.ts` — required `idempotencyKey` + `refundContext`; REFUND_AND_REBILL → 403 with code; manual-exception permission on scope OR context; typed error-code mapping
+- `web-admin/app/actions/billing/refund-actions.ts` — serializers expose the five-facet facts
+- `web-admin/src/features/orders/ui/order-financial/order-payments-credits-tables.tsx` — read-only context column
+- `web-admin/messages/{en,ar}/orders/detail.json`, `{en,ar}/billing.json` — v2 source labels (legacy marked), context labels, error-code labels
+- `web-admin/eslint.config.mjs` — ignore generated `storybook-static/**` (environment fix so the repo lint gate is meaningful)
+
+**Tests:** `web-admin/__tests__/services/refund-b01-matrix.test.ts` (new — 31 tests covering §14 scenarios 1–18 + D002-map/D003-reopen helper units) · updated: `refund.service.test.ts`, `integration/refund-flow.test.ts`, `order-financial-classify-refunds.test.ts` (v2 buckets + goodwill routing). All refund suites green (70 tests).
+
+**Gates (2026-07-17):** `npx eslint . --quiet` ✅ 0 problems (after excluding generated storybook-static) · `npm run check:i18n` ✅ · `npx tsc --noEmit` — B01 files clean; 2 pre-existing errors remain in owner-committed keypad/split-tender files (untouched by B01, listed in Risks) · full jest: 1898/1912 pass — all 14 failures are pre-existing in owner-committed POS/cash-drawer/promo suites whose service code B01 never touched (`cash-drawer.service`, `cash-drawer-close-preview`, `order-calculation.service` [mock missing new `evaluateBestAutoApplyPromo`], `credit-note-picker-focus`) · `npm run build` ✅ (exit 0, 2026-07-17).
+
+**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** — pending · **Reviewer:** — · **Verification:** — (VERIFIED requires Preview QA approval per §16) · **Authoritative report update:** —

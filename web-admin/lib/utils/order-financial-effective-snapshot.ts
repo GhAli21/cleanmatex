@@ -1,10 +1,20 @@
 import {
   CREDIT_APPLICATION_STATUSES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
-  REFUND_METHODS,
   SETTLEMENT_TYPE_CODES,
   isArReceivablePaymentTypeCode,
 } from '@/lib/constants/order-financial';
+// B02 (D005): every payment/credit/refund component in the read fallback comes
+// from the shared aggregation authority — this util must not re-derive status
+// sets, nature filters, refund classification, or the outstanding formula.
+import {
+  classifyRefunds,
+  computeOutstanding,
+  sumCreditsByStatuses,
+  sumPaymentsByStatuses,
+  sumRefundReopens,
+  type RefundFactRow,
+} from '@/lib/services/order-financial-aggregation';
 
 const TOLERANCE = 0.0001;
 
@@ -95,6 +105,10 @@ export interface EffectiveOrderFinancialSnapshotInput {
     refund_status: string | null;
     refund_method_code: string | null;
     original_payment_id: string | null;
+    /** B01 five-facet facts — optional so pre-B01 callers/tests stay valid. */
+    refund_source_type?: string | null;
+    reopens_due_amount?: number | null;
+    metadata?: unknown;
   }>;
 }
 
@@ -127,68 +141,22 @@ export function buildEffectiveOrderFinancialSnapshot(
     return 0;
   };
 
-  const isClearlyRealPaymentRow = (row: EffectiveOrderFinancialSnapshotInput['payments'][number]): boolean => {
-    const paymentNature = normalizeUpper(row.payment_nature_snapshot);
-    if (paymentNature === 'REAL_PAYMENT') return true;
-    if (paymentNature) return false;
+  // D005 aggregation authority (B02): the input rows structurally satisfy the
+  // module's row types; refund facts map through RefundFactRow so the read
+  // fallback classifies exactly like the snapshot writer (column-first, same
+  // legacy heuristic).
+  const refundFactRows: RefundFactRow[] = input.refunds.map((row) => ({
+    refund_amount: row.refund_amount,
+    refund_status: row.refund_status,
+    refund_method_code: row.refund_method_code,
+    original_payment_id: row.original_payment_id,
+    refund_source_type: row.refund_source_type ?? null,
+    reopens_due_amount: row.reopens_due_amount ?? 0,
+    metadata: (row.metadata ?? {}) as RefundFactRow['metadata'],
+  }));
 
-    return Boolean(
-      row.payment_method_code?.trim()
-      || row.gateway_code?.trim()
-      || row.gateway_reference?.trim()
-      || row.branch_payment_method_id?.trim(),
-    );
-  };
-
-  const sumPaymentStatusAmount = (allowedStatuses: readonly string[]): number => {
-    const allowed = new Set(allowedStatuses);
-
-    return input.payments.reduce((sum, row) => {
-      if (!allowed.has(normalizeUpper(row.payment_status))) return sum;
-      if (!isClearlyRealPaymentRow(row)) return sum;
-      return sum + Number(row.amount ?? 0);
-    }, 0);
-  };
-
-  const classifyRefunds = () => {
-    let refundedAmount = 0;
-    let realPaymentRefundedAmount = 0;
-    let storedValueRestoredAmount = 0;
-    let customerCreditIssuedAmount = 0;
-
-    for (const refund of input.refunds) {
-      if (normalizeUpper(refund.refund_status) !== 'PROCESSED') continue;
-
-      const amount = Number(refund.refund_amount ?? 0);
-      const method = normalizeUpper(refund.refund_method_code);
-      refundedAmount += amount;
-
-      if (
-        method === REFUND_METHODS.CASH
-        || method === REFUND_METHODS.ORIGINAL_METHOD
-        || Boolean(refund.original_payment_id)
-      ) {
-        realPaymentRefundedAmount += amount;
-        continue;
-      }
-
-      if (method === REFUND_METHODS.WALLET) {
-        storedValueRestoredAmount += amount;
-        continue;
-      }
-
-      if (method === REFUND_METHODS.CREDIT_NOTE) {
-        customerCreditIssuedAmount += amount;
-      }
-    }
-
-    return {
-      refundedAmount,
-      realPaymentRefundedAmount,
-      storedValueRestoredAmount,
-      customerCreditIssuedAmount,
-    };
-  };
+  const sumPaymentStatusAmount = (allowedStatuses: readonly string[]): number =>
+    sumPaymentsByStatuses(input.payments, allowedStatuses);
 
   const serviceChargeFromRows = input.charges
     .filter((row) => ['SERVICE', 'SERVICE_CHARGE'].includes(normalizeUpper(row.charge_type)))
@@ -255,26 +223,21 @@ export function buildEffectiveOrderFinancialSnapshot(
   const pendingPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
   const authorizedPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED);
   const failedPaymentFromRows = sumPaymentStatusAmount(ORDER_PAYMENT_LIFECYCLE_STATUSES.FAILED);
-  const sumCreditApplicationAmount = (allowedStatuses: readonly string[]): number => {
-    const allowed = new Set(allowedStatuses);
-    return input.creditApplications.reduce((sum, row) => {
-      const status = normalizeUpper(row.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
-      if (!allowed.has(status)) return sum;
-      return sum + Number(row.applied_amount ?? 0);
-    }, 0);
-  };
-  const totalCreditAppliedFromRows = sumCreditApplicationAmount([CREDIT_APPLICATION_STATUSES.APPLIED]);
-  const pendingCreditApplicationFromRows = sumCreditApplicationAmount([
+  const totalCreditAppliedFromRows = sumCreditsByStatuses(
+    input.creditApplications,
+    [CREDIT_APPLICATION_STATUSES.APPLIED],
+  );
+  const pendingCreditApplicationFromRows = sumCreditsByStatuses(input.creditApplications, [
     CREDIT_APPLICATION_STATUSES.PENDING,
     CREDIT_APPLICATION_STATUSES.RESERVED,
     CREDIT_APPLICATION_STATUSES.PROCESSING,
   ]);
-  const failedCreditApplicationFromRows = sumCreditApplicationAmount([
+  const failedCreditApplicationFromRows = sumCreditsByStatuses(input.creditApplications, [
     CREDIT_APPLICATION_STATUSES.FAILED,
     CREDIT_APPLICATION_STATUSES.CANCELLED,
     CREDIT_APPLICATION_STATUSES.EXPIRED,
   ]);
-  const refundAmounts = classifyRefunds();
+  const refundAmounts = classifyRefunds(refundFactRows);
 
   const totalPaidAmount = preferStored(input.snapshot.totalPaidAmount, totalPaidFromRows);
   const pendingPaymentAmount = preferStored(input.snapshot.pendingPaymentAmount, pendingPaymentFromRows);
@@ -309,9 +272,17 @@ export function buildEffectiveOrderFinancialSnapshot(
     input.snapshot.netCollectedAmount,
     Math.max(0, totalPaidAmount - realPaymentRefundedAmount),
   );
+  // D005 formula via the shared module — includes the refundReopens term the
+  // pre-B02 fallback silently dropped (explicit rebill/manual-exception rows).
   const outstandingAmount = preferStored(
     input.snapshot.outstandingAmount,
-    Math.max(0, totalAmount - totalPaidAmount - totalCreditAppliedAmount),
+    computeOutstanding({
+      totalAmount,
+      effectivePayments: totalPaidAmount,
+      effectiveCredits: totalCreditAppliedAmount,
+      refundReopens: sumRefundReopens(refundFactRows),
+      creditReversalReopens: 0,
+    }),
   );
   const overpaidAmount = preferStored(
     input.snapshot.overpaidAmount,

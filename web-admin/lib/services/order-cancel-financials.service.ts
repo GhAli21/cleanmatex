@@ -8,6 +8,7 @@ import {
   CREDIT_APPLICATION_TYPES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   OUTBOX_EVENT_TYPES,
+  REFUND_CONTEXTS,
   REFUND_REASON_CODES,
   REFUND_METHODS,
 } from '@/lib/constants/order-financial';
@@ -349,6 +350,9 @@ export async function unwindOrderFinancialsOnCancel(
           amount: refundable,
           reason: REFUND_REASON_CODES.CANCELLED,
           method: REFUND_METHODS.ORIGINAL_METHOD,
+          // B01/D003 v2: cancel unwind is its own reason_context — the sale is
+          // dead, so the refund row never reopens the customer's due.
+          refundContext: REFUND_CONTEXTS.CANCELLATION_UNWIND,
           notes: `Order cancelled: ${input.reason}`.slice(0, 500),
           requestedBy: input.userId,
           currencyCode: payment.currency_code,

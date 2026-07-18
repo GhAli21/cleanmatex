@@ -32,7 +32,7 @@ alwaysApply: true
 
 ## Feedback & States
 - Show **loading indicators** for async actions.
-- Use toast/snackbar for success and error messages.
+- **Mandatory:** use `cmxMessage` / `useMessage()` from `@ui/feedback` for applicable success/error/warning/info/confirm feedback (`docs/dev/rules/cmx-message.md`). Pass i18n-resolved strings. Do not use legacy toast helpers or `alert()` in new/edited feature code.
 - Include empty states with helpful prompts and icons.
 
 ## Forms & Inputs
@@ -58,4 +58,5 @@ alwaysApply: true
 
 ## UI Imports & AI Hints (web-admin)
 - Use **Cmx design system** only: import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do not use `@ui/compat` (removed).
-- **web-admin/.clauderc** holds recommended import snippets for AI-generated code (`ui_components`). Keep it in sync with `src/ui` when adding or changing shared components. See `.cursor/rules/frontendstandards.mdc` (section "web-admin/.clauderc (AI Hints)") and `docs/dev/ui-migration-guide.md`.
+- **web-admin/.clauderc** holds recommended import snippets for AI-generated code (`ui_components`), including `cmx_message`. Keep it in sync with `src/ui` when adding or changing shared components. See `.cursor/rules/frontendstandards.mdc` (section "web-admin/.clauderc (AI Hints)") and `docs/dev/ui-migration-guide.md`.
+- User-facing operational feedback: `cmxMessage` / `useMessage` only when applicable (`.cursor/rules/cmx-message.mdc`).

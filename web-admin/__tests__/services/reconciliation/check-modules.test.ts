@@ -246,14 +246,83 @@ describe('order-checks', () => {
   };
 
   it('PAYMENT_TOTAL_MATCH — flags payment sum mismatch', async () => {
+    // B02: balance checks now fetch raw fact rows and derive components via
+    // the shared D005 aggregation module (nature-filtered payments, APPLIED
+    // credits, PROCESSED refund reopens).
     mockOrderPaymentsFindMany.mockResolvedValue([
-      { amount: new Decimal('80'), payment_status: 'COMPLETED', gateway_code: null },
+      {
+        amount: new Decimal('80'),
+        payment_status: 'COMPLETED',
+        payment_nature_snapshot: 'REAL_PAYMENT',
+        payment_method_code: 'CASH',
+        gateway_code: null,
+      },
     ]);
-    mockCreditAppsAggregate.mockResolvedValue({ _sum: { applied_amount: new Decimal('0') } });
-    mockRefundsAggregate.mockResolvedValue({ _sum: { refund_amount: new Decimal('0') } });
+    mockCreditAppsFindMany.mockResolvedValue([]);
+    mockRefundsFindMany.mockResolvedValue([]);
 
     const result = await runOrderBalanceChecks(TENANT, [orderRow]);
     expect(result.find((r) => r.checkName === 'PAYMENT_TOTAL_MATCH')).toBeDefined();
+  });
+
+  it('OUTSTANDING_TOTAL_MATCH — a commercial refund no longer reopens due (D005/D003 v2)', async () => {
+    // Fully-paid 100 order with a processed commercial refund (reopen 0):
+    // header outstanding 0 must reconcile clean — pre-B02 the "+ processed
+    // refunds" term made this a permanent false blocker (audit C2).
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      {
+        amount: new Decimal('100'),
+        payment_status: 'COMPLETED',
+        payment_nature_snapshot: 'REAL_PAYMENT',
+        payment_method_code: 'CASH',
+        gateway_code: null,
+      },
+    ]);
+    mockCreditAppsFindMany.mockResolvedValue([]);
+    mockRefundsFindMany.mockResolvedValue([
+      { refund_amount: new Decimal('40'), refund_status: 'PROCESSED', reopens_due_amount: new Decimal('0') },
+    ]);
+
+    const result = await runOrderBalanceChecks(TENANT, [
+      {
+        ...orderRow,
+        total_amount: new Decimal('100'),
+        total_paid_amount: new Decimal('100'),
+        outstanding_amount: new Decimal('0'),
+      },
+    ]);
+    expect(result.find((r) => r.checkName === 'OUTSTANDING_TOTAL_MATCH')).toBeUndefined();
+  });
+
+  it('OUTSTANDING_TOTAL_MATCH — an explicit reopen row must be reflected in the header', async () => {
+    // REFUND_AND_REBILL row (reopen 40) while the header still claims 0
+    // outstanding → the module-derived expectation (40) flags the drift.
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      {
+        amount: new Decimal('100'),
+        payment_status: 'COMPLETED',
+        payment_nature_snapshot: 'REAL_PAYMENT',
+        payment_method_code: 'CASH',
+        gateway_code: null,
+      },
+    ]);
+    mockCreditAppsFindMany.mockResolvedValue([]);
+    mockRefundsFindMany.mockResolvedValue([
+      { refund_amount: new Decimal('40'), refund_status: 'PROCESSED', reopens_due_amount: new Decimal('40') },
+    ]);
+
+    const result = await runOrderBalanceChecks(TENANT, [
+      {
+        ...orderRow,
+        total_amount: new Decimal('100'),
+        total_paid_amount: new Decimal('100'),
+        outstanding_amount: new Decimal('0'),
+      },
+    ]);
+    expect(result.find((r) => r.checkName === 'OUTSTANDING_TOTAL_MATCH')).toMatchObject({
+      expectedValue: 40,
+      actualValue: 0,
+    });
   });
 
   it('OUTBOX_PROCESSED — fires WARNING when stuck > 1h', async () => {

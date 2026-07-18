@@ -2,6 +2,7 @@
 
 **Always search existing locale keys before adding new ones.**
 **Always update both locale catalogs under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.**
+**When showing user-facing operational feedback, resolve i18n keys first, then pass the string into `cmxMessage` / `useMessage()` (`docs/dev/rules/cmx-message.md`).**
 
 ## Before adding keys
 
@@ -36,9 +37,14 @@ Rules:
 
 ```typescript
 import { useTranslations } from 'next-intl'
+import { cmxMessage } from '@ui/feedback'
 
 const tCommon = useTranslations('common')
 const tOrders = useTranslations('orders')
+
+// Feedback: i18n first, then cmxMessage (mandatory when applicable)
+cmxMessage.success(tOrders('messages.saved'))
+cmxMessage.error(tCommon('error'))
 ```
 
 ## RTL

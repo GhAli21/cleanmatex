@@ -680,7 +680,50 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['orders:process_refund'],
       requireAllPermissions: true,
     },
-    notes: ['Refund workbench route using the same page gate exposed in navigation.'],
+    actions: {
+      approveRefund: {
+        label: 'Approve pending refund (maker≠checker enforced server-side)',
+        requirement: {
+          permissions: ['orders:approve_refund'],
+          requireAllPermissions: true,
+          featureFlags: ['order_fin_refund_ui'],
+          requireAllFeatureFlags: true,
+        },
+      },
+      processRefund: {
+        label: 'Process approved refund',
+        requirement: {
+          permissions: ['orders:process_refund'],
+          requireAllPermissions: true,
+          featureFlags: ['order_fin_refund_ui'],
+          requireAllFeatureFlags: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Approve refund',
+        method: 'PATCH',
+        path: '/api/v1/orders/refunds/[refundId]/approve',
+        requirement: {
+          permissions: ['orders:approve_refund'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Process refund',
+        method: 'PATCH',
+        path: '/api/v1/orders/refunds/[refundId]/process',
+        requirement: {
+          permissions: ['orders:process_refund'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: [
+      'Refund workbench route using the same page gate exposed in navigation.',
+      'B34: stage actions (approve/process) render only behind the order_fin_refund_ui feature flag — disabled by default; production activation gated on B01+B02 VERIFIED per the B34 Safety block.',
+    ],
   },
   // '/dashboard/internal_fin/cashup' contract removed (Order-Fin remediation
   // Phase 5): the Cash Up screen is superseded by cash drawer sessions + the

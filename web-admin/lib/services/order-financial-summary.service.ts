@@ -170,8 +170,12 @@ export interface OrderRefundRow {
   reason_code: string | null;
   currency_code: string | null;
   original_payment_id: string | null;
-  /** Phase 6+ canonical classification of the refund source (ADR-030). */
+  /** B01 lineage: credit application whose applied value this refund returns (mig 0404). */
+  original_credit_app_id: string | null;
+  /** Phase 6+ canonical classification of the refund source (ADR-030; D002 v2 origin-only registry). */
   refund_source_type: string | null;
+  /** B01 (D002 v2) reason_context — drives the D003 v2 reopen rules; null on pre-0404 rows. */
+  refund_context: string | null;
   /** Amount that will reopen the order balance when this refund is processed (Phase 6+). */
   reopens_due_amount: number;
   metadata: Record<string, unknown>;
@@ -607,6 +611,11 @@ export async function getOrderFinancialSummary(
       refund_status: row.refund_status ?? null,
       refund_method_code: row.refund_method_code ?? null,
       original_payment_id: row.original_payment_id ?? null,
+      // B01/B02: five-facet facts so the read fallback classifies column-first
+      // and includes the D005 refundReopens term.
+      refund_source_type: (row as Record<string, unknown>).refund_source_type as string | null ?? null,
+      reopens_due_amount: toNumber((row as Record<string, unknown>).reopens_due_amount as number | null),
+      metadata: row.metadata ?? {},
     })),
   });
 
@@ -810,7 +819,9 @@ export async function getOrderFinancialSummary(
       reason_code: row.reason_code ?? null,
       currency_code: row.currency_code ?? null,
       original_payment_id: row.original_payment_id ?? null,
+      original_credit_app_id: (row as Record<string, unknown>).original_credit_app_id as string | null ?? null,
       refund_source_type: (row as Record<string, unknown>).refund_source_type as string | null ?? null,
+      refund_context: (row as Record<string, unknown>).refund_context as string | null ?? null,
       reopens_due_amount: toNumber((row as Record<string, unknown>).reopens_due_amount as number | null),
       metadata: (row.metadata ?? {}) as Record<string, unknown>,
       created_at: toIso(row.created_at),

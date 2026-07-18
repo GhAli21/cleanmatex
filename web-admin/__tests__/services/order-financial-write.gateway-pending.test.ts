@@ -1,11 +1,16 @@
 /**
- * Tests: order-financial-write `buildWarningCodes` — gateway/pending exclusion (doc-19 rule 19/20).
+ * Tests: order-financial-write `buildWarningCodes` — gateway/pending semantics.
  *
- * A gateway payment leg is persisted with payment_status PENDING (not COMPLETED) and is
- * therefore summed into `pendingPaymentAmount`, NOT `totalPaidAmount`. The recalc must
- * SURFACE that a pending (or authorized-but-not-captured) amount exists so it is never
- * silently treated as settled. This pins the exported decision point: pending/authorized
- * amounts raise their warning codes, and a fully-COMPLETED order raises neither.
+ * A gateway payment leg is persisted with payment_status PENDING (not COMPLETED)
+ * and is therefore summed into `pendingPaymentAmount`, NOT `totalPaidAmount`.
+ *
+ * B33 (M9, D005/D009) narrowed the original doc-19 rule 19/20 pin: a by-design
+ * pending/authorized amount is SURFACED as a reported bucket (visible on the
+ * snapshot and Financial tab) but is NOT a warning — `*_COUNTED_AS_PAID` fires
+ * only when the stored header paid total exceeds the completed-only
+ * recomputation while such non-completed legs exist (a genuine leak of a
+ * non-completed amount into `total_paid_amount`). This keeps healthy
+ * check/bank/gateway orders CURRENT instead of permanently MISMATCH.
  */
 
 import { buildWarningCodes } from '@/lib/services/order-financial-write.service';
@@ -23,6 +28,8 @@ function cleanInput(): Parameters<typeof buildWarningCodes>[0] {
     recomputedTaxAmount: 0,
     orderOutstandingAmount: 0,
     recomputedOutstandingAmount: 0,
+    orderPaidAmount: 70,
+    recomputedPaidAmount: 70,
     pendingPaymentAmount: 0,
     authorizedPaymentAmount: 0,
     giftCardAppliedAmount: 0,
@@ -36,14 +43,46 @@ function cleanInput(): Parameters<typeof buildWarningCodes>[0] {
   };
 }
 
-describe('buildWarningCodes — gateway / pending exclusion', () => {
-  it('raises PENDING_PAYMENT_COUNTED_AS_PAID when a pending (gateway) amount exists', () => {
-    const codes = buildWarningCodes({ ...cleanInput(), pendingPaymentAmount: 30 });
+describe('buildWarningCodes — gateway / pending semantics (B33)', () => {
+  it('a by-design pending (gateway) amount is a reported bucket, not a warning', () => {
+    const codes = buildWarningCodes({
+      ...cleanInput(),
+      orderOutstandingAmount: 30,
+      recomputedOutstandingAmount: 30,
+      pendingPaymentAmount: 30,
+    });
+    expect(codes).not.toContain(ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID);
+    expect(codes).toHaveLength(0); // healthy gateway order stays CURRENT
+  });
+
+  it('a by-design authorized-not-captured amount is a reported bucket, not a warning', () => {
+    const codes = buildWarningCodes({
+      ...cleanInput(),
+      orderOutstandingAmount: 30,
+      recomputedOutstandingAmount: 30,
+      authorizedPaymentAmount: 30,
+    });
+    expect(codes).not.toContain(ORDER_FINANCIAL_WARNING_CODES.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
+    expect(codes).toHaveLength(0);
+  });
+
+  it('fires PENDING_PAYMENT_COUNTED_AS_PAID when the pending gateway leg leaked into the stored paid total', () => {
+    const codes = buildWarningCodes({
+      ...cleanInput(),
+      pendingPaymentAmount: 30,
+      orderPaidAmount: 100, // header claims the pending 30 as paid
+      recomputedPaidAmount: 70,
+    });
     expect(codes).toContain(ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID);
   });
 
-  it('raises AUTHORIZED_PAYMENT_COUNTED_AS_PAID when an authorized-not-captured amount exists', () => {
-    const codes = buildWarningCodes({ ...cleanInput(), authorizedPaymentAmount: 30 });
+  it('fires AUTHORIZED_PAYMENT_COUNTED_AS_PAID when an authorized amount leaked into the stored paid total', () => {
+    const codes = buildWarningCodes({
+      ...cleanInput(),
+      authorizedPaymentAmount: 30,
+      orderPaidAmount: 100,
+      recomputedPaidAmount: 70,
+    });
     expect(codes).toContain(ORDER_FINANCIAL_WARNING_CODES.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
   });
 
@@ -51,16 +90,5 @@ describe('buildWarningCodes — gateway / pending exclusion', () => {
     const codes = buildWarningCodes(cleanInput());
     expect(codes).not.toContain(ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID);
     expect(codes).not.toContain(ORDER_FINANCIAL_WARNING_CODES.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
-  });
-
-  it('surfaces a mixed cash(settled)+gateway(pending) order via the pending warning', () => {
-    // Cash leg settled (outstanding closed by paid+credit elsewhere), gateway leg still pending.
-    const codes = buildWarningCodes({
-      ...cleanInput(),
-      orderOutstandingAmount: 30,
-      recomputedOutstandingAmount: 30,
-      pendingPaymentAmount: 30,
-    });
-    expect(codes).toContain(ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID);
   });
 });

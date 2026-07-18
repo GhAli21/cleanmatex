@@ -1,7 +1,7 @@
 # Order Fin Remediation Work Packages — Master Index
 
 **Created:** 2026-07-15 · **Documentation status: UNDER_REVIEW** — these are active planning files, not frozen artifacts. · **Documentation only — no code, migrations, tests, config, or schema changes.**
-**Next action:** implement B01 under the **owner continuation directive (recorded 2026-07-17 in [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md))** — continue all remaining planning and implementation phases per the master sequence until finished; remaining decision blockers (D001, D006–D009, D011) are finalized at their waves with the expert-approval pattern; D012 requires the accounting owner. Package starts are announced against the RESUME; owner control points (migration apply, commits, Preview QA approval) bind at every package.
+**Next action:** continue the implementation sequence under the **owner continuation directive (recorded 2026-07-17 in [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md))** — Seq 1–2 are implementation-complete (B01/B02/B33/B34 IMPLEMENTED, gates green; awaiting owner commit → Preview QA). **NOW: Seq 3 — B15 (first unblocked: no dependencies, no decisions) → B16 → B20 → B29**, one scoped package per phase (owner directive 2026-07-18). **All twelve decisions (D001–D012) are APPROVED (Expert)** — the final seven recorded 2026-07-18 from the owner's authoritative decision pack; no decision blockers remain. Package starts are announced against the RESUME; owner control points (migration apply, commits, Preview QA approval) bind at every package.
 **Source of truth:** [Authoritative Current-State Report (2026-07-15)](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) — frozen; work packages must **not** redefine or silently contradict its confirmed findings (C1–C3, H1–H8, M1–M9, B1–B34 incl. Addendum A1).
 **Folder rules:** [CLAUDE.md](CLAUDE.md) governs all files here — planning-only stage, no invented approvals, required Delivery-surfaces sections, safety gates for UI over unsafe backends.
 
@@ -36,12 +36,12 @@ Severity/classification/evidence per report §50. Status is documentation-state 
 
 | ID | Title | Sev | Class | Status | Required decisions | Dependencies | Blocks | Seq | Work package | Commit | Reviewer | Verification |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| B1 | Refund lineage + reopen-due | CRITICAL | BLOCKS_PRODUCTION | IN_IMPLEMENTATION — migration `0404_b01_refund_lineage_and_context.sql` authored 2026-07-17, **STOP-AND-WAIT for owner apply**; service + tests follow | D002 D003 D004 D005 D010 (APPROVED (Expert) 2026-07-16, v2) | — | B2 B9 B28 (test) | 1 | [B01](B01_Refund_Lineage_And_Reopen_Due.md) | — | — | — |
-| B2 | Shared financial aggregation | CRITICAL | BLOCKS_PRODUCTION | NOT_STARTED | D005 | B1 (hard) | B20 B33 (impl) | 2 | [B02](B02_Shared_Financial_Aggregation.md) | — | — | — |
+| B1 | Refund lineage + reopen-due | CRITICAL | BLOCKS_PRODUCTION | IMPLEMENTED 2026-07-17 (mig 0404 applied; service+API+UI+i18n+§14 tests done, refund gates green — see B01 Completion evidence) — **awaiting owner commit → Preview QA → approval before VERIFIED** | D002 D003 D004 D005 D010 (APPROVED (Expert) 2026-07-16, v2) | — | B2 B9 B28 (test) | 1 | [B01](B01_Refund_Lineage_And_Reopen_Due.md) | pending | — | pending Preview QA |
+| B2 | Shared financial aggregation | CRITICAL | BLOCKS_PRODUCTION | IMPLEMENTED 2026-07-17 (D005 module + writer/recon/reader repointing, equality suite green — see B02 Completion evidence) — **awaiting owner commit → Preview QA (batched with B1)** | D005 | B1 (hard) | B20 B33 (impl) | 2 | [B02](B02_Shared_Financial_Aggregation.md) | pending | — | pending Preview QA |
 | B3 | Stored-value funding capture | CRITICAL | BLOCKS_PRODUCTION | NOT_STARTED | D007 D008 D010 | — | B6 (GC/wallet events, impl) | 6 | [B03](B03_Stored_Value_Funding_Capture.md) | — | — | — |
 | B4 | Later collection BVM parity | HIGH | BLOCKS_PRODUCTION | NOT_STARTED | D001 D007 | — | B5 B31 (hard); B6 (impl) | 4 | [B04](B04_Later_Collection_BVM_Parity.md) | — | — | — |
 | B5 | Later collection idempotency | HIGH | BLOCKS_PRODUCTION | NOT_STARTED | D010 | B4 (hard) | — | 4 | [B05](B05_Later_Collection_Idempotency.md) | — | — | — |
-| B6 | ERP order-to-cash event wiring | HIGH | CONTROL_GAP | NOT_STARTED | D007 D008 D012 (partial) | B4 (impl); B3 (impl, funding events) | B24 B25 (hard) | 8 | [B06](B06_ERP_Order_To_Cash_Event_Wiring.md) | — | — | — |
+| B6 | ERP order-to-cash event wiring | HIGH | CONTROL_GAP | NOT_STARTED | D007 D008 D012 (all APPROVED (Expert)) | B4 (impl); B3 (impl, funding events) | B24 B25 (hard) | 8 | [B06](B06_ERP_Order_To_Cash_Event_Wiring.md) | — | — | — |
 | B7 | Financial outbox processor | HIGH | CONTROL_GAP | NOT_STARTED | D010 | — | B19 (hard); B30 (history only, opt) | 5 | [B07](B07_Financial_Outbox_Processor.md) | — | — | — |
 | B8 | Gateway lifecycle integration | HIGH | BLOCKS_FEATURE | NOT_STARTED | D001 D009 D010 | B30 (impl, shares transitions) | — | 9 | [B08](B08_Gateway_Lifecycle_Integration.md) | — | — | — |
 | B9 | Refund execution parity | HIGH | CONTROL_GAP | NOT_STARTED | D004 D007 | B1 (hard, classification); B16 (opt — drawer expected-cash coordination) | — | 7 | [B09](B09_Refund_Execution_Parity.md) | — | — | — |
@@ -68,17 +68,21 @@ Severity/classification/evidence per report §50. Status is documentation-state 
 | B30 | Pending-payment back-office lifecycle | HIGH | BLOCKS_FEATURE / CONTROL_GAP | NOT_STARTED | D001 D009 D010 | B7 (opt — outbox-based durable history only; worklist and transitions independent); B27 (impl, permissions) | B8 (impl) | 6 | [B30](B30_Pending_Payment_Backoffice_Lifecycle.md) | — | — | — |
 | B31 | Later collection default status | MEDIUM | CONTROL_GAP | NOT_STARTED | D001 | B4 (hard) | — | 4 | [B31](B31_Later_Collection_Default_Status.md) | — | — | — |
 | B32 | Drawer status gating + status override | LOW | CONTROL_GAP | NOT_STARTED | D001 | B30 (impl — verify hook only; canHandle gate independent) | — | 6 | [B32](B32_Drawer_Status_Gating_And_Status_Override.md) | — | — | — |
-| B33 | Pending-payment warning semantics | MEDIUM | CONTROL_GAP | NOT_STARTED | D001 D005 (policy) | B2 (impl, formula alignment); independent of B30 worklist | — | 2 | [B33](B33_Pending_Payment_Warning_Semantics.md) | — | — | — |
-| B34 | Refund back-office UI (Addendum A1) | HIGH | BLOCKS_FEATURE / CONTROL_GAP | READY_FOR_DESIGN | D002 D003 (APPROVED (Expert) 2026-07-16, v2) | B01+B02 (hard — production-activation gate for any refund workflow); B09 (hard — cash/original-method activation); B27 (permission-sensitive actions); design + flagged implementation may proceed against the B1 contract (flag disabled by default) | — | 2–3 | [B34](B34_Refund_Backoffice_UI.md) | — | — | — |
+| B33 | Pending-payment warning semantics | MEDIUM | CONTROL_GAP | IMPLEMENTED 2026-07-17 (warning cross-check via B02 module; healthy pending orders stay CURRENT — see B33 Completion evidence) — awaiting owner commit → Preview QA | D001 D005 (policy) | B2 (impl, formula alignment); independent of B30 worklist | — | 2 | [B33](B33_Pending_Payment_Warning_Semantics.md) | — | — | — |
+| B34 | Refund back-office UI (Addendum A1) | HIGH | BLOCKS_FEATURE / CONTROL_GAP | IMPLEMENTED 2026-07-18 (flagged build complete — initiate dialog + actionable hub, flag `order_fin_refund_ui` default OFF; all gates + contract checks green, see B34 evidence) — awaiting owner commit → Preview QA (flag-on) | D002 D003 (APPROVED (Expert) 2026-07-16, v2) | B01+B02 (hard — production-activation gate for any refund workflow); B09 (hard — cash/original-method activation); B27 (permission-sensitive actions); design + flagged implementation may proceed against the B1 contract (flag disabled by default) | — | 2–3 | [B34](B34_Refund_Backoffice_UI.md) | — | — | — |
 
 ## Recommended master implementation sequence
 
 Backlog numeric order is **not** implementation order.
 
 ```text
-Seq 1  Phase 0 core approvals: D002 D003 D004 D005 D010 (APPROVED (Expert))  →  B1
-Seq 2  B2 (shared aggregation)  →  B33; B34 (refund UI — design + implementation behind a DISABLED flag against the B1 contract; PRODUCTION ACTIVATION GATED ON B01+B02 VERIFIED; cash/original-method on B09 VERIFIED; permission-sensitive actions on B27)
-Seq 3  Low-risk parallel wave: B15 B16 B20 B29
+Seq 1  ✅ DONE 2026-07-17 — B1 IMPLEMENTED (D002 D003 D004 D005 D010 APPROVED (Expert))
+Seq 2  ✅ DONE 2026-07-17/18 — B2 → B33 IMPLEMENTED; B34 IMPLEMENTED behind DISABLED flag
+       (PRODUCTION ACTIVATION still GATED ON B01+B02 VERIFIED; cash/original-method on
+       B09 VERIFIED; permission-sensitive actions on B27)
+Seq 3  ← NOW · Low-risk parallel wave: B15 B16 B20 B29 (recalculated 2026-07-18: all
+       unblocked — no open decisions; B20's hard dep B2 is IMPLEMENTED, its VERIFIED
+       gate binds production promotion, not implementation order)
 Seq 4  B4 → B5, B31
 Seq 5  B7, B27
 Seq 6  B3, B30, B32
@@ -100,14 +104,14 @@ Related packages grouped for review and sequencing (a bundle is a lens, not a me
 |---|---|---|---|---|---|---|---|
 | Refund Lifecycle | D002 D003 D004 D005 D010 — all APPROVED (Expert) 2026-07-16, v2 semantics | B1 → B2 → B9 | B34 (activation: B01+B02 VERIFIED; cash/original-method: B09; rebill/manual-exception actions: B27) | existing refund pair + B27 order-reopen/rebill + manual-exception codes | B28 refund slice (B1 §14 v2) | NOT_READY | B1 not implemented (next up, per 2026-07-17 continuation directive); B2, B9, B27 pending |
 | Later Collection | D001 D007 D010 | B4 → B5, B31 | collect modal touches (B5/B31) | orders:collect_payment | B28 collection slice | NOT_READY | B4 not implemented |
-| Pending-Payment Lifecycle | D001 D009 D010 | B30 (service), B8, B32, B33 | B30 worklist | verify (exists) + B27 cancel/fail codes | B28 pending slice | NOT_READY | D001/D009 unapproved |
-| Stored-Value Funding & Jobs | D008 D010 | B3, B19 | B3 tender steps, B21 settings, B19/B7 ops screen | B27 funding/ops codes | B28 funding slice | NOT_READY | D008 unapproved; B7 for jobs |
+| Pending-Payment Lifecycle | D001 D009 D010 — all APPROVED (Expert) | B30 (service), B8, B32, B33 | B30 worklist | verify (exists) + B27 cancel/fail codes | B28 pending slice | NOT_READY | B30 transition service not implemented |
+| Stored-Value Funding & Jobs | D008 D010 — all APPROVED (Expert) | B3, B19 | B3 tender steps, B21 settings, B19/B7 ops screen | B27 funding/ops codes | B28 funding slice | NOT_READY | B3 not implemented; B7 for jobs |
 | Tax-Inclusive & Rounding | — (technical) | B11, B17, B18 | display labels/rounding line/charge editor | B27 manual-charge code | B28 tax/rounding slice | NOT_READY | none blocking start |
-| Accounting & Revenue Recognition | D007 D012 | B6 → B24, B25, B13 journals | ERP exception/report screens (existing) | ERP finance perms | B28 accounting slice + trial-balance tie-out | NOT_READY | D007/D012 unapproved; B6 not implemented |
+| Accounting & Revenue Recognition | D007 D012 — all APPROVED (Expert) | B6 → B24, B25, B13 journals | ERP exception/report screens (existing) | ERP finance perms | B28 accounting slice + trial-balance tie-out | NOT_READY | B6 not implemented |
 | Gateway & Bank Operations | D001 D009 D010 | B8 (+B26 sub-packages) | B30 status display; B26 screens per sub-package | B27 codes | B28 gateway slice | NOT_READY | B30 transition service; B26 not carved out |
 
 No bundle may be marked production-ready until every mandatory component above is VERIFIED.
 
 ## Phase 0 decisions
 
-Policy decisions live in [00_Phase_0_Financial_Semantics/](00_Phase_0_Financial_Semantics/README.md) (D001–D012). **B1 blockers D002, D003, D004, D005, D010: APPROVED (Expert) 2026-07-16** — approval type Expert; selected options and rationale recorded in each decision file (D002 Option A v2 five-facet vocabulary; D003 Expert model v2; D004 Option B; D005 Option A; D010 Option A). D001, D006–D009, D011 remain PROPOSED for finalization at their waves; D012 additionally needs the accounting owner. **Session continuation:** [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md).
+Policy decisions live in [00_Phase_0_Financial_Semantics/](00_Phase_0_Financial_Semantics/README.md) (D001–D012). **All twelve are APPROVED (Expert)**: D002/D003/D004/D005/D010 on 2026-07-16 (D002 Option A v2 five-facet vocabulary; D003 Expert model v2; D004 Option B; D005 Option A; D010 Option A) and D001/D006/D007/D008/D009/D011/D012 on 2026-07-18 (owner's authoritative decision pack — D001 canonical transition graph; D006 reusable credit reversal; D007 five-layer boundary matrix; D008 five-artifact funding capture; D009 governed failure fallback; D011 governed amendment/delta; D012 IFRS 15 validated-completion recognition with the accounting-owner sign-off retained only as an implementation control). Selected option, rationale summary, implementation consequences, and affected packages are recorded in each decision file. **Session continuation:** [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md).

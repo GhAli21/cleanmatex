@@ -2,7 +2,7 @@
 
 This document defines the **frontend standards** for CleanMateX and is fully aligned with the architecture described in `AI_Coder_Frontend_Instructions.md`.
 
-**Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on**
+**Always use Global Message Utility (`cmxMessage` / `useMessage()`) for applicable user-facing success/error/warning/info/confirm feedback.** Canonical: `docs/dev/rules/cmx-message.md`. Do not add new legacy toast helpers.
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
 - **Pagination Always should be Server-Side Pagination (API-Driven)**
 - use for common message keys for common messages keys, const tCommon = useTranslations('common');
@@ -401,9 +401,10 @@ Screens in `src/features` should use these Cmx chart components.
 
 ## 8. Error Handling & UX
 
-- **Always** use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on
-Global Message Utility (`cmxMessage`) README and usage guide is: /src/ui/feedback/cmxMessage_developer_guide.md
-Global Message Utility (`cmxMessage`) MIGRATION guide is: /src/ui/feedback/cmxMessage_MIGRATION.md
+- **Always (mandatory when applicable)** use Global Message Utility (`cmxMessage` / `useMessage()`) for user-facing success/error/warning/info/confirm feedback. Canonical: `docs/dev/rules/cmx-message.md`.
+- Guide: `web-admin/src/ui/feedback/cmxMessage_developer_guide.md`
+- Migration: `web-admin/src/ui/feedback/cmxMessage_MIGRATION.md`
+- Do not add new legacy `showSuccessToast` / raw `toast()` / `alert()` call sites.
 
 - Handle errors at three levels:
   1. API error handling in `apiRequest` (HTTP status, network errors).

@@ -1,0 +1,39 @@
+---
+description: Mandatory cmxMessage for web-admin user-facing success/error/warning/info/confirm feedback when applicable
+alwaysApply: true
+---
+
+# Mandatory `cmxMessage` (web-admin)
+
+Canonical source: `docs/dev/rules/cmx-message.md`
+
+When writing or changing **web-admin UI**, use **`cmxMessage`** (or **`useMessage()`**) for all applicable user-facing operational feedback.
+
+```ts
+import { cmxMessage, useMessage } from '@ui/feedback'
+```
+
+## Required when applicable
+
+- Success / error / warning / info toasts and alerts
+- Loading and promise feedback for async actions
+- Imperative confirmations (when not using `CmxConfirmDialog`)
+- Permission-denial and action-blocked messages shown as transient feedback
+
+Always pass **i18n-resolved** strings (`useTranslations` / `getTranslations`), not hardcoded user-facing English/Arabic.
+
+## Not applicable
+
+- Inline field validation (RHF / Zod under the field)
+- Persistent inline banners (`CmxSummaryMessage`)
+- Dedicated dialogs (`CmxConfirmDialog`)
+- Empty states (`CmxEmptyState`)
+- Static labels/headings (i18n only)
+
+## Do not use for new or edited feature code
+
+- `alert()` / `window.confirm`
+- Raw `toast()` / Sonner from feature code
+- Legacy `showSuccessToast` / `showErrorToast` / `showInfoToast` / `cmxToast` as the primary API
+
+Guide: `web-admin/src/ui/feedback/cmxMessage_developer_guide.md`

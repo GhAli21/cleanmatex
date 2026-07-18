@@ -196,8 +196,9 @@ ui_components:
   keypad: "import { CmxKeypad } from '@ui/utilities'"
   keypad_presets: "import { KEYPAD_PAYMENT_4COL, KEYPAD_NUMERIC_3COL, PAYMENT_KEY_VARIANT, PAYMENT_KEY_CLASS } from '@ui/utilities'"
   card_with_header: "import { CmxCardWithHeader } from '@ui/patterns'"
-  # ── Toast (imperative) ───────────────────────────────────────────
-  toast: "import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'"
+  # ── Global message utility (mandatory for user-facing feedback) ──
+  cmx_message: "import { cmxMessage, useMessage } from '@ui/feedback'"
+  # Legacy toast helpers are banned for new/edited feature code — use cmxMessage / useMessage
 
 # React hooks & ESLint (portable — copy docs/dev/rules/*.md with this block)
 react_hooks:

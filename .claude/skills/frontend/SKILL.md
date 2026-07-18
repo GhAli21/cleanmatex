@@ -47,7 +47,7 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 10. Use only these project aliases: `@ui/*`, `@features/*`, `@lib/*`.
 11. Do not invent aliases such as `@/components`, `@/core`, or `@ui/compat`.
 12. Do not import raw shadcn/ui or Radix primitives directly inside feature code. Wrap them in Cmx components first.
-13. All user-facing messages, alerts, errors, confirmations, and toasts must use `cmxMessage` / approved message wrapper.
+13. **Mandatory:** all applicable user-facing messages, alerts, errors, confirmations, and toasts must use `cmxMessage` or `useMessage()` from `@ui/feedback` (`docs/dev/rules/cmx-message.md`). Do not add new legacy `showSuccessToast` / raw `toast()` / `alert()` call sites. Not for field validation, `CmxSummaryMessage`, `CmxConfirmDialog`, or static labels.
 14. All user-facing text must use i18n keys.
 15. Search existing locale keys before adding new keys.
 16. When adding keys, update matching English and Arabic files under `web-admin/messages/en/**` and `web-admin/messages/ar/**`.

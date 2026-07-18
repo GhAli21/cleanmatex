@@ -66,6 +66,10 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
       refund_reason:      r.refund_reason,
       refund_method_code: r.refund_method_code,
       refund_status:      r.refund_status,
+      // B01 five-facet refund facts (D002/D003 v2)
+      refund_source_type: r.refund_source_type,
+      refund_context:     r.refund_context,
+      reopens_due_amount: toNumber(r.reopens_due_amount),
       created_by:         r.created_by,
       created_at:         r.created_at?.toISOString() ?? null,
       processed_at:       r.processed_at?.toISOString() ?? null,
@@ -102,6 +106,10 @@ export async function getOrderRefundsAction(orderId: string) {
       refund_reason:      r.refund_reason,
       refund_method_code: r.refund_method_code,
       refund_status:      r.refund_status,
+      // B01 five-facet refund facts (D002/D003 v2)
+      refund_source_type: r.refund_source_type,
+      refund_context:     r.refund_context,
+      reopens_due_amount: toNumber(r.reopens_due_amount),
       created_by:         r.created_by,
       created_at:         r.created_at?.toISOString() ?? null,
       processed_at:       r.processed_at?.toISOString() ?? null,

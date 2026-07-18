@@ -138,24 +138,87 @@ export const STORED_VALUE_LOCK_RANK: Readonly<Record<CreditApplicationType, numb
 /**
  * Refund source type codes persisted in `org_order_refunds_dtl.refund_source_type`.
  *
- * Why 7 distinct values (no generic STORED_VALUE_RESTORE):
+ * D002 v2 (APPROVED Expert 2026-07-16, B01) — ORIGIN-ONLY registry: the source
+ * names where the refunded value originally came from, never where the customer
+ * receives it (that is the destination facet, `refund_method_code`). The retired
+ * CUSTOMER_CREDIT_ISSUE / CREDIT_NOTE_ISSUE values named destinations and moved
+ * to LEGACY_REFUND_SOURCE_TYPES (read-only display of pre-B01 rows).
+ *
+ * Why distinct *_RESTORE values (no generic STORED_VALUE_RESTORE):
  * Each stored-value vehicle has separate audit, fiscal, and balance-sheet
- * implications. GIFT_CARD_RESTORE vs WALLET_RESTORE vs CUSTOMER_ADVANCE_RESTORE
- * need to be traced to their originating ledger for ZATCA/UAE/Oman compliance.
- * MANUAL_EXCEPTION is the fallback for rows that cannot be auto-classified;
- * requires finance lead sign-off + permission `refunds:mark_manual_exception`.
+ * implications and must trace to its originating ledger (ZATCA/UAE/Oman).
+ * MANUAL_EXCEPTION is operator-explicit (lineage forbidden, mandatory note,
+ * permission-gated); GOODWILL_CONCESSION covers refunds with no prior
+ * settlement leg (mandatory reason).
+ *
+ * DB-mirror: values must match `chk_refund_source_type_v2` (migration 0404).
  */
 export const REFUND_SOURCE_TYPES = {
   REAL_PAYMENT_REFUND:      'REAL_PAYMENT_REFUND',
   GIFT_CARD_RESTORE:        'GIFT_CARD_RESTORE',
   WALLET_RESTORE:           'WALLET_RESTORE',
   CUSTOMER_ADVANCE_RESTORE: 'CUSTOMER_ADVANCE_RESTORE',
-  CUSTOMER_CREDIT_ISSUE:    'CUSTOMER_CREDIT_ISSUE',
-  CREDIT_NOTE_ISSUE:        'CREDIT_NOTE_ISSUE',
+  CUSTOMER_CREDIT_RESTORE:  'CUSTOMER_CREDIT_RESTORE',
+  GOODWILL_CONCESSION:      'GOODWILL_CONCESSION',
   MANUAL_EXCEPTION:         'MANUAL_EXCEPTION',
 } as const;
 /** Derived union for refund source type codes. */
 export type RefundSourceType = (typeof REFUND_SOURCE_TYPES)[keyof typeof REFUND_SOURCE_TYPES];
+
+/**
+ * Retired source values (D002 v2): they named destinations, not origins.
+ * Kept ONLY for reading/labeling rows written before migration 0404 — never
+ * valid for new writes (`chk_refund_source_type_v2` rejects them).
+ */
+export const LEGACY_REFUND_SOURCE_TYPES = {
+  CUSTOMER_CREDIT_ISSUE: 'CUSTOMER_CREDIT_ISSUE',
+  CREDIT_NOTE_ISSUE:     'CREDIT_NOTE_ISSUE',
+} as const;
+/** Derived union for retired (read-only) refund source type codes. */
+export type LegacyRefundSourceType =
+  (typeof LEGACY_REFUND_SOURCE_TYPES)[keyof typeof LEGACY_REFUND_SOURCE_TYPES];
+
+/**
+ * Refund reason_context codes persisted in `org_order_refunds_dtl.refund_context`.
+ *
+ * D002 v2 fifth facet — drives the D003 v2 reopen-due rules: commercial
+ * contexts (STANDARD, PRICE_ADJUSTMENT_GOODWILL, CANCELLATION_UNWIND) never
+ * reopen the customer's due; a positive `reopens_due_amount` requires
+ * REFUND_AND_REBILL (permissioned, B27) or MANUAL_EXCEPTION (operator-entered,
+ * bounded). DB-mirror: `chk_refund_context_v2` / `chk_refund_reopen_context_v2`
+ * (migration 0404).
+ */
+export const REFUND_CONTEXTS = {
+  STANDARD:                  'STANDARD',
+  PRICE_ADJUSTMENT_GOODWILL: 'PRICE_ADJUSTMENT_GOODWILL',
+  CANCELLATION_UNWIND:       'CANCELLATION_UNWIND',
+  REFUND_AND_REBILL:         'REFUND_AND_REBILL',
+  MANUAL_EXCEPTION:          'MANUAL_EXCEPTION',
+} as const;
+/** Derived union for refund reason_context codes. */
+export type RefundContext = (typeof REFUND_CONTEXTS)[keyof typeof REFUND_CONTEXTS];
+
+/**
+ * Stable machine-readable codes for refund validation failures (B01).
+ * Returned in API error payloads (and mapped to i18n labels client-side) so
+ * callers never have to parse human-readable messages.
+ */
+export const REFUND_ERROR_CODES = {
+  /** Declared/derived source does not match the supplied lineage (or both lineage fields sent). */
+  REFUND_SOURCE_LINEAGE_MISMATCH: 'REFUND_SOURCE_LINEAGE_MISMATCH',
+  /** Same idempotency key replayed with a different payload (S2 conflict pattern). */
+  REFUND_IDEMPOTENCY_CONFLICT: 'REFUND_IDEMPOTENCY_CONFLICT',
+  /** reason_context REFUND_AND_REBILL is rejected until the B27 permission code ships. */
+  REFUND_AND_REBILL_NOT_AVAILABLE: 'REFUND_AND_REBILL_NOT_AVAILABLE',
+  /** refund_context missing or outside the D002 v2 registry. */
+  REFUND_CONTEXT_INVALID: 'REFUND_CONTEXT_INVALID',
+  /** Operator reopen amount outside 0..refund_amount or supplied on a non-manual context. */
+  REFUND_REOPEN_INVALID: 'REFUND_REOPEN_INVALID',
+  /** Maker-checker: the requester attempted to approve their own refund (B34). */
+  REFUND_SELF_APPROVAL_BLOCKED: 'REFUND_SELF_APPROVAL_BLOCKED',
+} as const;
+/** Derived union for refund validation error codes. */
+export type RefundErrorCode = (typeof REFUND_ERROR_CODES)[keyof typeof REFUND_ERROR_CODES];
 
 /**
  * Finance document-sequence type for refund numbers. Mirrors the

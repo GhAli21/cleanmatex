@@ -17,6 +17,7 @@ const mockRefundAggregate = jest.fn();
 const mockRefundCount = jest.fn();
 const mockRefundCreate = jest.fn();
 const mockRefundFind = jest.fn();
+const mockRefundFindFirst = jest.fn();
 const mockRefundUpdate = jest.fn();
 const mockRefundFindMany = jest.fn();
 const mockOutboxCreate = jest.fn();
@@ -74,8 +75,12 @@ const makeRefund = (status = 'PENDING_APPROVAL') => ({
   refund_method_code: 'CASH',
   currency_code: 'OMR',
   refund_status: status,
+  refund_source_type: 'GOODWILL_CONCESSION',
+  refund_context: 'STANDARD',
+  reopens_due_amount: new Decimal('0'),
   metadata: {},
   original_payment_id: null,
+  original_credit_app_id: null,
 });
 
 function installTxMock() {
@@ -88,6 +93,7 @@ function installTxMock() {
         aggregate: mockRefundAggregate,
         count: mockRefundCount,
         create: mockRefundCreate,
+        findFirst: mockRefundFindFirst,
         findFirstOrThrow: mockRefundFind,
         update: mockRefundUpdate,
         findMany: mockRefundFindMany,
@@ -128,8 +134,11 @@ describe('refund-flow integration — full lifecycle', () => {
       amount: 30,
       reason: 'QUALITY',
       method: 'CASH',
+      refundContext: 'STANDARD',
+      notes: 'integration goodwill reason',
       requestedBy: REQUESTER,
       currencyCode: 'OMR',
+      idempotencyKey: 'int-idem-1',
     });
 
     expect(result.refund_status).toBe('PENDING_APPROVAL');
@@ -191,8 +200,11 @@ describe('refund-flow integration — full lifecycle', () => {
         amount: 50,
         reason: 'QUALITY',
         method: 'CASH',
+        refundContext: 'STANDARD',
+        notes: 'integration goodwill reason',
         requestedBy: REQUESTER,
         currencyCode: 'OMR',
+        idempotencyKey: 'int-idem-2',
       })
     ).rejects.toThrow(/exceeds/i);
   });

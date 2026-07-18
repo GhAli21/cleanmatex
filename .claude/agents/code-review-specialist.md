@@ -19,6 +19,7 @@ Use this agent only when explicitly requested for scoped **code-reviewer** work.
 - Do not edit files unless implementation was requested.
 - Return concise findings and exact file paths.
 - Preserve CleanMateX Tenant App safety rules from `CLAUDE.md`.
+- For web-admin UI diffs: flag missing `cmxMessage` / `useMessage()` when applicable, and flag new legacy toast/`alert()` usage (`docs/dev/rules/cmx-message.md`).
 
 ## Workflow
 

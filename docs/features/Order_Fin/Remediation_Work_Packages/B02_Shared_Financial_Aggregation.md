@@ -1,7 +1,7 @@
 # B02 — Shared Financial Aggregation
 
 ## Metadata
-Backlog ID: B2 · Severity: CRITICAL · Classification: BLOCKS_PRODUCTION · Status: NOT_STARTED
+Backlog ID: B2 · Severity: CRITICAL · Classification: BLOCKS_PRODUCTION · Status: **IMPLEMENTED 2026-07-17 (overnight continuation directive)** — awaiting owner commit → Preview QA → approval before VERIFIED; B1 predecessor is itself IMPLEMENTED-not-yet-VERIFIED (start-gate deferred to implementation-order per the recorded overnight extension; nothing promotes to production before both QAs)
 Authoritative report sections: C2, §5, §13, §50-B2
 Required decisions: [D005](00_Phase_0_Financial_Semantics/D005_Canonical_Outstanding_Formula.md)
 Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard — reopen facts must exist)
@@ -76,4 +76,18 @@ Rollout: module + writer refactor first (output-identical), then recon, then rea
 Rollback: revert repointing; old formulas remain in git history only (deleted, not toggled)
 
 ## Completion evidence
-Migration: — · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Migration:** none (as planned — reads existing fact tables).
+
+**Implementation files (2026-07-17):**
+- `web-admin/lib/services/order-financial-aggregation.ts` — NEW: the D005 aggregation authority (pure module, client-safe). Frozen components: `sumEffectivePayments` (COMPLETED set {COMPLETED, CAPTURED, SETTLED} + `isClearlyRealPaymentRow` nature filter — canonical union of the pre-B02 writer/read-fallback marker sets), `sumEffectiveCredits` (APPLIED-only, NULL→APPLIED), `sumRefundReopens` / `sumProcessedRefunds` (PROCESSED-only), `computeOutstanding` (max(0, round4(…))), `aggregateOrderFinancials`, `classifyRefunds` + `RefundFactRow` (moved from the writer; legacy heuristic's stored-value alias list corrected to the metadata strings 0340 actually wrote), `ORDER_FINANCIAL_COMPARISON_TOLERANCE = 0.001` (D005 invariant 4)
+- `web-admin/lib/services/order-financial-write.service.ts` — internal refactor, output-identical: local `isClearlyRealPaymentRow`/`sumPaymentStatusAmount`/`sumCreditApplicationStatusAmount`/`hasAmbiguousHistoricalPaymentRow`/`classifyRefunds` deleted; components + outstanding via the module; `classifyRefunds`/`RefundFactRow` re-exported for existing consumers
+- `web-admin/lib/services/reconciliation/order-checks.ts` — `runOrderBalanceChecks` rewritten through `aggregateOrderFinancials`: literal completed-status filter, any-active credit sum, and the `+ processedRefunds` term removed; order-level checks compare at 0.001; `checkOrderPaymentLink` uses the frozen COMPLETED set; gateway-pending uses `isCompletedPaymentStatus`; `checkRefundSourceLineageClassification` accepts LEGACY_REFUND_SOURCE_TYPES (read-only pre-0404 values) while still flagging MANUAL_EXCEPTION/unknown
+- `web-admin/lib/utils/order-financial-effective-snapshot.ts` — read fallback repointed to the module (payments/credits/refund classification); outstanding fallback now includes the previously-dropped refundReopens term; refunds input extended with optional B01 facts
+- `web-admin/lib/services/order-financial-summary.service.ts` — supplies `refund_source_type`/`reopens_due_amount`/`metadata` to the read fallback
+
+**Tests:** `web-admin/__tests__/services/order-financial-aggregation.test.ts` (NEW — 29 tests: frozen component definitions, formula clamp/round, 12-scenario snapshot==recon equality matrix incl. refund-bearing orders, proof that the retired `+ processedRefunds` formula diverges [the C2 defect], grep-guard forbidding literal completed-status strings under `lib/services/reconciliation/**`) · updated: `reconciliation/check-modules.test.ts` (fetch-shape + two OUTSTANDING_TOTAL_MATCH refund scenarios: commercial refund clean, explicit reopen flagged).
+
+**Gates (2026-07-17):** `npx eslint . --quiet` ✅ 0 · `npx tsc --noEmit` — B02 files clean (same 2 pre-existing errors in owner-committed keypad/split-tender files as recorded in B01 evidence) · targeted suites 139/139 ✅ · full jest + build: recorded below.
+
+**Commit:** — (owner commits) · **Preview QA (deploy/result/approval):** — pending · **Reviewer:** — · **Verification:** — (VERIFIED requires Preview QA approval; B1+B2 QA naturally batch) · **Authoritative report update:** —

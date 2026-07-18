@@ -64,6 +64,7 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] Add i18n translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`
 - [ ] Support RTL layout
 - [ ] Use Cmx Design System components
+- [ ] Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`)
 - [ ] For editable money fields, prevent invalid entry or explain inline; never rewrite typed money as a side effect
 
 ### Phase 5: Testing & Build
@@ -114,11 +115,13 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - Feature-specific code in `src/features/`
 - Always use i18n for text
 - Support RTL
+- **Mandatory when applicable:** `cmxMessage` / `useMessage()` for user-facing success/error/warning/info/confirm (`docs/dev/rules/cmx-message.md`)
 
 ### Error Handling
 - Use centralized logger (`@/lib/utils/logger`)
 - Never use `console.log` directly
 - Log with proper context (tenantId, userId, etc.)
+- In UI: surface errors via `cmxMessage` / `useMessage()`, not legacy toast helpers or `alert()`
 
 ## Code Review Checklist
 

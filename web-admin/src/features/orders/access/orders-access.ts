@@ -669,6 +669,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/orders/[id]/transitions',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
+      {
+        label: 'Initiate refund (B34 dialog)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/refunds',
+        requirement: {
+          permissions: ['orders:process_refund'],
+          requireAllPermissions: true,
+        },
+        notes: ['B34: used by the flag-gated initiate-refund dialog on the Financial tab.'],
+      },
     ],
     notes: ORDER_NOTES,
     actions: {
@@ -677,6 +687,15 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: {
           permissions: ['orders:verify_payment'],
           requireAllPermissions: true,
+        },
+      },
+      initiateRefund: {
+        label: 'Initiate refund (Financial tab dialog)',
+        requirement: {
+          permissions: ['orders:process_refund'],
+          requireAllPermissions: true,
+          featureFlags: ['order_fin_refund_ui'],
+          requireAllFeatureFlags: true,
         },
       },
     },

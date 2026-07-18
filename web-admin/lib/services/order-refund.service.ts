@@ -3,12 +3,21 @@ import 'server-only';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
 import {
+  CREDIT_APPLICATION_TYPES,
   OUTBOX_EVENT_TYPES,
+  REFUND_CONTEXTS,
   REFUND_DOC_TYPE_CODE,
+  REFUND_ERROR_CODES,
   REFUND_METHODS,
   REFUND_REASON_CODES,
+  REFUND_SOURCE_TYPES,
 } from '@/lib/constants/order-financial';
-import type { RefundMethod, RefundReasonCode } from '@/lib/types/order-financial';
+import type {
+  RefundContext,
+  RefundMethod,
+  RefundReasonCode,
+  RefundSourceType,
+} from '@/lib/types/order-financial';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { assertOpenPosSessionForFinanceTx } from './pos-session.service';
@@ -28,6 +37,23 @@ export const REFUND_SCOPES = {
  */
 export type RefundScope = (typeof REFUND_SCOPES)[keyof typeof REFUND_SCOPES];
 
+/**
+ * Why:
+ * B01 refund validation failures must be machine-readable at the API boundary
+ * (explicit 4xx with a stable code, never a silent default or a parsed string).
+ */
+export class RefundValidationError extends Error {
+  readonly code: string;
+  readonly httpStatus: number;
+
+  constructor(code: string, message: string, httpStatus = 422) {
+    super(message);
+    this.name = 'RefundValidationError';
+    this.code = code;
+    this.httpStatus = httpStatus;
+  }
+}
+
 interface RefundMetadata {
   refund_scope?: RefundScope;
   original_credit_app_id?: string | null;
@@ -37,11 +63,13 @@ interface RefundMetadata {
   requested_by?: string | null;
   approved_by?: string | null;
   processed_by?: string | null;
+  /** Operator-entered reopen for MANUAL_EXCEPTION rows; the column is written once at process (D003 v2). */
+  requested_reopen_amount?: number | null;
   [key: string]: unknown;
 }
 
-function toNumber(d: Decimal | null | undefined): number {
-  return d ? Number(d) : 0;
+function toNumber(d: Decimal | number | null | undefined): number {
+  return d == null ? 0 : Number(d);
 }
 
 function parseMetadata(metadata: unknown): RefundMetadata {
@@ -59,6 +87,70 @@ function mergeMetadata(
     ...parseMetadata(base),
     ...updates,
   } as Prisma.InputJsonValue;
+}
+
+/**
+ * Map a credit application's `credit_type` to its D002 v2 origin-only refund
+ * source (B01 §3). Legacy aliases resolve through CREDIT_APPLICATION_TYPES.
+ * Returns null for unknown types — callers must reject, never default.
+ * @param creditType raw `org_order_credit_apps_dtl.credit_type` value
+ */
+export function mapCreditTypeToRefundSource(
+  creditType: string | null | undefined
+): RefundSourceType | null {
+  const normalized = String(creditType ?? '').trim().toUpperCase();
+  switch (normalized) {
+    case CREDIT_APPLICATION_TYPES.GIFT_CARD:
+      return REFUND_SOURCE_TYPES.GIFT_CARD_RESTORE;
+    case CREDIT_APPLICATION_TYPES.WALLET:
+      return REFUND_SOURCE_TYPES.WALLET_RESTORE;
+    case CREDIT_APPLICATION_TYPES.ADVANCE:
+    case 'CUSTOMER_ADVANCE':
+      return REFUND_SOURCE_TYPES.CUSTOMER_ADVANCE_RESTORE;
+    case CREDIT_APPLICATION_TYPES.CREDIT_NOTE:
+    case 'CUSTOMER_CREDIT':
+      return REFUND_SOURCE_TYPES.CUSTOMER_CREDIT_RESTORE;
+    case CREDIT_APPLICATION_TYPES.LOYALTY_POINTS:
+    case 'LOYALTY_CREDIT':
+      return REFUND_SOURCE_TYPES.CUSTOMER_CREDIT_RESTORE;
+    default:
+      return null;
+  }
+}
+
+/**
+ * D003 v2 reopen rule (B01 §5): commercial contexts never reopen the
+ * customer's due; REFUND_AND_REBILL reopens the full refund amount;
+ * MANUAL_EXCEPTION honors the operator-entered value within bounds.
+ * @param refundContext row reason_context
+ * @param refundAmount row refund amount (upper bound)
+ * @param requestedReopenAmount operator-entered value for MANUAL_EXCEPTION rows
+ */
+export function resolveReopensDueAmount(
+  refundContext: RefundContext,
+  refundAmount: number,
+  requestedReopenAmount?: number | null
+): number {
+  switch (refundContext) {
+    case REFUND_CONTEXTS.REFUND_AND_REBILL:
+      return refundAmount;
+    case REFUND_CONTEXTS.MANUAL_EXCEPTION: {
+      const requested = requestedReopenAmount == null ? 0 : Number(requestedReopenAmount);
+      if (!Number.isFinite(requested) || requested < 0 || requested > refundAmount) {
+        throw new RefundValidationError(
+          REFUND_ERROR_CODES.REFUND_REOPEN_INVALID,
+          `Manual-exception reopen amount (${requested}) must be between 0 and the refund amount (${refundAmount})`,
+          400
+        );
+      }
+      return requested;
+    }
+    // STANDARD, PRICE_ADJUSTMENT_GOODWILL, CANCELLATION_UNWIND — value was
+    // returned / the sale is reduced or dead; the customer never silently
+    // owes again (D003 v2 core rule).
+    default:
+      return 0;
+  }
 }
 
 async function getRefundableBalanceSummaryTx(
@@ -111,16 +203,63 @@ async function getRefundableBalanceSummaryTx(
 }
 
 /**
+ * Cumulative PROCESSED refund total already drawn against one credit
+ * application, using the dedicated lineage column (B01 §6 — replaces the
+ * legacy metadata-JSON iteration with an indexed lookup).
+ */
+async function sumProcessedRefundsForCreditAppTx(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+  originalCreditAppId: string
+): Promise<number> {
+  const agg = await tx.org_order_refunds_dtl.aggregate({
+    where: {
+      tenant_org_id: tenantId,
+      order_id: orderId,
+      original_credit_app_id: originalCreditAppId,
+      is_active: true,
+      refund_status: 'PROCESSED',
+    },
+    _sum: { refund_amount: true },
+  });
+  return toNumber(agg._sum.refund_amount);
+}
+
+async function sumProcessedRefundsForPaymentTx(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+  originalPaymentId: string
+): Promise<number> {
+  const agg = await tx.org_order_refunds_dtl.aggregate({
+    where: {
+      tenant_org_id: tenantId,
+      order_id: orderId,
+      original_payment_id: originalPaymentId,
+      is_active: true,
+      refund_status: 'PROCESSED',
+    },
+    _sum: { refund_amount: true },
+  });
+  return toNumber(agg._sum.refund_amount);
+}
+
+/**
  * Why:
- * Batch 0 keeps the live refund RBAC contract, but the refund write path now
- * needs to capture lineage, support manual exceptions safely, and recalculate
- * the order snapshot from fact rows instead of writing ad-hoc header statuses.
+ * B01 makes the refund service the only writer of the five-facet refund facts
+ * (D002 v2): the caller supplies lineage + reason_context, the service derives
+ * `refund_source_type`, validates lineage consistency, and stamps both columns
+ * at initiation. `reopens_due_amount` is written exactly once at process time
+ * per the approved D003 v2 rules.
  */
 export interface InitiateRefundParams {
   orderId: string;
   amount: number;
   reason: RefundReasonCode;
   method: RefundMethod;
+  /** D002 v2 reason_context — mandatory on every refund (B01 §2). */
+  refundContext: RefundContext;
   notes?: string;
   requestedBy: string;
   currencyCode: string;
@@ -128,7 +267,19 @@ export interface InitiateRefundParams {
   originalCreditAppId?: string;
   refundScope?: RefundScope;
   approvalRequired?: boolean;
-  idempotencyKey?: string;
+  /** Route idempotency key — required by B01 §12 (was optional pre-B01). */
+  idempotencyKey: string;
+  /**
+   * Operator-entered reopen for MANUAL_EXCEPTION rows only (D003 v2).
+   * Bounded 0..amount; the column is written at process time.
+   */
+  reopensDueAmount?: number;
+  /**
+   * Internal B27 hook: REFUND_AND_REBILL is rejected until the dedicated
+   * order-reopen/rebill permission code ships (B01 §13). B27 wires the
+   * permission check and passes true; API callers can never set it directly.
+   */
+  rebillAuthorized?: boolean;
   posSessionId?: string;
   metadata?: Record<string, unknown>;
 }
@@ -148,6 +299,7 @@ export async function initiateRefund(
     amount,
     reason,
     method,
+    refundContext,
     notes,
     requestedBy,
     currencyCode,
@@ -156,6 +308,8 @@ export async function initiateRefund(
     refundScope = REFUND_SCOPES.STANDARD,
     approvalRequired = true,
     idempotencyKey,
+    reopensDueAmount,
+    rebillAuthorized = false,
     posSessionId,
     metadata,
   } = params;
@@ -164,15 +318,102 @@ export async function initiateRefund(
     throw new Error('Refund amount must be greater than zero');
   }
 
-  if (
-    refundScope === REFUND_SCOPES.MANUAL_EXCEPTION &&
-    (originalPaymentId || originalCreditAppId)
-  ) {
-    throw new Error('Manual exception refunds cannot include original source lineage');
+  if (!idempotencyKey?.trim()) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_IDEMPOTENCY_CONFLICT,
+      'An idempotency key is required to initiate a refund',
+      400
+    );
   }
 
-  if (refundScope === REFUND_SCOPES.MANUAL_EXCEPTION && !notes?.trim()) {
+  if (!Object.values(REFUND_CONTEXTS).includes(refundContext)) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_CONTEXT_INVALID,
+      `Unknown refund context: ${String(refundContext)}`,
+      400
+    );
+  }
+
+  // B01 §13: mechanics ship in B1, activation arrives with B27's dedicated
+  // order-reopen/rebill permission code. Until then the API-facing path
+  // rejects explicitly (never silently downgrades the context).
+  if (refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL && !rebillAuthorized) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_AND_REBILL_NOT_AVAILABLE,
+      'REFUND_AND_REBILL requires the dedicated order-reopen permission (ships with work package B27)',
+      403
+    );
+  }
+
+  const isManualException = refundContext === REFUND_CONTEXTS.MANUAL_EXCEPTION;
+
+  // Back-compat: refundScope MANUAL_EXCEPTION (pre-B01 API shape) must agree
+  // with the authoritative reason_context — contradictions are rejected.
+  if (refundScope === REFUND_SCOPES.MANUAL_EXCEPTION && !isManualException) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_CONTEXT_INVALID,
+      'Manual-exception refunds must carry refund context MANUAL_EXCEPTION',
+      400
+    );
+  }
+
+  if (isManualException && (originalPaymentId || originalCreditAppId)) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_SOURCE_LINEAGE_MISMATCH,
+      'Manual exception refunds cannot include original source lineage',
+      400
+    );
+  }
+
+  if (isManualException && !notes?.trim()) {
     throw new Error('Manual exception refunds require a non-empty reason note');
+  }
+
+  // Operator-entered reopen is a MANUAL_EXCEPTION-only input (D003 v2);
+  // every other context has a fixed rule and must not accept an override.
+  if (reopensDueAmount != null && !isManualException) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_REOPEN_INVALID,
+      'A reopen amount can only be supplied on MANUAL_EXCEPTION refunds',
+      400
+    );
+  }
+  if (
+    reopensDueAmount != null &&
+    (!Number.isFinite(reopensDueAmount) || reopensDueAmount < 0 || reopensDueAmount > amount)
+  ) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_REOPEN_INVALID,
+      `Reopen amount (${reopensDueAmount}) must be between 0 and the refund amount (${amount})`,
+      400
+    );
+  }
+
+  // Lineage XOR (B01 §4): a refund returns value from exactly one origin.
+  if (originalPaymentId && originalCreditAppId) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_SOURCE_LINEAGE_MISMATCH,
+      'A refund references either an original payment or an original credit application, never both',
+      400
+    );
+  }
+
+  // Rebill unwinds a real payment so the order can be recollected; restore
+  // sources move outstanding via the paired credit reversal instead
+  // (D003 v2 invariant 4 — never both).
+  if (refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL && !originalPaymentId) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_SOURCE_LINEAGE_MISMATCH,
+      'REFUND_AND_REBILL requires the original payment lineage',
+      400
+    );
+  }
+  if (refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL && !notes?.trim()) {
+    throw new RefundValidationError(
+      REFUND_ERROR_CODES.REFUND_CONTEXT_INVALID,
+      'REFUND_AND_REBILL requires a non-empty reason note',
+      400
+    );
   }
 
   return prisma.$transaction(async (tx) => {
@@ -180,11 +421,29 @@ export async function initiateRefund(
     // (tenant_org_id, idempotency_key) already prevents a duplicate row, but without
     // this lookup a keyed retry would surface a raw unique-violation and roll back the
     // whole tx. Return the existing refund so retries are graceful and side-effect-free.
-    if (idempotencyKey) {
-      const existing = await tx.org_order_refunds_dtl.findFirst({
-        where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey, is_active: true },
-      });
-      if (existing) return existing;
+    const existing = await tx.org_order_refunds_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey, is_active: true },
+    });
+    if (existing) {
+      // B01 §12 (S2 pattern): same key + different payload is a conflict,
+      // never a silent replay of the earlier request.
+      const existingMetadata = parseMetadata(existing.metadata);
+      const payloadMatches =
+        existing.order_id === orderId &&
+        toNumber(existing.refund_amount) === amount &&
+        (existing.refund_method_code ?? null) === method &&
+        existing.refund_context === refundContext &&
+        (existing.original_payment_id ?? null) === (originalPaymentId ?? null) &&
+        (existing.original_credit_app_id ?? existingMetadata.original_credit_app_id ?? null) ===
+          (originalCreditAppId ?? null);
+      if (!payloadMatches) {
+        throw new RefundValidationError(
+          REFUND_ERROR_CODES.REFUND_IDEMPOTENCY_CONFLICT,
+          'This idempotency key was already used with a different refund payload',
+          409
+        );
+      }
+      return existing;
     }
 
     const { order, refundableBalance } = await getRefundableBalanceSummaryTx(
@@ -206,7 +465,13 @@ export async function initiateRefund(
       );
     }
 
-    if (originalPaymentId) {
+    // ── Source derivation (D002 v2, B01 §4): the service is the only
+    // classifier — callers supply lineage + context, never the source. ──
+    let refundSourceType: RefundSourceType;
+
+    if (isManualException) {
+      refundSourceType = REFUND_SOURCE_TYPES.MANUAL_EXCEPTION;
+    } else if (originalPaymentId) {
       const payment = await tx.org_order_payments_dtl.findFirst({
         where: {
           id: originalPaymentId,
@@ -228,27 +493,21 @@ export async function initiateRefund(
         throw new Error('Only completed payment rows can be refunded');
       }
 
-      const priorRefundsForPayment = await tx.org_order_refunds_dtl.aggregate({
-        where: {
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          original_payment_id: originalPaymentId,
-          is_active: true,
-          refund_status: 'PROCESSED',
-        },
-        _sum: { refund_amount: true },
-      });
-
-      const remainingForPayment =
-        toNumber(payment.amount) - toNumber(priorRefundsForPayment._sum.refund_amount);
+      const priorForPayment = await sumProcessedRefundsForPaymentTx(
+        tx,
+        tenantId,
+        orderId,
+        originalPaymentId
+      );
+      const remainingForPayment = toNumber(payment.amount) - priorForPayment;
       if (amount > remainingForPayment) {
         throw new Error(
           `Refund amount (${amount}) exceeds remaining refundable source amount (${remainingForPayment})`
         );
       }
-    }
 
-    if (originalCreditAppId) {
+      refundSourceType = REFUND_SOURCE_TYPES.REAL_PAYMENT_REFUND;
+    } else if (originalCreditAppId) {
       const creditApp = await tx.org_order_credit_apps_dtl.findFirst({
         where: {
           id: originalCreditAppId,
@@ -258,6 +517,7 @@ export async function initiateRefund(
         },
         select: {
           id: true,
+          credit_type: true,
           applied_amount: true,
         },
       });
@@ -266,32 +526,41 @@ export async function initiateRefund(
         throw new Error('Original credit application row was not found for this order');
       }
 
-      const priorCreditRefunds = await tx.org_order_refunds_dtl.findMany({
-        where: {
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          is_active: true,
-          refund_status: 'PROCESSED',
-        },
-        select: {
-          refund_amount: true,
-          metadata: true,
-        },
-      });
+      const mappedSource = mapCreditTypeToRefundSource(creditApp.credit_type);
+      if (!mappedSource) {
+        throw new RefundValidationError(
+          REFUND_ERROR_CODES.REFUND_SOURCE_LINEAGE_MISMATCH,
+          `Credit application type (${creditApp.credit_type}) has no refund source mapping`,
+          400
+        );
+      }
 
-      const consumedFromSource = priorCreditRefunds.reduce((sum, row) => {
-        const rowMetadata = parseMetadata(row.metadata);
-        return rowMetadata.original_credit_app_id === originalCreditAppId
-          ? sum + toNumber(row.refund_amount)
-          : sum;
-      }, 0);
-
+      // Column-based cumulative cap (B01 §6): indexed lookup on the promoted
+      // lineage column replaces the legacy metadata-JSON iteration.
+      const consumedFromSource = await sumProcessedRefundsForCreditAppTx(
+        tx,
+        tenantId,
+        orderId,
+        originalCreditAppId
+      );
       const remainingForCredit = toNumber(creditApp.applied_amount) - consumedFromSource;
       if (amount > remainingForCredit) {
         throw new Error(
           `Refund amount (${amount}) exceeds remaining refundable credit amount (${remainingForCredit})`
         );
       }
+
+      refundSourceType = mappedSource;
+    } else {
+      // No prior settlement leg — goodwill / price concession (D002 v2).
+      if (!notes?.trim()) {
+        throw new RefundValidationError(
+          REFUND_ERROR_CODES.REFUND_CONTEXT_INVALID,
+          'Goodwill refunds without source lineage require a non-empty reason note',
+          400
+        );
+      }
+      refundSourceType = REFUND_SOURCE_TYPES.GOODWILL_CONCESSION;
     }
 
     // Concurrency-safe refund number (F-R3): the prior `count(*)+1` approach
@@ -313,20 +582,26 @@ export async function initiateRefund(
         tenant_org_id: tenantId,
         order_id: orderId,
         original_payment_id: originalPaymentId ?? null,
+        original_credit_app_id: originalCreditAppId ?? null,
         refund_no: refundNo,
         refund_amount: amount,
         currency_code: currencyCode,
         reason_code: reason,
         refund_reason: notes ?? null,
         refund_method_code: method,
+        refund_source_type: refundSourceType,
+        refund_context: refundContext,
         pos_session_id: posSessionId ?? null,
         refund_status: approvalRequired ? 'PENDING_APPROVAL' : 'APPROVED',
-        idempotency_key: idempotencyKey ?? null,
+        idempotency_key: idempotencyKey,
         created_by: requestedBy,
         metadata: mergeMetadata(metadata, {
-          refund_scope: refundScope,
+          refund_scope: isManualException
+            ? REFUND_SCOPES.MANUAL_EXCEPTION
+            : REFUND_SCOPES.STANDARD,
           original_payment_id: originalPaymentId ?? null,
           original_credit_app_id: originalCreditAppId ?? null,
+          requested_reopen_amount: isManualException ? (reopensDueAmount ?? 0) : null,
           requested_by: requestedBy,
         }),
         is_active: true,
@@ -348,7 +623,11 @@ export async function initiateRefund(
         amount,
         method,
         reason,
-        refundScope,
+        refundContext,
+        refundSourceType,
+        refundScope: isManualException
+          ? REFUND_SCOPES.MANUAL_EXCEPTION
+          : REFUND_SCOPES.STANDARD,
       }
     );
 
@@ -375,6 +654,17 @@ export async function approveRefund(
         refund_status: 'PENDING_APPROVAL',
       },
     });
+
+    // B34 maker≠checker: the requester can never approve their own refund —
+    // enforced here (single authority for API and any future caller) and
+    // reflected in the UI as a disabled button with the reason.
+    if (refund.created_by && refund.created_by === approverId) {
+      throw new RefundValidationError(
+        REFUND_ERROR_CODES.REFUND_SELF_APPROVAL_BLOCKED,
+        'A refund cannot be approved by the user who requested it (maker-checker)',
+        403
+      );
+    }
 
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refund.id },
@@ -409,8 +699,10 @@ export async function approveRefund(
 }
 
 /**
- * Process an approved refund. Performs the actual reversal where needed,
- * recalculates the financial snapshot, and emits the final outbox event.
+ * Process an approved refund. Re-validates the B01 facts and caps, performs
+ * the destination execution where needed, writes `reopens_due_amount` once
+ * per the approved D003 v2 rules, recalculates the financial snapshot, and
+ * emits the final outbox event.
  * @param tenantId
  * @param refundId
  * @param processedBy
@@ -451,6 +743,16 @@ export async function processRefund(
     const method = refund.refund_method_code as RefundMethod;
     const customerId = order.customer_id;
     const metadata = parseMetadata(refund.metadata);
+    const refundContext = refund.refund_context as RefundContext;
+
+    // B01 §4: re-validate the stamped facts before any destination executes.
+    if (!Object.values(REFUND_CONTEXTS).includes(refundContext)) {
+      throw new RefundValidationError(
+        REFUND_ERROR_CODES.REFUND_CONTEXT_INVALID,
+        `Refund ${refundId} carries an unknown refund context (${String(refundContext)})`,
+        422
+      );
+    }
 
     if (amount > refundableBalance) {
       throw new Error(
@@ -458,10 +760,69 @@ export async function processRefund(
       );
     }
 
+    // B01 §11: source caps are re-checked at process time with the indexed
+    // column sums — concurrent partial refunds serialize on the row locks and
+    // the loser exceeds the remaining cap and fails cleanly here.
+    if (refund.original_payment_id) {
+      const payment = await tx.org_order_payments_dtl.findFirst({
+        where: {
+          id: refund.original_payment_id,
+          tenant_org_id: tenantId,
+          order_id: refund.order_id,
+          is_active: true,
+        },
+        select: { amount: true },
+      });
+      if (payment) {
+        const priorForPayment = await sumProcessedRefundsForPaymentTx(
+          tx,
+          tenantId,
+          refund.order_id,
+          refund.original_payment_id
+        );
+        if (amount > toNumber(payment.amount) - priorForPayment) {
+          throw new Error(
+            `Refund amount (${amount}) exceeds remaining refundable source amount (${toNumber(payment.amount) - priorForPayment})`
+          );
+        }
+      }
+    }
+
+    if (refund.original_credit_app_id) {
+      const creditApp = await tx.org_order_credit_apps_dtl.findFirst({
+        where: {
+          id: refund.original_credit_app_id,
+          tenant_org_id: tenantId,
+          order_id: refund.order_id,
+          is_active: true,
+        },
+        select: { applied_amount: true },
+      });
+      if (creditApp) {
+        const consumedFromSource = await sumProcessedRefundsForCreditAppTx(
+          tx,
+          tenantId,
+          refund.order_id,
+          refund.original_credit_app_id
+        );
+        if (amount > toNumber(creditApp.applied_amount) - consumedFromSource) {
+          throw new Error(
+            `Refund amount (${amount}) exceeds remaining refundable credit amount (${toNumber(creditApp.applied_amount) - consumedFromSource})`
+          );
+        }
+      }
+    }
+
+    // D003 v2: computed exactly once here; immutable afterwards (B01 §5).
+    const reopensDueAmount = resolveReopensDueAmount(
+      refundContext,
+      amount,
+      metadata.requested_reopen_amount
+    );
+
     if (method === REFUND_METHODS.WALLET && customerId) {
-      // F-R2: the FOR UPDATE lock above is the dedupe guard for the wallet path
-      // (topUpWalletTx has no idempotency key); a post-commit retry sees the row
-      // no longer APPROVED and aborts before reaching here.
+      // B01 §12: dedicated wallet destination key (defense-in-depth beside the
+      // FOR UPDATE lock) — a replay after commit skips on the existing ledger row.
       await topUpWalletTx(tx, {
         tenantId,
         customerId,
@@ -470,6 +831,7 @@ export async function processRefund(
         notes: `Refund for order ${order.order_no}`,
         performedBy: processedBy,
         currencyCode: refund.currency_code,
+        idempotencyKey: `refund-${refundId}-wallet`,
       });
     } else if (method === REFUND_METHODS.CREDIT_NOTE && customerId) {
       // F-R2: use the tx-composed, idempotent variant so the credit note is atomic
@@ -485,13 +847,14 @@ export async function processRefund(
         idempotencyKey: `refund-${refundId}-cn`,
       });
     }
-    // CASH / ORIGINAL_METHOD remain operational reversals tracked through the
-    // order refund row, cash drawer, and linked voucher metadata when present.
+    // CASH / ORIGINAL_METHOD remain record-only in B1 (no drawer OUT, no
+    // gateway call) — execution parity is work package B9.
 
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refundId },
       data: {
         refund_status: 'PROCESSED',
+        reopens_due_amount: reopensDueAmount,
         processed_at: new Date(),
         updated_at: new Date(),
         updated_by: processedBy ?? null,
@@ -513,8 +876,11 @@ export async function processRefund(
       amount,
       method,
       customerId,
+      refundContext,
+      refundSourceType: refund.refund_source_type,
+      reopensDueAmount,
       originalPaymentId: refund.original_payment_id ?? null,
-      originalCreditAppId: metadata.original_credit_app_id ?? null,
+      originalCreditAppId: refund.original_credit_app_id ?? metadata.original_credit_app_id ?? null,
       paymentStatus: snapshot.paymentStatus,
       outstandingAmount: snapshot.outstandingAmount,
     });

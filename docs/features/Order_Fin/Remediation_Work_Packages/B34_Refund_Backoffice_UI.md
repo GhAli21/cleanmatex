@@ -1,7 +1,7 @@
 # B34 — Refund Back-office UI
 
 ## Metadata
-Backlog ID: B34 · Severity: HIGH · Classification: BLOCKS_FEATURE / CONTROL_GAP · Status: READY_FOR_DESIGN (D002/D003 APPROVED (Expert) 2026-07-16, v2 semantics; production activation gated per Safety block)
+Backlog ID: B34 · Severity: HIGH · Classification: BLOCKS_FEATURE / CONTROL_GAP · Status: **IMPLEMENTED 2026-07-18** — flagged implementation against the B1 contract complete; all gates + contract checks green (see Completion evidence); flag `order_fin_refund_ui` disabled by default everywhere; **awaiting owner commit → Preview QA (flag-on) → approval**; production activation gated per Safety block (D002/D003 APPROVED (Expert) 2026-07-16, v2)
 Authoritative report sections: Addendum A1, §8, §43, §50-B34
 Required decisions: [D002](00_Phase_0_Financial_Semantics/D002_Refund_Source_Classification.md), [D003](00_Phase_0_Financial_Semantics/D003_Refund_Reopen_Due_Rules.md) (policy — UI must display/collect the approved v2 semantics)
 Dependencies: [B01](B01_Refund_Lineage_And_Reopen_Due.md) (hard for activation — classification/context/reopen contract), [B02](B02_Shared_Financial_Aggregation.md) (hard for activation — one aggregation authority), [B27](B27_Financial_Permissions_And_Approvals.md) (impl — permission-sensitive actions: rebill, manual exception), [B09](B09_Refund_Execution_Parity.md) (hard for cash/original-method activation only)
@@ -88,4 +88,28 @@ Required permission gates: permission-sensitive actions (REFUND_AND_REBILL, manu
 Required verification gates: B1 §14 matrix green; B34 UI/idempotency/access-contract tests green; Preview QA approval recorded
 
 ## Completion evidence
-Migration: — · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Migration:** none (no schema/nav changes — the approval workbench lives inside the existing `/dashboard/internal_fin/refunds` route, so the dual-write navigation rule is not triggered; if the owner wants a separate sidebar item later, that is a small `/navigation` follow-up).
+
+**DONE (2026-07-17/18 overnight):**
+- Flag: `order_fin_refund_ui` added to `lib/types/tenant.ts` (FeatureFlags) + `lib/constants/feature-flags.ts` FLAG_CATALOG (independent, default **false** — key normalized from the spec's `order_fin.refund_ui` to catalog snake_case). **HQ-side seeding into `hq_ff_feature_flags_mst` is a cleanmatexsaas follow-up** (until then resolution returns the false default everywhere).
+- Maker≠checker: `approveRefund` service guard (requester cannot approve own refund → typed 403 `REFUND_SELF_APPROVAL_BLOCKED`, new REFUND_ERROR_CODES entry); approve/process routes map `RefundValidationError` to code+status.
+- Initiate dialog: `src/features/orders/ui/order-financial/refund-initiate-dialog.tsx` (Cmx components; leg picker from COMPLETED real payments + APPLIED credits with live per-leg remaining caps; goodwill option with mandatory reason; CmxMoneyField amount with cap hint + inline errors — no silent money mutation; destination select with record-only labeling for CASH/ORIGINAL_METHOD pre-B09; context selector limited to STANDARD/PRICE_ADJUSTMENT_GOODWILL pre-B27; reason-code select; per-attempt idempotency key; loading/error/success states) + pure model `src/features/orders/model/refund-initiate.ts` (cap math via the B02 aggregation module, validation, attempt key).
+- Financial tab wiring: `order-payments-credits-tables.tsx` — flag+permission-gated "Refund…" button + dialog mount (`useFeature('order_fin_refund_ui')` + `orders:process_refund`).
+- Refunds hub: `refunds-list-client.tsx` rewritten actionable (Approve on PENDING_APPROVAL with self-approval disabled+reason, Process on APPROVED; confirm dialog; double-click-safe; typed error mapping; permission-gated via `orders:approve_refund`/`orders:process_refund`); `app/dashboard/internal_fin/refunds/page.tsx` passes flag state + current user id.
+- i18n EN/AR: `orders/detail.json` → `refunds.initiate.*` (full dialog) + `REFUND_SELF_APPROVAL_BLOCKED`; `billing.json` → `refunds.actions.*` + `refunds.errors.*`.
+- Access contracts: `/dashboard/internal_fin/refunds` gains approve/process actions (+flag) and PATCH apiDependencies; `/dashboard/orders/[id]` gains `initiateRefund` action (+flag) and the POST refunds apiDependency.
+- Tests: `__tests__/features/orders/refund-initiate-model.test.ts` (caps/validation/whitelist/attempt-key) + maker≠checker service tests — 23/23 green.
+
+**Gates + contract validation (2026-07-18 — all green):**
+- `npx tsc --noEmit`: clean except the 2 known pre-existing errors in owner-committed keypad/split-tender files (outside this program; the earlier useMessage API fallout in B34 files was found and fixed [showSuccess/showError]).
+- `npx eslint . --quiet`: 0 errors.
+- Full jest: **1946 passed / 1960** — the 14 failures are exactly the 4 known pre-existing suites (cash-drawer.service, cash-drawer-close-preview, order-calculation.service, credit-note-picker-focus), all from owner keypad/split-payment/promo commits; zero program fallout.
+- `npm run build`: success (full route manifest emitted).
+- `npm run check:i18n`: passed (4 pre-existing benign same-EN/AR warnings).
+- `npm run check:ui-access-contract -- --route=/dashboard/internal_fin/refunds --wire`: PASS (1 contract, page gate OK). Same for `--route=/dashboard/orders/[id]`: PASS (4 contracts, page gate OK + 3 N/A, 4 API gates OK). Note: run these from the repo root with PowerShell — Git Bash mangles the `/dashboard/...` route argument (MSYS path conversion) into a false 0-route PASS.
+- `npm run sync:ui-access-contract`: complete — reconcile drift 0, all generated views refreshed. `npm run check:platform-info-inventories`: 10/10 tests passed.
+
+**Deferred (recorded gaps):** reject-with-reason action (needs a small `rejectRefund` service/status transition — B34 declares "no new backend services"; propose with B27/B30 wave) · REFUND_AND_REBILL + MANUAL_EXCEPTION UI actions (B27 permission codes) · refund receipt/print artifact (B09 voucher) · HQ flag seeding (cleanmatexsaas).
+
+**Commit:** — (owner) · **Preview QA:** — pending (flag enabled on Preview only for QA per Safety block) · **Verification:** — (production activation requires B01+B02 VERIFIED)

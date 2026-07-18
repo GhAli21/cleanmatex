@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import { approveRefund } from '@/lib/services/order-refund.service';
+import { approveRefund, RefundValidationError } from '@/lib/services/order-refund.service';
 
 /**
  *
@@ -26,6 +26,14 @@ export async function PATCH(
     const refund = await approveRefund(tenantId, refundId, userId);
     return NextResponse.json({ success: true, data: refund });
   } catch (err) {
+    // B34: typed refund validation failures (e.g. maker-checker self-approval)
+    // surface their stable code + status instead of a generic 422.
+    if (err instanceof RefundValidationError) {
+      return NextResponse.json(
+        { success: false, code: err.code, error: err.message },
+        { status: err.httpStatus }
+      );
+    }
     const message = err instanceof Error ? err.message : 'Approval failed';
     return NextResponse.json({ success: false, error: message }, { status: 422 });
   }

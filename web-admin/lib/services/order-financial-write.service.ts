@@ -14,12 +14,27 @@ import {
   ORDER_FINANCIAL_WARNING_CODES,
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   ORDER_PAYMENT_STATUS,
-  REFUND_METHODS,
-  REFUND_SOURCE_TYPES,
   SETTLEMENT_TYPE_CODES,
   TAX_PRICING_MODES,
   isArReceivablePaymentTypeCode,
 } from '@/lib/constants/order-financial';
+// B02 (D005): all outstanding-formula components come from the single shared
+// aggregation authority — this writer must not re-derive status sets/filters.
+import {
+  classifyRefunds,
+  computeOutstanding,
+  hasAmbiguousHistoricalPaymentRow,
+  isClearlyRealPaymentRow,
+  isCompletedPaymentStatus,
+  sumCreditsByStatuses,
+  sumPaymentsByStatuses,
+  type RefundFactRow,
+} from '@/lib/services/order-financial-aggregation';
+
+// Re-exported so existing consumers/tests keep importing from the writer
+// (the implementation now lives in the D005 aggregation module).
+export { classifyRefunds };
+export type { RefundFactRow };
 import type {
   OrderFinancialCalculationSnapshot,
   OrderFinancialWarningCode,
@@ -42,19 +57,6 @@ type PaymentFactRow = {
   check_no: string | null;
   bank_reference: string | null;
   change_returned_amount: Decimal | null;
-};
-
-/**
- *
- */
-export type RefundFactRow = {
-  refund_amount: Decimal;
-  refund_status: string | null;
-  refund_method_code: string | null;
-  original_payment_id: string | null;
-  refund_source_type: string | null;
-  reopens_due_amount: Decimal | null;
-  metadata: Prisma.JsonValue;
 };
 
 type CreditApplicationFactRow = {
@@ -99,162 +101,14 @@ function normalizeCurrencyCode(value: string | null | undefined): string | null 
   return /^[A-Z]{3}$/.test(code) ? code : null;
 }
 
-function toRecord(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function sumPaymentStatusAmount(rows: PaymentFactRow[], allowedStatuses: readonly string[]): number {
-  const allowed = new Set<string>(allowedStatuses);
-
-  return rows.reduce((sum, row) => {
-    if (!allowed.has(normalizeUpper(row.payment_status))) return sum;
-    if (!isClearlyRealPaymentRow(row)) return sum;
-    return sum + toNumber(row.amount);
-  }, 0);
-}
-
+// change_returned is writer-specific (not a D005 component) but keys off the
+// same frozen COMPLETED set + nature filter as effectivePayments.
 function sumChangeReturned(rows: PaymentFactRow[]): number {
-  const completed = new Set<string>(ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED);
-
   return rows.reduce((sum, row) => {
-    if (!completed.has(normalizeUpper(row.payment_status))) return sum;
+    if (!isCompletedPaymentStatus(row.payment_status)) return sum;
     if (!isClearlyRealPaymentRow(row)) return sum;
     return sum + toNumber(row.change_returned_amount);
   }, 0);
-}
-
-function isClearlyRealPaymentRow(row: PaymentFactRow): boolean {
-  const snapshotNature = normalizeUpper(row.payment_nature_snapshot);
-  if (snapshotNature === 'REAL_PAYMENT') return true;
-  if (snapshotNature && snapshotNature !== 'REAL_PAYMENT') return false;
-
-  return Boolean(
-    row.org_payment_method_id
-      || row.payment_method_code?.trim()
-      || row.gateway_code?.trim()
-      || row.gateway_reference?.trim()
-      || row.tendered_amount != null
-      || row.check_no?.trim()
-      || row.bank_reference?.trim(),
-  );
-}
-
-function hasAmbiguousHistoricalPaymentRow(rows: PaymentFactRow[]): boolean {
-  return rows.some((row) => {
-    if (row.payment_nature_snapshot != null) return false;
-    return !isClearlyRealPaymentRow(row);
-  });
-}
-
-function sumCreditApplicationStatusAmount(
-  rows: CreditApplicationFactRow[],
-  allowedStatuses: readonly string[],
-): number {
-  const allowed = new Set(allowedStatuses);
-
-  return rows.reduce((sum, row) => {
-    const status = normalizeUpper(row.application_status) || CREDIT_APPLICATION_STATUSES.APPLIED;
-    if (!allowed.has(status)) return sum;
-    return sum + toNumber(row.applied_amount);
-  }, 0);
-}
-
-/**
- *
- * @param refunds
- */
-export function classifyRefunds(refunds: RefundFactRow[]): {
-  refundedAmount: number;
-  realPaymentRefundedAmount: number;
-  storedValueRestoredAmount: number;
-  customerCreditIssuedAmount: number;
-  hasUnclassifiedRefundSource: boolean;
-  refundReopensDueAmount: number;
-} {
-  let refundedAmount = 0;
-  let realPaymentRefundedAmount = 0;
-  let storedValueRestoredAmount = 0;
-  let customerCreditIssuedAmount = 0;
-  let hasUnclassifiedRefundSource = false;
-  let refundReopensDueAmount = 0;
-
-  for (const refund of refunds) {
-    if (normalizeUpper(refund.refund_status) !== 'PROCESSED') continue;
-
-    const amount = toNumber(refund.refund_amount);
-    refundedAmount += amount;
-    refundReopensDueAmount += toNumber(refund.reopens_due_amount);
-
-    // Use the canonical refund_source_type column when present (Phase 6+).
-    // Fall back to the pre-Phase-6 heuristic for legacy rows that have NULL
-    // (should not occur after backfill, but kept as a safety net).
-    const sourceType = normalizeUpper(refund.refund_source_type);
-
-    if (sourceType) {
-      if (sourceType === REFUND_SOURCE_TYPES.REAL_PAYMENT_REFUND) {
-        realPaymentRefundedAmount += amount;
-      } else if (
-        sourceType === REFUND_SOURCE_TYPES.GIFT_CARD_RESTORE
-        || sourceType === REFUND_SOURCE_TYPES.WALLET_RESTORE
-        || sourceType === REFUND_SOURCE_TYPES.CUSTOMER_ADVANCE_RESTORE
-      ) {
-        storedValueRestoredAmount += amount;
-      } else if (
-        sourceType === REFUND_SOURCE_TYPES.CUSTOMER_CREDIT_ISSUE
-        || sourceType === REFUND_SOURCE_TYPES.CREDIT_NOTE_ISSUE
-      ) {
-        customerCreditIssuedAmount += amount;
-      } else if (sourceType === REFUND_SOURCE_TYPES.MANUAL_EXCEPTION) {
-        hasUnclassifiedRefundSource = true;
-      }
-      continue;
-    }
-
-    // Legacy heuristic fallback (pre-0340 rows — should not occur post-backfill).
-    const method = normalizeUpper(refund.refund_method_code);
-    const metadata = toRecord(refund.metadata);
-    const refundDestinationType = String(metadata.refund_destination_type ?? '').trim().toUpperCase();
-    const originalCreditType = String(metadata.original_credit_type ?? '').trim().toUpperCase();
-
-    if (
-      method === REFUND_METHODS.CASH
-      || method === REFUND_METHODS.ORIGINAL_METHOD
-      || Boolean(refund.original_payment_id)
-    ) {
-      realPaymentRefundedAmount += amount;
-      continue;
-    }
-
-    if (
-      method === REFUND_METHODS.WALLET
-      || refundDestinationType === 'STORED_VALUE'
-      || ['GIFT_CARD', CREDIT_APPLICATION_TYPES.WALLET, CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE, CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT].includes(originalCreditType)
-    ) {
-      storedValueRestoredAmount += amount;
-      continue;
-    }
-
-    if (
-      method === REFUND_METHODS.CREDIT_NOTE
-      || refundDestinationType === 'CUSTOMER_CREDIT'
-    ) {
-      customerCreditIssuedAmount += amount;
-      continue;
-    }
-
-    hasUnclassifiedRefundSource = true;
-  }
-
-  return {
-    refundedAmount,
-    realPaymentRefundedAmount,
-    storedValueRestoredAmount,
-    customerCreditIssuedAmount,
-    hasUnclassifiedRefundSource,
-    refundReopensDueAmount,
-  };
 }
 
 /**
@@ -347,6 +201,8 @@ function resolveCanonicalTotalAmount(input: {
  * @param input.recomputedTaxAmount
  * @param input.orderOutstandingAmount
  * @param input.recomputedOutstandingAmount
+ * @param input.orderPaidAmount
+ * @param input.recomputedPaidAmount
  * @param input.pendingPaymentAmount
  * @param input.authorizedPaymentAmount
  * @param input.giftCardAppliedAmount
@@ -368,6 +224,10 @@ export function buildWarningCodes(input: {
   recomputedTaxAmount: number;
   orderOutstandingAmount: number;
   recomputedOutstandingAmount: number;
+  /** Stored header total_paid_amount BEFORE this recalculation (B33 cross-check). */
+  orderPaidAmount: number;
+  /** Completed-only, nature-filtered paid total from the D005 aggregation. */
+  recomputedPaidAmount: number;
   pendingPaymentAmount: number;
   authorizedPaymentAmount: number;
   giftCardAppliedAmount: number;
@@ -394,10 +254,16 @@ export function buildWarningCodes(input: {
   if (Math.abs(input.orderOutstandingAmount - input.recomputedOutstandingAmount) > tolerance) {
     warnings.add(ORDER_FINANCIAL_WARNING_CODES.OUTSTANDING_MISMATCH);
   }
-  if (input.pendingPaymentAmount > 0) {
+  // B33 (M9): pending/authorized amounts are by-design reported buckets —
+  // their mere existence is never a defect (D005 excludes them from paid by
+  // construction). The *_COUNTED_AS_PAID warnings fire only on the genuine
+  // leak: the stored header paid total exceeds the completed-only
+  // recomputation while such non-completed legs exist to explain the excess.
+  const headerPaidExcess = input.orderPaidAmount - input.recomputedPaidAmount;
+  if (headerPaidExcess > tolerance && input.pendingPaymentAmount > tolerance) {
     warnings.add(ORDER_FINANCIAL_WARNING_CODES.PENDING_PAYMENT_COUNTED_AS_PAID);
   }
-  if (input.authorizedPaymentAmount > 0) {
+  if (headerPaidExcess > tolerance && input.authorizedPaymentAmount > tolerance) {
     warnings.add(ORDER_FINANCIAL_WARNING_CODES.AUTHORIZED_PAYMENT_COUNTED_AS_PAID);
   }
   if (input.giftCardAppliedAmount > 0 && input.totalCreditAppliedAmount + tolerance < input.giftCardAppliedAmount) {
@@ -550,6 +416,8 @@ export async function recalculateOrderFinancialSnapshotTx(
       branch_id: true,
       total_discount_amount: true,
       total_tax_amount: true,
+      // B33 cross-check input: the stored paid total BEFORE this recalc.
+      total_paid_amount: true,
       outstanding_amount: true,
       payment_type_code: true,
       rounding_adjustment_amount: true,
@@ -695,11 +563,11 @@ export async function recalculateOrderFinancialSnapshotTx(
   const exemptAmount = 0;
   const zeroRatedAmount = 0;
   const outOfScopeAmount = 0;
-  const totalCreditAppliedAmount = sumCreditApplicationStatusAmount(
+  const totalCreditAppliedAmount = sumCreditsByStatuses(
     creditRows,
     [CREDIT_APPLICATION_STATUSES.APPLIED],
   );
-  const pendingCreditApplicationAmount = sumCreditApplicationStatusAmount(
+  const pendingCreditApplicationAmount = sumCreditsByStatuses(
     creditRows,
     [
       CREDIT_APPLICATION_STATUSES.PENDING,
@@ -707,7 +575,7 @@ export async function recalculateOrderFinancialSnapshotTx(
       CREDIT_APPLICATION_STATUSES.PROCESSING,
     ],
   );
-  const failedCreditApplicationAmount = sumCreditApplicationStatusAmount(
+  const failedCreditApplicationAmount = sumCreditsByStatuses(
     creditRows,
     [
       CREDIT_APPLICATION_STATUSES.FAILED,
@@ -715,7 +583,7 @@ export async function recalculateOrderFinancialSnapshotTx(
       CREDIT_APPLICATION_STATUSES.EXPIRED,
     ],
   );
-  const creditReversedAmount = sumCreditApplicationStatusAmount(
+  const creditReversedAmount = sumCreditsByStatuses(
     creditRows,
     [CREDIT_APPLICATION_STATUSES.REVERSED],
   );
@@ -727,10 +595,10 @@ export async function recalculateOrderFinancialSnapshotTx(
         && normalizeUpper(row.credit_type) === CREDIT_APPLICATION_TYPES.GIFT_CARD,
     )
     .reduce((sum, row) => sum + toNumber(row.applied_amount), 0);
-  const totalPaidAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED);
-  const pendingPaymentAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
-  const authorizedPaymentAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED);
-  const failedPaymentAmount = sumPaymentStatusAmount(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.FAILED);
+  const totalPaidAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED);
+  const pendingPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.PENDING);
+  const authorizedPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.AUTHORIZED);
+  const failedPaymentAmount = sumPaymentsByStatuses(payments, ORDER_PAYMENT_LIFECYCLE_STATUSES.FAILED);
   const changeReturnedAmount = sumChangeReturned(payments);
   const ambiguousHistoricalPaymentRow = hasAmbiguousHistoricalPaymentRow(payments);
 
@@ -776,14 +644,15 @@ export async function recalculateOrderFinancialSnapshotTx(
 
   const creditReversalReopensDueAmount = 0;
   const netCollectedAmount = Math.max(0, totalPaidAmount - realPaymentRefundedAmount);
-  const outstandingAmount = Math.max(
-    0,
-    totalAmount
-      - totalPaidAmount
-      - totalCreditAppliedAmount
-      + refundReopensDueAmount
-      + creditReversalReopensDueAmount,
-  );
+  // D005 canonical formula — computed by the shared aggregation authority
+  // (B02): totalPaid/credits/reopens above are already the frozen components.
+  const outstandingAmount = computeOutstanding({
+    totalAmount,
+    effectivePayments: totalPaidAmount,
+    effectiveCredits: totalCreditAppliedAmount,
+    refundReopens: refundReopensDueAmount,
+    creditReversalReopens: creditReversalReopensDueAmount,
+  });
   const grossOverpaidAmount = Math.max(
     0,
     totalPaidAmount + totalCreditAppliedAmount - totalAmount,
@@ -822,6 +691,8 @@ export async function recalculateOrderFinancialSnapshotTx(
     recomputedTaxAmount: totalTaxAmount,
     orderOutstandingAmount: toNumber(order.outstanding_amount),
     recomputedOutstandingAmount: outstandingAmount,
+    orderPaidAmount: toNumber(order.total_paid_amount),
+    recomputedPaidAmount: totalPaidAmount,
     pendingPaymentAmount,
     authorizedPaymentAmount,
     giftCardAppliedAmount: giftCardCreditAppliedAmount,

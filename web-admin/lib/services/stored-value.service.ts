@@ -39,11 +39,25 @@ export async function getWalletBalance(
   };
 }
 
+/**
+ * Credit a customer wallet inside an existing Prisma transaction.
+ *
+ * B01 (§12) contract: `idempotencyKey` enables skip-on-existing — if this key
+ * already produced a ledger row, the cached row is returned without crediting
+ * the balance again (refund destination key: `refund-${refundId}-wallet`).
+ */
 export async function topUpWalletTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; amount: number; orderId?: string; notes?: string; performedBy?: string; currencyCode?: string }
+  params: { tenantId: string; customerId: string; amount: number; orderId?: string; notes?: string; performedBy?: string; currencyCode?: string; idempotencyKey?: string }
 ) {
-  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode = 'OMR' } = params;
+  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode = 'OMR', idempotencyKey } = params;
+
+  if (idempotencyKey) {
+    const existing = await tx.org_wallet_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   let wallet = await tx.org_customer_wallets_mst.findFirst({
     where: { tenant_org_id: tenantId, customer_id: customerId, is_active: true },
@@ -84,6 +98,7 @@ export async function topUpWalletTx(
       order_id:       orderId ?? null,
       notes:          notes ?? null,
       performed_by:   performedBy ?? null,
+      idempotency_key: idempotencyKey ?? null,
       rec_status:     1,
     },
   });

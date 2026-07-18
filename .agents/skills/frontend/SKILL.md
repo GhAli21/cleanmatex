@@ -10,7 +10,7 @@ agents:
 
 ## CRITICAL Rules
 
-1. **Always use cmxMessage** for all messages, errors, alerts
+1. **Always use `cmxMessage` / `useMessage()`** for all applicable user-facing messages, errors, alerts, confirms (`docs/dev/rules/cmx-message.md`). Do not add new legacy `showSuccessToast` / raw `toast()` / `alert()` call sites.
 2. **Pagination must be server-side** (API-driven)
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
