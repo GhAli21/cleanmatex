@@ -74,6 +74,13 @@ export interface FeatureFlags {
      * additionally on B09). HQ catalog seeding is a cleanmatexsaas follow-up.
      */
     order_fin_refund_ui: boolean;
+    /**
+     * B16 — Drawer close v2: filtered expected-cash aggregate (active +
+     * COMPLETED-set + cash-family) plus the variance-approval close flow.
+     * Disabled by default; flag off restores the legacy unfiltered aggregate
+     * (documented known M2). HQ catalog seeding is a cleanmatexsaas follow-up.
+     */
+    order_fin_drawer_close_v2: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

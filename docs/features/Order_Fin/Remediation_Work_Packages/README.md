@@ -1,7 +1,7 @@
 # Order Fin Remediation Work Packages — Master Index
 
 **Created:** 2026-07-15 · **Documentation status: UNDER_REVIEW** — these are active planning files, not frozen artifacts. · **Documentation only — no code, migrations, tests, config, or schema changes.**
-**Next action:** continue the implementation sequence under the **owner continuation directive (recorded 2026-07-17 in [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md))** — Seq 1–2 are implementation-complete (B01/B02/B33/B34 IMPLEMENTED, gates green; awaiting owner commit → Preview QA). **NOW: Seq 3 — B15 (first unblocked: no dependencies, no decisions) → B16 → B20 → B29**, one scoped package per phase (owner directive 2026-07-18). **All twelve decisions (D001–D012) are APPROVED (Expert)** — the final seven recorded 2026-07-18 from the owner's authoritative decision pack; no decision blockers remain. Package starts are announced against the RESUME; owner control points (migration apply, commits, Preview QA approval) bind at every package.
+**Next action:** continue the implementation sequence under the **owner continuation directive (recorded 2026-07-17 in [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md))** — Seq 1–2 are implementation-complete (B01/B02/B33/B34 IMPLEMENTED, gates green; awaiting owner commit → Preview QA). **Seq 3 progress: B15 IMPLEMENTED (currency pre-Preview data checks PASS on remote); B16 Part A (expected-cash filter) IMPLEMENTED flag-gated + B16 Part B mig `0407` authored → BLOCKED-ON-APPLY. NOW: B20 → B29** (B16 Part B resumes after owner applies 0407 + Prisma regen), one scoped package per phase (owner directive 2026-07-18). **Owner queue:** apply mig 0407; then commit + Preview-deploy the Seq 3 batch. **Addendum A2** (drawer cash-sale double-count) added to the authoritative report — needs a dedicated follow-up decision/package. **All twelve decisions (D001–D012) are APPROVED (Expert)** — the final seven recorded 2026-07-18 from the owner's authoritative decision pack; no decision blockers remain. Package starts are announced against the RESUME; owner control points (migration apply, commits, Preview QA approval) bind at every package.
 **Source of truth:** [Authoritative Current-State Report (2026-07-15)](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) — frozen; work packages must **not** redefine or silently contradict its confirmed findings (C1–C3, H1–H8, M1–M9, B1–B34 incl. Addendum A1).
 **Folder rules:** [CLAUDE.md](CLAUDE.md) governs all files here — planning-only stage, no invented approvals, required Delivery-surfaces sections, safety gates for UI over unsafe backends.
 
@@ -51,7 +51,7 @@ Severity/classification/evidence per report §50. Status is documentation-state 
 | B13 | Voucher reversal operational unwind | HIGH | CONTROL_GAP | NOT_STARTED | D004 D006 D007 | B10 (hard) | — | 8 | [B13](B13_Voucher_Reversal_Operational_Unwind.md) | — | — | — |
 | B14 | Tax document runtime integration | HIGH | BLOCKS_FEATURE | NOT_STARTED | D007 D011 | — | B12 (partial, credit notes) | 11 | [B14](B14_Tax_Document_Runtime_Integration.md) | — | — | — |
 | B15 | Currency defaults + tolerances | MEDIUM | CONTROL_GAP | IMPLEMENTED 2026-07-18 (9 OMR fallbacks → resolve-or-throw; USD default removed; 0.05/0.06 removed; two tolerance classes centralized — see B15 evidence) — awaiting owner commit → Preview QA | — | — | — | 3 | [B15](B15_Currency_Defaults_And_Tolerances.md) | pending | — | pending Preview QA |
-| B16 | Drawer filtering + variance approval | MEDIUM | CONTROL_GAP | NOT_STARTED | D001 | — | — | 3 | [B16](B16_Cash_Drawer_Filtering_And_Variance_Approval.md) | — | — | — |
+| B16 | Drawer filtering + variance approval | MEDIUM | CONTROL_GAP | IN_PROGRESS — Part A (expected-cash filter) IMPLEMENTED 2026-07-18 flag-gated `order_fin_drawer_close_v2`, gates green; Part B (variance approval) mig 0407 authored → BLOCKED-ON-APPLY; Addendum A2 (cash-sale double-count) recorded | D001 | — | — | 3 | [B16](B16_Cash_Drawer_Filtering_And_Variance_Approval.md) | pending | — | pending Preview QA |
 | B17 | Currency rounding runtime | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | — | B15 (impl) | — | 10 | [B17](B17_Currency_Rounding_Runtime.md) | — | — | — |
 | B18 | Order charge write path | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | — | — | — | 10 | [B18](B18_Order_Charge_Write_Path.md) | — | — | — |
 | B19 | Expiry + idempotency jobs | MEDIUM | CONTROL_GAP | NOT_STARTED | D008 D010 | B7 (hard) | — | 9 | [B19](B19_Expiry_And_Idempotency_Jobs.md) | — | — | — |
@@ -80,9 +80,10 @@ Seq 1  ✅ DONE 2026-07-17 — B1 IMPLEMENTED (D002 D003 D004 D005 D010 APPROVED
 Seq 2  ✅ DONE 2026-07-17/18 — B2 → B33 IMPLEMENTED; B34 IMPLEMENTED behind DISABLED flag
        (PRODUCTION ACTIVATION still GATED ON B01+B02 VERIFIED; cash/original-method on
        B09 VERIFIED; permission-sensitive actions on B27)
-Seq 3  ← NOW · Low-risk parallel wave: B15 B16 B20 B29 (recalculated 2026-07-18: all
-       unblocked — no open decisions; B20's hard dep B2 is IMPLEMENTED, its VERIFIED
-       gate binds production promotion, not implementation order)
+Seq 3  ← IN PROGRESS · Low-risk parallel wave: B15 ✅ IMPLEMENTED · B16 Part A ✅ IMPLEMENTED
+       (filter, flag-gated) + Part B mig 0407 BLOCKED-ON-APPLY · B20 ← NOW · B29 next
+       (recalculated 2026-07-18: all unblocked — no open decisions; B20's hard dep B2 is
+       IMPLEMENTED, its VERIFIED gate binds production promotion, not implementation order)
 Seq 4  B4 → B5, B31
 Seq 5  B7, B27
 Seq 6  B3, B30, B32

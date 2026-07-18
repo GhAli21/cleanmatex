@@ -41,6 +41,7 @@ import {
   buildColorHexByCode,
 } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
+import { ProcessingPiecePrefsDialog } from './processing-piece-prefs-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
 
 export interface SimpleProcessingDialogProps {
@@ -112,6 +113,11 @@ export function SimpleProcessingDialog({
   const [showSplitDialog, setShowSplitDialog] = React.useState(false);
   const [showIssueDialog, setShowIssueDialog] = React.useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false);
+  const [prefsTarget, setPrefsTarget] = React.useState<{
+    pieceId: string;
+    itemId: string;
+    title: string;
+  } | null>(null);
   const initializedOrderIdRef = React.useRef<string | null>(null);
 
   const { data: orderData, isLoading: orderLoading, error: orderError } = useQuery({
@@ -294,8 +300,15 @@ export function SimpleProcessingDialog({
               <PiecePreferenceReadonlyChips
                 piece={piece}
                 colorHexByCode={colorHexByCode}
-                maxVisible={5}
+                maxVisible={2}
                 size="sm"
+                onOpenPrefs={() =>
+                  setPrefsTarget({
+                    pieceId: piece.id,
+                    itemId: piece.itemId,
+                    title: `${label} — ${t('pieceLabel', { n: piece.pieceNumber })}`,
+                  })
+                }
               />
             </div>
           );
@@ -836,6 +849,20 @@ export function SimpleProcessingDialog({
           onClose();
         }}
       />
+
+      {orderId && prefsTarget ? (
+        <ProcessingPiecePrefsDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPrefsTarget(null);
+          }}
+          orderId={orderId}
+          itemId={prefsTarget.itemId}
+          pieceId={prefsTarget.pieceId}
+          tenantId={tenantId}
+          title={prefsTarget.title}
+        />
+      ) : null}
     </>
   );
 }

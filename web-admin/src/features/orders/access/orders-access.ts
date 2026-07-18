@@ -1256,6 +1256,53 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/orders/[id]/issue',
         notes: ['Auth-only local route; Report Issue from Simple Processing header.'],
       },
+      {
+        label: 'Piece preferences list/add (Simple Processing)',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['POST add uses orders:update; Processing dialog prefs surface.'],
+      },
+      {
+        label: 'Piece preferences add (Simple Processing)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Piece preference delete/confirm (Simple Processing)',
+        method: 'DELETE',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+        notes: ['PATCH confirm on same path; triple-guard delete.'],
+      },
+      {
+        label: 'Piece preference confirm (Simple Processing)',
+        method: 'PATCH',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Piece preference follow-up note (Simple Processing)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/[prefId]/notes',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: ORDER_NOTES,
   },

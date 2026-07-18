@@ -19,6 +19,7 @@ export const ORDER_PREF_DTL_DISPLAY_COLUMNS = [
   'processing_confirmed',
   'confirmed_by',
   'confirmed_at',
+  'notes_followup',
   'rec_status',
   'created_at',
   'created_by',
@@ -51,6 +52,7 @@ export interface OrderPreferenceRow {
   processing_confirmed: boolean | null;
   confirmed_by: string | null;
   confirmed_at: string | null;
+  notes_followup?: unknown;
   rec_status: number | null;
   created_at: string | null;
   created_by: string | null;

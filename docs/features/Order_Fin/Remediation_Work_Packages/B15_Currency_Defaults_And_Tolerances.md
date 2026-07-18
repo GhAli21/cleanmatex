@@ -91,4 +91,43 @@ Rollback: revert commit
 
 **Gates (2026-07-18, all green):** tsc clean (2 known pre-existing owner-file errors only) · eslint 0 · check:i18n ✓ · full jest **1967/1981** (the 14 failures are the same 4 known pre-existing owner suites; zero B15 fallout) · `npm run build` ✓.
 
-**Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending (non-OMR tenant fixture on staging per Rollout) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (after Preview QA)
+**Pre-Preview data checks (currency-only, read-only — owner runs against Preview/production before deploy):**
+
+After B15 removes the invented-currency fallbacks, two data conditions would newly surface as loud failures instead of silent OMR/USD defaults. Run these read-only queries against the target environment **before** deploying B15 there, so any offending rows are remediated (currency backfilled) first. Both are pure `SELECT`s — no writes.
+
+- **(a) Active tenants whose `TENANT_CURRENCY` resolves empty** — such a tenant would hit `MISSING_TENANT_CURRENCY` on any money write after B15:
+  ```sql
+  WITH active_tenants AS (
+    SELECT id, name FROM org_tenants_mst
+    WHERE COALESCE(is_active, true) = true AND COALESCE(rec_status, 1) <> 0
+  )
+  SELECT t.id AS tenant_org_id, t.name,
+         r.stng_value_jsonb #>> '{}' AS resolved_currency
+  FROM active_tenants t
+  LEFT JOIN LATERAL (
+    SELECT stng_value_jsonb
+    FROM fn_stng_resolve_all_settings(t.id, NULL, NULL)
+    WHERE stng_code = 'TENANT_CURRENCY'
+    LIMIT 1
+  ) r ON TRUE
+  WHERE NULLIF(btrim(COALESCE(r.stng_value_jsonb #>> '{}','')), '') IS NULL
+  ORDER BY t.name;
+  ```
+- **(b) Wallets / advances with a blank `currency_code`** — the column is `TEXT NOT NULL`, so true NULLs are impossible, but a blank/whitespace value would fail `requireCurrencyCode`/`assertCurrencyMatch` on read:
+  ```sql
+  SELECT 'wallet'  AS kind, tenant_org_id, id, currency_code, is_active
+  FROM org_customer_wallets_mst
+  WHERE NULLIF(btrim(currency_code), '') IS NULL
+  UNION ALL
+  SELECT 'advance' AS kind, tenant_org_id, id, currency_code, is_active
+  FROM org_customer_advances_mst
+  WHERE NULLIF(btrim(currency_code), '') IS NULL;
+  ```
+
+**Results (2026-07-18, read-only):**
+- **Remote (authoritative — Preview/production DB, via `supabase_remote_db` MCP):** (a) **3 active tenants, 0 with empty currency**; (b) **2 wallets + 2 advances, 0 blank currency** (all active). **Both checks PASS — no offending rows; B15 is safe to deploy to this environment on the currency dimension.**
+- Local dev (informational): (a) 2 active tenants, 0 empty; (b) 0 wallet/advance rows, 0 blank.
+
+Re-run both checks against the exact target environment immediately before the Preview deploy if tenant/wallet data may have changed since 2026-07-18.
+
+**Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending (non-OMR tenant fixture on staging per Rollout; run the two pre-Preview data checks above first) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (after Preview QA)

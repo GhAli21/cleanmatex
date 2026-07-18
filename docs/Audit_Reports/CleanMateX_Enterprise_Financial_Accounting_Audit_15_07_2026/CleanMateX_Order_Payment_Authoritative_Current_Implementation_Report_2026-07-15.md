@@ -970,6 +970,23 @@ The refund maker-checker workflow (§8) is **API-complete but has no usable UI**
 
 Consequence: refunds on live orders (wrong item, partial complaint, goodwill) and the approval/processing of PENDING_APPROVAL rows are impossible without direct API calls. Classification for §43's refund permissions is unchanged (codes exist; no UI consumes them). New backlog item **B34** (refund back-office UI) added to §50. This also sets the general completeness rule for remediation: a capability with backend but no usable screen is PARTIAL, never complete.
 
+## A2 — Drawer expected-cash double-counts cash sales (verified 2026-07-18, during B16)
+
+The M2 finding (§17, §50-B16) recorded the drawer-close expected-cash formula as `expected = float + Σ sessionPayments + IN − OUT` with the sole gap being the missing `payment_status='COMPLETED'` / `is_active` filter. Implementing B16's filter surfaced a **second, independent defect in the same formula**: for the BVM/settlement cash path, a single cash sale is written to **both** ledgers and **both** are summed, so its amount is counted twice.
+
+| Evidence | Behaviour |
+|---|---|
+| `order-settlement.service.ts:830–890` | one CASH sale writes an `org_order_payments_dtl` row **with `cash_drawer_session_id` set** (:841) **and** a `CASH_SALE` `IN` movement in `org_cash_drawer_movements_dtl` (:872), linked by `order_payment_id` |
+| `customer-receipt-posting.service.ts:166`, `wiring/cash-drawer-wiring.handler.ts:68` | same dual-write pattern for the other cash-collection paths |
+| `cash-drawer.service.ts` `closeSession` + `buildSessionReconciliation` | `expected = float + Σ sessionPayments + Σ movements(IN − OUT)` → the sale's payment row **and** its `CASH_SALE` movement are both added → **+2× the sale** |
+| change handling | `CASH_SALE.amount = settled amount` (net of change) yet a separate `CASH_OUT` change movement is also subtracted → the movement ledger further mis-models change (net `amount − change` instead of `amount`) |
+
+Owner work is already in-flight on the correct model: `features/cash-drawers/api/cash-drawer-api.ts` `buildCashDrawerClosePreview` and its tests (`__tests__/features/pos-sessions/cash-drawer-close-preview.test.ts`) assert **expected cash = opening float + linked cash payments, with drawer movements kept as audit context and NOT folded into expected cash** (test "keeps drawer movements visible as audit context without folding them into expected cash"). Those tests are **currently failing** (impl still folds movements: 19.5 vs expected 17.5), i.e. the fix is designed but not finished, and the tested model does not yet distinguish **sale-mirror** movements (`CASH_SALE` + its change `CASH_OUT`, which *should* be excluded because the payment already counts them) from **manual** movements (`CASH_IN`/`CASH_OUT`/`PETTY_CASH`/`CASH_DROP` float and petty adjustments, which *should* still move expected cash).
+
+Scope boundary: **B16 fixes only the documented M2 filter** (active + COMPLETED-set + cash-family on the session-payment term) behind the `order_fin_drawer_close_v2` flag; it deliberately does **not** change the movement-folding term, because the single-source-of-truth choice (payment ledger vs drawer-movement ledger for sale cash) plus the manual-vs-sale-mirror movement distinction is a design decision the owner is actively resolving in `buildCashDrawerClosePreview`. Fixing the filter alone therefore removes non-cash/pending inflation but leaves the cash double-count for a coordinated follow-up.
+
+Recommendation: a dedicated decision + package to unify **one** expected-cash formula across `closeSession`, `buildSessionReconciliation`, and `buildCashDrawerClosePreview` — counting each cash fact exactly once (sale cash from the payment ledger; float/petty/adjustment cash from manual movements; sale-mirror `CASH_SALE`/change movements excluded), with correct change modelling. Until then the drawer-close capability must not be marked production-ready (consistent with B16's own Safety block and the one-package-does-not-make-a-capability-production-ready rule).
+
 ```text
 AUTHORITATIVE REPORT STATUS:
 COMPLETE WITHIN THE INSPECTED WEB-ADMIN SCOPE,

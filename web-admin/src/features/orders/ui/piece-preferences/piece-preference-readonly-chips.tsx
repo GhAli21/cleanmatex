@@ -7,8 +7,9 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
+import { ListChecks } from 'lucide-react';
 import { CmxStatusBadge } from '@ui/feedback';
-import { Tooltip } from '@ui/primitives';
+import { CmxButton, Tooltip } from '@ui/primitives';
 import { cn } from '@/lib/utils';
 import {
   catalogColorChipStyle,
@@ -76,6 +77,10 @@ export interface PiecePreferenceReadonlyChipsProps {
   className?: string;
   /** Compact density for table cells. */
   size?: 'sm' | 'md';
+  /** Open full prefs dialog (always-visible button + +N click). */
+  onOpenPrefs?: () => void;
+  /** Accessible label for the open prefs control. */
+  openPrefsLabel?: string;
 }
 
 type ChipItem = {
@@ -95,9 +100,12 @@ export function PiecePreferenceReadonlyChips({
   itemDefaultPacking,
   className,
   size = 'sm',
+  onOpenPrefs,
+  openPrefsLabel,
 }: PiecePreferenceReadonlyChipsProps) {
   const tModal = useTranslations('processing.modal');
   const tSimple = useTranslations('processing.simpleModal');
+  const openLabel = openPrefsLabel ?? tSimple('prefsOpen');
 
   const chips = React.useMemo((): ChipItem[] => {
     const list: ChipItem[] = [];
@@ -158,11 +166,11 @@ export function PiecePreferenceReadonlyChips({
     return list;
   }, [piece, colorHexByCode, itemDefaultPacking, tModal]);
 
-  if (chips.length === 0) return null;
-
   const limit = maxVisible > 0 ? maxVisible : chips.length;
   const visible = chips.slice(0, limit);
   const overflow = chips.slice(limit);
+
+  if (chips.length === 0 && !onOpenPrefs) return null;
 
   return (
     <div
@@ -176,16 +184,39 @@ export function PiecePreferenceReadonlyChips({
         </span>
       ))}
       {overflow.length > 0 ? (
-        <Tooltip
-          content={overflow.map((c) => c.label).join(' · ')}
-        >
-          <span
-            role="listitem"
-            className="inline-flex cursor-default items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+        onOpenPrefs ? (
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="xs"
+            className="h-6 px-1.5 text-[11px]"
+            onClick={onOpenPrefs}
+            aria-label={tSimple('prefsMoreOpen', { count: overflow.length })}
           >
             {tSimple('prefsMore', { count: overflow.length })}
-          </span>
-        </Tooltip>
+          </CmxButton>
+        ) : (
+          <Tooltip content={overflow.map((c) => c.label).join(' · ')}>
+            <span
+              role="listitem"
+              className="inline-flex cursor-default items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+            >
+              {tSimple('prefsMore', { count: overflow.length })}
+            </span>
+          </Tooltip>
+        )
+      ) : null}
+      {onOpenPrefs ? (
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="h-6 w-6 shrink-0 p-0"
+          onClick={onOpenPrefs}
+          aria-label={openLabel}
+        >
+          <ListChecks className="h-3.5 w-3.5" aria-hidden />
+        </CmxButton>
       ) : null}
     </div>
   );

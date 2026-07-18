@@ -793,6 +793,8 @@ model org_order_preferences_dtl {
   processing_confirmed      Boolean?                   @default(false)
   confirmed_by              String?                    @db.VarChar(120)
   confirmed_at              DateTime?                  @db.Timestamptz(6)
+  /// Append-only follow-up notes: [{note_seq, note_user_id, note_datetime, note_source, note_text}]
+  notes_followup            Json                       @default("[]") @db.JsonB
   rec_status                Int?                       @default(1) @db.SmallInt
   created_at                DateTime?                  @default(now()) @db.Timestamp(6)
   created_by                String?                    @db.VarChar(120)
@@ -6517,6 +6519,8 @@ model org_cash_drawers_mst {
   requires_session              Boolean                         @default(true)
   opening_float_required        Boolean                         @default(true)
   max_cash_limit                Decimal?                        @db.Decimal(19, 4)
+  // B16 (migration 0407): per-drawer variance-approval threshold; NULL = inherit tenant default (no gate).
+  variance_approval_threshold   Decimal?                        @db.Decimal(19, 4)
   assigned_user_id              String?                         @db.Uuid
   assigned_terminal_id          String?                         @db.Uuid
   metadata                      Json                            @default("{}")
@@ -6560,6 +6564,11 @@ model org_cash_drawer_sessions_mst {
   closed_at                     DateTime?                       @db.Timestamptz(6)
   close_notes                   String?
   force_close_reason            String?
+  // B16 (migration 0407): variance-approval audit — populated only when a close exceeds the configured threshold.
+  variance_approved_by          String?                         @db.Uuid
+  variance_approved_at          DateTime?                       @db.Timestamptz(6)
+  variance_approval_reason      String?
+  variance_threshold_snapshot   Decimal?                        @db.Decimal(19, 4)
   metadata                      Json                            @default("{}")
   created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
   created_by                    String?

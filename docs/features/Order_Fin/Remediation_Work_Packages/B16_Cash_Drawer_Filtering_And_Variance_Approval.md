@@ -1,7 +1,7 @@
 # B16 — Cash Drawer Filtering and Variance Approval
 
 ## Metadata
-Backlog ID: B16 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: NOT_STARTED
+Backlog ID: B16 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: IN_PROGRESS — **Part A (expected-cash filter) IMPLEMENTED 2026-07-18** (flag-gated, gates green); **Part B (variance approval) migration 0407 authored → BLOCKED-ON-APPLY** (service/API/UI deferred until owner applies + Prisma regen). See Completion evidence.
 Authoritative report sections: M2, §17, §40, §50-B16
 Required decisions: [D001](00_Phase_0_Financial_Semantics/D001_Payment_Lifecycle_And_Status_Transitions.md) (status sets)
 Dependencies: none · Blocks: — · Recommended phase: Seq 3
@@ -85,4 +85,22 @@ Required decision gates: D001 (COMPLETED-set conformance)
 Required verification gates: close-parity tests (filtered vs physical counts) green
 
 ## Completion evidence
-Migration: — · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Part A — expected-cash filter (IMPLEMENTED 2026-07-18, no migration, flag-gated):**
+- NEW `lib/services/cash-drawer-cash-facts.ts` — the single effective-cash predicate: `effectiveCashPaymentWhere()` (Prisma fragment: `is_active` + `payment_status ∈ {COMPLETED,CAPTURED,SETTLED}` + `payment_method_code ∈ CASH-family`), `isEffectiveCashPaymentRow`, `sumEffectiveCashPayments`, reusing B02's `isCompletedPaymentStatus` and `ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED` (one definition of "financially successful", D001/D005).
+- `lib/services/cash-drawer.service.ts` — filter applied at every expected-cash site behind the flag: `closeSession` (authoritative persist), `buildSessionReconciliation`/`getSessionSummary` (summary), `loadPaymentTotalsBySession` (feeds list + detail derived-expected), threaded via a single `isDrawerCloseV2Enabled(tenantId)` resolve per entry point (`getCashDrawerOverviewPage`, `getCashDrawerSessionsPage`, `getCashDrawerOverviewDetail`, `getCashDrawerSessionDetail`). Flag OFF = legacy unfiltered aggregate (documented known M2) → controlled, reversible rollout (B16 Rollback).
+- Feature flag `order_fin_drawer_close_v2` registered (`lib/constants/feature-flags.ts` FLAG_CATALOG + `lib/types/tenant.ts` FeatureFlags), independent, default OFF everywhere. HQ catalog seeding (`hq_ff_feature_flags_mst`) is a cleanmatexsaas follow-up (same pattern as B34's `order_fin_refund_ui`).
+- Flag key normalized from the spec's `order_fin.drawer_close_v2` to catalog snake_case `order_fin_drawer_close_v2`.
+
+**Tests (Part A):** NEW `__tests__/services/cash-drawer-cash-facts.test.ts` (pure predicate — PENDING cheque / gateway PENDING·AUTHORIZED·PROCESSING / FAILED·CANCELLED·REVERSED / inactive / non-cash all excluded; COMPLETED·CAPTURED·SETTLED cash included) + `cash-drawer.service.test.ts` extended (flag OFF = unfiltered `where`; flag ON = active+COMPLETED-set+cash-family `where`). **Fixed the pre-existing owner failure** in `cash-drawer.service.test.ts` (added the missing `org_cash_drawer_movements_dtl.findMany` mock + the feature-flags `canAccess` mock). Targeted suites **30/30 green**.
+
+**Gates (Part A, 2026-07-18, all green):** `npx tsc --noEmit` clean · `npx eslint … --quiet` 0 · targeted jest 30/30 · `npm run build` ✓ (exit 0). (No i18n strings added in Part A; the variance-approval strings land with Part B, so `check:i18n` is not applicable here.)
+
+**Part B — variance approval (migration authored → BLOCKED-ON-APPLY):**
+- Migration `supabase/migrations/0407_b16_drawer_variance_approval.sql` authored (additive only): `org_cash_drawer_sessions_mst` gains `variance_approved_by`, `variance_approved_at`, `variance_approval_reason`, `variance_threshold_snapshot`; `org_cash_drawers_mst` gains `variance_approval_threshold` (NULL = inherit tenant default). **STOPPED — owner applies 0407 + regenerates Prisma client before the variance-approval service/API/UI is written** (that code references the new columns and will not typecheck/build until then).
+- Permission `cash_drawer:approve_variance` is **B27's** responsibility (master index — B27 owns "cash variance approval"); B16 consumes it. The approval action stays inert until B27 seeds/grants it AND the flag is on (B16 Safety: permission-sensitive actions gated by B27).
+- Deferred to post-apply: `closeSession` variance-threshold resolution + approval enforcement (approver ≠ closer, mandatory reason, threshold snapshot persist), close endpoint approval sub-flow, close-screen expected-cash breakdown + variance-over-threshold approval dialog, session-detail approval trail, EN/AR strings, approval tests.
+
+**Newly discovered (Addendum A2, verified 2026-07-18):** the drawer expected-cash formula **double-counts cash sales** (settlement writes both a session-linked payment row AND a `CASH_SALE` movement; both are summed). Out of B16's documented scope — the owner is actively resolving the movement-folding model in `buildCashDrawerClosePreview` (tests currently failing). Recorded as **Addendum A2** in the authoritative report with a follow-up recommendation to unify one expected-cash formula across `closeSession`/`buildSessionReconciliation`/`buildCashDrawerClosePreview`. B16 deliberately does not touch the movement term.
+
+**Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending (Part A: staging parity filtered-vs-physical with flag on; Part B after 0407 applied) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** Addendum A2 added 2026-07-18.

@@ -3888,6 +3888,10 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
+          variance_approval_reason: string | null
+          variance_approved_at: string | null
+          variance_approved_by: string | null
+          variance_threshold_snapshot: number | null
         }
         Insert: {
           branch_id: string
@@ -3918,6 +3922,10 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          variance_approval_reason?: string | null
+          variance_approved_at?: string | null
+          variance_approved_by?: string | null
+          variance_threshold_snapshot?: number | null
         }
         Update: {
           branch_id?: string
@@ -3948,6 +3956,10 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          variance_approval_reason?: string | null
+          variance_approved_at?: string | null
+          variance_approved_by?: string | null
+          variance_threshold_snapshot?: number | null
         }
         Relationships: [
           {
@@ -4013,6 +4025,7 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
+          variance_approval_threshold: number | null
         }
         Insert: {
           assigned_terminal_id?: string | null
@@ -4039,6 +4052,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          variance_approval_threshold?: number | null
         }
         Update: {
           assigned_terminal_id?: string | null
@@ -4065,6 +4079,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          variance_approval_threshold?: number | null
         }
         Relationships: [
           {
@@ -16181,6 +16196,7 @@ export type Database = {
           created_by: string | null
           extra_price: number | null
           id: string
+          notes_followup: Json
           order_id: string
           order_item_id: string | null
           order_item_piece_id: string | null
@@ -16207,6 +16223,7 @@ export type Database = {
           created_by?: string | null
           extra_price?: number | null
           id?: string
+          notes_followup?: Json
           order_id: string
           order_item_id?: string | null
           order_item_piece_id?: string | null
@@ -16233,6 +16250,7 @@ export type Database = {
           created_by?: string | null
           extra_price?: number | null
           id?: string
+          notes_followup?: Json
           order_id?: string
           order_item_id?: string | null
           order_item_piece_id?: string | null
@@ -33483,6 +33501,17 @@ export type Database = {
           p_order_id: string
           p_tenant_org_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      cmx_ord_pref_append_notes_followup: {
+        Args: {
+          p_note_source: string
+          p_note_text: string
+          p_note_user_id: string
+          p_pref_id: string
+          p_tenant_org_id: string
+          p_updated_by?: string
         }
         Returns: Json
       }

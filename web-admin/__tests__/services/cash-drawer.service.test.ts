@@ -22,7 +22,9 @@ const mockSessionCreate           = jest.fn();
 const mockSessionUpdate           = jest.fn();
 const mockSessionCount            = jest.fn();
 const mockMovementCreate          = jest.fn();
+const mockMovementFindMany        = jest.fn();
 const mockPaymentAggregate        = jest.fn();
+const mockCanAccess               = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -39,7 +41,8 @@ jest.mock('@/lib/db/prisma', () => ({
       count:             (...a: unknown[]) => mockSessionCount(...a),
     },
     org_cash_drawer_movements_dtl: {
-      create: (...a: unknown[]) => mockMovementCreate(...a),
+      create:   (...a: unknown[]) => mockMovementCreate(...a),
+      findMany: (...a: unknown[]) => mockMovementFindMany(...a),
     },
     org_order_payments_dtl: {
       aggregate: (...a: unknown[]) => mockPaymentAggregate(...a),
@@ -53,6 +56,11 @@ jest.mock('@/lib/db/tenant-context', () => ({
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
+}));
+
+// B16: drawer-close v2 flag gate — default OFF (legacy unfiltered aggregate).
+jest.mock('@/lib/services/feature-flags.service', () => ({
+  canAccess: (...a: unknown[]) => mockCanAccess(...a),
 }));
 
 // ---------------------------------------------------------------------------
@@ -176,7 +184,12 @@ describe('cash-drawer.service — openSession', () => {
 });
 
 describe('cash-drawer.service — closeSession', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Defaults: no drawer movements, drawer-close v2 OFF (legacy aggregate).
+    mockMovementFindMany.mockResolvedValue([]);
+    mockCanAccess.mockResolvedValue(false);
+  });
 
   it('closes the session and computes variance correctly', async () => {
     const session = makeSession({ opening_float_amount: new Decimal('100') });
@@ -207,6 +220,40 @@ describe('cash-drawer.service — closeSession', () => {
 
     await expect(closeSession(TENANT, 'bad-session', { physicalCount: 0, closedBy: USER }))
       .rejects.toThrow();
+  });
+
+  // B16 — expected-cash filter gate
+  it('flag OFF: sums ALL session payments (no status/method/active filter)', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    mockSessionUpdate.mockResolvedValue({ ...session, status: 'CLOSED' });
+    mockCanAccess.mockResolvedValue(false);
+
+    await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
+
+    const where = mockPaymentAggregate.mock.calls[0][0].where;
+    expect(where).toEqual({ tenant_org_id: TENANT, cash_drawer_session_id: SESSION });
+    expect(where.payment_status).toBeUndefined();
+    expect(where.is_active).toBeUndefined();
+  });
+
+  it('flag ON: restricts the aggregate to active + COMPLETED-set + cash-family', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    mockSessionUpdate.mockResolvedValue({ ...session, status: 'CLOSED' });
+    mockCanAccess.mockResolvedValue(true);
+
+    await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
+
+    expect(mockCanAccess).toHaveBeenCalledWith(TENANT, 'order_fin_drawer_close_v2');
+    const where = mockPaymentAggregate.mock.calls[0][0].where;
+    expect(where.tenant_org_id).toBe(TENANT);
+    expect(where.cash_drawer_session_id).toBe(SESSION);
+    expect(where.is_active).toBe(true);
+    expect([...where.payment_status.in].sort()).toEqual(['CAPTURED', 'COMPLETED', 'SETTLED']);
+    expect(where.payment_method_code.in).toContain('CASH');
   });
 });
 
