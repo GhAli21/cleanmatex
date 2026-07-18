@@ -12,10 +12,11 @@ import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxCheckbox, CmxInput, CmxTextarea, CmxButton, CmxCard } from '@ui/primitives';
-import { X, Package, AlertTriangle, Check } from 'lucide-react';
+import { X, Package, Check } from 'lucide-react';
 import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
 import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
+import { PiecePreferenceReadonlyChips } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { cn } from '@/lib/utils';
 
 interface ProcessingPieceRowProps {
@@ -29,6 +30,8 @@ interface ProcessingPieceRowProps {
   processingSteps?: ProcessingStepConfig[]; // Dynamic steps from service category
   /** Item-level packing default; when piece differs, show Override badge */
   itemDefaultPacking?: string | null;
+  /** Catalog color code → hex for preference chip borders */
+  colorHexByCode?: Map<string, string | null> | null;
   /** When true, show Confirm button for pieces with service prefs (Enterprise) */
   processingConfirmationEnabled?: boolean;
   /** For confirm API call */
@@ -49,6 +52,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   rejectColor,
   processingSteps = [], // Default to empty array if not provided
   itemDefaultPacking,
+  colorHexByCode = null,
   processingConfirmationEnabled = false,
   orderId,
   itemId,
@@ -119,11 +123,12 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
     onChange({ barcode: e.target.value });
   };
 
-  const hasColorPrefs = (piece.colorPrefs?.length ?? 0) > 0;
   const hasPrefTags =
-    hasColorPrefs ||
+    (piece.colorPrefs?.length ?? 0) > 0 ||
     !!piece.packingPrefCode ||
-    (piece.servicePrefs?.length ?? 0) > 0;
+    (piece.servicePrefs?.length ?? 0) > 0 ||
+    !!piece.has_stain ||
+    !!piece.has_damage;
 
   const handleUnReject = () => {
     onChange({ isRejected: false });
@@ -182,75 +187,22 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             )}
           </div>
 
-          {/* Preferences from org_order_preferences_dtl (color/packing/service) + barcode */}
+          {/* Preferences (shared read-only chips) + barcode */}
           {(hasPrefTags || piece.barcode) && (
             <div className="flex items-center gap-2 flex-wrap">
-              {hasColorPrefs &&
-                piece.colorPrefs!.map((code) => (
-                  <CmxStatusBadge
-                    key={`color-${code}`}
-                    label={`${t('modal.color') || 'Color'}: ${code.replace(/_/g, ' ')}`}
-                    variant="outline"
-                    size="sm"
-                  />
-                ))}
-              {piece.packingPrefCode && (
-                <>
-                  <CmxStatusBadge
-                    label={`${t('modal.packing') || 'Packing'}: ${piece.packingPrefCode}`}
-                    variant="outline"
-                    size="sm"
-                  />
-                  {itemDefaultPacking != null &&
-                    itemDefaultPacking !== '' &&
-                    piece.packingPrefCode !== itemDefaultPacking && (
-                      <CmxStatusBadge
-                        label={t('modal.packingOverride') || 'Override'}
-                        variant="warning"
-                        size="sm"
-                      />
-                    )}
-                </>
-              )}
-              {(piece.servicePrefs?.length ?? 0) > 0 &&
-                piece.servicePrefs!.map((p) => (
-                  <CmxStatusBadge
-                    key={p.preference_code}
-                    label={p.preference_code.replace(/_/g, ' ')}
-                    variant="outline"
-                    size="sm"
-                  />
-                ))}
+              <PiecePreferenceReadonlyChips
+                piece={piece}
+                colorHexByCode={colorHexByCode}
+                itemDefaultPacking={itemDefaultPacking}
+                maxVisible={0}
+                size="sm"
+              />
               {piece.barcode && (
                 <CmxStatusBadge
                   label={`${t('modal.barcode') || 'Barcode'}: ${piece.barcode}`}
                   variant="outline"
                   size="sm"
                   className="font-mono"
-                />
-              )}
-            </div>
-          )}
-
-          {/* Condition Flags: Stain, Damage */}
-          {(piece.has_stain || piece.has_damage) && (
-            <div className="flex items-center gap-2">
-              {piece.has_stain && (
-                <CmxStatusBadge
-                  label={t('modal.hasStain') || 'Stain'}
-                  variant="warning"
-                  size="sm"
-                  icon={AlertTriangle}
-                  showIcon
-                />
-              )}
-              {piece.has_damage && (
-                <CmxStatusBadge
-                  label={t('modal.hasDamage') || 'Damage'}
-                  variant="error"
-                  size="sm"
-                  icon={AlertTriangle}
-                  showIcon
                 />
               )}
             </div>

@@ -233,6 +233,8 @@
     "rackOptional": "موقع الرف (اختياري)",
     "rackOptionalPlaceholder": "مثال: رف أ-12",
     "readyDisabledRejected": "أزل الرفض قبل وضع علامة جاهز",
+    "prefsAria": "تفضيلات القطعة",
+    "prefsMore": "+{count}",
     "meta": {
       "created": "تاريخ الإنشاء",
       "payment": "الدفع",

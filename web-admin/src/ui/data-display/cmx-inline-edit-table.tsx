@@ -62,6 +62,8 @@ export interface CmxInlineEditTableProps<TData> {
    * and inputs do not push Ready/Split far apart.
    */
   tableLayout?: 'auto' | 'fixed'
+  /** Vertical cell alignment — use `top` when a cell wraps (e.g. preference chips). */
+  cellVerticalAlign?: 'middle' | 'top'
 }
 
 const alignClass: Record<'start' | 'center' | 'end', string> = {
@@ -90,8 +92,11 @@ export function CmxInlineEditTable<TData>({
   density = 'compact',
   zebra = true,
   tableLayout = 'fixed',
+  cellVerticalAlign = 'middle',
 }: CmxInlineEditTableProps<TData>) {
   const cellPad = density === 'compact' ? 'px-3 py-2' : 'px-4 py-3'
+  const vAlign =
+    cellVerticalAlign === 'top' ? 'align-top' : 'align-middle'
 
   if (!loading && data.length === 0 && (emptyTitle || emptyDescription)) {
     return (
@@ -184,7 +189,7 @@ export function CmxInlineEditTable<TData>({
                         style={col.width ? { width: col.width } : undefined}
                         className={cn(
                           cellPad,
-                          'align-middle',
+                          vAlign,
                           alignClass[col.align ?? 'start'],
                           col.hideOnMobile && 'hidden sm:table-cell'
                         )}

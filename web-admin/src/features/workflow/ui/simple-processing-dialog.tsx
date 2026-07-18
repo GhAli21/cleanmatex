@@ -35,6 +35,11 @@ import {
   mapDbPieceToItemPiece,
   normalizeOrderStateResponse,
 } from '@features/workflow/lib/processing-piece-map';
+import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
+import {
+  PiecePreferenceReadonlyChips,
+  buildColorHexByCode,
+} from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
 
@@ -89,6 +94,11 @@ export function SimpleProcessingDialog({
   const { formatMoneyWithCode } = useTenantCurrency();
   const { splitOrderEnabled, trackByPiece, isLoading: settingsLoading } =
     useTenantSettingsWithDefaults(tenantId);
+  const { conditionCatalog } = usePreferenceCatalog();
+  const colorHexByCode = React.useMemo(
+    () => buildColorHexByCode(conditionCatalog.colors),
+    [conditionCatalog.colors]
+  );
 
   const [pieceStates, setPieceStates] = React.useState<Map<string, ItemPiece>>(
     new Map()
@@ -250,35 +260,43 @@ export function SimpleProcessingDialog({
           const label =
             itemLabelById.get(piece.itemId) || t('unnamedItem');
           return (
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <span className="truncate text-sm font-medium text-foreground">
-                {label}{' '}
-                <span className="font-normal text-muted-foreground">
-                  #{piece.pieceNumber}
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {label}{' '}
+                  <span className="font-normal text-muted-foreground">
+                    #{piece.pieceNumber}
+                  </span>
                 </span>
-              </span>
-              {isRejected ? (
-                <CmxStatusBadge
-                  label={tModal('rejected')}
-                  variant="error"
-                  size="sm"
-                />
-              ) : null}
-              {isRejected ? (
-                <CmxButton
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  className="h-6 px-1.5 text-xs"
-                  onClick={() =>
-                    handlePieceChange(piece.id, { isRejected: false })
-                  }
-                  aria-label={tModal('unReject')}
-                >
-                  <X className="me-0.5 h-3 w-3" />
-                  {tModal('unReject')}
-                </CmxButton>
-              ) : null}
+                {isRejected ? (
+                  <CmxStatusBadge
+                    label={tModal('rejected')}
+                    variant="error"
+                    size="sm"
+                  />
+                ) : null}
+                {isRejected ? (
+                  <CmxButton
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    className="h-6 px-1.5 text-xs"
+                    onClick={() =>
+                      handlePieceChange(piece.id, { isRejected: false })
+                    }
+                    aria-label={tModal('unReject')}
+                  >
+                    <X className="me-0.5 h-3 w-3" />
+                    {tModal('unReject')}
+                  </CmxButton>
+                ) : null}
+              </div>
+              <PiecePreferenceReadonlyChips
+                piece={piece}
+                colorHexByCode={colorHexByCode}
+                maxVisible={5}
+                size="sm"
+              />
             </div>
           );
         },
@@ -396,6 +414,7 @@ export function SimpleProcessingDialog({
     selectedForSplit,
     handlePieceChange,
     handleSplitToggle,
+    colorHexByCode,
   ]);
 
   const hasChanges = React.useMemo(() => {
@@ -716,6 +735,7 @@ export function SimpleProcessingDialog({
                 density="compact"
                 zebra
                 tableLayout="fixed"
+                cellVerticalAlign="top"
                 emptyTitle={t('noPiecesTitle')}
                 emptyDescription={t('noPiecesDesc')}
                 emptyAction={

@@ -37,6 +37,8 @@ import type {
   OrderItemPiece,
   ProcessingStepConfig,
 } from '@/types/order';
+import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
+import { buildColorHexByCode } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { ProcessingModalFilters } from './processing-modal-filters';
 import { ProcessingItemRow } from './processing-item-row';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
@@ -144,6 +146,12 @@ export function ProcessingModal({
     processingConfirmationEnabled,
     isLoading: settingsLoading,
   } = useTenantSettingsWithDefaults(tenantId);
+
+  const { conditionCatalog } = usePreferenceCatalog();
+  const colorHexByCode = React.useMemo(
+    () => buildColorHexByCode(conditionCatalog.colors),
+    [conditionCatalog.colors]
+  );
 
   // Debug logging
   React.useEffect(() => {
@@ -1014,6 +1022,7 @@ export function ProcessingModal({
                           orderId={orderId || undefined}
                           tenantId={tenantId}
                           processingConfirmationEnabled={processingConfirmationEnabled}
+                          colorHexByCode={colorHexByCode}
                           onConfirmSuccess={() => orderId && queryClient.invalidateQueries({ queryKey: ['order', orderId] })}
                         />
                       ))}

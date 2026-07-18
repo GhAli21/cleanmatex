@@ -37,6 +37,8 @@ interface ProcessingItemRowProps {
   processingConfirmationEnabled?: boolean;
   /** Called after piece prefs confirmed */
   onConfirmSuccess?: () => void;
+  /** Catalog color code → hex for preference chip borders */
+  colorHexByCode?: Map<string, string | null> | null;
 }
 
 export const ProcessingItemRow = React.memo(function ProcessingItemRow({
@@ -55,6 +57,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   tenantId,
   processingConfirmationEnabled = false,
   onConfirmSuccess,
+  colorHexByCode = null,
 }: ProcessingItemRowProps) {
   const t = useTranslations('processing.modal');
 
@@ -210,6 +213,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                 rejectColor={rejectColor}
                 processingSteps={processingSteps}
                 itemDefaultPacking={item.packing_pref_code}
+                colorHexByCode={colorHexByCode}
                 processingConfirmationEnabled={processingConfirmationEnabled}
                 orderId={orderId}
                 itemId={item.id}

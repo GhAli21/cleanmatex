@@ -233,6 +233,8 @@
     "rackOptional": "Rack location (optional)",
     "rackOptionalPlaceholder": "e.g. Rack A-12",
     "readyDisabledRejected": "Un-reject before marking ready",
+    "prefsAria": "Piece preferences",
+    "prefsMore": "+{count}",
     "meta": {
       "created": "Created",
       "payment": "Payment",
