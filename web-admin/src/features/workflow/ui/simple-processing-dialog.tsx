@@ -35,11 +35,13 @@ import {
   mapDbPieceToItemPiece,
   normalizeOrderStateResponse,
 } from '@features/workflow/lib/processing-piece-map';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
 import {
   PiecePreferenceReadonlyChips,
   buildColorHexByCode,
 } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
+import { buildPrefNameByCode } from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
 import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
 import { ProcessingPiecePrefsDialog } from './processing-piece-prefs-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
@@ -95,10 +97,25 @@ export function SimpleProcessingDialog({
   const { formatMoneyWithCode } = useTenantCurrency();
   const { splitOrderEnabled, trackByPiece, isLoading: settingsLoading } =
     useTenantSettingsWithDefaults(tenantId);
-  const { conditionCatalog } = usePreferenceCatalog();
+  const getBilingual = useBilingual();
+  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog();
   const colorHexByCode = React.useMemo(
     () => buildColorHexByCode(conditionCatalog.colors),
     [conditionCatalog.colors]
+  );
+  const nameByCode = React.useMemo(
+    () =>
+      buildPrefNameByCode(
+        {
+          servicePrefs,
+          packingPrefs,
+          stains: conditionCatalog.stains,
+          damages: conditionCatalog.damages,
+          colors: conditionCatalog.colors,
+        },
+        getBilingual
+      ),
+    [servicePrefs, packingPrefs, conditionCatalog, getBilingual]
   );
 
   const [pieceStates, setPieceStates] = React.useState<Map<string, ItemPiece>>(
@@ -212,14 +229,16 @@ export function SimpleProcessingDialog({
         | { product_name?: string; product_name2?: string }
         | undefined;
       const name =
-        product?.product_name ||
-        (item.product_name as string | undefined) ||
-        (item.description as string | undefined) ||
+        getBilingual(
+          item.product_name as string | undefined,
+          item.product_name2 as string | undefined
+        ) ||
+        getBilingual(product?.product_name, product?.product_name2) ||
         t('unnamedItem');
       map.set(id, name);
     });
     return map;
-  }, [items, t]);
+  }, [items, t, getBilingual]);
 
   const pieceRows = React.useMemo(() => {
     return Array.from(pieceStates.values()).sort((a, b) => {
@@ -271,7 +290,7 @@ export function SimpleProcessingDialog({
                 <span className="truncate text-sm font-medium text-foreground">
                   {label}{' '}
                   <span className="font-normal text-muted-foreground">
-                    #{piece.pieceNumber}
+                    {t('pieceLabel', { n: piece.pieceNumber })}
                   </span>
                 </span>
                 {isRejected ? (
@@ -300,6 +319,7 @@ export function SimpleProcessingDialog({
               <PiecePreferenceReadonlyChips
                 piece={piece}
                 colorHexByCode={colorHexByCode}
+                nameByCode={nameByCode}
                 maxVisible={2}
                 size="sm"
                 onOpenPrefs={() =>
@@ -428,6 +448,7 @@ export function SimpleProcessingDialog({
     handlePieceChange,
     handleSplitToggle,
     colorHexByCode,
+    nameByCode,
   ]);
 
   const hasChanges = React.useMemo(() => {

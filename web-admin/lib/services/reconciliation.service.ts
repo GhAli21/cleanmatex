@@ -47,6 +47,11 @@ import {
   getPostedVouchersInWindow,
   runVoucherIntegrityChecks,
 } from './reconciliation/voucher-checks';
+import {
+  checkDiscountValidation,
+  checkRefundReopenConsistency,
+  checkTaxCalculation,
+} from './reconciliation/financial-integrity-checks';
 
 /**
  *
@@ -79,6 +84,10 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   RECONCILIATION_CHECK_NAMES.GATEWAY_PENDING_INTEGRITY,
   RECONCILIATION_CHECK_NAMES.LEGACY_STATUS_LEAKAGE,
   RECONCILIATION_CHECK_NAMES.OUTBOX_PROCESSED,
+  // ── B20 — previously-unimplemented + new D003 v2 policy check ─────────
+  RECONCILIATION_CHECK_NAMES.TAX_CALCULATION,
+  RECONCILIATION_CHECK_NAMES.DISCOUNT_VALIDATION,
+  RECONCILIATION_CHECK_NAMES.REFUND_REOPEN_CONSISTENCY,
   // ── Order ↔ voucher link checks (PRD §22.1) ───────────────────────────
   RECONCILIATION_CHECK_NAMES.ORDER_PAYMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.ORDER_PAYMENT_AMOUNT_MATCHES_LINE,
@@ -269,6 +278,10 @@ export async function runReconciliation(
       checkCreditAppLifecycleConsistency(tenantId, window),
       checkBaseCurrencyRatePresent(tenantId, window),
       checkBaseVsOrderAmountConsistency(tenantId, window),
+      // B20 — tax/discount facts vs header + refund reopen policy
+      checkTaxCalculation(tenantId, window),
+      checkDiscountValidation(tenantId, window),
+      checkRefundReopenConsistency(tenantId, window),
       // Order snapshot
       runOrderSnapshotChecks(tenantId, orders),
       // Voucher integrity

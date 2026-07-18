@@ -266,7 +266,15 @@
       "deleteBlockedOwner": "Only the creator can delete this preference",
       "unconfirmFirst": "Unconfirm to delete",
       "deleteConfirmTitle": "Delete preference?",
-      "deleteConfirmDesc": "Remove “{label}” from this piece?"
+      "deleteConfirmDesc": "Remove “{label}” from this piece?",
+      "sources": {
+        "ORDER_CREATE": "Order create",
+        "ORDER_EDIT": "Order edit",
+        "ORDER_PREPARE": "Preparation",
+        "ORDER_PROCESSING": "Processing",
+        "ORDER_UPDATE": "Order update",
+        "manual": "Manual"
+      }
     },
     "meta": {
       "created": "Created",

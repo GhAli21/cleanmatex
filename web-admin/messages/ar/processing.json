@@ -266,7 +266,15 @@
       "deleteBlockedOwner": "يمكن للمنشئ فقط حذف هذا التفضيل",
       "unconfirmFirst": "ألغِ التأكيد للحذف",
       "deleteConfirmTitle": "حذف التفضيل؟",
-      "deleteConfirmDesc": "إزالة «{label}» من هذه القطعة؟"
+      "deleteConfirmDesc": "إزالة «{label}» من هذه القطعة؟",
+      "sources": {
+        "ORDER_CREATE": "إنشاء الطلب",
+        "ORDER_EDIT": "تعديل الطلب",
+        "ORDER_PREPARE": "التحضير",
+        "ORDER_PROCESSING": "المعالجة",
+        "ORDER_UPDATE": "تحديث الطلب",
+        "manual": "يدوي"
+      }
     },
     "meta": {
       "created": "تاريخ الإنشاء",

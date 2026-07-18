@@ -28,6 +28,11 @@ import {
   parseKindBgHex,
 } from '@/src/features/orders/ui/piece-preferences/piece-pref-kind-styles';
 import { resolveColorPrefHex, buildColorHexByCode } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
+import {
+  buildPrefNameByCode,
+  labelForPrefCode,
+  labelForPrefKind,
+} from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PreferenceKind } from '@/lib/types/service-preferences';
 import type { OrderItemServicePref } from '@/src/features/orders/model/new-order-types';
@@ -71,11 +76,47 @@ export function ProcessingPiecePrefsDialog({
     servicePrefs,
     conditionCatalog,
     prefsByKind,
-  } = usePreferenceCatalog(undefined, false, true);
+  } = usePreferenceCatalog(undefined, false, false);
 
   const colorHexByCode = React.useMemo(
     () => buildColorHexByCode(conditionCatalog.colors),
     [conditionCatalog.colors]
+  );
+
+  const nameByCode = React.useMemo(
+    () =>
+      buildPrefNameByCode(
+        {
+          servicePrefs,
+          packingPrefs,
+          stains: conditionCatalog.stains,
+          damages: conditionCatalog.damages,
+          colors: conditionCatalog.colors,
+        },
+        getBilingual
+      ),
+    [servicePrefs, packingPrefs, conditionCatalog, getBilingual]
+  );
+
+  const SOURCE_I18N_KEYS = React.useMemo(
+    () =>
+      new Set([
+        'ORDER_CREATE',
+        'ORDER_EDIT',
+        'ORDER_PREPARE',
+        'ORDER_PROCESSING',
+        'ORDER_UPDATE',
+        'manual',
+      ]),
+    []
+  );
+
+  const sourceLabel = React.useCallback(
+    (source: string) => {
+      if (!SOURCE_I18N_KEYS.has(source)) return source;
+      return t(`sources.${source}` as 'sources.ORDER_CREATE');
+    },
+    [SOURCE_I18N_KEYS, t]
   );
 
   const pickerConditionCatalog = React.useMemo(
@@ -376,7 +417,7 @@ export function ProcessingPiecePrefsDialog({
     if (row.preference_sys_kind === 'note') {
       return row.preference_content || row.preference_code;
     }
-    return row.preference_code.replace(/_/g, ' ');
+    return labelForPrefCode(row.preference_code, nameByCode);
   };
 
   return (
@@ -451,8 +492,8 @@ export function ProcessingPiecePrefsDialog({
               <div className="space-y-4">
                 {Array.from(grouped.entries()).map(([kind, rows]) => (
                   <section key={kind} className="space-y-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {kind.replace(/_/g, ' ')}
+                    <h3 className="text-xs font-semibold tracking-wide text-muted-foreground">
+                      {labelForPrefKind(kind, preferenceKinds, getBilingual)}
                     </h3>
                     <ul className="space-y-2">
                       {rows.map((row) => {
@@ -495,8 +536,11 @@ export function ProcessingPiecePrefsDialog({
                                       {price}
                                     </span>
                                   ) : null}
-                                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                    {row.prefs_source}
+                                  <span
+                                    className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                    title={row.prefs_source}
+                                  >
+                                    {sourceLabel(row.prefs_source)}
                                   </span>
                                 </div>
                               </div>

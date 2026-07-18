@@ -25,6 +25,10 @@ import {
   parseKindBgHex,
   isTailwindKindBgToken,
 } from './piece-pref-kind-styles';
+import {
+  buildPrefNameByCode,
+  labelForPrefCode,
+} from './pref-display-labels';
 
 interface ConditionCatalog {
   stains: Array<{ code: string; name: string; name2?: string | null }>;
@@ -34,12 +38,9 @@ interface ConditionCatalog {
 
 function chipLabel(
   pref: SelectedPreference,
-  getBilingual: (a: string | null | undefined, b: string | null | undefined) => string,
   nameByCode: Map<string, string>
 ): string {
-  const fromMap = nameByCode.get(pref.preference_code);
-  if (fromMap) return fromMap;
-  return pref.preference_code;
+  return labelForPrefCode(pref.preference_code, nameByCode);
 }
 
 function chipFallbackClass(kind: string): string | undefined {
@@ -142,25 +143,20 @@ export function PiecePreferenceCard({
   const [pickerKind, setPickerKind] = useState<PreferenceKind | null>(null);
   const [toolbarActiveKind, setToolbarActiveKind] = useState<string | null>(null);
 
-  const nameByCode = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const p of servicePrefsFallback) {
-      m.set(p.code, getBilingual(p.name, p.name2 ?? null));
-    }
-    for (const p of packingPrefs) {
-      m.set(p.code, getBilingual(p.name, p.name2 ?? null));
-    }
-    for (const c of conditionCatalog.stains) {
-      m.set(c.code, getBilingual(c.name, c.name2 ?? null));
-    }
-    for (const c of conditionCatalog.damages) {
-      m.set(c.code, getBilingual(c.name, c.name2 ?? null));
-    }
-    for (const c of conditionCatalog.colors) {
-      m.set(c.code, getBilingual(c.name, c.name2 ?? null));
-    }
-    return m;
-  }, [servicePrefsFallback, packingPrefs, conditionCatalog, getBilingual]);
+  const nameByCode = useMemo(
+    () =>
+      buildPrefNameByCode(
+        {
+          servicePrefs: servicePrefsFallback,
+          packingPrefs,
+          stains: conditionCatalog.stains,
+          damages: conditionCatalog.damages,
+          colors: conditionCatalog.colors,
+        },
+        getBilingual
+      ),
+    [servicePrefsFallback, packingPrefs, conditionCatalog, getBilingual]
+  );
 
   const kindsForBar = useMemo(
     () => preferenceKinds.filter((k) => k.is_active).sort((a, b) => (a.rec_order ?? 0) - (b.rec_order ?? 0)),
@@ -402,7 +398,7 @@ export function PiecePreferenceCard({
                     return (
                       <PreferenceChip
                         key={pref.id}
-                        label={chipLabel(pref, getBilingual, nameByCode)}
+                        label={chipLabel(pref, nameByCode)}
                         extraPrice={pref.extra_price}
                         currencyCode={currencyCode}
                         kindClassName={parsed ? undefined : pres.className}

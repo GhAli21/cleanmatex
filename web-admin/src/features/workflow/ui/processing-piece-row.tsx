@@ -32,6 +32,8 @@ interface ProcessingPieceRowProps {
   itemDefaultPacking?: string | null;
   /** Catalog color code → hex for preference chip borders */
   colorHexByCode?: Map<string, string | null> | null;
+  /** Catalog code → bilingual display name for preference chips */
+  nameByCode?: Map<string, string> | null;
   /** When true, show Confirm button for pieces with service prefs (Enterprise) */
   processingConfirmationEnabled?: boolean;
   /** For confirm API call */
@@ -53,6 +55,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   processingSteps = [], // Default to empty array if not provided
   itemDefaultPacking,
   colorHexByCode = null,
+  nameByCode = null,
   processingConfirmationEnabled = false,
   orderId,
   itemId,
@@ -193,6 +196,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
               <PiecePreferenceReadonlyChips
                 piece={piece}
                 colorHexByCode={colorHexByCode}
+                nameByCode={nameByCode}
                 itemDefaultPacking={itemDefaultPacking}
                 maxVisible={0}
                 size="sm"

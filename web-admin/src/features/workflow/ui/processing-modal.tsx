@@ -37,8 +37,10 @@ import type {
   OrderItemPiece,
   ProcessingStepConfig,
 } from '@/types/order';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
 import { buildColorHexByCode } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
+import { buildPrefNameByCode } from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
 import { ProcessingModalFilters } from './processing-modal-filters';
 import { ProcessingItemRow } from './processing-item-row';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
@@ -147,10 +149,25 @@ export function ProcessingModal({
     isLoading: settingsLoading,
   } = useTenantSettingsWithDefaults(tenantId);
 
-  const { conditionCatalog } = usePreferenceCatalog();
+  const getBilingual = useBilingual();
+  const { servicePrefs, packingPrefs, conditionCatalog } = usePreferenceCatalog();
   const colorHexByCode = React.useMemo(
     () => buildColorHexByCode(conditionCatalog.colors),
     [conditionCatalog.colors]
+  );
+  const nameByCode = React.useMemo(
+    () =>
+      buildPrefNameByCode(
+        {
+          servicePrefs,
+          packingPrefs,
+          stains: conditionCatalog.stains,
+          damages: conditionCatalog.damages,
+          colors: conditionCatalog.colors,
+        },
+        getBilingual
+      ),
+    [servicePrefs, packingPrefs, conditionCatalog, getBilingual]
   );
 
   // Debug logging
@@ -1023,6 +1040,7 @@ export function ProcessingModal({
                           tenantId={tenantId}
                           processingConfirmationEnabled={processingConfirmationEnabled}
                           colorHexByCode={colorHexByCode}
+                          nameByCode={nameByCode}
                           onConfirmSuccess={() => orderId && queryClient.invalidateQueries({ queryKey: ['order', orderId] })}
                         />
                       ))}

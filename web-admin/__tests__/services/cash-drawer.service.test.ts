@@ -25,11 +25,13 @@ const mockMovementCreate          = jest.fn();
 const mockMovementFindMany        = jest.fn();
 const mockPaymentAggregate        = jest.fn();
 const mockCanAccess               = jest.fn();
+const mockDrawerFindFirst         = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     org_cash_drawers_mst: {
       findMany:         (...a: unknown[]) => mockDrawerFindMany(...a),
+      findFirst:        (...a: unknown[]) => mockDrawerFindFirst(...a),
       findFirstOrThrow: (...a: unknown[]) => mockDrawerFindFirstOrThrow(...a),
     },
     org_cash_drawer_sessions_mst: {
@@ -74,6 +76,9 @@ import {
   closeSession,
   recordMovement,
   resolveCashDrawerSessionId,
+  approveSessionVariance,
+  VarianceApprovalError,
+  VARIANCE_APPROVAL_ERRORS,
 } from '@/lib/services/cash-drawer.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -186,9 +191,11 @@ describe('cash-drawer.service — openSession', () => {
 describe('cash-drawer.service — closeSession', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Defaults: no drawer movements, drawer-close v2 OFF (legacy aggregate).
+    // Defaults: no drawer movements, drawer-close v2 OFF (legacy aggregate),
+    // no per-drawer variance threshold configured.
     mockMovementFindMany.mockResolvedValue([]);
     mockCanAccess.mockResolvedValue(false);
+    mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: null });
   });
 
   it('closes the session and computes variance correctly', async () => {
@@ -254,6 +261,136 @@ describe('cash-drawer.service — closeSession', () => {
     expect(where.is_active).toBe(true);
     expect([...where.payment_status.in].sort()).toEqual(['CAPTURED', 'COMPLETED', 'SETTLED']);
     expect(where.payment_method_code.in).toContain('CASH');
+  });
+
+  // B16 — deferred variance-approval gating
+  it('does not flag pending approval when drawer-close v2 is OFF, even over threshold', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('1') });
+    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
+    mockCanAccess.mockResolvedValue(false);
+
+    // expected = 100 + 50 = 150; counted = 200 -> variance 50, way over threshold 1
+    const result = await closeSession(TENANT, SESSION, { physicalCount: 200, closedBy: USER });
+
+    expect(result.varianceApprovalPending).toBe(false);
+    expect(result.varianceThreshold).toBeNull();
+    expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toBeNull();
+  });
+
+  it('flags pending approval when v2 is ON, a threshold is configured, and |variance| exceeds it', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('1') });
+    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
+    mockCanAccess.mockResolvedValue(true);
+
+    const result = await closeSession(TENANT, SESSION, { physicalCount: 200, closedBy: USER });
+
+    expect(result.varianceApprovalPending).toBe(true);
+    expect(result.varianceThreshold).toBe(1);
+    expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toBe(1);
+  });
+
+  it('does not flag pending approval when |variance| is within the configured threshold', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('10') });
+    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
+    mockCanAccess.mockResolvedValue(true);
+
+    // expected = 150; counted = 155 -> variance 5, within threshold 10
+    const result = await closeSession(TENANT, SESSION, { physicalCount: 155, closedBy: USER });
+
+    expect(result.varianceApprovalPending).toBe(false);
+    expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toBeNull();
+  });
+});
+
+describe('cash-drawer.service — approveSessionVariance (B16)', () => {
+  const closedSession = (over: Record<string, unknown> = {}) => ({
+    id: SESSION,
+    tenant_org_id: TENANT,
+    status: 'CLOSED',
+    closed_by: 'closer-001',
+    variance_threshold_snapshot: new Decimal('10'),
+    variance_approved_by: null,
+    variance_approval_reason: null,
+    ...over,
+  });
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('approves when the approver differs from the closer and a reason is given', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession());
+    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...closedSession(), ...data }));
+
+    const result = await approveSessionVariance(TENANT, SESSION, {
+      approvedBy: 'supervisor-001',
+      reason: 'Verified physical count with cashier',
+    });
+
+    expect(result.variance_approved_by).toBe('supervisor-001');
+    expect(mockSessionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: SESSION },
+        data: expect.objectContaining({
+          variance_approved_by: 'supervisor-001',
+          variance_approval_reason: 'Verified physical count with cashier',
+        }),
+      }),
+    );
+  });
+
+  it('rejects self-approval (approver === closer)', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession({ closed_by: 'user-001' }));
+
+    await expect(
+      approveSessionVariance(TENANT, SESSION, { approvedBy: 'user-001', reason: 'ok' }),
+    ).rejects.toMatchObject({ code: VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED });
+  });
+
+  it('rejects a blank reason', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession());
+
+    await expect(
+      approveSessionVariance(TENANT, SESSION, { approvedBy: 'supervisor-001', reason: '   ' }),
+    ).rejects.toMatchObject({ code: VARIANCE_APPROVAL_ERRORS.REASON_REQUIRED });
+    expect(mockSessionFindFirstOrThrow).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the session has no pending approval (no threshold snapshot)', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession({ variance_threshold_snapshot: null }));
+
+    await expect(
+      approveSessionVariance(TENANT, SESSION, { approvedBy: 'supervisor-001', reason: 'ok' }),
+    ).rejects.toMatchObject({ code: VARIANCE_APPROVAL_ERRORS.NOT_PENDING_APPROVAL });
+  });
+
+  it('rejects a second approval attempt (single-shot)', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(
+      closedSession({ variance_approved_by: 'supervisor-001' }),
+    );
+
+    await expect(
+      approveSessionVariance(TENANT, SESSION, { approvedBy: 'supervisor-002', reason: 'ok' }),
+    ).rejects.toMatchObject({ code: VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED });
+  });
+
+  it('VarianceApprovalError instances carry the expected error code', async () => {
+    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession({ closed_by: 'user-001' }));
+
+    try {
+      await approveSessionVariance(TENANT, SESSION, { approvedBy: 'user-001', reason: 'ok' });
+      throw new Error('expected rejection');
+    } catch (error) {
+      expect(error).toBeInstanceOf(VarianceApprovalError);
+      expect((error as VarianceApprovalError).code).toBe(VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED);
+    }
   });
 });
 

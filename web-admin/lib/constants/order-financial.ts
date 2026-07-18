@@ -296,6 +296,11 @@ export const RECONCILIATION_CHECK_NAMES = {
   TAX_CALCULATION: 'TAX_CALCULATION',
   DISCOUNT_VALIDATION: 'DISCOUNT_VALIDATION',
   REFUND_CONSISTENCY: 'REFUND_CONSISTENCY',
+  // B20: refund rows vs D003 v2 reopen policy — mirrors the DB CHECK
+  // `chk_refund_reopen_context_v2` (migration 0404) as a monitoring layer that
+  // also catches any legacy/pre-0404 or synthetic row the DB constraint cannot
+  // see (surfaced in the recon UI, not just as a silent write-time rejection).
+  REFUND_REOPEN_CONSISTENCY: 'REFUND_REOPEN_CONSISTENCY',
   OUTBOX_PROCESSED: 'OUTBOX_PROCESSED',
 
   // ─── BVM Phase 4 — voucher integrity (PRD §22.1) ──────────────────────────

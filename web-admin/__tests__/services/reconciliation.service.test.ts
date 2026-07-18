@@ -24,6 +24,7 @@ const mockOrderItemsFindMany = jest.fn();
 const mockOrderPiecesFindMany = jest.fn();
 const mockOrderPreferencesFindMany = jest.fn();
 const mockOrderDiscountsFindMany = jest.fn();
+const mockOrderTaxesFindMany = jest.fn();
 const mockWalletFindMany = jest.fn();
 const mockWalletTxnAggregate = jest.fn();
 const mockWalletTxnFindMany = jest.fn();
@@ -75,6 +76,9 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     org_order_discounts_dtl: {
       findMany: (...args: unknown[]) => mockOrderDiscountsFindMany(...args),
+    },
+    org_order_taxes_dtl: {
+      findMany: (...args: unknown[]) => mockOrderTaxesFindMany(...args),
     },
     org_customer_wallets_mst: {
       findMany: (...args: unknown[]) => mockWalletFindMany(...args),
@@ -157,6 +161,7 @@ function setupPassingChecks() {
   mockOrderPiecesFindMany.mockResolvedValue([]);
   mockOrderPreferencesFindMany.mockResolvedValue([]);
   mockOrderDiscountsFindMany.mockResolvedValue([]);
+  mockOrderTaxesFindMany.mockResolvedValue([]);
   mockWalletFindMany.mockResolvedValue([]);
   mockWalletTxnAggregate.mockResolvedValue({ _sum: { amount: new Decimal('0') } });
   mockWalletTxnFindMany.mockResolvedValue([]);

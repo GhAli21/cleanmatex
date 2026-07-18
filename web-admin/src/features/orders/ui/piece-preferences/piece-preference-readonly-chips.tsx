@@ -15,6 +15,7 @@ import {
   catalogColorChipStyle,
   parseKindBgHex,
 } from './piece-pref-kind-styles';
+import { labelForPrefCode } from './pref-display-labels';
 
 /** Fallback when catalog has no color_hex — common laundry color codes. */
 const NAMED_COLOR_HEX: Record<string, string> = {
@@ -70,6 +71,8 @@ export interface PiecePreferenceReadonlyChipsProps {
   piece: PiecePreferenceReadonlySource;
   /** code → color_hex from catalog (optional). */
   colorHexByCode?: Map<string, string | null> | null;
+  /** code → bilingual catalog display name (optional). */
+  nameByCode?: Map<string, string> | null;
   /** Max chips before "+N"; omit or 0 = show all. */
   maxVisible?: number;
   /** Item packing default — shows Override when piece differs. */
@@ -96,6 +99,7 @@ type ChipItem = {
 export function PiecePreferenceReadonlyChips({
   piece,
   colorHexByCode,
+  nameByCode = null,
   maxVisible = 5,
   itemDefaultPacking,
   className,
@@ -114,7 +118,7 @@ export function PiecePreferenceReadonlyChips({
       if (!code) continue;
       list.push({
         key: `color-${code}`,
-        label: `${tModal('color')}: ${code.replace(/_/g, ' ')}`,
+        label: `${tModal('color')}: ${labelForPrefCode(code, nameByCode)}`,
         kind: 'color',
         colorHex: resolveColorPrefHex(code, colorHexByCode),
       });
@@ -123,7 +127,7 @@ export function PiecePreferenceReadonlyChips({
     if (piece.packingPrefCode) {
       list.push({
         key: `packing-${piece.packingPrefCode}`,
-        label: `${tModal('packing')}: ${piece.packingPrefCode}`,
+        label: `${tModal('packing')}: ${labelForPrefCode(piece.packingPrefCode, nameByCode)}`,
         kind: 'packing',
       });
       if (
@@ -143,7 +147,7 @@ export function PiecePreferenceReadonlyChips({
       if (!p?.preference_code) continue;
       list.push({
         key: `svc-${p.preference_code}`,
-        label: p.preference_code.replace(/_/g, ' '),
+        label: labelForPrefCode(p.preference_code, nameByCode),
         kind: 'service',
       });
     }
@@ -164,7 +168,7 @@ export function PiecePreferenceReadonlyChips({
     }
 
     return list;
-  }, [piece, colorHexByCode, itemDefaultPacking, tModal]);
+  }, [piece, colorHexByCode, nameByCode, itemDefaultPacking, tModal]);
 
   const limit = maxVisible > 0 ? maxVisible : chips.length;
   const visible = chips.slice(0, limit);
