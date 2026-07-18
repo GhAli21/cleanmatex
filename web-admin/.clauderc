@@ -184,6 +184,7 @@ ui_components:
   confirm_dialog: "import { CmxConfirmDialog } from '@ui/feedback'"
   # ── Data Display ─────────────────────────────────────────────────
   data_table: "import { CmxDataTable } from '@ui/data-display'"
+  inline_edit_table: "import { CmxInlineEditTable } from '@ui/data-display'"
   empty_state: "import { CmxEmptyState } from '@ui/data-display'"
   kpi_stat_card: "import { CmxKpiStatCard } from '@ui/data-display'"
   # ── Navigation ───────────────────────────────────────────────────

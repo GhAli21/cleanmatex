@@ -5,6 +5,7 @@
 
 export * from './cmx-data-grid'
 export * from './cmx-datatable'
+export * from './cmx-inline-edit-table'
 export * from './cmx-kpi-stat-card'
 export * from './cmx-empty-state'
 export * from './cmx-editable-datatable'

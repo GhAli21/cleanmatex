@@ -72,7 +72,7 @@ File: [`web-admin/src/features/workflow/ui/processing-table.tsx`](web-admin/src/
 |------|------|
 | `web-admin/src/features/workflow/ui/simple-processing-dialog.tsx` | Main dialog: load order+pieces, local piece state, Update, Split, header actions |
 | `web-admin/src/features/workflow/ui/simple-processing-issue-dialog.tsx` | Nested CmxDialog: issueCode select + issueText + submit → issue API |
-| `web-admin/src/features/workflow/ui/simple-processing-piece-row.tsx` | Lightweight row: notes, Ready (+ optional rack), Split, Rejected badge + Un-reject (no step timeline) |
+| `web-admin/src/ui/data-display/cmx-inline-edit-table.tsx` | New reusable Cmx compact editable table for dialog checklists; Simple Processing pieces use it |
 
 Reuse without rewriting engines:
 

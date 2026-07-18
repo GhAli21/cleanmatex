@@ -16,9 +16,14 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxSkeleton } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, Tooltip } from '@ui/primitives';
 import { CmxStatusBadge, CmxConfirmDialog, cmxMessage } from '@ui/feedback';
-import { CmxEmptyState } from '@ui/data-display';
+import {
+  CmxEmptyState,
+  CmxInlineEditTable,
+  type CmxInlineEditTableColumn,
+} from '@ui/data-display';
+import { X } from 'lucide-react';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -30,7 +35,6 @@ import {
   mapDbPieceToItemPiece,
   normalizeOrderStateResponse,
 } from '@features/workflow/lib/processing-piece-map';
-import { SimpleProcessingPieceRow } from './simple-processing-piece-row';
 import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
 
@@ -209,6 +213,170 @@ export function SimpleProcessingDialog({
     });
   }, [pieceStates]);
 
+  const handlePieceChange = React.useCallback(
+    (pieceId: string, updates: Partial<ItemPiece>) => {
+      setPieceStates((prev) => {
+        const next = new Map(prev);
+        const piece = next.get(pieceId);
+        if (!piece) return prev;
+        next.set(pieceId, { ...piece, ...updates });
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleSplitToggle = React.useCallback(
+    (pieceId: string, selected: boolean) => {
+      if (!isPieceUuid(pieceId)) return;
+      setSelectedForSplit((prev) => {
+        const next = new Set(prev);
+        if (selected) next.add(pieceId);
+        else next.delete(pieceId);
+        return next;
+      });
+    },
+    []
+  );
+
+  const pieceColumns = React.useMemo((): CmxInlineEditTableColumn<ItemPiece>[] => {
+    const cols: CmxInlineEditTableColumn<ItemPiece>[] = [
+      {
+        key: 'item',
+        header: t('columns.item'),
+        cell: (piece) => {
+          const isRejected = Boolean(piece.isRejected);
+          const isReady = piece.is_ready === true;
+          const label =
+            itemLabelById.get(piece.itemId) || t('unnamedItem');
+          return (
+            <div className="min-w-[10rem] space-y-1.5 py-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {label} #{piece.pieceNumber}
+                </span>
+                {isRejected ? (
+                  <CmxStatusBadge
+                    label={tModal('rejected')}
+                    variant="error"
+                    size="sm"
+                  />
+                ) : null}
+                {isRejected ? (
+                  <CmxButton
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    className="h-7 px-2 text-xs"
+                    onClick={() =>
+                      handlePieceChange(piece.id, { isRejected: false })
+                    }
+                    aria-label={tModal('unReject')}
+                  >
+                    <X className="me-1 h-3 w-3" />
+                    {tModal('unReject')}
+                  </CmxButton>
+                ) : null}
+              </div>
+              {isReady && !isRejected ? (
+                <CmxInput
+                  value={piece.rackLocation || ''}
+                  onChange={(e) =>
+                    handlePieceChange(piece.id, {
+                      rackLocation: e.target.value,
+                    })
+                  }
+                  placeholder={t('rackOptionalPlaceholder')}
+                  aria-label={t('rackOptional')}
+                  className="h-8 max-w-xs text-xs"
+                />
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'notes',
+        header: t('columns.notes'),
+        cell: (piece) => (
+          <CmxInput
+            value={piece.notes || ''}
+            onChange={(e) =>
+              handlePieceChange(piece.id, { notes: e.target.value })
+            }
+            placeholder={t('notesPlaceholder')}
+            aria-label={t('columns.notes')}
+            className="h-8 min-w-[8rem] text-sm"
+          />
+        ),
+      },
+      {
+        key: 'ready',
+        header: t('columns.ready'),
+        align: 'center',
+        width: '5.5rem',
+        cell: (piece) => {
+          const isRejected = Boolean(piece.isRejected);
+          const isReady = piece.is_ready === true;
+          const checkbox = (
+            <CmxCheckbox
+              checked={isReady}
+              disabled={isRejected}
+              onChange={(e) => {
+                if (isRejected) return;
+                const checked = e.target.checked;
+                handlePieceChange(piece.id, {
+                  is_ready: checked,
+                  isReady: checked,
+                });
+              }}
+              aria-label={t('columns.ready')}
+            />
+          );
+          return (
+            <div className="flex justify-center">
+              {isRejected ? (
+                <Tooltip content={t('readyDisabledRejected')}>
+                  <span className="inline-flex">{checkbox}</span>
+                </Tooltip>
+              ) : (
+                checkbox
+              )}
+            </div>
+          );
+        },
+      },
+    ];
+
+    if (splitOrderEnabled) {
+      cols.push({
+        key: 'split',
+        header: t('columns.split'),
+        align: 'center',
+        width: '5.5rem',
+        cell: (piece) => (
+          <div className="flex justify-center">
+            <CmxCheckbox
+              checked={selectedForSplit.has(piece.id)}
+              onChange={(e) => handleSplitToggle(piece.id, e.target.checked)}
+              aria-label={t('columns.split')}
+            />
+          </div>
+        ),
+      });
+    }
+
+    return cols;
+  }, [
+    t,
+    tModal,
+    itemLabelById,
+    splitOrderEnabled,
+    selectedForSplit,
+    handlePieceChange,
+    handleSplitToggle,
+  ]);
+
   const hasChanges = React.useMemo(() => {
     return Array.from(pieceStates.values()).some((piece) =>
       hasSimplePieceChanged(piece, originalPieceStates.get(piece.id))
@@ -369,26 +537,6 @@ export function SimpleProcessingDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional keyboard binding scope
   }, [isOpen, hasChanges, updateMutation.isPending, busy, requestClose]);
 
-  const handlePieceChange = (pieceId: string, updates: Partial<ItemPiece>) => {
-    setPieceStates((prev) => {
-      const next = new Map(prev);
-      const piece = next.get(pieceId);
-      if (!piece) return prev;
-      next.set(pieceId, { ...piece, ...updates });
-      return next;
-    });
-  };
-
-  const handleSplitToggle = (pieceId: string, selected: boolean) => {
-    if (!isPieceUuid(pieceId)) return;
-    setSelectedForSplit((prev) => {
-      const next = new Set(prev);
-      if (selected) next.add(pieceId);
-      else next.delete(pieceId);
-      return next;
-    });
-  };
-
   const orderNo = order
     ? String(order.order_no ?? order.orderNumber ?? '')
     : '';
@@ -525,13 +673,7 @@ export function SimpleProcessingDialog({
           </CmxDialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto py-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                <CmxSkeleton className="h-8 w-full" />
-                <CmxSkeleton className="h-8 w-full" />
-                <CmxSkeleton className="h-8 w-3/4" />
-              </div>
-            ) : orderError ? (
+            {orderError ? (
               <CmxEmptyState
                 title={t('loadError')}
                 description={
@@ -540,11 +682,19 @@ export function SimpleProcessingDialog({
                     : t('loadError')
                 }
               />
-            ) : pieceRows.length === 0 ? (
-              <CmxEmptyState
-                title={t('noPiecesTitle')}
-                description={t('noPiecesDesc')}
-                action={
+            ) : (
+              <CmxInlineEditTable
+                caption={t('description')}
+                columns={pieceColumns}
+                data={pieceRows}
+                getRowId={(piece) => piece.id}
+                loading={isLoading}
+                skeletonRows={4}
+                density="compact"
+                zebra
+                emptyTitle={t('noPiecesTitle')}
+                emptyDescription={t('noPiecesDesc')}
+                emptyAction={
                   orderId && onOpenFullEditor ? (
                     <CmxButton
                       type="button"
@@ -559,39 +709,10 @@ export function SimpleProcessingDialog({
                     </CmxButton>
                   ) : undefined
                 }
+                getRowClassName={(piece) =>
+                  piece.isRejected ? 'bg-destructive/5' : undefined
+                }
               />
-            ) : (
-              <>
-                <div
-                  className={
-                    splitOrderEnabled
-                      ? 'mb-2 hidden grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto_auto] gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid'
-                      : 'mb-2 hidden grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto] gap-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid'
-                  }
-                >
-                  <span>{t('columns.item')}</span>
-                  <span>{t('columns.notes')}</span>
-                  <span className="text-center">{t('columns.ready')}</span>
-                  {splitOrderEnabled ? (
-                    <span className="text-center">{t('columns.split')}</span>
-                  ) : null}
-                </div>
-                {pieceRows.map((piece) => (
-                  <SimpleProcessingPieceRow
-                    key={piece.id}
-                    piece={piece}
-                    itemLabel={
-                      itemLabelById.get(piece.itemId) || t('unnamedItem')
-                    }
-                    splitOrderEnabled={splitOrderEnabled}
-                    isSelectedForSplit={selectedForSplit.has(piece.id)}
-                    onChange={(updates) => handlePieceChange(piece.id, updates)}
-                    onSplitToggle={(selected) =>
-                      handleSplitToggle(piece.id, selected)
-                    }
-                  />
-                ))}
-              </>
             )}
           </div>
 
