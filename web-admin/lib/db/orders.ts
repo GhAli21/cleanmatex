@@ -914,12 +914,25 @@ async function recalculateOrderTotals(
     where: { id: orderId, tenant_org_id: tenantOrgId },
     select: { vat_rate: true },
   });
-  // B15: tax fallbacks are forbidden — a missing vat_rate must fail loudly,
-  // never silently assume a rate (tax-exempt is an explicit 0, not null).
-  if (order?.vat_rate == null) {
-    throw new Error(`MISSING_VAT_RATE: order ${orderId} has no vat_rate; cannot recalculate totals`);
+  // B15: tax fallbacks are forbidden. Resolution order: the stamped header
+  // rate → the effective rate from the order's recorded tax lines in
+  // org_order_taxes_dtl (Σtax ÷ Σtaxable is scale-invariant, so the pre-edit
+  // lines still yield the correct rate) → fail loudly. Tax-exempt is an
+  // explicit 0, never null.
+  let vatRate = order?.vat_rate != null ? Number(order.vat_rate) : null;
+  if (vatRate == null) {
+    const taxAgg = await prisma.org_order_taxes_dtl.aggregate({
+      where: { tenant_org_id: tenantOrgId, order_id: orderId, rec_status: 1 },
+      _sum: { tax_amount: true, taxable_amount: true },
+    });
+    const taxable = Number(taxAgg._sum.taxable_amount ?? 0);
+    if (taxable > 0) {
+      vatRate = Number(taxAgg._sum.tax_amount ?? 0) / taxable;
+    }
   }
-  const vatRate = Number(order.vat_rate);
+  if (vatRate == null) {
+    throw new Error(`MISSING_VAT_RATE: order ${orderId} has no vat_rate and no tax lines; cannot recalculate totals`);
+  }
 
   const subtotal = roundMoney(total / (1 + vatRate));
   const tax = roundMoney(total - subtotal);
