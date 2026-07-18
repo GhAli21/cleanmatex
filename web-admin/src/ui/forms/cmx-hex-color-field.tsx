@@ -80,15 +80,15 @@ export function CmxHexColorField({
           disabled={disabled}
           aria-label={pickerAriaLabel}
           className={[
-            'h-11 w-11 shrink-0 cursor-pointer rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
-            'bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-1 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
+            'h-11 w-11 shrink-0 cursor-pointer rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.55)]',
+            'bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-1',
             'disabled:opacity-50 disabled:cursor-not-allowed',
           ].join(' ')}
           title={pickerAriaLabel}
         />
 
         <div
-          className="hidden h-11 w-11 shrink-0 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] shadow-inner md:block"
+          className="hidden h-11 w-11 shrink-0 rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.55)] shadow-inner md:block"
           style={{ backgroundColor: normalizedValue }}
           aria-hidden="true"
         />

@@ -117,7 +117,7 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
         </div>
       )}
 
-      <div className="rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]">
+      <div className="rounded-[var(--cmx-radius-lg,1.125rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4">
         <div
           className={cn(
             'grid gap-3',
@@ -130,7 +130,9 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
             <div
               key={option.value}
               className={cn(
-                'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))] px-3 py-3 transition hover:bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))] hover:shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
+                'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.25)] bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))] px-3 py-3 transition hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.45)] hover:bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))]',
+                value.includes(option.value) &&
+                  'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.06)]',
                 (disabled || option.disabled) && 'cursor-not-allowed opacity-60'
               )}
             >
@@ -140,7 +142,6 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
                 label={option.label}
                 description={option.description}
                 disabled={disabled || option.disabled}
-                className="mt-0.5"
               />
             </div>
           ))}

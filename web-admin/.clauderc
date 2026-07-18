@@ -159,6 +159,7 @@ ui_components:
   textarea: "import { CmxTextarea } from '@ui/primitives'"
   select: "import { CmxSelect } from '@ui/primitives'"
   checkbox: "import { CmxCheckbox } from '@ui/primitives'"
+  radio: "import { CmxRadio } from '@ui/primitives'"
   switch: "import { CmxSwitch } from '@ui/primitives'"
   skeleton: "import { CmxSkeleton, CmxSkeletonTable } from '@ui/primitives'"
   spinner: "import { CmxSpinner } from '@ui/primitives'"
@@ -173,6 +174,7 @@ ui_components:
   field_shell: "import { CmxFieldShell } from '@ui/forms'"
   select_dropdown: "import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'"
   checkbox_group: "import { CmxCheckboxGroup } from '@ui/forms'"
+  radio_group: "import { CmxRadioGroup } from '@ui/forms'"
   hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   # ── Overlays ─────────────────────────────────────────────────────
   dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"

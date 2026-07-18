@@ -23,6 +23,7 @@ import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { roundMoneyAmount } from '@/lib/money/format-money';
+import { logger } from '@/lib/utils/logger';
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { recalculateOrderFinancialSnapshot } from '@/lib/services/order-financial-write.service';
@@ -931,7 +932,14 @@ async function recalculateOrderTotals(
     }
   }
   if (vatRate == null) {
-    throw new Error(`MISSING_VAT_RATE: order ${orderId} has no vat_rate and no tax lines; cannot recalculate totals`);
+    // Owner policy (2026-07-18): no header stamp AND no tax lines means the
+    // tenant does not use tax — treat the order as zero-rated. Never an
+    // error, and never an assumed positive rate. Logged for observability.
+    logger.warn('recalculateOrderTotals: no vat_rate stamp and no tax lines — treating order as zero-rated', {
+      tenantOrgId,
+      orderId,
+    });
+    vatRate = 0;
   }
 
   const subtotal = roundMoney(total / (1 + vatRate));

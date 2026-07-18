@@ -51,6 +51,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { CmxCheckbox } from '@ui/primitives';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -593,9 +594,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
       minSize: 36,
       maxSize: 48,
       header: ({ table }) => (
-        <input
-          type="checkbox"
-          className="h-4 w-4 cursor-pointer rounded border border-input accent-[rgb(var(--cmx-primary-rgb,59_130_246))]"
+        <CmxCheckbox
+          size="sm"
           checked={table.getIsAllPageRowsSelected()}
           ref={(el) => {
             if (el) el.indeterminate = table.getIsSomePageRowsSelected();
@@ -606,9 +606,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
         />
       ),
       cell: ({ row }) => (
-        <input
-          type="checkbox"
-          className="h-4 w-4 cursor-pointer rounded border border-input accent-[rgb(var(--cmx-primary-rgb,59_130_246))]"
+        <CmxCheckbox
+          size="sm"
           checked={row.getIsSelected()}
           disabled={!row.getCanSelect()}
           onChange={row.getToggleSelectedHandler()}

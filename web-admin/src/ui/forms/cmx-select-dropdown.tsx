@@ -11,6 +11,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cmxFieldChrome } from '@ui/foundations';
 
 interface SelectContextValue {
   value: string;
@@ -157,19 +158,20 @@ export function CmxSelectDropdownTrigger({
       aria-controls={listboxId}
       disabled={disabled || props.disabled}
       className={cn(
-        'flex min-h-[44px] w-full items-center justify-between rounded-[var(--cmx-radius-md,0.875rem)] border px-3 py-2 text-sm shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))] transition',
-        'md:min-h-10 border-[rgb(var(--cmx-border-rgb,203_213_225))] bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))]',
-        'ring-offset-[rgb(var(--cmx-background-rgb,244_247_251))] placeholder:text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-        'hover:border-[rgb(var(--cmx-border-strong-rgb,148_163_184))] hover:bg-[rgb(var(--cmx-field-hover-rgb,248_251_255))]',
-        'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,59_130_246))]/25 focus:ring-offset-2 focus:border-[rgb(var(--cmx-primary-rgb,37_99_235))]',
-        'disabled:cursor-not-allowed disabled:opacity-50',
+        'flex min-h-[44px] w-full items-center justify-between rounded-[var(--cmx-radius-md,0.875rem)] px-3 py-2 text-sm md:min-h-10',
+        'placeholder:text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+        cmxFieldChrome({ legacyFocus: true }),
+        'hover:bg-[rgb(var(--cmx-field-hover-rgb,248_251_255))]',
         className
       )}
       {...props}
     >
       {children}
       <ChevronDown
-        className={cn('h-4 w-4 opacity-50 transition-transform', open && 'rotate-180')}
+        className={cn(
+          'h-4 w-4 text-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)] transition-transform',
+          open && 'rotate-180'
+        )}
       />
     </button>
   );

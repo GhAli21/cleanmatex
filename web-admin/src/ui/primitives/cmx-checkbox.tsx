@@ -8,6 +8,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { CMX_CHOICE_CHROME } from '@ui/foundations'
 
 export type CmxCheckboxSize = 'sm' | 'md' | 'lg'
 
@@ -80,35 +81,20 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            'peer shrink-0 cursor-pointer appearance-none',
+            'peer',
             sizeStyle.box,
-            // Distinct dark outline so the box reads clearly on white surfaces
-            'border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]',
-            'bg-[rgb(var(--cmx-surface-rgb,255_255_255))]',
-            'shadow-[inset_0_0_0_1px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.04)]',
-            'transition-[background-color,border-color,box-shadow] duration-150',
-            'hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.9)]',
-            'hover:shadow-[inset_0_0_0_1px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.08)]',
-            // Checked: solid accent fill + matching border
-            'checked:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-            'checked:bg-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-            'checked:shadow-none',
-            'checked:hover:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-            'checked:hover:bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.92)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-            'focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)]',
-            'focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
-            'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]',
-            error &&
-              'border-[rgb(var(--cmx-destructive-rgb,220_38_38))] focus-visible:ring-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.35)]',
+            CMX_CHOICE_CHROME.box,
+            error && CMX_CHOICE_CHROME.error,
             className
           )}
           {...props}
         />
+        {/* Checkmark */}
         <svg
           className={cn(
             'pointer-events-none absolute inset-0 m-auto stroke-white opacity-0',
-            'transition-opacity duration-150 peer-checked:opacity-100',
+            'transition-opacity duration-150',
+            'peer-checked:opacity-100 peer-indeterminate:opacity-0',
             sizeStyle.icon
           )}
           viewBox="0 0 16 16"
@@ -123,10 +109,27 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
             strokeLinejoin="round"
           />
         </svg>
+        {/* Indeterminate dash (select-all partial state) */}
+        <svg
+          className={cn(
+            'pointer-events-none absolute inset-0 m-auto stroke-white opacity-0',
+            'transition-opacity duration-150 peer-indeterminate:opacity-100',
+            sizeStyle.icon
+          )}
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d="M3.5 8H12.5"
+            strokeWidth={sizeStyle.strokeWidth}
+            strokeLinecap="round"
+          />
+        </svg>
       </span>
     )
 
-    // Label-less: just the control (tables, custom external labels via htmlFor + id)
     if (!hasLabel) {
       return (
         <div className="inline-flex flex-col gap-1">
@@ -152,8 +155,6 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
       )
     }
 
-    // Labeled: grid keeps helper/error text aligned under the label (not under the box).
-    // htmlFor + id makes the full label text part of the clickable hit target.
     return (
       <div
         className={cn(

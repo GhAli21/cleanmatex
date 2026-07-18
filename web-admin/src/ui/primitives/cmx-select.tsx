@@ -9,6 +9,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { cmxFieldChrome } from '@ui/foundations'
 
 export interface CmxSelectOption {
   value: string
@@ -52,9 +53,9 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
     const hasError = !!error
 
     const sizeClass = {
-      sm: 'h-8 text-xs',
-      md: 'h-9 text-sm',
-      lg: 'h-10 text-base',
+      sm: 'h-9 text-xs',
+      md: 'h-10 text-sm',
+      lg: 'h-11 text-base',
     }[size]
 
     return (
@@ -62,10 +63,12 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-1"
+            className="mb-1 block text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
           >
             {label}
-            {props.required && <span className="text-[rgb(var(--cmx-destructive-rgb,220_38_38))] ml-1">*</span>}
+            {props.required && (
+              <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+            )}
           </label>
         )}
 
@@ -74,16 +77,9 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              'w-full appearance-none rounded-[var(--cmx-radius-md,0.375rem)]',
-              'border border-[rgb(var(--cmx-border-rgb,226_232_240))]',
-              'bg-white px-3 pr-8',
-              'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
-              'transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-              'focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.2)]',
-              'focus-visible:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-              'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
-              hasError && 'border-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+              'w-full appearance-none rounded-[var(--cmx-radius-md,0.375rem)] px-3 pr-9',
+              cmxFieldChrome({ error: hasError }),
+              'disabled:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
               sizeClass,
               className
             )}
@@ -111,7 +107,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
 
           <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
             <svg
-              className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="h-4 w-4 text-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]"
               fill="none"
               viewBox="0 0 20 20"
               xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +117,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
                 stroke="currentColor"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 d="m6 8 4 4 4-4"
               />
             </svg>
@@ -129,13 +125,19 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
         </div>
 
         {error && (
-          <p id={`${selectId}-error`} className="mt-1 text-xs text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">
+          <p
+            id={`${selectId}-error`}
+            className="mt-1 text-xs text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+          >
             {error}
           </p>
         )}
 
         {helpText && !error && (
-          <p id={`${selectId}-help`} className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p
+            id={`${selectId}-help`}
+            className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+          >
             {helpText}
           </p>
         )}
