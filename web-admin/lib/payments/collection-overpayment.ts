@@ -38,6 +38,8 @@ export interface CollectionOverpaymentOptions {
   payExtraIntent?: boolean;
   explicitChangeResolved?: number;
   epsilon?: number;
+  /** Order currency, threaded onto the synthesized legs (B15 — no literal defaults). */
+  currencyCode?: string;
 }
 
 /**
@@ -90,7 +92,9 @@ export function computeCollectionOverpaymentMetrics(
         paymentMethodCode: leg.paymentMethodCode,
         orgPaymentMethodId: leg.orgPaymentMethodId,
         amount: leg.amount,
-        currencyCode: 'OMR',
+        // Not consumed by the metrics math — threaded through when the caller
+        // has it, blank otherwise (never a literal currency default, B15).
+        currencyCode: options.currencyCode ?? '',
         tenderedAmount: leg.cashTendered,
         supportsChangeReturn: leg.supportsChangeReturn,
         supportsOverpayment: leg.supportsOverpayment,

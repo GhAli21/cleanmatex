@@ -29,6 +29,7 @@ import { ProcessingStatsCards } from '@features/workflow/ui/processing-stats-car
 import { ProcessingFiltersBar } from '@features/workflow/ui/processing-filters-bar';
 import { ProcessingTable } from '@features/workflow/ui/processing-table';
 import { ProcessingModal } from '@features/workflow/ui/processing-modal';
+import { SimpleProcessingDialog } from '@features/workflow/ui/simple-processing-dialog';
 
 /**
  *
@@ -49,7 +50,9 @@ export default function ProcessingPage() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSimpleOpen, setIsSimpleOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [simpleOrderId, setSimpleOrderId] = useState<string | null>(null);
 
   const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } = useScreenOrders<any>('processing', {
     page,
@@ -188,6 +191,11 @@ export default function ProcessingPage() {
     setSelectedOrderId(null);
   };
 
+  const handleSimpleClose = () => {
+    setIsSimpleOpen(false);
+    setSimpleOrderId(null);
+  };
+
   const handleModalRefresh = () => {
     refetch();
   };
@@ -195,6 +203,11 @@ export default function ProcessingPage() {
   const openModal = (orderId: string) => {
     setSelectedOrderId(orderId);
     setIsModalOpen(true);
+  };
+
+  const openSimpleModal = (orderId: string) => {
+    setSimpleOrderId(orderId);
+    setIsSimpleOpen(true);
   };
 
   return (
@@ -231,7 +244,8 @@ export default function ProcessingPage() {
           onSort={handleSort}
           onRefresh={refetch}
           onEditClick={openModal}
-          selectedOrderId={selectedOrderId}
+          onSimpleProcessClick={openSimpleModal}
+          selectedOrderId={selectedOrderId ?? simpleOrderId}
         />
       )}
 
@@ -270,7 +284,7 @@ export default function ProcessingPage() {
         </div>
       )}
 
-      {/* Processing Modal */}
+      {/* Full Processing Modal */}
       {currentTenant && (
         <ProcessingModal
           isOpen={isModalOpen}
@@ -278,6 +292,18 @@ export default function ProcessingPage() {
           tenantId={currentTenant.tenant_id}
           onClose={handleModalClose}
           onRefresh={handleModalRefresh}
+        />
+      )}
+
+      {/* Simple Processing Dialog */}
+      {currentTenant && (
+        <SimpleProcessingDialog
+          isOpen={isSimpleOpen}
+          orderId={simpleOrderId}
+          tenantId={currentTenant.tenant_id}
+          onClose={handleSimpleClose}
+          onRefresh={handleModalRefresh}
+          onOpenFullEditor={openModal}
         />
       )}
     </div>

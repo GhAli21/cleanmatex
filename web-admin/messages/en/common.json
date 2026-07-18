@@ -97,5 +97,13 @@
     "showLess": "Show less",
     "notAvailable": "—",
     "missingActor": "NO_Data_For_this_user_id, Contact Admin"
+  },
+  "errors": {
+    "money": {
+      "MISSING_CURRENCY_CODE": "No currency could be resolved for this operation. Configure the tenant currency and try again.",
+      "MISSING_TENANT_CURRENCY": "This tenant has no configured currency. Set it in tenant settings before performing money operations.",
+      "CURRENCY_MISMATCH": "The supplied currency does not match the currency of the customer's balance record.",
+      "MISSING_VAT_RATE": "The order has no tax rate, so totals cannot be recalculated. Review the order's tax configuration."
+    }
   }
 }

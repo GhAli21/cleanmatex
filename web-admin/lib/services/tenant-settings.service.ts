@@ -13,6 +13,10 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import {
+  CURRENCY_RESOLUTION_ERRORS,
+  CurrencyResolutionError,
+} from '@/lib/money/currency-resolution';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -220,7 +224,14 @@ export class TenantSettingsService {
     const map = await this.getAllResolvedSettings(tenantId, branchId ?? undefined);
     const v = map[SETTING_CODES.TENANT_CURRENCY];
     const code = (typeof v === 'string' ? v : String(v ?? '')).trim();
-    return code || ORDER_DEFAULTS.CURRENCY;
+    // B15: no locale defaults — an unconfigured tenant currency fails loudly.
+    if (!code) {
+      throw new CurrencyResolutionError(
+        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
+        `tenant ${tenantId}`
+      );
+    }
+    return code;
   }
 
   /**
@@ -260,11 +271,17 @@ export class TenantSettingsService {
     userId?: string | null
   ): Promise<CurrencyConfig> {
     const map = await this.getAllResolvedSettings(tenantId, branchId, userId);
-    const currencyCode =
-      (typeof map[SETTING_CODES.TENANT_CURRENCY] === 'string'
-        ? (map[SETTING_CODES.TENANT_CURRENCY] as string)
-        : String(map[SETTING_CODES.TENANT_CURRENCY] ?? '')
-      ).trim() || ORDER_DEFAULTS.CURRENCY;
+    const currencyCode = (typeof map[SETTING_CODES.TENANT_CURRENCY] === 'string'
+      ? (map[SETTING_CODES.TENANT_CURRENCY] as string)
+      : String(map[SETTING_CODES.TENANT_CURRENCY] ?? '')
+    ).trim();
+    // B15: no locale defaults — an unconfigured tenant currency fails loudly.
+    if (!currencyCode) {
+      throw new CurrencyResolutionError(
+        CURRENCY_RESOLUTION_ERRORS.MISSING_TENANT_CURRENCY,
+        `tenant ${tenantId}`
+      );
+    }
     const decimalPlaces =
       (typeof map[SETTING_CODES.TENANT_DECIMAL_PLACES] === 'number'
         ? (map[SETTING_CODES.TENANT_DECIMAL_PLACES] as number)

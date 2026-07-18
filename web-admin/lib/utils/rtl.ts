@@ -50,7 +50,7 @@ export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
  */
 export function formatCurrency(
   amount: number,
-  currency: string = ORDER_DEFAULTS.CURRENCY,
+  currency: string = '',
   locale?: 'en' | 'ar',
   decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {

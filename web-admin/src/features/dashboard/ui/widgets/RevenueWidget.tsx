@@ -13,7 +13,6 @@ import { DollarSign, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmount } from '@/lib/money/format-money'
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import { dashboardService } from '@/lib/services/dashboard.service'
 
 /**
@@ -34,7 +33,7 @@ export function RevenueWidget() {
     today: 0,
     mtd: 0,
     last30d: 0,
-    currency: ORDER_DEFAULTS.CURRENCY,
+    currency: '',
     trend: 0,
   })
   const [isLoading, setIsLoading] = useState(true)

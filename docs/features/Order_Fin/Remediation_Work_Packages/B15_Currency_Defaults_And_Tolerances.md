@@ -1,7 +1,7 @@
 # B15 — Currency Defaults and Tolerances
 
 ## Metadata
-Backlog ID: B15 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: NOT_STARTED
+Backlog ID: B15 · Severity: MEDIUM · Classification: CONTROL_GAP · Status: **IMPLEMENTED 2026-07-18** (see Completion evidence) — awaiting owner commit → Preview QA
 Authoritative report sections: M1, M5, §15, §50-B15
 Required decisions: none
 Dependencies: none · Blocks: — · Recommended phase: Seq 3
@@ -75,4 +75,20 @@ Rollout: guarded by fixtures; staging with a non-OMR tenant before enable
 Rollback: revert commit
 
 ## Completion evidence
-Migration: — · Implementation files: — · Tests: — · Commit: — · Preview QA (deploy/result/approval): — · Reviewer: — · Verification: — · Authoritative report update: —
+
+**Migration:** none (code-level only, as planned).
+
+**Implementation (2026-07-18):**
+- NEW `lib/constants/financial-tolerances.ts` — the two documented tolerance classes: `MONEY_COMPARISON_TOLERANCE = 0.001` (ledger equality) and `CASH_VARIANCE_TOLERANCE = 0.01` (physical cash counting). Re-exports now point at them: `ORDER_FINANCIAL_COMPARISON_TOLERANCE` (B02 module), `SETTLEMENT_MONEY_EPSILON`, `RECONCILIATION_TOLERANCE`, `RECON_REPORT_EPSILON`; the `0.01` literal in `cash-drawer.service.ts` close path replaced with the constant.
+- NEW `lib/money/currency-resolution.ts` — `requireCurrencyCode` / `optionalCurrencyCode` / `assertCurrencyMatch` + typed `CurrencyResolutionError` with codes `MISSING_CURRENCY_CODE`, `CURRENCY_MISMATCH`, `MISSING_TENANT_CURRENCY`.
+- All 9 audited `'OMR'` fallbacks removed (§15 list): stored-value topUp/issueAdvance (row currency governs; explicit currency required on create; conflict → CURRENCY_MISMATCH), order-refund credit-note leg, order-cancel store-credit leg, order-settlement later-collection (+currency threaded into `computeCollectionOverpaymentMetrics` via new option), order-credit-application, customer-open-balance-query (caller currency or tenant-settings resolution), customer-receipt-allocation-preview (preview row's persisted `currency_code` now selected+mapped and used at confirm), collection-overpayment synthesized legs (blank, math-unused).
+- `ORDER_DEFAULTS.CURRENCY ('USD')` **removed**; `getTenantCurrency`/`getCurrencyConfig` now throw `MISSING_TENANT_CURRENCY` when unconfigured; ar-invoice write paths use `requireCurrencyCode`, read-DTO mappers degrade to `''`; wallet/advance API routes + server actions resolve tenant currency before first-row creation; ~20 display consumers degrade to `''`.
+- Formatters (`formatMoneyAmount`, `formatMoneyAmountWithCode`, `formatPrice`, `formatCurrency` helpers, tenant-currency context/hooks) render a **plain localized number** when currency is unresolved — never an invented code; gift-card dialogs start blank and sync tenant currency (Zod `min(1)` blocks blank submission).
+- Tax fallbacks removed: `lib/db/orders.ts` throws `MISSING_VAT_RATE` instead of assuming 0.05; `use-payment-totals` starts at 0 and stays 0 on load failure (server preview owns tax).
+- i18n: `common.errors.money.*` EN/AR for the four new codes.
+
+**Tests:** `__tests__/services/b15-currency-tolerance-guard.test.ts` (18 — source guard over lib/services+lib/payments+lib/db, resolution contract, tolerance wiring, formatter degradation) + 3 non-OMR wallet cases added to `stored-value.service.test.ts`; targeted suites 38/38 green.
+
+**Gates (2026-07-18):** tsc clean (2 known pre-existing owner-file errors only) · eslint 0 · check:i18n ✓ · full jest + build recorded in RESUME at phase close.
+
+**Commit:** — (owner) · **Preview QA (deploy/result/approval):** — pending (non-OMR tenant fixture on staging per Rollout) · **Reviewer:** — · **Verification:** — · **Authoritative report update:** — (after Preview QA)

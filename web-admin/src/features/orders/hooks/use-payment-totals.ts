@@ -173,7 +173,9 @@ export function usePaymentTotals({
   csrfToken,
   t,
 }: UsePaymentTotalsParams) {
-  const [taxRate, setTaxRate] = useState<number>(0.06);
+  // B15: no invented tax — 0 until the real rate loads; the server preview
+  // (serverTotals) owns tax on every settlement path anyway.
+  const [taxRate, setTaxRate] = useState<number>(0);
   const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
   const [serverTotals, setServerTotals] = useState<ServerTotals | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
@@ -208,7 +210,8 @@ export function usePaymentTotals({
       taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
         setTaxRate(rate);
       }).catch(() => {
-        setTaxRate(0.05);
+        // B15: never assume a rate on failure — keep 0 (server preview wins).
+        setTaxRate(0);
       });
       getTaxProfilesAction().then(res => {
         if (res.success && res.data) {

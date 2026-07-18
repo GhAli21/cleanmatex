@@ -40,7 +40,7 @@ export default async function ErpLiteReportsPage() {
   let trialBalanceRows: ErpLiteTrialBalanceRow[] = []
   let profitAndLossRows: ErpLiteStatementRow[] = []
   let balanceSheetRows: ErpLiteStatementRow[] = []
-  let currencyCode: string = ORDER_DEFAULTS.CURRENCY
+  let currencyCode: string = ''
   let decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 
   try {
@@ -55,7 +55,7 @@ export default async function ErpLiteReportsPage() {
     const currencyConfig = await tenantSettings
       .getCurrencyConfig(authContext.tenantId, undefined, authContext.userId)
       .catch(() => ({
-        currencyCode: ORDER_DEFAULTS.CURRENCY,
+        currencyCode: '',
         decimalPlaces: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
       }))
     currencyCode = currencyConfig.currencyCode

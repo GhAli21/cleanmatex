@@ -10,7 +10,6 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
@@ -998,7 +997,7 @@ export function OrderDetailsFullClient({
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <OrdersEditHistoryTabRprt
             entries={editHistory}
-            currencyCode={(order.currency_code as string) ?? ORDER_DEFAULTS.CURRENCY}
+            currencyCode={(order.currency_code as string) ?? ''}
             translations={editHistoryTranslations}
           />
         </div>

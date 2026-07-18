@@ -19,6 +19,7 @@ import {
 } from '@/lib/services/stored-value.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -338,7 +339,7 @@ export async function applyOrderCreditApplication(
       amount,
       creditReferenceId,
       appliedBy,
-      currencyCode: order.currency_code ?? 'OMR',
+      currencyCode: requireCurrencyCode(order.currency_code, `credit application on order ${orderId}`),
       idempotencyKey,
       referenceNo: reference,
     });

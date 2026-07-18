@@ -50,7 +50,7 @@ Severity/classification/evidence per report §50. Status is documentation-state 
 | B12 | Order amendment + financial delta | HIGH | BLOCKS_FEATURE / MAINTENANCE_RISK | NOT_STARTED | D011 D003 D010 | — | B14 (impl, tax-doc adjust) | 11 | [B12](B12_Order_Amendment_And_Financial_Delta.md) | — | — | — |
 | B13 | Voucher reversal operational unwind | HIGH | CONTROL_GAP | NOT_STARTED | D004 D006 D007 | B10 (hard) | — | 8 | [B13](B13_Voucher_Reversal_Operational_Unwind.md) | — | — | — |
 | B14 | Tax document runtime integration | HIGH | BLOCKS_FEATURE | NOT_STARTED | D007 D011 | — | B12 (partial, credit notes) | 11 | [B14](B14_Tax_Document_Runtime_Integration.md) | — | — | — |
-| B15 | Currency defaults + tolerances | MEDIUM | CONTROL_GAP | NOT_STARTED | — | — | — | 3 | [B15](B15_Currency_Defaults_And_Tolerances.md) | — | — | — |
+| B15 | Currency defaults + tolerances | MEDIUM | CONTROL_GAP | IMPLEMENTED 2026-07-18 (9 OMR fallbacks → resolve-or-throw; USD default removed; 0.05/0.06 removed; two tolerance classes centralized — see B15 evidence) — awaiting owner commit → Preview QA | — | — | — | 3 | [B15](B15_Currency_Defaults_And_Tolerances.md) | pending | — | pending Preview QA |
 | B16 | Drawer filtering + variance approval | MEDIUM | CONTROL_GAP | NOT_STARTED | D001 | — | — | 3 | [B16](B16_Cash_Drawer_Filtering_And_Variance_Approval.md) | — | — | — |
 | B17 | Currency rounding runtime | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | — | B15 (impl) | — | 10 | [B17](B17_Currency_Rounding_Runtime.md) | — | — | — |
 | B18 | Order charge write path | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | — | — | — | 10 | [B18](B18_Order_Charge_Write_Path.md) | — | — | — |

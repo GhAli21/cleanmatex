@@ -43,6 +43,7 @@ import {
   REFUND_METHODS,
   REFUND_SOURCE_TYPES,
 } from '@/lib/constants/order-financial';
+import { MONEY_COMPARISON_TOLERANCE } from '@/lib/constants/financial-tolerances';
 
 /** Any DB-sourced money value the aggregation accepts. */
 export type AmountLike = Decimal | number | string | null | undefined;
@@ -50,9 +51,9 @@ export type AmountLike = Decimal | number | string | null | undefined;
 /**
  * D005 invariant 4: order-level monetary comparison tolerance. The drawer
  * physical-count tolerance is a separate, documented constant — do not merge
- * them.
+ * them. Value owned by `lib/constants/financial-tolerances` (B15).
  */
-export const ORDER_FINANCIAL_COMPARISON_TOLERANCE = 0.001;
+export const ORDER_FINANCIAL_COMPARISON_TOLERANCE = MONEY_COMPARISON_TOLERANCE;
 
 /** Convert a DB money value to a plain number (null-safe). */
 export function toAmount(value: AmountLike): number {

@@ -6,8 +6,11 @@
 /**
  * Order Defaults Configuration
  */
+// B15: ORDER_DEFAULTS deliberately has NO currency default. Currency is always
+// resolved (tenant settings / branch / order row) or the operation fails
+// loudly — see lib/money/currency-resolution.ts and the no-locale-defaults
+// rule (CLAUDE.md database rules).
 export const ORDER_DEFAULTS = {
-  CURRENCY: 'USD',
   DEBOUNCE_MS: {
     ESTIMATION: 400,
     SEARCH: 300,

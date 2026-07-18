@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { Badge } from '@ui/primitives/badge';
@@ -494,7 +493,7 @@ export function OrdersEditHistoryTabRprt({
   const locale = useLocale();
   const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
-  const effectiveCurrency = (currencyCode?.trim() || tenantCurrency || ORDER_DEFAULTS.CURRENCY) as string;
+  const effectiveCurrency = (currencyCode?.trim() || tenantCurrency || '') as string;
   const fmtMoney = (n: number) =>
     formatMoneyAmountWithCode(n, {
       currencyCode: effectiveCurrency,

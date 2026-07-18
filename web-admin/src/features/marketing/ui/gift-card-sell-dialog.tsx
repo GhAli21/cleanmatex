@@ -31,7 +31,6 @@ import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
 import { sellGiftCardAction } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import type { CustomerSearchItem } from '@/lib/api/customers';
 
 // ---------------------------------------------------------------------------
@@ -113,7 +112,8 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       purchased_by_cust_id:  '',
       issued_to_customer_id: '',
       card_pin:              '',
-      currency_code:         ORDER_DEFAULTS.CURRENCY,
+      // B15: '' until tenant currency resolves (effect below syncs it).
+      currency_code:         '',
       rec_notes:             '',
       same_as_buyer:         false,
     },
@@ -195,7 +195,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       card_name: '', card_name2: '', amount: 0,
       expiry_date: defaultExpiry, purchased_by_cust_id: '',
       issued_to_customer_id: '', card_pin: '',
-      currency_code: tenantCurrency || ORDER_DEFAULTS.CURRENCY,
+      currency_code: tenantCurrency || '',
       rec_notes: '', same_as_buyer: false,
     });
     setServerError(null);

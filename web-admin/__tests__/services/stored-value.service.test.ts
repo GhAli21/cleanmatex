@@ -152,6 +152,51 @@ describe('stored-value.service — topUpWalletTx', () => {
       expect.objectContaining({ data: expect.objectContaining({ balance: { increment: 50 } }) })
     );
   });
+
+  // B15 — non-OMR tenant fixture: the wallet row's currency governs; creation
+  // requires an explicit currency; conflicts fail loudly.
+  it('creates a new wallet with the supplied non-OMR currency', async () => {
+    const newWallet = { id: 'w-bhd', balance: new Decimal('0'), currency_code: 'BHD' };
+    mockWalletFindFirstTx.mockResolvedValue(null);
+    mockWalletCreate.mockResolvedValue(newWallet);
+    mockWalletUpdate.mockResolvedValue({ ...newWallet, balance: new Decimal('25') });
+    mockWalletTxnCreate.mockResolvedValue({ id: 'txn-bhd' });
+
+    const tx = makeTx(null);
+    await topUpWalletTx(tx as Parameters<typeof topUpWalletTx>[0], {
+      tenantId: TENANT, customerId: CUST, amount: 25, currencyCode: 'BHD',
+    });
+
+    expect(mockWalletCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ currency_code: 'BHD' }) })
+    );
+  });
+
+  it('throws MISSING_CURRENCY_CODE when creating a wallet without a currency', async () => {
+    mockWalletFindFirstTx.mockResolvedValue(null);
+
+    const tx = makeTx(null);
+    await expect(
+      topUpWalletTx(tx as Parameters<typeof topUpWalletTx>[0], {
+        tenantId: TENANT, customerId: CUST, amount: 10,
+      })
+    ).rejects.toThrow('MISSING_CURRENCY_CODE');
+    expect(mockWalletCreate).not.toHaveBeenCalled();
+  });
+
+  it('throws CURRENCY_MISMATCH when the supplied currency conflicts with the wallet', async () => {
+    const wallet = { id: 'w1', balance: new Decimal('100'), currency_code: 'BHD' };
+    mockWalletFindFirstTx.mockResolvedValue(wallet);
+
+    const tx = makeTx(100);
+    await expect(
+      topUpWalletTx(tx as Parameters<typeof topUpWalletTx>[0], {
+        tenantId: TENANT, customerId: CUST, amount: 10, currencyCode: 'SAR',
+      })
+    ).rejects.toThrow('CURRENCY_MISMATCH');
+    expect(mockWalletUpdate).not.toHaveBeenCalled();
+    expect(mockWalletTxnCreate).not.toHaveBeenCalled();
+  });
 });
 
 describe('stored-value.service — redeemWalletTx', () => {

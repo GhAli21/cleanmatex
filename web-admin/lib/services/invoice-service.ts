@@ -25,7 +25,6 @@ import {
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import type {
   Invoice,
   InvoiceStatus,
@@ -753,7 +752,7 @@ function mapInvoiceToType(invoice: any): Invoice {
     customer_reference: invoice.customer_reference ?? undefined,
     metadata: parseInvoiceMetadata(invoice.metadata),
     rec_notes: invoice.rec_notes ?? undefined,
-    currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+    currency_code: invoice.currency_code ?? '',
     currency_ex_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : undefined,
     created_at: invoice.created_at?.toISOString?.() ?? new Date().toISOString(),
     created_by: invoice.created_by ?? undefined,

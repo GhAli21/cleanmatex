@@ -314,18 +314,25 @@ export function round(value: number, decimalPlaces?: number): number {
  * Format price for display (Intl currency style).
  *
  * @param amount - Amount to format
- * @param currency - ISO currency code (default: ORDER_DEFAULTS.CURRENCY)
+ * @param currency - ISO currency code; blank renders a plain number (B15 — no defaults)
  * @param locale - BCP 47 locale tag for Intl (default: en-OM)
  * @param decimalPlaces - Fraction digits (default: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)
  */
 export function formatPrice(
   amount: number,
-  currency: string = ORDER_DEFAULTS.CURRENCY,
+  currency: string = '',
   locale: string = 'en-OM',
   decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
 ): string {
-  const cc = (currency || ORDER_DEFAULTS.CURRENCY).trim() || ORDER_DEFAULTS.CURRENCY;
+  const cc = currency.trim();
   const dp = resolveMoneyDecimalPlaces(decimalPlaces);
+  // B15: no invented currency — a blank code renders the bare number.
+  if (!cc) {
+    return new Intl.NumberFormat(locale, {
+      minimumFractionDigits: dp,
+      maximumFractionDigits: dp,
+    }).format(amount);
+  }
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',

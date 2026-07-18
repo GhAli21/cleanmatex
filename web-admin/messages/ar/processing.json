@@ -48,7 +48,8 @@
     "details": "التفاصيل",
     "viewProcessingDetails": "فتح التفاصيل",
     "moreItems": "عناصر أخرى",
-    "edit": "تحرير أو معالجة الطلب",
+    "edit": "محرر المعالجة الكامل",
+    "simpleProcess": "معالجة بسيطة",
     "complete": "وضع علامة على التنظيف / الاكتمال",
     "noOrders": "لا توجد طلبات في قائمة انتظار المعالجة",
     "createNew": "إنشاء طلب جديد",
@@ -206,5 +207,63 @@
   },
   "status": {
     "processing": "قيد المعالجة"
+  },
+  "simpleModal": {
+    "title": "طلب {orderNo}",
+    "titleFallback": "معالجة بسيطة",
+    "description": "وضع علامة جاهز على القطع أو إضافة ملاحظات أو تقسيم القطع لهذا الطلب",
+    "statusProcessing": "قيد المعالجة",
+    "reportIssue": "الإبلاغ عن مشكلة",
+    "sendReceipt": "إرسال إيصال",
+    "sendReceiptComingSoon": "إرسال الإيصال قادم قريبًا",
+    "update": "تحديث",
+    "updateSuccess": "تم تحديث المعالجة بنجاح",
+    "updateFailed": "فشل تحديث المعالجة",
+    "splitFailed": "فشل تقسيم الطلب",
+    "noChanges": "لا توجد تغييرات للحفظ",
+    "columns": {
+      "item": "الصنف",
+      "notes": "ملاحظات",
+      "ready": "جاهز",
+      "split": "تقسيم"
+    },
+    "notesPlaceholder": "ملاحظات",
+    "rackOptional": "موقع الرف (اختياري)",
+    "rackOptionalPlaceholder": "مثال: رف أ-12",
+    "readyDisabledRejected": "أزل الرفض قبل وضع علامة جاهز",
+    "meta": {
+      "created": "تاريخ الإنشاء",
+      "payment": "الدفع",
+      "edited": "تم التعديل",
+      "paid": "مدفوع",
+      "unpaid": "غير مدفوع",
+      "yes": "نعم",
+      "no": "لا"
+    },
+    "noPiecesTitle": "لا توجد قطع للمعالجة",
+    "noPiecesDesc": "هذا الطلب لا يحتوي على سجلات قطع بعد. افتح المحرر الكامل أو تأكد من تفعيل تتبع القطع.",
+    "openFullEditor": "فتح المحرر الكامل",
+    "loadError": "فشل تحميل الطلب",
+    "unnamedItem": "صنف",
+    "discardTitle": "تجاهل التغييرات؟",
+    "discardDescription": "لديك تغييرات غير محفوظة. هل تريد الإغلاق دون حفظ؟",
+    "discardConfirm": "تجاهل",
+    "issue": {
+      "title": "الإبلاغ عن مشكلة",
+      "description": "إنشاء مشكلة لهذا الطلب",
+      "code": "نوع المشكلة",
+      "text": "الوصف",
+      "textPlaceholder": "صف المشكلة…",
+      "textMin": "يجب أن يكون الوصف 3 أحرف على الأقل",
+      "submit": "إرسال المشكلة",
+      "submitSuccess": "تم الإبلاغ عن المشكلة بنجاح",
+      "submitFailed": "فشل الإبلاغ عن المشكلة",
+      "codes": {
+        "damage": "تلف",
+        "stain": "بقعة",
+        "complaint": "شكوى",
+        "other": "أخرى"
+      }
+    }
   }
 }

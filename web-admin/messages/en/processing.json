@@ -48,7 +48,8 @@
     "details": "Details",
     "viewProcessingDetails": "Open details",
     "moreItems": "more items",
-    "edit": "Edit or process order",
+    "edit": "Full processing editor",
+    "simpleProcess": "Simple processing",
     "complete": "Mark as cleaned/completed",
     "noOrders": "No orders in processing queue",
     "createNew": "Create a new order",
@@ -206,5 +207,63 @@
   },
   "status": {
     "processing": "Processing"
+  },
+  "simpleModal": {
+    "title": "Order {orderNo}",
+    "titleFallback": "Simple Processing",
+    "description": "Mark pieces ready, add notes, or split pieces for this order",
+    "statusProcessing": "Processing",
+    "reportIssue": "Report Issue",
+    "sendReceipt": "Send Receipt",
+    "sendReceiptComingSoon": "Send Receipt is coming soon",
+    "update": "Update",
+    "updateSuccess": "Processing updated successfully",
+    "updateFailed": "Failed to update processing",
+    "splitFailed": "Failed to split order",
+    "noChanges": "No changes to save",
+    "columns": {
+      "item": "Item",
+      "notes": "Notes",
+      "ready": "Ready",
+      "split": "Split"
+    },
+    "notesPlaceholder": "Notes",
+    "rackOptional": "Rack location (optional)",
+    "rackOptionalPlaceholder": "e.g. Rack A-12",
+    "readyDisabledRejected": "Un-reject before marking ready",
+    "meta": {
+      "created": "Created",
+      "payment": "Payment",
+      "edited": "Edited",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "noPiecesTitle": "No pieces to process",
+    "noPiecesDesc": "This order has no piece records yet. Open the full editor or ensure piece tracking is enabled.",
+    "openFullEditor": "Open full editor",
+    "loadError": "Failed to load order",
+    "unnamedItem": "Item",
+    "discardTitle": "Discard changes?",
+    "discardDescription": "You have unsaved changes. Close without saving?",
+    "discardConfirm": "Discard",
+    "issue": {
+      "title": "Report Issue",
+      "description": "Create an issue for this order",
+      "code": "Issue type",
+      "text": "Description",
+      "textPlaceholder": "Describe the issue…",
+      "textMin": "Description must be at least 3 characters",
+      "submit": "Submit issue",
+      "submitSuccess": "Issue reported successfully",
+      "submitFailed": "Failed to report issue",
+      "codes": {
+        "damage": "Damage",
+        "stain": "Stain",
+        "complaint": "Complaint",
+        "other": "Other"
+      }
+    }
   }
 }

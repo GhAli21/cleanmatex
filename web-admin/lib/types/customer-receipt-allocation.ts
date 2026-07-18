@@ -117,6 +117,8 @@ export interface ReceiptAllocationLine {
  */
 export interface ReceiptAllocationPreviewResult {
   previewId: string;
+  /** Receipt currency persisted on the preview row (B15 — no defaults). */
+  currencyCode?: string;
   policy: ReceiptAllocationPolicySnapshot;
   receiptAmount: number;
   currentOrderAllocationAmount: number;

@@ -19,8 +19,8 @@ import {
   normalizeArInvoiceStatus,
 } from '@/lib/constants/ar-invoice';
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { assertBlockingInvoiceAutoPostSucceeded } from '@/lib/services/erp-lite-auto-post.util';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
@@ -405,7 +405,7 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
   }
 ): Promise<void> {
   const normalizedStatus = normalizeArInvoiceStatus(input.status);
-  const currencyCode = input.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
+  const currencyCode = requireCurrencyCode(input.currencyCode, 'AR invoice upsert');
   const outstandingAmount =
     input.outstandingAmount ??
     calculateOutstandingAmount(input.totalAmount, Number(input.paidAmount ?? 0));
@@ -665,7 +665,7 @@ export async function allocateArPaymentTx(
         invoiceId,
         paymentAllocId: allocation.id,
         voucherId: input.voucher_id ?? null,
-        currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+        currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
         amount: appliedToInvoice,
         entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
         movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_APPLIED,
@@ -681,7 +681,7 @@ export async function allocateArPaymentTx(
           invoiceId,
           paymentAllocId: allocation.id,
           voucherId: input.voucher_id ?? null,
-          currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
           amount: unappliedCreditAmount,
           entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
           movementCd: AR_LEDGER_MOVEMENTS.OVERPAY_CREDIT,
@@ -831,7 +831,7 @@ export async function reverseArPaymentAllocationTx(
           invoiceId,
           paymentAllocId: allocationId,
           voucherId: allocation.voucher_id ?? null,
-          currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
           amount: reversedAppliedAmount,
           entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
           movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
@@ -850,7 +850,7 @@ export async function reverseArPaymentAllocationTx(
           invoiceId,
           paymentAllocId: allocationId,
           voucherId: allocation.voucher_id ?? null,
-          currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
           amount: reversedCreditAmount,
           entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
           movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
@@ -1097,7 +1097,7 @@ function mapInvoiceHeader(row: org_invoice_mst & {
     total,
     paid_amount: paidAmount,
     outstanding_amount: toNumber(row.outstanding_amount ?? calculateOutstandingAmount(total, paidAmount)),
-    currency_code: row.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+    currency_code: row.currency_code ?? '',
     currency_ex_rate: toNumber(row.currency_ex_rate ?? 1),
     due_date: row.due_date?.toISOString().slice(0, 10),
     due_date_source_cd: (row.due_date_source_cd as ArInvoiceDetail['invoice']['due_date_source_cd']) ?? undefined,
@@ -1570,10 +1570,10 @@ async function createArInvoiceFromOrdersInTx(
         throw new Error('Customer is required to create an AR invoice from orders.');
       }
 
-      const currencyCode =
-        input.currency_code ??
-        orders.find((order) => order.currency_code)?.currency_code ??
-        ORDER_DEFAULTS.CURRENCY;
+      const currencyCode = requireCurrencyCode(
+        input.currency_code ?? orders.find((order) => order.currency_code)?.currency_code,
+        'AR invoice creation'
+      );
       const branchId = orders[0]?.branch_id ?? null;
       // Phase 3 Round 2: receivable-only invoice sizing.
       //
@@ -1665,7 +1665,7 @@ async function createArInvoiceFromOrdersInTx(
           invoice_no: created.invoice_no ?? null,
           order_id: created.order_id ?? null,
           branch_id: created.branch_id ?? null,
-          currency_code: created.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currency_code: created.currency_code ?? '',
           exchange_rate: created.currency_ex_rate != null ? Number(created.currency_ex_rate) : 1,
           invoice_date: invoiceDate.toISOString().slice(0, 10),
           subtotal: Number(created.subtotal ?? 0),
@@ -1952,7 +1952,7 @@ export async function issueArInvoice(
               tenantId,
               customerId: invoice.customer_id,
               invoiceId,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: toNumber(invoice.total),
               entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
               movementCd: AR_LEDGER_MOVEMENTS.INVOICE_ISSUED,
@@ -2075,7 +2075,7 @@ export async function approveSensitiveArInvoice(
               customerId: invoice.customer_id,
               invoiceId,
               adjustmentId: pendingAdjustment.id,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: adjustmentAmount,
               entrySide: direction,
               movementCd:
@@ -2216,7 +2216,7 @@ export async function voidArInvoice(
               tenantId,
               customerId: invoice.customer_id,
               invoiceId,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: priorOutstanding,
               entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
               movementCd: AR_LEDGER_MOVEMENTS.VOID,
@@ -2337,7 +2337,7 @@ export async function allocateArPayment(
             invoiceId,
             paymentAllocId: allocation.id,
             voucherId: input.voucher_id ?? null,
-            currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+            currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
             amount: appliedToInvoice,
             entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
             movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_APPLIED,
@@ -2353,7 +2353,7 @@ export async function allocateArPayment(
               invoiceId,
               paymentAllocId: allocation.id,
               voucherId: input.voucher_id ?? null,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: unappliedCreditAmount,
               entrySide: AR_LEDGER_ENTRY_SIDES.CREDIT,
               movementCd: AR_LEDGER_MOVEMENTS.OVERPAY_CREDIT,
@@ -2503,7 +2503,7 @@ export async function reverseArPaymentAllocation(
               invoiceId,
               paymentAllocId: allocationId,
               voucherId: allocation.voucher_id ?? null,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: reversedAppliedAmount,
               entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
               movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
@@ -2522,7 +2522,7 @@ export async function reverseArPaymentAllocation(
               invoiceId,
               paymentAllocId: allocationId,
               voucherId: allocation.voucher_id ?? null,
-              currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+              currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
               amount: reversedCreditAmount,
               entrySide: AR_LEDGER_ENTRY_SIDES.DEBIT,
               movementCd: AR_LEDGER_MOVEMENTS.PAYMENT_REVERSED,
@@ -2649,7 +2649,7 @@ async function createArAdjustment(
           customerId: invoice.customer_id,
           invoiceId,
           adjustmentId: adjustment.id,
-          currencyCode: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currencyCode: requireCurrencyCode(invoice.currency_code, 'AR invoice ledger operation'),
           amount: input.amount,
           entrySide: direction,
           movementCd:
@@ -2818,7 +2818,7 @@ export async function getArCustomerBalance(customerId: string, actor: ArActorCon
 
     return {
       customer_id: customerId,
-      currency_code: invoices[0]?.currency_code ?? ledger[0]?.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+      currency_code: invoices[0]?.currency_code ?? ledger[0]?.currency_code ?? '',
       open_invoice_count: invoices.filter((invoice) => {
         const normalized = normalizeArInvoiceStatus(invoice.status);
         return isArInvoiceOpenBalanceStatus(normalized) && toNumber(invoice.outstanding_amount ?? 0) > 0;
@@ -2938,7 +2938,7 @@ export async function listArCustomerBalances(
         customer_id: customer.id,
         customer_name: customer.name ?? undefined,
         customer_name2: customer.name2 ?? undefined,
-        currency_code: invoices[0]?.currency_code ?? ledger[0]?.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+        currency_code: invoices[0]?.currency_code ?? ledger[0]?.currency_code ?? '',
         open_invoice_count: invoices.filter((invoice) => {
           const normalized = normalizeArInvoiceStatus(invoice.status);
           return isArInvoiceOpenBalanceStatus(normalized) && toNumber(invoice.outstanding_amount ?? 0) > 0;
@@ -3078,7 +3078,7 @@ export async function getArCustomerStatement(
       customer_id: customerId,
       customer_name: customer.name ?? undefined,
       customer_name2: customer.name2 ?? undefined,
-      currency_code: ledgerRows[0]?.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+      currency_code: ledgerRows[0]?.currency_code ?? '',
       period_start: query.date_from,
       period_end: query.date_to,
       opening_balance: openingBalance,
@@ -3142,7 +3142,7 @@ export async function getArAgingReport(
         customer_id: customerId,
         customer_name: invoice.org_customers_mst?.name ?? undefined,
         customer_name2: invoice.org_customers_mst?.name2 ?? undefined,
-        currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+        currency_code: invoice.currency_code ?? '',
         current_amount: 0,
         due_1_30_amount: 0,
         due_31_60_amount: 0,

@@ -9,7 +9,6 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ShoppingCart, ChevronUp } from 'lucide-react';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
@@ -56,7 +55,7 @@ interface OrderSummaryBottomSheetProps {
 export function OrderSummaryBottomSheet({
   itemCount,
   total,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   isOpen,
   onOpen,
   onClose,

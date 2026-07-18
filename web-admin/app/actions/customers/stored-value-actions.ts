@@ -163,6 +163,14 @@ export async function topUpWallet(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const auth = await getAuthContext();
+    // B15: resolve the tenant currency for first-wallet creation — the wallet
+    // service requires an explicit currency and never defaults.
+    const [{ createClient }, { createTenantSettingsService }] = await Promise.all([
+      import('@/lib/supabase/server'),
+      import('@/lib/services/tenant-settings.service'),
+    ]);
+    const supabase = await createClient();
+    const currencyCode = await createTenantSettingsService(supabase).getTenantCurrency(auth.tenantId);
     await prisma.$transaction((tx) =>
       topUpWalletTx(tx, {
         tenantId:    auth.tenantId,
@@ -170,6 +178,7 @@ export async function topUpWallet(
         amount,
         notes,
         performedBy: auth.userId,
+        currencyCode,
       })
     );
     revalidatePath('/dashboard/customers/stored-value');
@@ -196,6 +205,14 @@ export async function issueAdvance(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const auth = await getAuthContext();
+    // B15: resolve the tenant currency for first-advance creation — the
+    // service requires an explicit currency and never defaults.
+    const [{ createClient }, { createTenantSettingsService }] = await Promise.all([
+      import('@/lib/supabase/server'),
+      import('@/lib/services/tenant-settings.service'),
+    ]);
+    const supabase = await createClient();
+    const currencyCode = await createTenantSettingsService(supabase).getTenantCurrency(auth.tenantId);
     await prisma.$transaction((tx) =>
       issueAdvanceTx(tx, {
         tenantId:    auth.tenantId,
@@ -203,6 +220,7 @@ export async function issueAdvance(
         amount,
         notes,
         performedBy: auth.userId,
+        currencyCode,
       })
     );
     revalidatePath('/dashboard/customers/stored-value');

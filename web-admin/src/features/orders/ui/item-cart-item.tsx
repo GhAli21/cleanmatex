@@ -8,7 +8,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization */
 
 import { memo, useCallback } from 'react';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
@@ -96,7 +95,7 @@ function ItemCartItemComponent({
   onDelete,
   priceOverride,
   overrideReason,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   selectedPieceId = null,
   onSelectPiece,
   colorCatalog,

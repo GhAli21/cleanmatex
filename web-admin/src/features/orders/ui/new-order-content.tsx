@@ -33,7 +33,6 @@ import { Check, GitBranch } from 'lucide-react';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import type { ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { BranchOption } from '@/lib/services/inventory-service';
 import { NewOrderTopBar } from './new-order-top-bar';
@@ -123,7 +122,7 @@ export function NewOrderContent() {
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
-    const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY);
+    const [currencyCode, setCurrencyCode] = useState<string>('');
     const { submitOrder: _submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);

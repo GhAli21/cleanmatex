@@ -4,6 +4,8 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { issueAdvanceTx } from '@/lib/services/stored-value.service';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 
 const schema = z.object({
   amount: z.number().positive(),
@@ -33,6 +35,10 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
 
   try {
+    // B15: resolve the tenant currency for first-advance creation — the
+    // service requires an explicit currency and never defaults.
+    const supabase = await createClient();
+    const currencyCode = await createTenantSettingsService(supabase).getTenantCurrency(tenantId);
     const txn = await prisma.$transaction((tx) =>
       issueAdvanceTx(tx, {
         tenantId,
@@ -40,6 +46,7 @@ export async function POST(
         amount:      parsed.data.amount,
         notes:       parsed.data.notes,
         performedBy: userId,
+        currencyCode,
       })
     );
     return NextResponse.json({ success: true, data: txn }, { status: 201 });

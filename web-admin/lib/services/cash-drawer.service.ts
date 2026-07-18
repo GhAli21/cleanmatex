@@ -5,6 +5,7 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/audit-actor.service'
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
+import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances'
 import type {
   CashDrawerActorSummary,
   CashDrawerDetailContext,
@@ -1454,7 +1455,7 @@ export async function closeSession(
     .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
   const expectedCash = toNumber(session.opening_float_amount) + cashIn + movementCashIn - movementCashOut
   const variance = params.physicalCount - expectedCash
-  const isBalanced = Math.abs(variance) < 0.01
+  const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
 
   const updated = await withTenantContext(tenantId, () =>
     prisma.org_cash_drawer_sessions_mst.update({

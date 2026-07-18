@@ -6,7 +6,6 @@
 
 'use client';
 
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -55,7 +54,7 @@ export function ProductCard({
   quantity,
   price,
   express,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   categoryLabel,
   onAdd,
   onIncrement,

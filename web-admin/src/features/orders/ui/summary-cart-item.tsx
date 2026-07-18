@@ -9,7 +9,6 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -112,7 +111,7 @@ function SummaryCartItemComponent({
   notes,
   pieces = [],
   priceOverride,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   trackByPiece = false,
   colorCatalog,
   preferenceLabelByCode = {},

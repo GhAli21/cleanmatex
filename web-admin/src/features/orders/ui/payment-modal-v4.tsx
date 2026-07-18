@@ -24,7 +24,6 @@ import {
   type NewOrderPaymentPayload,
   type OutstandingPolicy,
 } from '@/lib/validations/new-order-payment-schemas';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
 import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
@@ -171,7 +170,7 @@ export function PaymentModalV4({
       getCurrencyConfigAction(tenantOrgId, branchId, userId).then(config => {
         setCurrencyConfig(config);
       }).catch(() => {
-        setCurrencyConfig({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: 3, currencyExRate: 1 });
+        setCurrencyConfig({ currencyCode: '', decimalPlaces: 3, currencyExRate: 1 });
       });
     }
   }, [open, tenantOrgId, branchId, userId]);

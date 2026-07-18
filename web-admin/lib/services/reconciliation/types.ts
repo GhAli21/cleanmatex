@@ -22,9 +22,14 @@ import {
   type ReconciliationCheckName,
   type ReconciliationSeverity,
 } from '@/lib/constants/order-financial';
+import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances';
 
-/** Numeric tolerance for floating-point comparison of monetary values. */
-export const RECONCILIATION_TOLERANCE = 0.01;
+/**
+ * Physical-cash variance tolerance for drawer/cash reconciliation checks.
+ * Value owned by `lib/constants/financial-tolerances` (B15); order-level
+ * checks use the strict `MONEY_COMPARISON_TOLERANCE` instead.
+ */
+export const RECONCILIATION_TOLERANCE = CASH_VARIANCE_TOLERANCE;
 
 /**
  * Output of a single reconciliation check.

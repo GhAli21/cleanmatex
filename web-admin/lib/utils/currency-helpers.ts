@@ -8,19 +8,17 @@ import { formatCurrency as formatCurrencyUtil, getCurrentLocale } from './rtl';
 
 export { formatMoneyAmount, roundMoneyAmount } from '@/lib/money/format-money';
 
-const DEFAULT_CURRENCY = ORDER_DEFAULTS.CURRENCY;
-
 /**
  * Formats currency amount for display
  * @param amount - Amount to format
- * @param currency - Currency code (default: tenant default from ORDER_DEFAULTS)
+ * @param currency - Currency code; blank renders a plain number (B15 — no defaults)
  * @param locale - Locale override (optional)
  * @param decimalPlaces - Fraction digits from tenant settings when known
  * @returns Formatted currency string
  */
 export function formatCurrency(
   amount: number,
-  currency: string = DEFAULT_CURRENCY,
+  currency: string = '',
   locale?: 'en' | 'ar',
   decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
@@ -36,7 +34,7 @@ export function formatCurrency(
  */
 export function formatCurrencyForCurrentLocale(
   amount: number,
-  currency: string = DEFAULT_CURRENCY,
+  currency: string = '',
   decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
   const locale = getCurrentLocale();
@@ -64,7 +62,7 @@ export function parseCurrency(currencyString: string): number {
  * @param currency - Currency code (default: 'OMR')
  * @returns Currency symbol
  */
-export function getCurrencySymbol(currency: string = DEFAULT_CURRENCY): string {
+export function getCurrencySymbol(currency: string = ''): string {
   const symbols: Record<string, string> = {
     OMR: 'ر.ع.',
     USD: '$',

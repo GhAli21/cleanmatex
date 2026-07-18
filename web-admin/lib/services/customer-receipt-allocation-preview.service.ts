@@ -14,6 +14,7 @@ import type {
   PreviewAutoAllocationRequest,
   PreviewManualAllocationRequest,
 } from '@/lib/validations/customer-receipt-allocation-schema';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 const PREVIEW_TTL_HOURS = 2;
 
@@ -28,10 +29,12 @@ function mapPreviewRow(row: {
   preview_payload: unknown;
   warning_payload: unknown;
   policy_id: string | null;
+  currency_code?: string | null;
 }): ReceiptAllocationPreviewResult {
   const payload = (row.preview_payload ?? {}) as Record<string, unknown>;
   return {
     previewId: row.id,
+    currencyCode: row.currency_code?.trim() || undefined,
     previewStatus: row.preview_status as ReceiptAllocationPreviewResult['previewStatus'],
     policy: payload.policy as ReceiptAllocationPreviewResult['policy'],
     receiptAmount: Number(row.receipt_amount),
@@ -228,7 +231,8 @@ export async function confirmAllocationPreview(
   validateAllocationPreview({
     tenantId,
     customerId,
-    currencyCode: 'OMR',
+    // B15: the preview row's persisted currency governs — never a default.
+    currencyCode: requireCurrencyCode(preview.currencyCode, `receipt allocation preview ${previewId}`),
     preview,
     policy,
     requireConfirmed: false,
@@ -258,10 +262,10 @@ export async function getAllocationPreview(
   previewId: string
 ): Promise<ReceiptAllocationPreviewResult | null> {
   const rows = await prisma.$queryRaw<
-    Array<{ id: string; customer_id: string; preview_status: string; receipt_amount: unknown; current_order_allocation_amount: unknown; excess_amount: unknown; amount_allocated: unknown; remaining_unallocated_amount: unknown; preview_payload: unknown; warning_payload: unknown; policy_id: string | null }>
+    Array<{ id: string; customer_id: string; preview_status: string; receipt_amount: unknown; current_order_allocation_amount: unknown; excess_amount: unknown; amount_allocated: unknown; remaining_unallocated_amount: unknown; preview_payload: unknown; warning_payload: unknown; policy_id: string | null; currency_code: string | null }>
   >`
     SELECT id, customer_id, preview_status, receipt_amount, current_order_allocation_amount, excess_amount,
-           amount_allocated, remaining_unallocated_amount, preview_payload, warning_payload, policy_id
+           amount_allocated, remaining_unallocated_amount, preview_payload, warning_payload, policy_id, currency_code
     FROM org_fin_rcpt_alloc_preview_tr
     WHERE tenant_org_id = ${tenantId}::uuid
       AND id = ${previewId}::uuid

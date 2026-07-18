@@ -24,7 +24,7 @@ export async function getErpLiteDisplayConfig(): Promise<ErpLiteDisplayConfig> {
   } catch {
     return {
       locale,
-      currencyCode: ORDER_DEFAULTS.CURRENCY,
+      currencyCode: '',
       decimalPlaces: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
     }
   }

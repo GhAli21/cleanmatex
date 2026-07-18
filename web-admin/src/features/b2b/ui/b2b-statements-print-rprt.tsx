@@ -10,7 +10,6 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { StatementForPrint } from '@/lib/services/b2b-statements.service';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
@@ -44,7 +43,7 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const { statement, customer, primaryContact, invoices } = data;
-  const statementCurrency = (statement.currencyCd?.trim() || tenantCurrency || ORDER_DEFAULTS.CURRENCY) as string;
+  const statementCurrency = (statement.currencyCd?.trim() || tenantCurrency || '') as string;
   const fmt = (amount: number, rowCurrency?: string | null) =>
     formatMoneyAmountWithCode(amount, {
       currencyCode: (rowCurrency?.trim() || statementCurrency) as string,

@@ -71,7 +71,7 @@ export const ProductGrid = memo(function ProductGrid({
   products,
   items,
   express,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   productSearch = '',
   onProductSearchChange,
   isSearchPending = false,

@@ -44,6 +44,7 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import {
   assertOpenPosSessionForFinanceTx,
   autoLinkDrawerTx,
@@ -663,7 +664,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     }
 
     const outstanding = rows[0].outstanding_amount;
-    const currencyCode = rows[0].currency_code ?? 'OMR';
+    const currencyCode = requireCurrencyCode(rows[0].currency_code, `later-collection order ${orderId}`);
     const branchId = rows[0].branch_id;
     const customerId = params.customerId ?? rows[0].customer_id;
     const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
@@ -747,7 +748,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       });
     }
 
-    const overpaymentMetrics = computeCollectionOverpaymentMetrics(outstanding, resolvedLegs);
+    const overpaymentMetrics = computeCollectionOverpaymentMetrics(outstanding, resolvedLegs, { currencyCode });
     if (overpaymentMetrics.unresolvedExcessAmount > SETTLEMENT_MONEY_EPSILON) {
       if (!overpaymentResolution) {
         throw new Error('OVERPAYMENT_RESOLUTION_REQUIRED');

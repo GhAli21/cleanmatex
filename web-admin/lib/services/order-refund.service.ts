@@ -24,6 +24,7 @@ import { assertOpenPosSessionForFinanceTx } from './pos-session.service';
 import { topUpWalletTx, issueCreditNoteTx } from './stored-value.service';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -830,7 +831,7 @@ export async function processRefund(
         orderId: order.id,
         notes: `Refund for order ${order.order_no}`,
         performedBy: processedBy,
-        currencyCode: refund.currency_code,
+        currencyCode: refund.currency_code ?? order.currency_code,
         idempotencyKey: `refund-${refundId}-wallet`,
       });
     } else if (method === REFUND_METHODS.CREDIT_NOTE && customerId) {
@@ -842,7 +843,10 @@ export async function processRefund(
         amount,
         reason: `Refund for order ${order.order_no}`,
         orderId: order.id,
-        currencyCode: refund.currency_code || order.currency_code || 'OMR',
+        currencyCode: requireCurrencyCode(
+          refund.currency_code ?? order.currency_code,
+          `refund ${refundId} credit-note issuance`
+        ),
         issuedBy: processedBy,
         idempotencyKey: `refund-${refundId}-cn`,
       });

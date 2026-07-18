@@ -29,7 +29,6 @@ import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
 import { issueGiftCardAdmin } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import {
   GIFT_CARD_TYPE,
   GIFT_CARD_ISSUE_TYPE,
@@ -127,7 +126,8 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
       card_pin:              '',
       issue_type:            GIFT_CARD_ISSUE_TYPE.PROMOTIONAL,
       gift_card_type:        GIFT_CARD_TYPE.FIXED_VALUE,
-      currency_code:         ORDER_DEFAULTS.CURRENCY,
+      // B15: '' until tenant currency resolves (effect below syncs it).
+      currency_code:         '',
     },
   });
 
@@ -203,7 +203,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
       purchased_by_cust_id: '', card_pin: '',
       issue_type: GIFT_CARD_ISSUE_TYPE.PROMOTIONAL,
       gift_card_type: GIFT_CARD_TYPE.FIXED_VALUE,
-      currency_code: tenantCurrency || ORDER_DEFAULTS.CURRENCY,
+      currency_code: tenantCurrency || '',
     });
     setServerError(null);
     setGeneratedCode(null);

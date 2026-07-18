@@ -20,7 +20,6 @@ import {
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import { calculateTax } from './tax-engine.service';
 import type { PriceResult } from '@/lib/types/pricing';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { TAX_TYPES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
@@ -133,7 +132,9 @@ export async function calculateOrderTotals(
     userId
   );
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
-  const currencyCode = currencyConfig.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
+  // B15: getCurrencyConfig now fails loudly when the tenant currency is
+  // unconfigured, so no fallback exists here.
+  const currencyCode = currencyConfig.currencyCode;
 
   if (items.length === 0) {
     return {

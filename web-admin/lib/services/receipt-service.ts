@@ -172,7 +172,8 @@ export class ReceiptService {
         Number.isFinite(moneyCfg.decimalPlaces) && moneyCfg.decimalPlaces >= 0
           ? moneyCfg.decimalPlaces
           : ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
-      const currencyCode = moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY;
+      // B15: getCurrencyConfig fails loudly when unconfigured — no fallback.
+      const currencyCode = moneyCfg.currencyCode;
       const moneyOpts = { ecoScore, decimalPlaces, currencyCode };
 
       // Replace template placeholders

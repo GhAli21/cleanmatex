@@ -57,14 +57,15 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   const intlLocale = useLocale()
   const moneyLocale = toMoneyLocale(intlLocale)
 
-  const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY)
+  // B15: '' until resolved — formatters render plain numbers, never a default code.
+  const [currencyCode, setCurrencyCode] = useState<string>('')
   const [decimalPlaces, setDecimalPlaces] = useState<number>(ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)
   const [currencyExRate, setCurrencyExRate] = useState(1)
   const [isReady, setIsReady] = useState(!currentTenant)
 
   const load = useCallback(async () => {
     if (!currentTenant?.tenant_id) {
-      setCurrencyCode(ORDER_DEFAULTS.CURRENCY)
+      setCurrencyCode('')
       setDecimalPlaces(ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)
       setCurrencyExRate(1)
       setIsReady(true)
@@ -77,7 +78,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
         undefined,
         user?.id
       )
-      setCurrencyCode(cfg.currencyCode || ORDER_DEFAULTS.CURRENCY)
+      setCurrencyCode(cfg.currencyCode || '')
       setDecimalPlaces(
         Number.isFinite(cfg.decimalPlaces) && cfg.decimalPlaces >= 0
           ? cfg.decimalPlaces
@@ -89,7 +90,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
           : 1
       )
     } catch {
-      setCurrencyCode(ORDER_DEFAULTS.CURRENCY)
+      setCurrencyCode('')
       setDecimalPlaces(ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)
       setCurrencyExRate(1)
     } finally {
@@ -162,7 +163,8 @@ export function useTenantCurrency(): TenantCurrencyContextValue {
   const ctx = useContext(TenantCurrencyContext)
   if (!ctx) {
     const moneyLocale: MoneyLocale = 'en'
-    const currencyCode = ORDER_DEFAULTS.CURRENCY
+    // B15: '' — outside the provider money renders as plain numbers.
+    const currencyCode = ''
     const decimalPlaces = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
     return {
       currencyCode,

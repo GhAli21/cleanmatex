@@ -914,7 +914,12 @@ async function recalculateOrderTotals(
     where: { id: orderId, tenant_org_id: tenantOrgId },
     select: { vat_rate: true },
   });
-  const vatRate = order?.vat_rate != null ? Number(order.vat_rate) : 0.05;
+  // B15: tax fallbacks are forbidden — a missing vat_rate must fail loudly,
+  // never silently assume a rate (tax-exempt is an explicit 0, not null).
+  if (order?.vat_rate == null) {
+    throw new Error(`MISSING_VAT_RATE: order ${orderId} has no vat_rate; cannot recalculate totals`);
+  }
+  const vatRate = Number(order.vat_rate);
 
   const subtotal = roundMoney(total / (1 + vatRate));
   const tax = roundMoney(total - subtotal);

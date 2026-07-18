@@ -10,6 +10,8 @@
  * - sys_fin_rem_bal_policy_cd
  */
 
+import { MONEY_COMPARISON_TOLERANCE } from '@/lib/constants/financial-tolerances';
+
 /** sys_fin_overpay_res_cd.resolution_code */
 export const OVERPAYMENT_RESOLUTIONS = {
   REDUCE_PAYMENT: 'REDUCE_PAYMENT',
@@ -113,8 +115,11 @@ export const REMAINING_BALANCE_POLICIES = {
 export type RemainingBalancePolicyCode =
   (typeof REMAINING_BALANCE_POLICIES)[keyof typeof REMAINING_BALANCE_POLICIES];
 
-/** Money epsilon for resolution/allocation sum validation. */
-export const SETTLEMENT_MONEY_EPSILON = 0.001;
+/**
+ * Money epsilon for resolution/allocation sum validation. Value owned by
+ * `lib/constants/financial-tolerances` (B15).
+ */
+export const SETTLEMENT_MONEY_EPSILON = MONEY_COMPARISON_TOLERANCE;
 
 /** Submit-order / planner error codes. */
 export const OVERPAYMENT_RESOLUTION_ERROR_CODES = {

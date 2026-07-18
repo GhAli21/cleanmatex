@@ -18,7 +18,6 @@ import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
@@ -53,7 +52,7 @@ interface OrderDetailsSectionProps {
  */
 export function OrderDetailsSection({
   trackByPiece,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   packingPerPieceEnabled = true, // for testing
   bundlesEnabled = false,
   repeatLastOrderEnabled = true,

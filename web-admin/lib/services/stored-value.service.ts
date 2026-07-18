@@ -8,6 +8,7 @@ import {
   CREDIT_NOTE_STATUSES,
 } from '@/lib/constants/order-financial';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertCurrencyMatch, requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -50,7 +51,7 @@ export async function topUpWalletTx(
   tx: PrismaTransactionClient,
   params: { tenantId: string; customerId: string; amount: number; orderId?: string; notes?: string; performedBy?: string; currencyCode?: string; idempotencyKey?: string }
 ) {
-  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode = 'OMR', idempotencyKey } = params;
+  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode, idempotencyKey } = params;
 
   if (idempotencyKey) {
     const existing = await tx.org_wallet_txn_dtl.findFirst({
@@ -63,13 +64,19 @@ export async function topUpWalletTx(
     where: { tenant_org_id: tenantId, customer_id: customerId, is_active: true },
   });
 
+  // B15: the wallet row's currency governs every ledger write; a new wallet
+  // must be created with an explicitly resolved currency (never a default).
+  if (wallet?.currency_code) {
+    assertCurrencyMatch(wallet.currency_code, currencyCode, `topUpWalletTx wallet ${wallet.id}`);
+  }
+
   if (!wallet) {
     wallet = await tx.org_customer_wallets_mst.create({
       data: {
         tenant_org_id: tenantId,
         customer_id:   customerId,
         balance:       0,
-        currency_code: currencyCode,
+        currency_code: requireCurrencyCode(currencyCode, `topUpWalletTx: new wallet for customer ${customerId}`),
         is_active:     true,
         rec_status:    1,
       },
@@ -206,11 +213,17 @@ export async function issueAdvanceTx(
   tx: PrismaTransactionClient,
   params: { tenantId: string; customerId: string; amount: number; notes?: string; performedBy?: string; currencyCode?: string }
 ) {
-  const { tenantId, customerId, amount, notes, performedBy, currencyCode = 'OMR' } = params;
+  const { tenantId, customerId, amount, notes, performedBy, currencyCode } = params;
 
   let advance = await tx.org_customer_advances_mst.findFirst({
     where: { tenant_org_id: tenantId, customer_id: customerId, is_active: true },
   });
+
+  // B15: the advance row's currency governs every ledger write; a new advance
+  // must be created with an explicitly resolved currency (never a default).
+  if (advance?.currency_code) {
+    assertCurrencyMatch(advance.currency_code, currencyCode, `issueAdvanceTx advance ${advance.id}`);
+  }
 
   if (!advance) {
     advance = await tx.org_customer_advances_mst.create({
@@ -218,7 +231,7 @@ export async function issueAdvanceTx(
         tenant_org_id: tenantId,
         customer_id:   customerId,
         balance:       0,
-        currency_code: currencyCode,
+        currency_code: requireCurrencyCode(currencyCode, `issueAdvanceTx: new advance for customer ${customerId}`),
         is_active:     true,
         rec_status:    1,
       },

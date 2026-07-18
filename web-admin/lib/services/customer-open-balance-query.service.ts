@@ -261,7 +261,21 @@ export async function listCustomerOpenBalancesForApi(
     tenantId,
     branchId: options.branchId,
   });
-  const currencyCode = options.currencyCode ?? 'OMR';
+  // B15: caller-supplied currency wins; otherwise resolve the tenant's
+  // configured currency — never a literal default (fails loudly when the
+  // tenant has no TENANT_CURRENCY setting).
+  let currencyCode = options.currencyCode?.trim();
+  if (!currencyCode) {
+    const [{ createClient }, { createTenantSettingsService }] = await Promise.all([
+      import('@/lib/supabase/server'),
+      import('@/lib/services/tenant-settings.service'),
+    ]);
+    const supabase = await createClient();
+    currencyCode = await createTenantSettingsService(supabase).getTenantCurrency(
+      tenantId,
+      options.branchId
+    );
+  }
 
   return loadCustomerOpenBalanceTargets({
     tenantId,

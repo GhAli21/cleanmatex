@@ -47,13 +47,21 @@ export function roundMoneyAmount(amount: number, decimalPlaces: number): number 
 
 /**
  * Format a monetary amount with Intl (currency style). Falls back to `CODE amount` if Intl rejects the code.
+ * B15: an unresolved (blank) currency renders as a plain localized number —
+ * never an invented default currency.
  * @param amount
  * @param options
  */
 export function formatMoneyAmount(amount: number, options: FormatMoneyOptions): string {
-  const cc = (options.currencyCode || ORDER_DEFAULTS.CURRENCY).trim() || ORDER_DEFAULTS.CURRENCY;
+  const cc = options.currencyCode?.trim() ?? '';
   const dp = clampDecimalPlaces(options.decimalPlaces);
   const intlLocale = resolveMoneyIntlLocale(options.locale);
+  if (!cc) {
+    return new Intl.NumberFormat(intlLocale, {
+      minimumFractionDigits: dp,
+      maximumFractionDigits: dp,
+    }).format(amount);
+  }
   try {
     return new Intl.NumberFormat(intlLocale, {
       style: 'currency',
@@ -76,12 +84,13 @@ export function formatMoneyAmountWithCode(
   amount: number,
   options: FormatMoneyOptions
 ): string {
-  const cc = (options.currencyCode || ORDER_DEFAULTS.CURRENCY).trim() || ORDER_DEFAULTS.CURRENCY;
+  const cc = options.currencyCode?.trim() ?? '';
   const dp = clampDecimalPlaces(options.decimalPlaces);
   const intlLocale = resolveMoneyIntlLocale(options.locale);
   const num = new Intl.NumberFormat(intlLocale, {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,
   }).format(amount);
-  return `${num} ${cc}`;
+  // B15: no invented currency — a blank code renders the bare number.
+  return cc ? `${num} ${cc}` : num;
 }

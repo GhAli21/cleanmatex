@@ -1219,6 +1219,44 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/processing',
     label: 'Processing',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Order state (Simple Processing)',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only local route; used by Simple Processing dialog on list.'],
+      },
+      {
+        label: 'Order pieces (Simple Processing)',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/pieces',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Batch update (Simple Processing)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/batch-update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Split order (Simple Processing)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/split',
+        notes: ['Auth-only local route; used when Split is confirmed from Simple Processing.'],
+      },
+      {
+        label: 'Report issue (Simple Processing)',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/issue',
+        notes: ['Auth-only local route; Report Issue from Simple Processing header.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {

@@ -6,12 +6,11 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-
 /**
- * Default currency - can be overridden by tenant settings
+ * B15: no locale defaults — until tenant settings resolve a currency this hook
+ * returns '' and money formatters render plain numbers (never an invented code).
  */
-const DEFAULT_CURRENCY = ORDER_DEFAULTS.CURRENCY || 'USD';
+const DEFAULT_CURRENCY = '';
 
 /**
  * Hook to get tenant currency

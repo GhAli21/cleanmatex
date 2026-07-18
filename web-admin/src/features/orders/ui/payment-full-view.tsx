@@ -21,7 +21,6 @@ import {
   type PaymentLeg,
 } from '@/lib/validations/new-order-payment-schemas';
 import { CmxConfirmDialog, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentMethodCode } from '@/lib/constants/order-types';
@@ -456,7 +455,7 @@ export function PaymentFullView({
     returnFocus: true,
   });
 
-  const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
+  const currencyCode  = currencyConfig?.currencyCode ?? '';
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
   const formatAmount  = (n: number) => n.toFixed(decimalPlaces);
   // Amount-editor focus helper (view-owned ref/scroll/focus). Threaded into the

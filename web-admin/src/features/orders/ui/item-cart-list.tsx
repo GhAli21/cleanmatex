@@ -7,7 +7,6 @@
 'use client';
 
 import { memo } from 'react';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -66,7 +65,7 @@ function ItemCartListComponent({
   onEditItemNotes,
   onDeleteItem,
   trackByPiece = false,
-  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  currencyCode = '',
   colorCatalog,
   preferenceLabelByCode,
   packingExtraPriceByCode,

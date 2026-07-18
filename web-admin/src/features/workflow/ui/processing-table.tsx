@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle, ListChecks } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -56,8 +56,10 @@ interface ProcessingTableProps {
   sortDirection: SortDirection;
   onSort: (field: SortField) => void;
   onRefresh: () => void;
-  onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
-  selectedOrderId?: string | null; // Current/selected order ID for highlighting
+  onEditClick?: (orderId: string) => void;
+  /** Opens Simple Processing dialog */
+  onSimpleProcessClick?: (orderId: string) => void;
+  selectedOrderId?: string | null;
 }
 
 /**
@@ -76,6 +78,7 @@ export function ProcessingTable({
   onSort,
   onRefresh,
   onEditClick,
+  onSimpleProcessClick,
   selectedOrderId,
 }: ProcessingTableProps) {
   const t = useTranslations('processing.table');
@@ -128,6 +131,7 @@ export function ProcessingTable({
               formatDate={formatDate}
               onRefresh={onRefresh}
               onEditClick={onEditClick}
+              onSimpleProcessClick={onSimpleProcessClick}
               index={index}
               selectedOrderId={selectedOrderId}
             />
@@ -153,6 +157,7 @@ export function ProcessingTable({
       onSort={onSort}
       onRefresh={onRefresh}
       onEditClick={onEditClick}
+      onSimpleProcessClick={onSimpleProcessClick}
       formatDate={formatDate}
       selectedOrderId={selectedOrderId}
     />
@@ -163,12 +168,21 @@ interface OrderRowProps {
   order: ProcessingOrder;
   formatDate: (date: string) => string;
   onRefresh: () => void;
-  onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
-  index: number; // ✅ NEW: For alternating row colors
-  selectedOrderId?: string | null; // Current/selected order ID for highlighting
+  onEditClick?: (orderId: string) => void;
+  onSimpleProcessClick?: (orderId: string) => void;
+  index: number;
+  selectedOrderId?: string | null;
 }
 
-function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOrderId }: OrderRowProps) {
+function OrderRow({
+  order,
+  formatDate,
+  onRefresh,
+  onEditClick,
+  onSimpleProcessClick,
+  index,
+  selectedOrderId,
+}: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
@@ -367,19 +381,31 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOr
               </span>
             )}
 
-            {/* ✅ Edit Icon with Loading State */}
+            {/* Full processing editor */}
             <button
               onClick={handleEdit}
               disabled={isLoadingEdit}
               className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-              title={isLoadingEdit ? (t('opening') || 'Opening...') : (t('edit') || 'Edit')}
-              aria-label={t('edit') || 'Edit'}
+              title={isLoadingEdit ? (t('opening') || 'Opening...') : t('edit')}
+              aria-label={t('edit')}
             >
               {isLoadingEdit ? (
                 <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
               ) : (
                 <SquarePen className="h-4 w-4 text-gray-600" />
               )}
+            </button>
+
+            {/* Simple processing dialog */}
+            <button
+              type="button"
+              onClick={() => onSimpleProcessClick?.(order.id)}
+              disabled={!onSimpleProcessClick}
+              className="p-2 hover:bg-sky-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('simpleProcess')}
+              aria-label={t('simpleProcess')}
+            >
+              <ListChecks className="h-4 w-4 text-sky-700" />
             </button>
 
             {/* Status Toggle Icon */}
@@ -601,6 +627,7 @@ function ProcessingOrderCard({
   formatDate,
   onRefresh,
   onEditClick,
+  onSimpleProcessClick,
   index,
   selectedOrderId,
 }: {
@@ -608,6 +635,7 @@ function ProcessingOrderCard({
   formatDate: (date: string) => string;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
+  onSimpleProcessClick?: (orderId: string) => void;
   index: number;
   selectedOrderId?: string | null;
 }) {
@@ -748,6 +776,15 @@ function ProcessingOrderCard({
           {t('details')} →
         </Link>
         <button
+          type="button"
+          onClick={() => onSimpleProcessClick?.(order.id)}
+          disabled={!onSimpleProcessClick}
+          className="w-full px-3 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2"
+        >
+          <ListChecks className="h-4 w-4" />
+          {t('simpleProcess')}
+        </button>
+        <button
           onClick={handleEdit}
           disabled={isLoadingEdit}
           className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait text-sm font-medium flex items-center justify-center gap-2"
@@ -760,7 +797,7 @@ function ProcessingOrderCard({
           ) : (
             <>
               <SquarePen className="h-4 w-4" />
-              {t('edit') || 'Edit'}
+              {t('edit')}
             </>
           )}
         </button>
@@ -776,6 +813,7 @@ function ProcessingTableDesktop({
   onSort,
   onRefresh,
   onEditClick,
+  onSimpleProcessClick,
   formatDate,
   selectedOrderId,
 }: {
@@ -784,6 +822,7 @@ function ProcessingTableDesktop({
   onSort: (field: SortField) => void;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
+  onSimpleProcessClick?: (orderId: string) => void;
   formatDate: (date: string) => string;
   selectedOrderId?: string | null;
 }) {
@@ -834,6 +873,7 @@ function ProcessingTableDesktop({
                   formatDate={formatDate}
                   onRefresh={onRefresh}
                   onEditClick={onEditClick}
+                  onSimpleProcessClick={onSimpleProcessClick}
                   index={index}
                   selectedOrderId={selectedOrderId}
                 />

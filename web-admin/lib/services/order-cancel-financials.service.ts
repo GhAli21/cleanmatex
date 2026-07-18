@@ -23,6 +23,7 @@ import {
 import { initiateRefund } from '@/lib/services/order-refund.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
 import { logger } from '@/lib/utils/logger';
+import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 /**
  * Why:
@@ -288,7 +289,10 @@ export async function unwindOrderFinancialsOnCancel(
             reason: `Order cancelled — collected payments converted to store credit (${input.reason})`.slice(0, 500),
             orderId: input.orderId,
             issuedBy: input.userId,
-            currencyCode: payments[0]?.currency_code ?? order.currency_code ?? 'OMR',
+            currencyCode: requireCurrencyCode(
+              payments[0]?.currency_code ?? order.currency_code,
+              `cancel ${input.orderId} store-credit issuance`
+            ),
             idempotencyKey: `cancel-${input.orderId}-store-credit`,
           });
           creditNoteId = note.id;
