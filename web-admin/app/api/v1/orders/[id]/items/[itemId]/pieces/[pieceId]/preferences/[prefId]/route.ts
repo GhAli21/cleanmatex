@@ -124,24 +124,11 @@ export async function PATCH(
     }
 
     const supabase = await createClient();
-    const { data: piece } = await supabase
-      .from('org_order_item_pieces_dtl')
-      .select('id')
-      .eq('id', pieceId)
-      .eq('order_item_id', itemId)
-      .eq('tenant_org_id', tenantId)
-      .maybeSingle();
-
-    if (!piece) {
-      return NextResponse.json(
-        { success: false, error: 'Order piece not found' },
-        { status: 404 }
-      );
-    }
-
+    // Ownership enforced on pref row (tenant + item + piece + pref id) — no piece SELECT.
     const result = await OrderPieceProcessingPreferenceService.setConfirmed(
       supabase,
       tenantId,
+      itemId,
       pieceId,
       prefId,
       parsed.data.processing_confirmed,
@@ -149,9 +136,10 @@ export async function PATCH(
     );
 
     if (!result.success) {
+      const status = result.error === 'Preference not found' ? 404 : 400;
       return NextResponse.json(
         { success: false, error: result.error },
-        { status: 400 }
+        { status }
       );
     }
 

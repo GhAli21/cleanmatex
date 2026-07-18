@@ -37,11 +37,19 @@ import {
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PreferenceKind } from '@/lib/types/service-preferences';
 import type { OrderItemServicePref } from '@/src/features/orders/model/new-order-types';
-import type { ProcessingPiecePrefRow } from '@/lib/services/order-piece-processing-preference.service';
+import type {
+  ProcessingPiecePrefRow,
+  ProcessingPrefConfirmDelta,
+  ProcessingPrefNotesDelta,
+} from '@/lib/services/order-piece-processing-preference.service';
 import {
   appendNotesFollowup,
   canDeleteProcessingPref,
 } from '@/lib/utils/notes-followup';
+import {
+  applyConfirmDelta,
+  applyNotesDelta,
+} from '@/lib/utils/processing-pref-deltas';
 import { cn } from '@/lib/utils';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
@@ -153,7 +161,7 @@ export function ProcessingPiecePrefsDialog({
 
   const queryKey = ['processing-piece-prefs', orderId, pieceId] as const;
 
-  const { data: prefs = [], isLoading, refetch } = useQuery({
+  const { data: prefs = [], isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<ProcessingPiecePrefRow[]> => {
       const res = await fetch(prefsUrl(orderId, itemId, pieceId), {
@@ -167,10 +175,6 @@ export function ProcessingPiecePrefsDialog({
     },
     enabled: open && !!orderId && !!pieceId,
   });
-
-  const invalidatePrefsCache = React.useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey });
-  }, [queryClient, queryKey]);
 
   const invalidatePieceChipCache = React.useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey });
@@ -187,11 +191,21 @@ export function ProcessingPiecePrefsDialog({
     [queryClient, queryKey]
   );
 
-  const replacePrefInCache = React.useCallback(
-    (updated: ProcessingPiecePrefRow) => {
+  const mergeConfirmDelta = React.useCallback(
+    (delta: ProcessingPrefConfirmDelta) => {
       queryClient.setQueryData<ProcessingPiecePrefRow[]>(queryKey, (prev) => {
-        if (!prev) return [updated];
-        return prev.map((row) => (row.id === updated.id ? updated : row));
+        if (!prev) return prev;
+        return prev.map((row) => applyConfirmDelta(row, delta));
+      });
+    },
+    [queryClient, queryKey]
+  );
+
+  const mergeNotesDelta = React.useCallback(
+    (delta: ProcessingPrefNotesDelta) => {
+      queryClient.setQueryData<ProcessingPiecePrefRow[]>(queryKey, (prev) => {
+        if (!prev) return prev;
+        return prev.map((row) => applyNotesDelta(row, delta));
       });
     },
     [queryClient, queryKey]
@@ -286,7 +300,7 @@ export function ProcessingPiecePrefsDialog({
           typeof json.error === 'string' ? json.error : t('confirmFailed')
         );
       }
-      return json as { success: true; data?: ProcessingPiecePrefRow };
+      return json as { success: true; data?: ProcessingPrefConfirmDelta };
     },
     onMutate: async ({ prefId, processing_confirmed }) => {
       await queryClient.cancelQueries({ queryKey });
@@ -317,11 +331,8 @@ export function ProcessingPiecePrefsDialog({
     },
     onSuccess: (json) => {
       if (json.data) {
-        replacePrefInCache(json.data);
+        mergeConfirmDelta(json.data);
       }
-    },
-    onSettled: () => {
-      invalidatePrefsCache();
     },
   });
 
@@ -342,7 +353,7 @@ export function ProcessingPiecePrefsDialog({
           typeof json.error === 'string' ? json.error : t('noteFailed')
         );
       }
-      return json as { success: true; data?: ProcessingPiecePrefRow };
+      return json as { success: true; data?: ProcessingPrefNotesDelta };
     },
     onMutate: async ({ prefId, note_text }) => {
       await queryClient.cancelQueries({ queryKey });
@@ -354,7 +365,7 @@ export function ProcessingPiecePrefsDialog({
         notes_followup: appendNotesFollowup(row.notes_followup, {
           note_text: draft,
           note_source: 'ORDER_PROCESSING',
-          note_user_id: row.created_by ?? '',
+          note_user_id: currentUserId || row.created_by || '',
         }),
       }));
       return { previous, prefId, draft };
@@ -374,11 +385,8 @@ export function ProcessingPiecePrefsDialog({
     onSuccess: (json) => {
       cmxMessage.success(t('noteSuccess'));
       if (json.data) {
-        replacePrefInCache(json.data);
+        mergeNotesDelta(json.data);
       }
-    },
-    onSettled: () => {
-      invalidatePrefsCache();
     },
   });
 

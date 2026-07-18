@@ -33509,6 +33509,7 @@ export type Database = {
           p_note_source: string
           p_note_text: string
           p_note_user_id: string
+          p_order_item_piece_id: string
           p_pref_id: string
           p_tenant_org_id: string
           p_updated_by?: string

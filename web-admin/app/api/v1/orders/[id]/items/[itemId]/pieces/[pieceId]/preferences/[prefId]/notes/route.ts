@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Append one notes_followup entry (note_source = ORDER_PROCESSING).
+ * Ownership enforced inside RPC (tenant + pref + piece).
  */
 export async function POST(
   request: NextRequest,
@@ -33,7 +34,7 @@ export async function POST(
     const authCheck = await requirePermission('orders:update')(request);
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId, userId } = authCheck;
-    const { itemId, pieceId, prefId } = await params;
+    const { pieceId, prefId } = await params;
 
     const body = await request.json();
     const parsed = appendProcessingPrefNoteSchema.safeParse(body);
@@ -45,21 +46,6 @@ export async function POST(
     }
 
     const supabase = await createClient();
-    const { data: piece } = await supabase
-      .from('org_order_item_pieces_dtl')
-      .select('id')
-      .eq('id', pieceId)
-      .eq('order_item_id', itemId)
-      .eq('tenant_org_id', tenantId)
-      .maybeSingle();
-
-    if (!piece) {
-      return NextResponse.json(
-        { success: false, error: 'Order piece not found' },
-        { status: 404 }
-      );
-    }
-
     const result = await OrderPieceProcessingPreferenceService.appendFollowupNote(
       supabase,
       tenantId,
@@ -70,9 +56,10 @@ export async function POST(
     );
 
     if (!result.success) {
+      const status = result.error === 'Preference not found' ? 404 : 400;
       return NextResponse.json(
         { success: false, error: result.error },
-        { status: 400 }
+        { status }
       );
     }
 

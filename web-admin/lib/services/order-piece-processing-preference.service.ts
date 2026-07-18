@@ -51,6 +51,10 @@ const FULL_SELECT = [
   'updated_by',
 ].join(', ');
 
+/** Slim RETURNING columns for Confirm toggle (no notes_followup / catalog fields). */
+const CONFIRM_SELECT =
+  'id, processing_confirmed, confirmed_by, confirmed_at, updated_at, updated_by, prefs_source, created_by';
+
 export interface ProcessingPiecePrefRow {
   id: string;
   tenant_org_id: string;
@@ -97,6 +101,23 @@ export interface AddProcessingPrefInput {
   branch_id?: string | null;
 }
 
+/** Confirm PATCH response delta — merge into cached pref row. */
+export interface ProcessingPrefConfirmDelta {
+  id: string;
+  processing_confirmed: boolean;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  can_delete: boolean;
+}
+
+/** Notes POST response delta — merge into cached pref row. */
+export interface ProcessingPrefNotesDelta {
+  id: string;
+  notes_followup: PrefsFollowupNote[];
+}
+
 type MutateResult = {
   success: boolean;
   error?: string;
@@ -104,6 +125,18 @@ type MutateResult = {
   reason?: PrefDeleteReason;
   data?: ProcessingPiecePrefRow | ProcessingPiecePrefRow[];
   financial?: { outstanding_amount?: number; total_amount?: number } | null;
+};
+
+type ConfirmMutateResult = {
+  success: boolean;
+  error?: string;
+  data?: ProcessingPrefConfirmDelta;
+};
+
+type NotesMutateResult = {
+  success: boolean;
+  error?: string;
+  data?: ProcessingPrefNotesDelta;
 };
 
 function mapRow(
@@ -524,15 +557,17 @@ export class OrderPieceProcessingPreferenceService {
 
   /**
    * Per-row processing_confirmed toggle.
+   * Returns a slim delta (not a full pref row).
    */
   static async setConfirmed(
     supabase: SupabaseClient,
     tenantId: string,
+    orderItemId: string,
     pieceId: string,
     prefId: string,
     confirmed: boolean,
     userId: string
-  ): Promise<MutateResult> {
+  ): Promise<ConfirmMutateResult> {
     try {
       const patch = confirmed
         ? {
@@ -554,19 +589,39 @@ export class OrderPieceProcessingPreferenceService {
         .from('org_order_preferences_dtl')
         .update(patch)
         .eq('tenant_org_id', tenantId)
+        .eq('order_item_id', orderItemId)
         .eq('order_item_piece_id', pieceId)
         .eq('prefs_level', 'PIECE')
         .eq('id', prefId)
-        .select(FULL_SELECT)
+        .select(CONFIRM_SELECT)
         .maybeSingle();
 
       if (error || !data) {
         return { success: false, error: error?.message || 'Preference not found' };
       }
 
+      const row = data as Record<string, unknown>;
+      const processing_confirmed =
+        (row.processing_confirmed as boolean | null) ?? false;
+
       return {
         success: true,
-        data: mapRow(data as unknown as Record<string, unknown>, userId),
+        data: {
+          id: String(row.id),
+          processing_confirmed,
+          confirmed_by: (row.confirmed_by as string | null) ?? null,
+          confirmed_at: row.confirmed_at ? String(row.confirmed_at) : null,
+          updated_at: row.updated_at ? String(row.updated_at) : null,
+          updated_by: (row.updated_by as string | null) ?? null,
+          can_delete: canDeleteProcessingPref(
+            {
+              prefs_source: String(row.prefs_source ?? ''),
+              created_by: (row.created_by as string | null) ?? null,
+              processing_confirmed,
+            },
+            userId
+          ),
+        },
       };
     } catch (err) {
       logger.error(
@@ -579,7 +634,7 @@ export class OrderPieceProcessingPreferenceService {
   }
 
   /**
-   * Append follow-up note via atomic SQL function.
+   * Append follow-up note via atomic SQL function (RPC-only; no pre/post SELECT).
    */
   static async appendFollowupNote(
     supabase: SupabaseClient,
@@ -588,31 +643,19 @@ export class OrderPieceProcessingPreferenceService {
     prefId: string,
     noteText: string,
     userId: string
-  ): Promise<MutateResult> {
+  ): Promise<NotesMutateResult> {
     const validated = validateFollowupNoteText(noteText);
     if (validated.ok === false) {
       return { success: false, error: validated.error };
     }
 
     try {
-      const { data: pref } = await supabase
-        .from('org_order_preferences_dtl')
-        .select('id')
-        .eq('id', prefId)
-        .eq('tenant_org_id', tenantId)
-        .eq('order_item_piece_id', pieceId)
-        .eq('prefs_level', 'PIECE')
-        .maybeSingle();
-
-      if (!pref) {
-        return { success: false, error: 'Preference not found' };
-      }
-
       const { data: notes, error } = await supabase.rpc(
         'cmx_ord_pref_append_notes_followup',
         {
           p_tenant_org_id: tenantId,
           p_pref_id: prefId,
+          p_order_item_piece_id: pieceId,
           p_note_user_id: userId,
           p_note_source: PREFS_SOURCE_STAGE.ORDER_PROCESSING,
           p_note_text: validated.text,
@@ -621,31 +664,26 @@ export class OrderPieceProcessingPreferenceService {
       );
 
       if (error) {
-        logger.error('appendFollowupNote rpc failed', new Error(error.message), {
+        const msg = error.message || '';
+        const notFound = /preference not found/i.test(msg);
+        logger.error('appendFollowupNote rpc failed', new Error(msg), {
           tenantId,
           prefId,
           feature: 'order_piece_processing_preference',
         });
-        return { success: false, error: error.message };
-      }
-
-      const { data: row } = await supabase
-        .from('org_order_preferences_dtl')
-        .select(FULL_SELECT)
-        .eq('id', prefId)
-        .eq('tenant_org_id', tenantId)
-        .single();
-
-      if (!row) {
         return {
-          success: true,
-          data: undefined,
+          success: false,
+          error: notFound ? 'Preference not found' : msg,
         };
       }
 
-      const mapped = mapRow(row as unknown as Record<string, unknown>, userId);
-      mapped.notes_followup = parseNotesFollowup(notes ?? mapped.notes_followup);
-      return { success: true, data: mapped };
+      return {
+        success: true,
+        data: {
+          id: prefId,
+          notes_followup: parseNotesFollowup(notes),
+        },
+      };
     } catch (err) {
       logger.error(
         'appendFollowupNote failed',
