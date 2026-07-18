@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -45,21 +45,44 @@ export function PaymentModalV4CreditNotePicker({
 }: PaymentModalV4CreditNotePickerProps) {
   const t = useTranslations('newOrder.payment.customerCredits');
   const { decimalPlaces } = useTenantCurrency();
-  const firstNoteRef = useRef<HTMLButtonElement | null>(null);
-  const cancelRef = useRef<HTMLButtonElement | null>(null);
-
-  // CmxDialog does not auto-move focus on open — land on the first note (or Cancel).
+  // CmxDialog portals after mount — land on the first note (or Cancel).
+  // autoFocus={false} so the dialog trap does not steal focus to the close X.
   useEffect(() => {
     if (!open) return;
-    const timer = window.setTimeout(() => {
-      const target = firstNoteRef.current ?? cancelRef.current;
-      target?.focus();
-    }, 0);
-    return () => window.clearTimeout(timer);
+    let attempts = 0;
+    let timer: number | undefined;
+
+    const focusInitial = () => {
+      const firstNote = document.querySelector<HTMLElement>(
+        '[data-testid="credit-note-picker-first-option"]',
+      );
+      const cancel = document.querySelector<HTMLElement>(
+        '[data-testid="credit-note-picker-cancel"]',
+      );
+      const target = firstNote ?? cancel;
+      if (target) {
+        target.focus();
+        return;
+      }
+      // Portal may not be committed yet (mounted gate on CmxDialog).
+      attempts += 1;
+      if (attempts < 8) {
+        timer = window.setTimeout(focusInitial, 0);
+      }
+    };
+
+    timer = window.setTimeout(focusInitial, 0);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+    };
   }, [open, notes.length]);
 
   return (
-    <CmxDialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <CmxDialog
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      autoFocus={false}
+    >
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
           <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
@@ -77,7 +100,6 @@ export function PaymentModalV4CreditNotePicker({
               return (
                 <CmxButton
                   key={note.id}
-                  ref={index === 0 ? firstNoteRef : undefined}
                   type="button"
                   variant="outline"
                   onClick={() => onSelect(note.id)}
@@ -106,7 +128,6 @@ export function PaymentModalV4CreditNotePicker({
         </div>
         <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
           <CmxButton
-            ref={cancelRef}
             type="button"
             variant="outline"
             onClick={onClose}

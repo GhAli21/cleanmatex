@@ -144,7 +144,8 @@ describe('CmxKeypad', () => {
 
   it('resolveKeypadHomeIndex prefers 7 then 1 (never backspace)', () => {
     const keys = [...KEYPAD_PAYMENT_4COL];
-    const interactive = (i: number) => keys[i] !== '';
+    // Payment pad has no spacer cells — every key is interactive.
+    const interactive = () => true;
     expect(keys[resolveKeypadHomeIndex(keys, interactive)]).toBe('7');
     expect(resolveKeypadHomeIndex(['backspace', 'clear', '1'], () => true)).toBe(2);
   });

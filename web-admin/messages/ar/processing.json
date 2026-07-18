@@ -224,9 +224,11 @@
     "columns": {
       "item": "الصنف",
       "notes": "ملاحظات",
+      "rack": "الرف",
       "ready": "جاهز",
       "split": "تقسيم"
     },
+    "rackUnavailable": "—",
     "notesPlaceholder": "ملاحظات",
     "rackOptional": "موقع الرف (اختياري)",
     "rackOptionalPlaceholder": "مثال: رف أ-12",

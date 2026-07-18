@@ -244,52 +244,40 @@ export function SimpleProcessingDialog({
       {
         key: 'item',
         header: t('columns.item'),
+        width: '28%',
         cell: (piece) => {
           const isRejected = Boolean(piece.isRejected);
-          const isReady = piece.is_ready === true;
           const label =
             itemLabelById.get(piece.itemId) || t('unnamedItem');
           return (
-            <div className="min-w-[10rem] space-y-1.5 py-0.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  {label} #{piece.pieceNumber}
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="truncate text-sm font-medium text-foreground">
+                {label}{' '}
+                <span className="font-normal text-muted-foreground">
+                  #{piece.pieceNumber}
                 </span>
-                {isRejected ? (
-                  <CmxStatusBadge
-                    label={tModal('rejected')}
-                    variant="error"
-                    size="sm"
-                  />
-                ) : null}
-                {isRejected ? (
-                  <CmxButton
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    className="h-7 px-2 text-xs"
-                    onClick={() =>
-                      handlePieceChange(piece.id, { isRejected: false })
-                    }
-                    aria-label={tModal('unReject')}
-                  >
-                    <X className="me-1 h-3 w-3" />
-                    {tModal('unReject')}
-                  </CmxButton>
-                ) : null}
-              </div>
-              {isReady && !isRejected ? (
-                <CmxInput
-                  value={piece.rackLocation || ''}
-                  onChange={(e) =>
-                    handlePieceChange(piece.id, {
-                      rackLocation: e.target.value,
-                    })
-                  }
-                  placeholder={t('rackOptionalPlaceholder')}
-                  aria-label={t('rackOptional')}
-                  className="h-8 max-w-xs text-xs"
+              </span>
+              {isRejected ? (
+                <CmxStatusBadge
+                  label={tModal('rejected')}
+                  variant="error"
+                  size="sm"
                 />
+              ) : null}
+              {isRejected ? (
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="h-6 px-1.5 text-xs"
+                  onClick={() =>
+                    handlePieceChange(piece.id, { isRejected: false })
+                  }
+                  aria-label={tModal('unReject')}
+                >
+                  <X className="me-0.5 h-3 w-3" />
+                  {tModal('unReject')}
+                </CmxButton>
               ) : null}
             </div>
           );
@@ -298,6 +286,7 @@ export function SimpleProcessingDialog({
       {
         key: 'notes',
         header: t('columns.notes'),
+        width: splitOrderEnabled ? '26%' : '30%',
         cell: (piece) => (
           <CmxInput
             value={piece.notes || ''}
@@ -306,15 +295,47 @@ export function SimpleProcessingDialog({
             }
             placeholder={t('notesPlaceholder')}
             aria-label={t('columns.notes')}
-            className="h-8 min-w-[8rem] text-sm"
+            className="h-8 w-full text-sm"
           />
         ),
+      },
+      {
+        key: 'rack',
+        header: t('columns.rack'),
+        width: '18%',
+        cell: (piece) => {
+          const isRejected = Boolean(piece.isRejected);
+          const isReady = piece.is_ready === true;
+          if (!isReady || isRejected) {
+            return (
+              <span
+                className="text-sm text-muted-foreground"
+                aria-label={t('rackOptional')}
+              >
+                {t('rackUnavailable')}
+              </span>
+            );
+          }
+          return (
+            <CmxInput
+              value={piece.rackLocation || ''}
+              onChange={(e) =>
+                handlePieceChange(piece.id, {
+                  rackLocation: e.target.value,
+                })
+              }
+              placeholder={t('rackOptionalPlaceholder')}
+              aria-label={t('rackOptional')}
+              className="h-8 w-full text-xs"
+            />
+          );
+        },
       },
       {
         key: 'ready',
         header: t('columns.ready'),
         align: 'center',
-        width: '5.5rem',
+        width: '4.75rem',
         cell: (piece) => {
           const isRejected = Boolean(piece.isRejected);
           const isReady = piece.is_ready === true;
@@ -353,7 +374,7 @@ export function SimpleProcessingDialog({
         key: 'split',
         header: t('columns.split'),
         align: 'center',
-        width: '5.5rem',
+        width: '4.75rem',
         cell: (piece) => (
           <div className="flex justify-center">
             <CmxCheckbox
@@ -577,7 +598,7 @@ export function SimpleProcessingDialog({
         }}
       >
         <CmxDialogContent
-          className="flex max-h-[90vh] w-full max-w-3xl flex-col"
+          className="flex max-h-[90vh] w-full max-w-4xl flex-col"
           aria-labelledby="simple-processing-title"
           aria-describedby="simple-processing-desc"
         >
@@ -628,43 +649,45 @@ export function SimpleProcessingDialog({
             </div>
 
             {!isLoading && order && (
-              <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground">
+              <div className="mt-4 grid grid-cols-1 divide-y divide-border rounded-md border border-border bg-muted/30 text-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <div className="space-y-0.5 px-3 py-2.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('meta.created')}
                   </div>
-                  <div className="text-foreground">
+                  <div className="font-medium text-foreground">
                     {createdAt
-                      ? new Date(createdAt).toLocaleString(locale)
+                      ? new Date(createdAt).toLocaleString(locale, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })
                       : '—'}
                   </div>
-                  {createdAt ? (
-                    <div className="text-xs text-muted-foreground">
-                      {formatRelativeTime(createdAt, locale)}
-                    </div>
-                  ) : null}
-                  {createdByInfo || branchName ? (
-                    <div className="text-xs text-muted-foreground">
-                      {[createdByInfo, branchName].filter(Boolean).join(' · ')}
-                    </div>
-                  ) : null}
+                  <div className="text-xs text-muted-foreground">
+                    {[
+                      createdAt ? formatRelativeTime(createdAt, locale) : null,
+                      createdByInfo || null,
+                      branchName || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground">
+                <div className="space-y-0.5 px-3 py-2.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('meta.payment')}
                   </div>
-                  <div className="text-foreground">
-                    {formatMoneyWithCode(totalAmount)}{' '}
-                    <span className="text-muted-foreground">
-                      {isPaid ? t('meta.paid') : t('meta.unpaid')}
-                    </span>
+                  <div className="font-medium text-foreground">
+                    {formatMoneyWithCode(totalAmount)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {isPaid ? t('meta.paid') : t('meta.unpaid')}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground">
+                <div className="space-y-0.5 px-3 py-2.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('meta.edited')}
                   </div>
-                  <div className="text-foreground">
+                  <div className="font-medium text-foreground">
                     {wasEdited ? t('meta.yes') : t('meta.no')}
                   </div>
                 </div>
@@ -692,6 +715,7 @@ export function SimpleProcessingDialog({
                 skeletonRows={4}
                 density="compact"
                 zebra
+                tableLayout="fixed"
                 emptyTitle={t('noPiecesTitle')}
                 emptyDescription={t('noPiecesDesc')}
                 emptyAction={

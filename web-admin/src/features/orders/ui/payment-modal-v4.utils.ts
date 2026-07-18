@@ -538,7 +538,6 @@ export type SplitLegDetailOptionFlags = {
  */
 export function splitLegHasBlockingDetailError(
   leg: PaymentLegReferenceFields & {
-    method: string;
     terminalId?: string;
     checkNumber?: string;
     checkDate?: string;

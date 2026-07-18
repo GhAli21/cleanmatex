@@ -26,11 +26,11 @@ export interface CmxInlineEditTableColumn<TData> {
   header: React.ReactNode
   /** Cell renderer — return interactive Cmx controls as needed. */
   cell: (row: TData, index: number) => React.ReactNode
-  /** Optional fixed/min width (CSS length). */
+  /** Optional width (CSS length or %). Prefer % with tableLayout=fixed. */
   width?: string
-  /** Text alignment. */
+  /** Cell alignment. */
   align?: 'start' | 'center' | 'end'
-  /** When true, column collapses on very small screens (optional hint). */
+  /** When true, column collapses on very small screens. */
   hideOnMobile?: boolean
 }
 
@@ -57,6 +57,11 @@ export interface CmxInlineEditTableProps<TData> {
   showCaption?: boolean
   density?: 'compact' | 'comfortable'
   zebra?: boolean
+  /**
+   * Fixed layout keeps column widths stable so checkbox columns stay narrow
+   * and inputs do not push Ready/Split far apart.
+   */
+  tableLayout?: 'auto' | 'fixed'
 }
 
 const alignClass: Record<'start' | 'center' | 'end', string> = {
@@ -84,8 +89,9 @@ export function CmxInlineEditTable<TData>({
   showCaption = false,
   density = 'compact',
   zebra = true,
+  tableLayout = 'fixed',
 }: CmxInlineEditTableProps<TData>) {
-  const cellPad = density === 'compact' ? 'px-3 py-2.5' : 'px-4 py-3.5'
+  const cellPad = density === 'compact' ? 'px-3 py-2' : 'px-4 py-3'
 
   if (!loading && data.length === 0 && (emptyTitle || emptyDescription)) {
     return (
@@ -100,12 +106,17 @@ export function CmxInlineEditTable<TData>({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]',
+        'overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-sm',
         className
       )}
     >
       <div className={cn('overflow-auto', maxHeightClassName)}>
-        <table className="min-w-full border-collapse text-sm">
+        <table
+          className={cn(
+            'w-full border-collapse text-sm',
+            tableLayout === 'fixed' ? 'table-fixed' : 'min-w-full'
+          )}
+        >
           {caption ? (
             <caption
               className={cn(
@@ -126,7 +137,7 @@ export function CmxInlineEditTable<TData>({
                   style={col.width ? { width: col.width } : undefined}
                   className={cn(
                     cellPad,
-                    'text-xs font-semibold uppercase tracking-[0.02em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+                    'whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.04em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
                     alignClass[col.align ?? 'start'],
                     col.hideOnMobile && 'hidden sm:table-cell'
                   )}
@@ -163,7 +174,7 @@ export function CmxInlineEditTable<TData>({
                       'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                       zebra &&
                         index % 2 === 1 &&
-                        'bg-[rgb(var(--cmx-muted-rgb,241_245_249)/0.45)]',
+                        'bg-[rgb(var(--cmx-muted-rgb,241_245_249)/0.4)]',
                       getRowClassName?.(row, index)
                     )}
                   >

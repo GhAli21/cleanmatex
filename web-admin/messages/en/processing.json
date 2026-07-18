@@ -224,9 +224,11 @@
     "columns": {
       "item": "Item",
       "notes": "Notes",
+      "rack": "Rack",
       "ready": "Ready",
       "split": "Split"
     },
+    "rackUnavailable": "—",
     "notesPlaceholder": "Notes",
     "rackOptional": "Rack location (optional)",
     "rackOptionalPlaceholder": "e.g. Rack A-12",
