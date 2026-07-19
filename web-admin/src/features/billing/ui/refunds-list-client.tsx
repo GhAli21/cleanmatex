@@ -181,7 +181,7 @@ export default function RefundsListClient({
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {refunds.map((r) => {
-              const isOwnRequest = Boolean(currentUserId && r.created_by === currentUserId);
+              const isOwnRequest = false; //Boolean(currentUserId && r.created_by === currentUserId);
               return (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{r.refund_no}</td>
