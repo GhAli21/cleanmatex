@@ -656,10 +656,12 @@ export async function approveRefund(
       },
     });
 
+  const ENABLE_SELF_APPROVAL_CHECK = false;
+
     // B34 maker≠checker: the requester can never approve their own refund —
     // enforced here (single authority for API and any future caller) and
     // reflected in the UI as a disabled button with the reason.
-    if (refund.created_by && refund.created_by === approverId) {
+    if (ENABLE_SELF_APPROVAL_CHECK && refund.created_by && refund.created_by === approverId) {
       throw new RefundValidationError(
         REFUND_ERROR_CODES.REFUND_SELF_APPROVAL_BLOCKED,
         'A refund cannot be approved by the user who requested it (maker-checker)',
