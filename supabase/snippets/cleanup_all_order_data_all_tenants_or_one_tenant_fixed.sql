@@ -753,7 +753,7 @@ BEGIN
         'org_payments_dtl_tr',
         'org_fin_vouchers_mst',
         'org_order_history',
-        'org_order_item_issues',
+        'org_order_issues',
         'org_order_item_processing_steps',
         'org_gift_card_txn_dtl',
         'org_promotion_usage_dtl',
@@ -1513,7 +1513,7 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
 
-DELETE FROM public.org_order_item_issues AS x
+DELETE FROM public.org_order_issues AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)

@@ -613,7 +613,7 @@ export class WorkflowServiceEnhanced {
 
     // Get issues separately
     const { data: issues } = await supabase
-      .from('org_order_item_issues')
+      .from('org_order_issues')
       .select('*')
       .eq('order_id', orderId)
       .eq('tenant_org_id', tenantId)

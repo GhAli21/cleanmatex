@@ -165,17 +165,25 @@ export default function QADetailPage() {
     if (!orderId) return;
     setSubmitting(true);
     try {
-      // Create issue and transition back to processing
-      await fetch(`/api/v1/orders/${orderId}/issue`, {
+      // Create issue + explicit reject (alsoReject) — report alone never rejects
+      const issueRes = await fetch(`/api/v1/orders/${orderId}/issue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          scopeLevel: 'ITEM',
           orderItemId: itemId,
           issueCode: 'other',
           issueText: reason,
           priority: 'high',
+          alsoReject: true,
         }),
       });
+      if (!issueRes.ok) {
+        const errBody = await issueRes.json().catch(() => ({}));
+        throw new Error(
+          (errBody as { error?: string }).error || t('qa.messages.rejectFailed')
+        );
+      }
 
       // Transition back to processing
       const result = await transition.mutateAsync({

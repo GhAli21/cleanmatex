@@ -1,0 +1,53 @@
+{
+  "reportTitle": "الإبلاغ عن مشكلة",
+  "listTitle": "المشكلات",
+  "listFailed": "فشل تحميل المشكلات",
+  "addIssue": "إضافة مشكلة",
+  "emptyTitle": "لا توجد مشكلات بعد",
+  "emptyDescription": "أبلغ عن مشكلة لهذا الطلب أو الصنف أو القطعة.",
+  "code": "نوع المشكلة",
+  "text": "الوصف",
+  "textPlaceholder": "صف المشكلة…",
+  "textMin": "يجب أن يكون الوصف 3 أحرف على الأقل",
+  "photoUrl": "رابط الصورة (اختياري)",
+  "photoUrlPlaceholder": "https://…",
+  "submit": "إرسال المشكلة",
+  "submitSuccess": "تم الإبلاغ عن المشكلة بنجاح",
+  "submitFailed": "فشل الإبلاغ عن المشكلة",
+  "solve": "حل",
+  "solveTitle": "حل المشكلة",
+  "solveDescription": "أدخل ملاحظات حول كيفية حل هذه المشكلة.",
+  "notes": "ملاحظات الحل",
+  "notesPlaceholder": "ما تم فعله لحل المشكلة…",
+  "notesMin": "يجب أن تكون الملاحظات 3 أحرف على الأقل",
+  "solveSubmit": "حفظ الحل",
+  "solveSuccess": "تم تعليم المشكلة كمحلولة",
+  "solveFailed": "فشل حل المشكلة",
+  "solvedNotesLabel": "الحل",
+  "statusOpen": "مفتوحة",
+  "statusSolved": "محلولة",
+  "badgeOpen": "{count} مشكلات مفتوحة",
+  "badgeSolved": "تم حل جميع المشكلات",
+  "pageTitle": "مشكلات الطلبات",
+  "pageDescription": "المشكلات المفتوحة والمحلولة عبر الطلبات",
+  "filterOpen": "مفتوحة",
+  "filterAll": "الكل",
+  "orderNo": "الطلب",
+  "scope": {
+    "order": "مشكلة على مستوى الطلب",
+    "item": "مشكلة على مستوى الصنف",
+    "piece": "مشكلة على مستوى القطعة"
+  },
+  "codes": {
+    "damage": "تلف",
+    "stain": "بقعة",
+    "complaint": "شكوى",
+    "other": "أخرى"
+  },
+  "priorities": {
+    "low": "منخفضة",
+    "normal": "عادية",
+    "high": "عالية",
+    "urgent": "عاجلة"
+  }
+}

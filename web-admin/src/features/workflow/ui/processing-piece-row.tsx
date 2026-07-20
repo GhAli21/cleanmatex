@@ -18,6 +18,8 @@ import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
 import { PiecePreferenceReadonlyChips } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { cn } from '@/lib/utils';
+import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 
 interface ProcessingPieceRowProps {
   piece: ItemPiece;
@@ -188,6 +190,16 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                 className="font-mono"
               />
             )}
+            {orderId && itemId ? (
+              <OrderIssueRowActions
+                orderId={orderId}
+                scopeLevel={ORDER_ISSUE_SCOPE.PIECE}
+                orderItemId={itemId}
+                orderItemPieceId={piece.id}
+                hasOpenIssue={Boolean(piece.issue_id)}
+                onChanged={onConfirmSuccess}
+              />
+            ) : null}
           </div>
 
           {/* Preferences (shared read-only chips) + barcode */}

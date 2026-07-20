@@ -282,6 +282,30 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
+        label: '[Id] Issues list',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/issues',
+        notes: ['Auth-only; order/item/piece scoped issue list.'],
+      },
+      {
+        label: '[Id] Issue summary',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/issue-summary',
+        notes: ['Auth-only; open/total counts for badges.'],
+      },
+      {
+        label: '[Id] Issue resolve',
+        method: 'PATCH',
+        path: '/api/v1/orders/[id]/issue/[issueId]',
+        notes: ['Auth-only; sets solved_at/solved_by/solved_notes.'],
+      },
+      {
+        label: 'Tenant issues queue',
+        method: 'GET',
+        path: '/api/v1/orders/issues',
+        notes: ['Auth-only; /dashboard/issues queue.'],
+      },
+      {
         label: '[ItemId] Pieces',
         method: 'GET',
         path: '/api/v1/orders/[id]/items/[itemId]/pieces',
@@ -1213,6 +1237,29 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: [
       ...ORDER_NOTES,
       'Detail page blocks Complete when order status is not intake/preparing/preparation; UI uses /api/v1/orders/[id]/transition to processing.',
+    ],
+  },
+  {
+    routePattern: '/dashboard/issues',
+    label: 'Order Issues',
+    page: {},
+    apiDependencies: [
+      {
+        label: 'Tenant issues queue',
+        method: 'GET',
+        path: '/api/v1/orders/issues',
+        notes: ['Auth-only; open/solved issues across orders.'],
+      },
+      {
+        label: 'Resolve issue',
+        method: 'PATCH',
+        path: '/api/v1/orders/[id]/issue/[issueId]',
+        notes: ['Auth-only; solve from issues queue.'],
+      },
+    ],
+    notes: [
+      ...ORDER_NOTES,
+      'Auth-only issues queue; linked from dashboard IssuesWidget.',
     ],
   },
   {

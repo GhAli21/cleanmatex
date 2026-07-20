@@ -25,6 +25,8 @@ import {
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
@@ -206,6 +208,7 @@ export function ProcessingTable({
               onEditClick={onEditClick}
               onSimpleProcessClick={onSimpleProcessClick}
               onMarkReadyClick={handleMarkReadyClick}
+              onRefresh={onRefresh}
               markReadyBusy={markReadyBusyId === order.id}
               markReadySuccess={markReadySuccessId === order.id}
               index={index}
@@ -243,6 +246,7 @@ interface OrderRowProps {
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
   onMarkReadyClick: (order: ProcessingOrder) => void;
+  onRefresh: () => void;
   markReadyBusy: boolean;
   markReadySuccess: boolean;
   index: number;
@@ -255,6 +259,7 @@ const OrderRow = React.memo(function OrderRow({
   onEditClick,
   onSimpleProcessClick,
   onMarkReadyClick,
+  onRefresh,
   markReadyBusy,
   markReadySuccess,
   index,
@@ -303,7 +308,20 @@ const OrderRow = React.memo(function OrderRow({
       <tr className={`${rowBgColor} ${hoverColor} transition-colors duration-150 ${rowHighlight}`}>
         {/* ID */}
         <td className="px-4 py-4">
-          <div className="font-medium text-blue-600">{order.order_no}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-medium text-blue-600">{order.order_no}</div>
+            <OrderIssueRowActions
+              orderId={order.id}
+              scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
+              openCount={order.has_issue ? 1 : 0}
+              totalCount={
+                order.issue_total_count ??
+                (order.has_issue ? 1 : 0)
+              }
+              hasOpenIssue={order.has_issue}
+              onChanged={onRefresh}
+            />
+          </div>
         </td>
 
         {/* READY BY */}
@@ -683,6 +701,7 @@ function ProcessingOrderCard({
   onEditClick,
   onSimpleProcessClick,
   onMarkReadyClick,
+  onRefresh,
   markReadyBusy,
   markReadySuccess,
   index,
@@ -693,6 +712,7 @@ function ProcessingOrderCard({
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
   onMarkReadyClick: (order: ProcessingOrder) => void;
+  onRefresh: () => void;
   markReadyBusy: boolean;
   markReadySuccess: boolean;
   index: number;
@@ -734,6 +754,16 @@ function ProcessingOrderCard({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-bold text-blue-600 text-lg">{order.order_no}</h3>
+            <OrderIssueRowActions
+              orderId={order.id}
+              scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
+              openCount={order.has_issue ? 1 : 0}
+              totalCount={
+                order.issue_total_count ?? (order.has_issue ? 1 : 0)
+              }
+              hasOpenIssue={order.has_issue}
+              onChanged={onRefresh}
+            />
             {!isPaid && (
               <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
                 1st
@@ -963,6 +993,7 @@ function ProcessingTableDesktop({
                 onEditClick={onEditClick}
                 onSimpleProcessClick={onSimpleProcessClick}
                 onMarkReadyClick={onMarkReadyClick}
+                onRefresh={onRefresh}
                 markReadyBusy={markReadyBusyId === order.id}
                 markReadySuccess={markReadySuccessId === order.id}
                 index={index}

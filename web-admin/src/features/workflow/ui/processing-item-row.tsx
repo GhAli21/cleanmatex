@@ -17,6 +17,8 @@ import { Card, CardHeader, CardContent } from '@/src/ui/primitives/card';
 import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
 import { cn } from '@/lib/utils';
+import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 
 interface ProcessingItemRowProps {
   item: OrderItem;
@@ -89,9 +91,20 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
             <div className="flex items-start gap-3 mb-2">
               <Package className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-lg text-gray-900 truncate">
-                  {item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}
-                </h3>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="font-semibold text-lg text-gray-900 truncate">
+                    {item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}
+                  </h3>
+                  {orderId ? (
+                    <OrderIssueRowActions
+                      orderId={orderId}
+                      scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
+                      orderItemId={item.id}
+                      hasOpenIssue={Boolean(item.item_issue_id)}
+                      onChanged={onConfirmSuccess}
+                    />
+                  ) : null}
+                </div>
                 {(item.org_product_data_mst?.product_name2 || item.product_name2) && (
                   <p className="text-sm text-gray-600 mt-0.5">
                     {item.org_product_data_mst?.product_name2 || item.product_name2}

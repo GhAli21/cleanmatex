@@ -123,8 +123,11 @@ export const OrderIssueSchema = z.object({
   id: z.string().uuid(),
   tenant_org_id: z.string().uuid(),
   order_id: z.string().uuid(),
-  /** Null for order-level issues (not tied to a specific item). */
+  scope_level: z.enum(['ORDER', 'ITEM', 'PIECE']),
+  /** Null for ORDER scope. */
   order_item_id: z.string().uuid().nullable(),
+  /** Null for ORDER/ITEM scope. */
+  order_item_piece_id: z.string().uuid().nullable(),
   issue_code: z.enum(['damage', 'stain', 'complaint', 'other']),
   issue_text: z.string(),
   photo_url: z.string().url().nullable(),
@@ -257,12 +260,48 @@ export const SplitOrderRequestSchema = z.object({
   { message: 'Either itemIds or pieceIds must be provided' }
 );
 
-export const CreateIssueRequestSchema = z.object({
-  orderItemId: z.string().uuid().nullable(),
-  issueCode: z.enum(['damage', 'stain', 'complaint', 'other']),
-  issueText: z.string().min(3).max(1000),
-  photoUrl: z.string().url().optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+export const CreateIssueRequestSchema = z
+  .object({
+    scopeLevel: z.enum(['ORDER', 'ITEM', 'PIECE']).optional(),
+    orderItemId: z.string().uuid().nullable().optional(),
+    orderItemPieceId: z.string().uuid().nullable().optional(),
+    issueCode: z.enum(['damage', 'stain', 'complaint', 'other']),
+    issueText: z.string().min(3).max(1000),
+    photoUrl: z.string().url().optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const pieceId = data.orderItemPieceId ?? null;
+    const itemId = data.orderItemId ?? null;
+    const scope =
+      data.scopeLevel ??
+      (pieceId ? 'PIECE' : itemId ? 'ITEM' : 'ORDER');
+
+    if (scope === 'ORDER' && (itemId || pieceId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ORDER scope must not include item or piece ids',
+        path: ['scopeLevel'],
+      });
+    }
+    if (scope === 'ITEM' && (!itemId || pieceId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ITEM scope requires orderItemId and no piece',
+        path: ['orderItemId'],
+      });
+    }
+    if (scope === 'PIECE' && (!itemId || !pieceId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'PIECE scope requires orderItemId and orderItemPieceId',
+        path: ['orderItemPieceId'],
+      });
+    }
+  });
+
+export const ResolveIssueRequestSchema = z.object({
+  solvedNotes: z.string().min(3).max(2000),
 });
 
 export const RecordStepRequestSchema = z.object({

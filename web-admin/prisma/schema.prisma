@@ -111,8 +111,8 @@ model users {
   org_order_edit_history                                        org_order_edit_history[]
   org_order_edit_locks                                          org_order_edit_locks[]
   org_order_history                                             org_order_history[]
-  org_order_item_issues_org_order_item_issues_created_byTousers org_order_item_issues[]           @relation("org_order_item_issues_created_byTousers")
-  org_order_item_issues_org_order_item_issues_solved_byTousers  org_order_item_issues[]           @relation("org_order_item_issues_solved_byTousers")
+  org_order_issues_org_order_issues_created_byTousers org_order_issues[]           @relation("org_order_issues_created_byTousers")
+  org_order_issues_org_order_issues_solved_byTousers  org_order_issues[]           @relation("org_order_issues_solved_byTousers")
   org_order_item_processing_steps                               org_order_item_processing_steps[]
   org_order_status_history                                      org_order_status_history[]
   org_users_mst                                                 org_users_mst[]
@@ -746,7 +746,7 @@ model org_order_items_dtl {
   packing_pref_source             String?                           @db.VarChar(30)
   service_pref_charge             Decimal?                          @default(0) @db.Decimal(19, 4)
   org_asm_items_dtl               org_asm_items_dtl[]
-  org_order_item_issues           org_order_item_issues[]
+  org_order_issues                org_order_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_order_preferences_dtl       org_order_preferences_dtl[]
@@ -1053,7 +1053,7 @@ model org_orders_mst {
   org_order_edit_history             org_order_edit_history[]
   org_order_edit_locks               org_order_edit_locks?
   org_order_history                  org_order_history[]
-  org_order_item_issues              org_order_item_issues[]
+  org_order_issues                   org_order_issues[]
   org_order_item_pieces_dtl          org_order_item_pieces_dtl[]
   org_order_item_processing_steps    org_order_item_processing_steps[]
   org_order_preferences_dtl          org_order_preferences_dtl[]
@@ -1451,7 +1451,7 @@ model org_tenants_mst {
   org_order_edit_history           org_order_edit_history[]
   org_order_edit_locks             org_order_edit_locks[]
   org_order_history                org_order_history[]
-  org_order_item_issues            org_order_item_issues[]
+  org_order_issues                 org_order_issues[]
   org_order_item_pieces_dtl        org_order_item_pieces_dtl[]
   org_order_item_processing_steps  org_order_item_processing_steps[]
   org_order_preferences_dtl        org_order_preferences_dtl[]
@@ -1935,34 +1935,39 @@ model org_order_history {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model org_order_item_issues {
-  id                                            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id                                 String              @db.Uuid
-  order_id                                      String               @db.Uuid
-  /// NULL = order-level issue (not tied to a specific item)
-  order_item_id                                 String?              @db.Uuid
-  issue_code                                    String
-  issue_text                                    String
-  photo_url                                     String?
-  priority                                      String?              @default("normal")
-  created_by                                    String?              @db.Uuid
-  created_at                                    DateTime?            @default(now()) @db.Timestamptz(6)
-  solved_at                                     DateTime?            @db.Timestamptz(6)
-  solved_by                                     String?              @db.Uuid
-  solved_notes                                  String?
-  metadata                                      Json?                @default("{}")
-  created_info                                  String?
-  updated_at                                    DateTime?            @db.Timestamp(6)
-  updated_by                                    String?
-  updated_info                                  String?
-  rec_status                                    Int?                 @default(1) @db.SmallInt
-  rec_order                                     Int?
-  rec_notes                                     String?
-  users_org_order_item_issues_created_byTousers users?               @relation("org_order_item_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
-  org_orders_mst                                org_orders_mst       @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
-  org_order_items_dtl                           org_order_items_dtl? @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
-  users_org_order_item_issues_solved_byTousers  users?               @relation("org_order_item_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
-  org_tenants_mst                               org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
+model org_order_issues {
+  id                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                          String                     @db.Uuid
+  order_id                               String                     @db.Uuid
+  /// ORDER | ITEM | PIECE
+  scope_level                            String
+  /// NULL for ORDER scope
+  order_item_id                          String?                    @db.Uuid
+  /// NULL for ORDER/ITEM scope
+  order_item_piece_id                    String?                    @db.Uuid
+  issue_code                             String
+  issue_text                             String
+  photo_url                              String?
+  priority                               String?                    @default("normal")
+  created_by                             String?                    @db.Uuid
+  created_at                             DateTime?                  @default(now()) @db.Timestamptz(6)
+  solved_at                              DateTime?                  @db.Timestamptz(6)
+  solved_by                              String?                    @db.Uuid
+  solved_notes                           String?
+  metadata                               Json?                      @default("{}")
+  created_info                           String?
+  updated_at                             DateTime?                  @db.Timestamp(6)
+  updated_by                             String?
+  updated_info                           String?
+  rec_status                             Int?                       @default(1) @db.SmallInt
+  rec_order                              Int?
+  rec_notes                              String?
+  users_org_order_issues_created_byTousers users?                   @relation("org_order_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
+  org_orders_mst                         org_orders_mst             @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
+  org_order_items_dtl                    org_order_items_dtl?       @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
+  org_order_item_pieces_dtl              org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item_piece")
+  users_org_order_issues_solved_byTousers users?                    @relation("org_order_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
+  org_tenants_mst                        org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
 
   @@index([order_id, created_at(sort: Desc)], map: "idx_issue_order")
   @@index([order_item_id, created_at(sort: Desc)], map: "idx_issue_order_item")
@@ -5625,6 +5630,7 @@ model org_order_item_pieces_dtl {
   org_order_items_dtl       org_order_items_dtl         @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")
   org_orders_mst            org_orders_mst              @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_order")
   org_product_data_mst      org_product_data_mst?       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_org_pieces_product")
+  org_order_issues          org_order_issues[]
   org_order_preferences_dtl org_order_preferences_dtl[]
   org_service_category_cf   org_service_category_cf?    @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_pieces_service_category")
   org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_tenant")

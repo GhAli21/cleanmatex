@@ -130,11 +130,17 @@ export async function createIssue(orderId: string, data: any): Promise<{ issue: 
 /**
  * Resolve issue
  */
-export async function resolveIssue(orderId: string, issueId: string, data: { notes?: string }): Promise<{ issue: any }> {
+export async function resolveIssue(
+  orderId: string,
+  issueId: string,
+  data: { notes?: string; solvedNotes?: string }
+): Promise<{ issue: any }> {
   const response = await fetch(`/api/v1/orders/${orderId}/issue/${issueId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      solvedNotes: data.solvedNotes ?? data.notes ?? '',
+    }),
   });
 
   if (!response.ok) {

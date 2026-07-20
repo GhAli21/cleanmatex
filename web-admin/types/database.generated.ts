@@ -15269,7 +15269,7 @@ export type Database = {
           },
         ]
       }
-      org_order_item_issues: {
+      org_order_issues: {
         Row: {
           created_at: string | null
           created_by: string | null
@@ -15280,11 +15280,13 @@ export type Database = {
           metadata: Json | null
           order_id: string
           order_item_id: string | null
+          order_item_piece_id: string | null
           photo_url: string | null
           priority: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
+          scope_level: string
           solved_at: string | null
           solved_by: string | null
           solved_notes: string | null
@@ -15303,11 +15305,13 @@ export type Database = {
           metadata?: Json | null
           order_id: string
           order_item_id?: string | null
+          order_item_piece_id?: string | null
           photo_url?: string | null
           priority?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          scope_level: string
           solved_at?: string | null
           solved_by?: string | null
           solved_notes?: string | null
@@ -15326,11 +15330,13 @@ export type Database = {
           metadata?: Json | null
           order_id?: string
           order_item_id?: string | null
+          order_item_piece_id?: string | null
           photo_url?: string | null
           priority?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          scope_level?: string
           solved_at?: string | null
           solved_by?: string | null
           solved_notes?: string | null

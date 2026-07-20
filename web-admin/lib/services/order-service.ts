@@ -34,6 +34,11 @@ import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-pe
 import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import {
+  ORDER_ISSUE_ERROR,
+  ORDER_ISSUE_SCOPE,
+  type OrderIssueScope,
+} from '@/lib/constants/order-issues';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -1813,31 +1818,153 @@ export class OrderService {
   }
 
   /**
-   * Create issue for order or item
-   * PRD-010: Track issues with photos and priority
+   * Recompute org_orders_mst.has_issue from open rows in org_order_issues.
+   * Report ≠ Reject — never touches is_rejected flags.
    */
-  static async createIssue(
+  static async recomputeOrderHasIssue(
     orderId: string,
-    orderItemId: string | null,
     tenantId: string,
-    issueCode: string,
-    issueText: string,
-    userId: string,
-    photoUrl?: string,
-    priority: string = 'normal'
-  ): Promise<any> {
+    supabase?: SupabaseClient
+  ): Promise<void> {
+    const client = supabase ?? (await createClient());
+    const { data: openRows } = await client
+      .from('org_order_issues')
+      .select('id')
+      .eq('tenant_org_id', tenantId)
+      .eq('order_id', orderId)
+      .is('solved_at', null)
+      .limit(1);
+
+    await client
+      .from('org_orders_mst')
+      .update({ has_issue: Boolean(openRows && openRows.length > 0) })
+      .eq('id', orderId)
+      .eq('tenant_org_id', tenantId);
+  }
+
+  /**
+   * Derive scope when client omits scopeLevel (legacy body support).
+   */
+  static deriveIssueScope(
+    scopeLevel: OrderIssueScope | undefined,
+    orderItemId: string | null | undefined,
+    orderItemPieceId: string | null | undefined
+  ): OrderIssueScope {
+    if (scopeLevel) return scopeLevel;
+    if (orderItemPieceId) return ORDER_ISSUE_SCOPE.PIECE;
+    if (orderItemId) return ORDER_ISSUE_SCOPE.ITEM;
+    return ORDER_ISSUE_SCOPE.ORDER;
+  }
+
+  /**
+   * Create issue at ORDER / ITEM / PIECE scope.
+   * Does not set reject flags (Report ≠ Reject).
+   */
+  static async createIssue(params: {
+    orderId: string;
+    tenantId: string;
+    userId: string;
+    issueCode: string;
+    issueText: string;
+    scopeLevel?: OrderIssueScope;
+    orderItemId?: string | null;
+    orderItemPieceId?: string | null;
+    photoUrl?: string;
+    priority?: string;
+    /** QA reject path only — Report Issue must leave this false/undefined */
+    alsoReject?: boolean;
+  }): Promise<{
+    success: boolean;
+    issue?: Record<string, unknown>;
+    error?: string;
+    errorCode?: string;
+  }> {
+    const {
+      orderId,
+      tenantId,
+      userId,
+      issueCode,
+      issueText,
+      photoUrl,
+      priority = 'normal',
+    } = params;
+    const orderItemId = params.orderItemId ?? null;
+    const orderItemPieceId = params.orderItemPieceId ?? null;
+    const scopeLevel = OrderService.deriveIssueScope(
+      params.scopeLevel,
+      orderItemId,
+      orderItemPieceId
+    );
+
     try {
       const supabase = await createClient();
 
-      // order_item_id may be null for order-level issues (Simple Processing).
-      // Never fall back to orderId — that is not an org_order_items_dtl id and
-      // fails FK fk_issue_order_item.
+      if (scopeLevel === ORDER_ISSUE_SCOPE.ORDER) {
+        if (orderItemId || orderItemPieceId) {
+          return {
+            success: false,
+            error: 'ORDER scope must not include item or piece',
+            errorCode: ORDER_ISSUE_ERROR.SCOPE_INVALID,
+          };
+        }
+      }
+
+      if (scopeLevel === ORDER_ISSUE_SCOPE.ITEM) {
+        if (!orderItemId || orderItemPieceId) {
+          return {
+            success: false,
+            error: 'ITEM scope requires orderItemId only',
+            errorCode: ORDER_ISSUE_ERROR.SCOPE_INVALID,
+          };
+        }
+        const { data: item } = await supabase
+          .from('org_order_items_dtl')
+          .select('id')
+          .eq('id', orderItemId)
+          .eq('order_id', orderId)
+          .eq('tenant_org_id', tenantId)
+          .maybeSingle();
+        if (!item) {
+          return {
+            success: false,
+            error: 'Order item not found on this order',
+            errorCode: ORDER_ISSUE_ERROR.HIERARCHY_MISMATCH,
+          };
+        }
+      }
+
+      if (scopeLevel === ORDER_ISSUE_SCOPE.PIECE) {
+        if (!orderItemId || !orderItemPieceId) {
+          return {
+            success: false,
+            error: 'PIECE scope requires orderItemId and orderItemPieceId',
+            errorCode: ORDER_ISSUE_ERROR.SCOPE_INVALID,
+          };
+        }
+        const { data: piece } = await supabase
+          .from('org_order_item_pieces_dtl')
+          .select('id, order_item_id')
+          .eq('id', orderItemPieceId)
+          .eq('order_id', orderId)
+          .eq('tenant_org_id', tenantId)
+          .maybeSingle();
+        if (!piece || piece.order_item_id !== orderItemId) {
+          return {
+            success: false,
+            error: 'Piece does not belong to the given item/order',
+            errorCode: ORDER_ISSUE_ERROR.HIERARCHY_MISMATCH,
+          };
+        }
+      }
+
       const { data: issue, error: issueError } = await supabase
-        .from('org_order_item_issues')
+        .from('org_order_issues')
         .insert({
           tenant_org_id: tenantId,
           order_id: orderId,
+          scope_level: scopeLevel,
           order_item_id: orderItemId,
+          order_item_piece_id: orderItemPieceId,
           issue_code: issueCode,
           issue_text: issueText,
           photo_url: photoUrl,
@@ -1852,23 +1979,58 @@ export class OrderService {
         return {
           success: false,
           error: 'Failed to create issue',
+          errorCode: ORDER_ISSUE_ERROR.CREATE_FAILED,
         };
       }
 
-      // Update order/item to indicate issue exists
+      // Latest-open pointers only — never set reject flags
+      if (scopeLevel === ORDER_ISSUE_SCOPE.ORDER) {
+        await supabase
+          .from('org_orders_mst')
+          .update({ issue_id: issue.id })
+          .eq('id', orderId)
+          .eq('tenant_org_id', tenantId);
+      }
       if (orderItemId) {
         await supabase
           .from('org_order_items_dtl')
-          .update({ item_issue_id: issue.id, item_is_rejected: true })
-          .eq('id', orderItemId);
+          .update({ item_issue_id: issue.id })
+          .eq('id', orderItemId)
+          .eq('tenant_org_id', tenantId);
+      }
+      if (orderItemPieceId) {
+        await supabase
+          .from('org_order_item_pieces_dtl')
+          .update({ issue_id: issue.id })
+          .eq('id', orderItemPieceId)
+          .eq('tenant_org_id', tenantId);
       }
 
-      await supabase
-        .from('org_orders_mst')
-        .update({ has_issue: true, is_rejected: true })
-        .eq('id', orderId);
+      await OrderService.recomputeOrderHasIssue(orderId, tenantId, supabase);
 
-      // Log to history
+      // Explicit reject (QA) — never implied by report alone
+      if (params.alsoReject) {
+        if (orderItemId) {
+          await supabase
+            .from('org_order_items_dtl')
+            .update({ item_is_rejected: true })
+            .eq('id', orderItemId)
+            .eq('tenant_org_id', tenantId);
+        }
+        if (orderItemPieceId) {
+          await supabase
+            .from('org_order_item_pieces_dtl')
+            .update({ is_rejected: true })
+            .eq('id', orderItemPieceId)
+            .eq('tenant_org_id', tenantId);
+        }
+        await supabase
+          .from('org_orders_mst')
+          .update({ is_rejected: true })
+          .eq('id', orderId)
+          .eq('tenant_org_id', tenantId);
+      }
+
       await supabase.rpc('log_order_action', {
         p_tenant_org_id: tenantId,
         p_order_id: orderId,
@@ -1880,37 +2042,222 @@ export class OrderService {
           issue_id: issue.id,
           issue_text: issueText,
           priority,
+          scope_level: scopeLevel,
+          order_item_id: orderItemId,
+          order_item_piece_id: orderItemPieceId,
+          also_reject: Boolean(params.alsoReject),
         },
       });
 
-      return {
-        success: true,
-        issue,
-      };
+      return { success: true, issue };
     } catch (error) {
       console.error('OrderService.createIssue error:', error);
       return {
         success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: ORDER_ISSUE_ERROR.CREATE_FAILED,
+      };
+    }
+  }
+
+  /**
+   * List issues for an order with optional scope filters and counts.
+   */
+  static async listIssues(params: {
+    orderId: string;
+    tenantId: string;
+    orderItemId?: string | null;
+    orderItemPieceId?: string | null;
+    status?: 'open' | 'solved' | 'all';
+    includeChildren?: boolean;
+  }): Promise<{
+    success: boolean;
+    issues: Record<string, unknown>[];
+    openCount: number;
+    totalCount: number;
+    error?: string;
+  }> {
+    try {
+      const supabase = await createClient();
+      const status = params.status ?? 'all';
+      const includeChildren = params.includeChildren !== false;
+      const pieceId = params.orderItemPieceId ?? null;
+      const itemId = params.orderItemId ?? null;
+
+      let query = supabase
+        .from('org_order_issues')
+        .select('*')
+        .eq('tenant_org_id', params.tenantId)
+        .eq('order_id', params.orderId)
+        .order('created_at', { ascending: false });
+
+      if (pieceId) {
+        query = query.eq('order_item_piece_id', pieceId);
+      } else if (itemId) {
+        if (includeChildren) {
+          query = query.eq('order_item_id', itemId);
+        } else {
+          query = query
+            .eq('order_item_id', itemId)
+            .eq('scope_level', ORDER_ISSUE_SCOPE.ITEM);
+        }
+      } else if (!includeChildren) {
+        query = query.eq('scope_level', ORDER_ISSUE_SCOPE.ORDER);
+      }
+
+      if (status === 'open') {
+        query = query.is('solved_at', null);
+      } else if (status === 'solved') {
+        query = query.not('solved_at', 'is', null);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('OrderService.listIssues error:', error);
+        return {
+          success: false,
+          issues: [],
+          openCount: 0,
+          totalCount: 0,
+          error: error.message,
+        };
+      }
+
+      const issues = (data ?? []) as Record<string, unknown>[];
+      const openCount = issues.filter((i) => i.solved_at == null).length;
+      return {
+        success: true,
+        issues,
+        openCount,
+        totalCount: issues.length,
+      };
+    } catch (error) {
+      console.error('OrderService.listIssues error:', error);
+      return {
+        success: false,
+        issues: [],
+        openCount: 0,
+        totalCount: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
   /**
-   * Resolve issue
-   * PRD-010: Mark issue as solved with notes
+   * Open/total counts for order + per item + per piece (badge wiring).
+   */
+  static async getIssueSummary(
+    orderId: string,
+    tenantId: string
+  ): Promise<{
+    success: boolean;
+    order: { open: number; total: number };
+    byItem: Record<string, { open: number; total: number }>;
+    byPiece: Record<string, { open: number; total: number }>;
+    error?: string;
+  }> {
+    const empty = {
+      success: false as const,
+      order: { open: 0, total: 0 },
+      byItem: {} as Record<string, { open: number; total: number }>,
+      byPiece: {} as Record<string, { open: number; total: number }>,
+    };
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from('org_order_issues')
+        .select('id, order_item_id, order_item_piece_id, solved_at')
+        .eq('tenant_org_id', tenantId)
+        .eq('order_id', orderId);
+
+      if (error) {
+        return { ...empty, error: error.message };
+      }
+
+      const rows = data ?? [];
+      const byItem: Record<string, { open: number; total: number }> = {};
+      const byPiece: Record<string, { open: number; total: number }> = {};
+      let open = 0;
+
+      for (const row of rows) {
+        const isOpen = row.solved_at == null;
+        if (isOpen) open += 1;
+
+        if (row.order_item_id) {
+          const cur = byItem[row.order_item_id] ?? { open: 0, total: 0 };
+          cur.total += 1;
+          if (isOpen) cur.open += 1;
+          byItem[row.order_item_id] = cur;
+        }
+        if (row.order_item_piece_id) {
+          const cur = byPiece[row.order_item_piece_id] ?? { open: 0, total: 0 };
+          cur.total += 1;
+          if (isOpen) cur.open += 1;
+          byPiece[row.order_item_piece_id] = cur;
+        }
+      }
+
+      return {
+        success: true,
+        order: { open, total: rows.length },
+        byItem,
+        byPiece,
+      };
+    } catch (error) {
+      return {
+        ...empty,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Resolve issue — sets solved_at / solved_by / solved_notes.
    */
   static async resolveIssue(
     issueId: string,
     tenantId: string,
     solvedNotes: string,
-    userId: string
-  ): Promise<any> {
+    userId: string,
+    orderId?: string
+  ): Promise<{
+    success: boolean;
+    issue?: Record<string, unknown>;
+    error?: string;
+    errorCode?: string;
+  }> {
     try {
       const supabase = await createClient();
 
+      let lookup = supabase
+        .from('org_order_issues')
+        .select('*')
+        .eq('id', issueId)
+        .eq('tenant_org_id', tenantId);
+      if (orderId) {
+        lookup = lookup.eq('order_id', orderId);
+      }
+      const { data: existing, error: lookupError } = await lookup.maybeSingle();
+
+      if (lookupError || !existing) {
+        return {
+          success: false,
+          error: 'Issue not found',
+          errorCode: ORDER_ISSUE_ERROR.NOT_FOUND,
+        };
+      }
+
+      if (existing.solved_at) {
+        return {
+          success: false,
+          issue: existing,
+          error: 'Issue already solved',
+          errorCode: ORDER_ISSUE_ERROR.ALREADY_SOLVED,
+        };
+      }
+
       const { data: issue, error: issueError } = await supabase
-        .from('org_order_item_issues')
+        .from('org_order_issues')
         .update({
           solved_at: new Date().toISOString(),
           solved_by: userId,
@@ -1925,26 +2272,65 @@ export class OrderService {
         return {
           success: false,
           error: 'Failed to resolve issue',
+          errorCode: ORDER_ISSUE_ERROR.RESOLVE_FAILED,
         };
       }
 
-      // Check if all issues for order are resolved
-      const { data: allIssues } = await supabase
-        .from('org_order_item_issues')
-        .select('solved_at')
+      await OrderService.recomputeOrderHasIssue(
+        issue.order_id as string,
+        tenantId,
+        supabase
+      );
+
+      // Clear pointers when no open issues remain for that entity
+      if (issue.order_item_piece_id) {
+        const { data: openPiece } = await supabase
+          .from('org_order_issues')
+          .select('id')
+          .eq('tenant_org_id', tenantId)
+          .eq('order_item_piece_id', issue.order_item_piece_id)
+          .is('solved_at', null)
+          .limit(1);
+        if (!openPiece?.length) {
+          await supabase
+            .from('org_order_item_pieces_dtl')
+            .update({ issue_id: null })
+            .eq('id', issue.order_item_piece_id)
+            .eq('tenant_org_id', tenantId);
+        }
+      }
+      if (issue.order_item_id) {
+        const { data: openItem } = await supabase
+          .from('org_order_issues')
+          .select('id')
+          .eq('tenant_org_id', tenantId)
+          .eq('order_item_id', issue.order_item_id)
+          .is('solved_at', null)
+          .limit(1);
+        if (!openItem?.length) {
+          await supabase
+            .from('org_order_items_dtl')
+            .update({ item_issue_id: null })
+            .eq('id', issue.order_item_id)
+            .eq('tenant_org_id', tenantId);
+        }
+      }
+      const { data: openOrderScoped } = await supabase
+        .from('org_order_issues')
+        .select('id')
+        .eq('tenant_org_id', tenantId)
         .eq('order_id', issue.order_id)
-        .eq('tenant_org_id', tenantId);
-
-      const allResolved = allIssues?.every(i => i.solved_at !== null);
-
-      if (allResolved) {
+        .eq('scope_level', ORDER_ISSUE_SCOPE.ORDER)
+        .is('solved_at', null)
+        .limit(1);
+      if (!openOrderScoped?.length) {
         await supabase
           .from('org_orders_mst')
-          .update({ has_issue: false })
-          .eq('id', issue.order_id);
+          .update({ issue_id: null })
+          .eq('id', issue.order_id)
+          .eq('tenant_org_id', tenantId);
       }
 
-      // Log to history
       await supabase.rpc('log_order_action', {
         p_tenant_org_id: tenantId,
         p_order_id: issue.order_id,
@@ -1955,18 +2341,17 @@ export class OrderService {
         p_payload: {
           issue_id: issueId,
           solved_notes: solvedNotes,
+          scope_level: issue.scope_level,
         },
       });
 
-      return {
-        success: true,
-        issue,
-      };
+      return { success: true, issue };
     } catch (error) {
       console.error('OrderService.resolveIssue error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: ORDER_ISSUE_ERROR.RESOLVE_FAILED,
       };
     }
   }

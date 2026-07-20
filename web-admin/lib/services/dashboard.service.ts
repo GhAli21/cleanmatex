@@ -285,7 +285,7 @@ export class DashboardService {
           .eq('direction', 'IN')
           .gte('created_at', last30StartStr),
         this.supabase
-          .from('org_order_item_issues')
+          .from('org_order_issues')
           .select('priority, created_at, solved_at, rec_status')
           .eq('tenant_org_id', tenantId),
         this.supabase
@@ -464,7 +464,7 @@ export class DashboardService {
           messageKey: 'alertCriticalIssuesMessage',
           messageValues: { count: criticalOpen },
           messageAt: new Date().toISOString(),
-          actionUrl: '/issues',
+          actionUrl: '/dashboard/issues',
         })
       }
       if (failedStops > 0) {

@@ -32,6 +32,8 @@ export interface ProcessingOrder {
   paid_amount: number;
   priority: string;
   has_issue?: boolean;
+  /** Total issues including solved — enables green badge when has_issue is false */
+  issue_total_count?: number;
   is_rejected?: boolean;
   created_at: string;
 }

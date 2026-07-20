@@ -1,0 +1,53 @@
+{
+  "reportTitle": "Report Issue",
+  "listTitle": "Issues",
+  "listFailed": "Failed to load issues",
+  "addIssue": "Add issue",
+  "emptyTitle": "No issues yet",
+  "emptyDescription": "Report an issue for this order, item, or piece.",
+  "code": "Issue type",
+  "text": "Description",
+  "textPlaceholder": "Describe the issue…",
+  "textMin": "Description must be at least 3 characters",
+  "photoUrl": "Photo URL (optional)",
+  "photoUrlPlaceholder": "https://…",
+  "submit": "Submit issue",
+  "submitSuccess": "Issue reported successfully",
+  "submitFailed": "Failed to report issue",
+  "solve": "Solve",
+  "solveTitle": "Solve issue",
+  "solveDescription": "Enter notes about how this issue was resolved.",
+  "notes": "Resolution notes",
+  "notesPlaceholder": "What was done to resolve this…",
+  "notesMin": "Notes must be at least 3 characters",
+  "solveSubmit": "Save resolution",
+  "solveSuccess": "Issue marked as solved",
+  "solveFailed": "Failed to solve issue",
+  "solvedNotesLabel": "Resolution",
+  "statusOpen": "Open",
+  "statusSolved": "Solved",
+  "badgeOpen": "{count} open issues",
+  "badgeSolved": "All issues solved",
+  "pageTitle": "Order Issues",
+  "pageDescription": "Open and recently solved issues across orders",
+  "filterOpen": "Open",
+  "filterAll": "All",
+  "orderNo": "Order",
+  "scope": {
+    "order": "Order-level issue",
+    "item": "Item-level issue",
+    "piece": "Piece-level issue"
+  },
+  "codes": {
+    "damage": "Damage",
+    "stain": "Stain",
+    "complaint": "Complaint",
+    "other": "Other"
+  },
+  "priorities": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  }
+}
