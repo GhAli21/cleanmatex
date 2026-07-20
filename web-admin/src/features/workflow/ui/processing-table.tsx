@@ -230,6 +230,7 @@ export function ProcessingTable({
         onEditClick={onEditClick}
         onSimpleProcessClick={onSimpleProcessClick}
         onMarkReadyClick={handleMarkReadyClick}
+        onRefresh={onRefresh}
         markReadyBusyId={markReadyBusyId}
         markReadySuccessId={markReadySuccessId}
         formatDate={formatProcessingDate}
@@ -930,6 +931,7 @@ function ProcessingTableDesktop({
   onEditClick,
   onSimpleProcessClick,
   onMarkReadyClick,
+  onRefresh,
   markReadyBusyId,
   markReadySuccessId,
   formatDate,
@@ -941,6 +943,7 @@ function ProcessingTableDesktop({
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
   onMarkReadyClick: (order: ProcessingOrder) => void;
+  onRefresh: () => void;
   markReadyBusyId: string | null;
   markReadySuccessId: string | null;
   formatDate: (date: string) => string;
