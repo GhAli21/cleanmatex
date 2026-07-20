@@ -291,6 +291,37 @@ export function ProcessingModal({
     refetchOnMount: false,
   });
 
+  /** Per-item / per-piece open+total counts for issue status badges */
+  const { data: issueSummary } = useQuery({
+    queryKey: ['order-issue-summary', orderId],
+    queryFn: async () => {
+      const response = await fetch(`/api/v1/orders/${orderId}/issue-summary`);
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          (json as { error?: string }).error || 'Failed to load issue summary'
+        );
+      }
+      return (
+        (json as {
+          data?: {
+            byItem?: Record<string, { open: number; total: number }>;
+            byPiece?: Record<string, { open: number; total: number }>;
+          };
+        }).data ?? {
+          byItem: {},
+          byPiece: {},
+        }
+      );
+    },
+    enabled: isOpen && !!orderId,
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const issueByItem = issueSummary?.byItem ?? {};
+  const issueByPiece = issueSummary?.byPiece ?? {};
+
   // Group DB pieces by itemId for initial hydrate only
   const dbPiecesByItemId = React.useMemo(() => {
     const grouped = new Map<string, ItemPiece[]>();
@@ -647,6 +678,7 @@ export function ProcessingModal({
   const onConfirmSuccess = React.useCallback(() => {
     if (orderId) {
       queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['order-issue-summary', orderId] });
     }
   }, [orderId, queryClient]);
 
@@ -982,6 +1014,9 @@ export function ProcessingModal({
                           colorHexByCode={colorHexByCode}
                           nameByCode={nameByCode}
                           onConfirmSuccess={onConfirmSuccess}
+                          issueOpenCount={issueByItem[item.id]?.open}
+                          issueTotalCount={issueByItem[item.id]?.total}
+                          issueByPiece={issueByPiece}
                         />
                       ))}
                       {/* Show loading indicator for pieces if still loading */}

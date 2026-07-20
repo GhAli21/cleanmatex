@@ -25,6 +25,8 @@ export interface OrderIssueRowActionsProps {
   hasOpenIssue?: boolean;
   onChanged?: () => void;
   compact?: boolean;
+  /** When false, hide the always-on Report control (badge-only) */
+  showReport?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export function OrderIssueRowActions({
   hasOpenIssue,
   onChanged,
   compact = true,
+  showReport = true,
 }: OrderIssueRowActionsProps) {
   const t = useTranslations('orders.issues');
   const [listOpen, setListOpen] = React.useState(false);
@@ -58,22 +61,24 @@ export function OrderIssueRowActions({
         size={compact ? 'sm' : 'md'}
         onClick={() => setListOpen(true)}
       />
-      <Tooltip content={t('reportTitle')}>
-        <CmxButton
-          type="button"
-          variant="ghost"
-          size="xs"
-          className="inline-flex items-center gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            setReportOpen(true);
-          }}
-          aria-label={t('reportTitle')}
-        >
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          {!compact ? <span>{t('reportTitle')}</span> : null}
-        </CmxButton>
-      </Tooltip>
+      {showReport ? (
+        <Tooltip content={t('reportTitle')}>
+          <CmxButton
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="inline-flex items-center gap-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              setReportOpen(true);
+            }}
+            aria-label={t('reportTitle')}
+          >
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            {!compact ? <span>{t('reportTitle')}</span> : null}
+          </CmxButton>
+        </Tooltip>
+      ) : null}
 
       <OrderIssuesListDialog
         open={listOpen}
@@ -84,15 +89,17 @@ export function OrderIssueRowActions({
         onOpenChange={setListOpen}
         onChanged={onChanged}
       />
-      <OrderIssueReportDialog
-        open={reportOpen}
-        orderId={orderId}
-        scopeLevel={scopeLevel}
-        orderItemId={orderItemId}
-        orderItemPieceId={orderItemPieceId}
-        onOpenChange={setReportOpen}
-        onSuccess={onChanged}
-      />
+      {showReport ? (
+        <OrderIssueReportDialog
+          open={reportOpen}
+          orderId={orderId}
+          scopeLevel={scopeLevel}
+          orderItemId={orderItemId}
+          orderItemPieceId={orderItemPieceId}
+          onOpenChange={setReportOpen}
+          onSuccess={onChanged}
+        />
+      ) : null}
     </div>
   );
 }

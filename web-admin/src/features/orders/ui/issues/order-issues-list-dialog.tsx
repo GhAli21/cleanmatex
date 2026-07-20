@@ -70,6 +70,9 @@ export function OrderIssuesListDialog({
         params.set('orderItemPieceId', orderItemPieceId);
       } else if (orderItemId) {
         params.set('orderItemId', orderItemId);
+        params.set('includeChildren', 'false');
+      } else {
+        params.set('includeChildren', 'false');
       }
       const response = await fetch(
         `/api/v1/orders/${orderId}/issues?${params.toString()}`

@@ -44,6 +44,10 @@ interface ProcessingPieceRowProps {
   tenantId?: string;
   /** Called after successful confirm */
   onConfirmSuccess?: () => void;
+  /** Piece-scoped open issue count (from issue-summary) */
+  issueOpenCount?: number;
+  /** Piece-scoped total issue count (from issue-summary) */
+  issueTotalCount?: number;
 }
 
 export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
@@ -63,6 +67,8 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   itemId,
   tenantId,
   onConfirmSuccess,
+  issueOpenCount,
+  issueTotalCount,
 }: ProcessingPieceRowProps) {
   const t = useTranslations('processing');
   const queryClient = useQueryClient();
@@ -196,6 +202,8 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                 scopeLevel={ORDER_ISSUE_SCOPE.PIECE}
                 orderItemId={itemId}
                 orderItemPieceId={piece.id}
+                openCount={issueOpenCount}
+                totalCount={issueTotalCount}
                 hasOpenIssue={Boolean(piece.issue_id)}
                 onChanged={onConfirmSuccess}
               />

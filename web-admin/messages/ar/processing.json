@@ -226,7 +226,8 @@
       "notes": "ملاحظات",
       "rack": "الرف",
       "ready": "جاهز",
-      "split": "تقسيم"
+      "split": "تقسيم",
+      "issues": "المشكلات"
     },
     "rackUnavailable": "—",
     "notesPlaceholder": "ملاحظات",

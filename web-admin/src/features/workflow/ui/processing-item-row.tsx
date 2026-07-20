@@ -44,6 +44,12 @@ interface ProcessingItemRowProps {
   colorHexByCode?: Map<string, string | null> | null;
   /** Catalog code → bilingual display name for preference chips */
   nameByCode?: Map<string, string> | null;
+  /** Item-scoped open issue count (from issue-summary) */
+  issueOpenCount?: number;
+  /** Item-scoped total issue count (from issue-summary) */
+  issueTotalCount?: number;
+  /** Piece id → open/total counts for piece badges */
+  issueByPiece?: Record<string, { open: number; total: number }>;
 }
 
 export const ProcessingItemRow = React.memo(function ProcessingItemRow({
@@ -65,6 +71,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   onConfirmSuccess,
   colorHexByCode = null,
   nameByCode = null,
+  issueOpenCount,
+  issueTotalCount,
+  issueByPiece = {},
 }: ProcessingItemRowProps) {
   const t = useTranslations('processing.modal');
 
@@ -100,6 +109,8 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                       orderId={orderId}
                       scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
                       orderItemId={item.id}
+                      openCount={issueOpenCount}
+                      totalCount={issueTotalCount}
                       hasOpenIssue={Boolean(item.item_issue_id)}
                       onChanged={onConfirmSuccess}
                     />
@@ -202,6 +213,8 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                 itemId={item.id}
                 tenantId={tenantId}
                 onConfirmSuccess={onConfirmSuccess}
+                issueOpenCount={issueByPiece[piece.id]?.open}
+                issueTotalCount={issueByPiece[piece.id]?.total}
               />
             ))}
           </div>

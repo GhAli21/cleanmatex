@@ -226,7 +226,8 @@
       "notes": "Notes",
       "rack": "Rack",
       "ready": "Ready",
-      "split": "Split"
+      "split": "Split",
+      "issues": "Issues"
     },
     "rackUnavailable": "—",
     "notesPlaceholder": "Notes",

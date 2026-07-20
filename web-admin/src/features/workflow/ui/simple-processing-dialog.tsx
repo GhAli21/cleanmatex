@@ -42,9 +42,10 @@ import {
   buildColorHexByCode,
 } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { buildPrefNameByCode } from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
-import { SimpleProcessingIssueDialog } from './simple-processing-issue-dialog';
 import { ProcessingPiecePrefsDialog } from './processing-piece-prefs-dialog';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
+import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 
 type SplitSelectionContextValue = {
   isSelected: (pieceId: string) => boolean;
@@ -161,7 +162,6 @@ export function SimpleProcessingDialog({
     new Set()
   );
   const [showSplitDialog, setShowSplitDialog] = React.useState(false);
-  const [showIssueDialog, setShowIssueDialog] = React.useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false);
   const [prefsTarget, setPrefsTarget] = React.useState<{
     pieceId: string;
@@ -209,6 +209,39 @@ export function SimpleProcessingDialog({
     refetchOnWindowFocus: false,
   });
 
+  const { data: issueSummary } = useQuery({
+    queryKey: ['order-issue-summary', orderId],
+    queryFn: async () => {
+      const response = await fetch(`/api/v1/orders/${orderId}/issue-summary`);
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          (json as { error?: string }).error || 'Failed to load issue summary'
+        );
+      }
+      return (
+        (json as {
+          data?: {
+            order?: { open: number; total: number };
+            byItem?: Record<string, { open: number; total: number }>;
+            byPiece?: Record<string, { open: number; total: number }>;
+          };
+        }).data ?? {
+          order: { open: 0, total: 0 },
+          byItem: {},
+          byPiece: {},
+        }
+      );
+    },
+    enabled: isOpen && !!orderId,
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const issueOrder = issueSummary?.order;
+  const issueByItem = issueSummary?.byItem ?? {};
+  const issueByPiece = issueSummary?.byPiece ?? {};
+
   // Initialize piece local state from DB pieces once per open/order (or after split invalidate)
   React.useEffect(() => {
     if (!isOpen || !orderId) return;
@@ -247,7 +280,6 @@ export function SimpleProcessingDialog({
       setOriginalPieceStates(new Map());
       setSelectedForSplit(new Set());
       setShowSplitDialog(false);
-      setShowIssueDialog(false);
       setShowDiscardConfirm(false);
       initializedOrderIdRef.current = null;
     }
@@ -315,6 +347,14 @@ export function SimpleProcessingDialog({
     [selectedForSplit, handleSplitToggle]
   );
 
+  const invalidateCaches = React.useCallback(() => {
+    if (!orderId) return;
+    queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+    queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+    queryClient.invalidateQueries({ queryKey: ['order-issue-summary', orderId] });
+    onRefresh?.();
+  }, [orderId, onRefresh, queryClient]);
+
   const pieceColumns = React.useMemo((): CmxInlineEditTableColumn<ItemPiece>[] => {
     const cols: CmxInlineEditTableColumn<ItemPiece>[] = [
       {
@@ -325,6 +365,7 @@ export function SimpleProcessingDialog({
           const isRejected = Boolean(piece.isRejected);
           const label =
             itemLabelById.get(piece.itemId) || t('unnamedItem');
+          const itemCounts = issueByItem[piece.itemId];
           return (
             <div className="min-w-0 space-y-1.5">
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -334,6 +375,17 @@ export function SimpleProcessingDialog({
                     {t('pieceLabel', { n: piece.pieceNumber })}
                   </span>
                 </span>
+                {orderId ? (
+                  <OrderIssueRowActions
+                    orderId={orderId}
+                    scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
+                    orderItemId={piece.itemId}
+                    openCount={itemCounts?.open}
+                    totalCount={itemCounts?.total}
+                    onChanged={invalidateCaches}
+                    showReport={false}
+                  />
+                ) : null}
                 {isRejected ? (
                   <CmxStatusBadge
                     label={tModal('rejected')}
@@ -376,9 +428,34 @@ export function SimpleProcessingDialog({
         },
       },
       {
+        key: 'issues',
+        header: t('columns.issues'),
+        align: 'center',
+        width: '6.5rem',
+        cell: (piece) => {
+          if (!orderId || !isPieceUuid(piece.id)) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          const pieceCounts = issueByPiece[piece.id];
+          return (
+            <div className="flex justify-center">
+              <OrderIssueRowActions
+                orderId={orderId}
+                scopeLevel={ORDER_ISSUE_SCOPE.PIECE}
+                orderItemId={piece.itemId}
+                orderItemPieceId={piece.id}
+                openCount={pieceCounts?.open}
+                totalCount={pieceCounts?.total}
+                onChanged={invalidateCaches}
+              />
+            </div>
+          );
+        },
+      },
+      {
         key: 'notes',
         header: t('columns.notes'),
-        width: splitOrderEnabled ? '26%' : '30%',
+        width: splitOrderEnabled ? '22%' : '26%',
         cell: (piece) => (
           <CmxInput
             value={piece.notes || ''}
@@ -480,6 +557,10 @@ export function SimpleProcessingDialog({
     handlePieceChange,
     colorHexByCode,
     nameByCode,
+    orderId,
+    issueByItem,
+    issueByPiece,
+    invalidateCaches,
   ]);
 
   const hasChanges = React.useMemo(() => {
@@ -487,13 +568,6 @@ export function SimpleProcessingDialog({
       hasSimplePieceChanged(piece, originalPieceStates.get(piece.id))
     );
   }, [pieceStates, originalPieceStates]);
-
-  const invalidateCaches = React.useCallback(() => {
-    if (!orderId) return;
-    queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
-    queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
-    onRefresh?.();
-  }, [orderId, onRefresh, queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: async (request: BatchUpdateRequest) => {
@@ -571,7 +645,6 @@ export function SimpleProcessingDialog({
   const busy =
     updateMutation.isPending ||
     splitMutation.isPending ||
-    showIssueDialog ||
     showSplitDialog;
 
   const requestClose = React.useCallback(() => {
@@ -682,7 +755,7 @@ export function SimpleProcessingDialog({
         }}
       >
         <CmxDialogContent
-          className="flex max-h-[90vh] w-full max-w-4xl flex-col"
+          className="flex max-h-[90vh] w-full max-w-5xl flex-col"
           aria-labelledby="simple-processing-title"
           aria-describedby="simple-processing-desc"
         >
@@ -708,19 +781,17 @@ export function SimpleProcessingDialog({
                   size="sm"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                <CmxButton
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={!orderId || busy}
-                  onClick={() => {
-                    setShowSplitDialog(false);
-                    setShowIssueDialog(true);
-                  }}
-                >
-                  {t('reportIssue')}
-                </CmxButton>
+              <div className="flex flex-wrap items-center gap-2">
+                {orderId ? (
+                  <OrderIssueRowActions
+                    orderId={orderId}
+                    scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
+                    openCount={issueOrder?.open}
+                    totalCount={issueOrder?.total}
+                    onChanged={invalidateCaches}
+                    compact={false}
+                  />
+                ) : null}
                 <CmxButton
                   type="button"
                   variant="secondary"
@@ -835,7 +906,6 @@ export function SimpleProcessingDialog({
                   variant="outline"
                   disabled={busy}
                   onClick={() => {
-                    setShowIssueDialog(false);
                     setShowSplitDialog(true);
                   }}
                 >
@@ -881,15 +951,6 @@ export function SimpleProcessingDialog({
           splitMutation.mutate({ pieceIds, reason });
         }}
       />
-
-      {orderId ? (
-        <SimpleProcessingIssueDialog
-          open={showIssueDialog}
-          orderId={orderId}
-          onOpenChange={setShowIssueDialog}
-          onSuccess={invalidateCaches}
-        />
-      ) : null}
 
       <CmxConfirmDialog
         open={showDiscardConfirm}

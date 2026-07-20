@@ -2208,29 +2208,32 @@ export class OrderService {
       const rows = data ?? [];
       const byItem: Record<string, { open: number; total: number }> = {};
       const byPiece: Record<string, { open: number; total: number }> = {};
-      let open = 0;
+      let orderScopedOpen = 0;
+      let orderScopedTotal = 0;
 
       for (const row of rows) {
         const isOpen = row.solved_at == null;
-        if (isOpen) open += 1;
 
-        if (row.order_item_id) {
-          const cur = byItem[row.order_item_id] ?? { open: 0, total: 0 };
-          cur.total += 1;
-          if (isOpen) cur.open += 1;
-          byItem[row.order_item_id] = cur;
-        }
+        // Piece-scoped issues count only under the piece (not double-counted on item).
         if (row.order_item_piece_id) {
           const cur = byPiece[row.order_item_piece_id] ?? { open: 0, total: 0 };
           cur.total += 1;
           if (isOpen) cur.open += 1;
           byPiece[row.order_item_piece_id] = cur;
+        } else if (row.order_item_id) {
+          const cur = byItem[row.order_item_id] ?? { open: 0, total: 0 };
+          cur.total += 1;
+          if (isOpen) cur.open += 1;
+          byItem[row.order_item_id] = cur;
+        } else {
+          orderScopedTotal += 1;
+          if (isOpen) orderScopedOpen += 1;
         }
       }
 
       return {
         success: true,
-        order: { open, total: rows.length },
+        order: { open: orderScopedOpen, total: orderScopedTotal },
         byItem,
         byPiece,
       };
