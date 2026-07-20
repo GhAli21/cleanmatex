@@ -1,4 +1,15 @@
 {
+  "columns": {
+    "issue": "المشكلة",
+    "reported": "أُبلِغ عنها",
+    "resolution": "الحل",
+    "solved": "تم الحل"
+  },
+  "createdBy": "أنشأها",
+  "createdWhen": "متى",
+  "solvedBy": "حلّها",
+  "solvedWhen": "متى",
+  "summaryCounts": "{open} مفتوحة · {total} إجمالي",
   "reportTitle": "الإبلاغ عن مشكلة",
   "listTitle": "المشكلات",
   "listFailed": "فشل تحميل المشكلات",

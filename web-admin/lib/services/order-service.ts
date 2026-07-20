@@ -39,6 +39,7 @@ import {
   ORDER_ISSUE_SCOPE,
   type OrderIssueScope,
 } from '@/lib/constants/order-issues';
+import { lookupAuditActors } from '@/lib/services/audit-actor.service';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -2124,12 +2125,42 @@ export class OrderService {
       }
 
       const issues = (data ?? []) as Record<string, unknown>[];
-      const openCount = issues.filter((i) => i.solved_at == null).length;
+      const actorIds = issues.flatMap((row) =>
+        [row.created_by, row.solved_by].filter(
+          (id): id is string => typeof id === 'string' && id.length > 0
+        )
+      );
+      let nameById: Record<string, string> = {};
+      try {
+        const actors = await lookupAuditActors(params.tenantId, actorIds);
+        nameById = Object.fromEntries(
+          actors.map((a) => [
+            a.id,
+            a.displayName || a.email || a.phone || a.id.slice(0, 8),
+          ])
+        );
+      } catch (actorError) {
+        console.error('OrderService.listIssues actor lookup:', actorError);
+      }
+
+      const enriched = issues.map((row) => ({
+        ...row,
+        created_by_name:
+          typeof row.created_by === 'string'
+            ? nameById[row.created_by] ?? null
+            : null,
+        solved_by_name:
+          typeof row.solved_by === 'string'
+            ? nameById[row.solved_by] ?? null
+            : null,
+      }));
+
+      const openCount = enriched.filter((i) => i.solved_at == null).length;
       return {
         success: true,
-        issues,
+        issues: enriched,
         openCount,
-        totalCount: issues.length,
+        totalCount: enriched.length,
       };
     } catch (error) {
       console.error('OrderService.listIssues error:', error);

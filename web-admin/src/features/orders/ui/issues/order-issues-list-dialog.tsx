@@ -1,12 +1,12 @@
 /**
- * Lists issues for a scope; Solve + Add issue actions.
+ * Lists issues for a scope in a CmxDataTable (Issue / Reported / Resolution / Solved).
  */
 
 'use client';
 
 import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -15,13 +15,14 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
-import { CmxEmptyState } from '@ui/data-display';
-import { CmxSpinner } from '@ui/primitives';
+import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
 import type { OrderIssueScope } from '@/lib/constants/order-issues';
+import { OrderIssueActorTimeCell } from './order-issue-actor-time-cell';
+import type { OrderIssueTableRow } from './order-issue-table-types';
 
 export interface OrderIssuesListDialogProps {
   open: boolean;
@@ -33,19 +34,8 @@ export interface OrderIssuesListDialogProps {
   onChanged?: () => void;
 }
 
-interface IssueRow {
-  id: string;
-  issue_code: string;
-  issue_text: string;
-  priority: string | null;
-  scope_level: string;
-  created_at: string | null;
-  solved_at: string | null;
-  solved_notes: string | null;
-}
-
 /**
- * Scoped issues list with solve / add.
+ * Scoped issues list with solve / add — table layout.
  */
 export function OrderIssuesListDialog({
   open,
@@ -58,6 +48,7 @@ export function OrderIssuesListDialog({
 }: OrderIssuesListDialogProps) {
   const t = useTranslations('orders.issues');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [solveIssueId, setSolveIssueId] = React.useState<string | null>(null);
   const [reportOpen, setReportOpen] = React.useState(false);
@@ -90,8 +81,10 @@ export function OrderIssuesListDialog({
         );
       }
       return {
-        issues: ((json as { data?: IssueRow[] }).data ?? []) as IssueRow[],
-        openCount: (json as { meta?: { openCount?: number } }).meta?.openCount ?? 0,
+        issues: ((json as { data?: OrderIssueTableRow[] }).data ??
+          []) as OrderIssueTableRow[],
+        openCount:
+          (json as { meta?: { openCount?: number } }).meta?.openCount ?? 0,
         totalCount:
           (json as { meta?: { totalCount?: number } }).meta?.totalCount ?? 0,
       };
@@ -100,11 +93,95 @@ export function OrderIssuesListDialog({
 
   const refresh = () => {
     void refetch();
-    void queryClient.invalidateQueries({ queryKey: ['order-issue-summary', orderId] });
+    void queryClient.invalidateQueries({
+      queryKey: ['order-issue-summary', orderId],
+    });
     onChanged?.();
   };
 
   const issues = data?.issues ?? [];
+
+  const columns = React.useMemo(
+    () => [
+      {
+        key: 'issue',
+        header: t('columns.issue'),
+        sortable: false,
+        render: (row: OrderIssueTableRow) => {
+          const isOpen = !row.solved_at;
+          return (
+            <div className="min-w-[12rem] max-w-xs space-y-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant={isOpen ? 'destructive' : 'success'}>
+                  {isOpen ? t('statusOpen') : t('statusSolved')}
+                </Badge>
+                <Badge variant="outline">{t(`codes.${row.issue_code}`)}</Badge>
+                {row.priority ? (
+                  <span className="text-xs text-muted-foreground">
+                    {t(`priorities.${row.priority}`)}
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                {row.issue_text}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'reported',
+        header: t('columns.reported'),
+        sortable: false,
+        render: (row: OrderIssueTableRow) => (
+          <OrderIssueActorTimeCell
+            byLabel={t('createdBy')}
+            whenLabel={t('createdWhen')}
+            actorName={row.created_by_name}
+            actorId={row.created_by}
+            at={row.created_at}
+            locale={locale}
+          />
+        ),
+      },
+      {
+        key: 'resolution',
+        header: t('columns.resolution'),
+        sortable: false,
+        render: (row: OrderIssueTableRow) => (
+          <p className="min-w-[8rem] max-w-xs text-sm whitespace-pre-wrap text-muted-foreground">
+            {row.solved_notes?.trim() || '—'}
+          </p>
+        ),
+      },
+      {
+        key: 'solved',
+        header: t('columns.solved'),
+        sortable: false,
+        render: (row: OrderIssueTableRow) =>
+          row.solved_at ? (
+            <OrderIssueActorTimeCell
+              byLabel={t('solvedBy')}
+              whenLabel={t('solvedWhen')}
+              actorName={row.solved_by_name}
+              actorId={row.solved_by}
+              at={row.solved_at}
+              locale={locale}
+            />
+          ) : (
+            <CmxButton
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setSolveIssueId(row.id)}
+            >
+              {t('solve')}
+            </CmxButton>
+          ),
+      },
+    ],
+    [locale, t]
+  );
 
   return (
     <>
@@ -115,17 +192,23 @@ export function OrderIssuesListDialog({
           onOpenChange(next);
         }}
       >
-        <CmxDialogContent className="max-w-lg">
+        <CmxDialogContent className="max-w-5xl w-[min(96vw,72rem)]">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('listTitle')}</CmxDialogTitle>
             <CmxDialogDescription>
               {t(`scope.${scopeLevel.toLowerCase()}`)}
+              {data
+                ? ` · ${t('summaryCounts', {
+                    open: data.openCount,
+                    total: data.totalCount,
+                  })}`
+                : null}
             </CmxDialogDescription>
           </CmxDialogHeader>
 
-          <div className="max-h-[50vh] space-y-3 overflow-y-auto py-2">
+          <div className="max-h-[60vh] overflow-auto py-2">
             {isLoading ? (
-              <div className="flex justify-center py-8">
+              <div className="flex justify-center py-10">
                 <CmxSpinner />
               </div>
             ) : issues.length === 0 ? (
@@ -134,45 +217,12 @@ export function OrderIssuesListDialog({
                 description={t('emptyDescription')}
               />
             ) : (
-              issues.map((issue) => {
-                const openIssue = !issue.solved_at;
-                return (
-                  <div
-                    key={issue.id}
-                    className="rounded-md border border-border p-3 space-y-2"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={openIssue ? 'destructive' : 'success'}>
-                        {openIssue ? t('statusOpen') : t('statusSolved')}
-                      </Badge>
-                      <Badge variant="outline">
-                        {t(`codes.${issue.issue_code}`)}
-                      </Badge>
-                      {issue.priority ? (
-                        <span className="text-xs text-muted-foreground">
-                          {t(`priorities.${issue.priority}`)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-sm">{issue.issue_text}</p>
-                    {issue.solved_notes ? (
-                      <p className="text-xs text-muted-foreground">
-                        {t('solvedNotesLabel')}: {issue.solved_notes}
-                      </p>
-                    ) : null}
-                    {openIssue ? (
-                      <CmxButton
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setSolveIssueId(issue.id)}
-                      >
-                        {t('solve')}
-                      </CmxButton>
-                    ) : null}
-                  </div>
-                );
-              })
+              <CmxDataTable
+                columns={columns}
+                data={issues}
+                paginationFooter="never"
+                emptyMessage={t('emptyTitle')}
+              />
             )}
           </div>
 

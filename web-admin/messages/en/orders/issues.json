@@ -1,4 +1,15 @@
 {
+  "columns": {
+    "issue": "Issue",
+    "reported": "Reported",
+    "resolution": "Resolution",
+    "solved": "Solved"
+  },
+  "createdBy": "Created by",
+  "createdWhen": "When",
+  "solvedBy": "Solved by",
+  "solvedWhen": "When",
+  "summaryCounts": "{open} open · {total} total",
   "reportTitle": "Report Issue",
   "listTitle": "Issues",
   "listFailed": "Failed to load issues",

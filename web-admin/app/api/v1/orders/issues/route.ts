@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { lookupAuditActors } from '@/lib/services/audit-actor.service';
 
 async function getAuthContext() {
   const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('org_order_issues')
       .select(
-        'id, order_id, scope_level, order_item_id, order_item_piece_id, issue_code, issue_text, priority, created_at, solved_at, solved_notes'
+        'id, order_id, scope_level, order_item_id, order_item_piece_id, issue_code, issue_text, priority, created_at, created_by, solved_at, solved_by, solved_notes'
       )
       .eq('tenant_org_id', tenantId)
       .order('created_at', { ascending: false })
@@ -78,9 +79,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const actorIds = issues.flatMap((i) =>
+      [i.created_by, i.solved_by].filter(
+        (id): id is string => typeof id === 'string' && id.length > 0
+      )
+    );
+    let nameById: Record<string, string> = {};
+    try {
+      const actors = await lookupAuditActors(tenantId, actorIds);
+      nameById = Object.fromEntries(
+        actors.map((a) => [
+          a.id,
+          a.displayName || a.email || a.phone || a.id.slice(0, 8),
+        ])
+      );
+    } catch (actorError) {
+      console.error('GET /api/v1/orders/issues actor lookup:', actorError);
+    }
+
     const rows = issues.map((row) => ({
       ...row,
       order_no: orderNoById[row.order_id] ?? null,
+      created_by_name: row.created_by
+        ? nameById[row.created_by] ?? null
+        : null,
+      solved_by_name: row.solved_by
+        ? nameById[row.solved_by] ?? null
+        : null,
     }));
 
     return NextResponse.json({ success: true, data: rows });
