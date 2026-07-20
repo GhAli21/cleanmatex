@@ -44,12 +44,18 @@ export interface VoucherLineForWiring {
   order_payment_id: string | null;
   /** Populated after cashDrawerWiringHandler runs */
   cash_drawer_mvt_id: string | null;
+  /** B3 — populated after stored-value-funding-wiring.handler.ts runs; read by
+   *  stored-value-cash-drawer-wiring.handler.ts as a FK for cash legs. */
+  sv_funding_tender_id: string | null;
   card_brand_code: string | null;
   card_last4: string | null;
   gateway_code: string | null;
   gateway_reference: string | null;
   bank_reference: string | null;
   check_number: string | null;
+  /** Proof-of-receipt metadata for CHECK payments (submit + later-collection parity, B4). */
+  check_bank: string | null;
+  check_date: Date | null;
   org_payment_method_id: string | null;
   payment_terminal_id: string | null;
   branch_id: string | null;
@@ -65,14 +71,16 @@ export interface LinkedEffect {
     | 'CASH_DRAWER_MOVEMENT'
     | 'CREDIT_APPLICATION'
     | 'INVOICE_PAYMENT'
-    | 'STATEMENT_PAYMENT';
+    | 'STATEMENT_PAYMENT'
+    | 'STORED_VALUE_FUNDING_TENDER';
   effectId: string;
   tableRef:
     | 'org_order_payments_dtl'
     | 'org_cash_drawer_movements_dtl'
     | 'org_order_credit_apps_dtl'
     | 'org_invoice_payments_dtl'
-    | 'org_b2b_statements_mst';
+    | 'org_b2b_statements_mst'
+    | 'org_sv_funding_tenders_dtl';
   amount: Prisma.Decimal | number;
   currency_code: string | null;
 }

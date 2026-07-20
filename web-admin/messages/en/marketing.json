@@ -116,7 +116,9 @@
       "notes": "Notes",
       "isActive": "Active",
       "metadata": "Metadata",
-      "activateReminder": "Card is in Generated status — remember to activate it from the list."
+      "activateReminder": "Card is in Generated status — remember to activate it from the list.",
+      "tenderSectionTitle": "Tender",
+      "tenderRequired": "Select a payment method to complete the tender before selling this card."
     },
     "status": {
       "active": "Active",

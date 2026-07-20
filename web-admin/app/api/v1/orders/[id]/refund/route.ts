@@ -71,17 +71,23 @@ export async function POST(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
 
-  // B01 §13: REFUND_AND_REBILL activates only with the dedicated B27
-  // order-reopen permission code — rejected explicitly until it ships.
-  if (parsed.data.refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL) {
-    return NextResponse.json(
-      {
-        success: false,
-        code: REFUND_ERROR_CODES.REFUND_AND_REBILL_NOT_AVAILABLE,
-        error: 'REFUND_AND_REBILL requires the dedicated order-reopen permission (ships with work package B27)',
-      },
-      { status: 403 }
-    );
+  // B27: REFUND_AND_REBILL now activates for holders of the dedicated
+  // order-reopen permission (previously hardcoded-rejected regardless of
+  // permission — B01 §13, closed by this package).
+  const isRebill = parsed.data.refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL;
+  let rebillAuthorized = false;
+  if (isRebill) {
+    rebillAuthorized = await hasPermissionServer('orders:rebill_authorize');
+    if (!rebillAuthorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: REFUND_ERROR_CODES.REFUND_AND_REBILL_NOT_AVAILABLE,
+          error: 'Permission denied: orders:rebill_authorize required for REFUND_AND_REBILL',
+        },
+        { status: 403 }
+      );
+    }
   }
 
   const isManualException =
@@ -114,6 +120,7 @@ export async function POST(
       idempotencyKey: parsed.data.idempotencyKey,
       reopensDueAmount: parsed.data.reopensDueAmount,
       posSessionId: parsed.data.posSessionId,
+      rebillAuthorized,
     });
     return NextResponse.json({ success: true, data: refund }, { status: 201 });
   } catch (err) {

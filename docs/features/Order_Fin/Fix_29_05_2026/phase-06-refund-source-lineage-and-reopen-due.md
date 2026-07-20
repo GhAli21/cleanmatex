@@ -5,6 +5,8 @@
 **Migration:** `0340_refund_source_lineage_and_reopen_due.sql` (applied)  
 **ADR:** ADR-030 — Refund Source Lineage (flipped to Implemented)
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** this phase's "Done"/"shipped" claim covered only the migration 0340 schema + backfill. The frozen [Authoritative Report §13/§21](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) (2026-07-15) found the refund service itself never wrote `refund_source_type`/`reopens_due_amount` on new refunds despite this doc's claim below that `classifyRefunds` was "updated to use canonical column" — that write-side wiring did not actually land until [B01](../Remediation_Work_Packages/B01_Refund_Lineage_And_Reopen_Due.md) on 2026-07-18. Retained for history; do not treat this file's "Done" status as current truth.
+
 ---
 
 ## What this phase delivers

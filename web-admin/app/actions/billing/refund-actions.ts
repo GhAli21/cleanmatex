@@ -9,6 +9,8 @@
 
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { initiateRefund, getOrderRefunds } from '@/lib/services/order-refund.service';
+import { REFUND_CONTEXTS } from '@/lib/constants/order-financial';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import type { InitiateRefundParams } from '@/lib/services/order-refund.service';
@@ -126,16 +128,36 @@ export async function getOrderRefundsAction(orderId: string) {
 
 /**
  * Initiate a new refund (creates PENDING_APPROVAL record).
+ *
+ * B27: `rebillAuthorized` is deliberately excluded from the accepted param
+ * type and always resolved here, server-side, from the caller's real
+ * permission — never trusted from the client. Before this fix the param
+ * type only omitted `requestedBy`, so a direct call to this action (bypassing
+ * the UI, which never sets it) could in principle pass `rebillAuthorized: true`
+ * straight through the `...params` spread into `initiateRefund`.
  * @param params
  */
 export async function initiateOrderRefund(
-  params: Omit<InitiateRefundParams, 'requestedBy'>
+  params: Omit<InitiateRefundParams, 'requestedBy' | 'rebillAuthorized'>
 ) {
   try {
     const auth = await getAuthContext();
+
+    const isRebill = params.refundContext === REFUND_CONTEXTS.REFUND_AND_REBILL;
+    if (isRebill) {
+      const rebillAuthorized = await hasPermissionServer('orders:rebill_authorize');
+      if (!rebillAuthorized) {
+        return {
+          success: false as const,
+          error: 'Permission denied: orders:rebill_authorize required for REFUND_AND_REBILL',
+        };
+      }
+    }
+
     const refund = await initiateRefund(auth.tenantId, {
       ...params,
       requestedBy: auth.userId,
+      rebillAuthorized: isRebill,
     });
     return { success: true as const, data: refund };
   } catch (error) {

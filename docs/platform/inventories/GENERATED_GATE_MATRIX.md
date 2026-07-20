@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-17T21:40:15.744Z
-Git SHA: c95dc015
+Generated: 2026-07-19T22:21:08.456Z
+Git SHA: f7dccb8a
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 141 |
+| Access contracts | 142 |
 | Permission usages | 259 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
-| Navigation entries | 96 |
+| Navigation entries | 97 |
 | Flag catalog entries | 291 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -82,7 +82,8 @@ Git SHA: c95dc015
 | /dashboard/internal_fin/invoices/[id] | Invoice Details | invoices:read | — | 0 |
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |
 | /dashboard/internal_fin/invoices/new | New AR Invoice | invoices:create | — | 0 |
-| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 7 |
+| /dashboard/internal_fin/outbox | Financial Outbox Monitor | finance_outbox:view | — | 0 |
+| /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 8 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/refunds | Refunds | orders:process_refund | — | 0 |

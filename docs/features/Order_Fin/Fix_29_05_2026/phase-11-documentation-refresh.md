@@ -4,6 +4,8 @@
 **Migration:** none  
 **Plan ref:** [order-fin-v1_1-full-alignment-implementation-plan.md § Phase 11](order-fin-v1_1-full-alignment-implementation-plan.md)
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** the ADR status-flip table below (line ~22: "ADR-030 ... Implemented (Phase 6, 2026-06-05)") and the "Order Financial v1.1 Full Alignment is COMPLETE" verdict further down both rest on the Phase 6 refund-lineage claim, which the frozen [Authoritative Report §13/§21](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) (2026-07-15) found untrue — the refund service did not write `refund_source_type`/`reopens_due_amount` until [B01](../Remediation_Work_Packages/B01_Refund_Lineage_And_Reopen_Due.md) (2026-07-18). The other phases' statuses (tax-base decomposition, base-currency, tax-inclusive pricing, tax documents) are not contradicted by the audit and are not affected by this correction. Retained for history.
+
 ---
 
 ## Goal

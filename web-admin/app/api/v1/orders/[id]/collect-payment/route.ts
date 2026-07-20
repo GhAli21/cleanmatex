@@ -17,7 +17,8 @@ const schema = z.object({
   collectedBy:         z.string().min(1),
   customerId:          z.string().uuid().optional(),
   overpaymentResolution: overpaymentResolutionSchema.optional(),
-  idempotencyKey:      z.string().min(1).max(200).optional(),
+  // B5/D010: required on every money path — no optional key, no server-generated fallback.
+  idempotencyKey:      z.string().min(1).max(200),
 });
 
 /**
@@ -52,6 +53,14 @@ export async function POST(
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Collection failed';
+    // B5/D010: same key + different payload is a conflict, not a generic
+    // processing failure — the client must issue a new key to retry.
+    if (message === 'IDEMPOTENCY_CONFLICT') {
+      return NextResponse.json(
+        { success: false, errorCode: 'IDEMPOTENCY_CONFLICT', error: message },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ success: false, error: message }, { status: 422 });
   }
 }

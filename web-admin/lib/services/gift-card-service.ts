@@ -324,8 +324,24 @@ export async function sellGiftCard(params: {
   currencyCode: string;
   createdBy?: string;
   branchId?: string;
+  /** B3 defect fix — matches redeemGiftCardTx/refundGiftCardTx's idempotency-skip pattern. */
+  idempotencyKey?: string;
 }): Promise<GiftCard> {
   return withTenantContext(params.tenantOrgId, async () => {
+    if (params.idempotencyKey) {
+      const existingTxn = await prisma.org_gift_card_txn_dtl.findFirst({
+        where: { tenant_org_id: params.tenantOrgId, idempotency_key: params.idempotencyKey },
+        select: { gift_card_id: true },
+      });
+      if (existingTxn) {
+        const existingCard = await prisma.org_gift_cards_mst.findFirstOrThrow({
+          where: { id: existingTxn.gift_card_id, tenant_org_id: params.tenantOrgId },
+          include: { issued_to_customer: { select: { name: true } } },
+        });
+        return mapGiftCardToType(existingCard);
+      }
+    }
+
     const code = params.cardCode ?? (await generateGiftCardCode(params.tenantOrgId));
 
     let pinHash: string | undefined;
@@ -378,6 +394,7 @@ export async function sellGiftCard(params: {
           branch_id: params.branchId,
           processed_by: params.createdBy,
           notes: `Gift card sold: ${code}`,
+          idempotency_key: params.idempotencyKey,
         },
       });
 
@@ -386,6 +403,73 @@ export async function sellGiftCard(params: {
 
     return mapGiftCardToType(giftCard);
   });
+}
+
+/**
+ * B3 — Credit an already-created, unfunded (GENERATED) gift card once its
+ * governed DIRECT_TENDER funding has confirmed (stored-value-funding.service.ts's
+ * finalizer). Distinct from sellGiftCard (which creates + activates a card in
+ * one step for the legacy/no-tender path) and from adminActivateGiftCard
+ * (which activates a GENERATED card with a zero-amount ACTIVATE row, not a
+ * commercial sale). Idempotency-skip mirrors redeemGiftCardTx/refundGiftCardTx.
+ */
+export async function finalizeGiftCardSaleTx(
+  tx: PrismaTransactionClient,
+  params: {
+    tenantOrgId: string;
+    giftCardId: string;
+    amount: number;
+    performedBy?: string;
+    branchId?: string;
+    idempotencyKey: string;
+    voucherId?: string;
+    voucherLineId?: string;
+  }
+): Promise<{ newBalance: number; skipped?: boolean }> {
+  const { tenantOrgId, giftCardId, amount, performedBy, branchId, idempotencyKey, voucherId, voucherLineId } = params;
+
+  const existing = await tx.org_gift_card_txn_dtl.findFirst({
+    where: { tenant_org_id: tenantOrgId, idempotency_key: idempotencyKey },
+    select: { id: true, balance_after: true },
+  });
+  if (existing) {
+    return { newBalance: Number(existing.balance_after), skipped: true };
+  }
+
+  const now = new Date();
+
+  await tx.org_gift_cards_mst.update({
+    where: { id: giftCardId },
+    data: {
+      status: GIFT_CARD_STATUS.ACTIVE,
+      original_amount: amount,
+      current_balance: amount,
+      available_amount: amount,
+      activation_date: now,
+      updated_at: now,
+      updated_by: performedBy,
+    },
+  });
+
+  await tx.org_gift_card_txn_dtl.create({
+    data: {
+      tenant_org_id: tenantOrgId,
+      gift_card_id: giftCardId,
+      transaction_type: GIFT_CARD_TXN_TYPE.SALE,
+      amount,
+      balance_before: 0,
+      balance_after: amount,
+      transaction_date: now,
+      branch_id: branchId,
+      processed_by: performedBy,
+      idempotency_key: idempotencyKey,
+      fin_voucher_id: voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
+      notes: 'Gift card funding confirmed (B3 tender capture)',
+    },
+  });
+
+  return { newBalance: amount };
 }
 
 /**

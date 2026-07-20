@@ -59,6 +59,8 @@ interface CheckoutMethodOption {
   supports_overpayment: boolean;
   supports_change_return: boolean;
   allowed_for_pay_on_collection?: boolean;
+  /** B31: D9-configured creation status — drives the "pending until verified" notice below. */
+  default_creation_status?: string | null;
 }
 
 type PosSessionApiEnvelope = {
@@ -152,10 +154,19 @@ export function OrderCollectPaymentModal({
   const [submitting, setSubmitting] = useState(false);
   // Stable UUID for the cash leg — threaded into RETURN_CASH_CHANGE resolution payloads.
   const [cashLegRef] = useState<string>(() => crypto.randomUUID());
+  // B5/D010: generated once per dialog-open (reset alongside amount/cashTendered
+  // below) so a network retry of THIS attempt reuses the same key — the server
+  // then replays the original result instead of double-collecting — while a
+  // genuinely new collection (dialog reopened) gets a fresh key.
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
 
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
   const cashDrawerRequired = !!selectedMethod?.requires_cash_drawer;
+  // B31: only flags an EXPLICIT tenant/branch override of PENDING — inherited
+  // system defaults that happen to resolve to PENDING are not surfaced here to
+  // avoid duplicating the server's full D9 fallback chain in the client.
+  const willBePending = selectedMethod?.default_creation_status === 'PENDING';
 
   // Inline cash-drawer session management (shared with the new-order payment modal).
   // The selected cash method must be bound to an open drawer session before the API
@@ -424,6 +435,7 @@ export function OrderCollectPaymentModal({
     if (!open) return;
     setAmount(outstandingAmount);
     setCashTendered(undefined);
+    setIdempotencyKey(crypto.randomUUID());
     payExtra.resetPayExtraState();
   }, [open, outstandingAmount]);
 
@@ -509,10 +521,10 @@ export function OrderCollectPaymentModal({
             ? { posSessionId: activePosSessionQuery.data.session.id }
             : {}),
           ...(submitResolution ? { overpaymentResolution: submitResolution } : {}),
-          // F-10: per-event idempotency key. Random suffix guards against two
-          // distinct rapid collections landing in the same millisecond (which
-          // would otherwise dedupe a legitimate second partial collection).
-          idempotencyKey: `collect_${orderId}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+          // B5/D010: stable per-attempt key (generated at dialog-open, see the
+          // reset effect above) — a network retry of this same attempt reuses
+          // it so the server replays the original result instead of double-collecting.
+          idempotencyKey,
         }),
       });
       const json = await res.json();
@@ -529,7 +541,9 @@ export function OrderCollectPaymentModal({
               ? tPayment('extraReceipt.allocation.manualBlockedReturn')
               : errorCode === 'CASH_DRAWER_SESSION_REQUIRED'
                 ? tPayment('cashDrawer.errors.noOpenSession')
-                : null;
+                : errorCode === 'IDEMPOTENCY_CONFLICT'
+                  ? t('idempotencyConflict')
+                  : null;
         throw new Error(mapped ?? json.error ?? t('submitError'));
       }
       showSuccessToast(t('success'));
@@ -672,6 +686,16 @@ export function OrderCollectPaymentModal({
                       value={cashTendered ?? amount}
                       onChange={(e) => setCashTendered(Number(e.target.value))}
                     />
+                  </div>
+                ) : null}
+
+                {willBePending ? (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className={`rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-cyan-800 ${isRTL ? 'text-right' : 'text-left'}`}
+                  >
+                    {t('pendingUntilVerified')}
                   </div>
                 ) : null}
 

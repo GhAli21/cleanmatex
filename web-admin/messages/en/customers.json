@@ -237,7 +237,15 @@
     "issueAdvanceSuccess": "Advance issued successfully",
     "issueCreditNoteSuccess": "Credit note issued successfully",
     "hubTitle": "Customers with Stored Value",
-    "hubDescription": "Customers who have wallet balances, advances, or active credit notes"
+    "hubDescription": "Customers who have wallet balances, advances, or active credit notes",
+    "funding": {
+      "tenderSectionTitle": "Tender",
+      "tenderRequired": "Select a payment method to complete the tender.",
+      "paymentMethod": "Payment Method",
+      "cashTendered": "Cash Tendered",
+      "changeDue": "Change Due",
+      "noMethodsAvailable": "No payment methods are available for this branch."
+    }
   },
   "accountReceipt": {
     "title": "Customer Account Receipt",

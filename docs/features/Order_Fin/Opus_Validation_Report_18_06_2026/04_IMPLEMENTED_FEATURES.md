@@ -2,6 +2,8 @@
 
 Only features with **first-hand evidence** are listed as implemented. Each: how it works · files/tables · business behavior · known risks.
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** the "Refunds — ✅ (structure)" entry below claims `refund_source_type` classification as implemented/verified. The frozen [Authoritative Report §13/§21](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) (2026-07-15) found the refund service never actually wrote that column — this validation pass (2026-06-18) verified `classifyRefunds`'s in-memory heuristic, not that its output reached the DB column, which only started with [B01](../Remediation_Work_Packages/B01_Refund_Lineage_And_Reopen_Due.md) on 2026-07-18. Other entries in this file are unaffected.
+
 ### Order financial snapshot — ✅
 - **How:** one recalc (`recalculateOrderFinancialSnapshotTx`) reads fact rows (items/charges/discounts/taxes/payments/credits/refunds/invoice link/disposition sum) and writes canonical totals + JSON snapshot v5 + hash + trace.
 - **Tables/files:** `org_orders_mst`, `order-financial-write.service.ts`.

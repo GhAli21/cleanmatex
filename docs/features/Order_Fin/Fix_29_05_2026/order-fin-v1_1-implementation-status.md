@@ -5,6 +5,8 @@
 **Started:** 2026-06-04
 **Owner:** —
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** Phase 6's "Done" row and decision-log entry below (refund source-lineage/reopens-due) claimed the refund service wrote `refund_source_type`/`reopens_due_amount` on 2026-06-05. The frozen [Authoritative Report §13/§21](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) (2026-07-15) found this was never true until [B01](../Remediation_Work_Packages/B01_Refund_Lineage_And_Reopen_Due.md) shipped it on 2026-07-18 — migration 0340 (this doc's Phase 6) only added the columns + a one-time SQL backfill; nothing in the application wrote them going forward until B01. The "Phase 11 shipped. Program COMPLETE." line is downstream of the same over-claim. Retained for history; do not treat this file's phase statuses as current truth for refund lineage.
+
 ---
 
 ## Phase Tracker

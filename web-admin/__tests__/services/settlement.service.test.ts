@@ -104,11 +104,36 @@ jest.mock('@/lib/services/customer-receipt-excess-executor.service', () => {
   };
 });
 
+// B4/B31: collect now resolves methods through the shared D9-aware config
+// reader instead of raw org_payment_methods_cf/org_branch_payment_methods_cf
+// tx queries.
+const mockListEffectivePaymentMethodConfigs = jest.fn();
+jest.mock('@/lib/services/payment-config.service', () => ({
+  listEffectivePaymentMethodConfigs: (...a: unknown[]) => mockListEffectivePaymentMethodConfigs(...a),
+}));
+
+// B4: collect now wires real-payment legs through the same BVM voucher path
+// submit-order uses instead of writing org_order_payments_dtl /
+// org_cash_drawer_movements_dtl directly.
+const mockCreateBizVoucher = jest.fn();
+jest.mock('@/lib/services/voucher-biz.service', () => ({
+  createBizVoucher: (...a: unknown[]) => mockCreateBizVoucher(...a),
+}));
+const mockAddVoucherLine = jest.fn();
+jest.mock('@/lib/services/voucher-line.service', () => ({
+  addVoucherLine: (...a: unknown[]) => mockAddVoucherLine(...a),
+}));
+const mockPostAndWireBizVoucher = jest.fn();
+jest.mock('@/lib/services/voucher-wiring.service', () => ({
+  postAndWireBizVoucher: (...a: unknown[]) => mockPostAndWireBizVoucher(...a),
+}));
+
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
 import { collectPaymentTx, settleOrder, settleOrderTx } from '@/lib/services/order-settlement.service';
+import { hashPayload } from '@/lib/utils/idempotency';
 import type { FinancialBreakdownSnapshot, ResolvedSettlementLeg } from '@/lib/types/order-financial';
 
 // ---------------------------------------------------------------------------
@@ -209,13 +234,17 @@ const makeTx = () => ({
   org_domain_events_outbox: { create: (...a: unknown[]) => mockOutboxCreate(...a) },
   org_loyalty_txn_dtl:      { create: jest.fn() },
   org_loyalty_accounts_mst: { update: jest.fn() },
+  org_idempotency_keys: {
+    findFirst: jest.fn().mockResolvedValue(null),
+    upsert: jest.fn().mockResolvedValue({}),
+  },
   $queryRaw: jest.fn().mockResolvedValue([]),
 });
 
 describe('order-settlement.service — collectPaymentTx', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('uses branch cash drawer override when collecting later cash payment', async () => {
+  it('wires a CASH leg through the BVM voucher path (B4) using the branch-merged drawer requirement', async () => {
     const tx = makeTx();
     tx.$queryRaw.mockResolvedValue([
       {
@@ -226,23 +255,25 @@ describe('order-settlement.service — collectPaymentTx', () => {
         customer_id: 'cust-1',
       },
     ]);
-    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
-      id: 'method-cash',
-      payment_method_code: 'CASH',
-      gateway_code: null,
-      requires_cash_drawer: false,
-      supports_change_return: true,
-      supports_overpayment: false,
-    });
-    tx.org_branch_payment_methods_cf.findFirst.mockResolvedValue({ cash_drawer_required: true });
-    tx.org_cash_drawer_sessions_mst.findFirst.mockResolvedValue({
-      id: 'session-1',
-      cash_drawer_id: 'drawer-1',
-      branch_id: 'branch-1',
-      currency_code: 'OMR',
-    });
-    mockPaymentCreate.mockResolvedValue({ id: 'payment-1' });
-    mockCashDrawerMovementCreate.mockResolvedValue({ id: 'movement-1' });
+    // requires_cash_drawer: true simulates the branch override already merged
+    // in by listEffectivePaymentMethodConfigs — collect no longer re-derives it.
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
+      {
+        id: 'method-cash',
+        payment_method_code: 'CASH',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: true,
+        supports_change_return: true,
+        supports_overpayment: false,
+        default_creation_status: null,
+        is_enabled: true,
+        is_platform_disabled: false,
+      },
+    ]);
+    mockCreateBizVoucher.mockResolvedValue({ id: 'voucher-1', voucher_no: 'RCV-1' });
+    mockAddVoucherLine.mockResolvedValue({ id: 'line-1', line_no: 1 });
+    mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'voucher-1', fromCache: false });
     mockOutboxCreate.mockResolvedValue({});
     mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
 
@@ -252,52 +283,140 @@ describe('order-settlement.service — collectPaymentTx', () => {
       paymentLegs: [{ paymentMethodId: 'method-cash', amount: 50, cashTendered: 51 }],
       cashDrawerSessionId: 'session-1',
       collectedBy: 'user-1',
+      idempotencyKey: 'collect-cash-001',
     });
 
-    expect(mockCashDrawerMovementCreate).toHaveBeenCalledWith(
+    expect(mockCreateBizVoucher).toHaveBeenCalledWith(
+      TENANT,
       expect.objectContaining({
-        data: expect.objectContaining({
-          amount: 50,
-          cash_drawer_session_id: 'session-1',
-          order_payment_id: 'payment-1',
-          movement_type: 'CASH_SALE',
-          direction: 'IN',
-        }),
-      })
+        voucher_type: 'RECEIPT_VOUCHER',
+        order_id: ORDER,
+        source_module: 'ORDERS',
+        source_ref_id: ORDER,
+        total_amount: 50,
+        idempotency_key: 'collect-cash-001_vch',
+      }),
+      'user-1',
+      tx,
     );
-    expect(mockCashDrawerMovementCreate).toHaveBeenCalledWith(
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT,
+      'voucher-1',
       expect.objectContaining({
-        data: expect.objectContaining({
-          amount: 1,
-          cash_drawer_session_id: 'session-1',
-          order_payment_id: 'payment-1',
-          movement_type: 'CASH_OUT',
-          direction: 'OUT',
-        }),
-      })
+        line_role: 'ORDER_PAYMENT',
+        payment_method_code: 'CASH',
+        // No D9 override configured → falls back to resolveDefaultStatus('CASH') = COMPLETED.
+        payment_status: 'COMPLETED',
+        amount: 50,
+        tendered_amount: 51,
+        cash_drawer_session_id: 'session-1',
+        idempotency_key: 'collect-cash-001_leg_0',
+      }),
+      'user-1',
+      undefined,
+      tx,
     );
-    expect(mockCashDrawerMovementCreate).toHaveBeenCalledTimes(2);
+    expect(mockPostAndWireBizVoucher).toHaveBeenCalledWith(
+      TENANT, 'voucher-1', 'user-1', 'collect-cash-001_vch_post', tx,
+    );
+    // The old direct-write path must be fully retired — wiring now owns these tables.
+    expect(mockPaymentCreate).not.toHaveBeenCalled();
+    expect(mockCashDrawerMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('resolves PENDING from the D9 config instead of hardcoding gateway ? PENDING : COMPLETED (B31)', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
+      {
+        id: 'method-check',
+        payment_method_code: 'CHECK',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: false,
+        supports_change_return: false,
+        supports_overpayment: false,
+        // Tenant explicitly configured CHECK to land PENDING until back-office clears it.
+        default_creation_status: 'PENDING',
+        is_enabled: true,
+        is_platform_disabled: false,
+      },
+    ]);
+    mockCreateBizVoucher.mockResolvedValue({ id: 'voucher-2', voucher_no: 'RCV-2' });
+    mockAddVoucherLine.mockResolvedValue({ id: 'line-2', line_no: 1 });
+    mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'voucher-2', fromCache: false });
+    mockOutboxCreate.mockResolvedValue({});
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    await collectPaymentTx({
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-check', amount: 50, checkNumber: 'CHK-1' }],
+      collectedBy: 'user-1',
+      idempotencyKey: 'collect-check-001',
+    });
+
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT, 'voucher-2',
+      expect.objectContaining({ payment_status: 'PENDING', check_number: 'CHK-1' }),
+      'user-1', undefined, tx,
+    );
+  });
+
+  it('rejects a CREDIT_APPLICATION-natured method — later collection only ever records real money', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
+      {
+        id: 'method-wallet',
+        payment_method_code: 'WALLET',
+        payment_nature: 'CREDIT_APPLICATION',
+        gateway_code: null,
+        requires_cash_drawer: false,
+        supports_change_return: false,
+        supports_overpayment: false,
+        default_creation_status: null,
+        is_enabled: true,
+        is_platform_disabled: false,
+      },
+    ]);
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    await expect(
+      collectPaymentTx({
+        orderId: ORDER,
+        tenantId: TENANT,
+        paymentLegs: [{ paymentMethodId: 'method-wallet', amount: 50 }],
+        collectedBy: 'user-1',
+        idempotencyKey: 'collect-wallet-001',
+      })
+    ).rejects.toThrow('INVALID_PAYMENT_NATURE_FOR_COLLECTION');
+    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
   });
 
   it('requires overpayment resolution when collection exceeds outstanding without retention policy', async () => {
     const tx = makeTx();
     tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
       {
-        id: ORDER,
-        outstanding_amount: 50,
-        currency_code: 'OMR',
-        branch_id: null,
-        customer_id: 'cust-1',
+        id: 'method-card',
+        payment_method_code: 'CARD',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: false,
+        supports_change_return: false,
+        supports_overpayment: false,
+        default_creation_status: null,
+        is_enabled: true,
+        is_platform_disabled: false,
       },
     ]);
-    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
-      id: 'method-card',
-      payment_method_code: 'CARD',
-      gateway_code: null,
-      requires_cash_drawer: false,
-      supports_change_return: false,
-      supports_overpayment: false,
-    });
     mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
 
     await expect(
@@ -306,31 +425,34 @@ describe('order-settlement.service — collectPaymentTx', () => {
         tenantId: TENANT,
         paymentLegs: [{ paymentMethodId: 'method-card', amount: 51 }],
         collectedBy: 'user-1',
+        idempotencyKey: 'collect-card-001',
       })
     ).rejects.toThrow('OVERPAYMENT_RESOLUTION_REQUIRED');
-    expect(mockPaymentCreate).not.toHaveBeenCalled();
+    expect(mockCreateBizVoucher).not.toHaveBeenCalled();
   });
 
-  it('executes overpayment disposition when collection includes valid resolution', async () => {
+  it('executes overpayment disposition linked to the settlement voucher when collection includes valid resolution (D007)', async () => {
     const tx = makeTx();
     tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
       {
-        id: ORDER,
-        outstanding_amount: 50,
-        currency_code: 'OMR',
-        branch_id: null,
-        customer_id: 'cust-1',
+        id: 'method-card',
+        payment_method_code: 'CARD',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: false,
+        supports_change_return: false,
+        supports_overpayment: false,
+        default_creation_status: null,
+        is_enabled: true,
+        is_platform_disabled: false,
       },
     ]);
-    tx.org_payment_methods_cf.findFirst.mockResolvedValue({
-      id: 'method-card',
-      payment_method_code: 'CARD',
-      gateway_code: null,
-      requires_cash_drawer: false,
-      supports_change_return: false,
-      supports_overpayment: false,
-    });
-    mockPaymentCreate.mockResolvedValue({ id: 'payment-card-1' });
+    mockCreateBizVoucher.mockResolvedValue({ id: 'voucher-3', voucher_no: 'RCV-3' });
+    mockAddVoucherLine.mockResolvedValue({ id: 'line-3', line_no: 1 });
+    mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'voucher-3', fromCache: false });
     mockOutboxCreate.mockResolvedValue({});
     mockValidateOverpaymentResolution.mockResolvedValue(undefined);
     mockExecuteOverpaymentDispositionTx.mockResolvedValue(undefined);
@@ -358,9 +480,69 @@ describe('order-settlement.service — collectPaymentTx', () => {
         customerId: 'cust-1',
         resolution: overpaymentResolution,
         idempotencyKey: 'collect-advance-001',
+        voucherId: 'voucher-3',
       })
     );
-    expect(mockPaymentCreate).toHaveBeenCalled();
+    expect(mockCreateBizVoucher).toHaveBeenCalled();
+  });
+
+  describe('idempotency (B5/D010)', () => {
+    const baseParams = {
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-cash', amount: 50, cashTendered: 50 }],
+      cashDrawerSessionId: undefined,
+      posSessionId: undefined,
+      customerId: undefined,
+      overpaymentResolution: undefined,
+    };
+
+    it('returns the cached result on an identical-payload replay without creating a new voucher', async () => {
+      const tx = makeTx();
+      tx.$queryRaw.mockResolvedValue([
+        { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+      ]);
+      const cachedResult = {
+        orderId: ORDER,
+        paymentStatus: 'PAID',
+        totalPaid: 100,
+        outstanding: 0,
+        changeReturned: 0,
+      };
+      const matchingHash = hashPayload({
+        orderId: baseParams.orderId,
+        paymentLegs: baseParams.paymentLegs,
+        cashDrawerSessionId: baseParams.cashDrawerSessionId,
+        posSessionId: baseParams.posSessionId,
+        customerId: baseParams.customerId,
+        overpaymentResolution: baseParams.overpaymentResolution,
+      });
+      tx.org_idempotency_keys.findFirst.mockResolvedValue({
+        response_cache: { payload_hash: matchingHash, result: cachedResult },
+      });
+      mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+      const result = await collectPaymentTx({ ...baseParams, collectedBy: 'user-1', idempotencyKey: 'replay-key' });
+
+      expect(result).toEqual(cachedResult);
+      expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+      // The replay short-circuits before the order lock re-validates a
+      // (possibly now-different) outstanding balance.
+      expect(tx.$queryRaw).not.toHaveBeenCalled();
+    });
+
+    it('throws IDEMPOTENCY_CONFLICT when the same key carries a different payload', async () => {
+      const tx = makeTx();
+      tx.org_idempotency_keys.findFirst.mockResolvedValue({
+        response_cache: { payload_hash: 'a-completely-different-hash', result: {} },
+      });
+      mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+      await expect(
+        collectPaymentTx({ ...baseParams, collectedBy: 'user-1', idempotencyKey: 'conflict-key' })
+      ).rejects.toThrow('IDEMPOTENCY_CONFLICT');
+      expect(mockCreateBizVoucher).not.toHaveBeenCalled();
+    });
   });
 });
 

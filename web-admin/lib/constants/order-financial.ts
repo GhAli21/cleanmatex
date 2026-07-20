@@ -263,6 +263,20 @@ export const STORED_VALUE_TXN_TYPES = {
 export type StoredValueTxnType =
   (typeof STORED_VALUE_TXN_TYPES)[keyof typeof STORED_VALUE_TXN_TYPES];
 
+/**
+ * B3 — org_sv_funding_tenders_dtl.status values. Mirrors chk_svft_status
+ * (migration 0412) exactly (DB-mirror rule). Row-lifecycle status of a
+ * tender-leg fact — distinct from the order-payment lifecycle set
+ * (ORDER_PAYMENT_LIFECYCLE_STATUSES) even though both include "COMPLETED".
+ */
+export const SV_FUNDING_TENDER_STATUS = {
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  REVERSED: 'REVERSED',
+} as const;
+export type SvFundingTenderStatus =
+  (typeof SV_FUNDING_TENDER_STATUS)[keyof typeof SV_FUNDING_TENDER_STATUS];
+
 /** Promotion type codes mirrored from `org_promotions_mst.promo_type`. */
 export const PROMO_TYPES = {
   PERCENTAGE: 'PERCENTAGE',
@@ -331,6 +345,13 @@ export const RECONCILIATION_CHECK_NAMES = {
   GIFT_CARD_LEDGER_LINK_EXISTS: 'GIFT_CARD_LEDGER_LINK_EXISTS',
   CREDIT_NOTE_LEDGER_LINK_EXISTS: 'CREDIT_NOTE_LEDGER_LINK_EXISTS',
   LOYALTY_LEDGER_LINK_EXISTS: 'LOYALTY_LEDGER_LINK_EXISTS',
+
+  // ─── B3 — stored-value funding capture (org_sv_funding_tenders_dtl) ───────
+  // Defense-in-depth: finalizeStoredValueFundingIfReady already enforces
+  // tender-sum == voucher.total_amount before crediting, so a failure here
+  // signals a regression in that guard, not routine drift.
+  SV_FUNDING_TENDER_TOTAL_MATCH: 'SV_FUNDING_TENDER_TOTAL_MATCH',
+  SV_FUNDING_VOUCHER_LINK_EXISTS: 'SV_FUNDING_VOUCHER_LINK_EXISTS',
 
   // ─── BVM Phase 4 — cash drawer integrity (PRD §22.1) ──────────────────────
   CASH_MOVEMENT_LINK_EXISTS: 'CASH_MOVEMENT_LINK_EXISTS',
@@ -405,6 +426,14 @@ export const OUTBOX_EVENT_TYPES = {
   ORDER_FINANCIAL_ADJUSTMENT_CREATED: 'ORDER_FINANCIAL_ADJUSTMENT_CREATED',
   LOYALTY_EARN: 'LOYALTY_EARN',
   STORED_VALUE_CHANGED: 'STORED_VALUE_CHANGED',
+  /**
+   * B3 — emitted by stored-value-funding.service.ts once a gift-card sale,
+   * wallet top-up, or customer-advance receipt finishes crediting its ledger
+   * (all tender legs confirmed). Distinct from STORED_VALUE_CHANGED (which
+   * today only covers redemption/debit) because the payload shape and the
+   * eventual consumer (B6 GL liability posting) are different.
+   */
+  STORED_VALUE_FUNDING_COMPLETED: 'STORED_VALUE_FUNDING_COMPLETED',
   GIFT_CARD_REDEEMED: 'GIFT_CARD_REDEEMED',
   AR_INVOICE_ISSUED: 'AR_INVOICE_ISSUED',
   AR_PAYMENT_ALLOCATED: 'AR_PAYMENT_ALLOCATED',
@@ -450,6 +479,8 @@ export const OUTBOX_STATUSES = {
   PROCESSING: 'PROCESSING',
   PROCESSED: 'PROCESSED',
   FAILED: 'FAILED',
+  /** B7: an event that exhausted its retry budget — distinct from FAILED (still retryable). */
+  DEAD_LETTERED: 'DEAD_LETTERED',
 } as const;
 /** Derived union for outbox processing states. */
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[keyof typeof OUTBOX_STATUSES];

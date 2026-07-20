@@ -79,9 +79,9 @@
     "forceCloseReason": "Force-Close Reason",
     "varianceThreshold": "Variance Approval Threshold",
     "varianceApprovalTitle": "Approve Cash Variance",
-    "varianceApprovalWarning": "This session closed with a variance beyond the drawer's approval threshold. Approving requires a different user than the one who closed the session.",
-    "varianceApprovalReasonPlaceholder": "Reason for the variance (required)",
-    "varianceApprovalPendingBanner": "This session's close variance exceeds the drawer's threshold and is awaiting supervisor approval.",
+    "varianceApprovalWarning": "This session closed with a variance beyond the drawer's threshold. Approval is optional — it records a supervisor sign-off for the audit trail and must be given by a different user than the one who closed the session.",
+    "varianceApprovalReasonPlaceholder": "Reason for the variance (required to approve)",
+    "varianceApprovalPendingBanner": "This session's close variance exceeds the drawer's threshold. Supervisor approval is optional and can be recorded for the audit trail.",
     "varianceApprovedBanner": "Variance approved by {approver} on {date}.",
     "approveVariance": "Approve Variance",
     "cashIn": "Cash In",
@@ -361,6 +361,41 @@
       "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "Cash movement = retained amount",
       "INVOICE_PAYMENT_LINK_EXISTS": "Invoice payment link exists",
       "REFUND_LINK_EXISTS": "Refund link exists"
+    }
+  },
+  "outboxMonitor": {
+    "title": "Outbox Monitor",
+    "description": "Financial domain-event outbox health — pending, failed, and dead-lettered events",
+    "refresh": "Refresh",
+    "allStatuses": "All statuses",
+    "empty": "No outbox events",
+    "loadFailed": "Failed to load outbox status",
+    "retry": "Retry",
+    "retrying": "Retrying…",
+    "retrySuccess": "Event re-queued",
+    "retryFailed": "Failed to retry event",
+    "counts": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "failed": "Failed",
+      "deadLettered": "Dead-lettered",
+      "processedLast24h": "Processed (24h)"
+    },
+    "columns": {
+      "eventType": "Event",
+      "aggregate": "Aggregate",
+      "status": "Status",
+      "attempts": "Attempts",
+      "nextRetryAt": "Next Retry",
+      "createdAt": "Created",
+      "error": "Error"
+    },
+    "statusLabels": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "PROCESSED": "Processed",
+      "FAILED": "Failed",
+      "DEAD_LETTERED": "Dead-lettered"
     }
   }
 }

@@ -3734,6 +3734,7 @@ export type Database = {
           direction: string
           fin_voucher_id: string | null
           fin_voucher_trx_line_id: string | null
+          funding_tender_id: string | null
           id: string
           is_active: boolean
           metadata: Json
@@ -3762,6 +3763,7 @@ export type Database = {
           direction: string
           fin_voucher_id?: string | null
           fin_voucher_trx_line_id?: string | null
+          funding_tender_id?: string | null
           id?: string
           is_active?: boolean
           metadata?: Json
@@ -3790,6 +3792,7 @@ export type Database = {
           direction?: string
           fin_voucher_id?: string | null
           fin_voucher_trx_line_id?: string | null
+          funding_tender_id?: string | null
           id?: string
           is_active?: boolean
           metadata?: Json
@@ -3807,6 +3810,13 @@ export type Database = {
           tenant_org_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_org_cdm_funding_tender"
+            columns: ["funding_tender_id"]
+            isOneToOne: false
+            referencedRelation: "org_sv_funding_tenders_dtl"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_org_cdm_order_payment"
             columns: ["order_payment_id"]
@@ -11180,6 +11190,7 @@ export type Database = {
           reference: string | null
           reversed_line_id: string | null
           supplier_id: string | null
+          sv_funding_tender_id: string | null
           target_id: string | null
           target_type: string | null
           tenant_org_id: string
@@ -11243,6 +11254,7 @@ export type Database = {
           reference?: string | null
           reversed_line_id?: string | null
           supplier_id?: string | null
+          sv_funding_tender_id?: string | null
           target_id?: string | null
           target_type?: string | null
           tenant_org_id: string
@@ -11306,6 +11318,7 @@ export type Database = {
           reference?: string | null
           reversed_line_id?: string | null
           supplier_id?: string | null
+          sv_funding_tender_id?: string | null
           target_id?: string | null
           target_type?: string | null
           tenant_org_id?: string
@@ -11330,6 +11343,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_fin_voucher_trx_lines_dtl"
             referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_vch_trx_ln_svft"
+            columns: ["sv_funding_tender_id"]
+            isOneToOne: false
+            referencedRelation: "org_sv_funding_tenders_dtl"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_vch_trx_ln_voucher"
@@ -15259,7 +15279,7 @@ export type Database = {
           issue_text: string
           metadata: Json | null
           order_id: string
-          order_item_id: string
+          order_item_id: string | null
           photo_url: string | null
           priority: string | null
           rec_notes: string | null
@@ -15282,7 +15302,7 @@ export type Database = {
           issue_text: string
           metadata?: Json | null
           order_id: string
-          order_item_id: string
+          order_item_id?: string | null
           photo_url?: string | null
           priority?: string | null
           rec_notes?: string | null
@@ -15305,7 +15325,7 @@ export type Database = {
           issue_text?: string
           metadata?: Json | null
           order_id?: string
-          order_item_id?: string
+          order_item_id?: string | null
           photo_url?: string | null
           priority?: string | null
           rec_notes?: string | null
@@ -20156,6 +20176,196 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_stng_settings_cd"
             referencedColumns: ["setting_code"]
+          },
+        ]
+      }
+      org_sv_funding_tenders_dtl: {
+        Row: {
+          amount: number
+          branch_id: string | null
+          cash_drawer_session_id: string | null
+          change_returned_amount: number | null
+          check_bank: string | null
+          check_date: string | null
+          check_number: string | null
+          confirmed_at: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          customer_id: string | null
+          failed_at: string | null
+          fin_voucher_id: string
+          fin_voucher_trx_line_id: string
+          funding_type: string
+          gateway_code: string | null
+          gateway_reference: string | null
+          id: string
+          idempotency_key: string
+          is_active: boolean
+          leg_index: number
+          org_payment_method_id: string | null
+          payment_method_code: string
+          payment_status: string | null
+          pos_session_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          reversed_at: string | null
+          status: string
+          target_id: string
+          target_type: string
+          tenant_org_id: string
+          tendered_amount: number | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          amount: number
+          branch_id?: string | null
+          cash_drawer_session_id?: string | null
+          change_returned_amount?: number | null
+          check_bank?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          customer_id?: string | null
+          failed_at?: string | null
+          fin_voucher_id: string
+          fin_voucher_trx_line_id: string
+          funding_type: string
+          gateway_code?: string | null
+          gateway_reference?: string | null
+          id?: string
+          idempotency_key: string
+          is_active?: boolean
+          leg_index?: number
+          org_payment_method_id?: string | null
+          payment_method_code: string
+          payment_status?: string | null
+          pos_session_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reversed_at?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+          tenant_org_id: string
+          tendered_amount?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          amount?: number
+          branch_id?: string | null
+          cash_drawer_session_id?: string | null
+          change_returned_amount?: number | null
+          check_bank?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          customer_id?: string | null
+          failed_at?: string | null
+          fin_voucher_id?: string
+          fin_voucher_trx_line_id?: string
+          funding_type?: string
+          gateway_code?: string | null
+          gateway_reference?: string | null
+          id?: string
+          idempotency_key?: string
+          is_active?: boolean
+          leg_index?: number
+          org_payment_method_id?: string | null
+          payment_method_code?: string
+          payment_status?: string | null
+          pos_session_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reversed_at?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+          tenant_org_id?: string
+          tendered_amount?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_svft_branch"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_svft_vch_line"
+            columns: ["fin_voucher_trx_line_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_svft_voucher"
+            columns: ["fin_voucher_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_cash_drawer_session_id_fkey"
+            columns: ["cash_drawer_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_cash_drawer_sessions_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_org_payment_method_id_fkey"
+            columns: ["org_payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "org_payment_methods_cf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_pos_session_id_fkey"
+            columns: ["pos_session_id"]
+            isOneToOne: false
+            referencedRelation: "org_pos_sessions_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "org_sv_funding_tenders_dtl_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
           },
         ]
       }
@@ -26801,6 +27011,24 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_fin_runtime_cf: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: string
         }
         Relationships: []
       }
@@ -33663,6 +33891,7 @@ export type Database = {
         Returns: undefined
       }
       extract_order_sequence: { Args: { p_order_no: string }; Returns: number }
+      fin_trigger_outbox_proc: { Args: never; Returns: undefined }
       fix_order_data: {
         Args: {
           p_dry_run?: boolean

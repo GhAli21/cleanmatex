@@ -237,7 +237,15 @@
     "issueAdvanceSuccess": "تم إصدار السلفة بنجاح",
     "issueCreditNoteSuccess": "تم إصدار إشعار الائتمان بنجاح",
     "hubTitle": "العملاء ذوو القيمة المخزنة",
-    "hubDescription": "العملاء الذين لديهم أرصدة محافظ أو سلف أو إشعارات ائتمان نشطة"
+    "hubDescription": "العملاء الذين لديهم أرصدة محافظ أو سلف أو إشعارات ائتمان نشطة",
+    "funding": {
+      "tenderSectionTitle": "الدفعة",
+      "tenderRequired": "اختر طريقة دفع لإكمال الدفعة.",
+      "paymentMethod": "طريقة الدفع",
+      "cashTendered": "المبلغ المدفوع نقداً",
+      "changeDue": "الباقي المستحق",
+      "noMethodsAvailable": "لا توجد طرق دفع متاحة لهذا الفرع."
+    }
   },
   "accountReceipt": {
     "title": "قبض حساب العميل",

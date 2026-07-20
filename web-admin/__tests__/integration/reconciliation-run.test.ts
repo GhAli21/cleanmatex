@@ -34,6 +34,7 @@ const mockInvoicePaymentsFindMany = jest.fn();
 const mockVoucherFindMany = jest.fn();
 const mockVoucherTrxLinesFindMany = jest.fn();
 const mockCashMovementsFindMany = jest.fn();
+const mockSvFundingTendersFindMany = jest.fn();
 const mockOutboxCount = jest.fn();
 const mockReconRunCount = jest.fn();
 const mockReconRunCreate = jest.fn();
@@ -108,6 +109,9 @@ jest.mock('@/lib/db/prisma', () => ({
     org_cash_drawer_movements_dtl: {
       findMany: (...args: unknown[]) => mockCashMovementsFindMany(...args),
     },
+    org_sv_funding_tenders_dtl: {
+      findMany: (...args: unknown[]) => mockSvFundingTendersFindMany(...args),
+    },
     org_domain_events_outbox: {
       count: (...args: unknown[]) => mockOutboxCount(...args),
     },
@@ -161,6 +165,7 @@ function setupBaselineEmpty() {
   mockVoucherFindMany.mockResolvedValue([]);
   mockVoucherTrxLinesFindMany.mockResolvedValue([]);
   mockCashMovementsFindMany.mockResolvedValue([]);
+  mockSvFundingTendersFindMany.mockResolvedValue([]);
   mockOutboxCount.mockResolvedValue(0);
   mockReconRunCount.mockResolvedValue(0);
   mockReconRunCreate.mockResolvedValue({ id: RUN, run_no: 'RECON-2026-001' });

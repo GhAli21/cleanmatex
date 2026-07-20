@@ -13,18 +13,22 @@
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockOutboxCreate    = jest.fn();
-const mockOutboxFindMany  = jest.fn();
+const mockOutboxCreate     = jest.fn();
 const mockOutboxUpdateMany = jest.fn();
-const mockTransaction     = jest.fn();
+const mockOutboxUpdate     = jest.fn();
+const mockOutboxFindUniqueOrThrow = jest.fn();
+const mockQueryRaw         = jest.fn();
+const mockTransaction      = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $transaction: (...a: unknown[]) => mockTransaction(...a),
+    $queryRaw: (...a: unknown[]) => mockQueryRaw(...a),
     org_domain_events_outbox: {
       create:    (...a: unknown[]) => mockOutboxCreate(...a),
-      findMany:  (...a: unknown[]) => mockOutboxFindMany(...a),
       updateMany: (...a: unknown[]) => mockOutboxUpdateMany(...a),
+      update:    (...a: unknown[]) => mockOutboxUpdate(...a),
+      findUniqueOrThrow: (...a: unknown[]) => mockOutboxFindUniqueOrThrow(...a),
     },
   },
 }));
@@ -41,7 +45,7 @@ jest.mock('@/lib/supabase/server', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { emitEventTx, claimBatch } from '@/lib/services/outbox.service';
+import { emitEventTx, claimBatch, markFailed, scheduleRetry, manualRetry } from '@/lib/services/outbox.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,7 +54,7 @@ import { emitEventTx, claimBatch } from '@/lib/services/outbox.service';
 const TENANT = 'tenant-outbox-001';
 
 const makeTx = () => ({
-  org_domain_events_outbox: { create: mockOutboxCreate, updateMany: mockOutboxUpdateMany, findMany: mockOutboxFindMany },
+  org_domain_events_outbox: { create: mockOutboxCreate, updateMany: mockOutboxUpdateMany },
 });
 
 // ---------------------------------------------------------------------------
@@ -111,40 +115,102 @@ describe('outbox.service — emitEventTx', () => {
   });
 });
 
-describe('outbox.service — claimBatch', () => {
+describe('outbox.service — claimBatch (B7)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('calls $transaction and returns claimed events', async () => {
+  it('calls the claim_outbox_batch SQL function (FOR UPDATE SKIP LOCKED — concurrency-safe) and returns claimed events', async () => {
     const events = [
-      { id: 'evt-1', status: 'PENDING', next_retry_at: new Date(Date.now() - 1000) },
+      { id: 'evt-1', status: 'PROCESSING', next_retry_at: new Date(Date.now() - 1000) },
     ];
-
-    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const txMock = {
-        org_domain_events_outbox: {
-          findMany: jest.fn().mockResolvedValue(events),
-          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        },
-      };
-      return fn(txMock);
-    });
+    mockQueryRaw.mockResolvedValue(events);
 
     const result = await claimBatch(10);
+
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1);
     expect(result).toEqual(events);
   });
 
   it('returns [] when no pending events', async () => {
-    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const txMock = {
-        org_domain_events_outbox: {
-          findMany:   jest.fn().mockResolvedValue([]),
-          updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-        },
-      };
-      return fn(txMock);
-    });
+    mockQueryRaw.mockResolvedValue([]);
 
     const result = await claimBatch();
     expect(result).toEqual([]);
+  });
+
+  it('two concurrent claimBatch calls each get their own $queryRaw call — the DB-side FOR UPDATE SKIP LOCKED (not app code) is what prevents overlap', async () => {
+    // This test documents the concurrency contract at the app layer: claimBatch
+    // no longer does its own read-then-write (the old findMany+updateMany raced),
+    // it delegates entirely to one atomic SQL call per invocation.
+    mockQueryRaw.mockResolvedValueOnce([{ id: 'evt-1' }]).mockResolvedValueOnce([{ id: 'evt-2' }]);
+
+    const [r1, r2] = await Promise.all([claimBatch(5), claimBatch(5)]);
+
+    expect(mockQueryRaw).toHaveBeenCalledTimes(2);
+    expect(r1).toEqual([{ id: 'evt-1' }]);
+    expect(r2).toEqual([{ id: 'evt-2' }]);
+  });
+});
+
+describe('outbox.service — dead-letter escalation (B7)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('markFailed schedules a retry while attempts remain within the budget', async () => {
+    mockOutboxFindUniqueOrThrow.mockResolvedValue({ id: 'evt-1', attempts: 0 });
+    mockOutboxUpdate.mockResolvedValue({});
+
+    await markFailed('evt-1', 'boom');
+
+    expect(mockOutboxUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'FAILED', attempts: 1, next_retry_at: expect.any(Date) }),
+      })
+    );
+  });
+
+  it('markFailed sets DEAD_LETTERED once the retry budget is exhausted (a poison event stops retrying but is never silently lost)', async () => {
+    // RETRY_DELAYS_MINUTES has 5 entries — the 6th failure (attempts=5 going in, 6 after) exhausts it.
+    mockOutboxFindUniqueOrThrow.mockResolvedValue({ id: 'evt-1', attempts: 5 });
+    mockOutboxUpdate.mockResolvedValue({});
+
+    await markFailed('evt-1', 'still broken');
+
+    expect(mockOutboxUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'DEAD_LETTERED', attempts: 6, next_retry_at: null }),
+      })
+    );
+  });
+
+  it('scheduleRetry mirrors the same DEAD_LETTERED escalation', async () => {
+    mockOutboxUpdate.mockResolvedValue({});
+
+    await scheduleRetry('evt-2', 5);
+
+    expect(mockOutboxUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'DEAD_LETTERED', next_retry_at: null }) })
+    );
+  });
+});
+
+describe('outbox.service — manualRetry (B7 ops action)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('re-queues a FAILED/DEAD_LETTERED event scoped to the tenant, resetting attempts', async () => {
+    mockOutboxUpdateMany.mockResolvedValue({ count: 1 });
+
+    await manualRetry('evt-1', 'tenant-1');
+
+    expect(mockOutboxUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'evt-1', tenant_org_id: 'tenant-1' }),
+        data: expect.objectContaining({ status: 'PENDING', attempts: 0, error_message: null }),
+      })
+    );
+  });
+
+  it('throws when no matching row is updated (wrong tenant, or not in a retryable status)', async () => {
+    mockOutboxUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(manualRetry('evt-x', 'tenant-1')).rejects.toThrow('EVENT_NOT_FOUND_OR_NOT_RETRYABLE');
   });
 });

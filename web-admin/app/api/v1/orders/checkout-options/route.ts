@@ -44,6 +44,9 @@ export async function GET(request: NextRequest) {
       supports_overpayment: method.supports_overpayment,
       supports_change_return: method.supports_change_return,
       requires_reference: method.requires_reference,
+      // B31: surfaced so the collect-payment modal can show a "will be
+      // recorded as PENDING until verified" notice for D9-configured methods.
+      default_creation_status: method.default_creation_status,
       allowed_in_pos: method.allowed_in_pos,
       allowed_for_pay_now: method.allowed_for_pay_now,
       allowed_for_pay_on_collection: method.allowed_for_pay_on_collection,

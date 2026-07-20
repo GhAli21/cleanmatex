@@ -2,6 +2,8 @@
 
 This pass re-verified the items the first pass explicitly marked **❓ not verified**, per the mandate "do not assume previous reports are complete." It produced **one material correction** (F-02), **one new finding** (F-10), and several confirmations.
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** the Confirmations table below marks "Refund accounting structure" ✅ sound, citing `refund_source_type` classification as "verified earlier in `classifyRefunds`." The frozen [Authoritative Report §13/§21](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) (2026-07-15) found this column was never actually persisted by the service — the irony this correction file itself warns about ("do not assume previous reports are complete") applied to this very row. Fixed by [B01](../Remediation_Work_Packages/B01_Refund_Lineage_And_Reopen_Due.md) on 2026-07-18. The F-10 collect-payment idempotency finding just above remains an accurate, still-open gap (superseded in scope by [B05](../Remediation_Work_Packages/B05_Later_Collection_Idempotency.md)).
+
 ## Material correction
 
 ### ✅ AR invoice allocation **IS** idempotent — F-02 was over-claimed

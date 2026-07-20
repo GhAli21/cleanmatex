@@ -22,6 +22,7 @@ import {
   checkCreditNoteLedgerLink,
   checkGiftCardLedgerLink,
   checkLoyaltyLedgerLink,
+  checkStoredValueFundingIntegrity,
   checkWalletBalanceMatchesLedger,
   checkWalletLedgerLink,
 } from './reconciliation/stored-value-checks';
@@ -97,6 +98,8 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS,
   RECONCILIATION_CHECK_NAMES.ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS,
   RECONCILIATION_CHECK_NAMES.CREDIT_APP_LIFECYCLE_CONSISTENCY,
+  RECONCILIATION_CHECK_NAMES.SV_FUNDING_TENDER_TOTAL_MATCH,
+  RECONCILIATION_CHECK_NAMES.SV_FUNDING_VOUCHER_LINK_EXISTS,
   // ── ADR-039 base-currency reporting snapshot checks ──────────────────
   RECONCILIATION_CHECK_NAMES.BASE_CURRENCY_RATE_PRESENT,
   RECONCILIATION_CHECK_NAMES.BASE_VS_ORDER_AMOUNT_CONSISTENCY,
@@ -293,6 +296,8 @@ export async function runReconciliation(
       checkGiftCardLedgerLink(tenantId, window),
       checkCreditNoteLedgerLink(tenantId, window),
       checkLoyaltyLedgerLink(tenantId, window),
+      // B3 — stored-value funding capture
+      checkStoredValueFundingIntegrity(tenantId, window),
       // Cash drawer
       checkCashMovementLink(tenantId, window),
       checkCashMovementAmountEqualsRetained(tenantId, window),

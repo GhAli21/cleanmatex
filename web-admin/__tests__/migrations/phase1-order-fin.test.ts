@@ -81,12 +81,12 @@ describe('1B — 0380 org_b2b_statement_payments_dtl (F-02 / F-04)', () => {
   });
 });
 
-describe('1C — collect-payment idempotency key (F-10)', () => {
+describe('1C — collect-payment idempotency key (F-10, superseded by B5/D010)', () => {
   const src = fs.readFileSync(path.join(SERVICES_DIR, 'order-settlement.service.ts'), 'utf8');
 
   it('no longer defaults the collect key to the unsafe stable form (operative code, not comments)', () => {
     // The bug was a default of `${orderId}_collect_${collectedBy}` — collides
-    // across distinct events. Strip // line comments so the doc-comment that
+    // across distinct events. Strip // line comments so a doc-comment that
     // references the old token (for explanation) does not trip this guard.
     const code = src
       .split('\n')
@@ -96,12 +96,24 @@ describe('1C — collect-payment idempotency key (F-10)', () => {
       })
       .join('\n');
     expect(code).not.toMatch(/`\$\{orderId\}_collect_\$\{collectedBy\}`/);
-    // and the operative fallback uses a per-request UUID
-    expect(code).toMatch(/idempotencyKeyInput\s*\?\?\s*`\$\{orderId\}_collect_\$\{randomUUID\(\)\}`/);
   });
 
-  it('falls back to a per-request UUID when no client key is supplied', () => {
-    expect(src).toMatch(/randomUUID/);
-    expect(src).toMatch(/idempotencyKeyInput\s*\?\?/);
+  // B5/D010 (Seq 4): the F-10 per-request-UUID fallback was itself superseded —
+  // "optional key" is not permitted on a money path at all. idempotencyKey is
+  // now a required field end to end (service type + both collect routes'
+  // Zod schemas), so a missing key is rejected with 400 instead of silently
+  // being auto-generated server-side.
+  it('idempotencyKey is a required field on CollectPaymentParams (no server-generated fallback)', () => {
+    expect(src).not.toMatch(/randomUUID/);
+    expect(src).toMatch(/idempotencyKey:\s*string;/);
+  });
+
+  it('both collect routes require idempotencyKey in their Zod schema (no .optional())', () => {
+    const routesDir = path.join(SERVICES_DIR, '..', '..', 'app', 'api', 'v1', 'orders', '[id]');
+    const collectRoute = fs.readFileSync(path.join(routesDir, 'collect-payment', 'route.ts'), 'utf8');
+    const paymentsRoute = fs.readFileSync(path.join(routesDir, 'payments', 'route.ts'), 'utf8');
+    for (const routeSrc of [collectRoute, paymentsRoute]) {
+      expect(routeSrc).toMatch(/idempotencyKey:\s*z\.string\(\)\.min\(1\)\.max\(200\),/);
+    }
   });
 });

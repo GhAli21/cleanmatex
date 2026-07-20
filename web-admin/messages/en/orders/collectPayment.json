@@ -14,5 +14,7 @@
   "submit": "Collect",
   "cancel": "Cancel",
   "success": "Payment collected successfully",
-  "submitError": "Failed to collect payment"
+  "submitError": "Failed to collect payment",
+  "idempotencyConflict": "This collection attempt is already in progress with different details. Refresh and try again.",
+  "pendingUntilVerified": "This method will be recorded as pending until verified — the order will not be marked fully paid yet."
 }

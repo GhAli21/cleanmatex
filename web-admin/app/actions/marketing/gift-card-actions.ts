@@ -15,6 +15,7 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import {
   createGiftCard,
   generateGiftCardCode,
@@ -25,6 +26,7 @@ import {
   adminAdjustGiftCard,
   getGiftCardTransactions,
 } from '@/lib/services/gift-card-service';
+import { fundStoredValue, FUNDING_TYPES } from '@/lib/services/stored-value-funding.service';
 import { logger } from '@/lib/utils/logger';
 import type {
   GiftCard,
@@ -57,6 +59,26 @@ const issueGiftCardAdminSchema = z.object({
   card_pin:              z.string().min(4).max(20).optional(),
   issue_type:            z.enum(['PROMOTIONAL', 'CORPORATE', 'GOODWILL', 'MIGRATION', 'REPLACEMENT']).optional(),
   currency_code:         z.string().min(1).max(10),
+});
+
+// B3 — governed DIRECT_TENDER sale: a real tender leg is required, unlike
+// sellGiftCardSchema above (still used by the no-tender path, if any caller
+// still needs it directly).
+const sellGiftCardWithTenderSchema = z.object({
+  card_name:                  z.string().min(1).max(200),
+  card_name2:                 z.string().max(200).optional(),
+  amount:                     z.number().positive(),
+  expiry_date:                z.string().datetime().optional(),
+  issued_to_customer_id:      z.string().uuid().optional(),
+  purchased_by_customer_id:   z.string().uuid().optional(),
+  card_pin:                   z.string().min(4).max(20).optional(),
+  currency_code:              z.string().min(1).max(10),
+  branch_id:                  z.string().uuid().optional(),
+  payment_method_id:          z.string().uuid(),
+  cash_tendered:               z.number().positive().optional(),
+  cash_drawer_session_id:      z.string().uuid().optional(),
+  pos_session_id:              z.string().uuid().optional(),
+  idempotency_key:             z.string().min(1),
 });
 
 const adjustGiftCardSchema = z.object({
@@ -218,6 +240,84 @@ export async function sellGiftCardAction(
   } catch (error) {
     logger.error('sellGiftCardAction failed', error as Error, {});
     return { success: false, error: 'Failed to sell gift card' };
+  }
+}
+
+/**
+ * B3 — Sell a gift card through the governed DIRECT_TENDER funding service:
+ * requires a real tender leg (payment method + amount, cash-drawer session
+ * when the method requires one). The card is created unfunded and only
+ * activated once the tender is confirmed — see stored-value-funding.service.ts.
+ * Behind feature flag `order_fin_sv_funding_capture`.
+ */
+export async function sellGiftCardWithTenderAction(
+  input: z.infer<typeof sellGiftCardWithTenderSchema>
+): Promise<
+  | { success: true; data: { giftCardId: string; giftCardCode: string; voucherId: string } }
+  | { success: false; error: string }
+> {
+  try {
+    const auth = await getAuthContext();
+    if (!auth.tenantId) {
+      return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    const { tenantId, userId } = auth;
+
+    const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
+    if (!flagOn) {
+      return { success: false, error: 'FUNDING_CAPTURE_NOT_ENABLED' };
+    }
+
+    const canSell = await hasPermissionServer('gift_cards:sell');
+    if (!canSell) {
+      return { success: false, error: 'Insufficient permissions: gift_cards:sell required' };
+    }
+
+    const parsed = sellGiftCardWithTenderSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    }
+    const data = parsed.data;
+
+    const result = await fundStoredValue({
+      tenantId,
+      branchId: data.branch_id,
+      fundingType: FUNDING_TYPES.GIFT_CARD_SALE,
+      customerId: data.purchased_by_customer_id,
+      currencyCode: data.currency_code,
+      fundedAmount: data.amount,
+      tenderLegs: [
+        {
+          paymentMethodId: data.payment_method_id,
+          amount: data.amount,
+          cashTendered: data.cash_tendered,
+        },
+      ],
+      cashDrawerSessionId: data.cash_drawer_session_id,
+      posSessionId: data.pos_session_id,
+      performedBy: userId,
+      idempotencyKey: data.idempotency_key,
+      giftCard: {
+        cardName: data.card_name,
+        cardName2: data.card_name2,
+        cardPin: data.card_pin,
+        expiryDate: data.expiry_date,
+        issuedToCustomerId: data.issued_to_customer_id,
+      },
+    });
+
+    revalidatePath('/dashboard/marketing/gift-cards');
+    return {
+      success: true,
+      data: {
+        giftCardId: result.giftCardId!,
+        giftCardCode: result.giftCardCode!,
+        voucherId: result.voucherId,
+      },
+    };
+  } catch (error) {
+    logger.error('sellGiftCardWithTenderAction failed', error as Error, {});
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to sell gift card' };
   }
 }
 

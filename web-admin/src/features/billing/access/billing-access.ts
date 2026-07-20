@@ -674,6 +674,47 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Finance reconciliation run detail route.'],
   },
   {
+    routePattern: '/dashboard/internal_fin/outbox',
+    label: 'Financial Outbox Monitor',
+    page: {
+      permissions: ['finance_outbox:view'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      retryEvent: {
+        label: 'Manually retry a FAILED or DEAD_LETTERED outbox event',
+        requirement: {
+          permissions: ['finance_outbox:retry'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Outbox health counts + event list',
+        method: 'GET',
+        path: '/api/v1/finance/outbox',
+        requirement: {
+          permissions: ['finance_outbox:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Manually retry an outbox event',
+        method: 'POST',
+        path: '/api/v1/finance/outbox/[eventId]/retry',
+        requirement: {
+          permissions: ['finance_outbox:retry'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: [
+      'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts).',
+      'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
+    ],
+  },
+  {
     routePattern: '/dashboard/internal_fin/refunds',
     label: 'Refunds',
     page: {
@@ -767,5 +808,7 @@ export const BILLING_INTERNAL_FIN_INVOICES_NEW_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices/new')!
 export const BILLING_INTERNAL_FIN_RECONCILIATION_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/reconciliation')!
+export const BILLING_INTERNAL_FIN_OUTBOX_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/outbox')!
 export const BILLING_INTERNAL_FIN_REFUNDS_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/refunds')!

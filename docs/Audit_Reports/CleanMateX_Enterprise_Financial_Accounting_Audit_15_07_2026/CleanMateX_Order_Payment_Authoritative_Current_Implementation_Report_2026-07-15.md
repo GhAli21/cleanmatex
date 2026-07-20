@@ -987,6 +987,8 @@ Scope boundary: **B16 fixes only the documented M2 filter** (active + COMPLETED-
 
 Recommendation: a dedicated decision + package to unify **one** expected-cash formula across `closeSession`, `buildSessionReconciliation`, and `buildCashDrawerClosePreview` — counting each cash fact exactly once (sale cash from the payment ledger; float/petty/adjustment cash from manual movements; sale-mirror `CASH_SALE`/change movements excluded), with correct change modelling. Until then the drawer-close capability must not be marked production-ready (consistent with B16's own Safety block and the one-package-does-not-make-a-capability-production-ready rule).
 
+**RESOLVED by [B35](../../../features/Order_Fin/Remediation_Work_Packages/B35_Unified_Drawer_Expected_Cash.md) (implemented 2026-07-18, owner directive).** The recommended single-source-of-truth formula was adopted: the payment ledger owns sale cash; the movement term counts only MANUAL movements (`order_payment_id IS NULL`), excluding sale-mirror `CASH_SALE`/change rows. Applied unconditionally across `closeSession`, `buildSessionReconciliation`, the list/detail loaders, and (via the preferred server value) `buildCashDrawerClosePreview`. The `order_fin_drawer_close_v2` feature flag introduced by B16 was removed (the fix is a correctness change, not a gated rollout). Gates green; the two previously-failing `cash-drawer-close-preview` tests now pass. B9 coordination noted (cash-refund OUT movements must not be excluded by the `order_payment_id` rule).
+
 ```text
 AUTHORITATIVE REPORT STATUS:
 COMPLETE WITHIN THE INSPECTED WEB-ADMIN SCOPE,

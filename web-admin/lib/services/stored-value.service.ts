@@ -49,9 +49,21 @@ export async function getWalletBalance(
  */
 export async function topUpWalletTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; amount: number; orderId?: string; notes?: string; performedBy?: string; currencyCode?: string; idempotencyKey?: string }
+  params: {
+    tenantId: string;
+    customerId: string;
+    amount: number;
+    orderId?: string;
+    notes?: string;
+    performedBy?: string;
+    currencyCode?: string;
+    idempotencyKey?: string;
+    /** B3: BVM voucher backlink for a governed DIRECT_TENDER top-up (see stored-value-funding.service.ts). */
+    voucherId?: string;
+    voucherLineId?: string;
+  }
 ) {
-  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode, idempotencyKey } = params;
+  const { tenantId, customerId, amount, orderId, notes, performedBy, currencyCode, idempotencyKey, voucherId, voucherLineId } = params;
 
   if (idempotencyKey) {
     const existing = await tx.org_wallet_txn_dtl.findFirst({
@@ -106,6 +118,8 @@ export async function topUpWalletTx(
       notes:          notes ?? null,
       performed_by:   performedBy ?? null,
       idempotency_key: idempotencyKey ?? null,
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
       rec_status:     1,
     },
   });
@@ -211,9 +225,27 @@ export async function getAdvanceBalance(
 
 export async function issueAdvanceTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; amount: number; notes?: string; performedBy?: string; currencyCode?: string }
+  params: {
+    tenantId: string;
+    customerId: string;
+    amount: number;
+    notes?: string;
+    performedBy?: string;
+    currencyCode?: string;
+    /** B3: idempotency-skip (org_advance_txn_dtl already has the unique constraint) + BVM voucher backlink for a governed DIRECT_TENDER receipt. */
+    idempotencyKey?: string;
+    voucherId?: string;
+    voucherLineId?: string;
+  }
 ) {
-  const { tenantId, customerId, amount, notes, performedBy, currencyCode } = params;
+  const { tenantId, customerId, amount, notes, performedBy, currencyCode, idempotencyKey, voucherId, voucherLineId } = params;
+
+  if (idempotencyKey) {
+    const existing = await tx.org_advance_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   let advance = await tx.org_customer_advances_mst.findFirst({
     where: { tenant_org_id: tenantId, customer_id: customerId, is_active: true },
@@ -257,6 +289,9 @@ export async function issueAdvanceTx(
       balance_after:  balanceAfter,
       notes:          notes ?? null,
       created_by:     performedBy ?? null,
+      idempotency_key:         idempotencyKey ?? null,
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
       rec_status:     1,
     },
   });

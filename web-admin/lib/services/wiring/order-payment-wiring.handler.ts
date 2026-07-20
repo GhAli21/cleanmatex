@@ -83,6 +83,8 @@ export const orderPaymentWiringHandler: WiringHandler = {
         gateway_reference:       line.gateway_reference ?? null,
         bank_reference:          line.bank_reference ?? null,
         check_no:                line.check_number ?? null,
+        check_bank_name:         line.check_bank ?? null,
+        check_due_date:          line.check_date ?? null,
         card_brand_code:         line.card_brand_code ?? null,
         card_last4:              line.card_last4 ?? null,
         payment_status:          paymentStatus,

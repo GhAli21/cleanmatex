@@ -29,10 +29,14 @@ const TOLERANCE = 0.001;
  *
  * This function is only called when defaultCreationStatus is null/empty in D9 config;
  * a configured status always wins.
+ *
+ * Exported (B31) so every entry point that resolves a payment's creation status —
+ * submit, later collection — shares this one fallback instead of each re-deriving
+ * its own family rule.
  * @param paymentMethodCode
  * @param gatewayCode
  */
-function resolveDefaultStatus(paymentMethodCode: string, gatewayCode?: string | null): string {
+export function resolveDefaultStatus(paymentMethodCode: string, gatewayCode?: string | null): string {
   if (gatewayCode) return 'PROCESSING';
   if (paymentMethodCode === 'CASH' || paymentMethodCode === 'CARD') return 'COMPLETED';
   return 'PENDING';

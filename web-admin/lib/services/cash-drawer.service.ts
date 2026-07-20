@@ -6,7 +6,6 @@ import { lookupAuditActors, type AuditActorLookupResult } from '@lib/services/au
 import { prisma } from '@lib/db/prisma'
 import { withTenantContext } from '@lib/db/tenant-context'
 import { CASH_VARIANCE_TOLERANCE } from '@/lib/constants/financial-tolerances'
-import { canAccess } from '@/lib/services/feature-flags.service'
 import {
   effectiveCashPaymentWhere,
   sumEffectiveCashPayments,
@@ -276,34 +275,28 @@ async function loadDrawerTerminals(tenantId: string, terminalIds: string[]) {
   return new Map(terminals.map((terminal) => [terminal.id, terminal]))
 }
 
-/**
- * B16: resolve the `order_fin_drawer_close_v2` tenant flag once per request.
- * When enabled, expected-cash math counts only active, COMPLETED-set,
- * cash-family payments (M2 fix); when disabled, the legacy unfiltered aggregate
- * is used so the change ships as a controlled, reversible rollout.
- * @param tenantId tenant resolved server-side from the authenticated session
- */
-async function isDrawerCloseV2Enabled(tenantId: string): Promise<boolean> {
-  return canAccess(tenantId, 'order_fin_drawer_close_v2')
-}
-
 function buildSessionReconciliation(
   session: SummaryDataBundle['session'],
   movements: SummaryDataBundle['movements'],
   payments: SummaryDataBundle['payments'],
-  effectiveCashOnly = false,
 ): CashDrawerReconciliationSummary {
-  const totalCashIn = movements
+  // Expected cash counts each cash fact exactly once (B16 M2 + Addendum A2 fix,
+  // applied unconditionally — no feature flag):
+  //   • sale cash comes from the payment ledger — `cashCollected` below counts
+  //     only active, COMPLETED-set, cash-family payments;
+  //   • the drawer-movement term counts only MANUAL movements (float / petty /
+  //     drop / adjustment — `order_payment_id` is null). Sale-mirror movements
+  //     (CASH_SALE + their change CASH_OUT, which carry `order_payment_id`) are
+  //     excluded because the payment already counts that cash — folding them in
+  //     was the audited double-count (A2).
+  const manualMovements = movements.filter((movement) => movement.order_payment_id == null)
+  const totalCashIn = manualMovements
     .filter((movement) => movement.direction === 'IN')
     .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  const totalCashOut = movements
+  const totalCashOut = manualMovements
     .filter((movement) => movement.direction === 'OUT')
     .reduce((sum, movement) => sum + toNumber(movement.amount), 0)
-  // B16: cashCollected counts only effective cash facts when drawer-close v2 is
-  // on (active + COMPLETED-set + cash-family); otherwise the legacy raw sum.
-  const totalPayments = effectiveCashOnly
-    ? sumEffectiveCashPayments(payments)
-    : payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0)
+  const totalPayments = sumEffectiveCashPayments(payments)
   const openingFloat = toNumber(session.opening_float_amount)
   const movementNet = totalCashIn - totalCashOut
   const countedCash = session.counted_cash_amount == null ? null : toNumber(session.counted_cash_amount)
@@ -612,6 +605,11 @@ async function loadMovementTotalsBySession(tenantId: string, sessionIds: string[
         tenant_org_id: tenantId,
         cash_drawer_session_id: { in: sessionIds },
         is_active: true,
+        // A2 fix: only MANUAL movements feed expected cash; sale-mirror
+        // movements (CASH_SALE + change, `order_payment_id` set) are already
+        // counted via the payment total, so excluding them avoids the
+        // double-count.
+        order_payment_id: null,
       },
       _sum: {
         amount: true,
@@ -639,11 +637,7 @@ async function loadMovementTotalsBySession(tenantId: string, sessionIds: string[
   return totals
 }
 
-async function loadPaymentTotalsBySession(
-  tenantId: string,
-  sessionIds: string[],
-  effectiveCashOnly = false,
-) {
+async function loadPaymentTotalsBySession(tenantId: string, sessionIds: string[]) {
   if (sessionIds.length === 0) {
     return new Map<string, number>()
   }
@@ -654,9 +648,9 @@ async function loadPaymentTotalsBySession(
       where: {
         tenant_org_id: tenantId,
         cash_drawer_session_id: { in: sessionIds },
-        // B16: when drawer-close v2 is on, restrict expected-cash contribution
-        // to active + COMPLETED-set + cash-family; otherwise legacy is_active-only.
-        ...(effectiveCashOnly ? effectiveCashPaymentWhere() : { is_active: true }),
+        // B16 M2 fix (unconditional): expected cash counts only active +
+        // COMPLETED-set + cash-family payments.
+        ...effectiveCashPaymentWhere(),
       },
       _sum: {
         amount: true,
@@ -907,12 +901,11 @@ export async function getCashDrawerOverviewPage(
       .map((session) => session.id)
       .filter((sessionId) => !openSessions.some((openSession) => openSession.id === sessionId)),
   ]
-  const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
   const [movementCountsBySession, paymentCountsBySession, movementTotalsBySession, paymentTotalsBySession] = await Promise.all([
     loadMovementCountsBySession(tenantId, sessionsForCounts),
     loadPaymentCountsBySession(tenantId, sessionsForCounts),
     loadMovementTotalsBySession(tenantId, sessionsForCounts),
-    loadPaymentTotalsBySession(tenantId, sessionsForCounts, effectiveCashOnly),
+    loadPaymentTotalsBySession(tenantId, sessionsForCounts),
   ])
 
   const openSessionMap = new Map(openSessions.map((session) => [session.cash_drawer_id, session]))
@@ -1038,12 +1031,11 @@ export async function getCashDrawerSessionsPage(
   ])
 
   const sessionIds = sessions.map((session) => session.id)
-  const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
   const [movementCountsBySession, paymentCountsBySession, movementTotalsBySession, paymentTotalsBySession, actorMap] = await Promise.all([
     loadMovementCountsBySession(tenantId, sessionIds),
     loadPaymentCountsBySession(tenantId, sessionIds),
     loadMovementTotalsBySession(tenantId, sessionIds),
-    loadPaymentTotalsBySession(tenantId, sessionIds, effectiveCashOnly),
+    loadPaymentTotalsBySession(tenantId, sessionIds),
     resolveActorMap(
       tenantId,
       sessions.flatMap((session) => [session.opened_by, session.closed_by]),
@@ -1155,12 +1147,11 @@ export async function getCashDrawerOverviewDetail(
   ])
 
   const recentSessionIds = sessions.map((session) => session.id)
-  const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
   const [movementCountsBySession, paymentCountsBySession, movementTotalsBySession, paymentTotalsBySession, actorMap] = await Promise.all([
     loadMovementCountsBySession(tenantId, recentSessionIds),
     loadPaymentCountsBySession(tenantId, recentSessionIds),
     loadMovementTotalsBySession(tenantId, recentSessionIds),
-    loadPaymentTotalsBySession(tenantId, recentSessionIds, effectiveCashOnly),
+    loadPaymentTotalsBySession(tenantId, recentSessionIds),
     resolveActorMap(
       tenantId,
       [
@@ -1247,10 +1238,7 @@ export async function getCashDrawerSessionDetail(
   const paymentPage = clampPage(options.paymentPage)
   const paymentPageSize = clampPageSize(options.paymentPageSize)
 
-  const [summaryData, effectiveCashOnly] = await Promise.all([
-    loadSummaryData(tenantId, sessionId),
-    isDrawerCloseV2Enabled(tenantId),
-  ])
+  const summaryData = await loadSummaryData(tenantId, sessionId)
 
   if (summaryData.session.cash_drawer_id !== drawerId) {
     throw new Error('Cash drawer session not found')
@@ -1368,7 +1356,6 @@ export async function getCashDrawerSessionDetail(
     summaryData.session,
     summaryData.movements,
     summaryData.payments,
-    effectiveCashOnly,
   )
 
   const sessionLifecycle: CashDrawerSessionLifecycleDetail = {
@@ -1543,17 +1530,18 @@ export async function closeSession(
     }),
   )
 
-  // B16: expected cash counts only active, COMPLETED-set, cash-family payments
-  // when drawer-close v2 is enabled (M2 fix); flag off keeps the legacy
-  // unfiltered aggregate so the rollout is controlled and reversible.
-  const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
+  // Expected cash counts each cash fact once (B16 M2 + Addendum A2 fix, applied
+  // unconditionally): sale cash from the payment ledger (active + COMPLETED-set
+  // + cash-family), plus MANUAL drawer movements only (`order_payment_id` null).
+  // Sale-mirror movements (CASH_SALE + change, `order_payment_id` set) are
+  // excluded — the payment already counts that cash (the audited double-count).
   const [cashPayments, movements, drawer] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_order_payments_dtl.aggregate({
         where: {
           tenant_org_id: tenantId,
           cash_drawer_session_id: sessionId,
-          ...(effectiveCashOnly ? effectiveCashPaymentWhere() : {}),
+          ...effectiveCashPaymentWhere(),
         },
         _sum: { amount: true },
       }),
@@ -1564,6 +1552,7 @@ export async function closeSession(
           tenant_org_id: tenantId,
           cash_drawer_session_id: sessionId,
           is_active: true,
+          order_payment_id: null,
         },
         select: {
           direction: true,
@@ -1571,7 +1560,7 @@ export async function closeSession(
         },
       }),
     ),
-    // B16: per-drawer variance-approval threshold (NULL = no gate).
+    // B16: per-drawer variance-approval threshold (NULL = no gate — the default).
     withTenantContext(tenantId, () =>
       prisma.org_cash_drawers_mst.findFirst({
         where: { id: session.cash_drawer_id, tenant_org_id: tenantId },
@@ -1591,13 +1580,15 @@ export async function closeSession(
   const variance = params.physicalCount - expectedCash
   const isBalanced = Math.abs(variance) < CASH_VARIANCE_TOLERANCE
 
-  // B16 (deferred-approval model): when drawer-close v2 is on and the drawer has
-  // a configured threshold, a not-balanced close whose |variance| exceeds it is
-  // flagged pending approval. The session still closes; a supervisor approves
-  // it separately via `approveSessionVariance`. Snapshotting the threshold both
-  // marks the pending state and preserves the value in effect at close time.
+  // B16 variance approval (OPTIONAL, deferred, opt-in per drawer): when the
+  // drawer has a configured threshold and a not-balanced close exceeds it, the
+  // session is flagged eligible for optional supervisor approval. The close
+  // always completes; a supervisor MAY approve it separately via
+  // `approveSessionVariance`. Snapshotting the threshold marks the eligible
+  // state and preserves the value in effect at close time. NULL threshold (the
+  // default) = no approval concept at all.
   const varianceThreshold =
-    effectiveCashOnly && drawer?.variance_approval_threshold != null
+    drawer?.variance_approval_threshold != null
       ? toNumber(drawer.variance_approval_threshold)
       : null
   const varianceApprovalPending =
@@ -1743,9 +1734,8 @@ export async function recordMovement(
  * await getSessionSummary('tenant-001', 'session-001')
  */
 export async function getSessionSummary(tenantId: string, sessionId: string) {
-  const effectiveCashOnly = await isDrawerCloseV2Enabled(tenantId)
   const { session, movements, payments } = await loadSummaryData(tenantId, sessionId)
-  const reconciliation = buildSessionReconciliation(session, movements, payments, effectiveCashOnly)
+  const reconciliation = buildSessionReconciliation(session, movements, payments)
 
   return {
     session,

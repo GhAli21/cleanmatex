@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { randomUUID } from 'node:crypto';
-
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import {
   CREDIT_APPLICATION_STATUSES,
@@ -49,6 +48,13 @@ import {
   assertOpenPosSessionForFinanceTx,
   autoLinkDrawerTx,
 } from '@/lib/services/pos-session.service';
+import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
+import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.service';
+import { createBizVoucher } from '@/lib/services/voucher-biz.service';
+import { addVoucherLine } from '@/lib/services/voucher-line.service';
+import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
+import { VOUCHER_TYPE, LINE_TYPE, LINE_ROLE } from '@/lib/constants/voucher';
+import { hashPayload } from '@/lib/utils/idempotency';
 
 /** Prisma transaction client shared with submit-order's atomic settlement flow. */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -600,6 +606,12 @@ export interface CollectPaymentParams {
     checkNumber?: string;
     checkBank?: string;
     checkDate?: string;
+    /**
+     * D001/B31: explicit per-leg override. Only 'PENDING' is honored — an
+     * explicit request can never force COMPLETED over a PENDING D9 config,
+     * mirroring the submit planner's `paymentStatus` contract exactly.
+     */
+    paymentStatus?: 'PENDING';
   }>;
   cashDrawerSessionId?: string;
   posSessionId?: string;
@@ -607,8 +619,15 @@ export interface CollectPaymentParams {
   collectedBy: string;
   customerId?: string | null;
   overpaymentResolution?: OverpaymentResolutionInput;
-  idempotencyKey?: string;
+  /**
+   * D010/B5: required on every money path. The route rejects a missing key
+   * with 400 before this service is ever called; kept required here too so
+   * no future caller can bypass the contract.
+   */
+  idempotencyKey: string;
 }
+
+const COLLECT_PAYMENT_IDEMPOTENCY_RESOURCE = 'collect_payment';
 
 /**
  * Collect actual money against an existing deferred order.
@@ -616,6 +635,22 @@ export interface CollectPaymentParams {
  * Why:
  * Batch 0 needs real partial later collection support instead of forcing one
  * full settlement event that zeroes the header immediately.
+ *
+ * BVM parity (B4): real-payment legs are wired through createBizVoucher +
+ * addVoucherLine + postAndWireBizVoucher — the same voucher/wiring path
+ * submit-order uses — instead of writing org_order_payments_dtl and
+ * org_cash_drawer_movements_dtl directly. This is what gives every
+ * collection a fin_voucher_id/fin_voucher_trx_line_id backlink and satisfies
+ * the ORDER_PAYMENT_LINK_EXISTS reconciliation check (B20).
+ *
+ * Idempotency (B5): the whole collection event is keyed once at the top
+ * (org_idempotency_keys, resource_type='collect_payment') — a replay with the
+ * identical payload returns the original result with zero new financial
+ * effects; a replay with a changed payload throws IDEMPOTENCY_CONFLICT (the
+ * route maps this to HTTP 409). Per-leg voucher/line creation additionally
+ * carries its own deterministic sub-key (`${idempotencyKey}_leg_${legIndex}`)
+ * per the D010 grammar, so a partial-failure retry cannot double-write a
+ * single leg either.
  *
  * @param params later collection payload
  * @returns normalized snapshot result after collection
@@ -629,18 +664,45 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     posSessionId,
     posSessionUserId,
     collectedBy,
+    customerId: requestedCustomerId,
     overpaymentResolution,
-    idempotencyKey: idempotencyKeyInput,
+    idempotencyKey,
   } = params;
   const policy = await getPartialLaterCollectionPolicy(tenantId);
-  // F-10 (D-05): never reuse a stable per-(order,user) key — `${orderId}_collect_${collectedBy}`
-  // collides across DISTINCT collection events and can silently dedupe a legitimate
-  // second partial collection by the same cashier. Prefer the client/POS-supplied
-  // per-event key; fall back to a per-request UUID (collision-free). The UI sends a
-  // stable per-attempt key so genuine retries dedupe (see collect-payment modal).
-  const idempotencyKey = idempotencyKeyInput ?? `${orderId}_collect_${randomUUID()}`;
 
   return prisma.$transaction(async (tx) => {
+    // ── 0. Idempotency conflict check + replay short-circuit (B5/D010) ──────
+    // Runs before the order lock so a pure replay never re-validates against
+    // an outstanding balance the original call has already reduced.
+    const requestHash = hashPayload({
+      orderId,
+      paymentLegs,
+      cashDrawerSessionId,
+      posSessionId,
+      customerId: requestedCustomerId,
+      overpaymentResolution,
+    });
+    const existingIdempotency = await tx.org_idempotency_keys.findFirst({
+      where: {
+        tenant_org_id: tenantId,
+        key: idempotencyKey,
+        resource_type: COLLECT_PAYMENT_IDEMPOTENCY_RESOURCE,
+      },
+      select: { response_cache: true },
+    });
+    if (existingIdempotency?.response_cache) {
+      const cache = existingIdempotency.response_cache as {
+        payload_hash?: string;
+        result?: SettlementResult;
+      };
+      if (cache.payload_hash && cache.payload_hash !== requestHash) {
+        throw new Error('IDEMPOTENCY_CONFLICT');
+      }
+      if (cache.result) {
+        return cache.result;
+      }
+    }
+
     const rows = await tx.$queryRaw<
       Array<{
         id: string;
@@ -683,41 +745,36 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       throw new Error(`Collected amount (${totalCollected}) is less than outstanding (${outstanding})`);
     }
 
+    // D9-aware method resolution (B31): the same effective-config chain
+    // (org override → sys default, branch overrides merged in) the submit
+    // planner uses, instead of collect's own bespoke lookup that never read
+    // default_creation_status/allow_status_override at all.
+    const effectiveConfigs = await listEffectivePaymentMethodConfigs({
+      tenantId,
+      branchId: branchId ?? undefined,
+      methodIds: paymentLegs.map((leg) => leg.paymentMethodId),
+    });
+    const configById = new Map(effectiveConfigs.map((c) => [c.id, c]));
+
     const resolvedLegs: CollectionLegInput[] = [];
+    // B31: per-leg D9 creation-status resolution, shared with the submit
+    // planner via resolveDefaultStatus() — collect no longer hardcodes
+    // gatewayCode ? 'PENDING' : 'COMPLETED'.
+    const resolvedStatusByLegIndex = new Map<number, string>();
+
     for (const [legIndex, leg] of paymentLegs.entries()) {
-      const method = await tx.org_payment_methods_cf.findFirst({
-        where: {
-          id: leg.paymentMethodId,
-          tenant_org_id: tenantId,
-          is_active: true,
-          is_enabled: true,
-          is_platform_disabled: false,
-        },
-        select: {
-          id: true,
-          payment_method_code: true,
-          gateway_code: true,
-          requires_cash_drawer: true,
-          supports_change_return: true,
-          supports_overpayment: true,
-        },
-      });
-      if (!method) {
+      const method = configById.get(leg.paymentMethodId);
+      if (!method || !method.is_enabled || method.is_platform_disabled) {
         throw new Error('Selected payment method is not available for later collection');
       }
-      const branchOverride = branchId
-        ? await tx.org_branch_payment_methods_cf.findFirst({
-            where: {
-              tenant_org_id: tenantId,
-              branch_id: branchId,
-              org_payment_method_id: leg.paymentMethodId,
-              is_active: true,
-              rec_status: 1,
-            },
-            select: { cash_drawer_required: true },
-          })
-        : null;
-      const requiresCashDrawer = branchOverride?.cash_drawer_required ?? method.requires_cash_drawer;
+      // Later collection only ever records real money against the order —
+      // a CREDIT_APPLICATION-natured method (wallet/gift card/loyalty/advance)
+      // must redeem stored value, not create a payment row. Fail closed
+      // rather than silently mis-processing (pre-existing gap, closed here).
+      if (method.payment_nature !== PAYMENT_NATURE.REAL_PAYMENT) {
+        throw new Error('INVALID_PAYMENT_NATURE_FOR_COLLECTION');
+      }
+      const requiresCashDrawer = method.requires_cash_drawer;
 
       if (method.payment_method_code === 'CASH') {
         const cashTendered = leg.cashTendered ?? leg.amount;
@@ -730,6 +787,14 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       } else if (leg.cashTendered != null) {
         throw new Error('CASH_TENDERED_ONLY_FOR_CASH');
       }
+
+      const defaultCreationStatus =
+        method.default_creation_status ||
+        resolveDefaultStatus(method.payment_method_code, method.gateway_code);
+      resolvedStatusByLegIndex.set(
+        legIndex,
+        leg.paymentStatus === 'PENDING' ? 'PENDING' : defaultCreationStatus,
+      );
 
       resolvedLegs.push({
         legIndex,
@@ -816,6 +881,35 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       );
     }
 
+    // ── BVM voucher creation + wiring (B4) ───────────────────────────────────
+    // One RECEIPT voucher per collection event; each leg becomes an
+    // ORDER_PAYMENT voucher line, then postAndWireBizVoucher dispatches the
+    // same wiring-handler registry submit-order uses — orderPaymentWiringHandler
+    // creates the org_order_payments_dtl row, cashDrawerWiringHandler creates
+    // the org_cash_drawer_movements_dtl row(s) — so every collection payment
+    // carries a fin_voucher_id/fin_voucher_trx_line_id backlink and satisfies
+    // ORDER_PAYMENT_LINK_EXISTS (B20). Change is auto-derived by addVoucherLine
+    // from tenderedAmount − amount, same as submit.
+    const voucher = await createBizVoucher(
+      tenantId,
+      {
+        voucher_type:    VOUCHER_TYPE.RECEIPT,
+        direction:       'IN',
+        party_type:      'CUSTOMER',
+        customer_id:     customerId ?? undefined,
+        order_id:        orderId,
+        source_module:   'ORDERS',
+        source_ref_type: 'ORDER',
+        source_ref_id:   orderId,
+        currency_code:   currencyCode,
+        total_amount:    totalCollected,
+        branch_id:       branchId ?? undefined,
+        idempotency_key: `${idempotencyKey}_vch`,
+      },
+      collectedBy,
+      tx,
+    );
+
     let changeReturned = 0;
 
     for (const resolved of resolvedLegs) {
@@ -825,103 +919,56 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           : 0;
       changeReturned += change;
 
-      const paymentStatus = resolved.gatewayCode ? 'PENDING' : 'COMPLETED';
+      if (resolved.paymentMethodCode === 'CASH' && resolved.requiresCashDrawer && !cashDrawerSessionId) {
+        throw new Error('CASH_DRAWER_SESSION_REQUIRED');
+      }
 
-      const payment = await tx.org_order_payments_dtl.create({
-        data: {
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          org_payment_method_id: resolved.orgPaymentMethodId,
-          payment_method_code: resolved.paymentMethodCode,
-          currency_code: currencyCode,
-          payment_nature_snapshot: 'REAL_PAYMENT',
-          amount: resolved.amount,
-          tendered_amount: resolved.cashTendered ?? null,
-          change_returned_amount: change > 0 ? change : null,
-          cash_drawer_session_id: resolved.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-          pos_session_id: posSessionId ?? null,
-          gateway_code: resolved.gatewayCode ?? null,
-          gateway_reference: resolved.reference ?? null,
-          check_no: resolved.checkNumber ?? null,
-          check_bank_name: resolved.checkBank ?? null,
-          check_due_date: resolved.checkDate ? new Date(resolved.checkDate) : null,
-          payment_status: paymentStatus,
-          paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
-          is_active: true,
-          rec_status: 1,
-          received_by: collectedBy,
+      await addVoucherLine(
+        tenantId,
+        voucher.id,
+        {
+          line_type:              LINE_TYPE.RECEIPT,
+          line_role:              LINE_ROLE.ORDER_PAYMENT,
+          direction:              'IN',
+          target_type:            'ORDER',
+          target_id:              orderId,
+          order_id:               orderId,
+          customer_id:            customerId ?? undefined,
+          branch_id:              branchId ?? undefined,
+          payment_method_code:    resolved.paymentMethodCode,
+          payment_status:         resolvedStatusByLegIndex.get(resolved.legIndex) ?? 'PENDING',
+          org_payment_method_id:  resolved.orgPaymentMethodId,
+          amount:                 resolved.amount,
+          currency_code:          currencyCode,
+          cash_drawer_session_id: resolved.requiresCashDrawer ? (cashDrawerSessionId ?? undefined) : undefined,
+          tendered_amount:        resolved.cashTendered,
+          gateway_code:           resolved.gatewayCode ?? undefined,
+          gateway_reference:      resolved.reference,
+          check_number:           resolved.checkNumber,
+          check_bank:             resolved.checkBank,
+          check_date:             resolved.checkDate,
+          pos_session_id:         posSessionId,
+          idempotency_key:        `${idempotencyKey}_leg_${resolved.legIndex}`,
         },
-        select: { id: true },
-      });
+        collectedBy,
+        undefined,
+        tx,
+      );
 
-      if (resolved.paymentMethodCode === 'CASH' && resolved.requiresCashDrawer) {
-        if (!cashDrawerSessionId) {
-          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        }
-        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
-          where: {
-            id: cashDrawerSessionId,
-            tenant_org_id: tenantId,
-            status: 'OPEN',
-          },
-          select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
-        });
-        if (!session) {
-          throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        }
-        await tx.org_cash_drawer_movements_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            branch_id: session.branch_id ?? branchId,
-            cash_drawer_id: session.cash_drawer_id,
-            cash_drawer_session_id: session.id,
-            movement_type: 'CASH_SALE',
-            direction: 'IN',
-            amount: resolved.amount,
-            currency_code: currencyCode ?? session.currency_code,
-            order_id: orderId,
-            order_payment_id: payment.id,
-            performed_by: collectedBy,
-            performed_at: new Date(),
-            is_active: true,
-            rec_status: 1,
-            created_by: collectedBy,
-          },
-        });
-
+      if (resolved.paymentMethodCode === 'CASH' && resolved.requiresCashDrawer && cashDrawerSessionId) {
         await autoLinkDrawerTx(tx, {
           tenantId,
           userId: posSessionUserId ?? collectedBy,
           posSessionId,
           branchId,
-          cashDrawerSessionId: session.id,
+          cashDrawerSessionId,
           idempotencyKey: `${idempotencyKey}_pos_link_${resolved.legIndex}`,
           sourceChannel: 'collect_payment',
         });
-
-        if (change > SETTLEMENT_MONEY_EPSILON && resolved.supportsChangeReturn) {
-          await tx.org_cash_drawer_movements_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              branch_id: session.branch_id ?? branchId,
-              cash_drawer_id: session.cash_drawer_id,
-              cash_drawer_session_id: session.id,
-              movement_type: 'CASH_OUT',
-              direction: 'OUT',
-              amount: change,
-              currency_code: currencyCode ?? session.currency_code,
-              order_id: orderId,
-              order_payment_id: payment.id,
-              performed_by: collectedBy,
-              performed_at: new Date(),
-              is_active: true,
-              rec_status: 1,
-              created_by: collectedBy,
-            },
-          });
-        }
       }
     }
+
+    await postAndWireBizVoucher(tenantId, voucher.id, collectedBy, `${idempotencyKey}_vch_post`, tx);
 
     if (overpaymentResolution && overpaymentMetrics.excessAmount > SETTLEMENT_MONEY_EPSILON) {
       const dispositionOnly = resolutionIncludesAllocation(overpaymentResolution)
@@ -937,7 +984,9 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           branchId,
           customerId,
           currencyCode,
-          voucherId: null,
+          // D007: overpayment disposition links to the settlement voucher now
+          // that one exists for every collection event (was null pre-B4).
+          voucherId: voucher.id,
           resolution: dispositionOnly,
           idempotencyKey,
         });
@@ -952,7 +1001,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           customerId,
           sourceOrderId: orderId,
           currencyCode,
-          voucherId: null,
+          voucherId: voucher.id,
           previewId,
           idempotencyKey,
           paymentMethodCode: resolvedLegs[0]?.paymentMethodCode ?? 'CASH',
@@ -968,7 +1017,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       paymentStatus: snapshot.paymentStatus,
     });
 
-    return {
+    const result: SettlementResult = {
       orderId,
       paymentStatus: snapshot.paymentStatus,
       // addMoney avoids float drift across multi-leg accumulation.
@@ -976,5 +1025,33 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
+
+    // Persist the full result under the top-level collection-event key so a
+    // later replay (§0 above) returns it verbatim with zero new effects.
+    const now = new Date();
+    await tx.org_idempotency_keys.upsert({
+      where: {
+        tenant_org_id_key_resource_type: {
+          tenant_org_id: tenantId,
+          key: idempotencyKey,
+          resource_type: COLLECT_PAYMENT_IDEMPOTENCY_RESOURCE,
+        },
+      },
+      create: {
+        tenant_org_id: tenantId,
+        key: idempotencyKey,
+        resource_type: COLLECT_PAYMENT_IDEMPOTENCY_RESOURCE,
+        resource_id: voucher.id,
+        response_cache: { payload_hash: requestHash, result } as unknown as Prisma.InputJsonValue,
+        created_at: now,
+        expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      },
+      update: {
+        resource_id: voucher.id,
+        response_cache: { payload_hash: requestHash, result } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return result;
   });
 }

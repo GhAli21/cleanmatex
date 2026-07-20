@@ -61,11 +61,13 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   // from the spec's `order_fin.refund_ui` to catalog snake_case convention.
   // HQ-side seeding into hq_ff_feature_flags_mst is a cleanmatexsaas follow-up.
   { flag_key: 'order_fin_refund_ui', flag_name: 'Refund Back-office UI', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 10 },
-  // B16 — Drawer close v2: filtered expected-cash aggregate + variance-approval
-  // close flow. Independent + default OFF everywhere; flag off restores the
-  // legacy unfiltered aggregate (documented known M2). HQ-side seeding into
-  // hq_ff_feature_flags_mst is a cleanmatexsaas follow-up.
-  { flag_key: 'order_fin_drawer_close_v2', flag_name: 'Drawer Close v2 (filtered expected-cash + variance approval)', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 11 },
+  // B3 — stored-value funding capture (tender step on GC-sale/wallet
+  // top-up/advance-issue). Independent + default OFF (B03 Safety block:
+  // production activation requires the full capture path — migration +
+  // service + both wiring handlers + all 3 entry-point retrofits — in the
+  // same release). Key normalized from the spec's `order_fin.sv_funding_capture`
+  // to catalog snake_case convention, same as order_fin_refund_ui above.
+  { flag_key: 'order_fin_sv_funding_capture', flag_name: 'Stored-Value Funding Capture', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Billing Features', governance_category: 'beta', ui_display_order: 11 },
   { flag_key: 'ai_damage_detection', flag_name: 'AI Damage Detection', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'barcode_scanning', flag_name: 'Barcode Scanning', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'image_recognition', flag_name: 'Image Recognition', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Advanced', governance_category: 'tenant_feature', ui_display_order: 0 },

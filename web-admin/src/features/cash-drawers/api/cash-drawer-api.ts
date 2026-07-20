@@ -306,9 +306,12 @@ export function buildCashDrawerClosePreview(
   const cashCollected = toAmount(reconciliation?.cashCollected ?? summary.totalPayments)
   const movementCashIn = toAmount(reconciliation?.movementCashIn ?? summary.totalCashIn)
   const movementCashOut = toAmount(reconciliation?.movementCashOut ?? summary.totalCashOut)
-  const expectedCash = toAmount(
-    reconciliation?.expectedCash ?? openingFloat + cashCollected + movementCashIn - movementCashOut,
-  )
+  // A2: drawer movements are audit context, not folded into expected cash — sale
+  // cash is already in `cashCollected` (payments). The server's
+  // `reconciliation.expectedCash` is preferred when present (it also nets in
+  // manual float/petty movements, which this client payload can't distinguish);
+  // without it, fall back to opening float + cash collected.
+  const expectedCash = toAmount(reconciliation?.expectedCash ?? openingFloat + cashCollected)
   const countedCash = parseCountedCash(countedCashInput)
 
   return {

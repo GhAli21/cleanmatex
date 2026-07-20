@@ -2,6 +2,8 @@
 
 ## Overview
 
+> **STALE-CLAIM CORRECTION (B29 doc sweep, 2026-07-19):** the "7 checks" count below is out of date. As of [B20](../Remediation_Work_Packages/B20_Missing_Reconciliation_Checks.md) (2026-07-18), `reconciliation.service.ts` executes far more checks (`total_checked` = 38, up from 35 pre-B20) across order-level, snapshot, tax, discount, and refund-policy families — the 7 listed here are a historical subset from an earlier stage of the reconciliation build-out, not the current full check surface. See the frozen [Authoritative Report §13](../../../Audit_Reports/CleanMateX_Enterprise_Financial_Accounting_Audit_15_07_2026/CleanMateX_Order_Payment_Authoritative_Current_Implementation_Report_2026-07-15.md) for the pre-remediation baseline and the B20/B02 work packages for what changed. This guide's per-check descriptions below remain individually accurate for the 7 checks it documents — only the "7 total" framing is stale.
+
 `runReconciliation(tenantId, { runDate, branchId? })` executes 7 checks against the tenant's financial data for the given date. Results are written to `org_reconciliation_runs_mst` (overall status) and `org_reconciliation_issues_dtl` (per-check detail).
 
 ## The 7 Checks

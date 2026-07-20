@@ -491,6 +491,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['reconciliation:view'],
       },
       {
+        key: 'finance_outbox_monitor',
+        label: 'Outbox Monitor',
+        label2: 'مراقبة صندوق الأحداث',
+        path: '/dashboard/internal_fin/outbox',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'finance_manager'],
+        permissions: ['finance_outbox:view'],
+      },
+      {
         key: 'finance_vouchers',
         label: 'Business Vouchers',
         label2: 'السندات التجارية',

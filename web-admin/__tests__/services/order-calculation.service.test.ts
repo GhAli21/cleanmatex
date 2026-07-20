@@ -20,6 +20,7 @@ const mockGetVatRate           = jest.fn();
 const mockGetCurrencyConfig    = jest.fn();
 const mockValidatePromoCode    = jest.fn();
 const mockGetBestDiscount      = jest.fn();
+const mockEvaluateBestAutoApplyPromo = jest.fn();
 const mockValidateGiftCard     = jest.fn();
 const mockValidateGiftCardById = jest.fn();
 const mockCalculateTax         = jest.fn();
@@ -53,6 +54,7 @@ jest.mock('@/lib/services/tax-engine.service', () => ({
 jest.mock('@/lib/services/discount-service', () => ({
   validatePromoCode: (...a: unknown[]) => mockValidatePromoCode(...a),
   getBestDiscount:   (...a: unknown[]) => mockGetBestDiscount(...a),
+  evaluateBestAutoApplyPromo: (...a: unknown[]) => mockEvaluateBestAutoApplyPromo(...a),
 }));
 
 jest.mock('@/lib/services/gift-card-service', () => ({
@@ -83,6 +85,7 @@ function setupDefaults() {
   mockCalculateTax.mockResolvedValue([]);
   mockGetBestDiscount.mockResolvedValue(null);
   mockValidatePromoCode.mockResolvedValue({ isValid: false });
+  mockEvaluateBestAutoApplyPromo.mockResolvedValue({ isValid: false });
   mockValidateGiftCard.mockResolvedValue({ isValid: false });
   mockValidateGiftCardById.mockResolvedValue({ isValid: false });
 }

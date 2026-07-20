@@ -79,9 +79,9 @@
     "forceCloseReason": "سبب الإغلاق الإجباري",
     "varianceThreshold": "حد اعتماد الفرق النقدي",
     "varianceApprovalTitle": "اعتماد فرق النقدية",
-    "varianceApprovalWarning": "أُغلقت هذه الجلسة بفرق يتجاوز حد الاعتماد المحدد للدرج. يتطلب الاعتماد مستخدمًا مختلفًا عن الذي أغلق الجلسة.",
-    "varianceApprovalReasonPlaceholder": "سبب الفرق (مطلوب)",
-    "varianceApprovalPendingBanner": "فرق إغلاق هذه الجلسة يتجاوز حد الدرج وينتظر اعتماد المشرف.",
+    "varianceApprovalWarning": "أُغلقت هذه الجلسة بفرق يتجاوز حد الدرج. الاعتماد اختياري — فهو يسجّل موافقة المشرف لأغراض التدقيق، ويجب أن يقوم به مستخدم مختلف عن الذي أغلق الجلسة.",
+    "varianceApprovalReasonPlaceholder": "سبب الفرق (مطلوب للاعتماد)",
+    "varianceApprovalPendingBanner": "فرق إغلاق هذه الجلسة يتجاوز حد الدرج. اعتماد المشرف اختياري ويمكن تسجيله في سجل التدقيق.",
     "varianceApprovedBanner": "تم اعتماد الفرق من قبل {approver} بتاريخ {date}.",
     "approveVariance": "اعتماد الفرق",
     "cashIn": "إيداع نقدي",
@@ -361,6 +361,41 @@
       "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "مبلغ حركة النقد = المبلغ المُحتجز",
       "INVOICE_PAYMENT_LINK_EXISTS": "وجود ارتباط دفع الفاتورة",
       "REFUND_LINK_EXISTS": "وجود ارتباط الاسترداد"
+    }
+  },
+  "outboxMonitor": {
+    "title": "مراقبة صندوق الأحداث",
+    "description": "حالة صندوق أحداث النطاق المالي — الأحداث المعلقة والفاشلة والمتوقفة نهائيًا",
+    "refresh": "تحديث",
+    "allStatuses": "كل الحالات",
+    "empty": "لا توجد أحداث في الصندوق",
+    "loadFailed": "فشل تحميل حالة صندوق الأحداث",
+    "retry": "إعادة المحاولة",
+    "retrying": "جارٍ إعادة المحاولة…",
+    "retrySuccess": "تمت إعادة جدولة الحدث",
+    "retryFailed": "فشلت إعادة محاولة الحدث",
+    "counts": {
+      "pending": "معلق",
+      "processing": "قيد المعالجة",
+      "failed": "فاشل",
+      "deadLettered": "متوقف نهائيًا",
+      "processedLast24h": "تمت معالجته (24 ساعة)"
+    },
+    "columns": {
+      "eventType": "الحدث",
+      "aggregate": "الكيان",
+      "status": "الحالة",
+      "attempts": "المحاولات",
+      "nextRetryAt": "المحاولة التالية",
+      "createdAt": "تاريخ الإنشاء",
+      "error": "الخطأ"
+    },
+    "statusLabels": {
+      "PENDING": "معلق",
+      "PROCESSING": "قيد المعالجة",
+      "PROCESSED": "تمت المعالجة",
+      "FAILED": "فاشل",
+      "DEAD_LETTERED": "متوقف نهائيًا"
     }
   }
 }

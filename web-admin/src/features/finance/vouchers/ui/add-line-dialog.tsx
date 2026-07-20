@@ -80,10 +80,15 @@ const ROLE_GROUPS = [
     roles: [
       LINE_ROLE.ORDER_PAYMENT,
       LINE_ROLE.INVOICE_PAYMENT,
-      LINE_ROLE.CUSTOMER_ADVANCE_RECEIPT,
+      // GIFT_CARD_SALE / WALLET_TOPUP / CUSTOMER_ADVANCE_RECEIPT deliberately
+      // excluded (B3 Revision v3): the wiring handler for these 3 roles now
+      // credits a real gift card / wallet / advance automatically once a
+      // voucher posts. Creating one of these lines here — outside the
+      // governed stored-value-funding.service.ts flow — would credit stored
+      // value without going through its currency/method/status guards.
+      // Re-enable only if this generic UI is upgraded to the full governed
+      // tender workflow.
       LINE_ROLE.CUSTOMER_CREDIT_RECEIPT,
-      LINE_ROLE.WALLET_TOPUP,
-      LINE_ROLE.GIFT_CARD_SALE,
       LINE_ROLE.ORDER_CREDIT_APPLICATION,
     ],
   },

@@ -34,6 +34,8 @@ import { orderCreditApplicationWiringHandler } from './wiring/order-credit-appli
 import { cashDrawerWiringHandler } from './wiring/cash-drawer-wiring.handler';
 import { invoicePaymentWiringHandler } from './wiring/invoice-payment-wiring.handler';
 import { statementPaymentWiringHandler } from './wiring/statement-payment-wiring.handler';
+import { storedValueFundingWiringHandler } from './wiring/stored-value-funding-wiring.handler';
+import { storedValueCashDrawerWiringHandler } from './wiring/stored-value-cash-drawer-wiring.handler';
 import type {
   VoucherLineForWiring,
   WiringHandler,
@@ -49,7 +51,11 @@ const WIRING_HANDLERS: WiringHandler[] = [
   invoicePaymentWiringHandler,
   statementPaymentWiringHandler,
   orderCreditApplicationWiringHandler,
+  // B3 — must run before storedValueCashDrawerWiringHandler (writes
+  // line.sv_funding_tender_id, read by the handler immediately after it).
+  storedValueFundingWiringHandler,
   cashDrawerWiringHandler,
+  storedValueCashDrawerWiringHandler,
 ];
 
 const LINE_SELECT = {
@@ -77,12 +83,15 @@ const LINE_SELECT = {
   credit_application_type: true,
   order_payment_id:        true,
   cash_drawer_mvt_id:      true,
+  sv_funding_tender_id:    true,
   card_brand_code:         true,
   card_last4:              true,
   gateway_code:            true,
   gateway_reference:       true,
   bank_reference:          true,
   check_number:            true,
+  check_bank:              true,
+  check_date:              true,
   org_payment_method_id:   true,
   payment_terminal_id:     true,
   branch_id:               true,

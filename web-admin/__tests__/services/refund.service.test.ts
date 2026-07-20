@@ -211,17 +211,25 @@ describe('order-refund.service — approveRefund', () => {
     await expect(approveRefund(TENANT, REFUND, APPROVER)).rejects.toThrow();
   });
 
-  it('blocks self-approval (B34 maker≠checker) with the typed 403 code', async () => {
+  // Owner policy change (commit f7dccb8a, 2026-07-20 — "no need for maker-checker
+  // in approve, even same user can approve if he has the required permission"):
+  // order-refund.service.ts gates the maker≠checker check behind a local
+  // `ENABLE_SELF_APPROVAL_CHECK = false` constant, so self-approval is
+  // currently allowed as long as the actor holds the approve permission
+  // (enforced by the route's requirePermission, not by this service). This
+  // test previously asserted the opposite (pre-policy-change) behavior.
+  it('allows self-approval now that ENABLE_SELF_APPROVAL_CHECK is off (owner policy, 2026-07-20)', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue({
       ...makeRefundRecord('PENDING_APPROVAL'),
-      created_by: APPROVER, // approver is the requester
+      created_by: APPROVER, // approver is also the requester
     });
+    mockRefundUpdate.mockResolvedValue({ ...makeRefundRecord('APPROVED') });
 
-    await expect(approveRefund(TENANT, REFUND, APPROVER)).rejects.toMatchObject({
-      code: 'REFUND_SELF_APPROVAL_BLOCKED',
-      httpStatus: 403,
-    });
-    expect(mockRefundUpdate).not.toHaveBeenCalled();
+    await approveRefund(TENANT, REFUND, APPROVER);
+
+    expect(mockRefundUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ refund_status: 'APPROVED' }) })
+    );
   });
 
   it('allows a different user to approve (maker≠checker satisfied)', async () => {

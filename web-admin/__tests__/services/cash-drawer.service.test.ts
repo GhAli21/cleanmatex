@@ -24,7 +24,6 @@ const mockSessionCount            = jest.fn();
 const mockMovementCreate          = jest.fn();
 const mockMovementFindMany        = jest.fn();
 const mockPaymentAggregate        = jest.fn();
-const mockCanAccess               = jest.fn();
 const mockDrawerFindFirst         = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -58,11 +57,6 @@ jest.mock('@/lib/db/tenant-context', () => ({
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
-}));
-
-// B16: drawer-close v2 flag gate — default OFF (legacy unfiltered aggregate).
-jest.mock('@/lib/services/feature-flags.service', () => ({
-  canAccess: (...a: unknown[]) => mockCanAccess(...a),
 }));
 
 // ---------------------------------------------------------------------------
@@ -191,10 +185,8 @@ describe('cash-drawer.service — openSession', () => {
 describe('cash-drawer.service — closeSession', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Defaults: no drawer movements, drawer-close v2 OFF (legacy aggregate),
-    // no per-drawer variance threshold configured.
+    // Defaults: no drawer movements; no per-drawer variance threshold configured.
     mockMovementFindMany.mockResolvedValue([]);
-    mockCanAccess.mockResolvedValue(false);
     mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: null });
   });
 
@@ -229,32 +221,15 @@ describe('cash-drawer.service — closeSession', () => {
       .rejects.toThrow();
   });
 
-  // B16 — expected-cash filter gate
-  it('flag OFF: sums ALL session payments (no status/method/active filter)', async () => {
+  // B16 M2 fix — expected-cash payment filter is unconditional (no flag)
+  it('restricts the payment aggregate to active + COMPLETED-set + cash-family', async () => {
     const session = makeSession();
     mockSessionFindFirstOrThrow.mockResolvedValue(session);
     mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
     mockSessionUpdate.mockResolvedValue({ ...session, status: 'CLOSED' });
-    mockCanAccess.mockResolvedValue(false);
 
     await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
 
-    const where = mockPaymentAggregate.mock.calls[0][0].where;
-    expect(where).toEqual({ tenant_org_id: TENANT, cash_drawer_session_id: SESSION });
-    expect(where.payment_status).toBeUndefined();
-    expect(where.is_active).toBeUndefined();
-  });
-
-  it('flag ON: restricts the aggregate to active + COMPLETED-set + cash-family', async () => {
-    const session = makeSession();
-    mockSessionFindFirstOrThrow.mockResolvedValue(session);
-    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
-    mockSessionUpdate.mockResolvedValue({ ...session, status: 'CLOSED' });
-    mockCanAccess.mockResolvedValue(true);
-
-    await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
-
-    expect(mockCanAccess).toHaveBeenCalledWith(TENANT, 'order_fin_drawer_close_v2');
     const where = mockPaymentAggregate.mock.calls[0][0].where;
     expect(where.tenant_org_id).toBe(TENANT);
     expect(where.cash_drawer_session_id).toBe(SESSION);
@@ -263,16 +238,31 @@ describe('cash-drawer.service — closeSession', () => {
     expect(where.payment_method_code.in).toContain('CASH');
   });
 
-  // B16 — deferred variance-approval gating
-  it('does not flag pending approval when drawer-close v2 is OFF, even over threshold', async () => {
+  // Addendum A2 fix — sale-mirror movements are excluded from expected cash
+  it('excludes sale-mirror movements (order_payment_id set) from the expected-cash movement term', async () => {
     const session = makeSession();
     mockSessionFindFirstOrThrow.mockResolvedValue(session);
     mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
-    mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('1') });
-    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
-    mockCanAccess.mockResolvedValue(false);
+    mockSessionUpdate.mockResolvedValue({ ...session, status: 'CLOSED' });
 
-    // expected = 100 + 50 = 150; counted = 200 -> variance 50, way over threshold 1
+    await closeSession(TENANT, SESSION, { physicalCount: 150, closedBy: USER });
+
+    const movementWhere = mockMovementFindMany.mock.calls[0][0].where;
+    // order_payment_id: null keeps only MANUAL movements; CASH_SALE/change
+    // (order_payment_id set) are already counted via the payment total.
+    expect(movementWhere.order_payment_id).toBeNull();
+    expect(movementWhere.is_active).toBe(true);
+  });
+
+  // B16 — OPTIONAL deferred variance-approval gating (opt-in per drawer)
+  it('does not flag pending approval when the drawer has no threshold configured (default)', async () => {
+    const session = makeSession();
+    mockSessionFindFirstOrThrow.mockResolvedValue(session);
+    mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
+    // beforeEach default: variance_approval_threshold null
+    mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
+
+    // expected = 100 + 50 = 150; counted = 200 -> variance 50, but no threshold set
     const result = await closeSession(TENANT, SESSION, { physicalCount: 200, closedBy: USER });
 
     expect(result.varianceApprovalPending).toBe(false);
@@ -280,13 +270,12 @@ describe('cash-drawer.service — closeSession', () => {
     expect(mockSessionUpdate.mock.calls[0][0].data.variance_threshold_snapshot).toBeNull();
   });
 
-  it('flags pending approval when v2 is ON, a threshold is configured, and |variance| exceeds it', async () => {
+  it('flags pending approval when a threshold is configured and |variance| exceeds it', async () => {
     const session = makeSession();
     mockSessionFindFirstOrThrow.mockResolvedValue(session);
     mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
     mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('1') });
     mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
-    mockCanAccess.mockResolvedValue(true);
 
     const result = await closeSession(TENANT, SESSION, { physicalCount: 200, closedBy: USER });
 
@@ -301,7 +290,6 @@ describe('cash-drawer.service — closeSession', () => {
     mockPaymentAggregate.mockResolvedValue({ _sum: { amount: new Decimal('50') } });
     mockDrawerFindFirst.mockResolvedValue({ variance_approval_threshold: new Decimal('10') });
     mockSessionUpdate.mockImplementation(({ data }) => Promise.resolve({ ...session, ...data }));
-    mockCanAccess.mockResolvedValue(true);
 
     // expected = 150; counted = 155 -> variance 5, within threshold 10
     const result = await closeSession(TENANT, SESSION, { physicalCount: 155, closedBy: USER });

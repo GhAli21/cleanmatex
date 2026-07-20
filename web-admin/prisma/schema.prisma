@@ -1515,6 +1515,7 @@ model org_tenants_mst {
   org_domain_events_outbox         org_domain_events_outbox[]
   org_idempotency_keys             org_idempotency_keys[]
   org_fin_voucher_trx_lines_dtl    org_fin_voucher_trx_lines_dtl[]
+  org_sv_funding_tenders_dtl       org_sv_funding_tenders_dtl[]
   org_fin_exp_cat_cf               org_fin_exp_cat_cf[]
   org_tax_documents_mst            org_tax_documents_mst[]
   org_tax_doc_lines_dtl            org_tax_doc_lines_dtl[]
@@ -1937,30 +1938,31 @@ model org_order_history {
 model org_order_item_issues {
   id                                            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id                                 String              @db.Uuid
-  order_id                                      String              @db.Uuid
-  order_item_id                                 String              @db.Uuid
+  order_id                                      String               @db.Uuid
+  /// NULL = order-level issue (not tied to a specific item)
+  order_item_id                                 String?              @db.Uuid
   issue_code                                    String
   issue_text                                    String
   photo_url                                     String?
-  priority                                      String?             @default("normal")
-  created_by                                    String?             @db.Uuid
-  created_at                                    DateTime?           @default(now()) @db.Timestamptz(6)
-  solved_at                                     DateTime?           @db.Timestamptz(6)
-  solved_by                                     String?             @db.Uuid
+  priority                                      String?              @default("normal")
+  created_by                                    String?              @db.Uuid
+  created_at                                    DateTime?            @default(now()) @db.Timestamptz(6)
+  solved_at                                     DateTime?            @db.Timestamptz(6)
+  solved_by                                     String?              @db.Uuid
   solved_notes                                  String?
-  metadata                                      Json?               @default("{}")
+  metadata                                      Json?                @default("{}")
   created_info                                  String?
-  updated_at                                    DateTime?           @db.Timestamp(6)
+  updated_at                                    DateTime?            @db.Timestamp(6)
   updated_by                                    String?
   updated_info                                  String?
-  rec_status                                    Int?                @default(1) @db.SmallInt
+  rec_status                                    Int?                 @default(1) @db.SmallInt
   rec_order                                     Int?
   rec_notes                                     String?
-  users_org_order_item_issues_created_byTousers users?              @relation("org_order_item_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
-  org_orders_mst                                org_orders_mst      @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
-  org_order_items_dtl                           org_order_items_dtl @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
-  users_org_order_item_issues_solved_byTousers  users?              @relation("org_order_item_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
-  org_tenants_mst                               org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
+  users_org_order_item_issues_created_byTousers users?               @relation("org_order_item_issues_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_issue_created_by")
+  org_orders_mst                                org_orders_mst       @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order")
+  org_order_items_dtl                           org_order_items_dtl? @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_order_item")
+  users_org_order_item_issues_solved_byTousers  users?               @relation("org_order_item_issues_solved_byTousers", fields: [solved_by], references: [id], onUpdate: NoAction, map: "fk_issue_solved_by")
+  org_tenants_mst                               org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_issue_tenant")
 
   @@index([order_id, created_at(sort: Desc)], map: "idx_issue_order")
   @@index([order_item_id, created_at(sort: Desc)], map: "idx_issue_order_item")
@@ -6620,6 +6622,10 @@ model org_cash_drawer_movements_dtl {
   // BVM back-links — populated by wiring service (migration 0303)
   fin_voucher_id               String?                      @db.Uuid
   fin_voucher_trx_line_id      String?                      @unique(map: "uq_cd_mov_vch_line") @db.Uuid
+  // B3 — back-link to the stored-value tender leg this movement was created
+  // for (migration 0412). Plain scalar, no modeled relation, mirrors
+  // fin_voucher_id above.
+  funding_tender_id            String?                      @db.Uuid
   org_tenants_mst              org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_cash_drawers_mst         org_cash_drawers_mst         @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst @relation(fields: [cash_drawer_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
@@ -7483,6 +7489,10 @@ model org_fin_voucher_trx_lines_dtl {
   payment_terminal_id     String?                         @db.Uuid
   reversed_line_id        String?                         @db.Uuid
   idempotency_key         String?
+  // B3 — back-link to the tender-leg row this line produced (migration 0412).
+  // Plain scalar, no modeled relation — matches this table's existing
+  // convention for cash_drawer_session_id/org_payment_method_id/pos_session_id.
+  sv_funding_tender_id    String?                         @db.Uuid
   rec_status              Int                             @default(1) @db.SmallInt
   rec_order               Int?
   rec_notes               String?
@@ -7509,6 +7519,78 @@ model org_fin_voucher_trx_lines_dtl {
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_vch_trx_line_created")
   @@index([cash_drawer_session_id], map: "idx_vch_trx_line_session")
   @@index([tenant_org_id, pos_session_id], map: "idx_vtl_possess")
+  @@schema("public")
+}
+
+// =============================================================================
+// B3 — Stored-Value Funding Capture (migration 0412)
+// =============================================================================
+
+/// One row per real-money tender leg captured for a gift-card sale, wallet
+/// top-up, or customer-advance receipt. The BVM RECEIPT voucher this table's
+/// rows hang off of (fin_voucher_id) is the funding aggregate — there is no
+/// separate funding-header table (see B03's "Revision v2" note). Most FK
+/// columns are intentionally plain scalars with no modeled Prisma relation,
+/// matching org_fin_voucher_trx_lines_dtl's own convention for the same kind
+/// of columns (cash_drawer_session_id / org_payment_method_id / pos_session_id).
+model org_sv_funding_tenders_dtl {
+  id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String          @db.Uuid
+  branch_id               String?         @db.Uuid
+  fin_voucher_id          String          @db.Uuid
+  fin_voucher_trx_line_id String          @unique(map: "uq_svft_vch_line") @db.Uuid
+  leg_index               Int             @default(0) @db.SmallInt
+
+  // Denormalized from the voucher line at wire time — see B03 Revision v2.
+  funding_type            String
+  target_type             String
+  target_id               String          @db.Uuid
+  customer_id             String?         @db.Uuid
+
+  payment_method_code     String
+  org_payment_method_id   String?         @db.Uuid
+  amount                  Decimal         @db.Decimal(19, 4)
+  tendered_amount         Decimal?        @db.Decimal(19, 4)
+  change_returned_amount  Decimal?        @db.Decimal(19, 4)
+  currency_code           String
+  status                  String          @default("COMPLETED")
+  // Canonical resolved payment status (B03 Revision v3) — see chk_svft_pay_status.
+  payment_status          String?
+
+  cash_drawer_session_id  String?         @db.Uuid
+  pos_session_id          String?         @db.Uuid
+  gateway_code            String?
+  gateway_reference       String?
+  check_number            String?
+  check_bank              String?
+  check_date              DateTime?       @db.Date
+
+  idempotency_key         String
+
+  confirmed_at            DateTime?       @db.Timestamptz(6)
+  failed_at               DateTime?       @db.Timestamptz(6)
+  reversed_at             DateTime?       @db.Timestamptz(6)
+
+  created_at              DateTime        @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?       @db.Timestamptz(6)
+  updated_by              String?
+  updated_info             String?
+  rec_status              Int             @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean         @default(true)
+
+  org_tenants_mst         org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_sv_funding_tenders_dtl_tenant_org_id_fkey")
+
+  @@unique([tenant_org_id, id], map: "uq_svft_tenant_id")
+  @@unique([tenant_org_id, fin_voucher_id, leg_index], map: "uq_svft_leg")
+  @@unique([tenant_org_id, idempotency_key], map: "uq_svft_idem")
+  @@index([tenant_org_id, fin_voucher_id], map: "idx_svft_voucher")
+  @@index([tenant_org_id, target_type, target_id], map: "idx_svft_target")
+  @@index([tenant_org_id, customer_id], map: "idx_svft_customer")
+  @@index([tenant_org_id, cash_drawer_session_id], map: "idx_svft_drawer_session")
   @@schema("public")
 }
 

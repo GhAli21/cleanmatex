@@ -42,6 +42,8 @@ function makeOrderPaymentLine(overrides: Partial<VoucherLineForWiring> = {}): Vo
     gateway_reference: null,
     bank_reference: null,
     check_number: null,
+    check_bank: null,
+    check_date: null,
     org_payment_method_id: null,
     payment_terminal_id: null,
     branch_id: null,
@@ -72,6 +74,43 @@ describe('orderPaymentWiringHandler', () => {
           payment_method_code: 'CARD',
           payment_status: 'PENDING',
           paid_at: null,
+        }),
+      }),
+    );
+  });
+
+  // B4: closes the pre-existing gap where a CHECK payment's bank/date
+  // proof-of-receipt metadata was captured on the voucher line but silently
+  // dropped when wired into org_order_payments_dtl.
+  it('forwards check_bank/check_date onto the order payment row (B4 fix)', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'payment-002' });
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      org_order_payments_dtl: { create },
+      org_fin_voucher_trx_lines_dtl: { updateMany },
+    };
+    const checkDate = new Date('2026-08-01T00:00:00.000Z');
+
+    await orderPaymentWiringHandler.wire(
+      makeOrderPaymentLine({
+        payment_method_code: 'CHECK',
+        payment_status: 'PENDING',
+        check_number: 'CHK-100',
+        check_bank: 'Bank of Oman',
+        check_date: checkDate,
+      }),
+      VOUCHER_ID,
+      TENANT,
+      USER_ID,
+      tx as never,
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          check_no: 'CHK-100',
+          check_bank_name: 'Bank of Oman',
+          check_due_date: checkDate,
         }),
       }),
     );

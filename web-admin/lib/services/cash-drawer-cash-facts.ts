@@ -19,10 +19,8 @@
  * in-memory predicate (display-time reduction), so every consumer applies the
  * identical rule.
  *
- * Rollout note (B16): consumers apply this filter only when the tenant flag
- * `order_fin_drawer_close_v2` is enabled; with the flag off they keep the
- * legacy unfiltered aggregate (documented known M2) so the change ships as a
- * controlled, reversible rollout.
+ * Applied unconditionally across the drawer-close, session-summary, and
+ * list/detail expected-cash paths (B16 M2 fix — no feature flag).
  *
  * Pure and server-safe (no prisma import): callers build their own query or
  * pass their own rows.

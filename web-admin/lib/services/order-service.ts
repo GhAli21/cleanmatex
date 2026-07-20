@@ -1829,12 +1829,15 @@ export class OrderService {
     try {
       const supabase = await createClient();
 
+      // order_item_id may be null for order-level issues (Simple Processing).
+      // Never fall back to orderId — that is not an org_order_items_dtl id and
+      // fails FK fk_issue_order_item.
       const { data: issue, error: issueError } = await supabase
         .from('org_order_item_issues')
         .insert({
           tenant_org_id: tenantId,
           order_id: orderId,
-          order_item_id: orderItemId || orderId, // Use order ID as fallback
+          order_item_id: orderItemId,
           issue_code: issueCode,
           issue_text: issueText,
           photo_url: photoUrl,
@@ -1845,6 +1848,7 @@ export class OrderService {
         .single();
 
       if (issueError || !issue) {
+        console.error('OrderService.createIssue insert error:', issueError);
         return {
           success: false,
           error: 'Failed to create issue',

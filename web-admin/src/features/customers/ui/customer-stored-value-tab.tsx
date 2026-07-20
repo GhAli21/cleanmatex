@@ -29,7 +29,12 @@ import {
   topUpWallet,
   issueAdvance,
   issueCreditNoteAction,
+  topUpWalletWithTenderAction,
+  issueAdvanceWithTenderAction,
 } from '@/app/actions/customers/stored-value-actions';
+import { useFeature } from '@features/auth/ui/RequireFeature';
+import { useAuth } from '@/lib/auth/auth-context';
+import { StoredValueTenderFields, type StoredValueTenderResult } from './stored-value-tender-fields';
 
 interface CreditNoteRow {
   id:                string;
@@ -65,7 +70,14 @@ type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
 export function CustomerStoredValueTab({ customerId }: Props) {
   const t       = useTranslations('customers.storedValue');
   const tCommon = useTranslations('common');
-  const { decimalPlaces } = useTenantCurrency();
+  const { decimalPlaces, currencyCode: tenantCurrency } = useTenantCurrency();
+  // B3 — governed DIRECT_TENDER top-up/advance (tender step) once enabled;
+  // falls back to the existing no-tender topUpWallet/issueAdvance actions
+  // while the flag is off.
+  const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');
+  const { currentTenant, user } = useAuth();
+  const tenantOrgId = currentTenant?.tenant_id ?? '';
+  const userId = user?.id;
 
   const [detail, setDetail]       = useState<StoredValueDetail | null>(null);
   const [isLoading, setLoading]   = useState(true);
@@ -77,6 +89,8 @@ export function CustomerStoredValueTab({ customerId }: Props) {
   const [notes, setNotes]         = useState('');
   const [reason, setReason]       = useState('');
   const [currency, setCurrency]   = useState('OMR');
+  const [tender, setTender]       = useState<StoredValueTenderResult | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,6 +111,8 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     setNotes('');
     setReason('');
     setCurrency('OMR');
+    setTender(null);
+    setIdempotencyKey(crypto.randomUUID());
     setDialog(type);
   }
 
@@ -104,6 +120,37 @@ export function CustomerStoredValueTab({ customerId }: Props) {
     const numAmount = parseMoneyDraft(amount);
     if (numAmount <= 0) {
       cmxMessage.error('Amount must be greater than zero');
+      return;
+    }
+
+    if (fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance')) {
+      if (!tender) {
+        cmxMessage.error(t('funding.tenderRequired'));
+        return;
+      }
+      setSaving(true);
+      const payload = {
+        customerId,
+        amount: numAmount,
+        currencyCode: tenantCurrency || 'OMR',
+        paymentMethodId: tender.paymentMethodId,
+        cashTendered: tender.cashTendered,
+        cashDrawerSessionId: tender.cashDrawerSessionId,
+        idempotencyKey,
+      };
+      const tenderResult = dialog === 'topUp'
+        ? await topUpWalletWithTenderAction(payload)
+        : await issueAdvanceWithTenderAction(payload);
+
+      if (tenderResult.success === false) {
+        cmxMessage.error(tenderResult.error);
+        setSaving(false);
+        return;
+      }
+      cmxMessage.success(dialog === 'topUp' ? t('topUpSuccess') : t('issueAdvanceSuccess'));
+      setSaving(false);
+      setDialog(null);
+      void load();
       return;
     }
 
@@ -289,6 +336,20 @@ export function CustomerStoredValueTab({ customerId }: Props) {
               />
             </div>
 
+            {/* B3 — tender step, governed DIRECT_TENDER funding only */}
+            {fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance') && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                <p className="mb-2 text-sm font-medium">{t('funding.tenderSectionTitle')}</p>
+                <StoredValueTenderFields
+                  amount={parseMoneyDraft(amount) || 0}
+                  currencyCode={tenantCurrency || 'OMR'}
+                  tenantOrgId={tenantOrgId}
+                  userId={userId}
+                  onTenderChange={setTender}
+                />
+              </div>
+            )}
+
             {/* Currency — only for credit note */}
             {dialog === 'creditNote' && (
               <div className="flex flex-col gap-1">
@@ -318,8 +379,9 @@ export function CustomerStoredValueTab({ customerId }: Props) {
               </div>
             )}
 
-            {/* Notes — optional for top-up / advance */}
-            {dialog !== 'creditNote' && (
+            {/* Notes — optional for top-up / advance (no-tender path only; the
+                tendered path has no notes field on fundStoredValue) */}
+            {dialog !== 'creditNote' && !(fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance')) && (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">{t('notesOptional')}</label>
                 <textarea
@@ -336,7 +398,14 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             <CmxButton variant="outline" onClick={() => setDialog(null)} disabled={isSaving}>
               {tCommon('cancel')}
             </CmxButton>
-            <CmxButton variant="primary" onClick={handleSubmit} disabled={isSaving}>
+            <CmxButton
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={
+                isSaving ||
+                (fundingCaptureEnabled && (dialog === 'topUp' || dialog === 'advance') && !tender)
+              }
+            >
               {isSaving ? tCommon('saving') : tCommon('save')}
             </CmxButton>
           </CmxDialogFooter>

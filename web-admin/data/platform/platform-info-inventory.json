@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-17T21:40:15.744Z",
-  "gitSha": "c95dc015",
+  "generatedAt": "2026-07-19T22:21:08.456Z",
+  "gitSha": "f7dccb8a",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -35,8 +35,8 @@
     "featureFlagUsages": 74,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 141,
-    "navigationEntries": 96,
+    "accessContracts": 142,
+    "navigationEntries": 97,
     "flagCatalogEntries": 291
   },
   "permissionUsages": [
@@ -7257,6 +7257,31 @@
       ]
     },
     {
+      "id": "access_contract:/dashboard/internal_fin/outbox",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/internal_fin/outbox",
+      "label": "Financial Outbox Monitor",
+      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
+      "page": {
+        "permissions": [
+          "finance_outbox:view"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [],
+      "apiDependencyCount": 1,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
+        }
+      ]
+    },
+    {
       "id": "access_contract:/dashboard/internal_fin/refunds",
       "kind": "access_contract",
       "routePattern": "/dashboard/internal_fin/refunds",
@@ -9466,6 +9491,17 @@
           "featureFlags": [],
           "workflowRoles": [],
           "tenantRoles": []
+        },
+        {
+          "actionKey": "approveCashDrawerVariance",
+          "label": "Approve over-threshold cash drawer close variance (B16)",
+          "permissions": [
+            "cash_drawer:approve_variance"
+          ],
+          "permissionPrefixes": [],
+          "featureFlags": [],
+          "workflowRoles": [],
+          "tenantRoles": []
         }
       ],
       "apiDependencyCount": 1,
@@ -11169,6 +11205,29 @@
         "tenant_admin",
         "admin",
         "branch_manager"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
+      "id": "nav:section_finance_outbox_monitor_/dashboard/internal_fin/outbox",
+      "kind": "navigation_entry",
+      "key": "finance_outbox_monitor",
+      "label": "Outbox Monitor",
+      "path": "/dashboard/internal_fin/outbox",
+      "depth": "section",
+      "permissions": [
+        "finance_outbox:view"
+      ],
+      "roles": [
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "finance_manager"
       ],
       "provenance": [
         {

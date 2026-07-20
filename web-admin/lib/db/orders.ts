@@ -154,23 +154,28 @@ export async function addOrderItems(
   }
 
   // Check permission for price override (if any item has override)
+  //
+  // B27: this block used to fail OPEN in two places — (1) if `currentUserId`
+  // couldn't be resolved (e.g. a transient auth/session error a few lines up),
+  // the whole check was skipped via `hasPriceOverride && currentUserId`, so an
+  // override proceeded with no identifiable actor at all; (2) any error from
+  // hasPermissionServer() other than the literal string "Permission denied"
+  // was logged and swallowed, letting the override through anyway. Both are
+  // fixed to fail CLOSED — pricing:override was also unseeded in the DB until
+  // this same package (0410), so today's real-world behavior was effectively
+  // unenforced regardless of which bug fired first.
   const hasPriceOverride = input.items.some((item) => item.priceOverride !== undefined);
-  if (hasPriceOverride && currentUserId) {
-    try {
-      const { hasPermissionServer } = await import('@/lib/services/permission-service-server');
-      const canOverride = await hasPermissionServer('pricing:override', {
-        userId: currentUserId,
-        tenantId: tenantOrgId,
-      });
-      if (!canOverride) {
-        throw new Error('Permission denied: pricing:override required for price overrides');
-      }
-    } catch (error: any) {
-      if (error.message.includes('Permission denied')) {
-        throw error;
-      }
-      // If permission check fails for other reasons, log and continue
-      console.warn('[addOrderItems] Permission check failed:', error);
+  if (hasPriceOverride) {
+    if (!currentUserId) {
+      throw new Error('Permission denied: pricing:override requires an authenticated user');
+    }
+    const { hasPermissionServer } = await import('@/lib/services/permission-service-server');
+    const canOverride = await hasPermissionServer('pricing:override', {
+      userId: currentUserId,
+      tenantId: tenantOrgId,
+    });
+    if (!canOverride) {
+      throw new Error('Permission denied: pricing:override required for price overrides');
     }
   }
 

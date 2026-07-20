@@ -57,6 +57,8 @@ function makeCashLine(overrides: Partial<VoucherLineForWiring> = {}): VoucherLin
     gateway_reference: null,
     bank_reference: null,
     check_number: null,
+    check_bank: null,
+    check_date: null,
     org_payment_method_id: null,
     payment_terminal_id: null,
     branch_id: 'branch-1',

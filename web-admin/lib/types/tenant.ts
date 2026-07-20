@@ -75,12 +75,13 @@ export interface FeatureFlags {
      */
     order_fin_refund_ui: boolean;
     /**
-     * B16 — Drawer close v2: filtered expected-cash aggregate (active +
-     * COMPLETED-set + cash-family) plus the variance-approval close flow.
-     * Disabled by default; flag off restores the legacy unfiltered aggregate
-     * (documented known M2). HQ catalog seeding is a cleanmatexsaas follow-up.
+     * B3 — Stored-value funding capture (tender step on GC-sale / wallet
+     * top-up / advance-issue). Disabled by default; production activation
+     * requires the full capture path in the same release (migration +
+     * shared service + both wiring handlers + all 3 entry-point retrofits —
+     * B03 Safety block).
      */
-    order_fin_drawer_close_v2: boolean;
+    order_fin_sv_funding_capture: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

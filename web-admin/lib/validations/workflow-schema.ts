@@ -123,7 +123,8 @@ export const OrderIssueSchema = z.object({
   id: z.string().uuid(),
   tenant_org_id: z.string().uuid(),
   order_id: z.string().uuid(),
-  order_item_id: z.string().uuid(),
+  /** Null for order-level issues (not tied to a specific item). */
+  order_item_id: z.string().uuid().nullable(),
   issue_code: z.enum(['damage', 'stain', 'complaint', 'other']),
   issue_text: z.string(),
   photo_url: z.string().url().nullable(),

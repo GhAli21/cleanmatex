@@ -29,6 +29,7 @@ import {
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
   STORED_VALUE_TXN_TYPES,
+  SV_FUNDING_TENDER_STATUS,
 } from '@/lib/constants/order-financial';
 import { GIFT_CARD_TXN_TYPE } from '@/lib/constants/gift-card';
 
@@ -301,4 +302,95 @@ export async function checkLoyaltyLedgerLink(
       return rows.map((r) => ({ id: r.id, amount: toNumber(r.points) }));
     },
   );
+}
+
+/**
+ * B3 — SV_FUNDING_TENDER_TOTAL_MATCH / SV_FUNDING_VOUCHER_LINK_EXISTS.
+ *
+ * For every COMPLETED tender leg in the window (org_sv_funding_tenders_dtl),
+ * groups by funding voucher and asserts: (1) the voucher exists,
+ * (2) all of its confirmed legs share one currency (frozen invariant, B03
+ * Revision v3), and (3) the confirmed tender sum equals the voucher's
+ * total_amount. finalizeStoredValueFundingIfReady already enforces (2)/(3)
+ * before crediting the ledger, so a failure here is a genuine regression
+ * signal, not routine drift — always a BLOCKER.
+ * @param tenantOrgId
+ * @param window
+ */
+export async function checkStoredValueFundingIntegrity(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const results: CheckResult[] = [];
+
+  const tenders = await withTenantContext(tenantOrgId, () =>
+    prisma.org_sv_funding_tenders_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        created_at: { gte: window.periodFrom, lte: window.periodTo },
+        status: SV_FUNDING_TENDER_STATUS.COMPLETED,
+      },
+      select: { id: true, fin_voucher_id: true, amount: true, currency_code: true },
+    }),
+  );
+  if (tenders.length === 0) return results;
+
+  const byVoucher = new Map<string, { sum: number; currencies: Set<string>; tenderIds: string[] }>();
+  for (const tender of tenders) {
+    const entry = byVoucher.get(tender.fin_voucher_id) ?? { sum: 0, currencies: new Set<string>(), tenderIds: [] };
+    entry.sum += toNumber(tender.amount);
+    entry.currencies.add(tender.currency_code);
+    entry.tenderIds.push(tender.id);
+    byVoucher.set(tender.fin_voucher_id, entry);
+  }
+
+  const vouchers = await withTenantContext(tenantOrgId, () =>
+    prisma.org_fin_vouchers_mst.findMany({
+      where: { tenant_org_id: tenantOrgId, id: { in: [...byVoucher.keys()] } },
+      select: { id: true, total_amount: true },
+    }),
+  );
+  const voucherTotalById = new Map(vouchers.map((v) => [v.id, toNumber(v.total_amount)]));
+
+  for (const [voucherId, entry] of byVoucher) {
+    const total = voucherTotalById.get(voucherId);
+    if (total == null) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.SV_FUNDING_VOUCHER_LINK_EXISTS,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        actualValue: entry.sum,
+        message: `Stored-value funding tender(s) reference missing voucher ${voucherId}`,
+        affectedEntityType: 'sv_funding_tender',
+        affectedEntityId: entry.tenderIds[0],
+      });
+      continue;
+    }
+    if (entry.currencies.size > 1) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.SV_FUNDING_TENDER_TOTAL_MATCH,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        message: `Stored-value funding voucher ${voucherId} has confirmed tender legs in more than one currency`,
+        affectedEntityType: 'sv_funding_voucher',
+        affectedEntityId: voucherId,
+      });
+      continue;
+    }
+    if (Math.abs(entry.sum - total) >= RECONCILIATION_TOLERANCE) {
+      results.push({
+        checkName: RECONCILIATION_CHECK_NAMES.SV_FUNDING_TENDER_TOTAL_MATCH,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        expectedValue: total,
+        actualValue: entry.sum,
+        delta: entry.sum - total,
+        message: `Stored-value funding voucher ${voucherId}: confirmed tender sum (${entry.sum}) does not match voucher total (${total})`,
+        affectedEntityType: 'sv_funding_voucher',
+        affectedEntityId: voucherId,
+      });
+    }
+  }
+
+  return results;
 }

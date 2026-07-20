@@ -29,8 +29,14 @@ import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
-import { sellGiftCardAction } from '@/app/actions/marketing/gift-card-actions';
+import { sellGiftCardAction, sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useFeature } from '@features/auth/ui/RequireFeature';
+import { useAuth } from '@/lib/auth/auth-context';
+import {
+  StoredValueTenderFields,
+  type StoredValueTenderResult,
+} from '@features/customers/ui/stored-value-tender-fields';
 import type { CustomerSearchItem } from '@/lib/api/customers';
 
 // ---------------------------------------------------------------------------
@@ -90,6 +96,12 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const tCommon = useTranslations('common');
 
   const { currencyCode: tenantCurrency } = useTenantCurrency();
+  // B3 — governed DIRECT_TENDER sale (tender step) once enabled; falls back
+  // to the existing no-tender sellGiftCardAction while the flag is off.
+  const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture');
+  const { currentTenant, user } = useAuth();
+  const tenantOrgId = currentTenant?.tenant_id ?? '';
+  const userId = user?.id;
 
   const [serverError, setServerError]     = useState<string | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -99,6 +111,17 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     useState<'buyer' | 'recipient' | null>(null);
   const [buyerDisplay, setBuyerDisplay]         = useState('');
   const [recipientDisplay, setRecipientDisplay] = useState('');
+  const [tender, setTender] = useState<StoredValueTenderResult | null>(null);
+  // Stable per-dialog-open idempotency key — same convention as the order
+  // collect-payment modal (B5 precedent): a retry of this attempt reuses it.
+  // Render-time reset (Pattern A, react-effects-patterns.md §2) instead of an
+  // effect — avoids the cascading-render setState-in-effect lint error.
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setIdempotencyKey(crypto.randomUUID());
+  }
 
   const defaultExpiry = `${new Date().getFullYear()}-12-31`;
 
@@ -126,6 +149,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
 
   const sameAsBuyer = useWatch({ control: form.control, name: 'same_as_buyer' });
   const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
+  const watchedAmount = useWatch({ control: form.control, name: 'amount' });
 
   const { formState: { isSubmitting } } = form;
 
@@ -161,6 +185,37 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     const issuedTo = sameAsBuyer
       ? (values.purchased_by_cust_id || undefined)
       : (values.issued_to_customer_id || undefined);
+
+    if (fundingCaptureEnabled) {
+      if (!tender) {
+        setServerError(t('fields.tenderRequired'));
+        return;
+      }
+      const result = await sellGiftCardWithTenderAction({
+        card_name:                values.card_name,
+        card_name2:               values.card_name2 || undefined,
+        amount:                   values.amount,
+        expiry_date:              values.expiry_date
+          ? new Date(values.expiry_date).toISOString()
+          : undefined,
+        purchased_by_customer_id: values.purchased_by_cust_id || undefined,
+        issued_to_customer_id:    issuedTo,
+        card_pin:                 values.card_pin || undefined,
+        currency_code:            values.currency_code,
+        payment_method_id:        tender.paymentMethodId,
+        cash_tendered:            tender.cashTendered,
+        cash_drawer_session_id:   tender.cashDrawerSessionId,
+        idempotency_key:          idempotencyKey,
+      });
+
+      if (result.success === false) {
+        setServerError(result.error);
+      } else {
+        setGeneratedCode(result.data.giftCardCode);
+        onSuccess?.();
+      }
+      return;
+    }
 
     const result = await sellGiftCardAction({
       card_name:                values.card_name,
@@ -205,6 +260,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     setBuyerDisplay('');
     setRecipientDisplay('');
     setCustomerPickerTarget(null);
+    setTender(null);
     onOpenChange(false);
   };
 
@@ -305,6 +361,20 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                   <input type="hidden" {...form.register('currency_code')} />
                 </div>
               </div>
+
+              {/* B3 — tender step, governed DIRECT_TENDER funding only */}
+              {fundingCaptureEnabled && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                  <p className="mb-2 text-sm font-medium">{t('fields.tenderSectionTitle')}</p>
+                  <StoredValueTenderFields
+                    amount={watchedAmount || 0}
+                    currencyCode={currencyCode}
+                    tenantOrgId={tenantOrgId}
+                    userId={userId}
+                    onTenderChange={setTender}
+                  />
+                </div>
+              )}
 
               {/* Expiry Date */}
               <div>
@@ -444,7 +514,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                 <CmxButton type="button" variant="outline" onClick={handleClose}>
                   {tCommon('cancel')}
                 </CmxButton>
-                <CmxButton type="submit" disabled={isSubmitting}>
+                <CmxButton type="submit" disabled={isSubmitting || (fundingCaptureEnabled && !tender)}>
                   {isSubmitting ? tCommon('loading') : t('actions.sellCard')}
                 </CmxButton>
               </CmxDialogFooter>

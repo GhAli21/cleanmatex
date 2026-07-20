@@ -47,9 +47,16 @@ export const FINANCE_PERMISSIONS = {
   // Cash
   CASH_DRAWER_VIEW: 'cash_drawer:view',
   RECONCILIATION_VIEW: 'reconciliation:view',
+  /** B27 — new; was checked in code (B16 approveSessionVariance) but never seeded until this package. */
+  CASH_DRAWER_APPROVE_VARIANCE: 'cash_drawer:approve_variance',
   // Payment configuration
   PAYMENT_CONFIG_VIEW: 'payment_config:view',
   PAYMENT_CONFIG_MANAGE: 'payment_config:manage',
+  // Financial outbox processor (B7) — ops visibility + manual retry
+  FINANCE_OUTBOX_VIEW: 'finance_outbox:view',
+  FINANCE_OUTBOX_RETRY: 'finance_outbox:retry',
+  // B27 — wallet admin adjustment sibling to the already-existing STORED_VALUE_ISSUE_ADVANCE
+  STORED_VALUE_ISSUE_WALLET_CREDIT: 'stored_value:issue_wallet_credit',
 } as const
 
 export type FinancePermissionCode =

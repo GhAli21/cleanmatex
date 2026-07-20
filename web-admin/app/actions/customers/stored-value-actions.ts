@@ -10,14 +10,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import {
   topUpWalletTx,
   issueAdvanceTx,
   issueCreditNote,
 } from '@/lib/services/stored-value.service';
+import { fundStoredValue, FUNDING_TYPES } from '@/lib/services/stored-value-funding.service';
 
 /**
  *
@@ -162,6 +166,13 @@ export async function topUpWallet(
   notes?: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
+    // B27: this is a back-office adjustment (no payment collected) — was
+    // completely ungated before this check.
+    const canAdjust = await hasPermissionServer('stored_value:issue_wallet_credit');
+    if (!canAdjust) {
+      return { success: false, error: 'Insufficient permissions: stored_value:issue_wallet_credit required' };
+    }
+
     const auth = await getAuthContext();
     // B15: resolve the tenant currency for first-wallet creation — the wallet
     // service requires an explicit currency and never defaults.
@@ -204,6 +215,12 @@ export async function issueAdvance(
   notes?: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
+    // B27: was completely ungated before this check.
+    const canIssue = await hasPermissionServer('stored_value:issue_advance');
+    if (!canIssue) {
+      return { success: false, error: 'Insufficient permissions: stored_value:issue_advance required' };
+    }
+
     const auth = await getAuthContext();
     // B15: resolve the tenant currency for first-advance creation — the
     // service requires an explicit currency and never defaults.
@@ -234,6 +251,128 @@ export async function issueAdvance(
   }
 }
 
+// B3 — governed DIRECT_TENDER funding payload (tender leg required, unlike
+// the no-tender topUpWallet/issueAdvance above).
+const withTenderSchema = z.object({
+  customerId:            z.string().uuid(),
+  amount:                z.number().positive(),
+  currencyCode:          z.string().min(1).max(10),
+  branchId:              z.string().uuid().optional(),
+  paymentMethodId:       z.string().uuid(),
+  cashTendered:          z.number().positive().optional(),
+  cashDrawerSessionId:   z.string().uuid().optional(),
+  posSessionId:          z.string().uuid().optional(),
+  idempotencyKey:        z.string().min(1),
+});
+
+/**
+ * B3 — Top up a customer's wallet through the governed DIRECT_TENDER funding
+ * service: requires a real tender leg. Distinct from `topUpWallet` above
+ * (the no-tender admin adjustment, gated by `stored_value:issue_wallet_credit`
+ * — semantics frozen per B03 Architecture decision §4). Behind feature flag
+ * `order_fin_sv_funding_capture`.
+ */
+export async function topUpWalletWithTenderAction(
+  input: z.infer<typeof withTenderSchema>
+): Promise<{ success: true; voucherId: string } | { success: false; error: string }> {
+  try {
+    const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
+    if (!flagOn) {
+      return { success: false, error: 'FUNDING_CAPTURE_NOT_ENABLED' };
+    }
+
+    const canTopUp = await hasPermissionServer('stored_value:top_up_wallet');
+    if (!canTopUp) {
+      return { success: false, error: 'Insufficient permissions: stored_value:top_up_wallet required' };
+    }
+
+    const parsed = withTenderSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    }
+    const data = parsed.data;
+
+    const auth = await getAuthContext();
+    const result = await fundStoredValue({
+      tenantId: auth.tenantId,
+      branchId: data.branchId,
+      fundingType: FUNDING_TYPES.WALLET_TOPUP,
+      customerId: data.customerId,
+      currencyCode: data.currencyCode,
+      fundedAmount: data.amount,
+      tenderLegs: [
+        { paymentMethodId: data.paymentMethodId, amount: data.amount, cashTendered: data.cashTendered },
+      ],
+      cashDrawerSessionId: data.cashDrawerSessionId,
+      posSessionId: data.posSessionId,
+      performedBy: auth.userId,
+      idempotencyKey: data.idempotencyKey,
+    });
+
+    revalidatePath('/dashboard/customers/stored-value');
+    revalidatePath(`/dashboard/customers/${data.customerId}`);
+    return { success: true, voucherId: result.voucherId };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to top up wallet',
+    };
+  }
+}
+
+/**
+ * B3 — Issue a customer advance through the governed DIRECT_TENDER funding
+ * service: requires a real tender leg. Distinct from `issueAdvance` above
+ * (the no-tender admin adjustment). Behind feature flag `order_fin_sv_funding_capture`.
+ */
+export async function issueAdvanceWithTenderAction(
+  input: z.infer<typeof withTenderSchema>
+): Promise<{ success: true; voucherId: string } | { success: false; error: string }> {
+  try {
+    const flagOn = await currentTenantCan('order_fin_sv_funding_capture');
+    if (!flagOn) {
+      return { success: false, error: 'FUNDING_CAPTURE_NOT_ENABLED' };
+    }
+
+    const canIssue = await hasPermissionServer('stored_value:issue_advance');
+    if (!canIssue) {
+      return { success: false, error: 'Insufficient permissions: stored_value:issue_advance required' };
+    }
+
+    const parsed = withTenderSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    }
+    const data = parsed.data;
+
+    const auth = await getAuthContext();
+    const result = await fundStoredValue({
+      tenantId: auth.tenantId,
+      branchId: data.branchId,
+      fundingType: FUNDING_TYPES.CUSTOMER_ADVANCE_RECEIPT,
+      customerId: data.customerId,
+      currencyCode: data.currencyCode,
+      fundedAmount: data.amount,
+      tenderLegs: [
+        { paymentMethodId: data.paymentMethodId, amount: data.amount, cashTendered: data.cashTendered },
+      ],
+      cashDrawerSessionId: data.cashDrawerSessionId,
+      posSessionId: data.posSessionId,
+      performedBy: auth.userId,
+      idempotencyKey: data.idempotencyKey,
+    });
+
+    revalidatePath('/dashboard/customers/stored-value');
+    revalidatePath(`/dashboard/customers/${data.customerId}`);
+    return { success: true, voucherId: result.voucherId };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to issue advance',
+    };
+  }
+}
+
 /**
  * Issue a new credit note for a customer.
  * @param customerId
@@ -248,6 +387,15 @@ export async function issueCreditNoteAction(
   currencyCode: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
+    // B27: the API route (app/api/v1/customers/[id]/credit-note/issue) already
+    // checked stored_value:issue_credit_note, but the UI actually calls this
+    // server action, which had no check at all — the same policy now applies
+    // to both entry points.
+    const canIssue = await hasPermissionServer('stored_value:issue_credit_note');
+    if (!canIssue) {
+      return { success: false, error: 'Insufficient permissions: stored_value:issue_credit_note required' };
+    }
+
     const auth = await getAuthContext();
     await issueCreditNote(auth.tenantId, {
       customerId,
