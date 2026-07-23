@@ -16399,11 +16399,14 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          cash_drawer_movement_id: string | null
           cash_drawer_session_id: string | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
           currency_code: string
+          fin_voucher_id: string | null
+          fin_voucher_trx_line_id: string | null
           gateway_refund_id: string | null
           id: string
           idempotency_key: string | null
@@ -16434,11 +16437,14 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          cash_drawer_movement_id?: string | null
           cash_drawer_session_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           gateway_refund_id?: string | null
           id?: string
           idempotency_key?: string | null
@@ -16469,11 +16475,14 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          cash_drawer_movement_id?: string | null
           cash_drawer_session_id?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
           currency_code?: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           gateway_refund_id?: string | null
           id?: string
           idempotency_key?: string | null

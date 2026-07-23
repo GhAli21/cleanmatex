@@ -12,12 +12,19 @@
  * is double-click safe, and reports the typed API error codes.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+} from '@ui/forms';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -29,6 +36,7 @@ import {
 import { useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { REFUND_METHODS } from '@/lib/constants/order-financial';
 
 interface RefundItem {
   id: string;
@@ -56,8 +64,18 @@ interface RefundsListClientProps {
   pagination: PaginationInfo;
   /** B34: stage actions render only when the order_fin_refund_ui flag is on. */
   actionsEnabled?: boolean;
+  /** B9: when on, processing a CASH/ORIGINAL_METHOD refund executes for real
+   *  (REFUND_VOUCHER + cash-drawer CASH_OUT, or a manual-settlement reference)
+   *  instead of the record-only pre-B9 behavior. */
+  executionEnabled?: boolean;
   /** Current user id for the maker≠checker self-approval disable. */
   currentUserId?: string | null;
+}
+
+interface OpenDrawerSession {
+  id: string;
+  session_no: string;
+  drawer_name: string;
 }
 
 type StageAction = 'approve' | 'process';
@@ -92,6 +110,7 @@ export default function RefundsListClient({
   refunds,
   pagination,
   actionsEnabled = false,
+  executionEnabled = false,
   currentUserId = null,
 }: RefundsListClientProps) {
   const t = useTranslations('billing.refunds');
@@ -104,6 +123,49 @@ export default function RefundsListClient({
 
   const [pendingAction, setPendingAction] = useState<{ refund: RefundItem; action: StageAction } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // B9: execution inputs collected only for the CASH/ORIGINAL_METHOD process dialog.
+  const [cashDrawerSessionId, setCashDrawerSessionId] = useState('');
+  const [manualSettlementReference, setManualSettlementReference] = useState('');
+  const [drawerSessions, setDrawerSessions] = useState<OpenDrawerSession[]>([]);
+  const [drawerSessionsLoading, setDrawerSessionsLoading] = useState(false);
+
+  const requiresCashDrawer =
+    executionEnabled &&
+    pendingAction?.action === 'process' &&
+    pendingAction.refund.refund_method_code === REFUND_METHODS.CASH;
+  const requiresManualReference =
+    executionEnabled &&
+    pendingAction?.action === 'process' &&
+    pendingAction.refund.refund_method_code === REFUND_METHODS.ORIGINAL_METHOD;
+
+  useEffect(() => {
+    if (!requiresCashDrawer) {
+      setDrawerSessions([]);
+      setCashDrawerSessionId('');
+      return;
+    }
+    setDrawerSessionsLoading(true);
+    fetch('/api/v1/cash-drawers')
+      .then(async (res) => {
+        const json = await res.json().catch(() => null);
+        if (!json?.success) return [];
+        const drawers = (json.data ?? []) as Array<{
+          id: string;
+          drawer_name: string;
+          currentSession: { id: string; session_no: string } | null;
+        }>;
+        return drawers
+          .filter((d) => d.currentSession)
+          .map((d) => ({
+            id: d.currentSession!.id,
+            session_no: d.currentSession!.session_no,
+            drawer_name: d.drawer_name,
+          }));
+      })
+      .then(setDrawerSessions)
+      .catch(() => setDrawerSessions([]))
+      .finally(() => setDrawerSessionsLoading(false));
+  }, [requiresCashDrawer]);
 
   const showActionsColumn = actionsEnabled && (canApprove || canProcess);
 
@@ -115,15 +177,31 @@ export default function RefundsListClient({
     router.push(`?${sp.toString()}`);
   }
 
+  const canSubmitProcess =
+    pendingAction?.action !== 'process' ||
+    !executionEnabled ||
+    (requiresCashDrawer ? !!cashDrawerSessionId : true) &&
+    (requiresManualReference ? manualSettlementReference.trim().length > 0 : true);
+
   async function executeStageAction() {
-    if (!pendingAction || submitting) return;
+    if (!pendingAction || submitting || !canSubmitProcess) return;
     setSubmitting(true);
     try {
+      const body =
+        pendingAction.action === 'process' && executionEnabled
+          ? JSON.stringify({
+              cashDrawerSessionId: requiresCashDrawer ? cashDrawerSessionId : undefined,
+              manualSettlementReference: requiresManualReference
+                ? manualSettlementReference.trim()
+                : undefined,
+            })
+          : undefined;
       const response = await fetch(
         `/api/v1/orders/refunds/${pendingAction.refund.id}/${pendingAction.action}`,
         {
           method: 'PATCH',
-          headers: { ...getCSRFHeader(csrfToken) },
+          headers: { 'Content-Type': 'application/json', ...getCSRFHeader(csrfToken) },
+          body,
         },
       );
       const payload = (await response.json().catch(() => null)) as
@@ -141,6 +219,8 @@ export default function RefundsListClient({
         pendingAction.action === 'approve' ? t('actions.approved') : t('actions.processed'),
       );
       setPendingAction(null);
+      setCashDrawerSessionId('');
+      setManualSettlementReference('');
       router.refresh();
     } catch {
       showError(t('actions.failed'));
@@ -279,7 +359,11 @@ export default function RefundsListClient({
       <CmxDialog
         open={pendingAction != null}
         onOpenChange={(open) => {
-          if (!open && !submitting) setPendingAction(null);
+          if (!open && !submitting) {
+            setPendingAction(null);
+            setCashDrawerSessionId('');
+            setManualSettlementReference('');
+          }
         }}
       >
         <CmxDialogContent className="max-w-md">
@@ -304,15 +388,65 @@ export default function RefundsListClient({
                 : null}
             </CmxDialogDescription>
           </CmxDialogHeader>
+
+          {requiresCashDrawer ? (
+            <div className="space-y-2">
+              <Label>{t('execution.cashDrawerLabel')} *</Label>
+              {drawerSessionsLoading ? (
+                <p className="text-xs text-muted-foreground">{tCommon('loading')}</p>
+              ) : drawerSessions.length === 0 ? (
+                <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {t('execution.noOpenDrawerSessions')}
+                </p>
+              ) : (
+                <CmxSelectDropdown value={cashDrawerSessionId} onValueChange={setCashDrawerSessionId}>
+                  <CmxSelectDropdownTrigger className="w-full">
+                    <CmxSelectDropdownValue
+                      displayValue={
+                        drawerSessions.find((s) => s.id === cashDrawerSessionId)
+                          ? `${drawerSessions.find((s) => s.id === cashDrawerSessionId)!.drawer_name} • ${drawerSessions.find((s) => s.id === cashDrawerSessionId)!.session_no}`
+                          : undefined
+                      }
+                      placeholder={t('execution.selectDrawerPlaceholder')}
+                    />
+                  </CmxSelectDropdownTrigger>
+                  <CmxSelectDropdownContent>
+                    {drawerSessions.map((s) => (
+                      <CmxSelectDropdownItem key={s.id} value={s.id}>
+                        {s.drawer_name} • {s.session_no}
+                      </CmxSelectDropdownItem>
+                    ))}
+                  </CmxSelectDropdownContent>
+                </CmxSelectDropdown>
+              )}
+            </div>
+          ) : null}
+
+          {requiresManualReference ? (
+            <div className="space-y-2">
+              <Label htmlFor="refund-manual-ref">{t('execution.manualSettlementReferenceLabel')} *</Label>
+              <CmxInput
+                id="refund-manual-ref"
+                value={manualSettlementReference}
+                placeholder={t('execution.manualSettlementReferencePlaceholder')}
+                onChange={(e) => setManualSettlementReference(e.target.value)}
+              />
+            </div>
+          ) : null}
+
           <CmxDialogFooter>
             <CmxButton
               variant="outline"
               disabled={submitting}
-              onClick={() => setPendingAction(null)}
+              onClick={() => {
+                setPendingAction(null);
+                setCashDrawerSessionId('');
+                setManualSettlementReference('');
+              }}
             >
               {t('actions.cancel')}
             </CmxButton>
-            <CmxButton disabled={submitting} onClick={executeStageAction}>
+            <CmxButton disabled={submitting || !canSubmitProcess} onClick={executeStageAction}>
               {submitting ? t('actions.working') : t('actions.confirm')}
             </CmxButton>
           </CmxDialogFooter>

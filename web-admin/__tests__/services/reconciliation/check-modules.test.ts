@@ -173,6 +173,55 @@ describe('ar-checks', () => {
     mockVouchersFindMany.mockResolvedValue([{ order_id: 'o1' }]);
     expect(await checkRefundLink(TENANT, WINDOW)).toEqual([]);
   });
+
+  // B9 — unambiguous mode (fin_voucher_id backlink present, migration 0418).
+  it('REFUND_LINK_EXISTS (B9) — clean when fin_voucher_id resolves to a POSTED voucher and CASH has a linked movement', async () => {
+    mockRefundsFindMany.mockResolvedValue([
+      {
+        id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
+        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', cash_drawer_movement_id: 'mvt-1',
+      },
+    ]);
+    mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
+    expect(await checkRefundLink(TENANT, WINDOW)).toEqual([]);
+  });
+
+  it('REFUND_LINK_EXISTS (B9) — flags a CASH refund with a posted voucher but no linked cash-drawer movement', async () => {
+    mockRefundsFindMany.mockResolvedValue([
+      {
+        id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
+        refund_method_code: 'CASH', fin_voucher_id: 'vch-1', cash_drawer_movement_id: null,
+      },
+    ]);
+    mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
+    const result = await checkRefundLink(TENANT, WINDOW);
+    expect(result).toHaveLength(1);
+    expect(result[0].message).toContain('no linked cash-drawer movement');
+  });
+
+  it('REFUND_LINK_EXISTS (B9) — flags fin_voucher_id pointing at a voucher that is not POSTED', async () => {
+    mockRefundsFindMany.mockResolvedValue([
+      {
+        id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
+        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-missing', cash_drawer_movement_id: null,
+      },
+    ]);
+    mockVouchersFindMany.mockResolvedValue([]); // vch-missing not found/not POSTED
+    const result = await checkRefundLink(TENANT, WINDOW);
+    expect(result).toHaveLength(1);
+    expect(result[0].message).toContain('not a POSTED REFUND_VOUCHER');
+  });
+
+  it('REFUND_LINK_EXISTS (B9) — ORIGINAL_METHOD with a posted voucher never requires a cash-drawer movement', async () => {
+    mockRefundsFindMany.mockResolvedValue([
+      {
+        id: 'r1', order_id: 'o1', refund_amount: new Decimal('50'), refund_no: 'REF-001',
+        refund_method_code: 'ORIGINAL_METHOD', fin_voucher_id: 'vch-1', cash_drawer_movement_id: null,
+      },
+    ]);
+    mockVouchersFindMany.mockResolvedValue([{ id: 'vch-1' }]);
+    expect(await checkRefundLink(TENANT, WINDOW)).toEqual([]);
+  });
 });
 
 // ── stored-value-checks ───────────────────────────────────────────────────

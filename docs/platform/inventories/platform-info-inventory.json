@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-23T17:04:33.198Z",
-  "gitSha": "86fbdf8e",
+  "generatedAt": "2026-07-23T18:26:11.867Z",
+  "gitSha": "bf1fff68",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -36,8 +36,8 @@
     "settingUsages": 40,
     "planLimitUsages": 8,
     "accessContracts": 144,
-    "navigationEntries": 98,
-    "flagCatalogEntries": 292
+    "navigationEntries": 99,
+    "flagCatalogEntries": 293
   },
   "permissionUsages": [
     {
@@ -10446,6 +10446,28 @@
       ]
     },
     {
+      "id": "nav:section_orders_issues_/dashboard/issues",
+      "kind": "navigation_entry",
+      "key": "orders_issues",
+      "label": "Issues",
+      "path": "/dashboard/issues",
+      "depth": "section",
+      "permissions": [],
+      "roles": [
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "operator",
+        "viewer"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
       "id": "nav:section_orders_assembly_/dashboard/assembly",
       "kind": "navigation_entry",
       "key": "orders_assembly",
@@ -12524,6 +12546,22 @@
       "kind": "flag_catalog_entry",
       "flagKey": "order_fin_sv_funding_capture",
       "flagName": "Stored-Value Funding Capture",
+      "planBindingType": "independent",
+      "dataType": "boolean",
+      "governanceCategory": "beta",
+      "uiGroup": "Billing Features",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:order_fin_refund_execution",
+      "kind": "flag_catalog_entry",
+      "flagKey": "order_fin_refund_execution",
+      "flagName": "Refund Execution Parity",
       "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "beta",

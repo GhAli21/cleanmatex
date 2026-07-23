@@ -220,7 +220,17 @@
       "REFUND_IDEMPOTENCY_CONFLICT": "مفتاح الطلب هذا استُخدم سابقًا مع استرداد مختلف",
       "REFUND_AND_REBILL_NOT_AVAILABLE": "الاسترداد مع إعادة الفوترة غير متاح بعد — يتطلب صلاحية إعادة فتح الطلب المخصصة",
       "REFUND_CONTEXT_INVALID": "سياق الاسترداد مفقود أو غير صالح",
-      "REFUND_REOPEN_INVALID": "يجب أن يكون مبلغ إعادة الفتح بين صفر ومبلغ الاسترداد"
+      "REFUND_REOPEN_INVALID": "يجب أن يكون مبلغ إعادة الفتح بين صفر ومبلغ الاسترداد",
+      "REFUND_CASH_DRAWER_SESSION_REQUIRED": "اختر جلسة درج نقدي مفتوحة لمعالجة هذا الاسترداد النقدي",
+      "REFUND_CASH_DRAWER_SESSION_NOT_OPEN": "جلسة الدرج النقدي المحددة لم تعد مفتوحة — اختر أخرى",
+      "REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED": "أدخل مرجع تسوية يدوي لمعالجة هذا الاسترداد"
+    },
+    "execution": {
+      "cashDrawerLabel": "جلسة الدرج النقدي",
+      "selectDrawerPlaceholder": "اختر جلسة درج مفتوحة",
+      "noOpenDrawerSessions": "لا توجد جلسة درج نقدي مفتوحة — افتح واحدة من صفحة الأدراج النقدية قبل معالجة هذا الاسترداد",
+      "manualSettlementReferenceLabel": "مرجع التسوية اليدوية",
+      "manualSettlementReferencePlaceholder": "مثال: مرجع التحويل البنكي، رقم إيصال الإلغاء من الجهاز، مرجع لوحة تحكم البوابة"
     },
     "initiateRefund": "بدء استرداد",
     "refundNo": "رقم الاسترداد #",

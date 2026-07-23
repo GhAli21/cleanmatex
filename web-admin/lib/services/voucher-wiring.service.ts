@@ -9,6 +9,7 @@
  *   1. orderPaymentWiringHandler
  *   2. orderCreditApplicationWiringHandler
  *   3. cashDrawerWiringHandler
+ *   4. orderRefundCashDrawerWiringHandler (B9 — independent, ORDER_REFUND/OUT only)
  */
 
 import 'server-only';
@@ -36,6 +37,7 @@ import { invoicePaymentWiringHandler } from './wiring/invoice-payment-wiring.han
 import { statementPaymentWiringHandler } from './wiring/statement-payment-wiring.handler';
 import { storedValueFundingWiringHandler } from './wiring/stored-value-funding-wiring.handler';
 import { storedValueCashDrawerWiringHandler } from './wiring/stored-value-cash-drawer-wiring.handler';
+import { orderRefundCashDrawerWiringHandler } from './wiring/order-refund-cash-drawer-wiring.handler';
 import type {
   VoucherLineForWiring,
   WiringHandler,
@@ -56,6 +58,10 @@ const WIRING_HANDLERS: WiringHandler[] = [
   storedValueFundingWiringHandler,
   cashDrawerWiringHandler,
   storedValueCashDrawerWiringHandler,
+  // B9 — CASH refund execution OUT movement. Independent of the ORDER_PAYMENT/IN
+  // handlers above (matches ORDER_REFUND/OUT lines only); position is arbitrary
+  // relative to them but kept adjacent to cashDrawerWiringHandler for readability.
+  orderRefundCashDrawerWiringHandler,
 ];
 
 const LINE_SELECT = {

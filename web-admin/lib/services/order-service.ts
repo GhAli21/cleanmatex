@@ -2174,7 +2174,7 @@ export class OrderService {
       );
 
       const openCount = enriched.filter(
-        (i) => i.status === ORDER_ISSUE_STATUS.OPEN || i.solved_at == null
+        (i) => i.status === ORDER_ISSUE_STATUS.OPEN
       ).length;
       return {
         success: true,
@@ -2353,8 +2353,7 @@ export class OrderService {
       let orderScopedTotal = 0;
 
       for (const row of rows) {
-        const isOpen =
-          row.status === ORDER_ISSUE_STATUS.OPEN || row.solved_at == null;
+        const isOpen = row.status === ORDER_ISSUE_STATUS.OPEN;
 
         // Piece-scoped issues count only under the piece (not double-counted on item).
         if (row.order_item_piece_id) {

@@ -37,6 +37,7 @@ import {
 } from '@ui/forms';
 import { useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { useFeature } from '@features/auth/ui/RequireFeature';
 import {
   REFUND_CONTEXTS,
   REFUND_METHODS,
@@ -175,8 +176,13 @@ export function RefundInitiateDialog({
     }
   }
 
+  // B9: once order_fin_refund_execution is ON, CASH/ORIGINAL_METHOD are no
+  // longer record-only — the accountant completes real execution (drawer
+  // cash-out or a manual-settlement reference) at the Process step.
+  const refundExecutionEnabled = useFeature('order_fin_refund_execution');
   const isRecordOnlyDestination =
-    method === REFUND_METHODS.CASH || method === REFUND_METHODS.ORIGINAL_METHOD;
+    !refundExecutionEnabled &&
+    (method === REFUND_METHODS.CASH || method === REFUND_METHODS.ORIGINAL_METHOD);
 
   return (
     <CmxDialog open={open} onOpenChange={resetAndClose}>

@@ -3986,6 +3986,29 @@ model sys_issue_type_cd {
   @@schema("public")
 }
 
+/// Reusable priority codes (low, normal, high, urgent) — migration 0416
+model sys_lkp_priority_cd {
+  code           String    @id
+  name           String
+  name2          String?
+  description    String?
+  description2   String?
+  display_order  Int       @default(0)
+  color          String?
+  icon           String?
+  is_default     Boolean   @default(false)
+  is_active      Boolean   @default(true)
+  is_system      Boolean   @default(true)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  created_by     String?   @db.Uuid
+  updated_at     DateTime? @db.Timestamptz(6)
+  updated_by     String?   @db.Uuid
+  rec_status     Int       @default(1) @db.SmallInt
+
+  @@index([is_active, display_order], map: "idx_sys_lkp_priority_active")
+  @@schema("public")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_item_type_cd {
   item_type_code                String                          @id @db.VarChar(50)
@@ -6729,6 +6752,12 @@ model org_order_refunds_dtl {
   rec_order                    Int?
   rec_notes                    String?
   is_active                    Boolean                       @default(true)
+  // B9 (migration 0418) — execution lineage backlinks. Nullable/sparse-unique,
+  // no FK (mirrors the fin_voucher_id/fin_voucher_trx_line_id pattern already
+  // used on org_order_payments_dtl etc. from migration 0303).
+  fin_voucher_id               String?                       @db.Uuid
+  fin_voucher_trx_line_id      String?                       @unique(map: "uq_ord_refund_vch_line") @db.Uuid
+  cash_drawer_movement_id      String?                       @unique(map: "uq_ord_refund_cash_mvt") @db.Uuid
   org_tenants_mst              org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   // FK repointed to the canonical order-payment table in migration 0283 (legacy ledger dropped by 0395; ADR-002).
   // B01 (mig 0404): the DB constraint is now the tenant-composite
@@ -6742,6 +6771,7 @@ model org_order_refunds_dtl {
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_refunds_order")
   @@index([tenant_org_id, pos_session_id], map: "idx_ordref_possess")
   @@index([tenant_org_id, original_credit_app_id], map: "idx_ord_refunds_credit_app")
+  @@index([tenant_org_id, fin_voucher_id], map: "idx_ord_refund_fin_voucher")
   @@schema("public")
 }
 

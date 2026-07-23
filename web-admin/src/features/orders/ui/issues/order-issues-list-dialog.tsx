@@ -1,5 +1,5 @@
 /**
- * Lists issues for a scope in a CmxDataTable with scope/status filters.
+ * Lists issues for a scope in a CmxDataTable with shared filters/columns.
  */
 
 'use client';
@@ -16,20 +16,24 @@ import {
   CmxDialogDescription,
 } from '@ui/overlays';
 import { CmxButton, CmxSpinner } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
+import { OrderIssuesFilterBar } from './order-issues-filter-bar';
+import { buildOrderIssueTableColumns } from './order-issues-table-columns';
+import type {
+  OrderIssuesDialogScopeFilter,
+  OrderIssuesSortBy,
+  OrderIssuesSortDir,
+  OrderIssuesStatusFilter,
+} from './order-issues-filter-types';
 import {
-  ORDER_ISSUE_SCOPE,
-  ORDER_ISSUE_STATUS,
-  type OrderIssueScope,
-} from '@/lib/constants/order-issues';
-import { OrderIssueActorTimeCell } from './order-issue-actor-time-cell';
+  DEFAULT_ORDER_ISSUES_SORT_BY,
+  DEFAULT_ORDER_ISSUES_SORT_DIR,
+} from './order-issues-filter-types';
+import { sortOrderIssueRows } from './order-issues-sort';
+import { type OrderIssueScope } from '@/lib/constants/order-issues';
 import type { OrderIssueTableRow } from './order-issue-table-types';
-
-type ScopeFilter = 'this' | 'order' | 'item' | 'piece' | 'all';
-type StatusFilter = 'open' | 'solved' | 'all';
 
 export interface OrderIssuesListDialogProps {
   open: boolean;
@@ -57,15 +61,27 @@ export function OrderIssuesListDialog({
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const queryClient = useQueryClient();
-  const [solveIssueId, setSolveIssueId] = React.useState<string | null>(null);
+  const [solveTarget, setSolveTarget] = React.useState<OrderIssueTableRow | null>(
+    null
+  );
   const [reportOpen, setReportOpen] = React.useState(false);
-  const [scopeFilter, setScopeFilter] = React.useState<ScopeFilter>('this');
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('open');
+  const [scopeFilter, setScopeFilter] =
+    React.useState<OrderIssuesDialogScopeFilter>('this');
+  const [statusFilter, setStatusFilter] =
+    React.useState<OrderIssuesStatusFilter>('open');
+  const [sortBy, setSortBy] = React.useState<OrderIssuesSortBy>(
+    DEFAULT_ORDER_ISSUES_SORT_BY
+  );
+  const [sortDir, setSortDir] = React.useState<OrderIssuesSortDir>(
+    DEFAULT_ORDER_ISSUES_SORT_DIR
+  );
 
   React.useEffect(() => {
     if (open) {
       setScopeFilter('this');
       setStatusFilter('open');
+      setSortBy(DEFAULT_ORDER_ISSUES_SORT_BY);
+      setSortDir(DEFAULT_ORDER_ISSUES_SORT_DIR);
     }
   }, [open]);
 
@@ -123,154 +139,21 @@ export function OrderIssuesListDialog({
     onChanged?.();
   };
 
-  const issues = data?.issues ?? [];
+  const issues = React.useMemo(
+    () => sortOrderIssueRows(data?.issues ?? [], sortBy, sortDir),
+    [data?.issues, sortBy, sortDir]
+  );
   const showScopeCol = scopeFilter !== 'this';
 
-  const typeLabel = (row: OrderIssueTableRow) => {
-    if (locale === 'ar') {
-      return row.issue_type_name2 || row.issue_type_name || row.issue_code;
-    }
-    return row.issue_type_name || row.issue_code;
-  };
-
-  const priorityLabel = (row: OrderIssueTableRow) => {
-    if (locale === 'ar') {
-      return row.priority_name2 || row.priority_name || row.priority || '—';
-    }
-    return row.priority_name || row.priority || '—';
-  };
-
-  const columns = React.useMemo(() => {
-    const cols = [
-      {
-        key: 'status',
-        header: t('columns.status'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) => {
-          const isOpen =
-            row.status === ORDER_ISSUE_STATUS.OPEN || !row.solved_at;
-          return (
-            <Badge variant={isOpen ? 'destructive' : 'success'}>
-              {isOpen ? t('statusOpen') : t('statusSolved')}
-            </Badge>
-          );
-        },
-      },
-      {
-        key: 'issue',
-        header: t('columns.issue'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) => (
-          <div className="min-w-[12rem] max-w-xs space-y-1">
-            <Badge variant="outline">{typeLabel(row)}</Badge>
-            <p className="text-sm font-medium whitespace-pre-wrap">
-              {row.issue_text}
-            </p>
-          </div>
-        ),
-      },
-      {
-        key: 'priority',
-        header: t('columns.priority'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) => (
-          <span
-            className="text-sm font-medium"
-            style={
-              row.priority_color
-                ? { color: row.priority_color }
-                : undefined
-            }
-          >
-            {priorityLabel(row)}
-          </span>
-        ),
-      },
-      ...(showScopeCol
-        ? [
-            {
-              key: 'scope',
-              header: t('columns.scope'),
-              sortable: false,
-              render: (row: OrderIssueTableRow) => (
-                <span className="text-sm text-muted-foreground">
-                  {t(`scope.${String(row.scope_level || '').toLowerCase()}`)}
-                </span>
-              ),
-            },
-          ]
-        : []),
-      {
-        key: 'reported',
-        header: t('columns.reported'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) => (
-          <OrderIssueActorTimeCell
-            byLabel={t('createdBy')}
-            whenLabel={t('createdWhen')}
-            actorName={row.created_by_name}
-            actorId={row.created_by}
-            at={row.created_at}
-            locale={locale}
-          />
-        ),
-      },
-      {
-        key: 'resolution',
-        header: t('columns.resolution'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) => (
-          <p className="min-w-[8rem] max-w-xs text-sm whitespace-pre-wrap text-muted-foreground">
-            {row.solved_notes?.trim() || '—'}
-          </p>
-        ),
-      },
-      {
-        key: 'solved',
-        header: t('columns.solved'),
-        sortable: false,
-        render: (row: OrderIssueTableRow) =>
-          row.solved_at || row.status === ORDER_ISSUE_STATUS.SOLVED ? (
-            <OrderIssueActorTimeCell
-              byLabel={t('solvedBy')}
-              whenLabel={t('solvedWhen')}
-              actorName={row.solved_by_name}
-              actorId={row.solved_by}
-              at={row.solved_at}
-              locale={locale}
-            />
-          ) : (
-            <CmxButton
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => setSolveIssueId(row.id)}
-            >
-              {t('solve')}
-            </CmxButton>
-          ),
-      },
-    ];
-    return cols;
-  }, [locale, showScopeCol, t]);
-
-  const FilterChip = ({
-    active,
-    label,
-    onClick,
-  }: {
-    active: boolean;
-    label: string;
-    onClick: () => void;
-  }) => (
-    <CmxButton
-      type="button"
-      size="xs"
-      variant={active ? 'primary' : 'secondary'}
-      onClick={onClick}
-    >
-      {label}
-    </CmxButton>
+  const columns = React.useMemo(
+    () =>
+      buildOrderIssueTableColumns({
+        locale,
+        t: (key, values) => t(key as never, values as never),
+        includeScopeColumn: showScopeCol,
+        onSolve: (row) => setSolveTarget(row),
+      }),
+    [locale, showScopeCol, t]
   );
 
   return (
@@ -278,76 +161,42 @@ export function OrderIssuesListDialog({
       <CmxDialog
         open={open}
         onOpenChange={(next) => {
-          if (solveIssueId || reportOpen) return;
+          if (solveTarget || reportOpen) return;
           onOpenChange(next);
         }}
       >
         <CmxDialogContent className="max-w-6xl w-[min(96vw,80rem)]">
           <CmxDialogHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CmxDialogTitle>{t('listTitle')}</CmxDialogTitle>
-                <CmxDialogDescription>
-                  {scopeFilter === 'this'
-                    ? t(`scope.${scopeLevel.toLowerCase()}`)
-                    : t(`filterScope.${scopeFilter}`)}
-                  {data
-                    ? ` · ${t('summaryCounts', {
-                        open: data.openCount,
-                        total: data.totalCount,
-                      })}`
-                    : null}
-                </CmxDialogDescription>
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {(
-                    [
-                      ['this', t('filterThisLevel')],
-                      ['order', t('filterScope.order')],
-                      ['item', t('filterScope.item')],
-                      ['piece', t('filterScope.piece')],
-                      ['all', t('filterScope.all')],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <FilterChip
-                      key={key}
-                      active={scopeFilter === key}
-                      label={label}
-                      onClick={() => setScopeFilter(key)}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(
-                    [
-                      ['open', t('filterOpen')],
-                      ['solved', t('filterSolved')],
-                      ['all', t('filterAll')],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <FilterChip
-                      key={key}
-                      active={statusFilter === key}
-                      label={label}
-                      onClick={() => setStatusFilter(key)}
-                    />
-                  ))}
-                  <CmxButton
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => {
-                      setScopeFilter('this');
-                      setStatusFilter('open');
-                    }}
-                  >
-                    {t('filterReset')}
-                  </CmxButton>
-                </div>
-              </div>
-            </div>
+            <CmxDialogTitle>{t('listTitle')}</CmxDialogTitle>
+            <CmxDialogDescription>
+              {scopeFilter === 'this'
+                ? t(`scope.${scopeLevel.toLowerCase()}`)
+                : t(`filterScope.${scopeFilter}`)}
+            </CmxDialogDescription>
           </CmxDialogHeader>
+
+          <OrderIssuesFilterBar
+            variant="dialog"
+            status={statusFilter}
+            onStatusChange={setStatusFilter}
+            scope={scopeFilter}
+            onScopeChange={(value) =>
+              setScopeFilter(value as OrderIssuesDialogScopeFilter)
+            }
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSortByChange={setSortBy}
+            onSortDirChange={setSortDir}
+            onReset={() => {
+              setScopeFilter('this');
+              setStatusFilter('open');
+              setSortBy(DEFAULT_ORDER_ISSUES_SORT_BY);
+              setSortDir(DEFAULT_ORDER_ISSUES_SORT_DIR);
+            }}
+            openCount={data?.openCount}
+            totalCount={data?.totalCount}
+            className="mb-3"
+          />
 
           <div className="max-h-[60vh] overflow-auto py-2">
             {isLoading ? (
@@ -388,13 +237,21 @@ export function OrderIssuesListDialog({
         </CmxDialogContent>
       </CmxDialog>
 
-      {solveIssueId ? (
+      {solveTarget ? (
         <OrderIssueSolveDialog
-          open={Boolean(solveIssueId)}
+          open={Boolean(solveTarget)}
           orderId={orderId}
-          issueId={solveIssueId}
+          issueId={solveTarget.id}
+          issueSnippet={solveTarget.issue_text}
+          issueTypeLabel={
+            locale === 'ar'
+              ? solveTarget.issue_type_name2 ||
+                solveTarget.issue_type_name ||
+                solveTarget.issue_code
+              : solveTarget.issue_type_name || solveTarget.issue_code
+          }
           onOpenChange={(next) => {
-            if (!next) setSolveIssueId(null);
+            if (!next) setSolveTarget(null);
           }}
           onSuccess={refresh}
         />
@@ -412,5 +269,3 @@ export function OrderIssuesListDialog({
     </>
   );
 }
-
-export { ORDER_ISSUE_SCOPE };

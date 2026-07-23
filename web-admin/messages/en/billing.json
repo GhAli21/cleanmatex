@@ -220,7 +220,17 @@
       "REFUND_IDEMPOTENCY_CONFLICT": "This request key was already used with a different refund",
       "REFUND_AND_REBILL_NOT_AVAILABLE": "Refund-and-rebill is not available yet — it requires the dedicated order-reopen permission",
       "REFUND_CONTEXT_INVALID": "The refund context is missing or invalid",
-      "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount"
+      "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount",
+      "REFUND_CASH_DRAWER_SESSION_REQUIRED": "Select an open cash-drawer session to process this cash refund",
+      "REFUND_CASH_DRAWER_SESSION_NOT_OPEN": "The selected cash-drawer session is no longer open — pick another",
+      "REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED": "Enter a manual settlement reference to process this refund"
+    },
+    "execution": {
+      "cashDrawerLabel": "Cash drawer session",
+      "selectDrawerPlaceholder": "Select an open drawer session",
+      "noOpenDrawerSessions": "No open cash-drawer session found — open one from Cash Drawers before processing this refund",
+      "manualSettlementReferenceLabel": "Manual settlement reference",
+      "manualSettlementReferencePlaceholder": "e.g. bank transfer ref, terminal void slip no., gateway dashboard ref"
     },
     "initiateRefund": "Initiate Refund",
     "refundNo": "Refund #",

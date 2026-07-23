@@ -287,7 +287,7 @@ test.describe('Workflow Order Management', () => {
           await createIssueButton.click();
 
           // Fill issue form
-          await page.selectOption('select[name="issue_code"]', 'stain');
+          await page.selectOption('select[name="issue_code"]', 'STAIN');
           await page.fill('textarea[name="notes"]', 'Large stain found on item');
 
           // Submit issue

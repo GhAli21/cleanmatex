@@ -216,6 +216,12 @@ export const REFUND_ERROR_CODES = {
   REFUND_REOPEN_INVALID: 'REFUND_REOPEN_INVALID',
   /** Maker-checker: the requester attempted to approve their own refund (B34). */
   REFUND_SELF_APPROVAL_BLOCKED: 'REFUND_SELF_APPROVAL_BLOCKED',
+  /** B9: order_fin_refund_execution is ON and method=CASH but no cash-drawer session was supplied at process time. */
+  REFUND_CASH_DRAWER_SESSION_REQUIRED: 'REFUND_CASH_DRAWER_SESSION_REQUIRED',
+  /** B9: the supplied cash-drawer session does not exist, isn't OPEN, or belongs to another tenant. */
+  REFUND_CASH_DRAWER_SESSION_NOT_OPEN: 'REFUND_CASH_DRAWER_SESSION_NOT_OPEN',
+  /** B9: order_fin_refund_execution is ON and method=ORIGINAL_METHOD but no manual-settlement reference was supplied. */
+  REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED: 'REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED',
 } as const;
 /** Derived union for refund validation error codes. */
 export type RefundErrorCode = (typeof REFUND_ERROR_CODES)[keyof typeof REFUND_ERROR_CODES];

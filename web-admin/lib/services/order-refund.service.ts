@@ -25,6 +25,17 @@ import { topUpWalletTx, issueCreditNoteTx } from './stored-value.service';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { requireCurrencyCode } from '@/lib/money/currency-resolution';
+import { createBizVoucher } from './voucher-biz.service';
+import { addVoucherLine } from './voucher-line.service';
+import { postAndWireBizVoucher } from './voucher-wiring.service';
+import {
+  VOUCHER_TYPE,
+  LINE_TYPE,
+  LINE_ROLE,
+  VOUCHER_DIRECTION,
+  PARTY_TYPE,
+  TARGET_TYPE,
+} from '@/lib/constants/voucher';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -702,18 +713,45 @@ export async function approveRefund(
 }
 
 /**
+ * B9 — execution inputs for CASH/ORIGINAL_METHOD refund destinations.
+ * Omitted or `enabled: false` preserves the exact pre-B9 record-only
+ * behavior (flag-off rollback path).
+ */
+export interface RefundExecutionInput {
+  enabled: boolean;
+  /** Required when refund_method_code = CASH. */
+  cashDrawerSessionId?: string;
+  /** Optional register-session gate, mirrors initiateRefund's own opt-in check. */
+  posSessionId?: string;
+  /** Required when refund_method_code = ORIGINAL_METHOD — an operator-entered
+   *  proof of the manual/gateway settlement (bank transfer ref, terminal void
+   *  slip no., gateway dashboard ref, etc.). Never claimed automatically. */
+  manualSettlementReference?: string;
+}
+
+/**
  * Process an approved refund. Re-validates the B01 facts and caps, performs
  * the destination execution where needed, writes `reopens_due_amount` once
  * per the approved D003 v2 rules, recalculates the financial snapshot, and
  * emits the final outbox event.
+ *
+ * B9: when `execution.enabled` is true, CASH destinations create a
+ * REFUND_VOUCHER wired to a real cash-drawer CASH_OUT movement (D007: BVM
+ * refund voucher + operational fact commit transactionally with the refund
+ * row); ORIGINAL_METHOD destinations create a REFUND_VOUCHER carrying the
+ * operator's manual-settlement reference (no gateway API exists yet — B8).
+ * When omitted/false, both destinations remain record-only exactly as they
+ * were before this package (the flag-off rollback path).
  * @param tenantId
  * @param refundId
  * @param processedBy
+ * @param execution
  */
 export async function processRefund(
   tenantId: string,
   refundId: string,
-  processedBy?: string
+  processedBy?: string,
+  execution?: RefundExecutionInput
 ) {
   return prisma.$transaction(async (tx) => {
     // F-R2 (D-12 §4): lock the refund row FOR UPDATE before issuing any stored value.
@@ -852,9 +890,176 @@ export async function processRefund(
         issuedBy: processedBy,
         idempotencyKey: `refund-${refundId}-cn`,
       });
+    } else if (
+      (method === REFUND_METHODS.CASH || method === REFUND_METHODS.ORIGINAL_METHOD) &&
+      execution?.enabled
+    ) {
+      // B9: real execution behind the flag. Flag-off (or execution omitted)
+      // falls through with no branch at all — the exact pre-B9 record-only
+      // behavior (no voucher, no drawer movement, no gateway call).
+      const refundCurrencyCode = requireCurrencyCode(
+        refund.currency_code ?? order.currency_code,
+        `refund ${refundId} execution`
+      );
+
+      if (method === REFUND_METHODS.CASH) {
+        if (!execution.cashDrawerSessionId) {
+          throw new RefundValidationError(
+            REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_REQUIRED,
+            'A cash-drawer session is required to execute a CASH refund',
+            422
+          );
+        }
+        const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+          where: { id: execution.cashDrawerSessionId, tenant_org_id: tenantId, status: 'OPEN' },
+          select: { id: true },
+        });
+        if (!session) {
+          throw new RefundValidationError(
+            REFUND_ERROR_CODES.REFUND_CASH_DRAWER_SESSION_NOT_OPEN,
+            'The selected cash-drawer session is not open',
+            422
+          );
+        }
+        // Opportunistic register-session gate — mirrors initiateRefund's own
+        // opt-in check (item 5 of the B9 research); a no-op if not supplied.
+        await assertOpenPosSessionForFinanceTx(tx, {
+          tenantId,
+          userId: processedBy ?? '',
+          posSessionId: execution.posSessionId,
+          branchId: order.branch_id ?? undefined,
+        });
+
+        const voucher = await createBizVoucher(
+          tenantId,
+          {
+            voucher_type:    VOUCHER_TYPE.REFUND,
+            direction:       VOUCHER_DIRECTION.OUT,
+            party_type:      PARTY_TYPE.CUSTOMER,
+            customer_id:     customerId ?? undefined,
+            order_id:        order.id,
+            source_module:   'ORDERS',
+            source_ref_type: 'ORDER',
+            source_ref_id:   order.id,
+            currency_code:   refundCurrencyCode,
+            total_amount:    amount,
+            branch_id:       order.branch_id ?? undefined,
+            idempotency_key: `refund-${refundId}-vch`,
+          },
+          processedBy ?? 'system',
+          tx,
+        );
+
+        const line = await addVoucherLine(
+          tenantId,
+          voucher.id,
+          {
+            line_type:              LINE_TYPE.REFUND,
+            line_role:              LINE_ROLE.ORDER_REFUND,
+            direction:              VOUCHER_DIRECTION.OUT,
+            target_type:            TARGET_TYPE.ORDER,
+            target_id:              order.id,
+            order_id:               order.id,
+            customer_id:            customerId ?? undefined,
+            branch_id:              order.branch_id ?? undefined,
+            payment_method_code:    REFUND_METHODS.CASH,
+            payment_status:         'COMPLETED',
+            amount,
+            currency_code:          refundCurrencyCode,
+            cash_drawer_session_id: execution.cashDrawerSessionId,
+            pos_session_id:         execution.posSessionId,
+            idempotency_key:        `refund-${refundId}-vch-line`,
+          },
+          processedBy ?? 'system',
+          undefined,
+          tx,
+        );
+
+        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', `refund-${refundId}-vch-post`, tx);
+
+        const movement = await tx.org_cash_drawer_movements_dtl.findFirst({
+          where: { fin_voucher_trx_line_id: line.id, tenant_org_id: tenantId },
+          select: { id: true },
+        });
+
+        await tx.org_order_refunds_dtl.update({
+          where: { id: refundId },
+          data: {
+            fin_voucher_id:          voucher.id,
+            fin_voucher_trx_line_id: line.id,
+            cash_drawer_movement_id: movement?.id ?? null,
+          },
+        });
+      } else {
+        // ORIGINAL_METHOD — no gateway API exists yet (B8); require an explicit
+        // manual-settlement reference so this is never a silent claim (D004/D007).
+        const manualRef = execution.manualSettlementReference?.trim();
+        if (!manualRef) {
+          throw new RefundValidationError(
+            REFUND_ERROR_CODES.REFUND_MANUAL_SETTLEMENT_REFERENCE_REQUIRED,
+            'A manual settlement reference is required to execute an ORIGINAL_METHOD refund',
+            422
+          );
+        }
+
+        const voucher = await createBizVoucher(
+          tenantId,
+          {
+            voucher_type:    VOUCHER_TYPE.REFUND,
+            direction:       VOUCHER_DIRECTION.OUT,
+            party_type:      PARTY_TYPE.CUSTOMER,
+            customer_id:     customerId ?? undefined,
+            order_id:        order.id,
+            source_module:   'ORDERS',
+            source_ref_type: 'ORDER',
+            source_ref_id:   order.id,
+            currency_code:   refundCurrencyCode,
+            total_amount:    amount,
+            branch_id:       order.branch_id ?? undefined,
+            idempotency_key: `refund-${refundId}-vch`,
+          },
+          processedBy ?? 'system',
+          tx,
+        );
+
+        const line = await addVoucherLine(
+          tenantId,
+          voucher.id,
+          {
+            line_type:           LINE_TYPE.REFUND,
+            line_role:           LINE_ROLE.ORDER_REFUND,
+            direction:           VOUCHER_DIRECTION.OUT,
+            target_type:         TARGET_TYPE.ORDER,
+            target_id:           order.id,
+            order_id:            order.id,
+            customer_id:         customerId ?? undefined,
+            branch_id:           order.branch_id ?? undefined,
+            payment_method_code: REFUND_METHODS.ORIGINAL_METHOD,
+            payment_status:      'COMPLETED',
+            amount,
+            currency_code:       refundCurrencyCode,
+            gateway_reference:   manualRef,
+            idempotency_key:     `refund-${refundId}-vch-line`,
+          },
+          processedBy ?? 'system',
+          undefined,
+          tx,
+        );
+
+        await postAndWireBizVoucher(tenantId, voucher.id, processedBy ?? 'system', `refund-${refundId}-vch-post`, tx);
+
+        await tx.org_order_refunds_dtl.update({
+          where: { id: refundId },
+          data: {
+            fin_voucher_id:          voucher.id,
+            fin_voucher_trx_line_id: line.id,
+            gateway_refund_id:       manualRef,
+          },
+        });
+      }
     }
-    // CASH / ORIGINAL_METHOD remain record-only in B1 (no drawer OUT, no
-    // gateway call) — execution parity is work package B9.
+    // CASH / ORIGINAL_METHOD with execution disabled (or omitted) remain
+    // record-only — the exact pre-B9 behavior (no drawer OUT, no gateway call).
 
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refundId },

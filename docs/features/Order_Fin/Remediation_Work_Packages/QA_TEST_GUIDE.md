@@ -12,8 +12,8 @@
 | Item | Value / action |
 |---|---|
 | Environment | Preview deployment (post-commit) |
-| Migrations applied | up to **0415**. **Migration 0410 (B7), 0411 (B27), 0412 (B3), and 0415 (B30/B32) are all APPLIED (owner, 2026-07-20/2026-07-23) and verified via remote DB.** Section 15's permission codes and worklist nav entry are live and ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON. |
-| Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* **B30/B32 ship unconditionally, no feature flag.** |
+| Migrations applied | up to **0415**; **`0418` (B9) is authored and STOP-AND-WAIT, not yet applied** — Section 16 cannot be tested until the owner applies it. **Migration 0410 (B7), 0411 (B27), 0412 (B3), and 0415 (B30/B32) are all APPLIED (owner, 2026-07-20/2026-07-23) and verified via remote DB.** Section 15's permission codes and worklist nav entry are live and ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON. |
+| Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). `order_fin_refund_execution` = **ON** to exercise B9's real CASH/ORIGINAL_METHOD execution (OFF to confirm record-only stays unchanged — see §16). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* **B30/B32 ship unconditionally, no feature flag.** |
 | Permissions | tester needs the refund permissions (initiate/approve/process) for B34, and `cash_drawer:approve_variance` for B16 §6.5–6.6 and §12.1 (seeded by **B27**, migration 0411, APPLIED). For §12, prepare a **third** login with none of the new B27 codes granted, to exercise the denial paths. For §15 (B30/B32), the tester also needs `orders:pending_payments_view` / `orders:cancel_payment` / `orders:fail_payment` (seeded by migration **0415**, APPLIED); reuse the §12 no-new-codes login to exercise the denial paths there too. |
 | Users | prepare **two** logins: an **initiator/cashier** and a **supervisor/approver** (different users — needed for maker-checker in B34 and B16). |
 | Test tenant | one with `TENANT_CURRENCY` set (e.g. OMR); ideally a second non-OMR tenant. |
@@ -292,6 +292,26 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 16. B9 — Refund execution parity
+**What changed:** processing an **approved** CASH or ORIGINAL_METHOD refund used to be record-only (status flips to PROCESSED, nothing else happens). Behind the new flag `order_fin_refund_execution` (default OFF), CASH refunds now create a real REFUND_VOUCHER wired to a cash-drawer CASH_OUT movement (the drawer's expected cash actually drops); ORIGINAL_METHOD refunds require the accountant to type a manual-settlement reference (bank transfer ref, terminal void slip no., gateway dashboard ref) since no gateway integration exists yet. Migration **0418 must be applied first**.
+
+> Where: **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`).
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|16.1| With the flag **OFF**: initiate + approve + process a CASH refund as usual | Behaves exactly as before B9 — Process succeeds immediately with no extra dialog fields, refund flips to Processed, no drawer effect | |
+|16.2| Turn the flag **ON**. Initiate a refund → note the destination dropdown | The amber "record-only" hint no longer appears for CASH/ORIGINAL_METHOD (it used to say the destination was record-only) | |
+|16.3| Approve that refund, then click **Process** | The confirm dialog now shows a **cash-drawer session** dropdown (populated from currently-open sessions) for a CASH refund | |
+|16.4| Try to confirm with no session selected | Confirm button stays disabled | |
+|16.5| Select an open drawer session → confirm | Refund flips to Processed; open that drawer's session detail (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — expected cash has decreased by the refund amount | |
+|16.6| Initiate + approve an **ORIGINAL_METHOD** refund with the flag ON → Process | The confirm dialog shows a **manual settlement reference** text field instead; confirm is disabled until something is typed | |
+|16.7| Type a reference (e.g. "Stripe dashboard ref #123") → confirm | Refund flips to Processed; no drawer movement (original-method refunds never touch cash) | |
+|16.8| Try to process a CASH refund with the flag ON when **no cash-drawer session is open anywhere** | Dialog shows "no open cash-drawer session" instead of a dropdown; confirm stays disabled | |
+|16.9| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 16.5/16.7 | Passes (no `REFUND_LINK_EXISTS` issues) — the new dual-mode check confirms the voucher is POSTED and, for CASH, that the drawer movement is linked | |
+|16.10| WALLET or CREDIT_NOTE refund with the flag ON | Unaffected — those destinations redeem stored-value ledgers directly and never show the new dialog fields | |
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -312,7 +332,10 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B3 | migration 0412 applied; backend + tender-step UI implemented, not yet deployed to Preview | | |
 | B30 | migration 0415 applied (owner, 2026-07-23); implemented, not yet deployed to Preview | | |
 | B32 | migration 0415 applied (owner, 2026-07-23, shared with B30); implemented, not yet deployed to Preview | | |
+| B9 | blocked on migration 0418 apply | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 
 **Automated gates at build time (2026-07-23, B30/B32):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `payment-transition.service.test.ts` 19/19 · `cash-drawer-wiring.handler.test.ts` 7/7 · reconciliation check-modules +2 · planner/collect-payment investigation pinning tests +2 · full jest **222/222 suites, 2135/2135 tests — zero known failures** (one transient Windows Prisma query-engine file-lock flake on the first run, self-resolved on retry, not a code issue) · check:i18n ✓ · build ✓ (exit 0) · check:ui-access-contract --wire PASS · sync:ui-access-contract PASS (144/144 routes, drift 0) · check:platform-info-inventories PASS. **Migration 0415 APPLIED (owner, 2026-07-23) to local + remote, verified via remote DB** — B30/B32's permission codes, audit columns, and worklist nav entry are all live; §15 above is ready to run once deployed to Preview.
+
+**Automated gates at build time (2026-07-23, B9):** tsc clean (same pre-existing unrelated errors) · eslint 0 · `order-refund-b9-execution.test.ts` 8/8 · `order-refund-cash-drawer-wiring.handler.test.ts` 9/9 · reconciliation check-modules +4 · all 31 pre-existing `refund-b01-matrix.test.ts` scenarios re-run and pass unchanged (zero regression to the flag-off path) · full jest **224/224 suites, 2156/2156 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0). Migration **0418 is authored (STOP-AND-WAIT)** — §16 above is not testable until the owner applies it.

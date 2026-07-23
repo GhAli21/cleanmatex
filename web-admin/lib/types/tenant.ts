@@ -82,6 +82,12 @@ export interface FeatureFlags {
      * B03 Safety block).
      */
     order_fin_sv_funding_capture: boolean;
+    /**
+     * B9 — Refund execution parity (REFUND_VOUCHER + cash-drawer CASH_OUT for
+     * CASH refunds; manual-settlement reference for ORIGINAL_METHOD). Disabled
+     * by default; flag-off keeps the exact pre-B9 record-only behavior.
+     */
+    order_fin_refund_execution: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

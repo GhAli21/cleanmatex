@@ -36,8 +36,8 @@ export function OrderIssueStatusBadge({
   const hasOpen = openCount > 0;
   const dim = size === 'sm' ? 'h-5 w-5 text-xs' : 'h-6 w-6 text-sm';
   const label = hasOpen
-    ? t('badgeOpen', { count: openCount })
-    : t('badgeSolved');
+    ? t('badgeManageOpen', { count: openCount })
+    : t('badgeManageSolved');
 
   return (
     <Tooltip content={label}>

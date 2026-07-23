@@ -34,9 +34,11 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
     ? Number(resolved.page)
     : 1;
 
-  const [result, actionsEnabled, auth] = await Promise.all([
+  const [result, actionsEnabled, executionEnabled, auth] = await Promise.all([
     getAllRefunds(page, 20),
     currentTenantCan('order_fin_refund_ui').catch(() => false),
+    // B9 — real REFUND_VOUCHER + cash-drawer execution vs. record-only.
+    currentTenantCan('order_fin_refund_execution').catch(() => false),
     getAuthContext().catch(() => null),
   ]);
 
@@ -69,6 +71,7 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
         refunds={items}
         pagination={{ page, pageSize, total }}
         actionsEnabled={actionsEnabled}
+        executionEnabled={executionEnabled}
         currentUserId={auth?.userId ?? null}
       />
     </div>

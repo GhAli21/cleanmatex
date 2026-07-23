@@ -62,7 +62,7 @@ export function OrderIssueRowActions({
         onClick={() => setListOpen(true)}
       />
       {showReport ? (
-        <Tooltip content={t('reportTitle')}>
+        <Tooltip content={t('reportHint')}>
           <CmxButton
             type="button"
             variant="ghost"
@@ -72,7 +72,7 @@ export function OrderIssueRowActions({
               e.stopPropagation();
               setReportOpen(true);
             }}
-            aria-label={t('reportTitle')}
+            aria-label={t('reportHint')}
           >
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             {!compact ? <span>{t('reportTitle')}</span> : null}
