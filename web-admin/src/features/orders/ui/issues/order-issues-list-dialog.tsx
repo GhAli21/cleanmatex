@@ -16,6 +16,7 @@ import {
   CmxDialogDescription,
 } from '@ui/overlays';
 import { CmxButton, CmxSpinner } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
@@ -168,11 +169,21 @@ export function OrderIssuesListDialog({
         <CmxDialogContent className="max-w-6xl w-[min(96vw,80rem)]">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('listTitle')}</CmxDialogTitle>
-            <CmxDialogDescription>
+            <CmxDialogDescription className="sr-only">
               {scopeFilter === 'this'
                 ? t(`scope.${scopeLevel.toLowerCase()}`)
                 : t(`filterScope.${scopeFilter}`)}
             </CmxDialogDescription>
+            <div className="pt-1">
+              <Badge
+                variant="default"
+                className="rounded-full px-3 py-1 text-sm font-semibold"
+              >
+                {scopeFilter === 'this'
+                  ? t(`scope.${scopeLevel.toLowerCase()}`)
+                  : t(`filterScope.${scopeFilter}`)}
+              </Badge>
+            </div>
           </CmxDialogHeader>
 
           <OrderIssuesFilterBar

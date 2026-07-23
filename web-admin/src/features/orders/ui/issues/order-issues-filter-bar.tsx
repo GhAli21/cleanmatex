@@ -48,10 +48,10 @@ function SegmentedOption({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'h-7 rounded-md px-2.5 text-xs font-medium shadow-none',
+        'h-7 rounded-md px-2.5 text-xs font-semibold shadow-none transition-colors',
         active
-          ? 'bg-background text-foreground shadow-sm ring-1 ring-border'
-          : 'text-muted-foreground hover:text-foreground'
+          ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+          : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
       )}
     >
       {label}
@@ -63,13 +63,15 @@ function FilterGroup({
   label,
   ariaLabel,
   children,
+  className,
 }: {
   label: string;
   ariaLabel: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
       <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
@@ -105,7 +107,7 @@ export interface OrderIssuesFilterBarProps {
 }
 
 /**
- * Full-width filter toolbar with labeled segmented controls + sort.
+ * Full-width filter toolbar — filters + sort on one row when space allows.
  */
 export function OrderIssuesFilterBar({
   variant,
@@ -168,105 +170,73 @@ export function OrderIssuesFilterBar({
       role="search"
       aria-label={t('filterToolbarAria')}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <FilterGroup
+            label={t('filterGroupStatus')}
+            ariaLabel={t('filterGroupStatus')}
+          >
+            {(
+              [
+                ['open', t('filterOpen')],
+                ['solved', t('filterSolved')],
+                ['all', t('filterAll')],
+              ] as const
+            ).map(([key, label]) => (
+              <SegmentedOption
+                key={key}
+                active={status === key}
+                label={label}
+                onClick={() => onStatusChange(key)}
+              />
+            ))}
+          </FilterGroup>
+
+          <FilterGroup
+            label={t('filterGroupLevel')}
+            ariaLabel={t('filterGroupLevel')}
+          >
+            {variant === 'dialog'
+              ? dialogScopeChips.map(({ key, label }) => (
+                  <SegmentedOption
+                    key={key}
+                    active={scope === key}
+                    label={label}
+                    onClick={() => onScopeChange(key)}
+                  />
+                ))
+              : queueScopeChips.map(({ key, label }) => (
+                  <SegmentedOption
+                    key={key}
+                    active={scope === key}
+                    label={label}
+                    onClick={() => onScopeChange(key)}
+                  />
+                ))}
+          </FilterGroup>
+
+          {variant === 'queue' && onPriorityChange ? (
             <FilterGroup
-              label={t('filterGroupStatus')}
-              ariaLabel={t('filterGroupStatus')}
+              label={t('filterGroupPriority')}
+              ariaLabel={t('filterGroupPriority')}
             >
-              {(
-                [
-                  ['open', t('filterOpen')],
-                  ['solved', t('filterSolved')],
-                  ['all', t('filterAll')],
-                ] as const
-              ).map(([key, label]) => (
+              <SegmentedOption
+                active={priority === 'all'}
+                label={t('filterAll')}
+                onClick={() => onPriorityChange('all')}
+              />
+              {PRIORITY_CODES.map((code) => (
                 <SegmentedOption
-                  key={key}
-                  active={status === key}
-                  label={label}
-                  onClick={() => onStatusChange(key)}
+                  key={code}
+                  active={priority === code}
+                  label={t(`priorities.${code}`)}
+                  onClick={() => onPriorityChange(code)}
                 />
               ))}
             </FilterGroup>
+          ) : null}
 
-            <FilterGroup
-              label={t('filterGroupLevel')}
-              ariaLabel={t('filterGroupLevel')}
-            >
-              {variant === 'dialog'
-                ? dialogScopeChips.map(({ key, label }) => (
-                    <SegmentedOption
-                      key={key}
-                      active={scope === key}
-                      label={label}
-                      onClick={() => onScopeChange(key)}
-                    />
-                  ))
-                : queueScopeChips.map(({ key, label }) => (
-                    <SegmentedOption
-                      key={key}
-                      active={scope === key}
-                      label={label}
-                      onClick={() => onScopeChange(key)}
-                    />
-                  ))}
-            </FilterGroup>
-
-            {variant === 'queue' && onPriorityChange ? (
-              <FilterGroup
-                label={t('filterGroupPriority')}
-                ariaLabel={t('filterGroupPriority')}
-              >
-                <SegmentedOption
-                  active={priority === 'all'}
-                  label={t('filterAll')}
-                  onClick={() => onPriorityChange('all')}
-                />
-                {PRIORITY_CODES.map((code) => (
-                  <SegmentedOption
-                    key={code}
-                    active={priority === code}
-                    label={t(`priorities.${code}`)}
-                    onClick={() => onPriorityChange(code)}
-                  />
-                ))}
-              </FilterGroup>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:pb-0.5">
-            {typeof openCount === 'number' && typeof totalCount === 'number' ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{openCount}</span>
-                {t('filterOpenCountShort')}
-                <span className="text-border">·</span>
-                <span className="font-medium text-foreground">{totalCount}</span>
-                {t('filterTotalCountShort')}
-              </span>
-            ) : null}
-
-            {isDirty ? (
-              <CmxButton
-                type="button"
-                size="xs"
-                variant="ghost"
-                onClick={onReset}
-                className="h-7 gap-1.5 text-xs text-muted-foreground"
-              >
-                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-                {t('filterReset')}
-              </CmxButton>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5 border-t border-border/60 pt-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
-          <div className="flex min-w-[11rem] flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('sortBy')}
-            </span>
+          <FilterGroup label={t('sortBy')} ariaLabel={t('sortBy')}>
             <CmxSelectDropdown
               value={sortBy}
               onValueChange={(value) =>
@@ -275,7 +245,7 @@ export function OrderIssuesFilterBar({
             >
               <CmxSelectDropdownTrigger
                 aria-label={t('sortBy')}
-                className="h-8 w-[11.5rem]"
+                className="h-7 w-[10.5rem] border-0 bg-transparent shadow-none"
               >
                 <CmxSelectDropdownValue />
               </CmxSelectDropdownTrigger>
@@ -287,29 +257,48 @@ export function OrderIssuesFilterBar({
                 ))}
               </CmxSelectDropdownContent>
             </CmxSelectDropdown>
-          </div>
+          </FilterGroup>
 
-          <div className="flex min-w-[8rem] flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('sortDirection')}
+          <FilterGroup
+            label={t('sortDirection')}
+            ariaLabel={t('sortDirection')}
+          >
+            <SegmentedOption
+              active={sortDir === ORDER_ISSUES_SORT_DIR.ASC}
+              label={t('sortAsc')}
+              onClick={() => onSortDirChange(ORDER_ISSUES_SORT_DIR.ASC)}
+            />
+            <SegmentedOption
+              active={sortDir === ORDER_ISSUES_SORT_DIR.DESC}
+              label={t('sortDesc')}
+              onClick={() => onSortDirChange(ORDER_ISSUES_SORT_DIR.DESC)}
+            />
+          </FilterGroup>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:pb-0.5">
+          {typeof openCount === 'number' && typeof totalCount === 'number' ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{openCount}</span>
+              {t('filterOpenCountShort')}
+              <span className="text-border">·</span>
+              <span className="font-medium text-foreground">{totalCount}</span>
+              {t('filterTotalCountShort')}
             </span>
-            <div
-              role="group"
-              aria-label={t('sortDirection')}
-              className="inline-flex w-fit items-center gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-0.5"
+          ) : null}
+
+          {isDirty ? (
+            <CmxButton
+              type="button"
+              size="xs"
+              variant="ghost"
+              onClick={onReset}
+              className="h-7 gap-1.5 text-xs text-muted-foreground"
             >
-              <SegmentedOption
-                active={sortDir === ORDER_ISSUES_SORT_DIR.ASC}
-                label={t('sortAsc')}
-                onClick={() => onSortDirChange(ORDER_ISSUES_SORT_DIR.ASC)}
-              />
-              <SegmentedOption
-                active={sortDir === ORDER_ISSUES_SORT_DIR.DESC}
-                label={t('sortDesc')}
-                onClick={() => onSortDirChange(ORDER_ISSUES_SORT_DIR.DESC)}
-              />
-            </div>
-          </div>
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+              {t('filterReset')}
+            </CmxButton>
+          ) : null}
         </div>
       </div>
     </div>

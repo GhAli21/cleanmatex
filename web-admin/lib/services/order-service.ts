@@ -42,6 +42,12 @@ import {
   type OrderIssueScope,
 } from '@/lib/constants/order-issues';
 import { lookupAuditActors } from '@/lib/services/audit-actor.service';
+import {
+  getIssueTypesByCodes,
+  getPrioritiesByCodes,
+  isActiveIssueType,
+  isActivePriority,
+} from '@/lib/services/lookups';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -1903,13 +1909,8 @@ export class OrderService {
       const supabase = await createClient();
 
       const normalizedCode = issueCode.trim();
-      const { data: issueType } = await supabase
-        .from('sys_issue_type_cd')
-        .select('code')
-        .eq('code', normalizedCode)
-        .eq('is_active', true)
-        .maybeSingle();
-      if (!issueType) {
+      const typeOk = await isActiveIssueType(normalizedCode, supabase);
+      if (!typeOk) {
         return {
           success: false,
           error: 'Invalid or inactive issue type',
@@ -1917,13 +1918,8 @@ export class OrderService {
         };
       }
 
-      const { data: priorityRow } = await supabase
-        .from('sys_lkp_priority_cd')
-        .select('code')
-        .eq('code', priority)
-        .eq('is_active', true)
-        .maybeSingle();
-      if (!priorityRow) {
+      const priorityOk = await isActivePriority(priority, supabase);
+      if (!priorityOk) {
         return {
           success: false,
           error: 'Invalid or inactive priority',
@@ -2242,17 +2238,8 @@ export class OrderService {
       { name: string | null; name2: string | null; color: string | null }
     > = {};
     if (typeCodes.length > 0) {
-      const { data: types } = await supabase
-        .from('sys_issue_type_cd')
-        .select('code, name, name2, color')
-        .in('code', typeCodes);
-      for (const t of types ?? []) {
-        typeByCode[t.code] = {
-          name: t.name ?? null,
-          name2: t.name2 ?? null,
-          color: t.color ?? null,
-        };
-      }
+      const typesResult = await getIssueTypesByCodes(typeCodes, supabase);
+      Object.assign(typeByCode, typesResult.data ?? {});
     }
 
     const priorityByCode: Record<
@@ -2265,18 +2252,11 @@ export class OrderService {
       }
     > = {};
     if (priorityCodes.length > 0) {
-      const { data: priorities } = await supabase
-        .from('sys_lkp_priority_cd')
-        .select('code, name, name2, color, display_order')
-        .in('code', priorityCodes);
-      for (const p of priorities ?? []) {
-        priorityByCode[p.code] = {
-          name: p.name ?? null,
-          name2: p.name2 ?? null,
-          color: p.color ?? null,
-          display_order: p.display_order ?? null,
-        };
-      }
+      const prioritiesResult = await getPrioritiesByCodes(
+        priorityCodes,
+        supabase
+      );
+      Object.assign(priorityByCode, prioritiesResult.data ?? {});
     }
 
     return issues
