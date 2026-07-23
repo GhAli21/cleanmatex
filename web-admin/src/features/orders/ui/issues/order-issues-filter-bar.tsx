@@ -44,14 +44,12 @@ function SegmentedOption({
     <CmxButton
       type="button"
       size="xs"
-      variant="ghost"
+      variant={active ? 'primary' : 'ghost'}
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'h-7 rounded-md px-2.5 text-xs font-semibold shadow-none transition-colors',
-        active
-          ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-          : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
+        'h-7 rounded-md px-2.5 text-xs font-semibold shadow-none',
+        !active && 'text-muted-foreground'
       )}
     >
       {label}
@@ -245,11 +243,13 @@ export function OrderIssuesFilterBar({
             >
               <CmxSelectDropdownTrigger
                 aria-label={t('sortBy')}
-                className="h-7 w-[10.5rem] border-0 bg-transparent shadow-none"
+                className="h-7 min-w-[15rem] w-[15rem] border-0 bg-transparent px-2 shadow-none"
               >
-                <CmxSelectDropdownValue />
+                <CmxSelectDropdownValue
+                  displayValue={t(`sortFields.${sortBy}`)}
+                />
               </CmxSelectDropdownTrigger>
-              <CmxSelectDropdownContent>
+              <CmxSelectDropdownContent className="min-w-[15rem]">
                 {sortFields.map((field) => (
                   <CmxSelectDropdownItem key={field} value={field}>
                     {t(`sortFields.${field}`)}

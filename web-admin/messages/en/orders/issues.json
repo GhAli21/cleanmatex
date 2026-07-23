@@ -84,6 +84,15 @@
     "item": "Item-level issue",
     "piece": "Piece-level issue"
   },
+  "headerScopeBadge": {
+    "order": "Order-Level Issues",
+    "item": "Item-Level Issues",
+    "piece": "Piece-Level Issues",
+    "all": "All-Level Issues",
+    "this_order": "Order-Level Issues",
+    "this_item": "Item-Level Issues",
+    "this_piece": "Piece-Level Issues"
+  },
   "codes": {
     "damage": "Damage",
     "stain": "Stain",

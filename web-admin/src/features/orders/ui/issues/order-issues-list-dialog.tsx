@@ -16,8 +16,8 @@ import {
   CmxDialogDescription,
 } from '@ui/overlays';
 import { CmxButton, CmxSpinner } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
+import { cn } from '@/lib/utils';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
 import { OrderIssuesFilterBar } from './order-issues-filter-bar';
@@ -146,6 +146,24 @@ export function OrderIssuesListDialog({
   );
   const showScopeCol = scopeFilter !== 'this';
 
+  const headerScopeLabel = React.useMemo(() => {
+    if (scopeFilter === 'this') {
+      return t(
+        `headerScopeBadge.this_${scopeLevel.toLowerCase()}` as
+          | 'headerScopeBadge.this_order'
+          | 'headerScopeBadge.this_item'
+          | 'headerScopeBadge.this_piece'
+      );
+    }
+    if (scopeFilter === 'all') return t('headerScopeBadge.all');
+    return t(
+      `headerScopeBadge.${scopeFilter}` as
+        | 'headerScopeBadge.order'
+        | 'headerScopeBadge.item'
+        | 'headerScopeBadge.piece'
+    );
+  }, [scopeFilter, scopeLevel, t]);
+
   const columns = React.useMemo(
     () =>
       buildOrderIssueTableColumns({
@@ -170,19 +188,18 @@ export function OrderIssuesListDialog({
           <CmxDialogHeader>
             <CmxDialogTitle>{t('listTitle')}</CmxDialogTitle>
             <CmxDialogDescription className="sr-only">
-              {scopeFilter === 'this'
-                ? t(`scope.${scopeLevel.toLowerCase()}`)
-                : t(`filterScope.${scopeFilter}`)}
+              {headerScopeLabel}
             </CmxDialogDescription>
-            <div className="pt-1">
-              <Badge
-                variant="default"
-                className="rounded-full px-3 py-1 text-sm font-semibold"
+            <div className="pt-1.5">
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-full border-2 border-transparent',
+                  'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] px-4 py-1.5',
+                  'text-base font-semibold tracking-tight text-white shadow-sm'
+                )}
               >
-                {scopeFilter === 'this'
-                  ? t(`scope.${scopeLevel.toLowerCase()}`)
-                  : t(`filterScope.${scopeFilter}`)}
-              </Badge>
+                {headerScopeLabel}
+              </span>
             </div>
           </CmxDialogHeader>
 
