@@ -172,7 +172,7 @@ export default function QADetailPage() {
         body: JSON.stringify({
           scopeLevel: 'ITEM',
           orderItemId: itemId,
-          issueCode: 'other',
+          issueCode: 'OTHER',
           issueText: reason,
           priority: 'high',
           alsoReject: true,

@@ -139,7 +139,7 @@ export function IssuesWidget() {
         {hasIssues && (
           <div className="pt-4 border-t border-gray-200">
             <a
-              href="/issues"
+              href="/dashboard/issues"
               className={`text-sm text-blue-600 hover:text-blue-700 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               {t('viewAllIssues')} {isRTL ? '←' : '→'}

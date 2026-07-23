@@ -1,12 +1,13 @@
 /**
  * Report issue dialog — ORDER / ITEM / PIECE scope.
+ * Issue type + priority from active catalog lookups.
  */
 
 'use client';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
-import { useMutation } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -15,7 +16,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxTextarea, CmxInput, Label } from '@ui/primitives';
+import { CmxButton, CmxTextarea, CmxInput, Label, CmxSpinner } from '@ui/primitives';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -26,12 +27,18 @@ import {
 import { cmxMessage } from '@ui/feedback';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import {
+  DEFAULT_PRIORITY,
   ORDER_ISSUE_CODE,
   ORDER_ISSUE_SCOPE,
   type OrderIssueScope,
 } from '@/lib/constants/order-issues';
 
-const ISSUE_CODES = Object.values(ORDER_ISSUE_CODE);
+type CatalogRow = {
+  code: string;
+  name: string | null;
+  name2: string | null;
+  is_default?: boolean;
+};
 
 export interface OrderIssueReportDialogProps {
   open: boolean;
@@ -57,21 +64,56 @@ export function OrderIssueReportDialog({
 }: OrderIssueReportDialogProps) {
   const t = useTranslations('orders.issues');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const { token: csrfToken } = useCSRFToken();
 
   const [issueCode, setIssueCode] = React.useState<string>(ORDER_ISSUE_CODE.OTHER);
+  const [priority, setPriority] = React.useState<string>(DEFAULT_PRIORITY);
   const [issueText, setIssueText] = React.useState('');
   const [photoUrl, setPhotoUrl] = React.useState('');
   const [fieldError, setFieldError] = React.useState('');
 
+  const { data: issueTypes = [], isLoading: typesLoading } = useQuery({
+    queryKey: ['lookups-issue-types'],
+    enabled: open,
+    queryFn: async () => {
+      const res = await fetch('/api/v1/lookups/issue-types');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error || 'Failed');
+      return ((json as { data?: CatalogRow[] }).data ?? []) as CatalogRow[];
+    },
+  });
+
+  const { data: priorities = [], isLoading: prioritiesLoading } = useQuery({
+    queryKey: ['lookups-priorities'],
+    enabled: open,
+    queryFn: async () => {
+      const res = await fetch('/api/v1/lookups/priorities');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error || 'Failed');
+      return ((json as { data?: CatalogRow[] }).data ?? []) as CatalogRow[];
+    },
+  });
+
   React.useEffect(() => {
-    if (open) {
-      setIssueCode(ORDER_ISSUE_CODE.OTHER);
-      setIssueText('');
-      setPhotoUrl('');
-      setFieldError('');
-    }
-  }, [open]);
+    if (!open) return;
+    setIssueText('');
+    setPhotoUrl('');
+    setFieldError('');
+    const defaultType =
+      issueTypes.find((r) => r.code === ORDER_ISSUE_CODE.OTHER)?.code ||
+      issueTypes[0]?.code ||
+      ORDER_ISSUE_CODE.OTHER;
+    setIssueCode(defaultType);
+    const defaultPri =
+      priorities.find((r) => r.is_default)?.code ||
+      priorities.find((r) => r.code === DEFAULT_PRIORITY)?.code ||
+      DEFAULT_PRIORITY;
+    setPriority(defaultPri);
+  }, [open, issueTypes, priorities]);
+
+  const labelFor = (row: CatalogRow) =>
+    locale === 'ar' ? row.name2 || row.name || row.code : row.name || row.code;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -79,7 +121,7 @@ export function OrderIssueReportDialog({
         scopeLevel,
         issueCode,
         issueText: issueText.trim(),
-        priority: 'normal',
+        priority,
       };
       if (scopeLevel !== ORDER_ISSUE_SCOPE.ORDER) {
         body.orderItemId = orderItemId ?? null;
@@ -130,6 +172,8 @@ export function OrderIssueReportDialog({
     mutation.mutate();
   };
 
+  const catalogsLoading = typesLoading || prioritiesLoading;
+
   return (
     <CmxDialog
       open={open}
@@ -138,7 +182,7 @@ export function OrderIssueReportDialog({
         onOpenChange(next);
       }}
     >
-      <CmxDialogContent className="max-w-md">
+      <CmxDialogContent className="max-w-lg">
         <CmxDialogHeader>
           <CmxDialogTitle>{t('reportTitle')}</CmxDialogTitle>
           <CmxDialogDescription>
@@ -146,51 +190,74 @@ export function OrderIssueReportDialog({
           </CmxDialogDescription>
         </CmxDialogHeader>
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="issue-code">{t('code')}</Label>
-            <CmxSelectDropdown
-              value={issueCode}
-              onValueChange={setIssueCode}
-            >
-              <CmxSelectDropdownTrigger id="issue-code">
-                <CmxSelectDropdownValue />
-              </CmxSelectDropdownTrigger>
-              <CmxSelectDropdownContent>
-                {ISSUE_CODES.map((code) => (
-                  <CmxSelectDropdownItem key={code} value={code}>
-                    {t(`codes.${code}`)}
-                  </CmxSelectDropdownItem>
-                ))}
-              </CmxSelectDropdownContent>
-            </CmxSelectDropdown>
+        {catalogsLoading ? (
+          <div className="flex justify-center py-8">
+            <CmxSpinner />
           </div>
+        ) : (
+          <div className="space-y-4 py-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="issue-code">{t('code')}</Label>
+                <CmxSelectDropdown
+                  value={issueCode}
+                  onValueChange={setIssueCode}
+                >
+                  <CmxSelectDropdownTrigger id="issue-code">
+                    <CmxSelectDropdownValue />
+                  </CmxSelectDropdownTrigger>
+                  <CmxSelectDropdownContent>
+                    {issueTypes.map((row) => (
+                      <CmxSelectDropdownItem key={row.code} value={row.code}>
+                        {labelFor(row)}
+                      </CmxSelectDropdownItem>
+                    ))}
+                  </CmxSelectDropdownContent>
+                </CmxSelectDropdown>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="issue-priority">{t('priority')}</Label>
+                <CmxSelectDropdown value={priority} onValueChange={setPriority}>
+                  <CmxSelectDropdownTrigger id="issue-priority">
+                    <CmxSelectDropdownValue />
+                  </CmxSelectDropdownTrigger>
+                  <CmxSelectDropdownContent>
+                    {priorities.map((row) => (
+                      <CmxSelectDropdownItem key={row.code} value={row.code}>
+                        {labelFor(row)}
+                      </CmxSelectDropdownItem>
+                    ))}
+                  </CmxSelectDropdownContent>
+                </CmxSelectDropdown>
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="issue-text">{t('text')}</Label>
-            <CmxTextarea
-              id="issue-text"
-              value={issueText}
-              onChange={(e) => setIssueText(e.target.value)}
-              placeholder={t('textPlaceholder')}
-              rows={4}
-              aria-invalid={Boolean(fieldError)}
-            />
-            {fieldError ? (
-              <p className="text-xs text-destructive">{fieldError}</p>
-            ) : null}
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="issue-text">{t('text')}</Label>
+              <CmxTextarea
+                id="issue-text"
+                value={issueText}
+                onChange={(e) => setIssueText(e.target.value)}
+                placeholder={t('textPlaceholder')}
+                rows={4}
+                aria-invalid={Boolean(fieldError)}
+              />
+              {fieldError ? (
+                <p className="text-xs text-destructive">{fieldError}</p>
+              ) : null}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="issue-photo">{t('photoUrl')}</Label>
-            <CmxInput
-              id="issue-photo"
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder={t('photoUrlPlaceholder')}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="issue-photo">{t('photoUrl')}</Label>
+              <CmxInput
+                id="issue-photo"
+                value={photoUrl}
+                onChange={(e) => setPhotoUrl(e.target.value)}
+                placeholder={t('photoUrlPlaceholder')}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <CmxDialogFooter>
           <CmxButton
@@ -206,7 +273,7 @@ export function OrderIssueReportDialog({
             variant="primary"
             onClick={handleSubmit}
             loading={mutation.isPending}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || catalogsLoading}
           >
             {t('submit')}
           </CmxButton>

@@ -128,7 +128,7 @@ export const OrderIssueSchema = z.object({
   order_item_id: z.string().uuid().nullable(),
   /** Null for ORDER/ITEM scope. */
   order_item_piece_id: z.string().uuid().nullable(),
-  issue_code: z.enum(['damage', 'stain', 'complaint', 'other']),
+  issue_code: z.string().min(1).max(50),
   issue_text: z.string(),
   photo_url: z.string().url().nullable(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']),

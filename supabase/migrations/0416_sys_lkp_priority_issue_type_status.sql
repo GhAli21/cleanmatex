@@ -101,7 +101,13 @@ ON CONFLICT (code) DO UPDATE SET
   updated_at = CURRENT_TIMESTAMP;
 
 -- ------------------------------------------------------------------
--- 3. Remap legacy issue_code values
+-- 3. Drop CHECKs before remap (lowercase CHECKs block DAMAGE/OTHER)
+-- ------------------------------------------------------------------
+ALTER TABLE org_order_issues DROP CONSTRAINT IF EXISTS chk_issue_code;
+ALTER TABLE org_order_issues DROP CONSTRAINT IF EXISTS chk_issue_priority;
+
+-- ------------------------------------------------------------------
+-- 4. Remap legacy issue_code values, then add FKs
 -- ------------------------------------------------------------------
 UPDATE org_order_issues
 SET issue_code = CASE lower(issue_code)
@@ -132,12 +138,6 @@ BEGIN
   END IF;
 END $$;
 
--- ------------------------------------------------------------------
--- 4. Drop CHECKs; add FKs
--- ------------------------------------------------------------------
-ALTER TABLE org_order_issues DROP CONSTRAINT IF EXISTS chk_issue_code;
-ALTER TABLE org_order_issues DROP CONSTRAINT IF EXISTS chk_issue_priority;
-
 ALTER TABLE org_order_issues
   DROP CONSTRAINT IF EXISTS fk_ord_issue_issue_code;
 
@@ -157,7 +157,7 @@ ALTER TABLE org_order_issues
   ON DELETE RESTRICT;
 
 -- ------------------------------------------------------------------
--- 5. Status column + backfill
+-- 5. Status column + backfill (OPEN | SOLVED)
 -- ------------------------------------------------------------------
 ALTER TABLE org_order_issues
   ADD COLUMN IF NOT EXISTS status TEXT;
@@ -190,7 +190,7 @@ COMMENT ON COLUMN org_order_issues.issue_code IS
   'FK to sys_issue_type_cd.code';
 
 -- ------------------------------------------------------------------
--- 6. Helpers use status = OPEN
+-- 6. Helpers — open predicate on status = OPEN
 -- ------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION has_unresolved_issues(p_order_item_id UUID)
 RETURNS BOOLEAN

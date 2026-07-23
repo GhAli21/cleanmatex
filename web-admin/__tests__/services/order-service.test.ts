@@ -211,15 +211,29 @@ describe('OrderService', () => {
   });
 
   describe('createIssue', () => {
+    const catalogMaybe = (code: string) => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest.fn().mockResolvedValue({
+              data: { code },
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    });
+
     test('creates an item issue without rejecting', async () => {
       const insertMock = jest.fn(() => ({
         select: jest.fn(() => ({
           single: jest.fn().mockResolvedValue({
             data: {
               id: 'issue-1',
-              issue_code: 'stain',
+              issue_code: 'STAIN',
               scope_level: 'ITEM',
               order_id: 'order-1',
+              status: 'OPEN',
             },
             error: null,
           }),
@@ -227,13 +241,16 @@ describe('OrderService', () => {
       }));
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'sys_issue_type_cd') return catalogMaybe('STAIN');
+        if (table === 'sys_lkp_priority_cd') return catalogMaybe('high');
+
         if (table === 'org_order_issues') {
           return {
             insert: insertMock,
             select: jest.fn(() => ({
               eq: jest.fn(() => ({
                 eq: jest.fn(() => ({
-                  is: jest.fn(() => ({
+                  eq: jest.fn(() => ({
                     limit: jest.fn().mockResolvedValue({
                       data: [{ id: 'issue-1' }],
                       error: null,
@@ -286,7 +303,7 @@ describe('OrderService', () => {
         orderId: 'order-1',
         orderItemId: 'item-1',
         tenantId: 'tenant-1',
-        issueCode: 'stain',
+        issueCode: 'STAIN',
         issueText: 'Large stain on collar',
         userId: 'user-1',
         priority: 'high',
@@ -299,6 +316,8 @@ describe('OrderService', () => {
           scope_level: 'ITEM',
           order_item_id: 'item-1',
           order_item_piece_id: null,
+          issue_code: 'STAIN',
+          status: 'OPEN',
         })
       );
       expect(insertMock).not.toHaveBeenCalledWith(
@@ -312,10 +331,11 @@ describe('OrderService', () => {
           single: jest.fn().mockResolvedValue({
             data: {
               id: 'issue-2',
-              issue_code: 'other',
+              issue_code: 'OTHER',
               order_item_id: null,
               scope_level: 'ORDER',
               order_id: 'order-1',
+              status: 'OPEN',
             },
             error: null,
           }),
@@ -323,13 +343,16 @@ describe('OrderService', () => {
       }));
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'sys_issue_type_cd') return catalogMaybe('OTHER');
+        if (table === 'sys_lkp_priority_cd') return catalogMaybe('normal');
+
         if (table === 'org_order_issues') {
           return {
             insert: insertMock,
             select: jest.fn(() => ({
               eq: jest.fn(() => ({
                 eq: jest.fn(() => ({
-                  is: jest.fn(() => ({
+                  eq: jest.fn(() => ({
                     limit: jest.fn().mockResolvedValue({
                       data: [{ id: 'issue-2' }],
                       error: null,
@@ -360,7 +383,7 @@ describe('OrderService', () => {
         orderId: 'order-1',
         orderItemId: null,
         tenantId: 'tenant-1',
-        issueCode: 'other',
+        issueCode: 'OTHER',
         issueText: 'Order-level issue text',
         userId: 'user-1',
         priority: 'normal',
@@ -372,7 +395,8 @@ describe('OrderService', () => {
           order_id: 'order-1',
           order_item_id: null,
           scope_level: 'ORDER',
-          issue_code: 'other',
+          issue_code: 'OTHER',
+          status: 'OPEN',
         })
       );
     });
@@ -392,11 +416,12 @@ describe('OrderService', () => {
             maybeSingle: jest.fn().mockResolvedValue({
               data: {
                 id: 'issue-1',
-                issue_code: 'stain',
+                issue_code: 'STAIN',
                 order_id: 'order-1',
                 scope_level: 'ITEM',
                 order_item_id: 'item-1',
                 order_item_piece_id: null,
+                status: 'OPEN',
                 solved_at: null,
               },
               error: null,
@@ -412,11 +437,12 @@ describe('OrderService', () => {
                     single: jest.fn().mockResolvedValue({
                       data: {
                         id: 'issue-1',
-                        issue_code: 'stain',
+                        issue_code: 'STAIN',
                         order_id: 'order-1',
                         scope_level: 'ITEM',
                         order_item_id: 'item-1',
                         order_item_piece_id: null,
+                        status: 'SOLVED',
                         solved_at: new Date().toISOString(),
                       },
                       error: null,

@@ -470,7 +470,7 @@ export interface OrderIssue {
   tenant_org_id: string;
   order_id: string;
   order_item_id: string;
-  issue_code: 'damage' | 'stain' | 'complaint' | 'other';
+  issue_code: string;
   issue_text: string;
   photo_url?: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';

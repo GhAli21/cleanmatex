@@ -3,7 +3,10 @@
     "issue": "Issue",
     "reported": "Reported",
     "resolution": "Resolution",
-    "solved": "Solved"
+    "solved": "Solved",
+    "status": "Status",
+    "priority": "Priority",
+    "scope": "Scope"
   },
   "createdBy": "Created by",
   "createdWhen": "When",
@@ -17,6 +20,7 @@
   "emptyTitle": "No issues yet",
   "emptyDescription": "Report an issue for this order, item, or piece.",
   "code": "Issue type",
+  "priority": "Priority",
   "text": "Description",
   "textPlaceholder": "Describe the issue…",
   "textMin": "Description must be at least 3 characters",
@@ -42,7 +46,16 @@
   "pageTitle": "Order Issues",
   "pageDescription": "Open and recently solved issues across orders",
   "filterOpen": "Open",
+  "filterSolved": "Solved",
   "filterAll": "All",
+  "filterThisLevel": "This level",
+  "filterReset": "Reset",
+  "filterScope": {
+    "order": "Order",
+    "item": "Items",
+    "piece": "Pieces",
+    "all": "All levels"
+  },
   "orderNo": "Order",
   "scope": {
     "order": "Order-level issue",
@@ -53,7 +66,11 @@
     "damage": "Damage",
     "stain": "Stain",
     "complaint": "Complaint",
-    "other": "Other"
+    "other": "Other",
+    "DAMAGE": "Damage",
+    "STAIN": "Stain",
+    "COMPLAINT": "Complaint",
+    "OTHER": "Other"
   },
   "priorities": {
     "low": "Low",

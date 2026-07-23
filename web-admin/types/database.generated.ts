@@ -15290,6 +15290,7 @@ export type Database = {
           solved_at: string | null
           solved_by: string | null
           solved_notes: string | null
+          status: string
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
@@ -15315,6 +15316,7 @@ export type Database = {
           solved_at?: string | null
           solved_by?: string | null
           solved_notes?: string | null
+          status?: string
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
@@ -15340,6 +15342,7 @@ export type Database = {
           solved_at?: string | null
           solved_by?: string | null
           solved_notes?: string | null
+          status?: string
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -15401,6 +15404,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ord_issue_issue_code"
+            columns: ["issue_code"]
+            isOneToOne: false
+            referencedRelation: "sys_issue_type_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ord_issue_priority"
+            columns: ["priority"]
+            isOneToOne: false
+            referencedRelation: "sys_lkp_priority_cd"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -28403,6 +28420,63 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_lkp_priority_cd: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          icon: string | null
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          icon?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          icon?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }

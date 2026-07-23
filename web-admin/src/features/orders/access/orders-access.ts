@@ -1248,7 +1248,9 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Tenant issues queue',
         method: 'GET',
         path: '/api/v1/orders/issues',
-        notes: ['Auth-only; open/solved issues across orders.'],
+        notes: [
+          'Auth-only; filters: status, scope, priority; /dashboard/issues queue.',
+        ],
       },
       {
         label: 'Resolve issue',
@@ -1256,10 +1258,24 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/orders/[id]/issue/[issueId]',
         notes: ['Auth-only; solve from issues queue.'],
       },
+      {
+        label: 'Issue types lookup',
+        method: 'GET',
+        path: '/api/v1/lookups/issue-types',
+        notes: ['Auth-only; active sys_issue_type_cd for report dialog.'],
+        enforcement: 'auth_only',
+      },
+      {
+        label: 'Priorities lookup',
+        method: 'GET',
+        path: '/api/v1/lookups/priorities',
+        notes: ['Auth-only; active sys_lkp_priority_cd for report/filters.'],
+        enforcement: 'auth_only',
+      },
     ],
     notes: [
       ...ORDER_NOTES,
-      'Auth-only issues queue; linked from dashboard IssuesWidget.',
+      'Auth-only issues queue; sidebar nav orders_issues; IssuesWidget → /dashboard/issues.',
     ],
   },
   {

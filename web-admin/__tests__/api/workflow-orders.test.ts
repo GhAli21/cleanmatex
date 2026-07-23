@@ -212,7 +212,7 @@ describe('Workflow Orders API', () => {
         data: {
           issue: {
             id: 'issue-1',
-            issue_code: 'stain',
+            issue_code: 'STAIN',
             priority: 'high',
           },
         },
@@ -225,12 +225,12 @@ describe('Workflow Orders API', () => {
 
       const result = await createIssue('order-1', {
         orderItemId: 'item-1',
-        issueCode: 'stain',
+        issueCode: 'STAIN',
         issueText: 'Large stain on collar',
         priority: 'high',
       });
 
-      expect(result.issue.issue_code).toBe('stain');
+      expect(result.issue.issue_code).toBe('STAIN');
     });
   });
 

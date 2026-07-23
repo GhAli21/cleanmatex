@@ -7,6 +7,7 @@ export interface OrderIssueTableRow {
   issue_code: string;
   issue_text: string;
   priority: string | null;
+  status?: string | null;
   scope_level: string;
   created_at: string | null;
   created_by: string | null;
@@ -17,6 +18,13 @@ export interface OrderIssueTableRow {
   solved_notes: string | null;
   order_id?: string;
   order_no?: string | null;
+  issue_type_name?: string | null;
+  issue_type_name2?: string | null;
+  issue_type_color?: string | null;
+  priority_name?: string | null;
+  priority_name2?: string | null;
+  priority_color?: string | null;
+  priority_display_order?: number | null;
 }
 
 /**

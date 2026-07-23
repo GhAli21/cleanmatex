@@ -3,7 +3,10 @@
     "issue": "المشكلة",
     "reported": "أُبلِغ عنها",
     "resolution": "الحل",
-    "solved": "تم الحل"
+    "solved": "تم الحل",
+    "status": "الحالة",
+    "priority": "الأولوية",
+    "scope": "النطاق"
   },
   "createdBy": "أنشأها",
   "createdWhen": "متى",
@@ -17,6 +20,7 @@
   "emptyTitle": "لا توجد مشكلات بعد",
   "emptyDescription": "أبلغ عن مشكلة لهذا الطلب أو الصنف أو القطعة.",
   "code": "نوع المشكلة",
+  "priority": "الأولوية",
   "text": "الوصف",
   "textPlaceholder": "صف المشكلة…",
   "textMin": "يجب أن يكون الوصف 3 أحرف على الأقل",
@@ -42,7 +46,16 @@
   "pageTitle": "مشكلات الطلبات",
   "pageDescription": "المشكلات المفتوحة والمحلولة عبر الطلبات",
   "filterOpen": "مفتوحة",
+  "filterSolved": "محلولة",
   "filterAll": "الكل",
+  "filterThisLevel": "هذا المستوى",
+  "filterReset": "إعادة تعيين",
+  "filterScope": {
+    "order": "الطلب",
+    "item": "الأصناف",
+    "piece": "القطع",
+    "all": "كل المستويات"
+  },
   "orderNo": "الطلب",
   "scope": {
     "order": "مشكلة على مستوى الطلب",
@@ -53,7 +66,11 @@
     "damage": "تلف",
     "stain": "بقعة",
     "complaint": "شكوى",
-    "other": "أخرى"
+    "other": "أخرى",
+    "DAMAGE": "تلف",
+    "STAIN": "بقعة",
+    "COMPLAINT": "شكوى",
+    "OTHER": "أخرى"
   },
   "priorities": {
     "low": "منخفضة",
