@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-23T18:26:11.867Z",
-  "gitSha": "bf1fff68",
+  "generatedAt": "2026-07-23T21:58:18.736Z",
+  "gitSha": "76eb194b",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -10083,11 +10083,14 @@
       "label": "Workflows",
       "sourceFile": "web-admin/src/features/settings/access/settings-access.ts",
       "page": {
-        "permissions": [],
+        "permissions": [
+          "settings:workflow"
+        ],
         "permissionPrefixes": [],
         "featureFlags": [],
         "workflowRoles": [],
-        "tenantRoles": []
+        "tenantRoles": [],
+        "requireAllPermissions": true
       },
       "actions": [],
       "apiDependencyCount": 1,
@@ -12428,7 +12431,9 @@
       "label": "Workflows",
       "path": "/dashboard/settings/workflows",
       "depth": "section",
-      "permissions": [],
+      "permissions": [
+        "settings:workflow"
+      ],
       "roles": [
         "admin",
         "super_admin",

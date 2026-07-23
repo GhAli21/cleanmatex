@@ -1,0 +1,69 @@
+{
+  "title": "إعدادات سير العمل",
+  "description": "تهيئة إعدادات سير العمل وعقود شاشات الطلبات",
+  "tabs": {
+    "workflowConfig": "تهيئة سير العمل",
+    "screenContracts": "عقود الشاشات"
+  },
+  "workflowConfig": {
+    "addNew": "تهيئة جديدة",
+    "serviceCategory": "فئة الخدمة",
+    "updated": "آخر تحديث",
+    "empty": "لا توجد تهيئات لسير العمل بعد",
+    "defaultCategory": "افتراضي",
+    "loadError": "فشل تحميل تهيئات سير العمل"
+  },
+  "screenContracts": {
+    "add": "إضافة تخصيص للمستأجر",
+    "edit": "تعديل عقد الشاشة",
+    "create": "إنشاء عقد شاشة",
+    "screenKey": "الشاشة",
+    "statuses": "الحالات",
+    "statusesHint": "حالات مفصولة بفواصل (أول حالة تُستخدم كحالة ابتدائية للطلبات الجديدة على تلك الشاشة)",
+    "statusesPlaceholder": "processing, sorting",
+    "permissions": "الصلاحيات المطلوبة",
+    "permissionsHint": "رموز صلاحيات مفصولة بفواصل",
+    "permissionsPlaceholder": "orders:processing:complete",
+    "additionalFilters": "مرشحات إضافية (JSON)",
+    "additionalFiltersHint": "كائن JSON اختياري لمرشحات الاستعلام الإضافية",
+    "scope": "النطاق",
+    "system": "افتراضي النظام",
+    "tenant": "تخصيص المستأجر",
+    "empty": "لا توجد عقود شاشات",
+    "createOverride": "إنشاء تخصيص",
+    "deleteConfirmTitle": "حذف تخصيص المستأجر؟",
+    "deleteConfirmDesc": "حذف التخصيص للشاشة \"{screen}\"؟ سيتم الرجوع إلى افتراضي النظام.",
+    "saved": "تم حفظ عقد الشاشة",
+    "updated": "تم تحديث عقد الشاشة",
+    "deleted": "تم حذف عقد الشاشة",
+    "overrideCreated": "تم إنشاء تخصيص المستأجر",
+    "systemReadonly": "افتراضيات النظام للقراءة فقط. أنشئ تخصيص مستأجر للتعديل.",
+    "errors": {
+      "PERMISSION_DENIED": "ليس لديك صلاحية إدارة إعدادات سير العمل",
+      "DUPLICATE_SCREEN_KEY": "يوجد بالفعل تخصيص مستأجر لهذه الشاشة",
+      "NOT_FOUND_OR_SYSTEM": "يمكن تعديل أو حذف تخصيصات المستأجر فقط",
+      "SYSTEM_NOT_FOUND": "عقد النظام غير موجود",
+      "INVALID_SCREEN_KEY": "مفتاح شاشة غير صالح",
+      "STATUSES_REQUIRED": "يجب إدخال حالة واحدة على الأقل",
+      "INVALID_FILTERS_JSON": "يجب أن تكون المرشحات الإضافية كائن JSON صالحاً",
+      "LIST_FAILED": "فشل تحميل عقود الشاشات",
+      "CREATE_FAILED": "فشل إنشاء عقد الشاشة",
+      "UPDATE_FAILED": "فشل تحديث عقد الشاشة",
+      "DELETE_FAILED": "فشل حذف عقد الشاشة",
+      "OVERRIDE_FAILED": "فشل إنشاء التخصيص"
+    },
+    "screens": {
+      "preparation": "التحضير",
+      "processing": "المعالجة",
+      "assembly": "التجميع",
+      "qa": "فحص الجودة",
+      "packing": "التعبئة",
+      "ready_release": "الجاهز / التسليم",
+      "driver_delivery": "توصيل السائق",
+      "new_order": "طلب جديد",
+      "workboard": "لوحة العمل",
+      "canceling": "الإلغاء",
+      "returning": "الإرجاع"
+    }
+  }
+}

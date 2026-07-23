@@ -1,4 +1,5 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts'
+import { SETTINGS_PERMISSIONS } from '@/lib/constants/permissions/settings-perm'
 
 const SETTINGS_NOTES = [
   'No explicit page-level UI permission gate; route relies on navigation visibility and backend enforcement.',
@@ -246,16 +247,40 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/settings/workflows',
     label: 'Workflows',
-    page: {},
+    page: {
+      permissions: [SETTINGS_PERMISSIONS.WORKFLOW],
+      requireAllPermissions: true,
+    },
+    actions: {
+      manageScreenContracts: {
+        label: 'Manage screen contracts',
+        requirement: {
+          permissions: [SETTINGS_PERMISSIONS.WORKFLOW],
+          requireAllPermissions: true,
+        },
+      },
+    },
     apiDependencies: [
       {
         label: 'Workflow config list',
         method: 'GET',
         path: '/api/v1/workflows/config',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        notes: ['Auth-only local route; page gated by settings:workflow.'],
+      },
+      {
+        label: 'Screen contracts server actions',
+        method: 'POST',
+        path: '/app/actions/settings/screen-contracts-actions',
+        requirement: {
+          permissions: [SETTINGS_PERMISSIONS.WORKFLOW],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: [
+          'Server actions: list/create/update/delete/createOverrideFromSystem; hasPermissionServer(settings:workflow).',
+        ],
       },
     ],
-    notes: SETTINGS_NOTES,
   },
   {
     routePattern: '/dashboard/settings/workflows/new',
@@ -411,3 +436,6 @@ export const SETTINGS_SETTINGS_ROLES_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/roles')!
 export const SETTINGS_SETTINGS_TAX_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/tax')!
+
+export const SETTINGS_WORKFLOWS_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/workflows')!

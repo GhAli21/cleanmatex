@@ -944,6 +944,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Workflows',
         path: '/dashboard/settings/workflows',
         roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:workflow'],
       },
       {
         key: 'settings_navigation',

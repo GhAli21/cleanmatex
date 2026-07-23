@@ -20,7 +20,7 @@ INSERT INTO public.sys_components_cd (
   'Order issues queue across the tenant',
   'قائمة مشكلات الطلبات على مستوى المستأجر',
   '/dashboard/issues', 'AlertTriangle',
-  1, 25,
+  1, 101,
   true, true, true, true, true,
   '["super_admin","tenant_admin","admin","operator","viewer"]'::jsonb,
   NULL,

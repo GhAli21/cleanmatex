@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-23T18:26:11.867Z
-Git SHA: bf1fff68
+Generated: 2026-07-23T21:58:18.736Z
+Git SHA: 76eb194b
 ## Summary
 | Domain | Count |
 | --- | --- |
@@ -153,7 +153,7 @@ Git SHA: bf1fff68
 | /dashboard/settings/tenant | Tenant Settings | — | — | 0 |
 | /dashboard/settings/users | Settings Users | — | — | 0 |
 | /dashboard/settings/workflow-roles | Workflow Roles | settings:workflow_roles:view | — | 0 |
-| /dashboard/settings/workflows | Workflows | — | — | 0 |
+| /dashboard/settings/workflows | Workflows | settings:workflow | — | 0 |
 | /dashboard/settings/workflows/[id]/edit | Edit Workflow | — | — | 0 |
 | /dashboard/settings/workflows/new | New Workflow | — | — | 0 |
 | /dashboard/tenant-admin/subscription | Subscription | — | — | 0 |

@@ -1,0 +1,69 @@
+{
+  "title": "Workflow Settings",
+  "description": "Configure workflow service settings and order screen contracts",
+  "tabs": {
+    "workflowConfig": "Workflow Config",
+    "screenContracts": "Screen Contracts"
+  },
+  "workflowConfig": {
+    "addNew": "New config",
+    "serviceCategory": "Service Category",
+    "updated": "Updated",
+    "empty": "No workflow configs yet",
+    "defaultCategory": "DEFAULT",
+    "loadError": "Failed to load workflow configs"
+  },
+  "screenContracts": {
+    "add": "Add tenant override",
+    "edit": "Edit screen contract",
+    "create": "Create screen contract",
+    "screenKey": "Screen",
+    "statuses": "Statuses",
+    "statusesHint": "Comma-separated workflow statuses (first status is used as initial status for new orders on that screen)",
+    "statusesPlaceholder": "processing, sorting",
+    "permissions": "Required permissions",
+    "permissionsHint": "Comma-separated permission codes",
+    "permissionsPlaceholder": "orders:processing:complete",
+    "additionalFilters": "Additional filters (JSON)",
+    "additionalFiltersHint": "Optional JSON object for extra query filters",
+    "scope": "Scope",
+    "system": "System default",
+    "tenant": "Tenant override",
+    "empty": "No screen contracts found",
+    "createOverride": "Create override",
+    "deleteConfirmTitle": "Delete tenant override?",
+    "deleteConfirmDesc": "Delete the override for \"{screen}\"? The system default will apply again.",
+    "saved": "Screen contract saved",
+    "updated": "Screen contract updated",
+    "deleted": "Screen contract deleted",
+    "overrideCreated": "Tenant override created",
+    "systemReadonly": "System defaults are read-only. Create a tenant override to customize.",
+    "errors": {
+      "PERMISSION_DENIED": "You do not have permission to manage workflow settings",
+      "DUPLICATE_SCREEN_KEY": "A tenant override already exists for this screen",
+      "NOT_FOUND_OR_SYSTEM": "Only tenant overrides can be edited or deleted",
+      "SYSTEM_NOT_FOUND": "System contract not found",
+      "INVALID_SCREEN_KEY": "Invalid screen key",
+      "STATUSES_REQUIRED": "At least one status is required",
+      "INVALID_FILTERS_JSON": "Additional filters must be valid JSON object",
+      "LIST_FAILED": "Failed to load screen contracts",
+      "CREATE_FAILED": "Failed to create screen contract",
+      "UPDATE_FAILED": "Failed to update screen contract",
+      "DELETE_FAILED": "Failed to delete screen contract",
+      "OVERRIDE_FAILED": "Failed to create override"
+    },
+    "screens": {
+      "preparation": "Preparation",
+      "processing": "Processing",
+      "assembly": "Assembly",
+      "qa": "QA",
+      "packing": "Packing",
+      "ready_release": "Ready / Release",
+      "driver_delivery": "Driver delivery",
+      "new_order": "New order",
+      "workboard": "Workboard",
+      "canceling": "Canceling",
+      "returning": "Returning"
+    }
+  }
+}
