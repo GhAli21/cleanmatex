@@ -369,6 +369,13 @@ export const RECONCILIATION_CHECK_NAMES = {
   // unreachable — this check is the defense-in-depth trip-wire).
   CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT: 'CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT',
 
+  // ─── B10 — a REVERSED cash-family leg must carry a compensating OUT
+  // movement (the drawer's physical cash must reflect the correction); a
+  // REVERSED non-cash leg or a VOIDED leg must never carry a live CASH_SALE
+  // movement (never-effective legs move no money — B32 status gate).
+  REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT: 'REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT',
+  VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT: 'VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT',
+
   // ─── BVM Phase 4 — AR / refund link checks (PRD §22.1) ────────────────────
   INVOICE_PAYMENT_LINK_EXISTS: 'INVOICE_PAYMENT_LINK_EXISTS',
   REFUND_LINK_EXISTS: 'REFUND_LINK_EXISTS',
@@ -484,6 +491,20 @@ export const OUTBOX_EVENT_TYPES = {
    */
   PAYMENT_FAILED: 'PAYMENT_FAILED',
   /**
+   * B10 — emitted by transitionPaymentTx() after a PENDING/PROCESSING/
+   * AUTHORIZED REAL_PAYMENT leg is flipped to VOIDED (never-effective tender
+   * cancelled — D004 Option B). DB-mirror invariant: must match
+   * chk_history_action_type (migration 0421) exactly.
+   */
+  PAYMENT_VOIDED: 'PAYMENT_VOIDED',
+  /**
+   * B10 — emitted by transitionPaymentTx() after a COMPLETED/CAPTURED/
+   * SETTLED REAL_PAYMENT leg is flipped to REVERSED (error-correction
+   * negation with mandatory lineage — D004 Option B). DB-mirror invariant:
+   * must match chk_history_action_type (migration 0421) exactly.
+   */
+  PAYMENT_REVERSED: 'PAYMENT_REVERSED',
+  /**
    * Order-Fin remediation Phase 4 (FN-02). Emitted by
    * unwindOrderFinancialsOnCancel() after a cancelled order's financial
    * unwind commits: credit applications reversed to source ledgers, real
@@ -597,26 +618,73 @@ export type OrderPaymentLifecycleStatus =
   (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES)[keyof typeof ORDER_PAYMENT_LIFECYCLE_STATUSES][number];
 
 /**
- * B30 — back-office payment transition actions (D001 canonical graph subset).
- * VERIFY  : PENDING/PROCESSING -> COMPLETED (no reason required).
- * CANCEL  : PENDING/PROCESSING -> CANCELLED (reason + D009 fallback required).
+ * B30/B10 — back-office payment transition actions (D001 canonical graph
+ * subset).
+ * VERIFY      : PENDING/PROCESSING -> COMPLETED (no reason required).
+ * CANCEL      : PENDING/PROCESSING -> CANCELLED (reason + D009 fallback required).
  * FAIL_BOUNCE : PENDING/PROCESSING -> FAILED (reason + D009 fallback required).
+ * VOID (B10)  : PENDING/PROCESSING/AUTHORIZED -> VOIDED (reason required, no
+ *               D009 fallback — a void erases a never-effective/mistaken
+ *               entry, there is no real balance-routing decision to record;
+ *               distinct from CANCEL, which corrects a genuinely failed
+ *               settlement plan — D004 Option B).
+ * REVERSE (B10): COMPLETED/CAPTURED/SETTLED -> REVERSED (reason required, no
+ *               D009 fallback; cash-family legs additionally require an
+ *               OPEN cash-drawer session to receive the compensating OUT
+ *               movement — D004 Option B error-correction negation).
  */
 export const PAYMENT_TRANSITION_ACTIONS = {
   VERIFY: 'VERIFY',
   CANCEL: 'CANCEL',
   FAIL_BOUNCE: 'FAIL_BOUNCE',
+  VOID: 'VOID',
+  REVERSE: 'REVERSE',
 } as const;
-/** Derived union for B30 transition actions. */
+/** Derived union for B30/B10 transition actions. */
 export type PaymentTransitionAction =
   (typeof PAYMENT_TRANSITION_ACTIONS)[keyof typeof PAYMENT_TRANSITION_ACTIONS];
 
-/** Target payment_status per B30 transition action. */
+/** Target payment_status per B30/B10 transition action. */
 export const PAYMENT_TRANSITION_TARGET_STATUS: Record<PaymentTransitionAction, string> = {
   VERIFY: 'COMPLETED',
   CANCEL: 'CANCELLED',
   FAIL_BOUNCE: 'FAILED',
+  VOID: 'VOIDED',
+  REVERSE: 'REVERSED',
 };
+
+/**
+ * B10 — legal source `payment_status` values per transition action (D001
+ * canonical graph). VERIFY/CANCEL/FAIL_BOUNCE keep the original B30 subset;
+ * VOID covers every never-effective source status (D004); REVERSE covers
+ * every completed-synonym source status — a COMPLETED/CAPTURED/SETTLED leg
+ * can never be voided, and a PENDING/PROCESSING/AUTHORIZED leg can never be
+ * reversed (it has nothing to negate yet).
+ */
+export const PAYMENT_TRANSITION_SOURCE_STATUSES: Record<PaymentTransitionAction, readonly string[]> = {
+  VERIFY: ['PENDING', 'PROCESSING'],
+  CANCEL: ['PENDING', 'PROCESSING'],
+  FAIL_BOUNCE: ['PENDING', 'PROCESSING'],
+  VOID: ['PENDING', 'PROCESSING', 'AUTHORIZED'],
+  REVERSE: ['COMPLETED', 'CAPTURED', 'SETTLED'],
+};
+
+/** B10 — actions that require a mandatory operator reason (every action but VERIFY). */
+export const PAYMENT_TRANSITION_ACTIONS_REQUIRING_REASON: readonly PaymentTransitionAction[] = [
+  'CANCEL',
+  'FAIL_BOUNCE',
+  'VOID',
+  'REVERSE',
+];
+
+/**
+ * B10 — actions that additionally require a D009 fallback classification.
+ * VOID/REVERSE deliberately excluded — see the action-doc comment above.
+ */
+export const PAYMENT_TRANSITION_ACTIONS_REQUIRING_FALLBACK: readonly PaymentTransitionAction[] = [
+  'CANCEL',
+  'FAIL_BOUNCE',
+];
 
 /**
  * D009 — governed fallback classification set. Every transition of a

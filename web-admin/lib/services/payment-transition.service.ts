@@ -6,12 +6,16 @@ import {
   FALLBACK_CLASSIFICATIONS,
   OUTBOX_EVENT_TYPES,
   PAYMENT_NATURE,
+  PAYMENT_TRANSITION_ACTIONS_REQUIRING_FALLBACK,
+  PAYMENT_TRANSITION_ACTIONS_REQUIRING_REASON,
+  PAYMENT_TRANSITION_SOURCE_STATUSES,
   PAYMENT_TRANSITION_TARGET_STATUS,
   SETTLEMENT_TYPE_CODES,
   type FallbackClassification,
   type PaymentTransitionAction,
 } from '@/lib/constants/order-financial';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { isCashFamilyMethod } from './cash-drawer-cash-facts';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { hashPayload } from '@/lib/utils/idempotency';
@@ -22,19 +26,29 @@ type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>
 
 const PAYMENT_TRANSITION_IDEMPOTENCY_RESOURCE = 'payment_transition';
 
-/** Source statuses this service is allowed to transition out of (D001 subset). */
-const TRANSITIONABLE_SOURCE_STATUSES = new Set(['PENDING', 'PROCESSING']);
+const REASON_REQUIRED_ACTIONS = new Set<PaymentTransitionAction>(PAYMENT_TRANSITION_ACTIONS_REQUIRING_REASON);
+const FALLBACK_REQUIRED_ACTIONS = new Set<PaymentTransitionAction>(PAYMENT_TRANSITION_ACTIONS_REQUIRING_FALLBACK);
 
 const FALLBACK_CLASSIFICATION_VALUES = new Set<string>(Object.values(FALLBACK_CLASSIFICATIONS));
 
+/** B10 — movement type recorded for a reversal's compensating drawer OUT leg. */
+const PAYMENT_REVERSAL_MOVEMENT_TYPE = 'PAYMENT_REVERSAL';
+
 /**
- * B30 — Pending-Payment Back-office Lifecycle.
+ * B30/B10 — Pending-Payment Back-office Lifecycle + Payment Reversal and Void.
  *
- * Input for {@link transitionPaymentTx}. One entry point for all three
+ * Input for {@link transitionPaymentTx}. One entry point for all five
  * back-office transitions (D001 canonical graph subset):
  *   VERIFY      — PENDING/PROCESSING -> COMPLETED (bank/gateway confirmed)
  *   CANCEL      — PENDING/PROCESSING -> CANCELLED (mandatory reason + D009 fallback)
  *   FAIL_BOUNCE — PENDING/PROCESSING -> FAILED    (mandatory reason + D009 fallback)
+ *   VOID        — PENDING/PROCESSING/AUTHORIZED -> VOIDED (mandatory reason;
+ *                 no D009 fallback — a never-effective/mistaken entry has no
+ *                 balance-routing decision to record; B10/D004)
+ *   REVERSE     — COMPLETED/CAPTURED/SETTLED -> REVERSED (mandatory reason;
+ *                 cash-family legs additionally require an OPEN
+ *                 `cashDrawerSessionId` to receive the compensating OUT
+ *                 movement — B10/D004)
  */
 export interface TransitionPaymentParams {
   orderId: string;
@@ -42,15 +56,22 @@ export interface TransitionPaymentParams {
   tenantId: string;
   actorId: string;
   action: PaymentTransitionAction;
-  /** Mandatory for CANCEL/FAIL_BOUNCE; ignored for VERIFY. */
+  /** Mandatory for every action but VERIFY. */
   reason?: string;
-  /** Mandatory for CANCEL/FAIL_BOUNCE (D009); ignored for VERIFY. */
+  /** Mandatory for CANCEL/FAIL_BOUNCE (D009); never used by VOID/REVERSE. */
   fallbackClassification?: FallbackClassification;
   /**
    * D010: required on every money path. The route rejects a missing key
    * with 400 before this service is ever called.
    */
   idempotencyKey: string;
+  /**
+   * B10/REVERSE only. Required when the leg being reversed is a cash-family
+   * method — the OPEN drawer session that will receive the compensating OUT
+   * movement (may differ from the original session, which could already be
+   * closed). Re-verified server-side. Ignored for every other action.
+   */
+  cashDrawerSessionId?: string;
 }
 
 export interface TransitionPaymentResult {
@@ -68,6 +89,8 @@ export interface TransitionPaymentResult {
   reclassifiedPaymentType: boolean;
   /** True when this VERIFY created the B32 deferred cash-drawer movement. */
   deferredCashMovementCreated: boolean;
+  /** True when this REVERSE created the B10 compensating cash-drawer OUT movement. */
+  compensatingCashMovementCreated: boolean;
 }
 
 interface LockedPaymentRow {
@@ -86,9 +109,11 @@ interface LockedPaymentRow {
 }
 
 /**
- * B30 — transition a PENDING/PROCESSING REAL_PAYMENT leg per the D001
- * canonical graph subset (VERIFY/CANCEL/FAIL_BOUNCE), with D009 governed
- * fallback classification on CANCEL/FAIL_BOUNCE and D010 idempotency.
+ * B30/B10 — transition a REAL_PAYMENT leg per the D001 canonical graph
+ * (VERIFY/CANCEL/FAIL_BOUNCE from PENDING/PROCESSING; VOID from
+ * PENDING/PROCESSING/AUTHORIZED; REVERSE from COMPLETED/CAPTURED/SETTLED),
+ * with D009 governed fallback classification on CANCEL/FAIL_BOUNCE and D010
+ * idempotency throughout.
  *
  * Invariants:
  *  1. Composite tenant filter on every query; row locked FOR UPDATE.
@@ -124,17 +149,22 @@ interface LockedPaymentRow {
  * @throws Error('ILLEGAL_TRANSITION')
  * @throws Error('PAYMENT_TRANSITION_RACE_DETECTED')
  * @throws Error('IDEMPOTENCY_CONFLICT')
+ * @throws Error('CASH_DRAWER_SESSION_REQUIRED') REVERSE of a cash-family leg with no session supplied
+ * @throws Error('CASH_DRAWER_SESSION_NOT_OPEN') REVERSE — supplied session not found/not OPEN
  */
 export async function transitionPaymentTx(
   params: TransitionPaymentParams,
 ): Promise<TransitionPaymentResult> {
-  const { orderId, paymentId, tenantId, actorId, action, reason, fallbackClassification, idempotencyKey } = params;
+  const { orderId, paymentId, tenantId, actorId, action, reason, fallbackClassification, idempotencyKey, cashDrawerSessionId } = params;
 
-  const requiresReason = action !== 'VERIFY';
+  const requiresReason = REASON_REQUIRED_ACTIONS.has(action);
+  const requiresFallback = FALLBACK_REQUIRED_ACTIONS.has(action);
   if (requiresReason) {
     if (!reason || !reason.trim()) {
       throw new Error('TRANSITION_REASON_REQUIRED');
     }
+  }
+  if (requiresFallback) {
     if (!fallbackClassification) {
       throw new Error('FALLBACK_CLASSIFICATION_REQUIRED');
     }
@@ -144,6 +174,7 @@ export async function transitionPaymentTx(
   }
 
   const targetStatus = PAYMENT_TRANSITION_TARGET_STATUS[action];
+  const legalSourceStatuses = new Set(PAYMENT_TRANSITION_SOURCE_STATUSES[action]);
 
   return prisma.$transaction(async (tx) => {
     // ── 0. Idempotency conflict check + replay short-circuit (D010) ─────────
@@ -153,6 +184,7 @@ export async function transitionPaymentTx(
       action,
       reason: reason ?? null,
       fallbackClassification: fallbackClassification ?? null,
+      cashDrawerSessionId: cashDrawerSessionId ?? null,
     });
     const existingIdempotency = await tx.org_idempotency_keys.findFirst({
       where: {
@@ -239,11 +271,12 @@ export async function transitionPaymentTx(
         fallbackClassification: fallbackClassification ?? null,
         reclassifiedPaymentType: false,
         deferredCashMovementCreated: false,
+        compensatingCashMovementCreated: false,
       });
     }
 
-    // ── 3. Legality — D001 subset: only PENDING/PROCESSING may transition ───
-    if (!TRANSITIONABLE_SOURCE_STATUSES.has(row.payment_status)) {
+    // ── 3. Legality — D001 per-action legal source-status set ───────────────
+    if (!legalSourceStatuses.has(row.payment_status)) {
       throw new Error('ILLEGAL_TRANSITION');
     }
 
@@ -254,7 +287,11 @@ export async function transitionPaymentTx(
         ? { verified_by: actorId, verified_at: now }
         : action === 'CANCEL'
           ? { cancelled_by: actorId, cancelled_at: now }
-          : { failed_by: actorId, failed_at: now };
+          : action === 'FAIL_BOUNCE'
+            ? { failed_by: actorId, failed_at: now }
+            : action === 'VOID'
+              ? { voided_by: actorId, voided_at: now }
+              : { reversed_by: actorId, reversed_at: now };
 
     const updated = await tx.org_order_payments_dtl.updateMany({
       where: {
@@ -267,7 +304,7 @@ export async function transitionPaymentTx(
         payment_status: targetStatus,
         ...(targetStatus === 'COMPLETED' ? { paid_at: now } : {}),
         transition_reason: requiresReason ? (reason as string).trim() : null,
-        fallback_classification: requiresReason ? (fallbackClassification as FallbackClassification) : null,
+        fallback_classification: requiresFallback ? (fallbackClassification as FallbackClassification) : null,
         ...auditColumns,
         updated_at: now,
         updated_by: actorId,
@@ -282,10 +319,11 @@ export async function transitionPaymentTx(
     // ── 5. Side effects per action ───────────────────────────────────────────
     let reclassifiedPaymentType = false;
     let deferredCashMovementCreated = false;
+    let compensatingCashMovementCreated = false;
 
     if (action === 'VERIFY') {
       deferredCashMovementCreated = await maybeCreateDeferredCashMovementTx(tx, tenantId, row, actorId);
-    } else {
+    } else if (action === 'CANCEL' || action === 'FAIL_BOUNCE') {
       // CANCEL / FAIL_BOUNCE — D009 fallback classification effects.
       reclassifiedPaymentType = await maybeReclassifyPaymentTypeTx(
         tx,
@@ -294,6 +332,23 @@ export async function transitionPaymentTx(
         fallbackClassification as FallbackClassification,
       );
       await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
+    } else if (action === 'VOID') {
+      // B10 — a never-effective leg must never carry a live CASH_SALE
+      // movement (B32 status gate); trip-wire only, no auto-reversal.
+      await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
+    } else {
+      // REVERSE — B10 error-correction negation. Cash-family legs require a
+      // physical compensating OUT movement so the drawer's expected cash
+      // reflects the correction (D004: "Drawer/gateway: compensating
+      // movement"); non-cash legs (card/bank/gateway/check) get no automatic
+      // movement here — gateway-side reversal is B8, out of scope.
+      compensatingCashMovementCreated = await maybeCreateReversalCompensatingMovementTx(
+        tx,
+        tenantId,
+        row,
+        actorId,
+        cashDrawerSessionId,
+      );
     }
 
     // ── 6. Recalculate the order header snapshot from fact rows ─────────────
@@ -305,7 +360,11 @@ export async function transitionPaymentTx(
         ? OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED
         : action === 'CANCEL'
           ? OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED
-          : OUTBOX_EVENT_TYPES.PAYMENT_FAILED;
+          : action === 'FAIL_BOUNCE'
+            ? OUTBOX_EVENT_TYPES.PAYMENT_FAILED
+            : action === 'VOID'
+              ? OUTBOX_EVENT_TYPES.PAYMENT_VOIDED
+              : OUTBOX_EVENT_TYPES.PAYMENT_REVERSED;
 
     await emitEventTx(tx, tenantId, eventType, 'order_payment', paymentId, {
       orderId,
@@ -331,6 +390,7 @@ export async function transitionPaymentTx(
       fallbackClassification: fallbackClassification ?? null,
       reclassifiedPaymentType,
       deferredCashMovementCreated,
+      compensatingCashMovementCreated,
     });
   });
 }
@@ -504,4 +564,85 @@ async function warnIfOrphanMovementExistsTx(
       { paymentId, orderId, movementId: existing.id },
     );
   }
+}
+
+/**
+ * B10 — REVERSE side effect. A cash-family COMPLETED/CAPTURED/SETTLED leg
+ * already put physical cash in a drawer (via `cashDrawerWiringHandler` at
+ * settlement time), so negating the payment status alone would silently
+ * shrink the live drawer's expected-cash total the instant this transaction
+ * commits (B16/B35: expected cash sums the payment ledger's COMPLETED-set
+ * cash-family rows, and this row just left that set) — money the operator
+ * has not actually removed yet. CLAUDE.md CRITICAL RULE #15 (no silent money
+ * mutation) requires a real, auditable compensating fact instead.
+ *
+ * Deliberately does NOT reuse `order_payment_id` for the new movement's
+ * lineage — B16/B35's expected-cash formula only counts movements where
+ * `order_payment_id IS NULL` as "manual" (compensating); setting it here
+ * would make the movement invisible to that formula and defeat the whole
+ * point (same coordination note B9's refund handler already relied on).
+ * Lineage instead goes through the dedicated `reversed_payment_id` column.
+ *
+ * Non-cash legs (card/bank/gateway/check) get no movement here — gateway-side
+ * reversal is B8's job (out of scope; Financial effects table marks it
+ * POSSIBLE, not mandatory).
+ *
+ * @returns true when a compensating movement was created, false when the leg
+ *          was not cash-family (nothing to compensate here)
+ * @throws Error('CASH_DRAWER_SESSION_REQUIRED') cash-family leg, no session supplied
+ * @throws Error('CASH_DRAWER_SESSION_NOT_OPEN') supplied session not found/not OPEN for this tenant
+ */
+async function maybeCreateReversalCompensatingMovementTx(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  payment: LockedPaymentRow,
+  actorId: string,
+  cashDrawerSessionId: string | undefined,
+): Promise<boolean> {
+  if (!isCashFamilyMethod(payment.payment_method_code)) return false;
+
+  if (!cashDrawerSessionId) {
+    throw new Error('CASH_DRAWER_SESSION_REQUIRED');
+  }
+
+  const session = await tx.org_cash_drawer_sessions_mst.findFirst({
+    where: { id: cashDrawerSessionId, tenant_org_id: tenantId, status: 'OPEN' },
+    select: { id: true, cash_drawer_id: true, branch_id: true, currency_code: true },
+  });
+  if (!session) {
+    // No silent money mutation: never guess a closed/foreign session.
+    throw new Error('CASH_DRAWER_SESSION_NOT_OPEN');
+  }
+
+  const now = new Date();
+  const created = await tx.org_cash_drawer_movements_dtl.create({
+    data: {
+      tenant_org_id: tenantId,
+      branch_id: session.branch_id,
+      cash_drawer_id: session.cash_drawer_id,
+      cash_drawer_session_id: session.id,
+      movement_type: PAYMENT_REVERSAL_MOVEMENT_TYPE,
+      direction: 'OUT',
+      amount: payment.amount,
+      currency_code: payment.currency_code ?? session.currency_code,
+      order_id: payment.order_id,
+      reversed_payment_id: payment.id,
+      performed_by: actorId,
+      performed_at: now,
+      is_active: true,
+      rec_status: 1,
+      created_by: actorId,
+    },
+    select: { id: true },
+  });
+
+  logger.info('B10 REVERSE created compensating cash-drawer OUT movement', {
+    paymentId: payment.id,
+    orderId: payment.order_id,
+    movementId: created.id,
+    cashDrawerSessionId: session.id,
+    amount: payment.amount,
+  });
+
+  return true;
 }

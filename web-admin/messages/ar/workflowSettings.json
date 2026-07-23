@@ -19,7 +19,7 @@
     "create": "إنشاء عقد شاشة",
     "screenKey": "الشاشة",
     "statuses": "الحالات",
-    "statusesHint": "حالات مفصولة بفواصل (أول حالة تُستخدم كحالة ابتدائية للطلبات الجديدة على تلك الشاشة)",
+    "statusesHint": "حالات مفصولة بفواصل. لشاشة new_order، أول حالة هي حالة إنشاء الطلب من شاشة الطلب الجديد.",
     "statusesPlaceholder": "processing, sorting",
     "permissions": "الصلاحيات المطلوبة",
     "permissionsHint": "رموز صلاحيات مفصولة بفواصل",

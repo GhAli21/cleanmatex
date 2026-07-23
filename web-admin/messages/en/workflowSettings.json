@@ -19,7 +19,7 @@
     "create": "Create screen contract",
     "screenKey": "Screen",
     "statuses": "Statuses",
-    "statusesHint": "Comma-separated workflow statuses (first status is used as initial status for new orders on that screen)",
+    "statusesHint": "Comma-separated workflow statuses. For screen new_order, the first status is the create-order status on New Order.",
     "statusesPlaceholder": "processing, sorting",
     "permissions": "Required permissions",
     "permissionsHint": "Comma-separated permission codes",

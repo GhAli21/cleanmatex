@@ -355,7 +355,9 @@ export class OrderService {
 
   /**
    * Shared workflow + physical-intake resolution for createOrder / createOrderInTransaction.
-   * Remote channels (requires_remote_intake_confirm) use screen new_order → draft, null received_at.
+   * - Remote channels (requires_remote_intake_confirm): screen new_order → draft, null received_at
+   * - Normal New Order (received): screen new_order → contract statuses[0] (fallback draft)
+   * - Incomplete Quick Drop: screen preparation → contract statuses[0] (fallback preparing)
    */
   private static async computeCreateOrderWorkflowState(args: {
     tenantId: string;
@@ -430,32 +432,33 @@ export class OrderService {
       };
     }
 
+    const isIncompleteQuickDrop =
+      isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length);
+
     let v_initialStatus: string;
     let v_transitionFrom: string;
     let v_orderStatus: string;
     let v_current_status: string;
     let v_current_stage: string;
 
-    if (isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)) {
+    if (isIncompleteQuickDrop) {
       v_initialStatus = 'preparing';
       v_transitionFrom = 'intake';
       v_orderStatus = 'preparing';
       v_current_status = 'preparing';
       v_current_stage = 'intake';
     } else {
-      v_initialStatus = 'processing';
+      // Normal New Order — initial status comes from new_order screen contract
+      v_initialStatus = 'draft';
       v_transitionFrom = 'intake';
-      v_orderStatus = 'processing';
-      v_current_status = 'processing';
+      v_orderStatus = 'draft';
+      v_current_status = 'draft';
       v_current_stage = 'intake';
     }
 
-    let contractScreen = 'processing';
+    let contractScreen = isIncompleteQuickDrop ? 'preparation' : 'new_order';
     if (useOldWfCodeOrNew === false) {
-      const screen =
-        isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)
-          ? 'preparation'
-          : 'processing';
+      const screen = isIncompleteQuickDrop ? 'preparation' : 'new_order';
       contractScreen = screen;
       const contractStatus = await this.getInitialStatusFromContract(
         tenantId,
