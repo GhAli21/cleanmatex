@@ -296,6 +296,10 @@
       "successToast": "تم التحقق من الدفعة",
       "errorToast": "تعذر التحقق من الدفعة: {error}"
     },
+    "transitions": {
+      "failBounce": "تحديد كفاشلة/مرتجعة",
+      "cancel": "إلغاء الدفعة"
+    },
     "warning": {
       "title": "اتساق مالي",
       "balanceMismatch": "عدم تطابق الرصيد: الإجمالي {total}، المدفوع {paid}، الاعتمادات {credits}، الرصيد المتوقع {expected} لكن المخزن {stored}.",

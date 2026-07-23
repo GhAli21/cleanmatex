@@ -21,6 +21,7 @@ import {
 import { useMessage } from '@ui/feedback';
 import { useFeature } from '@features/auth/ui/RequireFeature';
 import { RefundInitiateDialog } from './refund-initiate-dialog';
+import { PaymentTransitionDialog, type PaymentTransitionActionKind } from '@features/billing/ui/payment-transition-dialog';
 import type {
   OrderFinancialSummaryViewModel,
 } from '@features/orders/model/order-financial-summary-view';
@@ -64,6 +65,9 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   // hidden when the viewer lacks the right — keeps column alignment
   // stable across roles and removes the action surface for operators.
   const canVerifyPayment = useHasPermission('orders', 'verify_payment');
+  // B30: cancel/fail-bounce back-office actions on a PENDING/PROCESSING leg.
+  const canCancelPayment = useHasPermission('orders', 'cancel_payment');
+  const canFailPayment = useHasPermission('orders', 'fail_payment');
   // B34: the initiate-refund action ships behind the order_fin_refund_ui flag
   // (disabled by default in every environment — Safety block) and the
   // existing orders:process_refund permission. Server enforcement remains
@@ -114,6 +118,8 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                     orderId={orderId}
                     currencyCode={currencyCode}
                     canVerifyPayment={canVerifyPayment}
+                    canCancelPayment={canCancelPayment}
+                    canFailPayment={canFailPayment}
                     td={td}
                     isRTL={isRTL}
                   />
@@ -284,6 +290,8 @@ interface PaymentRowProps {
   orderId: string;
   currencyCode: string;
   canVerifyPayment: boolean;
+  canCancelPayment: boolean;
+  canFailPayment: boolean;
   td: string;
   isRTL: boolean;
 }
@@ -293,6 +301,8 @@ function PaymentRow({
   orderId,
   currencyCode,
   canVerifyPayment,
+  canCancelPayment,
+  canFailPayment,
   td,
   isRTL,
 }: PaymentRowProps) {
@@ -302,9 +312,13 @@ function PaymentRow({
   const { showSuccess, showError } = useMessage();
   const [open, setOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  // B30: cancel/fail-bounce reuse the shared back-office transition dialog.
+  const [transitionAction, setTransitionAction] = useState<PaymentTransitionActionKind | null>(null);
 
   const methodLabel = payment.payment_method_code?.replace(/_/g, ' ') ?? '—';
   const isRealPayment = payment.payment_nature_snapshot === 'REAL_PAYMENT';
+  const isTransitionable =
+    isRealPayment && (payment.payment_status === 'PENDING' || payment.payment_status === 'PROCESSING');
   const canShowVerifyAction =
     canVerifyPayment && isRealPayment && payment.payment_status === 'PENDING';
 
@@ -371,55 +385,82 @@ function PaymentRow({
       <td className={td}>
         {payment.payment_status === 'COMPLETED' ? (
           <Badge variant="success">{t('verify.verified')}</Badge>
-        ) : canShowVerifyAction ? (
-          <>
-            <CmxButton
-              variant="outline"
-              size="sm"
-              onClick={() => setOpen(true)}
-              disabled={verifying}
-              aria-label={t('verify.action')}
-            >
-              {t('verify.action')}
-            </CmxButton>
-            <CmxDialog open={open} onOpenChange={(v) => !verifying && setOpen(v)}>
-              <CmxDialogContent>
-                <CmxDialogHeader>
-                  <CmxDialogTitle>{t('verify.confirmTitle')}</CmxDialogTitle>
-                  <CmxDialogDescription>
-                    {t('verify.confirmBody', {
-                      method: methodLabel,
-                      amount: new Intl.NumberFormat(undefined, {
-                        style: 'currency',
-                        currency: currencyCode,
-                      }).format(payment.amount),
-                    })}
-                  </CmxDialogDescription>
-                </CmxDialogHeader>
-                <CmxDialogFooter>
-                  <CmxButton
-                    variant="ghost"
-                    onClick={() => setOpen(false)}
-                    disabled={verifying}
-                  >
-                    {t('verify.cancel')}
-                  </CmxButton>
-                  <CmxButton
-                    variant="primary"
-                    onClick={handleConfirm}
-                    loading={verifying}
-                  >
-                    {verifying ? t('verify.verifying') : t('verify.confirmCta')}
-                  </CmxButton>
-                </CmxDialogFooter>
-              </CmxDialogContent>
-            </CmxDialog>
-          </>
-        ) : payment.payment_status === 'PENDING' ? (
-          <Badge variant="warning">{t('verify.unverified')}</Badge>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {canShowVerifyAction ? (
+              <>
+                <CmxButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOpen(true)}
+                  disabled={verifying}
+                  aria-label={t('verify.action')}
+                >
+                  {t('verify.action')}
+                </CmxButton>
+                <CmxDialog open={open} onOpenChange={(v) => !verifying && setOpen(v)}>
+                  <CmxDialogContent>
+                    <CmxDialogHeader>
+                      <CmxDialogTitle>{t('verify.confirmTitle')}</CmxDialogTitle>
+                      <CmxDialogDescription>
+                        {t('verify.confirmBody', {
+                          method: methodLabel,
+                          amount: new Intl.NumberFormat(undefined, {
+                            style: 'currency',
+                            currency: currencyCode,
+                          }).format(payment.amount),
+                        })}
+                      </CmxDialogDescription>
+                    </CmxDialogHeader>
+                    <CmxDialogFooter>
+                      <CmxButton
+                        variant="ghost"
+                        onClick={() => setOpen(false)}
+                        disabled={verifying}
+                      >
+                        {t('verify.cancel')}
+                      </CmxButton>
+                      <CmxButton
+                        variant="primary"
+                        onClick={handleConfirm}
+                        loading={verifying}
+                      >
+                        {verifying ? t('verify.verifying') : t('verify.confirmCta')}
+                      </CmxButton>
+                    </CmxDialogFooter>
+                  </CmxDialogContent>
+                </CmxDialog>
+              </>
+            ) : payment.payment_status === 'PENDING' ? (
+              <Badge variant="warning">{t('verify.unverified')}</Badge>
+            ) : payment.payment_status === 'PROCESSING' ? (
+              <Badge variant="info">{payment.payment_status}</Badge>
+            ) : null}
+            {isTransitionable && canFailPayment ? (
+              <CmxButton variant="outline" size="sm" onClick={() => setTransitionAction('FAIL_BOUNCE')}>
+                {t('transitions.failBounce')}
+              </CmxButton>
+            ) : null}
+            {isTransitionable && canCancelPayment ? (
+              <CmxButton variant="destructive" size="sm" onClick={() => setTransitionAction('CANCEL')}>
+                {t('transitions.cancel')}
+              </CmxButton>
+            ) : null}
+            {!isTransitionable && !canShowVerifyAction ? (
+              <span className="text-muted-foreground">—</span>
+            ) : null}
+          </div>
         )}
+        {transitionAction ? (
+          <PaymentTransitionDialog
+            open
+            onOpenChange={(next) => { if (!next) setTransitionAction(null); }}
+            orderId={orderId}
+            paymentId={payment.id}
+            action={transitionAction}
+            onTransitioned={() => { setTransitionAction(null); router.refresh(); }}
+          />
+        ) : null}
       </td>
     </tr>
   );

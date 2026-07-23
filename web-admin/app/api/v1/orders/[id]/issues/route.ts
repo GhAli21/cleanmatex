@@ -50,6 +50,15 @@ export async function GET(
     const includeChildren = searchParams.get('includeChildren') !== 'false';
     const orderItemId = searchParams.get('orderItemId');
     const orderItemPieceId = searchParams.get('orderItemPieceId');
+    const scopeFilterParam = searchParams.get('scopeFilter');
+    const scopeFilter =
+      scopeFilterParam === 'this' ||
+      scopeFilterParam === 'order' ||
+      scopeFilterParam === 'item' ||
+      scopeFilterParam === 'piece' ||
+      scopeFilterParam === 'all'
+        ? scopeFilterParam
+        : 'this';
 
     const result = await OrderService.listIssues({
       orderId,
@@ -58,6 +67,7 @@ export async function GET(
       orderItemPieceId,
       status,
       includeChildren,
+      scopeFilter,
     });
 
     if (!result.success) {

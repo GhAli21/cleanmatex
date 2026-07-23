@@ -1949,6 +1949,8 @@ model org_order_issues {
   issue_text                             String
   photo_url                              String?
   priority                               String?                    @default("normal")
+  /// OPEN | SOLVED — dual-written with solved_at
+  status                                 String                     @default("OPEN")
   created_by                             String?                    @db.Uuid
   created_at                             DateTime?                  @default(now()) @db.Timestamptz(6)
   solved_at                              DateTime?                  @db.Timestamptz(6)
@@ -6792,6 +6794,16 @@ model org_order_payments_dtl {
   // BVM back-links — populated by wiring service (migration 0303), NOT by posting service
   fin_voucher_id                String?                        @db.Uuid
   fin_voucher_trx_line_id       String?                        @unique(map: "uq_ord_pay_vch_line") @db.Uuid
+  // B30 (migration 0415) — dedicated actor-audit + D009 fallback-classification
+  // columns for the VERIFY/CANCEL/FAIL_BOUNCE back-office transition service.
+  verified_by                   String?                        @db.Uuid
+  verified_at                   DateTime?                      @db.Timestamptz(6)
+  cancelled_by                  String?                        @db.Uuid
+  cancelled_at                  DateTime?                      @db.Timestamptz(6)
+  failed_by                     String?                        @db.Uuid
+  failed_at                     DateTime?                      @db.Timestamptz(6)
+  transition_reason             String?
+  fallback_classification       String?
   org_tenants_mst               org_tenants_mst                @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_payment_methods_cf        org_payment_methods_cf?        @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_branch_payment_methods_cf org_branch_payment_methods_cf? @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)

@@ -365,6 +365,55 @@ describe('order-settlement.service — collectPaymentTx', () => {
     );
   });
 
+  // B32 (M8) investigation: allow_status_override is captured on the
+  // effective config but deliberately NOT enforced against this explicit
+  // per-leg override — doing so would regress the already-shipped/tested B31
+  // "explicit PENDING always honored" behavior (see the CHECK test above).
+  // This test pins that decision so it cannot silently regress later.
+  it('honors an explicit PENDING leg override even when allow_status_override=false (B32 investigation)', async () => {
+    const tx = makeTx();
+    tx.$queryRaw.mockResolvedValue([
+      { id: ORDER, outstanding_amount: 50, currency_code: 'OMR', branch_id: null, customer_id: 'cust-1' },
+    ]);
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([
+      {
+        id: 'method-cash-locked',
+        payment_method_code: 'CASH',
+        payment_nature: 'REAL_PAYMENT',
+        gateway_code: null,
+        requires_cash_drawer: false,
+        supports_change_return: true,
+        supports_overpayment: false,
+        default_creation_status: 'COMPLETED',
+        allow_status_override: false,
+        is_enabled: true,
+        is_platform_disabled: false,
+      },
+    ]);
+    mockCreateBizVoucher.mockResolvedValue({ id: 'voucher-override', voucher_no: 'RCV-OV' });
+    mockAddVoucherLine.mockResolvedValue({ id: 'line-override', line_no: 1 });
+    mockPostAndWireBizVoucher.mockResolvedValue({ voucherId: 'voucher-override', fromCache: false });
+    mockOutboxCreate.mockResolvedValue({});
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+
+    await collectPaymentTx({
+      orderId: ORDER,
+      tenantId: TENANT,
+      paymentLegs: [{ paymentMethodId: 'method-cash-locked', amount: 50, paymentStatus: 'PENDING' }],
+      collectedBy: 'user-1',
+      idempotencyKey: 'collect-override-honored',
+    });
+
+    expect(mockAddVoucherLine).toHaveBeenCalledWith(
+      TENANT,
+      'voucher-override',
+      expect.objectContaining({ payment_status: 'PENDING' }),
+      'user-1',
+      undefined,
+      tx,
+    );
+  });
+
   it('rejects a CREDIT_APPLICATION-natured method — later collection only ever records real money', async () => {
     const tx = makeTx();
     tx.$queryRaw.mockResolvedValue([

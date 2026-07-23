@@ -230,6 +230,55 @@ export async function checkCashMovementLink(
 }
 
 /**
+ * CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT (B30/B32) — a payment leg that ends
+ * up CANCELLED or FAILED must never carry a live CASH_SALE movement, because
+ * `cashDrawerWiringHandler.canHandle` (B32) only creates one for an
+ * effective-COMPLETED leg, and `payment-transition.service.ts`'s CANCEL/
+ * FAIL_BOUNCE path never sources from COMPLETED (that needs a B10 reversal
+ * instead). This should be structurally unreachable — the check exists as
+ * a trip-wire for a regression in either invariant, not routine drift.
+ */
+export async function checkCancelledPaymentNoOrphanMovement(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const rows = await withTenantContext(tenantOrgId, () =>
+    prisma.org_order_payments_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        payment_status: { in: ['CANCELLED', 'FAILED'] },
+        updated_at: { gte: window.periodFrom, lte: window.periodTo },
+      },
+      select: {
+        id: true,
+        order_id: true,
+        payment_status: true,
+        org_cash_drawer_movements_dtl: {
+          where: { movement_type: 'CASH_SALE', is_active: true },
+          select: { id: true, amount: true },
+        },
+      },
+    }),
+  );
+
+  const violations: CheckResult[] = [];
+  for (const row of rows) {
+    for (const movement of row.org_cash_drawer_movements_dtl ?? []) {
+      violations.push({
+        checkName: RECONCILIATION_CHECK_NAMES.CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        actualValue: toNumber(movement.amount),
+        message: `Payment ${row.id} (order ${row.order_id}) is ${row.payment_status} but still has a live CASH_SALE movement ${movement.id} — B32 status-gate invariant violated`,
+        affectedEntityType: 'org_order_payments_dtl',
+        affectedEntityId: row.id,
+      });
+    }
+  }
+  return violations;
+}
+
+/**
  * CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — for each linked cash
  * movement in the window, the movement's `amount` must equal the trx line's
  * retained amount, where retained = `amount - (change_returned_amount ?? 0)`.

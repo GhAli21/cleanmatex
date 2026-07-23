@@ -17,6 +17,8 @@ import { Prisma } from '@prisma/client';
  * | VOUCHER_POSTED_AND_WIRED  | fin_voucher   | VOUCHER_POSTED_AND_WIRED   |
  * | AR_INVOICE_ISSUED         | ar_invoice    | AR_INVOICE_ISSUED          |
  * | PAYMENT_VERIFIED          | order_payment | PAYMENT_VERIFIED           |
+ * | PAYMENT_CANCELLED         | order_payment | PAYMENT_CANCELLED          |
+ * | PAYMENT_FAILED            | order_payment | PAYMENT_FAILED             |
  *
  * Design invariants (PRD §22 + Phase 5 resume doc):
  *
@@ -78,6 +80,8 @@ const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
   OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
   OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
   OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+  OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED,
+  OUTBOX_EVENT_TYPES.PAYMENT_FAILED,
 ]);
 
 // ─── Public API ────────────────────────────────────────────────────────────
@@ -286,6 +290,38 @@ async function mapEventToHistoryRow(
           payment_method_code: payment.payment_method_code,
         }),
         done_by: extractActor(payload, 'verified_by'),
+        done_at: event.created_at,
+        outbox_event_id: event.id,
+      };
+    }
+
+    case OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED:
+    case OUTBOX_EVENT_TYPES.PAYMENT_FAILED: {
+      // B30 — same aggregate/resolution shape as PAYMENT_VERIFIED: aggregate_id
+      // is the payment row id, resolved back to the order via
+      // org_order_payments_dtl.order_id. previousStatus/newStatus come from
+      // the transition-service payload (always PENDING/PROCESSING -> the
+      // target status for this event type — no literal assumption needed
+      // here since both source statuses are possible, unlike verify's
+      // PENDING-only precedent).
+      const paymentId = event.aggregate_id;
+      const payment = await prisma.org_order_payments_dtl.findFirst({
+        where: { id: paymentId, tenant_org_id: tenantOrgId },
+        select: { id: true, order_id: true, payment_method_code: true },
+      });
+      if (!payment?.order_id) return null;
+
+      return {
+        tenant_org_id: tenantOrgId,
+        order_id: payment.order_id,
+        action_type: event.event_type,
+        from_value: extractToValue(payload, 'previousStatus'),
+        to_value: extractToValue(payload, 'newStatus'),
+        payload: serialisePayload(event, {
+          ...payload,
+          payment_method_code: payment.payment_method_code,
+        }),
+        done_by: extractActor(payload, 'actorId'),
         done_at: event.created_at,
         outbox_event_id: event.id,
       };

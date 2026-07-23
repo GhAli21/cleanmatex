@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { lookupAuditActors } from '@/lib/services/audit-actor.service';
+import { ORDER_ISSUE_STATUS } from '@/lib/constants/order-issues';
+import { OrderService } from '@/lib/services/order-service';
 
 async function getAuthContext() {
   const supabase = await createClient();
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
     const { tenantId } = await getAuthContext();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') ?? 'open';
+    const scope = searchParams.get('scope') ?? 'all';
+    const priority = searchParams.get('priority');
     const limit = Math.min(
       Number.parseInt(searchParams.get('limit') ?? '50', 10) || 50,
       100
@@ -44,16 +47,24 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('org_order_issues')
       .select(
-        'id, order_id, scope_level, order_item_id, order_item_piece_id, issue_code, issue_text, priority, created_at, created_by, solved_at, solved_by, solved_notes'
+        'id, order_id, scope_level, order_item_id, order_item_piece_id, issue_code, issue_text, priority, status, created_at, created_by, solved_at, solved_by, solved_notes'
       )
       .eq('tenant_org_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (status === 'open') {
-      query = query.is('solved_at', null);
+      query = query.eq('status', ORDER_ISSUE_STATUS.OPEN);
     } else if (status === 'solved') {
-      query = query.not('solved_at', 'is', null);
+      query = query.eq('status', ORDER_ISSUE_STATUS.SOLVED);
+    }
+
+    if (scope === 'ORDER' || scope === 'ITEM' || scope === 'PIECE') {
+      query = query.eq('scope_level', scope);
+    }
+
+    if (priority && priority !== 'all') {
+      query = query.eq('priority', priority);
     }
 
     const { data, error } = await query;
@@ -79,33 +90,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const actorIds = issues.flatMap((i) =>
-      [i.created_by, i.solved_by].filter(
-        (id): id is string => typeof id === 'string' && id.length > 0
-      )
+    const enriched = await OrderService.enrichIssueRows(
+      tenantId,
+      issues as Record<string, unknown>[]
     );
-    let nameById: Record<string, string> = {};
-    try {
-      const actors = await lookupAuditActors(tenantId, actorIds);
-      nameById = Object.fromEntries(
-        actors.map((a) => [
-          a.id,
-          a.displayName || a.email || a.phone || a.id.slice(0, 8),
-        ])
-      );
-    } catch (actorError) {
-      console.error('GET /api/v1/orders/issues actor lookup:', actorError);
-    }
 
-    const rows = issues.map((row) => ({
+    const rows = enriched.map((row) => ({
       ...row,
-      order_no: orderNoById[row.order_id] ?? null,
-      created_by_name: row.created_by
-        ? nameById[row.created_by] ?? null
-        : null,
-      solved_by_name: row.solved_by
-        ? nameById[row.solved_by] ?? null
-        : null,
+      order_no:
+        typeof row.order_id === 'string'
+          ? orderNoById[row.order_id] ?? null
+          : null,
     }));
 
     return NextResponse.json({ success: true, data: rows });

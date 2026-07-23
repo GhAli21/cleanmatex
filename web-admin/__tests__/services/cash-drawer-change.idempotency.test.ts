@@ -38,7 +38,11 @@ function makeCashLine(overrides: Partial<VoucherLineForWiring> = {}): VoucherLin
     wiring_status: 'NOT_WIRED',
     direction: 'IN',
     payment_method_code: 'CASH',
-    payment_status: 'POSTED',
+    // B32: must be an effective-COMPLETED status for canHandle's status gate
+    // to match (this fixture models an immediate cash sale, not a deferred
+    // leg) — was previously the wrong value 'POSTED' (copy-paste from
+    // line_status above), silent until B32 added the status gate.
+    payment_status: 'COMPLETED',
     amount: 30 as never,
     currency_code: 'OMR',
     target_type: null,

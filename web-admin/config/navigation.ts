@@ -150,6 +150,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
+        key: 'orders_issues',
+        label: 'Issues',
+        path: '/dashboard/issues',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'operator', 'viewer'],
+      },
+      {
         key: 'orders_assembly',
         label: 'Assembly',
         path: '/dashboard/assembly',
@@ -481,6 +487,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/internal_fin/refunds',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator'],
         permissions: ['orders:process_refund'],
+      },
+      {
+        key: 'billing_pending_payments',
+        label: 'Pending Payments',
+        label2: 'الدفعات المعلقة',
+        path: '/dashboard/internal_fin/pending-payments',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'finance_manager'],
+        permissions: ['orders:pending_payments_view'],
       },
       {
         key: 'billing_reconciliation',

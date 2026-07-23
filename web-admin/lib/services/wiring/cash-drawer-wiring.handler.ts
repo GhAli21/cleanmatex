@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { LINE_ROLE, WIRING_STATUS } from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
+import { resolvePaymentStatus } from './order-payment-wiring.handler';
 
 /**
  * Handles cash drawer movement creation for CASH order payments.
@@ -17,6 +18,17 @@ import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/ty
  *
  * Idempotency: sparse unique index uq_cd_mov_vch_line on
  * fin_voucher_trx_line_id prevents double-wiring at the DB level.
+ *
+ * B32 status gate: a movement is only created for an effective-COMPLETED
+ * leg. `WIRING_HANDLERS.filter(h => h.canHandle(line))` runs once per line
+ * BEFORE any handler's `wire()` executes (voucher-wiring.service.ts), so
+ * gating on the resolved status here — via the same `resolvePaymentStatus`
+ * order-payment-wiring.handler uses — is what closes M8's gap: a
+ * drawer-required method configured to create PENDING (D9 override) must
+ * not record cash-in while the money hasn't actually cleared. When such a
+ * leg later transitions PENDING/PROCESSING -> COMPLETED via the B30
+ * back-office VERIFY action, `payment-transition.service.ts` creates the
+ * deferred movement at that point instead.
  */
 export const cashDrawerWiringHandler: WiringHandler = {
   canHandle(line: VoucherLineForWiring): boolean {
@@ -24,7 +36,8 @@ export const cashDrawerWiringHandler: WiringHandler = {
       line.line_role === LINE_ROLE.ORDER_PAYMENT &&
       line.direction === 'IN' &&
       line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CASH &&
-      line.cash_drawer_session_id != null
+      line.cash_drawer_session_id != null &&
+      resolvePaymentStatus(line) === 'COMPLETED'
     );
   },
 

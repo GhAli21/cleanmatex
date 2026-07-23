@@ -15368,6 +15368,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_issue_order_item_piece"
+            columns: ["order_item_piece_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_item_pieces_dtl"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_issue_solved_by"
             columns: ["solved_by"]
             isOneToOne: false
@@ -15906,6 +15913,8 @@ export type Database = {
           bank_reference: string | null
           branch_id: string | null
           branch_payment_method_id: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           card_brand_code: string | null
           card_last4: string | null
           cash_drawer_id: string | null
@@ -15920,6 +15929,9 @@ export type Database = {
           created_info: string | null
           currency_code: string
           customer_id: string | null
+          failed_at: string | null
+          failed_by: string | null
+          fallback_classification: string | null
           fin_voucher_id: string | null
           fin_voucher_trx_line_id: string | null
           gateway_code: string | null
@@ -15944,9 +15956,12 @@ export type Database = {
           received_by: string | null
           tenant_org_id: string
           tendered_amount: number | null
+          transition_reason: string | null
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           amount: number
@@ -15954,6 +15969,8 @@ export type Database = {
           bank_reference?: string | null
           branch_id?: string | null
           branch_payment_method_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
@@ -15968,6 +15985,9 @@ export type Database = {
           created_info?: string | null
           currency_code: string
           customer_id?: string | null
+          failed_at?: string | null
+          failed_by?: string | null
+          fallback_classification?: string | null
           fin_voucher_id?: string | null
           fin_voucher_trx_line_id?: string | null
           gateway_code?: string | null
@@ -15992,9 +16012,12 @@ export type Database = {
           received_by?: string | null
           tenant_org_id: string
           tendered_amount?: number | null
+          transition_reason?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           amount?: number
@@ -16002,6 +16025,8 @@ export type Database = {
           bank_reference?: string | null
           branch_id?: string | null
           branch_payment_method_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
@@ -16016,6 +16041,9 @@ export type Database = {
           created_info?: string | null
           currency_code?: string
           customer_id?: string | null
+          failed_at?: string | null
+          failed_by?: string | null
+          fallback_classification?: string | null
           fin_voucher_id?: string | null
           fin_voucher_trx_line_id?: string | null
           gateway_code?: string | null
@@ -16040,9 +16068,12 @@ export type Database = {
           received_by?: string | null
           tenant_org_id?: string
           tendered_amount?: number | null
+          transition_reason?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -34429,6 +34460,14 @@ export type Database = {
       ntf_trigger_outbox_proc: { Args: never; Returns: undefined }
       order_has_action: {
         Args: { p_action_type: string; p_order_id: string }
+        Returns: boolean
+      }
+      org_ord_has_unresolved_issues: {
+        Args: { p_order_item_id: string }
+        Returns: boolean
+      }
+      org_ord_has_unresolved_order_issues: {
+        Args: { p_order_id: string }
         Returns: boolean
       }
       record_login_attempt: {

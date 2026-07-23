@@ -123,6 +123,7 @@ import {
 } from '@/lib/services/reconciliation/order-checks';
 import { runOrderSnapshotChecks } from '@/lib/services/reconciliation/order-snapshot-checks';
 import {
+  checkCancelledPaymentNoOrphanMovement,
   checkCashMovementAmountEqualsRetained,
   checkCashMovementLink,
   runVoucherIntegrityChecks,
@@ -595,6 +596,34 @@ describe('voucher-checks', () => {
     // amount (47) vs retained (47 - 3 = 44) = drift of 3
     const result = await checkCashMovementAmountEqualsRetained(TENANT, WINDOW);
     expect(result[0]).toMatchObject({ expectedValue: 44, actualValue: 47 });
+  });
+
+  // B30/B32 — trip-wire: a CANCELLED/FAILED payment must never carry a live
+  // CASH_SALE movement (structurally unreachable post-B32; this is defense-in-depth).
+  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a CANCELLED payment with a live CASH_SALE movement', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      {
+        id: 'p1',
+        order_id: 'o1',
+        payment_status: 'CANCELLED',
+        org_cash_drawer_movements_dtl: [{ id: 'm1', amount: new Decimal('50') }],
+      },
+    ]);
+    const result = await checkCancelledPaymentNoOrphanMovement(TENANT, WINDOW);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      checkName: 'CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT',
+      severity: 'BLOCKER',
+      actualValue: 50,
+      affectedEntityId: 'p1',
+    });
+  });
+
+  it('CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when no movement is attached', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      { id: 'p1', order_id: 'o1', payment_status: 'FAILED', org_cash_drawer_movements_dtl: [] },
+    ]);
+    expect(await checkCancelledPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
   });
 });
 

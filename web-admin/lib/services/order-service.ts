@@ -35,8 +35,10 @@ import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCo
 import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import {
+  DEFAULT_PRIORITY,
   ORDER_ISSUE_ERROR,
   ORDER_ISSUE_SCOPE,
+  ORDER_ISSUE_STATUS,
   type OrderIssueScope,
 } from '@/lib/constants/order-issues';
 import { lookupAuditActors } from '@/lib/services/audit-actor.service';
@@ -1833,7 +1835,7 @@ export class OrderService {
       .select('id')
       .eq('tenant_org_id', tenantId)
       .eq('order_id', orderId)
-      .is('solved_at', null)
+      .eq('status', ORDER_ISSUE_STATUS.OPEN)
       .limit(1);
 
     await client
@@ -1887,7 +1889,7 @@ export class OrderService {
       issueCode,
       issueText,
       photoUrl,
-      priority = 'normal',
+      priority = DEFAULT_PRIORITY,
     } = params;
     const orderItemId = params.orderItemId ?? null;
     const orderItemPieceId = params.orderItemPieceId ?? null;
@@ -1899,6 +1901,35 @@ export class OrderService {
 
     try {
       const supabase = await createClient();
+
+      const normalizedCode = issueCode.trim();
+      const { data: issueType } = await supabase
+        .from('sys_issue_type_cd')
+        .select('code')
+        .eq('code', normalizedCode)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!issueType) {
+        return {
+          success: false,
+          error: 'Invalid or inactive issue type',
+          errorCode: ORDER_ISSUE_ERROR.INVALID_TYPE,
+        };
+      }
+
+      const { data: priorityRow } = await supabase
+        .from('sys_lkp_priority_cd')
+        .select('code')
+        .eq('code', priority)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!priorityRow) {
+        return {
+          success: false,
+          error: 'Invalid or inactive priority',
+          errorCode: ORDER_ISSUE_ERROR.INVALID_PRIORITY,
+        };
+      }
 
       if (scopeLevel === ORDER_ISSUE_SCOPE.ORDER) {
         if (orderItemId || orderItemPieceId) {
@@ -1966,10 +1997,11 @@ export class OrderService {
           scope_level: scopeLevel,
           order_item_id: orderItemId,
           order_item_piece_id: orderItemPieceId,
-          issue_code: issueCode,
+          issue_code: normalizedCode,
           issue_text: issueText,
           photo_url: photoUrl,
           priority,
+          status: ORDER_ISSUE_STATUS.OPEN,
           created_by: userId,
         })
         .select()
@@ -2037,7 +2069,7 @@ export class OrderService {
         p_order_id: orderId,
         p_action_type: 'ISSUE_CREATED',
         p_from_value: null,
-        p_to_value: issueCode,
+        p_to_value: normalizedCode,
         p_done_by: userId,
         p_payload: {
           issue_id: issue.id,
@@ -2071,6 +2103,8 @@ export class OrderService {
     orderItemPieceId?: string | null;
     status?: 'open' | 'solved' | 'all';
     includeChildren?: boolean;
+    /** this = opener narrowing; order|item|piece|all = order-wide by scope_level */
+    scopeFilter?: 'this' | 'order' | 'item' | 'piece' | 'all';
   }): Promise<{
     success: boolean;
     issues: Record<string, unknown>[];
@@ -2081,6 +2115,7 @@ export class OrderService {
     try {
       const supabase = await createClient();
       const status = params.status ?? 'all';
+      const scopeFilter = params.scopeFilter ?? 'this';
       const includeChildren = params.includeChildren !== false;
       const pieceId = params.orderItemPieceId ?? null;
       const itemId = params.orderItemId ?? null;
@@ -2092,7 +2127,15 @@ export class OrderService {
         .eq('order_id', params.orderId)
         .order('created_at', { ascending: false });
 
-      if (pieceId) {
+      if (scopeFilter === 'order') {
+        query = query.eq('scope_level', ORDER_ISSUE_SCOPE.ORDER);
+      } else if (scopeFilter === 'item') {
+        query = query.eq('scope_level', ORDER_ISSUE_SCOPE.ITEM);
+      } else if (scopeFilter === 'piece') {
+        query = query.eq('scope_level', ORDER_ISSUE_SCOPE.PIECE);
+      } else if (scopeFilter === 'all') {
+        // no scope narrowing
+      } else if (pieceId) {
         query = query.eq('order_item_piece_id', pieceId);
       } else if (itemId) {
         if (includeChildren) {
@@ -2107,9 +2150,9 @@ export class OrderService {
       }
 
       if (status === 'open') {
-        query = query.is('solved_at', null);
+        query = query.eq('status', ORDER_ISSUE_STATUS.OPEN);
       } else if (status === 'solved') {
-        query = query.not('solved_at', 'is', null);
+        query = query.eq('status', ORDER_ISSUE_STATUS.SOLVED);
       }
 
       const { data, error } = await query;
@@ -2125,37 +2168,14 @@ export class OrderService {
       }
 
       const issues = (data ?? []) as Record<string, unknown>[];
-      const actorIds = issues.flatMap((row) =>
-        [row.created_by, row.solved_by].filter(
-          (id): id is string => typeof id === 'string' && id.length > 0
-        )
+      const enriched = await OrderService.enrichIssueRows(
+        params.tenantId,
+        issues
       );
-      let nameById: Record<string, string> = {};
-      try {
-        const actors = await lookupAuditActors(params.tenantId, actorIds);
-        nameById = Object.fromEntries(
-          actors.map((a) => [
-            a.id,
-            a.displayName || a.email || a.phone || a.id.slice(0, 8),
-          ])
-        );
-      } catch (actorError) {
-        console.error('OrderService.listIssues actor lookup:', actorError);
-      }
 
-      const enriched = issues.map((row) => ({
-        ...row,
-        created_by_name:
-          typeof row.created_by === 'string'
-            ? nameById[row.created_by] ?? null
-            : null,
-        solved_by_name:
-          typeof row.solved_by === 'string'
-            ? nameById[row.solved_by] ?? null
-            : null,
-      }));
-
-      const openCount = enriched.filter((i) => i.solved_at == null).length;
+      const openCount = enriched.filter(
+        (i) => i.status === ORDER_ISSUE_STATUS.OPEN || i.solved_at == null
+      ).length;
       return {
         success: true,
         issues: enriched,
@@ -2172,6 +2192,127 @@ export class OrderService {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  /**
+   * Enrich issue rows with actor names + type/priority catalog labels.
+   */
+  static async enrichIssueRows(
+    tenantId: string,
+    issues: Record<string, unknown>[]
+  ): Promise<Record<string, unknown>[]> {
+    if (issues.length === 0) return issues;
+    const supabase = await createClient();
+
+    const actorIds = issues.flatMap((row) =>
+      [row.created_by, row.solved_by].filter(
+        (id): id is string => typeof id === 'string' && id.length > 0
+      )
+    );
+    let nameById: Record<string, string> = {};
+    try {
+      const actors = await lookupAuditActors(tenantId, actorIds);
+      nameById = Object.fromEntries(
+        actors.map((a) => [
+          a.id,
+          a.displayName || a.email || a.phone || a.id.slice(0, 8),
+        ])
+      );
+    } catch (actorError) {
+      console.error('OrderService.enrichIssueRows actor lookup:', actorError);
+    }
+
+    const typeCodes = [
+      ...new Set(
+        issues
+          .map((r) => r.issue_code)
+          .filter((c): c is string => typeof c === 'string' && c.length > 0)
+      ),
+    ];
+    const priorityCodes = [
+      ...new Set(
+        issues
+          .map((r) => r.priority)
+          .filter((c): c is string => typeof c === 'string' && c.length > 0)
+      ),
+    ];
+
+    const typeByCode: Record<
+      string,
+      { name: string | null; name2: string | null; color: string | null }
+    > = {};
+    if (typeCodes.length > 0) {
+      const { data: types } = await supabase
+        .from('sys_issue_type_cd')
+        .select('code, name, name2, color')
+        .in('code', typeCodes);
+      for (const t of types ?? []) {
+        typeByCode[t.code] = {
+          name: t.name ?? null,
+          name2: t.name2 ?? null,
+          color: t.color ?? null,
+        };
+      }
+    }
+
+    const priorityByCode: Record<
+      string,
+      {
+        name: string | null;
+        name2: string | null;
+        color: string | null;
+        display_order: number | null;
+      }
+    > = {};
+    if (priorityCodes.length > 0) {
+      const { data: priorities } = await supabase
+        .from('sys_lkp_priority_cd')
+        .select('code, name, name2, color, display_order')
+        .in('code', priorityCodes);
+      for (const p of priorities ?? []) {
+        priorityByCode[p.code] = {
+          name: p.name ?? null,
+          name2: p.name2 ?? null,
+          color: p.color ?? null,
+          display_order: p.display_order ?? null,
+        };
+      }
+    }
+
+    return issues
+      .map((row) => {
+        const code =
+          typeof row.issue_code === 'string' ? row.issue_code : null;
+        const pri = typeof row.priority === 'string' ? row.priority : null;
+        const typeMeta = code ? typeByCode[code] : undefined;
+        const priMeta = pri ? priorityByCode[pri] : undefined;
+        return {
+          ...row,
+          created_by_name:
+            typeof row.created_by === 'string'
+              ? nameById[row.created_by] ?? null
+              : null,
+          solved_by_name:
+            typeof row.solved_by === 'string'
+              ? nameById[row.solved_by] ?? null
+              : null,
+          issue_type_name: typeMeta?.name ?? null,
+          issue_type_name2: typeMeta?.name2 ?? null,
+          issue_type_color: typeMeta?.color ?? null,
+          priority_name: priMeta?.name ?? null,
+          priority_name2: priMeta?.name2 ?? null,
+          priority_color: priMeta?.color ?? null,
+          priority_display_order: priMeta?.display_order ?? 99,
+        };
+      })
+      .sort((a, b) => {
+        const ao = Number(a.priority_display_order ?? 99);
+        const bo = Number(b.priority_display_order ?? 99);
+        if (ao !== bo) return ao - bo;
+        const at = String(a.created_at ?? '');
+        const bt = String(b.created_at ?? '');
+        return bt.localeCompare(at);
+      });
   }
 
   /**
@@ -2197,7 +2338,7 @@ export class OrderService {
       const supabase = await createClient();
       const { data, error } = await supabase
         .from('org_order_issues')
-        .select('id, order_item_id, order_item_piece_id, solved_at')
+        .select('id, order_item_id, order_item_piece_id, status, solved_at, scope_level')
         .eq('tenant_org_id', tenantId)
         .eq('order_id', orderId);
 
@@ -2212,7 +2353,8 @@ export class OrderService {
       let orderScopedTotal = 0;
 
       for (const row of rows) {
-        const isOpen = row.solved_at == null;
+        const isOpen =
+          row.status === ORDER_ISSUE_STATUS.OPEN || row.solved_at == null;
 
         // Piece-scoped issues count only under the piece (not double-counted on item).
         if (row.order_item_piece_id) {
@@ -2281,7 +2423,7 @@ export class OrderService {
         };
       }
 
-      if (existing.solved_at) {
+      if (existing.status === ORDER_ISSUE_STATUS.SOLVED || existing.solved_at) {
         return {
           success: false,
           issue: existing,
@@ -2293,6 +2435,7 @@ export class OrderService {
       const { data: issue, error: issueError } = await supabase
         .from('org_order_issues')
         .update({
+          status: ORDER_ISSUE_STATUS.SOLVED,
           solved_at: new Date().toISOString(),
           solved_by: userId,
           solved_notes: solvedNotes,
@@ -2323,7 +2466,7 @@ export class OrderService {
           .select('id')
           .eq('tenant_org_id', tenantId)
           .eq('order_item_piece_id', issue.order_item_piece_id)
-          .is('solved_at', null)
+          .eq('status', ORDER_ISSUE_STATUS.OPEN)
           .limit(1);
         if (!openPiece?.length) {
           await supabase
@@ -2339,7 +2482,7 @@ export class OrderService {
           .select('id')
           .eq('tenant_org_id', tenantId)
           .eq('order_item_id', issue.order_item_id)
-          .is('solved_at', null)
+          .eq('status', ORDER_ISSUE_STATUS.OPEN)
           .limit(1);
         if (!openItem?.length) {
           await supabase
@@ -2355,7 +2498,7 @@ export class OrderService {
         .eq('tenant_org_id', tenantId)
         .eq('order_id', issue.order_id)
         .eq('scope_level', ORDER_ISSUE_SCOPE.ORDER)
-        .is('solved_at', null)
+        .eq('status', ORDER_ISSUE_STATUS.OPEN)
         .limit(1);
       if (!openOrderScoped?.length) {
         await supabase

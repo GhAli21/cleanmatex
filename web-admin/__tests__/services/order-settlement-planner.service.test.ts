@@ -159,6 +159,26 @@ describe('buildSettlementPlan', () => {
     ).toThrow('CREDIT_APPLICATION_TYPE_REQUIRED');
   });
 
+  // B32 (M8) investigation: allow_status_override is captured on the leg but
+  // deliberately NOT enforced against this explicit per-leg override — BVM
+  // Phase 6 Sub-item 6 (B7 closer, see the "Phase 6 B7" tests below) already
+  // shipped and tested "explicit PENDING always overrides the fallback,
+  // regardless of config." Confirms that stays true even when
+  // allow_status_override=false, so a future change cannot silently
+  // reintroduce the M8 enforcement and regress checkout.
+  it('explicit PENDING override is honored regardless of allow_status_override (B32 investigation)', () => {
+    const option = makeRealOption({ defaultCreationStatus: 'COMPLETED', allowStatusOverride: false });
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      100,
+      CURRENCY,
+      [makeLeg(option, 100)],
+      [makeOriginalLeg('CASH', 100, { paymentStatus: 'PENDING' } as Partial<PaymentLeg>)],
+      'PAY_IN_ADVANCE',
+    );
+    expect(plan.realPaymentLegs[0].resolvedPaymentStatus).toBe('PENDING');
+  });
+
   it('PAY_ON_COLLECTION (paymentTypeCode≠INVOICE): no payment legs → outstanding flows to PAY_ON_COLLECTION', () => {
     const plan = buildSettlementPlan(
       ORDER_ID,

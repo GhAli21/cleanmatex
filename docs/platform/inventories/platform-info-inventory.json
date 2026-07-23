@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-19T22:21:08.456Z",
-  "gitSha": "f7dccb8a",
+  "generatedAt": "2026-07-23T17:04:33.198Z",
+  "gitSha": "86fbdf8e",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -35,9 +35,9 @@
     "featureFlagUsages": 74,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 142,
-    "navigationEntries": 97,
-    "flagCatalogEntries": 291
+    "accessContracts": 144,
+    "navigationEntries": 98,
+    "flagCatalogEntries": 292
   },
   "permissionUsages": [
     {
@@ -7282,6 +7282,31 @@
       ]
     },
     {
+      "id": "access_contract:/dashboard/internal_fin/pending-payments",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/internal_fin/pending-payments",
+      "label": "Pending Payments",
+      "sourceFile": "web-admin/src/features/billing/access/billing-access.ts",
+      "page": {
+        "permissions": [
+          "orders:pending_payments_view"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [],
+      "apiDependencyCount": 1,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/billing/access/billing-access.ts"
+        }
+      ]
+    },
+    {
       "id": "access_contract:/dashboard/internal_fin/refunds",
       "kind": "access_contract",
       "routePattern": "/dashboard/internal_fin/refunds",
@@ -9080,6 +9105,28 @@
       },
       "actions": [],
       "apiDependencyCount": 0,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/orders/access/orders-access.ts"
+        }
+      ]
+    },
+    {
+      "id": "access_contract:/dashboard/issues",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/issues",
+      "label": "Order Issues",
+      "sourceFile": "web-admin/src/features/orders/access/orders-access.ts",
+      "page": {
+        "permissions": [],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": []
+      },
+      "actions": [],
+      "apiDependencyCount": 1,
       "provenance": [
         {
           "sourceType": "access-contract-ts",
@@ -11191,6 +11238,30 @@
       ]
     },
     {
+      "id": "nav:section_billing_pending_payments_/dashboard/internal_fin/pending-payments",
+      "kind": "navigation_entry",
+      "key": "billing_pending_payments",
+      "label": "Pending Payments",
+      "path": "/dashboard/internal_fin/pending-payments",
+      "depth": "section",
+      "permissions": [
+        "orders:pending_payments_view"
+      ],
+      "roles": [
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "branch_manager",
+        "finance_manager"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
       "id": "nav:section_billing_reconciliation_/dashboard/internal_fin/reconciliation",
       "kind": "navigation_entry",
       "key": "billing_reconciliation",
@@ -12437,6 +12508,22 @@
       "kind": "flag_catalog_entry",
       "flagKey": "order_fin_refund_ui",
       "flagName": "Refund Back-office UI",
+      "planBindingType": "independent",
+      "dataType": "boolean",
+      "governanceCategory": "beta",
+      "uiGroup": "Billing Features",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:order_fin_sv_funding_capture",
+      "kind": "flag_catalog_entry",
+      "flagKey": "order_fin_sv_funding_capture",
+      "flagName": "Stored-Value Funding Capture",
       "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "beta",

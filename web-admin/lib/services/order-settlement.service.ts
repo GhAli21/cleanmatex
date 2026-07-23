@@ -791,6 +791,11 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       const defaultCreationStatus =
         method.default_creation_status ||
         resolveDefaultStatus(method.payment_method_code, method.gateway_code);
+      // B32 (M8) investigation note: see the matching comment in
+      // order-settlement-planner.service.ts's buildSettlementPlan — enforcing
+      // allow_status_override against this explicit per-leg override would
+      // regress the already-shipped/tested B31 "explicit PENDING always
+      // honored" behavior. Not enforced here for the same reason.
       resolvedStatusByLegIndex.set(
         legIndex,
         leg.paymentStatus === 'PENDING' ? 'PENDING' : defaultCreationStatus,

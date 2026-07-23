@@ -296,6 +296,10 @@
       "successToast": "Payment verified",
       "errorToast": "Could not verify payment: {error}"
     },
+    "transitions": {
+      "failBounce": "Mark Failed/Bounced",
+      "cancel": "Cancel Payment"
+    },
     "warning": {
       "title": "Financial consistency",
       "balanceMismatch": "Balance mismatch: total {total}, paid {paid}, credits {credits}, expected balance {expected} but stored balance is {stored}.",

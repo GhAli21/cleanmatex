@@ -265,7 +265,7 @@ export const CreateIssueRequestSchema = z
     scopeLevel: z.enum(['ORDER', 'ITEM', 'PIECE']).optional(),
     orderItemId: z.string().uuid().nullable().optional(),
     orderItemPieceId: z.string().uuid().nullable().optional(),
-    issueCode: z.enum(['damage', 'stain', 'complaint', 'other']),
+    issueCode: z.string().min(1).max(50),
     issueText: z.string().min(3).max(1000),
     photoUrl: z.string().url().optional(),
     priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),

@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-19T22:21:08.456Z
-Git SHA: f7dccb8a
+Generated: 2026-07-23T17:04:33.198Z
+Git SHA: 86fbdf8e
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 142 |
+| Access contracts | 144 |
 | Permission usages | 259 |
 | Feature flag usages | 74 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
-| Navigation entries | 97 |
-| Flag catalog entries | 291 |
+| Navigation entries | 98 |
+| Flag catalog entries | 292 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -83,6 +83,7 @@ Git SHA: f7dccb8a
 | /dashboard/internal_fin/invoices/[id]/print | Print AR Invoice | invoices:print | — | 0 |
 | /dashboard/internal_fin/invoices/new | New AR Invoice | invoices:create | — | 0 |
 | /dashboard/internal_fin/outbox | Financial Outbox Monitor | finance_outbox:view | — | 0 |
+| /dashboard/internal_fin/pending-payments | Pending Payments | orders:pending_payments_view | — | 0 |
 | /dashboard/internal_fin/pos-sessions | POS Sessions | pos_session:view | — | 8 |
 | /dashboard/internal_fin/reconciliation | Finance Reconciliation | reconciliation:view | — | 0 |
 | /dashboard/internal_fin/reconciliation/[runId] | Finance Reconciliation Details | reconciliation:view | — | 0 |
@@ -94,6 +95,7 @@ Git SHA: f7dccb8a
 | /dashboard/inventory | Inventory | — | — | 0 |
 | /dashboard/inventory/machines | Inventory Machines | inventory:read | — | 0 |
 | /dashboard/inventory/stock | Inventory Stock | — | — | 0 |
+| /dashboard/issues | Order Issues | — | — | 0 |
 | /dashboard/jhtestui | JWT Test | — | — | 0 |
 | /dashboard/marketing | Marketing | promotions:read | — | 0 |
 | /dashboard/marketing/campaigns | Campaigns | notifications:manage | campaigns_enabled | 0 |

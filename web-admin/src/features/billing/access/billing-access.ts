@@ -715,6 +715,61 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
+    routePattern: '/dashboard/internal_fin/pending-payments',
+    label: 'Pending Payments',
+    page: {
+      permissions: ['orders:pending_payments_view'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      verifyPayment: {
+        label: 'Verify a PENDING/PROCESSING payment leg (flip to COMPLETED)',
+        requirement: {
+          permissions: ['orders:verify_payment'],
+          requireAllPermissions: true,
+        },
+      },
+      cancelPayment: {
+        label: 'Cancel a PENDING/PROCESSING payment leg (mandatory reason + D009 fallback)',
+        requirement: {
+          permissions: ['orders:cancel_payment'],
+          requireAllPermissions: true,
+        },
+      },
+      failBouncePayment: {
+        label: 'Mark a PENDING/PROCESSING payment leg FAILED/bounced (mandatory reason + D009 fallback)',
+        requirement: {
+          permissions: ['orders:fail_payment'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Pending-payments worklist counts + list',
+        method: 'GET',
+        path: '/api/v1/finance/pending-payments',
+        requirement: {
+          permissions: ['orders:pending_payments_view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Transition a payment leg (VERIFY/CANCEL/FAIL_BOUNCE)',
+        method: 'POST',
+        path: '/api/v1/finance/pending-payments/[paymentId]/transition',
+        requirement: {
+          permissions: ['orders:verify_payment', 'orders:cancel_payment', 'orders:fail_payment'],
+          requireAllPermissions: false,
+        },
+      },
+    ],
+    notes: [
+      'B30 — cross-order back-office worklist for PENDING/PROCESSING REAL_PAYMENT legs (D001 canonical graph subset).',
+      'The transition route enforces the action-specific permission dynamically server-side; the contract entry lists all three as any-of since the route itself decides per request body.',
+    ],
+  },
+  {
     routePattern: '/dashboard/internal_fin/refunds',
     label: 'Refunds',
     page: {
@@ -812,3 +867,5 @@ export const BILLING_INTERNAL_FIN_OUTBOX_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/outbox')!
 export const BILLING_INTERNAL_FIN_REFUNDS_ACCESS =
   BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/refunds')!
+export const BILLING_INTERNAL_FIN_PENDING_PAYMENTS_ACCESS =
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/pending-payments')!

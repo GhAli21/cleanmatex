@@ -359,6 +359,7 @@
       "LOYALTY_LEDGER_LINK_EXISTS": "Loyalty ledger link exists",
       "CASH_MOVEMENT_LINK_EXISTS": "Cash movement link exists",
       "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "Cash movement = retained amount",
+      "CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT": "Cancelled/failed payment has no orphan cash movement",
       "INVOICE_PAYMENT_LINK_EXISTS": "Invoice payment link exists",
       "REFUND_LINK_EXISTS": "Refund link exists"
     }
@@ -396,6 +397,69 @@
       "PROCESSED": "Processed",
       "FAILED": "Failed",
       "DEAD_LETTERED": "Dead-lettered"
+    }
+  },
+  "pendingPayments": {
+    "title": "Pending Payments",
+    "description": "Cross-order back-office worklist for PENDING/PROCESSING payment legs — verify, cancel, or mark failed/bounced",
+    "refresh": "Refresh",
+    "allStatuses": "All statuses",
+    "empty": "No pending payments",
+    "loadFailed": "Failed to load pending payments worklist",
+    "counts": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "total": "Total"
+    },
+    "columns": {
+      "order": "Order",
+      "customer": "Customer",
+      "branch": "Branch",
+      "method": "Method",
+      "amount": "Amount",
+      "status": "Status",
+      "reference": "Reference",
+      "age": "Created"
+    },
+    "actions": {
+      "verify": "Verify",
+      "cancel": "Cancel",
+      "failBounce": "Mark Failed/Bounced"
+    },
+    "transition": {
+      "verifyTitle": "Verify Payment",
+      "verifyDescription": "Confirm the bank/gateway has cleared this payment. It will flip to COMPLETED.",
+      "verifySuccess": "Payment verified",
+      "verifyConfirm": "Verify",
+      "cancelTitle": "Cancel Payment",
+      "cancelDescription": "Cancel this pending/processing payment leg. A reason and a fallback classification are required — the outstanding balance is never left unclassified.",
+      "cancelSuccess": "Payment cancelled",
+      "cancelConfirm": "Cancel Payment",
+      "failBounceTitle": "Mark Payment Failed / Bounced",
+      "failBounceDescription": "Mark this pending/processing payment leg as failed (bounced check, rejected bank transfer, etc.). A reason and a fallback classification are required.",
+      "failBounceSuccess": "Payment marked failed",
+      "failBounceConfirm": "Mark Failed",
+      "reasonPlaceholder": "Reason (required)",
+      "fallbackClassificationLabel": "What happens to the outstanding balance?",
+      "fallbackClassificationPlaceholder": "Select a classification",
+      "fallback": {
+        "RETRY_TENDER": "Customer will retry the payment",
+        "PAY_ON_COLLECTION": "Collect on delivery/pickup",
+        "AR_CREDIT_INVOICE": "Route to AR credit invoice",
+        "CANCEL_ORDER_OR_REVERSE_SERVICE": "Cancel order or reverse service",
+        "MANUAL_REVIEW": "Needs manual review"
+      },
+      "failed": "Action failed",
+      "errors": {
+        "reasonRequired": "A reason is required",
+        "fallbackRequired": "A fallback classification is required",
+        "invalidFallback": "Invalid fallback classification",
+        "illegalTransition": "This payment can no longer be transitioned this way",
+        "raceDetected": "Another update just happened — please retry",
+        "idempotencyConflict": "This request conflicts with a previous attempt — please retry from a fresh dialog",
+        "notFound": "Payment not found",
+        "notRealPayment": "This is not a real-payment leg"
+      }
     }
   }
 }

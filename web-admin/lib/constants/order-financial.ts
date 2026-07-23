@@ -357,6 +357,12 @@ export const RECONCILIATION_CHECK_NAMES = {
   CASH_MOVEMENT_LINK_EXISTS: 'CASH_MOVEMENT_LINK_EXISTS',
   CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT: 'CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT',
 
+  // ─── B30/B32 — pending-payment transitions must never leave an orphaned
+  // cash-drawer movement behind a CANCELLED/FAILED leg (D001 terminal-state
+  // invariant; B32's canHandle status gate should make this structurally
+  // unreachable — this check is the defense-in-depth trip-wire).
+  CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT: 'CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT',
+
   // ─── BVM Phase 4 — AR / refund link checks (PRD §22.1) ────────────────────
   INVOICE_PAYMENT_LINK_EXISTS: 'INVOICE_PAYMENT_LINK_EXISTS',
   REFUND_LINK_EXISTS: 'REFUND_LINK_EXISTS',
@@ -457,6 +463,20 @@ export const OUTBOX_EVENT_TYPES = {
    * 0332 (PAYMENT_VERIFIED) exactly — case and spelling.
    */
   PAYMENT_VERIFIED: 'PAYMENT_VERIFIED',
+  /**
+   * B30 — emitted by transitionPaymentTx() after a PENDING/PROCESSING
+   * REAL_PAYMENT leg is flipped to CANCELLED via the back-office worklist.
+   * DB-mirror invariant: must match chk_history_action_type (migration 0415)
+   * exactly.
+   */
+  PAYMENT_CANCELLED: 'PAYMENT_CANCELLED',
+  /**
+   * B30 — emitted by transitionPaymentTx() after a PENDING/PROCESSING
+   * REAL_PAYMENT leg is flipped to FAILED (bounce/reject) via the
+   * back-office worklist. DB-mirror invariant: must match
+   * chk_history_action_type (migration 0415) exactly.
+   */
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
   /**
    * Order-Fin remediation Phase 4 (FN-02). Emitted by
    * unwindOrderFinancialsOnCancel() after a cancelled order's financial
@@ -569,6 +589,48 @@ export const ORDER_PAYMENT_LIFECYCLE_STATUSES = {
 /** Derived union for supported uppercase payment lifecycle statuses. */
 export type OrderPaymentLifecycleStatus =
   (typeof ORDER_PAYMENT_LIFECYCLE_STATUSES)[keyof typeof ORDER_PAYMENT_LIFECYCLE_STATUSES][number];
+
+/**
+ * B30 — back-office payment transition actions (D001 canonical graph subset).
+ * VERIFY  : PENDING/PROCESSING -> COMPLETED (no reason required).
+ * CANCEL  : PENDING/PROCESSING -> CANCELLED (reason + D009 fallback required).
+ * FAIL_BOUNCE : PENDING/PROCESSING -> FAILED (reason + D009 fallback required).
+ */
+export const PAYMENT_TRANSITION_ACTIONS = {
+  VERIFY: 'VERIFY',
+  CANCEL: 'CANCEL',
+  FAIL_BOUNCE: 'FAIL_BOUNCE',
+} as const;
+/** Derived union for B30 transition actions. */
+export type PaymentTransitionAction =
+  (typeof PAYMENT_TRANSITION_ACTIONS)[keyof typeof PAYMENT_TRANSITION_ACTIONS];
+
+/** Target payment_status per B30 transition action. */
+export const PAYMENT_TRANSITION_TARGET_STATUS: Record<PaymentTransitionAction, string> = {
+  VERIFY: 'COMPLETED',
+  CANCEL: 'CANCELLED',
+  FAIL_BOUNCE: 'FAILED',
+};
+
+/**
+ * D009 — governed fallback classification set. Every transition of a
+ * pending payment to failure/cancellation/expiry/rejection/bounce must
+ * record one of these; a failed pending payment must never leave the
+ * balance unclassified.
+ *
+ * DB-mirror invariant: values must match
+ * `chk_ord_pay_fallback_classification` (migration 0415) exactly.
+ */
+export const FALLBACK_CLASSIFICATIONS = {
+  RETRY_TENDER: 'RETRY_TENDER',
+  PAY_ON_COLLECTION: 'PAY_ON_COLLECTION',
+  AR_CREDIT_INVOICE: 'AR_CREDIT_INVOICE',
+  CANCEL_ORDER_OR_REVERSE_SERVICE: 'CANCEL_ORDER_OR_REVERSE_SERVICE',
+  MANUAL_REVIEW: 'MANUAL_REVIEW',
+} as const;
+/** Derived union for D009 fallback classifications. */
+export type FallbackClassification =
+  (typeof FALLBACK_CLASSIFICATIONS)[keyof typeof FALLBACK_CLASSIFICATIONS];
 
 /**
  * Canonical snapshot statuses persisted on `org_orders_mst.financial_snapshot_status`.

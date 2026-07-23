@@ -12,9 +12,9 @@
 | Item | Value / action |
 |---|---|
 | Environment | Preview deployment (post-commit) |
-| Migrations applied | up to **0412**. **Migration 0410 (B7), 0411 (B27), and 0412 (B3) are all APPLIED (owner, 2026-07-20)** — Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 12 (B27 permissions) needs 0411 applied before any of its new codes exist to grant/deny; Section 14 (B3) needs 0412 applied (done) plus the `order_fin_sv_funding_capture` flag ON. |
-| Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* |
-| Permissions | tester needs the refund permissions (initiate/approve/process) for B34, and `cash_drawer:approve_variance` for B16 §6.5–6.6 and §12.1 (now seeded by **B27**, migration 0411 — must be applied first). For §12, prepare a **third** login with none of the new B27 codes granted, to exercise the denial paths. |
+| Migrations applied | up to **0415**. **Migration 0410 (B7), 0411 (B27), 0412 (B3), and 0415 (B30/B32) are all APPLIED (owner, 2026-07-20/2026-07-23) and verified via remote DB.** Section 15's permission codes and worklist nav entry are live and ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON. |
+| Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* **B30/B32 ship unconditionally, no feature flag.** |
+| Permissions | tester needs the refund permissions (initiate/approve/process) for B34, and `cash_drawer:approve_variance` for B16 §6.5–6.6 and §12.1 (seeded by **B27**, migration 0411, APPLIED). For §12, prepare a **third** login with none of the new B27 codes granted, to exercise the denial paths. For §15 (B30/B32), the tester also needs `orders:pending_payments_view` / `orders:cancel_payment` / `orders:fail_payment` (seeded by migration **0415**, APPLIED); reuse the §12 no-new-codes login to exercise the denial paths there too. |
 | Users | prepare **two** logins: an **initiator/cashier** and a **supervisor/approver** (different users — needed for maker-checker in B34 and B16). |
 | Test tenant | one with `TENANT_CURRENCY` set (e.g. OMR); ideally a second non-OMR tenant. |
 
@@ -33,6 +33,7 @@
 | Refunds hub | **Internal Finance And Operations → Refunds** | `/dashboard/internal_fin/refunds` |
 | Reconciliation | **Internal Finance And Operations → Reconciliation** | `/dashboard/internal_fin/reconciliation` |
 | Outbox Monitor (B7) | **Internal Finance And Operations → Outbox Monitor** | `/dashboard/internal_fin/outbox` |
+| Pending Payments worklist (B30/B32) | **Internal Finance And Operations → Pending Payments** | `/dashboard/internal_fin/pending-payments` |
 | Tenant currency | **Config And Settings → Tenant Settings** (or **Finance**) | `/dashboard/settings/tenant` · `/dashboard/settings/finance` |
 | Tax setup | **Config And Settings → Tax Setup** | `/dashboard/settings/tax` |
 | Payment / drawer setup | **Config And Settings → Payment Setup** | `/dashboard/settings/payments` |
@@ -268,6 +269,29 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 15. B30 + B32 — Pending-payment back-office lifecycle & drawer status gating
+**What changed:** a new cross-order **Pending Payments** worklist lets an accountant VERIFY / CANCEL / mark FAILED-BOUNCED any PENDING or PROCESSING payment leg without hunting through individual orders; CANCEL and FAIL-BOUNCE require a mandatory reason plus a governed classification of what happens to the outstanding balance (D009). The same three actions were also added to the existing per-order **Payments & Credits** tab next to the pre-existing Verify button. Separately (B32), a drawer-required payment method configured to create legs as PENDING no longer records a premature cash-in movement — the movement is now created only when the leg actually completes (either immediately, or later via the new VERIFY action). Ships **unconditionally, no feature flag**. Migration **0415 must be applied first** (adds the audit columns + the 3 new permission codes + nav entry).
+
+> Where: **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) for the cross-order worklist; any order's **Financial → Payments & Credits** tab for the per-order actions.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|15.1| Create an order with a payment method that resolves to **PENDING** (e.g. CHECK, or BANK_TRANSFER with no D9 override) → open **Pending Payments** worklist as the admin login | The order's leg appears in the list with status PENDING, correct order/customer/branch/amount/reference | |
+|15.2| Same row → click **Verify** | Leg flips to COMPLETED, disappears from the (PENDING/PROCESSING-only) worklist, and the order's outstanding amount updates accordingly — same effect as the pre-existing per-order Verify button | |
+|15.3| Create a second PENDING leg → click **Mark Failed/Bounced** → try to submit with no reason and no classification selected | Submit button stays disabled until both a reason is typed and a classification is chosen | |
+|15.4| Same dialog, fill reason "check bounced" + classification **Collect on delivery/pickup** (`PAY_ON_COLLECTION`) → submit | Leg flips to FAILED; the order's settlement routing reclassifies to **Pay on Collection** (verify on the order's Financial tab — outstanding now routes as pay-on-collection instead of the original advance-payment classification) | |
+|15.5| Create a third PENDING leg → **Cancel** it with reason + classification **Needs manual review** (`MANUAL_REVIEW`) | Leg flips to CANCELLED; the order's `payment_type_code` is **unchanged** (MANUAL_REVIEW does not auto-reclassify — an accountant must decide separately) | |
+|15.6| Log in as the §12 no-new-codes login → open **Pending Payments** | The nav item / page itself is not reachable (missing `orders:pending_payments_view`) | |
+|15.7| As the admin login, open an order with a PENDING leg → **Financial → Payments & Credits** tab | **Verify**, **Mark Failed/Bounced**, and **Cancel Payment** all appear next to each other for the PENDING row (same shared dialog as the worklist) | |
+|15.8| Repeat 15.7 as the §12 no-new-codes login | None of the three action buttons render for that row (each independently gated by its own permission) | |
+|15.9| Retry the exact same Cancel/Fail submission twice in a row quickly (e.g. double-click, or resubmit before the dialog closes) | Second submission is a no-op replay (idempotency key reused for the same dialog-open attempt) — no duplicate audit rows, no error shown to the user | |
+|15.10| (B32) Configure a payment method (e.g. CASH) with a D9 override so its `default_creation_status` = PENDING, then create an order using that method with an open cash-drawer session | Order leg is created PENDING; open that drawer session's detail screen (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — the sale amount does **NOT** yet appear in expected cash (previously it would have, immediately, even though the money hadn't cleared) | |
+|15.11| From the Pending Payments worklist (or the order's Payments tab), **Verify** that same leg | Leg flips to COMPLETED; the drawer session's expected cash now increases by the sale amount — the deferred movement was created at verify time | |
+|15.12| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 15.1–15.11 | Passes (no `CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT` issues — this new check would only fire if a cancelled/failed leg somehow still carried a live cash movement, which should be structurally unreachable) | |
+|15.13| Any already-COMPLETED payment leg (e.g. a normal CASH sale) | No Verify/Cancel/Fail actions appear for it anywhere (both surfaces only offer these actions for PENDING/PROCESSING legs — a completed leg needs the separate reversal flow, not yet built) | |
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -286,5 +310,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B7 | blocked on migration 0410 apply | | |
 | B27 | blocked on migration 0411 apply | | |
 | B3 | migration 0412 applied; backend + tender-step UI implemented, not yet deployed to Preview | | |
+| B30 | migration 0415 applied (owner, 2026-07-23); implemented, not yet deployed to Preview | | |
+| B32 | migration 0415 applied (owner, 2026-07-23, shared with B30); implemented, not yet deployed to Preview | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
+
+**Automated gates at build time (2026-07-23, B30/B32):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `payment-transition.service.test.ts` 19/19 · `cash-drawer-wiring.handler.test.ts` 7/7 · reconciliation check-modules +2 · planner/collect-payment investigation pinning tests +2 · full jest **222/222 suites, 2135/2135 tests — zero known failures** (one transient Windows Prisma query-engine file-lock flake on the first run, self-resolved on retry, not a code issue) · check:i18n ✓ · build ✓ (exit 0) · check:ui-access-contract --wire PASS · sync:ui-access-contract PASS (144/144 routes, drift 0) · check:platform-info-inventories PASS. **Migration 0415 APPLIED (owner, 2026-07-23) to local + remote, verified via remote DB** — B30/B32's permission codes, audit columns, and worklist nav entry are all live; §15 above is ready to run once deployed to Preview.

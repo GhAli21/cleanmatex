@@ -43,6 +43,7 @@ import {
 } from './reconciliation/order-checks';
 import { runOrderSnapshotChecks } from './reconciliation/order-snapshot-checks';
 import {
+  checkCancelledPaymentNoOrphanMovement,
   checkCashMovementAmountEqualsRetained,
   checkCashMovementLink,
   getPostedVouchersInWindow,
@@ -123,6 +124,8 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   // ── Cash drawer integrity (PRD §22.1) ─────────────────────────────────
   RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT,
+  // ── B30/B32 — pending-payment transition trip-wire ────────────────────
+  RECONCILIATION_CHECK_NAMES.CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT,
   // ── AR link checks (PRD §22.1) ────────────────────────────────────────
   RECONCILIATION_CHECK_NAMES.INVOICE_PAYMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.REFUND_LINK_EXISTS,
@@ -301,6 +304,8 @@ export async function runReconciliation(
       // Cash drawer
       checkCashMovementLink(tenantId, window),
       checkCashMovementAmountEqualsRetained(tenantId, window),
+      // B30/B32 — pending-payment transition trip-wire
+      checkCancelledPaymentNoOrphanMovement(tenantId, window),
       // AR
       checkInvoicePaymentLink(tenantId, window),
       checkRefundLink(tenantId, window),

@@ -106,6 +106,15 @@ export function buildSettlementPlan(
       // omitting the field (Zod defaults to `'COMPLETED'`) keeps the prior
       // gateway/D9 fallback chain intact.
       const explicitStatus = orig?.paymentStatus;
+      // B32 (M8) investigation note: allow_status_override is intentionally
+      // NOT enforced against this explicit per-leg override. BVM Phase 6
+      // Sub-item 6 (B7 closer) already shipped and tested "explicit PENDING
+      // from the checkout request always overrides the fallback, regardless
+      // of config" — gating it here would regress that verified production
+      // behavior. See B32's own file for the full reasoning; the config
+      // field remains captured on the leg (read by validateOverpaymentResolution
+      // et al.) but its "override" consumer is the B30 back-office transition
+      // surface, not this checkout-time field.
       const resolvedPaymentStatus =
         explicitStatus === 'PENDING' ? 'PENDING' : defaultCreationStatus;
 

@@ -39,6 +39,13 @@ export const ORDERS_PERMISSIONS = {
   RATE_OVERRIDE: 'orders:rate_override',
   /** Already seeded/granted pre-B27 (lib/db/orders.ts addOrderItems) — resource is `pricing`, kept here for the orders-domain grouping. */
   PRICING_OVERRIDE: 'pricing:override',
+  // B30 (migration 0415) — pending-payment back-office lifecycle worklist
+  /** View the cross-order PENDING/PROCESSING payment worklist. */
+  PENDING_PAYMENTS_VIEW: 'orders:pending_payments_view',
+  /** Cancel a PENDING/PROCESSING payment leg (mandatory reason + D009 fallback classification). */
+  CANCEL_PAYMENT: 'orders:cancel_payment',
+  /** Mark a PENDING/PROCESSING payment leg FAILED/bounced (mandatory reason + D009 fallback classification). */
+  FAIL_PAYMENT: 'orders:fail_payment',
 } as const
 
 export type OrdersPermissionCode =

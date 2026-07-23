@@ -359,6 +359,7 @@
       "LOYALTY_LEDGER_LINK_EXISTS": "وجود ارتباط دفتر الولاء",
       "CASH_MOVEMENT_LINK_EXISTS": "وجود ارتباط حركة النقد",
       "CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT": "مبلغ حركة النقد = المبلغ المُحتجز",
+      "CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT": "الدفعة الملغاة/الفاشلة بلا حركة نقدية يتيمة",
       "INVOICE_PAYMENT_LINK_EXISTS": "وجود ارتباط دفع الفاتورة",
       "REFUND_LINK_EXISTS": "وجود ارتباط الاسترداد"
     }
@@ -396,6 +397,69 @@
       "PROCESSED": "تمت المعالجة",
       "FAILED": "فاشل",
       "DEAD_LETTERED": "متوقف نهائيًا"
+    }
+  },
+  "pendingPayments": {
+    "title": "الدفعات المعلقة",
+    "description": "قائمة عمليات خلفية عبر جميع الطلبات للدفعات المعلقة أو قيد المعالجة — تحقق أو إلغاء أو تحديد كفاشلة/مرتجعة",
+    "refresh": "تحديث",
+    "allStatuses": "كل الحالات",
+    "empty": "لا توجد دفعات معلقة",
+    "loadFailed": "تعذر تحميل قائمة الدفعات المعلقة",
+    "counts": {
+      "pending": "معلقة",
+      "processing": "قيد المعالجة",
+      "total": "الإجمالي"
+    },
+    "columns": {
+      "order": "الطلب",
+      "customer": "العميل",
+      "branch": "الفرع",
+      "method": "طريقة الدفع",
+      "amount": "المبلغ",
+      "status": "الحالة",
+      "reference": "المرجع",
+      "age": "تاريخ الإنشاء"
+    },
+    "actions": {
+      "verify": "تحقق",
+      "cancel": "إلغاء",
+      "failBounce": "تحديد كفاشلة/مرتجعة"
+    },
+    "transition": {
+      "verifyTitle": "التحقق من الدفعة",
+      "verifyDescription": "تأكيد أن البنك/البوابة قد سوّت هذه الدفعة. ستتحول إلى مكتملة.",
+      "verifySuccess": "تم التحقق من الدفعة",
+      "verifyConfirm": "تحقق",
+      "cancelTitle": "إلغاء الدفعة",
+      "cancelDescription": "إلغاء هذه الدفعة المعلقة أو قيد المعالجة. السبب وتصنيف البديل مطلوبان — لن يُترك الرصيد المستحق دون تصنيف.",
+      "cancelSuccess": "تم إلغاء الدفعة",
+      "cancelConfirm": "إلغاء الدفعة",
+      "failBounceTitle": "تحديد الدفعة كفاشلة/مرتجعة",
+      "failBounceDescription": "تحديد هذه الدفعة المعلقة أو قيد المعالجة كفاشلة (شيك مرتجع، حوالة بنكية مرفوضة، إلخ). السبب وتصنيف البديل مطلوبان.",
+      "failBounceSuccess": "تم تحديد الدفعة كفاشلة",
+      "failBounceConfirm": "تحديد كفاشلة",
+      "reasonPlaceholder": "السبب (مطلوب)",
+      "fallbackClassificationLabel": "ماذا سيحدث للرصيد المستحق؟",
+      "fallbackClassificationPlaceholder": "اختر تصنيفًا",
+      "fallback": {
+        "RETRY_TENDER": "سيعيد العميل محاولة الدفع",
+        "PAY_ON_COLLECTION": "التحصيل عند التسليم/الاستلام",
+        "AR_CREDIT_INVOICE": "التوجيه إلى فاتورة ذمم مدينة",
+        "CANCEL_ORDER_OR_REVERSE_SERVICE": "إلغاء الطلب أو عكس الخدمة",
+        "MANUAL_REVIEW": "يحتاج مراجعة يدوية"
+      },
+      "failed": "فشل الإجراء",
+      "errors": {
+        "reasonRequired": "السبب مطلوب",
+        "fallbackRequired": "تصنيف البديل مطلوب",
+        "invalidFallback": "تصنيف بديل غير صالح",
+        "illegalTransition": "لم يعد بالإمكان تحويل هذه الدفعة بهذه الطريقة",
+        "raceDetected": "حدث تحديث آخر للتو — يرجى إعادة المحاولة",
+        "idempotencyConflict": "يتعارض هذا الطلب مع محاولة سابقة — يرجى إعادة المحاولة من نافذة جديدة",
+        "notFound": "الدفعة غير موجودة",
+        "notRealPayment": "هذه ليست دفعة نقدية فعلية"
+      }
     }
   }
 }
