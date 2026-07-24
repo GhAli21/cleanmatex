@@ -12,7 +12,7 @@ import { completePreparation } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { isPreparationEnabled } from '@/lib/config/features';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import { requireTenantAuth } from '@/lib/middleware/tenant-guard';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {

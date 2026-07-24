@@ -1,11 +1,11 @@
 /**
  * Feature toggles for web-admin runtime.
+ *
+ * Client-safe only. Server HQ flag resolution lives in
+ * `@/lib/config/workflow-engine-v2.server`.
  */
 
-export {
-  isWorkflowEngineV2Enabled,
-  resolveWorkflowEngineV2Enabled,
-} from '@/lib/config/workflow-engine-v2';
+export { isWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
 
 /**
  *

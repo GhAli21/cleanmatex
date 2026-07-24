@@ -16,7 +16,7 @@ import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import { resolveInitialStatus } from '@/lib/services/workflow/initial-status-resolver.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';

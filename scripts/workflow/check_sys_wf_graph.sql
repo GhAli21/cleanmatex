@@ -24,6 +24,7 @@ LEFT JOIN public.sys_wf_screen_status_cd m
 WHERE COALESCE(at.is_active, true) = true
   AND m.screen_key IS NULL;
 
+
 -- 3) Unknown gate codes referenced in gate_set_code
 SELECT 'unknown_gate' AS check_code, t.transition_code || ':' || g.gate AS detail
 FROM public.sys_wf_transitions_cd t

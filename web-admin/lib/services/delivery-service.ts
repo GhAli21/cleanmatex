@@ -16,7 +16,7 @@ import {
   StopNotFoundError,
 } from '@/lib/errors/delivery-errors';
 import { WorkflowService } from './workflow-service';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   executeAction,
   listAvailableActions,

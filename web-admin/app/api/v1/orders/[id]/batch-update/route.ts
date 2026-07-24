@@ -16,7 +16,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { log } from '@/lib/utils/logger';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   executeAction,
   listAvailableActions,

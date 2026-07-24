@@ -1,5 +1,11 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.2-graph-fix-flag — 2026-07-24
+
+- Graph check #2 gap `ready_release:packing→ready` → fix migration `0431` (deactivate bad MARK_READY map)
+- HQ flag migration `0432_add_feature_flag_workflow_engine_v2` via create-feature-flag skill
+- Cleaned `check_sys_wf_graph.sql` (removed pasted result rows)
+
 ## 0.3.1-prod-decision — 2026-07-24
 
 - Expert lock: rename map **deferred**; additive V1.0 only ([PRODUCTION_DECISION_RENAME.md](PRODUCTION_DECISION_RENAME.md))

@@ -14,7 +14,7 @@ import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   WorkflowEngineError,
   executeAction,

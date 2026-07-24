@@ -6,7 +6,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { logger } from '@/lib/utils/logger';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   WorkflowEngineError,
   executeAction,

@@ -362,7 +362,7 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'qa_workflow', flag_name: 'Quality Assurance', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'sorting_workflow', flag_name: 'Sorting Workflow', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'workflow_automation', flag_name: 'Workflow Automation', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
-  { flag_key: 'workflow_engine_v2', flag_name: 'Workflow Engine V2 (Order Advance)', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 1 },
+  { flag_key: 'workflow_engine_v2', flag_name: 'Workflow Engine V2 (Order Advance)', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 1 },
   { flag_key: 'tax_inclusive_pricing', flag_name: 'Tax Inclusive Pricing', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'experimental', ui_display_order: 0 },
 ];
 
