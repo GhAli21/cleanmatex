@@ -248,6 +248,36 @@ export const REFUND_ERROR_CODES = {
 export type RefundErrorCode = (typeof REFUND_ERROR_CODES)[keyof typeof REFUND_ERROR_CODES];
 
 /**
+ * B21 — how `org_loyalty_programs_cf.rounding_rule` rounds a fractional
+ * points-per-currency-amount computation to a whole point count at
+ * redemption. Mirrors `sys_currency_rounding_rules_cd.rounding_method`
+ * (migration 0290) exactly for naming consistency — DB-mirror rule.
+ */
+export const LOYALTY_ROUNDING_RULES = {
+  HALF_UP: 'HALF_UP',
+  HALF_DOWN: 'HALF_DOWN',
+  FLOOR: 'FLOOR',
+  CEIL: 'CEIL',
+} as const;
+/** Derived union for loyalty rounding rules. */
+export type LoyaltyRoundingRule = (typeof LOYALTY_ROUNDING_RULES)[keyof typeof LOYALTY_ROUNDING_RULES];
+
+/**
+ * B21 — stable machine-readable codes for loyalty redemption failures.
+ * Redemption must fail loudly on missing/invalid config or an under-threshold
+ * request — never silently fall back to another field's value (the exact
+ * defect this package fixes at its call sites).
+ */
+export const LOYALTY_ERROR_CODES = {
+  /** No active loyalty program row for this tenant, or redeem_rate_per_point <= 0. */
+  LOYALTY_NOT_CONFIGURED: 'LOYALTY_NOT_CONFIGURED',
+  /** Computed points for the requested amount fall below the program's min_redeem_points floor. */
+  LOYALTY_BELOW_MIN_REDEEM: 'LOYALTY_BELOW_MIN_REDEEM',
+} as const;
+/** Derived union for loyalty error codes. */
+export type LoyaltyErrorCode = (typeof LOYALTY_ERROR_CODES)[keyof typeof LOYALTY_ERROR_CODES];
+
+/**
  * Finance document-sequence type for refund numbers. Mirrors the
  * `org_fin_doc_seq_mst.doc_type_code` value seeded by the refund-numbering
  * migration. Refund numbers are issued atomically via `fn_next_fin_doc_no`

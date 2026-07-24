@@ -79,6 +79,8 @@ import {
   redeemPointsTx,
   queueEarnPoints,
   processEarnPoints,
+  resolveLoyaltyRedemptionPoints,
+  roundLoyaltyPoints,
 } from '@/lib/services/loyalty.service';
 
 // ---------------------------------------------------------------------------
@@ -297,5 +299,78 @@ describe('loyalty.service — queueEarnPoints', () => {
         }),
       })
     );
+  });
+});
+
+describe('loyalty.service — roundLoyaltyPoints (B21)', () => {
+  it('CEIL rounds up (pre-B21 hardcoded behavior)', () => {
+    expect(roundLoyaltyPoints(10.1, 'CEIL')).toBe(11);
+    expect(roundLoyaltyPoints(10.0, 'CEIL')).toBe(10);
+  });
+  it('FLOOR rounds down', () => {
+    expect(roundLoyaltyPoints(10.9, 'FLOOR')).toBe(10);
+  });
+  it('HALF_UP rounds 0.5 up', () => {
+    expect(roundLoyaltyPoints(10.5, 'HALF_UP')).toBe(11);
+    expect(roundLoyaltyPoints(10.4, 'HALF_UP')).toBe(10);
+  });
+  it('HALF_DOWN rounds 0.5 down', () => {
+    expect(roundLoyaltyPoints(10.5, 'HALF_DOWN')).toBe(10);
+    expect(roundLoyaltyPoints(10.6, 'HALF_DOWN')).toBe(11);
+  });
+});
+
+describe('loyalty.service — resolveLoyaltyRedemptionPoints (B21)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('resolves points from the tenant-configured rate and rounding rule — never option.minAmount', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({
+      redeem_rate_per_point: 0.01,
+      min_redeem_points: 100,
+      rounding_rule: 'CEIL',
+    });
+
+    const points = await resolveLoyaltyRedemptionPoints(TENANT, 5.001);
+
+    // 5.001 / 0.01 = 500.1 -> CEIL -> 501
+    expect(points).toBe(501);
+  });
+
+  it('throws LOYALTY_NOT_CONFIGURED when no active program exists', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue(null);
+
+    await expect(resolveLoyaltyRedemptionPoints(TENANT, 5)).rejects.toThrow('LOYALTY_NOT_CONFIGURED');
+  });
+
+  it('throws LOYALTY_NOT_CONFIGURED when redeem_rate_per_point is 0 (never divides by zero)', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({
+      redeem_rate_per_point: 0,
+      min_redeem_points: 100,
+      rounding_rule: 'CEIL',
+    });
+
+    await expect(resolveLoyaltyRedemptionPoints(TENANT, 5)).rejects.toThrow('LOYALTY_NOT_CONFIGURED');
+  });
+
+  it('throws LOYALTY_BELOW_MIN_REDEEM when the computed points fall below the configured floor', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({
+      redeem_rate_per_point: 0.01,
+      min_redeem_points: 100,
+      rounding_rule: 'CEIL',
+    });
+
+    // 0.50 / 0.01 = 50 points, below the 100-point floor
+    await expect(resolveLoyaltyRedemptionPoints(TENANT, 0.5)).rejects.toThrow('LOYALTY_BELOW_MIN_REDEEM');
+  });
+
+  it('defaults to CEIL when rounding_rule is missing on an older row', async () => {
+    mockLoyaltyProgramFindFirst.mockResolvedValue({
+      redeem_rate_per_point: 0.01,
+      min_redeem_points: 0,
+      rounding_rule: null,
+    });
+
+    const points = await resolveLoyaltyRedemptionPoints(TENANT, 1.001);
+    expect(points).toBe(101); // 100.1 -> CEIL -> 101
   });
 });

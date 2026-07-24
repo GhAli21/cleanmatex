@@ -17,7 +17,7 @@ import type {
 } from '@/lib/types/order-financial';
 import { createClient } from '@/lib/supabase/server';
 import { emitEventTx } from './outbox.service';
-import { queueEarnPoints, redeemPointsTx } from './loyalty.service';
+import { queueEarnPoints, redeemPointsTx, resolveLoyaltyRedemptionPoints } from './loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
 import { createTenantSettingsService } from './tenant-settings.service';
@@ -321,7 +321,15 @@ export async function settleOrderTx(
           // and silently double-debiting loyalty points if the orchestrator
           // retried mid-flight. Stable key = single ledger row per order.
           const idempotencyKey = `loyalty-redeem-${orderId}`;
-          const pointsToRedeem = Math.ceil(amount / (option.minAmount ?? 1));
+          // B21 — this used to reuse `option.minAmount` (the payment method's
+          // MINIMUM PAYMENT AMOUNT field, unrelated to loyalty) as if it were
+          // a points-per-currency conversion rate — a semantic overload with
+          // no relationship to the tenant's actual configured loyalty rate.
+          // Now resolves through the same shared helper as
+          // applyStoredValueDebitTx (order-credit-application.service.ts),
+          // so this legacy branch can never silently drift from the live
+          // BVM-wiring path's math again.
+          const pointsToRedeem = await resolveLoyaltyRedemptionPoints(tenantId, amount);
           await redeemPointsTx(tx, {
             tenantId,
             customerId,

@@ -313,5 +313,36 @@
     "activated": "Promotion activated",
     "deactivated": "Promotion deactivated",
     "empty": "No promotions yet"
+  },
+  "loyalty": {
+    "title": "Loyalty Program",
+    "description": "Configure how customers earn and redeem loyalty points.",
+    "config": {
+      "title": "Program Settings",
+      "earnRate": "Earn rate (points per currency unit)",
+      "redeemRate": "Redeem rate (currency value per point)",
+      "minRedeemPoints": "Minimum redeemable points",
+      "maxRedeemPercent": "Maximum redemption (% of order)",
+      "expiryDays": "Points expiry (days, 0 = never)",
+      "roundingRule": "Rounding rule",
+      "roundingRuleOptions": {
+        "CEIL": "Round up (customer never redeems less value than requested)",
+        "FLOOR": "Round down",
+        "HALF_UP": "Round to nearest (0.5 rounds up)",
+        "HALF_DOWN": "Round to nearest (0.5 rounds down)"
+      },
+      "save": "Save Settings",
+      "saved": "Loyalty program settings saved"
+    },
+    "tiers": {
+      "title": "Loyalty Tiers",
+      "add": "Add Tier",
+      "name": "Tier Name",
+      "minPoints": "Minimum Points",
+      "bonusMultiplier": "Bonus Multiplier",
+      "empty": "No tiers configured yet",
+      "saved": "Tier saved",
+      "deleted": "Tier deleted"
+    }
   }
 }

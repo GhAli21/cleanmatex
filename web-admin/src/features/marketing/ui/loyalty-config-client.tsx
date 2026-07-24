@@ -27,6 +27,7 @@ import {
   saveLoyaltyConfigAction,
   saveTierAction,
   deleteTierAction,
+  type SaveLoyaltyConfigInput,
 } from '@/app/actions/marketing/loyalty-actions';
 
 interface TierRow {
@@ -46,8 +47,12 @@ interface LoyaltyConfig {
   min_redeem_points:      number;
   max_redeem_pct_of_order: { toNumber: () => number } | number;
   points_expiry_days:     number | null;
+  /** B21 — HALF_UP/HALF_DOWN/FLOOR/CEIL. */
+  rounding_rule:          string;
   org_loyalty_tiers_cf:   TierRow[];
 }
+
+const ROUNDING_RULE_OPTIONS = ['CEIL', 'FLOOR', 'HALF_UP', 'HALF_DOWN'] as const;
 
 function toNum(v: { toNumber: () => number } | number | null | undefined): number {
   if (v == null) return 0;
@@ -71,6 +76,7 @@ export function LoyaltyConfigClient() {
   const [minRedeem, setMinRedeem]           = useState('100');
   const [maxPct, setMaxPct]                 = useState('20');
   const [expiryDays, setExpiryDays]         = useState('0');
+  const [roundingRule, setRoundingRule]     = useState<string>('CEIL');
   const [isSavingConfig, setSavingConfig]   = useState(false);
 
   // Tier dialog
@@ -94,6 +100,7 @@ export function LoyaltyConfigClient() {
       setMinRedeem(String(c.min_redeem_points));
       setMaxPct(String(toNum(c.max_redeem_pct_of_order)));
       setExpiryDays(String(c.points_expiry_days ?? 0));
+      setRoundingRule(c.rounding_rule ?? 'CEIL');
     }
     setLoad(false);
   }, []);
@@ -108,6 +115,7 @@ export function LoyaltyConfigClient() {
       minRedeemPoints:     parseInt(minRedeem)    || 100,
       maxRedeemPctOfOrder: parseFloat(maxPct)     || 20,
       pointsExpiryDays:    parseInt(expiryDays)   || 0,
+      roundingRule:        roundingRule as SaveLoyaltyConfigInput['roundingRule'],
     });
     if (result.success) {
       cmxMessage.success(t('config.saved'));
@@ -229,6 +237,19 @@ export function LoyaltyConfigClient() {
                   onChange={(e) => setExpiryDays(e.target.value)}
                   className="cmx-input"
                 />
+              </ConfigField>
+              <ConfigField label={t('config.roundingRule')}>
+                <select
+                  value={roundingRule}
+                  onChange={(e) => setRoundingRule(e.target.value)}
+                  className="cmx-input"
+                >
+                  {ROUNDING_RULE_OPTIONS.map((rule) => (
+                    <option key={rule} value={rule}>
+                      {t(`config.roundingRuleOptions.${rule}`)}
+                    </option>
+                  ))}
+                </select>
               </ConfigField>
             </div>
           )}

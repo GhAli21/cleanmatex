@@ -490,7 +490,15 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Server action: loyalty-actions',
         method: 'POST',
         path: '/app/actions/marketing/loyalty-actions',
-        notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
+        requirement: {
+          permissions: ['loyalty:manage_config'],
+          requireAllPermissions: true,
+        },
+        // B21 — saveLoyaltyConfigAction/saveTierAction/deleteTierAction had NO
+        // permission check at all before this fix (only session auth via
+        // getAuthContext()); getLoyaltyConfigAction remains read-only/session-only,
+        // matching the page-level loyalty:view_config gate.
+        notes: ['Mutations (save/delete) require loyalty:manage_config as of B21. getLoyaltyConfigAction is read-only.'],
       },
     ],
     actions: {

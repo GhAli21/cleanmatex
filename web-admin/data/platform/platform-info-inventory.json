@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-24T14:40:46.878Z",
-  "gitSha": "71d40351",
+  "generatedAt": "2026-07-24T22:56:59.325Z",
+  "gitSha": "d902f340",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -37,7 +37,7 @@
     "planLimitUsages": 8,
     "accessContracts": 144,
     "navigationEntries": 99,
-    "flagCatalogEntries": 293
+    "flagCatalogEntries": 294
   },
   "permissionUsages": [
     {
@@ -17190,6 +17190,22 @@
       "flagKey": "workflow_automation",
       "flagName": "Workflow Automation",
       "planBindingType": "plan_bound",
+      "dataType": "boolean",
+      "governanceCategory": "tenant_feature",
+      "uiGroup": "Workflow",
+      "provenance": [
+        {
+          "sourceType": "flag-catalog-ts",
+          "sourcePath": "web-admin/lib/constants/feature-flags.ts"
+        }
+      ]
+    },
+    {
+      "id": "flag_catalog:workflow_engine_v2",
+      "kind": "flag_catalog_entry",
+      "flagKey": "workflow_engine_v2",
+      "flagName": "Workflow Engine V2 (Order Advance)",
+      "planBindingType": "independent",
       "dataType": "boolean",
       "governanceCategory": "tenant_feature",
       "uiGroup": "Workflow",

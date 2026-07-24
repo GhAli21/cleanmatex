@@ -57,7 +57,7 @@ Severity/classification/evidence per report §50. Status is documentation-state 
 | B18 | Order charge write path | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | — | — | — | 10 | [B18](B18_Order_Charge_Write_Path.md) | — | — | — |
 | B19 | Expiry + idempotency jobs | MEDIUM | CONTROL_GAP | IMPLEMENTED 2026-07-24 (gift-card expiry rewritten ledger+GL-aware, retires a competing raw cron; idempotency cleanup + ERP posting-retry jobs new; wallet/loyalty expiry deferred — no lot-allocation model; mig 0429 APPLIED owner, verified) — awaiting owner commit → Preview QA | D008 D010 | B7 (hard) | — | 9 | [B19](B19_Expiry_And_Idempotency_Jobs.md) | pending | — | pending commit + Preview QA |
 | B20 | Missing reconciliation checks | MEDIUM | CONTROL_GAP | IMPLEMENTED 2026-07-18 (TAX_CALCULATION + DISCOUNT_VALIDATION wired, new REFUND_REOPEN_CONSISTENCY check + constant added; total_checked 35→38; gates green incl. jest 64/64) — awaiting owner commit → Preview QA | D005 | B2 (hard) | — | 3 | [B20](B20_Missing_Reconciliation_Checks.md) | pending | — | pending Preview QA |
-| B21 | Loyalty conversion rate | MEDIUM | MAINTENANCE_RISK | NOT_STARTED | — | — | — | 9 | [B21](B21_Loyalty_Conversion_Rate.md) | — | — | — |
+| B21 | Loyalty conversion rate | MEDIUM | MAINTENANCE_RISK | IMPLEMENTED 2026-07-24/25 (redeem_rate_per_point/min_redeem_points already existed — doc was stale; only rounding_rule genuinely new; found + fixed a real live bug: checkout-options route silently excluded loyalty from the payment modal for every tenant; mig 0433 STOP-AND-WAIT) — awaiting owner apply | — | — | — | 9 | [B21](B21_Loyalty_Conversion_Rate.md) | pending | — | pending migration apply |
 | B22 | Financial registry consolidation | MEDIUM | MAINTENANCE_RISK | IMPLEMENTED 2026-07-24 (RefundStatus registry — the one real gap of 3 claimed; PAYMENT_METHODS/VOUCHER_TYPE claims were stale, already fine; no migration) — awaiting owner commit → Preview QA | D001 | — | — | 9 | [B22](B22_Financial_Registry_Consolidation.md) | pending | — | pending commit + Preview QA (build gate blocked by unrelated owner WIP — see B22 evidence) |
 | B23 | Legacy financial path retirement | MEDIUM | MAINTENANCE_RISK | NOT_STARTED | — | B12 (impl, item-edit path) | — | 12 | [B23](B23_Legacy_Financial_Path_Retirement.md) | — | — | — |
 | B24 | AR allocation, write-off, period controls | MEDIUM | BLOCKS_FEATURE | NOT_STARTED | D007 | B6 (hard, GL) | — | 12 | [B24](B24_AR_Allocation_Writeoff_And_Period_Controls.md) | — | — | — |
@@ -99,10 +99,11 @@ Seq 7  ✅ CLOSED 2026-07-24 — B9 ✅ IMPLEMENTED (committed 1d31887e; mig 041
        B10 ✅ IMPLEMENTED (uncommitted; mig 0421 APPLIED owner 2026-07-24, verified)
 Seq 8  ✅ CLOSED 2026-07-24 · B6 ✅ IMPLEMENTED (uncommitted; mig 0424 APPLIED owner 2026-07-24, verified)
        (B13 still blocked — hard dep on B10 VERIFIED, not yet reached)
-Seq 9  IN PROGRESS 2026-07-24 · B8 ✅ IMPLEMENTED (uncommitted; mig 0426 APPLIED owner 2026-07-24,
+Seq 9  ✅ CLOSED 2026-07-25 · B8 ✅ IMPLEMENTED (uncommitted; mig 0426 APPLIED owner 2026-07-24,
        verified) · B19 ✅ IMPLEMENTED (uncommitted; mig 0429 APPLIED owner 2026-07-24, verified) ·
-       B22 ✅ IMPLEMENTED (uncommitted; no migration) → NOW B21
-Seq 10 B11, B17, B18
+       B22 ✅ IMPLEMENTED (uncommitted; no migration) · B21 ✅ IMPLEMENTED (uncommitted; mig 0433
+       STOP-AND-WAIT)
+Seq 10 → NOW · B11, B17, B18
 Seq 11 B12, B14
 Seq 12 B23, B24
 Seq 13 B25, B26

@@ -7339,6 +7339,8 @@ model org_loyalty_programs_cf {
   min_redeem_points       Int       @default(100)
   max_redeem_pct_of_order Decimal   @default(20.00) @db.Decimal(5, 2)
   points_expiry_days      Int?
+  /// B21 (migration 0431) — HALF_UP/HALF_DOWN/FLOOR/CEIL, mirrors sys_currency_rounding_rules_cd.rounding_method.
+  rounding_rule           String    @default("CEIL")
   is_active               Boolean   @default(true)
   rec_status              Int       @default(1) @db.SmallInt
   created_at              DateTime  @default(now()) @db.Timestamptz(6)

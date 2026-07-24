@@ -13037,6 +13037,7 @@ export type Database = {
           program_name2: string | null
           rec_status: number
           redeem_rate_per_point: number
+          rounding_rule: string
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
@@ -13056,6 +13057,7 @@ export type Database = {
           program_name2?: string | null
           rec_status?: number
           redeem_rate_per_point?: number
+          rounding_rule?: string
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
@@ -13075,6 +13077,7 @@ export type Database = {
           program_name2?: string | null
           rec_status?: number
           redeem_rate_per_point?: number
+          rounding_rule?: string
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null

@@ -7,7 +7,7 @@ import {
   PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
-import { getLoyaltyConfig, redeemPointsTx } from '@/lib/services/loyalty.service';
+import { getLoyaltyAccount, getLoyaltyConfig, redeemPointsTx, resolveLoyaltyRedemptionPoints } from '@/lib/services/loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import {
   getAdvanceBalance,
@@ -177,12 +177,10 @@ export async function applyStoredValueDebitTx(
       voucherLineId,
     });
   } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
-    const loyaltyConfig = await getLoyaltyConfig(tenantId);
-    const redeemRate = toNumber(loyaltyConfig?.redeem_rate_per_point);
-    if (!loyaltyConfig || redeemRate <= 0) {
-      throw new Error('Loyalty redemption is not configured for this tenant');
-    }
-    const pointsToRedeem = Math.ceil(amount / redeemRate);
+    // B21 — rate/rounding-rule resolution + min-redeem enforcement lives in
+    // one shared helper (loyalty.service.ts) so this call site and
+    // order-settlement.service.ts's legacy branch can never drift apart.
+    const pointsToRedeem = await resolveLoyaltyRedemptionPoints(tenantId, amount);
     await redeemPointsTx(tx, {
       tenantId,
       customerId,
@@ -391,11 +389,12 @@ export async function getAvailableStoredValueSummary(
   tenantId: string,
   customerId: string
 ) {
-  const [wallet, advance, creditNotes, loyaltyConfig] = await Promise.all([
+  const [wallet, advance, creditNotes, loyaltyConfig, loyaltyAccount] = await Promise.all([
     getWalletBalance(tenantId, customerId),
     getAdvanceBalance(tenantId, customerId),
     getCreditNotes(tenantId, customerId),
     getLoyaltyConfig(tenantId),
+    getLoyaltyAccount(tenantId, customerId),
   ]);
 
   const creditNoteTotal = creditNotes.reduce(
@@ -403,11 +402,21 @@ export async function getAvailableStoredValueSummary(
     0
   );
 
+  // B21 — this previously stopped at the rate; it never fetched the
+  // customer's points_balance, so checkout-options/route.ts had no
+  // available_balance to key a LOYALTY_CREDIT option on and silently
+  // dropped loyalty from the customer-credits list every time.
+  const loyaltyRedeemRatePerPoint = toNumber(loyaltyConfig?.redeem_rate_per_point);
+  const loyaltyPointsBalance = loyaltyAccount?.points_balance ?? 0;
+
   return {
     wallet,
     advance,
     creditNotes,
     creditNoteTotal,
-    loyaltyRedeemRatePerPoint: toNumber(loyaltyConfig?.redeem_rate_per_point),
+    loyaltyRedeemRatePerPoint,
+    loyaltyPointsBalance,
+    loyaltyAvailableValue: loyaltyPointsBalance * loyaltyRedeemRatePerPoint,
+    loyaltyMinRedeemPoints: loyaltyConfig?.min_redeem_points ?? 0,
   };
 }

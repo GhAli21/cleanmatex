@@ -3,7 +3,13 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
-import { LOYALTY_TXN_TYPES, OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
+import {
+  LOYALTY_ERROR_CODES,
+  LOYALTY_ROUNDING_RULES,
+  LOYALTY_TXN_TYPES,
+  OUTBOX_EVENT_TYPES,
+  type LoyaltyRoundingRule,
+} from '@/lib/constants/order-financial';
 import { emitEventTx } from './outbox.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -24,6 +30,68 @@ export async function getLoyaltyConfig(tenantId: string) {
       include: { org_loyalty_tiers_cf: { orderBy: { min_points: 'asc' } } },
     })
   );
+}
+
+/**
+ * B21 — round a fractional points computation to a whole point count per
+ * the tenant's configured rounding rule. Points must be an integer;
+ * `redeemPointsTx` compares against an integer `points_balance`.
+ *
+ * @param raw points/currency-unit ratio before rounding (always >= 0 here — the caller only calls this for a positive redemption amount)
+ * @param rule the tenant's org_loyalty_programs_cf.rounding_rule value
+ */
+export function roundLoyaltyPoints(raw: number, rule: LoyaltyRoundingRule): number {
+  switch (rule) {
+    case LOYALTY_ROUNDING_RULES.FLOOR:
+      return Math.floor(raw);
+    case LOYALTY_ROUNDING_RULES.HALF_UP:
+      return Math.round(raw);
+    case LOYALTY_ROUNDING_RULES.HALF_DOWN: {
+      const fractional = raw - Math.floor(raw);
+      return fractional > 0.5 ? Math.ceil(raw) : Math.floor(raw);
+    }
+    case LOYALTY_ROUNDING_RULES.CEIL:
+    default:
+      return Math.ceil(raw);
+  }
+}
+
+/**
+ * B21 — resolve how many whole points a `monetaryAmount` redemption costs,
+ * per the tenant's configured rate/rounding rule, and enforce the
+ * min-redemption floor. The ONE place this math happens — both
+ * `applyStoredValueDebitTx` (order-credit-application.service.ts, the live
+ * BVM-wiring path) and the legacy `settleOrderTx` branch
+ * (order-settlement.service.ts) call this instead of resolving the rate
+ * inline, closing the drift risk between the two (B21's §44 finding).
+ *
+ * Fails loudly — never falls back to another field's value (the exact
+ * `option.minAmount` misuse this package replaces) and never silently
+ * accepts a below-threshold redemption.
+ *
+ * @param tenantId tenant whose loyalty program config applies
+ * @param monetaryAmount the currency amount the customer wants to cover with points
+ * @throws Error(LOYALTY_NOT_CONFIGURED) no active program, or redeem_rate_per_point <= 0
+ * @throws Error(LOYALTY_BELOW_MIN_REDEEM) computed points fall below min_redeem_points
+ */
+export async function resolveLoyaltyRedemptionPoints(
+  tenantId: string,
+  monetaryAmount: number,
+): Promise<number> {
+  const config = await getLoyaltyConfig(tenantId);
+  const redeemRate = config ? Number(config.redeem_rate_per_point) : 0;
+  if (!config || !(redeemRate > 0)) {
+    throw new Error(LOYALTY_ERROR_CODES.LOYALTY_NOT_CONFIGURED);
+  }
+
+  const rule = (config.rounding_rule as LoyaltyRoundingRule) ?? LOYALTY_ROUNDING_RULES.CEIL;
+  const pointsToRedeem = roundLoyaltyPoints(monetaryAmount / redeemRate, rule);
+
+  if (pointsToRedeem < config.min_redeem_points) {
+    throw new Error(LOYALTY_ERROR_CODES.LOYALTY_BELOW_MIN_REDEEM);
+  }
+
+  return pointsToRedeem;
 }
 
 /**

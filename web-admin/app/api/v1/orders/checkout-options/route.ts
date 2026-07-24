@@ -62,10 +62,34 @@ export async function GET(request: NextRequest) {
             : method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT ||
                 method.payment_method_code === 'CREDIT_NOTE'
               ? storedValueSummary?.creditNoteTotal ?? 0
-              : null,
+              // B21 — was missing entirely: LOYALTY_CREDIT fell through to
+              // null, so `available_balance ?? 0 > 0` was always false and
+              // the option never appeared in customerCredits below, no
+              // matter how many points the customer had.
+              : method.credit_application_type === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT ||
+                  method.payment_method_code === 'LOYALTY_POINTS'
+                ? storedValueSummary?.loyaltyAvailableValue ?? 0
+                : null,
       requires_credit_reference_selection:
         method.credit_application_type === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT ||
         method.payment_method_code === 'CREDIT_NOTE',
+      // B21 — surfaced so the payment modal can show "N points = X currency"
+      // and enforce the min-redeem floor client-side before submit.
+      loyalty_points_balance:
+        method.credit_application_type === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT ||
+        method.payment_method_code === 'LOYALTY_POINTS'
+          ? storedValueSummary?.loyaltyPointsBalance ?? 0
+          : undefined,
+      loyalty_redeem_rate_per_point:
+        method.credit_application_type === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT ||
+        method.payment_method_code === 'LOYALTY_POINTS'
+          ? storedValueSummary?.loyaltyRedeemRatePerPoint ?? 0
+          : undefined,
+      loyalty_min_redeem_points:
+        method.credit_application_type === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT ||
+        method.payment_method_code === 'LOYALTY_POINTS'
+          ? storedValueSummary?.loyaltyMinRedeemPoints ?? 0
+          : undefined,
       display_order: method.display_order,
     }));
 

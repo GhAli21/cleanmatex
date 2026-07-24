@@ -1,7 +1,7 @@
 # Order Fin Remediation — Manual QA Test Guide
 
-**Living document — updated after every implemented package.** Last update: 2026-07-24 (B22).
-**Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22**. Run on **Preview** (never straight to production).
+**Living document — updated after every implemented package.** Last update: 2026-07-25 (B21).
+**Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22, B21**. Run on **Preview** (never straight to production).
 
 > **How to use:** work top-to-bottom. Each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
 
@@ -404,6 +404,25 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 21. B21 — Loyalty conversion rate
+
+**What changed:** the loyalty settings screen gained a rounding-rule field; a real bug is fixed where the loyalty payment option never appeared in the payment modal for ANY tenant (silently excluded); mutation actions on the settings screen are now permission-gated.
+
+> Where: **Marketing → Loyalty** (`/dashboard/marketing/loyalty`) for settings; the **payment modal's Customer Credits section** (any order, any customer with a loyalty balance) for the redemption fix.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|21.1| **Marketing → Loyalty**, note the current **Redeem rate** and **Minimum redeemable points**, then look for a new **Rounding rule** dropdown | Field present with 4 options (round up/down/nearest-up/nearest-down); defaults to "Round up" for existing tenants | |
+|21.2| Ensure a test customer has a loyalty points balance ≥ the tenant's min-redeem threshold (adjust via **Marketing → Loyalty** or a prior order) → open a new order for that customer → open the payment modal's Customer Credits section | The **Loyalty Points** option now appears with a currency-value cap (e.g. "up to 5.00 OMR available") — **before this fix, it never appeared at all, for any tenant** | |
+|21.3| Apply a loyalty leg for an amount whose computed points would fall below **Minimum redeemable points** | Rejected with a clear message — the redemption cannot go through for less than the configured floor | |
+|21.4| Apply a loyalty leg for a valid amount and submit the order | Order settles; points debited match `ceil(amount / redeem_rate_per_point)` (or whichever rounding rule is configured) — never any relationship to a payment method's "Minimum amount" field | |
+|21.5| As a user WITHOUT `loyalty:manage_config`, try to save a change on **Marketing → Loyalty** | Rejected server-side ("Permission denied: loyalty:manage_config") — before this fix, any authenticated user could save changes regardless of permission | |
+|21.6| Set **Redeem rate** to 0 and try to save | Rejected with "Redeem rate must be greater than zero" (fails at the form, never reaches a raw DB constraint error) | |
+
+**Automated gates at build time (2026-07-24/25, B21):** tsc clean (3 pre-existing unrelated errors, none in any B21 file) · eslint 0 (project-wide) · `loyalty.service.test.ts` +9 new (`roundLoyaltyPoints` all 4 rules, `resolveLoyaltyRedemptionPoints` rate/missing-config/zero-rate/below-min-redeem/legacy-defaults) alongside 14 pre-existing cases unchanged · full jest **233/233 suites, 2256/2256 tests — zero known failures** · `npm run build` ✓ (exit 0 — also confirms the transient owner-WIP build blocker noted in the B22 entry above is resolved) · `check:i18n` ✓ · `check:ui-access-contract --wire` PASS (`/dashboard/marketing/loyalty`) · `sync:ui-access-contract` PASS (144/144, drift 0). **Migration `0433_b21_loyalty_conversion_rate.sql` is authored — STOP-AND-WAIT, not yet applied** — §21 above is not testable until the owner applies it (the `rounding_rule` column and its CHECK constraints don't exist until then; the checkout-options/permission fixes are pure application code and ARE already testable without the migration).
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -429,7 +448,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B6 | migration 0424 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
 | B8 | migration 0426 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
 | B19 | migration 0429 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
-| B22 | no migration (pure TS refactor, zero behavior change) — build gate currently blocked by unrelated owner WIP (see B22 Completion evidence); no new manual QA scenarios (existing refund-list scenarios already cover the touched screen; a smoke-check that Refunds list badges/actions still render correctly on Preview is sufficient) | | |
+| B22 | no migration (pure TS refactor, zero behavior change) — build gate was transiently blocked by unrelated owner WIP, confirmed resolved as of the B21 gate run; no new manual QA scenarios (existing refund-list scenarios already cover the touched screen; a smoke-check that Refunds list badges/actions still render correctly on Preview is sufficient) | | |
+| B21 | migration 0433 authored — STOP-AND-WAIT, not yet applied; extends the existing loyalty settings screen (no new screen) | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

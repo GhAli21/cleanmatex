@@ -73,5 +73,5 @@ Flag off `workflow_engine_v2`; schema expand/contract runbook; pause outbox cons
 - [x] Rename policy softened
 - [x] Stage execution as V1.1 target
 - [x] Progress status = incomplete / correction
-- [ ] Discovery SQL executed & signed on **remote** — see [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md)
+- [x] Discovery SQL executed & signed on **remote** — see [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md) (2026-07-25)
 - [x] API gaps in 06 §9 closed or explicitly accepted (path inventory + HQ/release defer)
