@@ -29,6 +29,7 @@ import {
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
   REFUND_METHODS,
+  REFUND_STATUSES,
 } from '@/lib/constants/order-financial';
 import { VOUCHER_STATUS, VOUCHER_TYPE } from '@/lib/constants/voucher';
 
@@ -133,7 +134,7 @@ export async function checkInvoicePaymentLink(
  *
  * Scope filter:
  *   - `processed_at` in [periodFrom, periodTo]      → window scope
- *   - `refund_status = 'PROCESSED'`                 → settled refunds only
+ *   - `refund_status = REFUND_STATUSES.PROCESSED`   → settled refunds only
  *                                                    (PENDING/FAILED leave the
  *                                                    invariant pending)
  *   - `is_active = true`                            → soft-deletes excluded
@@ -153,7 +154,7 @@ export async function checkRefundLink(
       where: {
         tenant_org_id: tenantOrgId,
         processed_at: { gte: window.periodFrom, lte: window.periodTo },
-        refund_status: 'PROCESSED',
+        refund_status: REFUND_STATUSES.PROCESSED,
         is_active: true,
         refund_method_code: { in: [REFUND_METHODS.CASH, REFUND_METHODS.ORIGINAL_METHOD] },
       },

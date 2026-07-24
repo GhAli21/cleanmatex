@@ -342,6 +342,15 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'B19 — manually retry an exception\'s posting attempt',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.retryExceptionAction',
+        requirement: {
+          permissions: ['erp_lite_post_audit:view'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: ERP_LITE_RUNTIME_NOTES,
   },

@@ -12,6 +12,7 @@ import { PrintItemLabels } from './PrintItemLabels';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useMessage } from '@ui/feedback';
 
@@ -92,6 +93,33 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
 
     setIsSubmitting(true);
     try {
+      // V1.0 canary: complete via preparation API → WorkflowEngine COMPLETE_PREPARATION
+      // (never toStatus / never sorting).
+      if (isWorkflowEngineV2Enabled()) {
+        const idempotencyKey =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `prep-complete-ui:${order.id}:${Date.now()}`;
+        const response = await fetch(`/api/v1/preparation/${order.id}/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+            ...getCSRFHeader(csrfToken),
+          },
+          body: JSON.stringify({
+            internalNotes: t('preparation.actions.preparationCompleteNote'),
+          }),
+        });
+        const res = await response.json();
+        if (!response.ok || !res.success) {
+          throw new Error(res.error || t('validation.transitionNotAllowed'));
+        }
+        showSuccess(t('preparation.actions.preparationCompleteSuccess'));
+        router.push('/dashboard/processing');
+        return;
+      }
+
       const result = await transition.mutateAsync({
         orderId: order.id,
         input: {
@@ -205,7 +233,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
               </div>
               <div>
                 <span className="text-gray-500">{t('preparation.workflowMetrics.itemsCount')}:</span>{' '}
-                <span className="font-medium">{wfContext.metrics.items_count}</span>
+                <span className="font-medium">{items.length}</span>
               </div>
             </div>
           </div>

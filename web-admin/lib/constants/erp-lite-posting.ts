@@ -76,13 +76,18 @@ export const ERP_LITE_TXN_EVENT_CODES = {
   EXPENSE_RECORDED: 'EXPENSE_RECORDED',
   PETTY_CASH_TOPUP: 'PETTY_CASH_TOPUP',
   PETTY_CASH_SPENT: 'PETTY_CASH_SPENT',
-  // Gift card lifecycle events (added with Gift Card V1 — migration 0257)
+  // Gift card lifecycle events (event-code/mapping-rule/policy governance
+  // rows seeded by B6 migration 0424 — migration 0257 only created the
+  // gift-card schema itself, not these ERP-Lite governance rows).
   GIFT_CARD_SOLD:         'GIFT_CARD_SOLD',
   GIFT_CARD_REDEEMED:     'GIFT_CARD_REDEEMED',
   GIFT_CARD_EXPIRED:      'GIFT_CARD_EXPIRED',
   GIFT_CARD_REFUNDED:     'GIFT_CARD_REFUNDED',
   GIFT_CARD_VOIDED:       'GIFT_CARD_VOIDED',
   GIFT_CARD_BONUS_GRANTED:'GIFT_CARD_BONUS_GRANTED',
+  // B6 (migration 0424) — stored-value funding liability events (D008).
+  WALLET_TOPPED_UP:          'WALLET_TOPPED_UP',
+  CUSTOMER_ADVANCE_RECEIVED: 'CUSTOMER_ADVANCE_RECEIVED',
 } as const;
 
 export const ERP_LITE_BLOCKING_MODES = {

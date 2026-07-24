@@ -298,7 +298,11 @@
     },
     "transitions": {
       "failBounce": "Mark Failed/Bounced",
-      "cancel": "Cancel Payment"
+      "cancel": "Cancel Payment",
+      "void": "Void",
+      "reverse": "Reverse",
+      "capture": "Capture",
+      "settle": "Settle"
     },
     "warning": {
       "title": "Financial consistency",

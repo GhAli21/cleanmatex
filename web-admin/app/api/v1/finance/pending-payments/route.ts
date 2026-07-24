@@ -1,10 +1,12 @@
 /**
  * GET /api/v1/finance/pending-payments
  *
- * B30 — cross-order back-office worklist read endpoint: health counts
- * (pending/processing/total) plus a paginated, filterable list of
- * PENDING/PROCESSING REAL_PAYMENT legs for the current tenant.
- * Requires orders:pending_payments_view.
+ * B30/B08 — cross-order back-office worklist read endpoint: health counts
+ * (pending/processing/authorized/captured/total) plus a paginated,
+ * filterable list of PENDING/PROCESSING/AUTHORIZED/CAPTURED REAL_PAYMENT
+ * legs for the current tenant. AUTHORIZED/CAPTURED added by B08 so a
+ * dormant gateway sub-lifecycle leg is findable for manual CAPTURE/SETTLE
+ * re-sync. Requires orders:pending_payments_view.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,7 +15,7 @@ import { listPendingPaymentsWorklist, type WorklistStatusFilter } from '@/lib/se
 import { logger } from '@/lib/utils/logger';
 
 const PAGE_SIZE_MAX = 50;
-const STATUS_VALUES = ['PENDING', 'PROCESSING'] as const;
+const STATUS_VALUES = ['PENDING', 'PROCESSING', 'AUTHORIZED', 'CAPTURED'] as const;
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('orders:pending_payments_view')(request);

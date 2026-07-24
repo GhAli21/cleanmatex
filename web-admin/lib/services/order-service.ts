@@ -16,6 +16,8 @@ import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import { resolveInitialStatus } from '@/lib/services/workflow/initial-status-resolver.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';
 import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
@@ -394,6 +396,25 @@ export class OrderService {
       items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
 
     if (isRetailOnlyOrder) {
+      // V1.0 ADR: retail must not auto-close. Prefer sys_wf_initial_rules (ready).
+      if (await resolveWorkflowEngineV2Enabled(tenantId)) {
+        const resolved = await resolveInitialStatus({
+          orderSourceCode: sourceRow.order_source_code,
+          isRetail: true,
+        });
+        const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
+        return {
+          v_initialStatus: retailStatus,
+          v_transitionFrom: retailStatus,
+          v_orderStatus: retailStatus,
+          v_current_status: retailStatus,
+          v_current_stage: retailStatus,
+          physicalIntakeStatus: 'received',
+          receivedAt: new Date(),
+          contractScreen: 'retail',
+          isRetailOnlyOrder: true,
+        };
+      }
       return {
         v_initialStatus: RETAIL_TERMINAL_STATUS,
         v_transitionFrom: RETAIL_TERMINAL_STATUS,
@@ -451,8 +472,8 @@ export class OrderService {
       // Normal New Order — initial status comes from new_order screen contract
       v_initialStatus = 'draft';
       v_transitionFrom = 'intake';
-      v_orderStatus = 'draft';
-      v_current_status = 'draft';
+      v_orderStatus = 'intake';
+      v_current_status = 'intake';
       v_current_stage = 'intake';
     }
 

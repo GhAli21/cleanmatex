@@ -307,5 +307,16 @@
     "goToPreparation": "Go to Preparation",
     "goToProcessing": "Go to Processing",
     "orderCreatedSuccess": "Order {orderNo} created successfully"
+  },
+  "engine": {
+    "actionBarLabel": "Workflow actions",
+    "actionBarTitle": "Available actions",
+    "statusLabel": "Status: {status}",
+    "loading": "Loading actions…",
+    "noActionsTitle": "No actions",
+    "noActions": "No workflow actions are available for this order on this screen.",
+    "canaryOff": "Workflow Engine V2 is off for this tenant. Use the legacy screen actions.",
+    "actionSuccess": "Action completed",
+    "actionFailed": "Action failed"
   }
 }

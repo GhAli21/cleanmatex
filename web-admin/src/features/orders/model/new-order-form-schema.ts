@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { PAYMENT_METHODS, ORDER_TYPE_IDS } from '@/lib/constants/order-types';
+import { PAYMENT_METHODS, ORDER_TYPE_ID_VALUES } from '@/lib/constants/order-types';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
 /**
@@ -56,11 +56,7 @@ export const orderItemSchema = z.object({
  */
 export const newOrderFormSchema = z.object({
   customerId: uuidSchema,
-  orderTypeId: z.enum([
-    ORDER_TYPE_IDS.POS,
-    ORDER_TYPE_IDS.ONLINE,
-    ORDER_TYPE_IDS.PHONE,
-  ]),
+  orderTypeId: z.enum(ORDER_TYPE_ID_VALUES),
   items: z
     .array(orderItemSchema)
     .min(1, 'At least one item is required'),

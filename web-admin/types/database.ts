@@ -3749,6 +3749,7 @@ export type Database = {
           rec_status: number
           reference_no: string | null
           refund_id: string | null
+          reversed_payment_id: string | null
           tenant_org_id: string
         }
         Insert: {
@@ -3778,6 +3779,7 @@ export type Database = {
           rec_status?: number
           reference_no?: string | null
           refund_id?: string | null
+          reversed_payment_id?: string | null
           tenant_org_id: string
         }
         Update: {
@@ -3807,6 +3809,7 @@ export type Database = {
           rec_status?: number
           reference_no?: string | null
           refund_id?: string | null
+          reversed_payment_id?: string | null
           tenant_org_id?: string
         }
         Relationships: [
@@ -3820,6 +3823,13 @@ export type Database = {
           {
             foreignKeyName: "fk_org_cdm_order_payment"
             columns: ["order_payment_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_payments_dtl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_cdm_reversed_payment"
+            columns: ["reversed_payment_id"]
             isOneToOne: false
             referencedRelation: "org_order_payments_dtl"
             referencedColumns: ["id"]
@@ -15932,6 +15942,8 @@ export type Database = {
           branch_payment_method_id: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          captured_at: string | null
+          captured_by: string | null
           card_brand_code: string | null
           card_last4: string | null
           cash_drawer_id: string | null
@@ -15971,6 +15983,10 @@ export type Database = {
           rec_order: number | null
           rec_status: number
           received_by: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          settled_at: string | null
+          settled_by: string | null
           tenant_org_id: string
           tendered_amount: number | null
           transition_reason: string | null
@@ -15979,6 +15995,8 @@ export type Database = {
           updated_info: string | null
           verified_at: string | null
           verified_by: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -15988,6 +16006,8 @@ export type Database = {
           branch_payment_method_id?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          captured_at?: string | null
+          captured_by?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
@@ -16027,6 +16047,10 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           received_by?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
           tenant_org_id: string
           tendered_amount?: number | null
           transition_reason?: string | null
@@ -16035,6 +16059,8 @@ export type Database = {
           updated_info?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -16044,6 +16070,8 @@ export type Database = {
           branch_payment_method_id?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          captured_at?: string | null
+          captured_by?: string | null
           card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_id?: string | null
@@ -16083,6 +16111,10 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           received_by?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          settled_at?: string | null
+          settled_by?: string | null
           tenant_org_id?: string
           tendered_amount?: number | null
           transition_reason?: string | null
@@ -16091,6 +16123,8 @@ export type Database = {
           updated_info?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -16912,6 +16946,7 @@ export type Database = {
           rounding_adjustment_amount: number | null
           service_category_code: string | null
           service_charge_amount: number
+          state_version: number
           status: string | null
           stored_value_restored_amount: number
           subtotal_amount: number
@@ -16933,6 +16968,8 @@ export type Database = {
           updated_by: string | null
           updated_info: string | null
           vat_rate: number | null
+          wf_profile_id: string | null
+          wf_version_no: number | null
           workflow_template_id: string | null
           zero_rated_amount: number
         }
@@ -17066,6 +17103,7 @@ export type Database = {
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
           service_charge_amount?: number
+          state_version?: number
           status?: string | null
           stored_value_restored_amount?: number
           subtotal_amount?: number
@@ -17087,6 +17125,8 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
           vat_rate?: number | null
+          wf_profile_id?: string | null
+          wf_version_no?: number | null
           workflow_template_id?: string | null
           zero_rated_amount?: number
         }
@@ -17220,6 +17260,7 @@ export type Database = {
           rounding_adjustment_amount?: number | null
           service_category_code?: string | null
           service_charge_amount?: number
+          state_version?: number
           status?: string | null
           stored_value_restored_amount?: number
           subtotal_amount?: number
@@ -17241,6 +17282,8 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
           vat_rate?: number | null
+          wf_profile_id?: string | null
+          wf_version_no?: number | null
           workflow_template_id?: string | null
           zero_rated_amount?: number
         }
@@ -21976,6 +22019,143 @@ export type Database = {
           },
         ]
       }
+      org_wf_profile_assign_cf: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          rec_status: number
+          service_code: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          wf_profile_id: string
+          wf_version_no: number | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          rec_status?: number
+          service_code?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          wf_profile_id: string
+          wf_version_no?: number | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          rec_status?: number
+          service_code?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          wf_profile_id?: string
+          wf_version_no?: number | null
+        }
+        Relationships: []
+      }
+      org_wf_release_ln: {
+        Row: {
+          created_at: string
+          id: string
+          order_item_id: string | null
+          qty_released: number
+          rec_status: number
+          release_id: string
+          tenant_org_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_item_id?: string | null
+          qty_released?: number
+          rec_status?: number
+          release_id: string
+          tenant_org_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_item_id?: string | null
+          qty_released?: number
+          rec_status?: number
+          release_id?: string
+          tenant_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_wf_release_ln_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "org_wf_release_mst"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_wf_release_mst: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          rec_status: number
+          release_status: string
+          release_type: string
+          released_at: string | null
+          released_by: string | null
+          state_version_at: number | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          rec_status?: number
+          release_status?: string
+          release_type: string
+          released_at?: string | null
+          released_by?: string | null
+          state_version_at?: number | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          rec_status?: number
+          release_status?: string
+          release_type?: string
+          released_at?: string | null
+          released_by?: string | null
+          state_version_at?: number | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       org_workflow_rules: {
         Row: {
           created_at: string | null
@@ -26334,6 +26514,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_fin_job_run_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          failed_count: number | null
+          finished_at: string | null
+          id: string
+          job_code: string
+          processed_count: number | null
+          started_at: string
+          status: string
+          trigger_source: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          failed_count?: number | null
+          finished_at?: string | null
+          id?: string
+          job_code: string
+          processed_count?: number | null
+          started_at?: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          failed_count?: number | null
+          finished_at?: string | null
+          id?: string
+          job_code?: string
+          processed_count?: number | null
+          started_at?: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       sys_fin_map_rule_dtl: {
         Row: {
           amount_source_code: string
@@ -28045,6 +28267,84 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      sys_gw_webhook_events_tr: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          event_type: string
+          gateway_code: string
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          processed_at: string | null
+          processing_status: string
+          provider_event_id: string
+          raw_payload: Json
+          received_at: string
+          signature_valid: boolean
+          tenant_org_id: string | null
+          transition_action: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_type: string
+          gateway_code: string
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          provider_event_id: string
+          raw_payload: Json
+          received_at?: string
+          signature_valid?: boolean
+          tenant_org_id?: string | null
+          transition_action?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_type?: string
+          gateway_code?: string
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          provider_event_id?: string
+          raw_payload?: Json
+          received_at?: string
+          signature_valid?: boolean
+          tenant_org_id?: string | null
+          transition_action?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_gw_webhook_events_tr_gateway_code_fkey"
+            columns: ["gateway_code"]
+            isOneToOne: false
+            referencedRelation: "sys_payment_gateway_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sys_gw_webhook_events_tr_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_payments_dtl"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sys_issue_type_cd: {
         Row: {
@@ -32967,6 +33267,384 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_wf_action_trans_cd: {
+        Row: {
+          action_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          screen_key: string
+          transition_id: string
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          screen_key: string
+          transition_id: string
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          screen_key?: string
+          transition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_action_trans_cd_action_code_fkey"
+            columns: ["action_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_actions_cd"
+            referencedColumns: ["action_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_action_trans_cd_screen_key_fkey"
+            columns: ["screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_action_trans_cd_transition_id_fkey"
+            columns: ["transition_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_transitions_cd"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_wf_actions_cd: {
+        Row: {
+          action_code: string
+          created_at: string
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          permission_code: string | null
+          rec_status: number
+          updated_at: string | null
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          permission_code?: string | null
+          rec_status?: number
+          updated_at?: string | null
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          permission_code?: string | null
+          rec_status?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sys_wf_gate_defs_cd: {
+        Row: {
+          created_at: string
+          description: string | null
+          description2: string | null
+          gate_code: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          rec_status: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          gate_code: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          rec_status?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          gate_code?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          rec_status?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sys_wf_initial_rules_cd: {
+        Row: {
+          created_at: string
+          id: string
+          initial_status: string
+          is_active: boolean
+          is_retail: boolean | null
+          name: string | null
+          name2: string | null
+          order_source_code: string | null
+          order_type_id: string | null
+          priority: number
+          rec_status: number
+          rule_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initial_status: string
+          is_active?: boolean
+          is_retail?: boolean | null
+          name?: string | null
+          name2?: string | null
+          order_source_code?: string | null
+          order_type_id?: string | null
+          priority?: number
+          rec_status?: number
+          rule_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initial_status?: string
+          is_active?: boolean
+          is_retail?: boolean | null
+          name?: string | null
+          name2?: string | null
+          order_source_code?: string | null
+          order_type_id?: string | null
+          priority?: number
+          rec_status?: number
+          rule_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_initial_rules_cd_initial_status_fkey"
+            columns: ["initial_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_screen_status_cd: {
+        Row: {
+          created_at: string
+          display_order: number
+          is_active: boolean
+          screen_key: string
+          status_code: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          is_active?: boolean
+          screen_key: string
+          status_code: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          is_active?: boolean
+          screen_key?: string
+          status_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_screen_status_cd_screen_key_fkey"
+            columns: ["screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_screen_status_cd_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_screens_cd: {
+        Row: {
+          created_at: string
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          rec_status: number
+          screen_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          rec_status?: number
+          screen_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          rec_status?: number
+          screen_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sys_wf_statuses_cd: {
+        Row: {
+          created_at: string
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_system: boolean
+          is_terminal: boolean
+          name: string
+          name2: string | null
+          rec_status: number
+          status_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          is_terminal?: boolean
+          name: string
+          name2?: string | null
+          rec_status?: number
+          status_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          is_terminal?: boolean
+          name?: string
+          name2?: string | null
+          rec_status?: number
+          status_code?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sys_wf_transitions_cd: {
+        Row: {
+          created_at: string
+          from_status: string
+          gate_set_code: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string | null
+          name2: string | null
+          permission_code: string | null
+          rec_status: number
+          to_status: string
+          transition_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_status: string
+          gate_set_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string | null
+          name2?: string | null
+          permission_code?: string | null
+          rec_status?: number
+          to_status: string
+          transition_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_status?: string
+          gate_set_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string | null
+          name2?: string | null
+          permission_code?: string | null
+          rec_status?: number
+          to_status?: string
+          transition_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_transitions_cd_from_status_fkey"
+            columns: ["from_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_transitions_cd_to_status_fkey"
+            columns: ["to_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
       sys_workflow_step_cd: {
         Row: {
           allowed_next_steps: string[] | null
@@ -33740,6 +34418,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cleanup_expired_idempotency_keys: { Args: never; Returns: number }
       cleanup_expired_order_edit_locks: { Args: never; Returns: number }
       cleanup_expired_otp_codes: { Args: never; Returns: number }
       cmf_color_hex_normalize7: { Args: { p_hex: string }; Returns: string }
@@ -34011,6 +34690,7 @@ export type Database = {
         Returns: undefined
       }
       extract_order_sequence: { Args: { p_order_no: string }; Returns: number }
+      fin_trigger_job: { Args: { p_job_code: string }; Returns: undefined }
       fin_trigger_outbox_proc: { Args: never; Returns: undefined }
       fix_order_data: {
         Args: {
@@ -34457,6 +35137,14 @@ export type Database = {
         Returns: boolean
       }
       is_operator: { Args: never; Returns: boolean }
+      list_retryable_posting_exceptions: {
+        Args: { p_max_age_hours?: number }
+        Returns: {
+          exception_id: string
+          posting_log_id: string
+          tenant_org_id: string
+        }[]
+      }
       log_audit_event: {
         Args: {
           p_action: string

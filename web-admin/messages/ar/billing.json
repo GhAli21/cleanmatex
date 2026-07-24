@@ -419,6 +419,8 @@
     "counts": {
       "pending": "معلقة",
       "processing": "قيد المعالجة",
+      "authorized": "مصرح بها",
+      "captured": "مقبوضة",
       "total": "الإجمالي"
     },
     "columns": {
@@ -429,12 +431,16 @@
       "amount": "المبلغ",
       "status": "الحالة",
       "reference": "المرجع",
-      "age": "تاريخ الإنشاء"
+      "age": "العمر",
+      "ageDays": "{count, plural, =0 {اليوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}"
     },
     "actions": {
       "verify": "تحقق",
       "cancel": "إلغاء",
-      "failBounce": "تحديد كفاشلة/مرتجعة"
+      "failBounce": "تحديد كفاشلة/مرتجعة",
+      "void": "إلغاء (تصفير)",
+      "capture": "قبض",
+      "settle": "تسوية"
     },
     "transition": {
       "verifyTitle": "التحقق من الدفعة",
@@ -449,9 +455,29 @@
       "failBounceDescription": "تحديد هذه الدفعة المعلقة أو قيد المعالجة كفاشلة (شيك مرتجع، حوالة بنكية مرفوضة، إلخ). السبب وتصنيف البديل مطلوبان.",
       "failBounceSuccess": "تم تحديد الدفعة كفاشلة",
       "failBounceConfirm": "تحديد كفاشلة",
+      "voidTitle": "إلغاء الدفعة (تصفير)",
+      "voidDescription": "إلغاء هذه الدفعة كإدخال خاطئ أو مكرر. لم تتحرك أي أموال إطلاقًا — يعاد فتح الرصيد المستحق بهذا المبلغ فقط. السبب مطلوب.",
+      "voidSuccess": "تم إلغاء الدفعة",
+      "voidConfirm": "إلغاء الدفعة",
+      "reverseTitle": "عكس الدفعة",
+      "reverseDescription": "عكس هذه الدفعة المكتملة كتصحيح لخطأ. السبب مطلوب؛ الدفعة النقدية تتطلب إضافةً جلسة درج نقدي مفتوحة لتسجيل الإخراج النقدي التعويضي.",
+      "reverseSuccess": "تم عكس الدفعة",
+      "reverseConfirm": "عكس الدفعة",
+      "captureTitle": "قبض الدفعة",
+      "captureDescription": "تأكيد أن البوابة قد قبضت هذه الدفعة المصرح بها. ستتحول إلى مقبوضة. استخدم هذا عند عدم وصول تأكيد عبر webhook.",
+      "captureSuccess": "تم قبض الدفعة",
+      "captureConfirm": "قبض",
+      "settleTitle": "تسوية الدفعة",
+      "settleDescription": "تأكيد أن البوابة قد سوّت (صرفت) هذه الدفعة المقبوضة. ستتحول إلى مسوّاة. استخدم هذا عند عدم وصول تأكيد عبر webhook.",
+      "settleSuccess": "تمت تسوية الدفعة",
+      "settleConfirm": "تسوية",
       "reasonPlaceholder": "السبب (مطلوب)",
       "fallbackClassificationLabel": "ماذا سيحدث للرصيد المستحق؟",
       "fallbackClassificationPlaceholder": "اختر تصنيفًا",
+      "cashDrawerSessionLabel": "جلسة درج النقدية للإخراج النقدي التعويضي",
+      "cashDrawerSessionLoading": "جارٍ تحميل جلسات درج النقدية المفتوحة…",
+      "cashDrawerSessionNoneOpen": "لا توجد جلسة درج نقدي مفتوحة — افتح جلسة قبل عكس هذه الدفعة النقدية.",
+      "cashDrawerSessionPlaceholder": "اختر جلسة مفتوحة",
       "fallback": {
         "RETRY_TENDER": "سيعيد العميل محاولة الدفع",
         "PAY_ON_COLLECTION": "التحصيل عند التسليم/الاستلام",
@@ -467,9 +493,34 @@
         "illegalTransition": "لم يعد بالإمكان تحويل هذه الدفعة بهذه الطريقة",
         "raceDetected": "حدث تحديث آخر للتو — يرجى إعادة المحاولة",
         "idempotencyConflict": "يتعارض هذا الطلب مع محاولة سابقة — يرجى إعادة المحاولة من نافذة جديدة",
+        "cashDrawerSessionRequired": "جلسة درج نقدي مفتوحة مطلوبة لعكس هذه الدفعة النقدية",
+        "cashDrawerSessionNotOpen": "جلسة درج النقدية المحددة لم تعد مفتوحة — اختر جلسة أخرى",
         "notFound": "الدفعة غير موجودة",
         "notRealPayment": "هذه ليست دفعة نقدية فعلية"
       }
+    }
+  },
+  "financeJobs": {
+    "title": "المهام المجدولة",
+    "refresh": "تحديث",
+    "loading": "جارٍ التحميل…",
+    "neverRun": "لم يتم التشغيل بعد",
+    "runNow": "تشغيل الآن",
+    "running": "جارٍ التشغيل…",
+    "runSuccess": "اكتمل تشغيل المهمة",
+    "runFailed": "فشل تشغيل المهمة",
+    "outcome": "تمت معالجة {processed}، وفشل {failed}",
+    "columns": {
+      "job": "المهمة",
+      "schedule": "الجدولة",
+      "lastRun": "آخر تشغيل",
+      "status": "الحالة",
+      "outcome": "النتيجة"
+    },
+    "jobNames": {
+      "gift_card_expiry": "انتهاء صلاحية بطاقات الهدايا",
+      "idempotency_cleanup": "تنظيف مفاتيح عدم التكرار",
+      "erp_posting_retry": "إعادة محاولة ترحيل ERP"
     }
   }
 }

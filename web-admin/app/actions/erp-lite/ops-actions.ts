@@ -190,3 +190,26 @@ export async function resolveExceptionAction(formData: FormData) {
   revalidatePath('/dashboard/erp-lite/readiness');
   redirect('/dashboard/erp-lite/exceptions?notice=resolved');
 }
+
+/**
+ * B19 — manually retry the posting attempt behind an exception.
+ *
+ * @param formData
+ */
+export async function retryExceptionAction(formData: FormData) {
+  const exceptionId = getRequired(formData, 'exception_id');
+  const postingLogId = getRequired(formData, 'posting_log_id');
+  let result: { success: boolean; error?: string };
+  try {
+    result = await ErpLiteExceptionsService.retryException(exceptionId, postingLogId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to retry exception';
+    redirect(`/dashboard/erp-lite/exceptions?error=${encodeURIComponent(message)}`);
+  }
+  revalidatePath('/dashboard/erp-lite/exceptions');
+  revalidatePath('/dashboard/erp-lite/readiness');
+  if (!result.success) {
+    redirect(`/dashboard/erp-lite/exceptions?error=${encodeURIComponent(result.error ?? 'Retry failed')}`);
+  }
+  redirect('/dashboard/erp-lite/exceptions?notice=retried');
+}

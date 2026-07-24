@@ -23,6 +23,8 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import { logger } from '@/lib/utils/logger';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
 import {
   GIFT_CARD_STATUS,
   GIFT_CARD_TXN_TYPE,
@@ -844,7 +846,7 @@ export async function redeemGiftCardTx(
   const availableAfter = availableBefore - amount;
   const newStatus = recalculateStatus(availableAfter, originalAmount, row.status as GiftCardStatus);
 
-  await tx.org_gift_card_txn_dtl.create({
+  const txn = await tx.org_gift_card_txn_dtl.create({
     data: {
       tenant_org_id:           row.tenant_org_id,
       gift_card_id:            row.id,
@@ -863,6 +865,7 @@ export async function redeemGiftCardTx(
       fin_voucher_trx_line_id: voucherLineId ?? null,
       notes:                   orderId ? `Redeemed for order ${orderId}` : 'Gift card redemption',
     },
+    select: { id: true },
   });
 
   await tx.org_gift_cards_mst.update({
@@ -877,6 +880,23 @@ export async function redeemGiftCardTx(
       updated_by: processedBy,
     },
   });
+
+  // B6/D008 — DR Gift Card Liability, CR AR/Invoice Settlement.
+  // NON_BLOCKING: a GL posting failure never blocks the redemption itself.
+  await safeDispatchAutoPost('gift_card_redeemed', () =>
+    ErpLiteAutoPostService.dispatchGiftCardRedeemedInTransaction(tx, {
+      tenant_org_id: tenantOrgId,
+      gift_card_id: row.id,
+      txn_id: txn.id,
+      amount,
+      currency_code: row.currency_code,
+      redeem_date: new Date().toISOString(),
+      order_id: orderId ?? null,
+      invoice_id: invoiceId ?? null,
+      branch_id: branchId ?? null,
+      created_by: processedBy ?? null,
+    }),
+  );
 
   return { newBalance: availableAfter };
 }
@@ -962,9 +982,10 @@ export async function refundGiftCardTx(
       available_amount: number;
       original_amount: number;
       status: string;
+      currency_code: string;
     }[]
   >`
-    SELECT id, tenant_org_id, available_amount, original_amount, status
+    SELECT id, tenant_org_id, available_amount, original_amount, status, currency_code
     FROM org_gift_cards_mst
     WHERE id = ${giftCardId}::uuid
       AND tenant_org_id = ${tenantOrgId}::uuid
@@ -984,7 +1005,7 @@ export async function refundGiftCardTx(
 
   const newStatus = recalculateStatus(newBalance, originalAmount, row.status as GiftCardStatus);
 
-  await tx.org_gift_card_txn_dtl.create({
+  const txn = await tx.org_gift_card_txn_dtl.create({
     data: {
       tenant_org_id: row.tenant_org_id,
       gift_card_id: row.id,
@@ -999,6 +1020,7 @@ export async function refundGiftCardTx(
       idempotency_key: idempotencyKey,
       notes: `Refund: ${reason}`,
     },
+    select: { id: true },
   });
 
   await tx.org_gift_cards_mst.update({
@@ -1012,6 +1034,22 @@ export async function refundGiftCardTx(
       updated_by: processedBy,
     },
   });
+
+  // B6/D008 — DR AR/Invoice Settlement, CR Gift Card Liability (redemption
+  // reversed). NON_BLOCKING: a GL posting failure never blocks the refund.
+  await safeDispatchAutoPost('gift_card_refunded', () =>
+    ErpLiteAutoPostService.dispatchGiftCardRefundedInTransaction(tx, {
+      tenant_org_id: tenantOrgId,
+      gift_card_id: row.id,
+      txn_id: txn.id,
+      amount: actualRefundAmount,
+      currency_code: row.currency_code,
+      refund_date: new Date().toISOString(),
+      order_id: orderId ?? null,
+      invoice_id: invoiceId ?? null,
+      created_by: processedBy ?? null,
+    }),
+  );
 
   return { newBalance, actualRefundAmount };
 }
@@ -1126,7 +1164,7 @@ export async function voidGiftCard(
       await prisma.$transaction(async (tx) => {
         const card = await tx.org_gift_cards_mst.findFirst({
           where: { id, tenant_org_id: tenantOrgId, is_active: true },
-          select: { id: true, available_amount: true, status: true },
+          select: { id: true, available_amount: true, status: true, currency_code: true },
         });
         if (!card) throw new Error('GIFT_CARD_NOT_FOUND');
 
@@ -1141,7 +1179,7 @@ export async function voidGiftCard(
           },
         });
 
-        await tx.org_gift_card_txn_dtl.create({
+        const txn = await tx.org_gift_card_txn_dtl.create({
           data: {
             tenant_org_id: tenantOrgId,
             gift_card_id: id,
@@ -1153,7 +1191,23 @@ export async function voidGiftCard(
             processed_by: actorId,
             notes: `Voided: ${reason}`,
           },
+          select: { id: true },
         });
+
+        // B6/D008 — DR Gift Card Liability, CR Void Recovery (balance
+        // extinguished by admin action). NON_BLOCKING: a GL posting failure
+        // never blocks the void.
+        await safeDispatchAutoPost('gift_card_voided', () =>
+          ErpLiteAutoPostService.dispatchGiftCardVoidedInTransaction(tx, {
+            tenant_org_id: tenantOrgId,
+            gift_card_id: id,
+            txn_id: txn.id,
+            amount: card.available_amount.toNumber(),
+            currency_code: card.currency_code,
+            void_date: new Date().toISOString(),
+            created_by: actorId,
+          }),
+        );
       });
 
       return { success: true };
@@ -1232,7 +1286,7 @@ export async function expireGiftCard(
       await prisma.$transaction(async (tx) => {
         const card = await tx.org_gift_cards_mst.findFirst({
           where: { id, tenant_org_id: tenantOrgId, is_active: true },
-          select: { id: true, available_amount: true },
+          select: { id: true, available_amount: true, currency_code: true },
         });
         if (!card) throw new Error('GIFT_CARD_NOT_FOUND');
 
@@ -1244,7 +1298,7 @@ export async function expireGiftCard(
           },
         });
 
-        await tx.org_gift_card_txn_dtl.create({
+        const txn = await tx.org_gift_card_txn_dtl.create({
           data: {
             tenant_org_id: tenantOrgId,
             gift_card_id: id,
@@ -1255,7 +1309,24 @@ export async function expireGiftCard(
             transaction_date: new Date(),
             notes: 'Card expired',
           },
+          select: { id: true },
         });
+
+        // B6/D008 — DR Gift Card Liability, CR Breakage Income. D012-compliant:
+        // this fires only on a real, discrete legal-extinguishment event
+        // (expiry_date already passed), never as a proportional breakage
+        // estimate (breakage_estimation_enabled stays false per D012).
+        // NON_BLOCKING: a GL posting failure never blocks the expiry.
+        await safeDispatchAutoPost('gift_card_expired', () =>
+          ErpLiteAutoPostService.dispatchGiftCardExpiredInTransaction(tx, {
+            tenant_org_id: tenantOrgId,
+            gift_card_id: id,
+            txn_id: txn.id,
+            amount: card.available_amount.toNumber(),
+            currency_code: card.currency_code,
+            expire_date: new Date().toISOString(),
+          }),
+        );
       });
 
       return { success: true };
@@ -1272,21 +1343,39 @@ export async function expireGiftCard(
 }
 
 /**
- * Batch-expire all cards past their expiry_date for a tenant.
- * Returns the number of cards expired.
+ * B19 — batch-expire all cards past their expiry_date for a tenant.
+ *
+ * Rewritten from a bare `updateMany` (zero ledger rows, zero GL dispatch —
+ * confirmed zero callers before this rewrite, so the return-shape change is
+ * safe) to loop `expireGiftCard()` per eligible card, so a scheduled sweep
+ * gets the exact same ledger row + non-blocking ERP-Lite GL dispatch as the
+ * existing single-card path. One card's failure never blocks the rest.
  */
-export async function expireGiftCards(tenantOrgId: string): Promise<number> {
+export async function expireGiftCards(
+  tenantOrgId: string,
+): Promise<{ expiredCount: number; failedCount: number }> {
   return withTenantContext(tenantOrgId, async () => {
     const now = new Date();
-    const result = await prisma.org_gift_cards_mst.updateMany({
+    const eligible = await prisma.org_gift_cards_mst.findMany({
       where: {
         tenant_org_id: tenantOrgId,
         status: { in: [GIFT_CARD_STATUS.ACTIVE, GIFT_CARD_STATUS.PARTIALLY_REDEEMED, GIFT_CARD_STATUS.GENERATED] },
         expiry_date: { lte: now },
       },
-      data: { status: GIFT_CARD_STATUS.EXPIRED, updated_at: now },
+      select: { id: true },
     });
-    return result.count;
+
+    let expiredCount = 0;
+    let failedCount = 0;
+    for (const card of eligible) {
+      const result = await expireGiftCard(card.id, tenantOrgId);
+      if (result.success) {
+        expiredCount++;
+      } else {
+        failedCount++;
+      }
+    }
+    return { expiredCount, failedCount };
   });
 }
 

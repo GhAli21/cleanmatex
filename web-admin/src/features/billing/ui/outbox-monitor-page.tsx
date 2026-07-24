@@ -15,6 +15,7 @@ import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useMessage } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { FinanceJobsSection } from './finance-jobs-section';
 
 const STATUS_OPTIONS = ['', 'PENDING', 'PROCESSING', 'FAILED', 'DEAD_LETTERED', 'PROCESSED'] as const;
 
@@ -262,6 +263,9 @@ export function OutboxMonitorPage() {
         onPageChange={setPage}
         emptyMessage={t('empty')}
       />
+
+      {/* B19 — Scheduled Jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry) */}
+      <FinanceJobsSection />
     </div>
   );
 }

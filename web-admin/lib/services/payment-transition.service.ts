@@ -14,12 +14,14 @@ import {
   type FallbackClassification,
   type PaymentTransitionAction,
 } from '@/lib/constants/order-financial';
-import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { PAYMENT_METHODS, type PaymentMethodCode } from '@/lib/constants/payment';
 import { isCashFamilyMethod } from './cash-drawer-cash-facts';
 import { emitEventTx } from './outbox.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { hashPayload } from '@/lib/utils/idempotency';
 import { logger } from '@/lib/utils/logger';
+import { ErpLiteAutoPostService } from './erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from './erp-lite-auto-post.util';
 
 /** Prisma transaction client shared with the rest of the settlement services. */
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -35,10 +37,11 @@ const FALLBACK_CLASSIFICATION_VALUES = new Set<string>(Object.values(FALLBACK_CL
 const PAYMENT_REVERSAL_MOVEMENT_TYPE = 'PAYMENT_REVERSAL';
 
 /**
- * B30/B10 — Pending-Payment Back-office Lifecycle + Payment Reversal and Void.
+ * B30/B10/B08 — Pending-Payment Back-office Lifecycle + Payment Reversal and
+ * Void + Gateway Lifecycle Integration.
  *
- * Input for {@link transitionPaymentTx}. One entry point for all five
- * back-office transitions (D001 canonical graph subset):
+ * Input for {@link transitionPaymentTx}. One entry point for all seven
+ * back-office/webhook transitions (D001 canonical graph subset):
  *   VERIFY      — PENDING/PROCESSING -> COMPLETED (bank/gateway confirmed)
  *   CANCEL      — PENDING/PROCESSING -> CANCELLED (mandatory reason + D009 fallback)
  *   FAIL_BOUNCE — PENDING/PROCESSING -> FAILED    (mandatory reason + D009 fallback)
@@ -49,12 +52,24 @@ const PAYMENT_REVERSAL_MOVEMENT_TYPE = 'PAYMENT_REVERSAL';
  *                 cash-family legs additionally require an OPEN
  *                 `cashDrawerSessionId` to receive the compensating OUT
  *                 movement — B10/D004)
+ *   CAPTURE     — AUTHORIZED -> CAPTURED (no reason; gateway-confirmed or
+ *                 manual re-sync — B08)
+ *   SETTLE      — CAPTURED -> SETTLED (no reason; gateway-confirmed or
+ *                 manual re-sync — B08)
+ *
+ * B08: `actorId` is nullable for CAPTURE/SETTLE only, since the gateway
+ * webhook route calls this with no interactive user — provenance for a
+ * NULL-actor transition is the linked `sys_gw_webhook_events_tr` row
+ * (webhook route persists `transition_action`/`payment_id` there before
+ * calling this function), not a human actor id. Every other action still
+ * requires a real actorId (interactive back-office operation only).
  */
 export interface TransitionPaymentParams {
   orderId: string;
   paymentId: string;
   tenantId: string;
-  actorId: string;
+  /** Null only for a webhook-driven CAPTURE/SETTLE — see interface doc above. */
+  actorId: string | null;
   action: PaymentTransitionAction;
   /** Mandatory for every action but VERIFY. */
   reason?: string;
@@ -291,7 +306,11 @@ export async function transitionPaymentTx(
             ? { failed_by: actorId, failed_at: now }
             : action === 'VOID'
               ? { voided_by: actorId, voided_at: now }
-              : { reversed_by: actorId, reversed_at: now };
+              : action === 'REVERSE'
+                ? { reversed_by: actorId, reversed_at: now }
+                : action === 'CAPTURE'
+                  ? { captured_by: actorId, captured_at: now }
+                  : { settled_by: actorId, settled_at: now };
 
     const updated = await tx.org_order_payments_dtl.updateMany({
       where: {
@@ -323,6 +342,23 @@ export async function transitionPaymentTx(
 
     if (action === 'VERIFY') {
       deferredCashMovementCreated = await maybeCreateDeferredCashMovementTx(tx, tenantId, row, actorId);
+      // B6 — this leg started PENDING/PROCESSING, so orderPaymentWiringHandler
+      // deliberately skipped the ERP-Lite PAYMENT_RECEIVED/ORDER_SETTLED_*
+      // dispatch at wiring time (money hadn't cleared yet). Now that VERIFY
+      // confirms it actually cleared, dispatch the deferred GL post — same
+      // "deferred until effective" pairing as the B32 cash movement above.
+      await safeDispatchAutoPost('payment_received_deferred_verify', () =>
+        ErpLiteAutoPostService.dispatchPaymentReceivedInTransaction(tx, {
+          tenant_org_id: tenantId,
+          payment_id: paymentId,
+          order_id: row.order_id,
+          currency_code: row.currency_code ?? 'SAR',
+          payment_date: now.toISOString(),
+          payment_method_code: row.payment_method_code as PaymentMethodCode,
+          paid_amount: Number(row.amount),
+          created_by: actorId,
+        }),
+      );
     } else if (action === 'CANCEL' || action === 'FAIL_BOUNCE') {
       // CANCEL / FAIL_BOUNCE — D009 fallback classification effects.
       reclassifiedPaymentType = await maybeReclassifyPaymentTypeTx(
@@ -336,7 +372,7 @@ export async function transitionPaymentTx(
       // B10 — a never-effective leg must never carry a live CASH_SALE
       // movement (B32 status gate); trip-wire only, no auto-reversal.
       await warnIfOrphanMovementExistsTx(tx, tenantId, paymentId, orderId);
-    } else {
+    } else if (action === 'REVERSE') {
       // REVERSE — B10 error-correction negation. Cash-family legs require a
       // physical compensating OUT movement so the drawer's expected cash
       // reflects the correction (D004: "Drawer/gateway: compensating
@@ -349,7 +385,29 @@ export async function transitionPaymentTx(
         actorId,
         cashDrawerSessionId,
       );
+    } else if (action === 'CAPTURE') {
+      // B08 — AUTHORIZED -> CAPTURED is this leg's FIRST entry into the
+      // ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED bucket (AUTHORIZED is its
+      // own separate bucket), so it drives the deferred ERP-Lite
+      // PAYMENT_RECEIVED post — same pairing as VERIFY above. SETTLE does
+      // NOT repeat this (the leg is already in the COMPLETED bucket as of
+      // CAPTURE; re-dispatching would double-post the same GL fact).
+      await safeDispatchAutoPost('payment_received_deferred_capture', () =>
+        ErpLiteAutoPostService.dispatchPaymentReceivedInTransaction(tx, {
+          tenant_org_id: tenantId,
+          payment_id: paymentId,
+          order_id: row.order_id,
+          currency_code: row.currency_code ?? 'SAR',
+          payment_date: now.toISOString(),
+          payment_method_code: row.payment_method_code as PaymentMethodCode,
+          paid_amount: Number(row.amount),
+          created_by: actorId,
+        }),
+      );
     }
+    // SETTLE — no side effects beyond the status flip: the leg was already
+    // counted as paid (COMPLETED bucket) since CAPTURE; SETTLE only records
+    // that the gateway has finished disbursing funds.
 
     // ── 6. Recalculate the order header snapshot from fact rows ─────────────
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
@@ -364,7 +422,11 @@ export async function transitionPaymentTx(
             ? OUTBOX_EVENT_TYPES.PAYMENT_FAILED
             : action === 'VOID'
               ? OUTBOX_EVENT_TYPES.PAYMENT_VOIDED
-              : OUTBOX_EVENT_TYPES.PAYMENT_REVERSED;
+              : action === 'REVERSE'
+                ? OUTBOX_EVENT_TYPES.PAYMENT_REVERSED
+                : action === 'CAPTURE'
+                  ? OUTBOX_EVENT_TYPES.PAYMENT_CAPTURED
+                  : OUTBOX_EVENT_TYPES.PAYMENT_SETTLED;
 
     await emitEventTx(tx, tenantId, eventType, 'order_payment', paymentId, {
       orderId,

@@ -4,7 +4,10 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { PAYMENT_NATURE } from '@/lib/constants/order-financial';
 
-const WORKLIST_STATUSES = ['PENDING', 'PROCESSING'] as const;
+// B08: AUTHORIZED/CAPTURED added so a dormant gateway sub-lifecycle leg
+// (once a future gateway config creates one) is findable for manual
+// CAPTURE/SETTLE re-sync — same worklist, not a new screen.
+const WORKLIST_STATUSES = ['PENDING', 'PROCESSING', 'AUTHORIZED', 'CAPTURED'] as const;
 export type WorklistStatusFilter = (typeof WORKLIST_STATUSES)[number] | undefined;
 
 export interface PendingPaymentsWorklistParams {
@@ -30,10 +33,12 @@ export interface PendingPaymentWorklistRow {
   reference: string | null;
   cash_drawer_session_id: string | null;
   created_at: string;
+  /** B19 — whole days elapsed since created_at, computed at read time (no stored/swept column). */
+  ageDays: number;
 }
 
 export interface PendingPaymentsWorklistResult {
-  counts: { pending: number; processing: number; total: number };
+  counts: { pending: number; processing: number; authorized: number; captured: number; total: number };
   rows: PendingPaymentWorklistRow[];
   total: number;
 }
@@ -58,9 +63,11 @@ export async function listPendingPaymentsWorklist(
       ...(paymentMethodCode ? { payment_method_code: paymentMethodCode } : {}),
     };
 
-    const [pending, processing, total, rows] = await Promise.all([
+    const [pending, processing, authorized, captured, total, rows] = await Promise.all([
       prisma.org_order_payments_dtl.count({ where: { ...baseWhere, payment_status: 'PENDING' } }),
       prisma.org_order_payments_dtl.count({ where: { ...baseWhere, payment_status: 'PROCESSING' } }),
+      prisma.org_order_payments_dtl.count({ where: { ...baseWhere, payment_status: 'AUTHORIZED' } }),
+      prisma.org_order_payments_dtl.count({ where: { ...baseWhere, payment_status: 'CAPTURED' } }),
       prisma.org_order_payments_dtl.count({
         where: { ...baseWhere, payment_status: { in: status ? [status] : [...WORKLIST_STATUSES] } },
       }),
@@ -116,7 +123,7 @@ export async function listPendingPaymentsWorklist(
     const orderNoById = new Map(ordersById.map((o) => [o.id, o.order_no]));
 
     return {
-      counts: { pending, processing, total },
+      counts: { pending, processing, authorized, captured, total },
       total,
       rows: rows.map((r) => ({
         id: r.id,
@@ -132,6 +139,7 @@ export async function listPendingPaymentsWorklist(
         reference: r.gateway_reference ?? r.check_no ?? r.bank_reference ?? null,
         cash_drawer_session_id: r.cash_drawer_session_id,
         created_at: r.created_at.toISOString(),
+        ageDays: Math.floor((Date.now() - r.created_at.getTime()) / (24 * 60 * 60 * 1000)),
       })),
     };
   });

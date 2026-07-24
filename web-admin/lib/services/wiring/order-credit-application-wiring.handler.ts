@@ -2,7 +2,10 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { LINE_ROLE } from '@/lib/constants/voucher';
+import { CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
 
 export const orderCreditApplicationWiringHandler: WiringHandler = {
   canHandle(line: VoucherLineForWiring): boolean {
@@ -58,6 +61,32 @@ export const orderCreditApplicationWiringHandler: WiringHandler = {
       },
       select: { id: true },
     });
+
+    // B6 — a WALLET credit application is an order-settlement event
+    // (D007: "Stored-value redemption" row — spending an existing wallet
+    // balance settles the order, releasing the liability). Dispatch
+    // ORDER_SETTLED_WALLET the same way orderPaymentWiringHandler dispatches
+    // ORDER_SETTLED_CASH/CARD for a real tender. Other credit-application
+    // types (ADVANCE, GIFT_CARD, CREDIT_NOTE, LOYALTY_POINTS) are not wired
+    // here — B6 scope is limited to what already has a live governance
+    // policy (ORDER_SETTLED_WALLET) plus the funding-side events wired
+    // elsewhere; their own settlement-side liability release is a B25
+    // (revenue recognition / contract liability) concern, not B6's.
+    if (line.credit_application_type === CREDIT_APPLICATION_TYPES.WALLET) {
+      await safeDispatchAutoPost('order_settled_wallet', () =>
+        ErpLiteAutoPostService.dispatchPaymentReceivedInTransaction(tx, {
+          tenant_org_id: tenantOrgId,
+          payment_id: created.id,
+          order_id: line.order_id ?? null,
+          branch_id: line.branch_id ?? null,
+          currency_code: line.currency_code ?? 'SAR',
+          payment_date: now.toISOString(),
+          payment_method_code: 'WALLET',
+          paid_amount: Number(line.amount),
+          created_by: userId,
+        }),
+      );
+    }
 
     return created.id;
   },

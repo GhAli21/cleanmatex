@@ -16,6 +16,12 @@ import {
   StopNotFoundError,
 } from '@/lib/errors/delivery-errors';
 import { WorkflowService } from './workflow-service';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import {
+  executeAction,
+  listAvailableActions,
+} from '@/lib/services/workflow/workflow-engine.service';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 export interface CreateRouteParams {
   orderIds: string[];
@@ -642,22 +648,48 @@ export class DeliveryService {
         })
         .eq('id', stopId);
 
-      // Update order status to DELIVERED
-      const orderId = (stop.order as any).id;
-      await WorkflowService.changeStatus({
-        orderId,
-        tenantId,
-        fromStatus: 'out_for_delivery',
-        toStatus: 'delivered',
-        userId,
-        userName: 'Delivery Service',
-      });
+      const orderId = (stop.order as { id: string }).id;
+      const useEngine = await resolveWorkflowEngineV2Enabled(tenantId);
+      if (useEngine) {
+        const available = await listAvailableActions({
+          tenantId,
+          orderId,
+          screen: 'driver_delivery',
+        });
+        await executeAction({
+          tenantId,
+          orderId,
+          screen: 'driver_delivery',
+          actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+          expectedStateVersion: available.stateVersion,
+          actorUserId: userId,
+          actorName: 'Delivery Service',
+          input: {
+            podId,
+            podMethodCode,
+            otpVerified: Boolean(otpCode),
+            signatureUrl: signatureUrl ?? null,
+            photoUrls: photoUrls ?? [],
+          },
+          idempotencyKey: `confirm-delivery:pod:${podId}`,
+        });
+      } else {
+        await WorkflowService.changeStatus({
+          orderId,
+          tenantId,
+          fromStatus: 'out_for_delivery',
+          toStatus: 'delivered',
+          userId,
+          userName: 'Delivery Service',
+        });
+      }
 
       logger.info('POD captured successfully', {
         tenantId,
         stopId,
         podId,
         orderId,
+        engine: useEngine ? 'workflow_v2' : 'legacy',
       });
 
       return {

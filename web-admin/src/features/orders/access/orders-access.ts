@@ -396,6 +396,28 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: '[Id] Available workflow actions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/available-actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Workflow Order Advance V1.0 — listAvailableActions'],
+      },
+      {
+        label: '[Id] Execute workflow action',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/actions',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: [
+          'Workflow Order Advance V1.0 — executeAction; Idempotency-Key required',
+        ],
+      },
+      {
         label: '[Id] Transitions',
         method: 'GET',
         path: '/api/v1/orders/[id]/transitions',
@@ -703,6 +725,22 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['B34: used by the flag-gated initiate-refund dialog on the Financial tab.'],
       },
+      {
+        label: 'Transition a payment leg (VERIFY/CANCEL/FAIL_BOUNCE/VOID/REVERSE)',
+        method: 'POST',
+        path: '/api/v1/finance/pending-payments/[paymentId]/transition',
+        requirement: {
+          permissions: [
+            'orders:verify_payment',
+            'orders:cancel_payment',
+            'orders:fail_payment',
+            'orders:void_payment',
+            'orders:reverse_payment',
+          ],
+          requireAllPermissions: false,
+        },
+        notes: ['B30/B10: shared back-office transition endpoint also used by the Financial tab payments table Cancel/Fail-Bounce/Void/Reverse buttons.'],
+      },
     ],
     notes: ORDER_NOTES,
     actions: {
@@ -720,6 +758,20 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
           featureFlags: ['order_fin_refund_ui'],
           requireAllFeatureFlags: true,
+        },
+      },
+      void_payment: {
+        label: 'B10 — Void a PENDING/PROCESSING/AUTHORIZED payment leg',
+        requirement: {
+          permissions: ['orders:void_payment'],
+          requireAllPermissions: true,
+        },
+      },
+      reverse_payment: {
+        label: 'B10 — Reverse a COMPLETED/CAPTURED/SETTLED payment leg',
+        requirement: {
+          permissions: ['orders:reverse_payment'],
+          requireAllPermissions: true,
         },
       },
     },

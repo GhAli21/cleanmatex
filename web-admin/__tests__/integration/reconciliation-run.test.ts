@@ -133,6 +133,14 @@ jest.mock('@/lib/db/tenant-context', () => ({
   ),
 }));
 
+// B6 — checkOrderPaymentErpPostAttempted/checkRefundErpPostAttempted gate on
+// this before touching Prisma at all; default false so they short-circuit to
+// [] and this pre-existing integration suite stays unaffected.
+jest.mock('@/lib/services/feature-flags.service', () => ({
+  canAccess: jest.fn().mockResolvedValue(false),
+  FEATURE_FLAG_KEYS: { ERP_LITE_ENABLED: 'erp_lite_enabled' },
+}));
+
 import { Decimal } from '@prisma/client/runtime/library';
 import { acknowledgeIssue, runReconciliation } from '@/lib/services/reconciliation.service';
 

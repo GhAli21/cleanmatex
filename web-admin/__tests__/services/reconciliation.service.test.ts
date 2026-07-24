@@ -134,6 +134,15 @@ jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
 }));
 
+// B6 — checkOrderPaymentErpPostAttempted/checkRefundErpPostAttempted gate on
+// this before touching Prisma at all; default false so they short-circuit to
+// [] and this orchestrator-level suite stays agnostic to ERP-Lite specifics.
+const mockCanAccess = jest.fn().mockResolvedValue(false);
+jest.mock('@/lib/services/feature-flags.service', () => ({
+  canAccess: (...args: unknown[]) => mockCanAccess(...args),
+  FEATURE_FLAG_KEYS: { ERP_LITE_ENABLED: 'erp_lite_enabled' },
+}));
+
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   acknowledgeIssue,
@@ -179,6 +188,7 @@ function setupPassingChecks() {
   mockCashMovementsFindMany.mockResolvedValue([]);
   mockSvFundingTendersFindMany.mockResolvedValue([]);
   mockOutboxCount.mockResolvedValue(0);
+  mockCanAccess.mockResolvedValue(false);
 }
 
 describe('reconciliation.service - runReconciliation', () => {

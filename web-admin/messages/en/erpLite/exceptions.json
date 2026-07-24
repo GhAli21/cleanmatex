@@ -21,5 +21,8 @@
     "gl": "Open in GL",
     "usageMaps": "Usage maps",
     "periods": "Periods"
+  },
+  "actions": {
+    "retry": "Retry"
   }
 }

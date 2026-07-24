@@ -36,7 +36,7 @@ import {
 import { useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
-import { REFUND_METHODS } from '@/lib/constants/order-financial';
+import { REFUND_METHODS, REFUND_STATUSES } from '@/lib/constants/order-financial';
 
 interface RefundItem {
   id: string;
@@ -90,10 +90,13 @@ function fmtDate(iso: string | null | undefined): string {
 
 function statusBadgeClass(status: string): string {
   const map: Record<string, string> = {
-    PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800',
-    APPROVED:         'bg-blue-100 text-blue-800',
-    PROCESSED:        'bg-green-100 text-green-800',
-    REJECTED:         'bg-red-100 text-red-800',
+    [REFUND_STATUSES.PENDING_APPROVAL]: 'bg-yellow-100 text-yellow-800',
+    [REFUND_STATUSES.APPROVED]:         'bg-blue-100 text-blue-800',
+    [REFUND_STATUSES.PROCESSED]:        'bg-green-100 text-green-800',
+    // REJECTED is not a governed refund_status value (chk_org_order_refunds_status,
+    // migration 0404) — no writer ever produces it; kept only as a defensive
+    // display fallback, same as the unmapped default below.
+    REJECTED: 'bg-red-100 text-red-800',
   };
   return map[status] ?? 'bg-gray-100 text-gray-800';
 }
@@ -299,7 +302,7 @@ export default function RefundsListClient({
                   <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(r.processed_at)}</td>
                   {showActionsColumn && (
                     <td className="whitespace-nowrap px-4 py-3">
-                      {r.refund_status === 'PENDING_APPROVAL' && canApprove && (
+                      {r.refund_status === REFUND_STATUSES.PENDING_APPROVAL && canApprove && (
                         <CmxButton
                           size="sm"
                           variant="outline"
@@ -310,7 +313,7 @@ export default function RefundsListClient({
                           {t('actions.approve')}
                         </CmxButton>
                       )}
-                      {r.refund_status === 'APPROVED' && canProcess && (
+                      {r.refund_status === REFUND_STATUSES.APPROVED && canProcess && (
                         <CmxButton
                           size="sm"
                           onClick={() => setPendingAction({ refund: r, action: 'process' })}

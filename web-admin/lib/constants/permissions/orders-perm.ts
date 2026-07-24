@@ -46,6 +46,10 @@ export const ORDERS_PERMISSIONS = {
   CANCEL_PAYMENT: 'orders:cancel_payment',
   /** Mark a PENDING/PROCESSING payment leg FAILED/bounced (mandatory reason + D009 fallback classification). */
   FAIL_PAYMENT: 'orders:fail_payment',
+  /** B10 — void a PENDING/PROCESSING/AUTHORIZED payment leg (mistaken/duplicate entry, no money movement). */
+  VOID_PAYMENT: 'orders:void_payment',
+  /** B10 — reverse a COMPLETED/CAPTURED/SETTLED payment leg (error correction; cash legs require an open drawer session). */
+  REVERSE_PAYMENT: 'orders:reverse_payment',
 } as const
 
 export type OrdersPermissionCode =

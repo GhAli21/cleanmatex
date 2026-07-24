@@ -12,6 +12,7 @@
 | New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
 | New permission code | Seed into DB via migration — see CRITICAL RULE #11 |
 | Dashboard route gating | Golden path in `.cursor/rules/ui-access-contract-pattern.mdc` + `/rebuild-ui-access-contract` |
+| Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
 
 **Skipping these rules = build failure and rejected PR.**
 
@@ -99,6 +100,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Any `.stories.tsx` file, new Cmx component | Follow Storybook patterns in `src/ui/` |
 | Any navigation add/modify (sidebar, routes, menu items) | Dual-write: `navigation.ts` + `sys_components_cd` migration |
 | Dashboard route/action/API access gating | `/rebuild-ui-access-contract` + `ui-access-contract-pattern.mdc` |
+| Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
 
 ---
 
@@ -164,6 +166,7 @@ npm run build                      # Build (run after changes)
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. See CRITICAL RULE #10.
+- **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
 
 ---
 

@@ -46,6 +46,7 @@ import {
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_SEVERITIES,
   REFUND_SOURCE_TYPES,
+  REFUND_STATUSES,
   TAX_DOCUMENT_STATUSES,
 } from '@/lib/constants/order-financial';
 import { LINE_ROLE, TARGET_TYPE } from '@/lib/constants/voucher';
@@ -1504,7 +1505,7 @@ export async function checkRefundSourceLineageClassification(
         where: {
           tenant_org_id: tenantId,
           is_active: true,
-          refund_status: 'PROCESSED',
+          refund_status: REFUND_STATUSES.PROCESSED,
           created_at: { gte: window.periodFrom, lte: window.periodTo },
         },
         select: {

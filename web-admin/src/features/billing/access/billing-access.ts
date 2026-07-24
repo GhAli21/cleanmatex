@@ -688,6 +688,20 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      viewFinanceJobs: {
+        label: 'View the B19 scheduled finance jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry)',
+        requirement: {
+          permissions: ['finance_jobs:view'],
+          requireAllPermissions: true,
+        },
+      },
+      runFinanceJob: {
+        label: 'Manually trigger an on-demand run of a scheduled finance job',
+        requirement: {
+          permissions: ['finance_jobs:run'],
+          requireAllPermissions: true,
+        },
+      },
     },
     apiDependencies: [
       {
@@ -708,10 +722,29 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'B19 — finance jobs last-run list',
+        method: 'GET',
+        path: '/api/v1/finance/jobs',
+        requirement: {
+          permissions: ['finance_jobs:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'B19 — manually run a finance job',
+        method: 'POST',
+        path: '/api/v1/finance/jobs/[jobCode]/run',
+        requirement: {
+          permissions: ['finance_jobs:run'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: [
       'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts).',
       'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
+      'B19 — extended with a Scheduled Jobs section (gift-card expiry, idempotency cleanup, ERP posting-retry). The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
     ],
   },
   {
@@ -743,6 +776,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      voidPayment: {
+        label: 'B10 — void a PENDING/PROCESSING payment leg (mistaken/duplicate entry, no money movement)',
+        requirement: {
+          permissions: ['orders:void_payment'],
+          requireAllPermissions: true,
+        },
+      },
     },
     apiDependencies: [
       {
@@ -755,18 +795,25 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Transition a payment leg (VERIFY/CANCEL/FAIL_BOUNCE)',
+        label: 'Transition a payment leg (VERIFY/CANCEL/FAIL_BOUNCE/VOID/REVERSE)',
         method: 'POST',
         path: '/api/v1/finance/pending-payments/[paymentId]/transition',
         requirement: {
-          permissions: ['orders:verify_payment', 'orders:cancel_payment', 'orders:fail_payment'],
+          permissions: [
+            'orders:verify_payment',
+            'orders:cancel_payment',
+            'orders:fail_payment',
+            'orders:void_payment',
+            'orders:reverse_payment',
+          ],
           requireAllPermissions: false,
         },
       },
     ],
     notes: [
       'B30 — cross-order back-office worklist for PENDING/PROCESSING REAL_PAYMENT legs (D001 canonical graph subset).',
-      'The transition route enforces the action-specific permission dynamically server-side; the contract entry lists all three as any-of since the route itself decides per request body.',
+      'B10 — the worklist additionally exposes VOID for a PENDING/PROCESSING leg (mistaken/duplicate entry). REVERSE only applies to COMPLETED/CAPTURED/SETTLED legs, which never appear in this PENDING/PROCESSING worklist — its entry point is the order Financial tab (orders-access.ts).',
+      'The transition route enforces the action-specific permission dynamically server-side; the contract entry lists all five as any-of since the route itself decides per request body.',
     ],
   },
   {

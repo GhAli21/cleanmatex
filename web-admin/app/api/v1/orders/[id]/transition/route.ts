@@ -14,6 +14,11 @@ import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import {
+  WorkflowEngineError,
+  executeAction,
+} from '@/lib/services/workflow/workflow-engine.service';
 
 const ORDER_STATUS_EVENT: Record<string, string> = {
   ready:     'order.ready',
@@ -24,6 +29,8 @@ const ORDER_STATUS_EVENT: Record<string, string> = {
  * POST /api/v1/orders/[id]/transition
  * PRD-010: Transition order with permission validation
  * Supports USE_OLD_WF_CODE_OR_NEW parameter for gradual migration
+ * When WORKFLOW_ENGINE_V2=true and body.actionCode is set, delegates to WorkflowEngine
+ * (prefer POST /api/v1/orders/[id]/actions for new clients).
  * Requires: orders:transition permission
  * @param request
  * @param root0
@@ -46,6 +53,107 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const useOldWfCodeOrNew = body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
     const screen = body.screen;
     const authHeader = request.headers.get('Authorization');
+
+    // Workflow Order Advance V1.0 canary — action-based path (no Legacy/Enhanced RPC)
+    if (
+      (await resolveWorkflowEngineV2Enabled(tenantId)) &&
+      typeof body.actionCode === 'string' &&
+      body.actionCode.trim() &&
+      typeof screen === 'string' &&
+      screen.trim()
+    ) {
+      const idempotencyKey =
+        request.headers.get('Idempotency-Key')?.trim() ||
+        (typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '');
+      if (!idempotencyKey) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Idempotency-Key header (or body.idempotencyKey) is required for workflow_v2',
+            code: 'IDEMPOTENCY_KEY_REQUIRED',
+          },
+          { status: 400 },
+        );
+      }
+      if (typeof body.expectedStateVersion !== 'number') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'expectedStateVersion is required for workflow_v2',
+            code: 'EXPECTED_STATE_VERSION_REQUIRED',
+          },
+          { status: 400 },
+        );
+      }
+
+      try {
+        const result = await executeAction({
+          tenantId,
+          orderId: id,
+          screen,
+          actionCode: body.actionCode.trim(),
+          expectedStateVersion: body.expectedStateVersion,
+          actorUserId: userId,
+          actorName: userName,
+          input: {
+            notes: body.notes,
+            ...(body.input && typeof body.input === 'object' ? body.input : {}),
+          },
+          idempotencyKey,
+        });
+
+        const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
+        if (eventCode) {
+          void emitNotificationEvent({
+            code: eventCode,
+            tenantOrgId: tenantId,
+            recipientUserIds: [userId],
+            sourceEntityType: 'order',
+            sourceEntityId: id,
+            variables: { order_number: id },
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          ok: true,
+          engine: 'workflow_v2',
+          data: {
+            order: {
+              id,
+              status: result.currentStatus,
+              currentStatus: result.currentStatus,
+              stateVersion: result.stateVersion,
+            },
+          },
+        });
+      } catch (error) {
+        if (error instanceof WorkflowEngineError) {
+          const status =
+            error.code === 'NOT_FOUND'
+              ? 404
+              : error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_CONFLICT'
+                ? 409
+                : error.code === 'GATE_FAILED'
+                  ? 422
+                  : error.code === 'ACTION_NOT_ALLOWED'
+                    ? 403
+                    : 400;
+          return NextResponse.json(
+            {
+              success: false,
+              ok: false,
+              engine: 'workflow_v2',
+              error: error.message,
+              code: error.code,
+              blockedReasons: error.blockedReasons,
+            },
+            { status },
+          );
+        }
+        throw error;
+      }
+    }
 
     // If using new workflow system with screen parameter
     if (screen && useOldWfCodeOrNew !== false) {

@@ -11,6 +11,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_org_ord_scr_contracts_sys_key
   ON org_ord_screen_contracts_cf (screen_key)
   WHERE tenant_org_id IS NULL;
 
+-- truncate org_ord_screen_contracts_cf;
+
 -- Seed system defaults from prior hardcoded CASE logic (0130)
 INSERT INTO org_ord_screen_contracts_cf (
   tenant_org_id,
@@ -30,41 +32,41 @@ FROM (
     (
       'preparation',
       '{"statuses":["preparing","intake"],"additional_filters":{}}'::jsonb,
-      '["orders:preparation:complete"]'::jsonb
+      '["orders:transition"]'::jsonb
     ),
     (
       'processing',
       '{"statuses":["processing"],"additional_filters":{}}'::jsonb,
-      '["orders:processing:complete"]'::jsonb
+       '["orders:processing"]'::jsonb -- '["orders:processing_complete"]'::jsonb
     ),
     (
       'assembly',
       '{"statuses":["assembly"],"additional_filters":{}}'::jsonb,
-      '["orders:assembly:complete"]'::jsonb
+      '["orders:transition"]'::jsonb -- '["orders:assembly:complete"]'::jsonb
     ),
     (
       'qa',
       '{"statuses":["qa"],"additional_filters":{}}'::jsonb,
-      '["orders:qa:approve","orders:qa:reject"]'::jsonb
+      '["orders:transition"]'::jsonb -- '["orders:qa:approve","orders:qa:reject"]'::jsonb
     ),
     (
       'packing',
       '{"statuses":["packing"],"additional_filters":{}}'::jsonb,
-      '["orders:packing:complete"]'::jsonb
+      '["orders:transition"]'::jsonb -- '["orders:packing:complete"]'::jsonb
     ),
     (
       'ready_release',
       '{"statuses":["ready"],"additional_filters":{}}'::jsonb,
-      '["orders:ready:release"]'::jsonb
+      '["orders:transition"]'::jsonb -- '["orders:ready:release"]'::jsonb
     ),
     (
       'driver_delivery',
       '{"statuses":["out_for_delivery"],"additional_filters":{}}'::jsonb,
-      '["orders:delivery:complete"]'::jsonb
+      '["orders:transition"]'::jsonb -- '["orders:delivery:complete"]'::jsonb
     ),
     (
       'new_order',
-      '{"statuses":["draft"],"additional_filters":{}}'::jsonb,
+      '{"statuses":["intake"],"additional_filters":{}}'::jsonb,
       '["orders:create"]'::jsonb
     ),
     (
@@ -162,13 +164,13 @@ BEGIN
     END,
     'additional_filters', '{}'::jsonb,
     'required_permissions', CASE p_screen
-      WHEN 'preparation' THEN to_jsonb(ARRAY['orders:preparation:complete']::TEXT[])
-      WHEN 'processing' THEN to_jsonb(ARRAY['orders:processing:complete']::TEXT[])
-      WHEN 'assembly' THEN to_jsonb(ARRAY['orders:assembly:complete']::TEXT[])
-      WHEN 'qa' THEN to_jsonb(ARRAY['orders:qa:approve', 'orders:qa:reject']::TEXT[])
-      WHEN 'packing' THEN to_jsonb(ARRAY['orders:packing:complete']::TEXT[])
-      WHEN 'ready_release' THEN to_jsonb(ARRAY['orders:ready:release']::TEXT[])
-      WHEN 'driver_delivery' THEN to_jsonb(ARRAY['orders:delivery:complete']::TEXT[])
+      WHEN 'preparation' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- orders:preparation:complete
+      WHEN 'processing' THEN to_jsonb(ARRAY['orders:processing']::TEXT[])
+      WHEN 'assembly' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- ARRAY['orders:assembly:complete']::TEXT[])
+      WHEN 'qa' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- ARRAY['orders:qa:approve', 'orders:qa:reject']::TEXT[])
+      WHEN 'packing' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- ARRAY['orders:packing:complete']::TEXT[])
+      WHEN 'ready_release' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- ARRAY['orders:ready:release']::TEXT[])
+      WHEN 'driver_delivery' THEN to_jsonb(ARRAY['orders:transition']::TEXT[]) -- ARRAY['orders:delivery:complete']::TEXT[])
       WHEN 'new_order' THEN to_jsonb(ARRAY['orders:create']::TEXT[])
       WHEN 'canceling' THEN to_jsonb(ARRAY['orders:cancel']::TEXT[])
       WHEN 'returning' THEN to_jsonb(ARRAY['orders:return']::TEXT[])

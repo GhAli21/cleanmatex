@@ -38,11 +38,18 @@ function paymentStatusVariant(
 ): 'success' | 'warning' | 'destructive' | 'secondary' | 'info' {
   switch (status) {
     case 'COMPLETED':
+    case 'CAPTURED':
+    case 'SETTLED':
       return 'success';
     case 'PENDING':
     case 'PROCESSING':
       return 'warning';
+    case 'AUTHORIZED':
+      return 'info';
     case 'FAILED':
+    case 'CANCELLED':
+    case 'VOIDED':
+    case 'REVERSED':
       return 'destructive';
     case 'REFUNDED':
       return 'info';
@@ -68,6 +75,13 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   // B30: cancel/fail-bounce back-office actions on a PENDING/PROCESSING leg.
   const canCancelPayment = useHasPermission('orders', 'cancel_payment');
   const canFailPayment = useHasPermission('orders', 'fail_payment');
+  // B10: void a never-effective leg (PENDING/PROCESSING/AUTHORIZED) or reverse
+  // a completed leg (COMPLETED/CAPTURED/SETTLED) as an error correction.
+  const canVoidPayment = useHasPermission('orders', 'void_payment');
+  const canReversePayment = useHasPermission('orders', 'reverse_payment');
+  // B08: manual re-sync for a dormant gateway sub-lifecycle leg (AUTHORIZED
+  // -> CAPTURED -> SETTLED) — reuses verify_payment, no new permission code.
+  const canCaptureSettlePayment = useHasPermission('orders', 'verify_payment');
   // B34: the initiate-refund action ships behind the order_fin_refund_ui flag
   // (disabled by default in every environment — Safety block) and the
   // existing orders:process_refund permission. Server enforcement remains
@@ -120,6 +134,9 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                     canVerifyPayment={canVerifyPayment}
                     canCancelPayment={canCancelPayment}
                     canFailPayment={canFailPayment}
+                    canVoidPayment={canVoidPayment}
+                    canReversePayment={canReversePayment}
+                    canCaptureSettlePayment={canCaptureSettlePayment}
                     td={td}
                     isRTL={isRTL}
                   />
@@ -292,9 +309,20 @@ interface PaymentRowProps {
   canVerifyPayment: boolean;
   canCancelPayment: boolean;
   canFailPayment: boolean;
+  canVoidPayment: boolean;
+  canReversePayment: boolean;
+  canCaptureSettlePayment: boolean;
   td: string;
   isRTL: boolean;
 }
+
+const VOIDABLE_STATUSES = new Set(['PENDING', 'PROCESSING', 'AUTHORIZED']);
+const REVERSIBLE_STATUSES = new Set(['COMPLETED', 'CAPTURED', 'SETTLED']);
+// B08 — dormant on every live path today (see migration 0426 header note),
+// but real/tested: an AUTHORIZED/CAPTURED gateway leg (once a future gateway
+// config creates one) can be manually re-synced here.
+const CAPTURABLE_STATUSES = new Set(['AUTHORIZED']);
+const SETTLEABLE_STATUSES = new Set(['CAPTURED']);
 
 function PaymentRow({
   payment,
@@ -303,6 +331,9 @@ function PaymentRow({
   canVerifyPayment,
   canCancelPayment,
   canFailPayment,
+  canVoidPayment,
+  canReversePayment,
+  canCaptureSettlePayment,
   td,
   isRTL,
 }: PaymentRowProps) {
@@ -321,6 +352,13 @@ function PaymentRow({
     isRealPayment && (payment.payment_status === 'PENDING' || payment.payment_status === 'PROCESSING');
   const canShowVerifyAction =
     canVerifyPayment && isRealPayment && payment.payment_status === 'PENDING';
+  // B10: void applies to never-effective legs (PENDING/PROCESSING/AUTHORIZED);
+  // reverse applies to completed legs (COMPLETED/CAPTURED/SETTLED).
+  const isVoidable = isRealPayment && VOIDABLE_STATUSES.has(payment.payment_status ?? '');
+  const isReversible = isRealPayment && REVERSIBLE_STATUSES.has(payment.payment_status ?? '');
+  // B08: manual re-sync when no webhook arrived for a gateway sub-lifecycle leg.
+  const isCapturable = isRealPayment && CAPTURABLE_STATUSES.has(payment.payment_status ?? '');
+  const isSettleable = isRealPayment && SETTLEABLE_STATUSES.has(payment.payment_status ?? '');
 
   async function handleConfirm() {
     setVerifying(true);
@@ -383,10 +421,8 @@ function PaymentRow({
       <td className={td}>{payment.gateway_reference ?? '—'}</td>
       <td className={td}>{new Date(payment.created_at).toLocaleString()}</td>
       <td className={td}>
-        {payment.payment_status === 'COMPLETED' ? (
-          <Badge variant="success">{t('verify.verified')}</Badge>
-        ) : (
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+            {payment.payment_status === 'COMPLETED' ? <Badge variant="success">{t('verify.verified')}</Badge> : null}
             {canShowVerifyAction ? (
               <>
                 <CmxButton
@@ -446,11 +482,30 @@ function PaymentRow({
                 {t('transitions.cancel')}
               </CmxButton>
             ) : null}
-            {!isTransitionable && !canShowVerifyAction ? (
+            {isVoidable && canVoidPayment ? (
+              <CmxButton variant="outline" size="sm" onClick={() => setTransitionAction('VOID')}>
+                {t('transitions.void')}
+              </CmxButton>
+            ) : null}
+            {isReversible && canReversePayment ? (
+              <CmxButton variant="destructive" size="sm" onClick={() => setTransitionAction('REVERSE')}>
+                {t('transitions.reverse')}
+              </CmxButton>
+            ) : null}
+            {isCapturable && canCaptureSettlePayment ? (
+              <CmxButton variant="outline" size="sm" onClick={() => setTransitionAction('CAPTURE')}>
+                {t('transitions.capture')}
+              </CmxButton>
+            ) : null}
+            {isSettleable && canCaptureSettlePayment ? (
+              <CmxButton variant="outline" size="sm" onClick={() => setTransitionAction('SETTLE')}>
+                {t('transitions.settle')}
+              </CmxButton>
+            ) : null}
+            {!isTransitionable && !canShowVerifyAction && !isVoidable && !isReversible && !isCapturable && !isSettleable ? (
               <span className="text-muted-foreground">—</span>
             ) : null}
-          </div>
-        )}
+        </div>
         {transitionAction ? (
           <PaymentTransitionDialog
             open
@@ -458,6 +513,7 @@ function PaymentRow({
             orderId={orderId}
             paymentId={payment.id}
             action={transitionAction}
+            paymentMethodCode={payment.payment_method_code}
             onTransitioned={() => { setTransitionAction(null); router.refresh(); }}
           />
         ) : null}

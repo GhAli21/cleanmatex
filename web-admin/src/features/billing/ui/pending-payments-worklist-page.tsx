@@ -16,7 +16,9 @@ import Link from 'next/link';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { PaymentTransitionDialog, type PaymentTransitionActionKind } from './payment-transition-dialog';
 
-const STATUS_OPTIONS = ['', 'PENDING', 'PROCESSING'] as const;
+const STATUS_OPTIONS = ['', 'PENDING', 'PROCESSING', 'AUTHORIZED', 'CAPTURED'] as const;
+
+const VOIDABLE_STATUSES = new Set(['PENDING', 'PROCESSING', 'AUTHORIZED']);
 
 interface WorklistRow {
   id: string;
@@ -30,11 +32,14 @@ interface WorklistRow {
   currency_code: string;
   reference: string | null;
   created_at: string;
+  ageDays: number;
 }
 
 interface WorklistCounts {
   pending: number;
   processing: number;
+  authorized: number;
+  captured: number;
   total: number;
 }
 
@@ -42,7 +47,9 @@ function StatusBadge({ status }: { status: string }) {
   const style =
     status === 'PROCESSING'
       ? { bg: 'bg-blue-100', text: 'text-blue-800' }
-      : { bg: 'bg-amber-100', text: 'text-amber-800' };
+      : status === 'AUTHORIZED' || status === 'CAPTURED'
+        ? { bg: 'bg-purple-100', text: 'text-purple-800' }
+        : { bg: 'bg-amber-100', text: 'text-amber-800' };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
       {status}
@@ -64,6 +71,12 @@ export function PendingPaymentsWorklistPage() {
   const canVerify = useHasPermissionCode('orders:verify_payment');
   const canCancel = useHasPermissionCode('orders:cancel_payment');
   const canFail = useHasPermissionCode('orders:fail_payment');
+  // B10: void a mistaken/duplicate PENDING/PROCESSING entry (no D009
+  // fallback — distinct from Cancel, which corrects a genuinely failed plan).
+  const canVoid = useHasPermissionCode('orders:void_payment');
+  // B08: manual re-sync for a dormant gateway sub-lifecycle leg — reuses
+  // verify_payment, no new permission code.
+  const canCaptureSettle = useHasPermissionCode('orders:verify_payment');
 
   const [counts, setCounts] = useState<WorklistCounts | null>(null);
   const [rows, setRows] = useState<WorklistRow[]>([]);
@@ -148,45 +161,85 @@ export function PendingPaymentsWorklistPage() {
     {
       accessorKey: 'created_at',
       header: t('columns.age'),
-      cell: ({ row }) => <span className="whitespace-nowrap text-xs">{formatDate(row.original.created_at)}</span>,
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-xs" title={formatDate(row.original.created_at)}>
+          <span className={row.original.ageDays >= 3 ? 'font-semibold text-amber-700' : undefined}>
+            {t('columns.ageDays', { count: row.original.ageDays })}
+          </span>
+        </span>
+      ),
     },
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1.5">
-          {canVerify ? (
-            <CmxButton
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setDialogState({ row: row.original, action: 'VERIFY' })}
-            >
-              {t('actions.verify')}
-            </CmxButton>
-          ) : null}
-          {canFail ? (
-            <CmxButton
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setDialogState({ row: row.original, action: 'FAIL_BOUNCE' })}
-            >
-              {t('actions.failBounce')}
-            </CmxButton>
-          ) : null}
-          {canCancel ? (
-            <CmxButton
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setDialogState({ row: row.original, action: 'CANCEL' })}
-            >
-              {t('actions.cancel')}
-            </CmxButton>
-          ) : null}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const status = row.original.payment_status;
+        const isPendingFamily = status === 'PENDING' || status === 'PROCESSING';
+        return (
+          <div className="flex flex-wrap gap-1.5">
+            {canVerify && isPendingFamily ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'VERIFY' })}
+              >
+                {t('actions.verify')}
+              </CmxButton>
+            ) : null}
+            {canFail && isPendingFamily ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'FAIL_BOUNCE' })}
+              >
+                {t('actions.failBounce')}
+              </CmxButton>
+            ) : null}
+            {canCancel && isPendingFamily ? (
+              <CmxButton
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'CANCEL' })}
+              >
+                {t('actions.cancel')}
+              </CmxButton>
+            ) : null}
+            {canVoid && VOIDABLE_STATUSES.has(status) ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'VOID' })}
+              >
+                {t('actions.void')}
+              </CmxButton>
+            ) : null}
+            {canCaptureSettle && status === 'AUTHORIZED' ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'CAPTURE' })}
+              >
+                {t('actions.capture')}
+              </CmxButton>
+            ) : null}
+            {canCaptureSettle && status === 'CAPTURED' ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogState({ row: row.original, action: 'SETTLE' })}
+              >
+                {t('actions.settle')}
+              </CmxButton>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -198,11 +251,13 @@ export function PendingPaymentsWorklistPage() {
       </div>
 
       {counts ? (
-        <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-md">
+        <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-2xl sm:grid-cols-5">
           {(
             [
               ['pending', counts.pending, 'text-amber-800'],
               ['processing', counts.processing, 'text-blue-800'],
+              ['authorized', counts.authorized, 'text-purple-800'],
+              ['captured', counts.captured, 'text-purple-800'],
               ['total', counts.total, 'text-slate-800'],
             ] as const
           ).map(([key, value, colorClass]) => (
@@ -252,6 +307,7 @@ export function PendingPaymentsWorklistPage() {
           orderId={dialogState.row.order_id}
           paymentId={dialogState.row.id}
           action={dialogState.action}
+          paymentMethodCode={dialogState.row.payment_method_code}
           onTransitioned={() => { setDialogState(null); void fetchWorklist(); }}
         />
       ) : null}

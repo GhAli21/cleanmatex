@@ -19,6 +19,10 @@ import { Prisma } from '@prisma/client';
  * | PAYMENT_VERIFIED          | order_payment | PAYMENT_VERIFIED           |
  * | PAYMENT_CANCELLED         | order_payment | PAYMENT_CANCELLED          |
  * | PAYMENT_FAILED            | order_payment | PAYMENT_FAILED             |
+ * | PAYMENT_VOIDED            | order_payment | PAYMENT_VOIDED             |
+ * | PAYMENT_REVERSED          | order_payment | PAYMENT_REVERSED           |
+ * | PAYMENT_CAPTURED          | order_payment | PAYMENT_CAPTURED           |
+ * | PAYMENT_SETTLED           | order_payment | PAYMENT_SETTLED            |
  *
  * Design invariants (PRD §22 + Phase 5 resume doc):
  *
@@ -82,6 +86,10 @@ const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
   OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
   OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED,
   OUTBOX_EVENT_TYPES.PAYMENT_FAILED,
+  OUTBOX_EVENT_TYPES.PAYMENT_VOIDED,
+  OUTBOX_EVENT_TYPES.PAYMENT_REVERSED,
+  OUTBOX_EVENT_TYPES.PAYMENT_CAPTURED,
+  OUTBOX_EVENT_TYPES.PAYMENT_SETTLED,
 ]);
 
 // ─── Public API ────────────────────────────────────────────────────────────
@@ -296,14 +304,16 @@ async function mapEventToHistoryRow(
     }
 
     case OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED:
-    case OUTBOX_EVENT_TYPES.PAYMENT_FAILED: {
-      // B30 — same aggregate/resolution shape as PAYMENT_VERIFIED: aggregate_id
-      // is the payment row id, resolved back to the order via
+    case OUTBOX_EVENT_TYPES.PAYMENT_FAILED:
+    case OUTBOX_EVENT_TYPES.PAYMENT_VOIDED:
+    case OUTBOX_EVENT_TYPES.PAYMENT_REVERSED:
+    case OUTBOX_EVENT_TYPES.PAYMENT_CAPTURED:
+    case OUTBOX_EVENT_TYPES.PAYMENT_SETTLED: {
+      // B30/B10/B08 — same aggregate/resolution shape as PAYMENT_VERIFIED:
+      // aggregate_id is the payment row id, resolved back to the order via
       // org_order_payments_dtl.order_id. previousStatus/newStatus come from
-      // the transition-service payload (always PENDING/PROCESSING -> the
-      // target status for this event type — no literal assumption needed
-      // here since both source statuses are possible, unlike verify's
-      // PENDING-only precedent).
+      // the transition-service payload — no literal assumption needed here
+      // since multiple source statuses are possible per action (D001).
       const paymentId = event.aggregate_id;
       const payment = await prisma.org_order_payments_dtl.findFirst({
         where: { id: paymentId, tenant_org_id: tenantOrgId },

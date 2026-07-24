@@ -199,6 +199,27 @@ export const REFUND_CONTEXTS = {
 export type RefundContext = (typeof REFUND_CONTEXTS)[keyof typeof REFUND_CONTEXTS];
 
 /**
+ * B22 — `org_order_refunds_dtl.refund_status` lifecycle registry. Every
+ * writer/reader previously used raw string literals with no shared
+ * registry (§44 finding) — consolidated here as the single source of
+ * truth, mirroring `chk_org_order_refunds_status` (migration 0404) exactly.
+ * `PENDING`/`FAILED`/`CANCELLED` are reserved by the same CHECK constraint
+ * for future terminal/failure paths — no current writer sets them yet, kept
+ * here so the registry stays byte-identical to the DB constraint (CRITICAL
+ * RULE 12), not because a writer needs them today.
+ */
+export const REFUND_STATUSES = {
+  PENDING: 'PENDING',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  PROCESSED: 'PROCESSED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+} as const;
+/** Derived union for refund_status values. */
+export type RefundStatus = (typeof REFUND_STATUSES)[keyof typeof REFUND_STATUSES];
+
+/**
  * Stable machine-readable codes for refund validation failures (B01).
  * Returned in API error payloads (and mapped to i18n labels client-side) so
  * callers never have to parse human-readable messages.
@@ -376,6 +397,13 @@ export const RECONCILIATION_CHECK_NAMES = {
   REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT: 'REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT',
   VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT: 'VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT',
 
+  // ─── B6 — BVM/operational-fact ↔ ERP-Lite GL posting trip-wires. WARNING
+  // severity (not BLOCKER): a missing posting attempt is an observability
+  // gap to investigate, not proof money moved incorrectly — the underlying
+  // operational fact (payment/refund) is already correct and unaffected.
+  ORDER_PAYMENT_ERP_POST_ATTEMPTED: 'ORDER_PAYMENT_ERP_POST_ATTEMPTED',
+  REFUND_ERP_POST_ATTEMPTED: 'REFUND_ERP_POST_ATTEMPTED',
+
   // ─── BVM Phase 4 — AR / refund link checks (PRD §22.1) ────────────────────
   INVOICE_PAYMENT_LINK_EXISTS: 'INVOICE_PAYMENT_LINK_EXISTS',
   REFUND_LINK_EXISTS: 'REFUND_LINK_EXISTS',
@@ -505,6 +533,24 @@ export const OUTBOX_EVENT_TYPES = {
    */
   PAYMENT_REVERSED: 'PAYMENT_REVERSED',
   /**
+   * B08 — emitted by transitionPaymentTx() after an AUTHORIZED REAL_PAYMENT
+   * gateway leg is flipped to CAPTURED (funds captured — first entry into
+   * the ORDER_PAYMENT_LIFECYCLE_STATUSES.COMPLETED bucket for this leg, so
+   * it also drives the deferred ERP-Lite PAYMENT_RECEIVED post, same as
+   * VERIFY). DB-mirror invariant: must match chk_history_action_type
+   * (migration 0426) exactly.
+   */
+  PAYMENT_CAPTURED: 'PAYMENT_CAPTURED',
+  /**
+   * B08 — emitted by transitionPaymentTx() after a CAPTURED REAL_PAYMENT
+   * gateway leg is flipped to SETTLED (funds settlement confirmed). The leg
+   * was already in the COMPLETED bucket as of CAPTURE, so SETTLE does NOT
+   * re-dispatch PAYMENT_RECEIVED (would double-post the same GL fact).
+   * DB-mirror invariant: must match chk_history_action_type (migration 0426)
+   * exactly.
+   */
+  PAYMENT_SETTLED: 'PAYMENT_SETTLED',
+  /**
    * Order-Fin remediation Phase 4 (FN-02). Emitted by
    * unwindOrderFinancialsOnCancel() after a cancelled order's financial
    * unwind commits: credit applications reversed to source ledgers, real
@@ -632,6 +678,16 @@ export type OrderPaymentLifecycleStatus =
  *               D009 fallback; cash-family legs additionally require an
  *               OPEN cash-drawer session to receive the compensating OUT
  *               movement — D004 Option B error-correction negation).
+ * CAPTURE (B08): AUTHORIZED -> CAPTURED (no reason required, mirrors VERIFY
+ *               — a positive gateway-confirmed progression, not an
+ *               exception). Driven by a verified gateway webhook or a
+ *               manual re-sync via the same `orders:verify_payment` code.
+ *               Dormant on every live path today — no gateway config in
+ *               this codebase creates an AUTHORIZED leg — reserved for
+ *               D001's approved auth-then-capture sub-lifecycle.
+ * SETTLE (B08): CAPTURED -> SETTLED (no reason required, mirrors VERIFY).
+ *               Same webhook/manual-resync origin as CAPTURE; also dormant
+ *               today for the same reason.
  */
 export const PAYMENT_TRANSITION_ACTIONS = {
   VERIFY: 'VERIFY',
@@ -639,6 +695,8 @@ export const PAYMENT_TRANSITION_ACTIONS = {
   FAIL_BOUNCE: 'FAIL_BOUNCE',
   VOID: 'VOID',
   REVERSE: 'REVERSE',
+  CAPTURE: 'CAPTURE',
+  SETTLE: 'SETTLE',
 } as const;
 /** Derived union for B30/B10 transition actions. */
 export type PaymentTransitionAction =
@@ -651,6 +709,8 @@ export const PAYMENT_TRANSITION_TARGET_STATUS: Record<PaymentTransitionAction, s
   FAIL_BOUNCE: 'FAILED',
   VOID: 'VOIDED',
   REVERSE: 'REVERSED',
+  CAPTURE: 'CAPTURED',
+  SETTLE: 'SETTLED',
 };
 
 /**
@@ -667,9 +727,11 @@ export const PAYMENT_TRANSITION_SOURCE_STATUSES: Record<PaymentTransitionAction,
   FAIL_BOUNCE: ['PENDING', 'PROCESSING'],
   VOID: ['PENDING', 'PROCESSING', 'AUTHORIZED'],
   REVERSE: ['COMPLETED', 'CAPTURED', 'SETTLED'],
+  CAPTURE: ['AUTHORIZED'],
+  SETTLE: ['CAPTURED'],
 };
 
-/** B10 — actions that require a mandatory operator reason (every action but VERIFY). */
+/** B08/B10 — actions that require a mandatory operator reason (every action but VERIFY/CAPTURE/SETTLE). */
 export const PAYMENT_TRANSITION_ACTIONS_REQUIRING_REASON: readonly PaymentTransitionAction[] = [
   'CANCEL',
   'FAIL_BOUNCE',

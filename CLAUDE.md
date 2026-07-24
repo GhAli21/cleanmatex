@@ -12,6 +12,7 @@
 | New feature | `/implementation` |
 | Dashboard route gating | `/refill-ui-access-contract-permissions` And `/rebuild-ui-access-contract` |
 | RBAC role create / update | `/update-rbac-role` |
+| Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
 
 **If the skill is not loaded — do not write. Load it, then write.**
 
@@ -107,6 +108,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Dashboard route/action/API access gating | `/refill-ui-access-contract-permissions`|
 | Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
 | Dashboard route gating (contract, page/API gates, inventories) | `/rebuild-ui-access-contract` |
+| Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
 
 **How to enforce:**
 - Plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -185,6 +187,7 @@ npm run build                      # Build (run after changes)
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. Use the `/navigation` skill to generate it. See CRITICAL RULE #10.
+- **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
 
 **See:** `/database` skill for complete rules
 
@@ -266,6 +269,7 @@ npm run build                      # Build (run after changes)
 - `/codebase-visualizer` — Interactive codebase tree
 - `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
 - `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
+- `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
 
 ---
 
@@ -314,7 +318,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `ui-access-contract-pattern.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.

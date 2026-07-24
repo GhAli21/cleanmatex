@@ -982,6 +982,12 @@ CREATE POLICY service_role_cmx_effective_perms_full_access ON cmx_effective_perm
 FOR ALL
 USING (auth.jwt()->>'role' = 'service_role');
 
+
+ALTER POLICY cmx_effective_permissions_select_tenant ON public.cmx_effective_permissions
+    USING ((tenant_org_id = current_tenant_id()) AND (EXISTS ( SELECT 1
+   FROM org_users_mst
+  WHERE ((org_users_mst.user_id = auth.uid()) AND (org_users_mst.tenant_org_id = current_tenant_id()) AND ((org_users_mst.role)::text ILIKE '%admin%'::text) AND (org_users_mst.is_active = true)))));
+  
 -- =========================
 -- VALIDATION
 -- =========================

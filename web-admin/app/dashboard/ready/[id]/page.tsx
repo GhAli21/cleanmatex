@@ -25,6 +25,7 @@ import {
   type ReadyOrder,
   type ReadyOrderStateResponse,
 } from '@features/orders/model/ready-order-types';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 /**
  *
@@ -256,6 +257,15 @@ export default function ReadyDetailPage() {
         </div>
 
         <div className="space-y-4">
+          {orderId ? (
+            <WorkflowActionBar
+              orderId={orderId}
+              screen="ready_release"
+              onActionSuccess={() => {
+                void loadOrder();
+              }}
+            />
+          ) : null}
           {/* Payment section */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold mb-3">{t('ready.paymentSection.title')}</h3>

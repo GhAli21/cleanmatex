@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { getOrderForPrep } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { FastItemizer } from '@features/workflow/ui/FastItemizer';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { Alert, AlertDescription, CmxButton } from '@ui/primitives';
 
 interface PreparationPageProps {
@@ -158,7 +159,10 @@ async function PreparationContent({
           </AlertDescription>
         </Alert>
       ) : (
-        <FastItemizer order={order} productCatalog={productCatalog} />
+        <>
+          <WorkflowActionBar orderId={order.id} screen="preparation" />
+          <FastItemizer order={order} productCatalog={productCatalog} />
+        </>
       )}
     </div>
   );

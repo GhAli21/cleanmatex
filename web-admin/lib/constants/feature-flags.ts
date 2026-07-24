@@ -362,6 +362,7 @@ export const FLAG_CATALOG: FlagCatalogEntry[] = [
   { flag_key: 'qa_workflow', flag_name: 'Quality Assurance', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'sorting_workflow', flag_name: 'Sorting Workflow', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
   { flag_key: 'workflow_automation', flag_name: 'Workflow Automation', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 0 },
+  { flag_key: 'workflow_engine_v2', flag_name: 'Workflow Engine V2 (Order Advance)', plan_binding_type: 'plan_bound', data_type: 'boolean', default_value: false, ui_group: 'Workflow', governance_category: 'tenant_feature', ui_display_order: 1 },
   { flag_key: 'tax_inclusive_pricing', flag_name: 'Tax Inclusive Pricing', plan_binding_type: 'independent', data_type: 'boolean', default_value: false, ui_group: 'Finance', governance_category: 'experimental', ui_display_order: 0 },
 ];
 
@@ -434,6 +435,7 @@ export const FEATURE_FLAG_KEYS = {
     WHATSAPP_RECEIPTS_ENABLED: 'whatsapp_receipts_enabled',
     WHITE_LABEL_ENABLED: 'white_label_enabled',
     WORKFLOW_AUTOMATION: 'workflow_automation',
+    WORKFLOW_ENGINE_V2: 'workflow_engine_v2',
     WORKFLOW_PER_SERVICE_CATEGORY: 'workflow_per_service_category',
     TENANT_PDF_INVOICES: 'tenant_pdf_invoices',
     TENANT_CUSTOM_DOMAIN: 'tenant_custom_domain',

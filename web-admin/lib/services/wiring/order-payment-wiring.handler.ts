@@ -2,8 +2,10 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { LINE_ROLE, WIRING_STATUS } from '@/lib/constants/voucher';
-import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { PAYMENT_METHODS, type PaymentMethodCode } from '@/lib/constants/payment';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
 
 /**
  * Resolves payment_status from the voucher line, falling back to payment_method_code.
@@ -115,6 +117,32 @@ export const orderPaymentWiringHandler: WiringHandler = {
 
     // Mutate in-memory so subsequent handlers in the same loop iteration see it
     line.order_payment_id = created.id;
+
+    // B6 — dispatch the ERP-Lite PAYMENT_RECEIVED / ORDER_SETTLED_CASH/CARD
+    // liability-side journal (D007) only for a leg that is actually
+    // COMPLETED here. A leg that starts PENDING/PROCESSING (bank transfer,
+    // check, gateway) has not cleared yet — posting "cash received" before
+    // the money actually moved would be premature; that leg's GL post is
+    // deferred to the B30 VERIFY transition instead (payment-transition.service.ts),
+    // mirroring how B32 defers the cash-drawer movement for the same reason.
+    // NON_BLOCKING policy: a posting failure never rolls back this
+    // already-committed payment fact — it only logs and leaves a posting
+    // exception for finance to resolve.
+    if (paymentStatus === 'COMPLETED') {
+      await safeDispatchAutoPost('payment_received', () =>
+        ErpLiteAutoPostService.dispatchPaymentReceivedInTransaction(tx, {
+          tenant_org_id: tenantOrgId,
+          payment_id: created.id,
+          order_id: line.order_id ?? null,
+          branch_id: line.branch_id ?? null,
+          currency_code: line.currency_code ?? 'SAR',
+          payment_date: now.toISOString(),
+          payment_method_code: line.payment_method_code as PaymentMethodCode,
+          paid_amount: Number(line.amount),
+          created_by: userId,
+        }),
+      );
+    }
 
     return created.id;
   },

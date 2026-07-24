@@ -14,6 +14,7 @@ import {
 import type {
   ErpLiteAutoPostDispatchResult,
   ErpLiteAutoPostPolicy,
+  ErpLiteCustomerAdvanceReceivedInput,
   ErpLiteExpenseAutoPostInput,
   ErpLiteGiftCardBonusGrantedInput,
   ErpLiteGiftCardExpiredInput,
@@ -25,6 +26,7 @@ import type {
   ErpLitePaymentAutoPostInput,
   ErpLitePettyCashAutoPostInput,
   ErpLiteRefundAutoPostInput,
+  ErpLiteWalletToppedUpInput,
 } from '@/lib/types/erp-lite-auto-post';
 import type { ErpLitePostingRequest } from '@/lib/types/erp-lite-posting';
 import { ErpLitePostingEngineService } from '@/lib/services/erp-lite-posting-engine.service';
@@ -414,6 +416,10 @@ export class ErpLiteAutoPostService {
       case PAYMENT_METHODS.PAYTABS:
       case PAYMENT_METHODS.STRIPE:
         return ERP_LITE_TXN_EVENT_CODES.ORDER_SETTLED_CARD;
+      // B6: ORDER_CREDIT_APPLICATION settlement spending an existing wallet
+      // balance — not a new tender, but still an order-settlement event.
+      case 'WALLET':
+        return ERP_LITE_TXN_EVENT_CODES.ORDER_SETTLED_WALLET;
       default:
         return ERP_LITE_TXN_EVENT_CODES.PAYMENT_RECEIVED;
     }
@@ -548,12 +554,32 @@ export class ErpLiteAutoPostService {
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
   }
 
+  /** B6 — in-transaction variant used by `finalizeStoredValueFundingIfReady`. */
+  static async dispatchGiftCardSoldInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteGiftCardSoldInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardSoldPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
   static async dispatchGiftCardRedeemed(
     input: ErpLiteGiftCardRedeemedInput
   ): Promise<ErpLiteAutoPostDispatchResult> {
     const tenantId = await this.resolveTenantId(input.tenant_org_id);
     const request = this.buildGiftCardRedeemedPostingRequest(input, tenantId);
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  /** B6 — in-transaction variant used by `redeemGiftCardTx`. */
+  static async dispatchGiftCardRedeemedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteGiftCardRedeemedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardRedeemedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
   }
 
   static async dispatchGiftCardExpired(
@@ -564,12 +590,32 @@ export class ErpLiteAutoPostService {
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
   }
 
+  /** B6 — in-transaction variant used by `expireGiftCard`. */
+  static async dispatchGiftCardExpiredInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteGiftCardExpiredInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardExpiredPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
   static async dispatchGiftCardRefunded(
     input: ErpLiteGiftCardRefundedInput
   ): Promise<ErpLiteAutoPostDispatchResult> {
     const tenantId = await this.resolveTenantId(input.tenant_org_id);
     const request = this.buildGiftCardRefundedPostingRequest(input, tenantId);
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  /** B6 — in-transaction variant used by `refundGiftCardTx`. */
+  static async dispatchGiftCardRefundedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteGiftCardRefundedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardRefundedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
   }
 
   static async dispatchGiftCardVoided(
@@ -580,12 +626,140 @@ export class ErpLiteAutoPostService {
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
   }
 
+  /** B6 — in-transaction variant used by `voidGiftCard`. */
+  static async dispatchGiftCardVoidedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteGiftCardVoidedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardVoidedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
   static async dispatchGiftCardBonusGranted(
     input: ErpLiteGiftCardBonusGrantedInput
   ): Promise<ErpLiteAutoPostDispatchResult> {
     const tenantId = await this.resolveTenantId(input.tenant_org_id);
     const request = this.buildGiftCardBonusGrantedPostingRequest(input, tenantId);
     return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  // ============================================================================
+  // B6 (D008) — Stored-value funding liability dispatch (wallet top-up / advance)
+  // ============================================================================
+
+  static async dispatchWalletToppedUp(
+    input: ErpLiteWalletToppedUpInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildWalletToppedUpPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchWalletToppedUpInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteWalletToppedUpInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildWalletToppedUpPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
+  static async dispatchCustomerAdvanceReceived(
+    input: ErpLiteCustomerAdvanceReceivedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildCustomerAdvanceReceivedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchCustomerAdvanceReceivedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteCustomerAdvanceReceivedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildCustomerAdvanceReceivedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
+  /**
+   * WALLET_TOPPED_UP accounting (D008): DR Cash/Clearing (per tender leg's
+   * payment method), CR Wallet Liability (WALLET_CLEARING — the same usage
+   * code ORDER_SETTLED_WALLET debits on spend, so the liability nets to zero
+   * across fund→spend).
+   */
+  static buildWalletToppedUpPostingRequest(
+    input: ErpLiteWalletToppedUpInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.WALLET_TOPPED_UP,
+      source_module_code: 'STORED_VALUE',
+      source_doc_type_code: 'SV_FUNDING_VOUCHER',
+      source_doc_id: input.voucher_id,
+      source_doc_no: null,
+      journal_date: input.funded_date,
+      posting_date: input.funded_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        customer_id: input.customer_id,
+        payment_method_code: input.payment_method_code,
+        source_context: 'wallet_topped_up',
+        payload_version: 'sv-v1',
+      },
+    };
+  }
+
+  /**
+   * CUSTOMER_ADVANCE_RECEIVED accounting (D008): DR Cash/Clearing (per
+   * tender leg's payment method), CR Customer Advance Liability.
+   */
+  static buildCustomerAdvanceReceivedPostingRequest(
+    input: ErpLiteCustomerAdvanceReceivedInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.CUSTOMER_ADVANCE_RECEIVED,
+      source_module_code: 'STORED_VALUE',
+      source_doc_type_code: 'SV_FUNDING_VOUCHER',
+      source_doc_id: input.voucher_id,
+      source_doc_no: null,
+      journal_date: input.funded_date,
+      posting_date: input.funded_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        customer_id: input.customer_id,
+        payment_method_code: input.payment_method_code,
+        source_context: 'customer_advance_received',
+        payload_version: 'sv-v1',
+      },
+    };
   }
 
   // ============================================================================

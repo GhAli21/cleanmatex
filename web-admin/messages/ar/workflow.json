@@ -307,5 +307,16 @@
     "goToPreparation": "الانتقال إلى التحضير",
     "goToProcessing": "الانتقال إلى المعالجة",
     "orderCreatedSuccess": "تم إنشاء الطلب {orderNo} بنجاح"
+  },
+  "engine": {
+    "actionBarLabel": "إجراءات سير العمل",
+    "actionBarTitle": "الإجراءات المتاحة",
+    "statusLabel": "الحالة: {status}",
+    "loading": "جاري تحميل الإجراءات…",
+    "noActionsTitle": "لا توجد إجراءات",
+    "noActions": "لا تتوفر إجراءات سير عمل لهذا الطلب على هذه الشاشة.",
+    "canaryOff": "محرك سير العمل V2 متوقف لهذا المستأجر. استخدم إجراءات الشاشة القديمة.",
+    "actionSuccess": "تم تنفيذ الإجراء",
+    "actionFailed": "فشل الإجراء"
   }
 }

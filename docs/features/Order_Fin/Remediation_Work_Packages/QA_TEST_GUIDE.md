@@ -1,7 +1,7 @@
 # Order Fin Remediation — Manual QA Test Guide
 
-**Living document — updated after every implemented package.** Last update: 2026-07-20.
-**Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header)**. Run on **Preview** (never straight to production).
+**Living document — updated after every implemented package.** Last update: 2026-07-24 (B22).
+**Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22**. Run on **Preview** (never straight to production).
 
 > **How to use:** work top-to-bottom. Each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
 
@@ -12,7 +12,7 @@
 | Item | Value / action |
 |---|---|
 | Environment | Preview deployment (post-commit) |
-| Migrations applied | up to **0415**; **`0418` (B9) is authored and STOP-AND-WAIT, not yet applied** — Section 16 cannot be tested until the owner applies it. **Migration 0410 (B7), 0411 (B27), 0412 (B3), and 0415 (B30/B32) are all APPLIED (owner, 2026-07-20/2026-07-23) and verified via remote DB.** Section 15's permission codes and worklist nav entry are live and ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON. |
+| Migrations applied | up to **0429** — all of 0410 (B7), 0411 (B27), 0412 (B3), 0415 (B30/B32), 0418 (B9), 0421 (B10), 0424 (B6), 0426 (B8), and 0429 (B19) are **APPLIED (owner) and verified via remote DB**. Sections 15–20 (B30/B32, B9, B10, B6, B8, B19) are all migration-ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON; Section 16 (B9) needs `order_fin_refund_execution` ON; Section 19 (B8) has no UI path yet — see its own header (no live gateway connected). |
 | Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). `order_fin_refund_execution` = **ON** to exercise B9's real CASH/ORIGINAL_METHOD execution (OFF to confirm record-only stays unchanged — see §16). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* **B30/B32 ship unconditionally, no feature flag.** |
 | Permissions | tester needs the refund permissions (initiate/approve/process) for B34, and `cash_drawer:approve_variance` for B16 §6.5–6.6 and §12.1 (seeded by **B27**, migration 0411, APPLIED). For §12, prepare a **third** login with none of the new B27 codes granted, to exercise the denial paths. For §15 (B30/B32), the tester also needs `orders:pending_payments_view` / `orders:cancel_payment` / `orders:fail_payment` (seeded by migration **0415**, APPLIED); reuse the §12 no-new-codes login to exercise the denial paths there too. |
 | Users | prepare **two** logins: an **initiator/cashier** and a **supervisor/approver** (different users — needed for maker-checker in B34 and B16). |
@@ -312,6 +312,98 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 17. B10 — Payment reversal & void
+
+**What changed:** two new back-office actions extend the existing VERIFY/CANCEL/FAIL-BOUNCE trio. **Void** erases a mistaken/duplicate PENDING/PROCESSING/AUTHORIZED entry with just a reason (no balance-routing classification — distinct from Cancel, which is for a genuinely-failed payment plan). **Reverse** corrects an already-COMPLETED leg as an error: for a CASH leg, the accountant must pick a currently-open cash-drawer session, and the system records a real compensating cash-out movement so the drawer's expected cash reflects the correction; for card/bank/check legs, only the status flips (no drawer/gateway effect — no gateway integration exists yet). Both actions require permission (`orders:void_payment` / `orders:reverse_payment`) and are **not** behind a feature flag. Migration **0421 must be applied first** (adds the audit columns, the `PAYMENT_REVERSAL` movement type, and the two new permission codes).
+
+> Where: **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) for Void on a worklist row; any order's **Financial → Payments & Credits** tab for Void (pending rows) and Reverse (completed rows).
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|17.1| Create an order with a PENDING leg (e.g. CHECK) → open **Pending Payments** worklist → click **Void** on that row, leave the reason blank, try to submit | Submit button stays disabled until a reason is typed (no classification field appears — unlike Cancel/Fail-Bounce) | |
+|17.2| Same row, type reason "duplicate entry — wrong order" → submit | Leg flips to VOIDED and disappears from the worklist; open the order's Financial tab — outstanding has reopened by the leg amount, `payment_type_code` is **unchanged** (no D009 reclassification for Void) | |
+|17.3| Create a second PENDING leg on an order → open the order's **Financial → Payments & Credits** tab | Both **Cancel Payment** and **Void** buttons appear side by side on the row (in addition to Fail-Bounce) — this is intentional, not a duplicate bug | |
+|17.4| Create a normal CASH sale (completed, cash-drawer session open) → open the order's Financial tab → find that COMPLETED cash row | A new **Reverse** button appears next to the "Verified" badge (previously no action showed there) | |
+|17.5| Click **Reverse** on that cash row, type a reason, but do not pick a cash-drawer session | Confirm button stays disabled until an open session is selected | |
+|17.6| Select the open session → confirm | Payment flips to REVERSED; open that drawer session's detail screen (**Internal Finance And Operations → Cash Drawers → [drawer] → session detail**) — expected cash has **decreased** by the payment amount (a real compensating cash-out was recorded); back on the order's Financial tab, outstanding has reopened (PAID → due) | |
+|17.7| Repeat 17.4–17.6 for a **CHECK** or **CARD** completed payment | Reverse dialog shows only the reason field (no cash-drawer session picker); confirming flips status to REVERSED and reopens outstanding, but the cash-drawer session detail screen is unaffected (no movement created — card/check reversal has no physical drawer effect) | |
+|17.8| Try Reverse on a CASH payment when **no cash-drawer session is open anywhere** | Dialog shows "no open cash-drawer session" instead of a dropdown; confirm stays disabled | |
+|17.9| Log in as the §12 no-new-codes login → open an order with both a PENDING and a COMPLETED leg | Neither **Void** nor **Reverse** renders for either row (each independently gated by its own permission) | |
+|17.10| Retry the exact same Void or Reverse submission twice quickly (e.g. double-click) | Second submission is a no-op replay (idempotency key reused for the same dialog-open attempt) — no duplicate audit rows, no error shown | |
+|17.11| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 17.1–17.7 | Passes — no `VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT` issues (Void never carries a movement) and no `REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT` issues (every REVERSED cash leg from 17.6 has its compensating movement) | |
+|17.12| A payment leg that was originally wired to a BVM voucher at settlement (e.g. via the collect-payment or submit-order flow) → Reverse it | Payment-side effects (status, snapshot, drawer) work correctly, but the linked voucher (open it via the row's "Open Voucher" link) remains POSTED/un-reversed — **this is the known, documented B13 gap**; do not treat the voucher staying POSTED as a B10 bug | |
+
+---
+
+## 18. B6 — ERP order-to-cash event wiring
+
+**What changed:** payment/refund/gift-card/wallet-topup/advance-receipt transactions now attempt to post a real ERP-Lite GL journal (previously the dispatchers existed but nothing ever called them — money moved, the general ledger never knew). This is a **backend-only** package with no new screen — the existing ERP-Lite Posting Audit and Exceptions screens are the observation points. Requires the tenant to have **ERP-Lite enabled** (`erp_lite_enabled` feature flag) — for a tenant without it, nothing in this section applies (every dispatch is a routine, logged no-op). Migration **0424 must be applied first** (flips 5 already-live policies to NON_BLOCKING and seeds 7 new event codes/mapping rules/policies).
+
+> Where: **ERP-Lite → Posting Audit** (`/dashboard/erp-lite/posting-audit`) to see attempted journal postings; **ERP-Lite → Exceptions** (`/dashboard/erp-lite/exceptions`) for failed/skipped attempts; **ERP-Lite → Usage Mapping** (`/dashboard/erp-lite/usage-maps`) to map the 4 new usage codes (GIFT_CARD_LIABILITY, CUSTOMER_ADVANCE_LIABILITY, BREAKAGE_INCOME, VOID_RECOVERY) to real ledger accounts before expecting a real post (without a mapping, the attempt still happens but lands as an exception — that's expected, not a bug).
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|18.1| Ensure `erp_lite_enabled` is ON for the test tenant → create a normal order and settle it with **CASH** | Open **ERP-Lite → Posting Audit** — a new posting-log row appears for this order's payment (`ORDER_SETTLED_CASH`), status POSTED (if the tenant already maps `CASH_MAIN`/`ACCOUNTS_RECEIVABLE`) or a new row in **Exceptions** with reason `ACCOUNT_NOT_FOUND`/`USAGE_MAPPING_NOT_FOUND` (if not yet mapped) — either way, an attempt is now visible where before there was silently nothing | |
+|18.2| Repeat 18.1 with a **CARD** settlement | Posting-audit row for `ORDER_SETTLED_CARD` appears | |
+|18.3| Create a PENDING leg (e.g. CHECK/BANK_TRANSFER) → **Pending Payments** worklist → **Verify** it (per §15) | No posting-audit row appears at leg creation (money hasn't cleared yet); a row appears only after Verify — confirms the deferred post fires at the correct moment, not prematurely | |
+|18.4| Process a refund (any destination — CASH/ORIGINAL_METHOD/WALLET/CREDIT_NOTE, per §16) | A `REFUND_ISSUED` posting-audit row appears regardless of which destination was chosen — one event covers all four | |
+|18.5| Sell a gift card (funded, tender-backed — via the gift-card sell dialog behind `order_fin_sv_funding_capture`, per §14) | A `GIFT_CARD_SOLD` posting-audit row appears | |
+|18.6| Redeem that gift card against an order, then refund the redemption, then (as admin) void the remaining balance | `GIFT_CARD_REDEEMED`, `GIFT_CARD_REFUNDED`, `GIFT_CARD_VOIDED` posting-audit rows appear respectively | |
+|18.7| Top up a customer wallet or issue a customer advance (funded, tender-backed, per §14) | `WALLET_TOPPED_UP` / `CUSTOMER_ADVANCE_RECEIVED` posting-audit rows appear | |
+|18.8| Spend an existing wallet balance to settle an order (order payment method = WALLET) | An `ORDER_SETTLED_WALLET` posting-audit row appears | |
+|18.9| Turn `erp_lite_enabled` **OFF** for the tenant → repeat any of 18.1–18.8 | No posting-audit row and no exception row appears — the dispatch is a silent, routine no-op (this is intentional: ERP-Lite is opt-in) | |
+|18.10| With ERP-Lite ON but the tenant hasn't mapped `GIFT_CARD_LIABILITY` yet → sell a gift card | The order/sale itself completes normally (no error shown to the cashier); an exception row appears in **ERP-Lite → Exceptions** with reason `USAGE_MAPPING_NOT_FOUND` — confirms NON_BLOCKING: a missing GL mapping never blocks a real sale | |
+|18.11| **Internal Finance And Operations → Reconciliation**, run a reconciliation covering the dates from 18.1–18.8 | Passes — no `ORDER_PAYMENT_ERP_POST_ATTEMPTED`/`REFUND_ERP_POST_ATTEMPTED` warnings (every payment/refund in the window has at least one posting-log attempt row, regardless of whether that attempt succeeded or landed as an exception) | |
+
+**Automated gates at build time (2026-07-24, B6):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `erp-lite-auto-post.service.test.ts` +9 new · `erp-lite-auto-post.util.test.ts` new, 6 tests (incl. `safeDispatchAutoPost` never-throws guarantee) · `reconciliation/erp-lite-checks.test.ts` new, 7 tests · full jest **227/227 suites, 2197/2197 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0). **Migration 0424 APPLIED (owner, 2026-07-24) to local + remote, verified** — §18 above is ready to run once deployed to Preview.
+
+---
+
+## 19. B8 — Gateway lifecycle integration
+
+**What changed:** a new public webhook route (`POST /api/v1/payments/gateway/[gatewayCode]/webhook`) can now drive a gateway payment leg's status automatically instead of requiring a manual Verify click. **No real payment gateway (Stripe/HyperPay/PayTabs) is connected in this environment** — only catalog rows exist — so there is no live vendor sending real webhooks to test against yet. This section is therefore testable only via direct HTTP calls (curl/Postman) against the generic normalized envelope, not through the checkout UI. Two new manual-resync actions (**Capture**, **Settle**) also appear on the Pending Payments worklist and the order Financial tab, but only for a leg already at AUTHORIZED/CAPTURED status — **no live path creates such a leg today**, so these buttons will not appear during ordinary testing (this is expected — see the Bxx file's "Dormancy note").
+
+> Where: **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) — health tiles now show Authorized/Captured counts (will read 0 until a real auth-then-capture gateway is connected); **Orders → [any order] → Financial tab** for the per-leg badges.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|19.1| Create a normal order, settle with a **gateway-configured payment method** (any `payment_method_code` with a non-null `gateway_code` in `org_payment_methods_cf`) → leg is created PROCESSING | Order Financial tab shows the leg as PROCESSING (info badge), same as before this package | |
+|19.2| In the tenant's `org_payment_methods_cf.gateway_config` for that method/gateway, add `{"webhook_secret": "test-secret-123"}` (direct DB edit — no UI for this yet, intentionally, see Bxx Delivery-surfaces) → note the leg's `gateway_transaction_id` (or set one manually for this test) | — | |
+|19.3| POST a signed generic envelope to the webhook: `{"eventId":"evt-test-1","eventType":"PAYMENT_SUCCEEDED","gatewayTransactionId":"<the leg's value>"}`, header `x-gateway-signature: sha256=<hmac-sha256 of the exact body with "test-secret-123">`, to `/api/v1/payments/gateway/<gatewayCode>/webhook` | 200 response `{"success":true,"data":{"status":"TRANSITIONED"}}`; the order Financial tab leg flips to COMPLETED without ever clicking Verify | |
+|19.4| Re-POST the exact same body+signature a second time | 200 response `{"status":"DUPLICATE"}`; no second history row, no double-counting | |
+|19.5| POST the same envelope again but with `eventId` changed and the signature computed against a **wrong** secret | 401 response `{"success":false,"error":"REJECTED_SIGNATURE"}`; leg status unchanged | |
+|19.6| POST an envelope whose `gatewayTransactionId` matches no leg | 200 response `{"status":"UNMATCHED"}` (ack, no effect) — check server logs for the "no matching payment leg found" warning | |
+|19.7| POST a `PAYMENT_FAILED` event for a fresh PROCESSING leg (new `eventId`, valid signature) | Leg flips to FAILED; **Pending Payments** worklist shows the fallback classification recorded as `RETRY_TENDER` if you open the leg's history (D009 auto-default for a gateway failure before confirmation) | |
+|19.8| Confirm no Capture/Settle buttons appear anywhere for ordinary PENDING/PROCESSING/COMPLETED legs | Buttons are absent — they only render for AUTHORIZED/CAPTURED statuses, which nothing in this environment currently creates (expected, documented dormancy) | |
+
+**Automated gates at build time (2026-07-24, B8):** tsc clean · eslint 0 (project-wide) · `gateway-webhook-adapter.test.ts` new, 12 tests (parse + HMAC signature verify: valid/wrong-secret/tampered-body/missing-header/malformed-header/no-secret) · `gateway-webhook.service.test.ts` new, 12 tests (gateway-not-found, malformed payload, duplicate-event, unmatched-leg, signature-rejected ×2, VERIFY happy path, CAPTURE happy path on a dormant AUTHORIZED leg, FAIL_BOUNCE+D009-RETRY_TENDER, unsupported-outcome, replay-after-duplicate) · `payment-transition.service.test.ts` +6 new (CAPTURE/SETTLE legality, null-actorId webhook path, idempotent no-op) alongside all pre-existing VERIFY/CANCEL/FAIL_BOUNCE/VOID/REVERSE suites unchanged and still passing · targeted jest **66/66** across the 4 touched suites · full jest **230/230 suites, 2228/2228 tests — zero known failures** · `npm run build` ✓ (exit 0) · `check:i18n` ✓. **Migration 0426 APPLIED (owner, 2026-07-24) to local + remote, verified via remote DB** — §19 above is testable via direct HTTP calls now (no UI path exists yet since no live gateway is connected).
+
+---
+
+## 20. B19 — Expiry and idempotency jobs
+
+**What changed:** gift-card expiry now writes a real ledger row + attempts an ERP-Lite GL post (previously a competing raw cron silently flipped status only — retired in this package's migration). Two brand-new jobs also start running: idempotency-key cleanup (nothing existed before) and ERP posting-retry (logic existed, nothing ever called it). A new **Scheduled Jobs** section appears on the outbox ops screen, and a new **Retry** button appears on the Exception Workbench. The Pending Payments worklist's Age column now shows elapsed days instead of a raw timestamp. **Wallet and loyalty points expiry are NOT implemented** — documented gaps, not silent omissions (see B19's own Completion evidence for why).
+
+> Where: **Internal Finance And Operations → Outbox Monitor** (`/dashboard/internal_fin/outbox`) — scroll below the event table for the new **Scheduled Jobs** card; **ERP-Lite → Exceptions** (`/dashboard/erp-lite/exceptions`) for the new Retry button; **Internal Finance And Operations → Pending Payments** (`/dashboard/internal_fin/pending-payments`) for the reworked Age column.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|20.1| **Outbox Monitor** → scroll to **Scheduled Jobs** | Three rows: Gift-Card Expiry (02:00), Idempotency-Key Cleanup (03:00), ERP Posting Retry (hourly :15) — each shows "Never run" until the migration is applied and the first schedule fires (or a manual run is triggered) | |
+|20.2| Click **Run Now** on Gift-Card Expiry (requires `finance_jobs:run`) | Row flips to a green SUCCESS badge with a processed/failed count within a few seconds; create a test gift card with `expiry_date` in the past first if you want a non-zero processed count — check the card's detail page shows status EXPIRED and a new EXPIRE ledger line | |
+|20.3| Click **Run Now** on Idempotency-Key Cleanup | Row flips SUCCESS with a processed count (0 is a valid, expected result if nothing is past its retention window yet) | |
+|20.4| Click **Run Now** on ERP Posting Retry with no eligible exceptions | Row flips SUCCESS with `0 processed, 0 failed` — a clean no-op, not an error | |
+|20.5| Without `finance_jobs:run` (use the §12 no-new-codes login) | Run Now buttons are absent entirely (not disabled — hidden) | |
+|20.6| Without `finance_jobs:view` | The whole Scheduled Jobs section does not render at all | |
+|20.7| **ERP-Lite → Exceptions**, find any open exception (any type) | A **Retry** button appears in its row | |
+|20.8| Click **Retry** on an exception whose underlying cause you have NOT fixed (e.g. still `ACCOUNT_NOT_FOUND`) | The retry attempts and fails again (expected — a config problem never self-heals); exception stays open with the fresh failure logged in Posting Audit | |
+|20.9| Fix the underlying cause (e.g. add the missing usage mapping in **ERP-Lite → Usage Mapping**), then click **Retry** on the same exception | The row disappears from the open-exceptions list (status flipped to RETRIED); a new POSTED row appears in **ERP-Lite → Posting Audit** | |
+|20.10| **Pending Payments** worklist, any row | Age column shows "X days" (or "Today") instead of a date/time string; hover shows the exact timestamp as a tooltip; rows 3+ days old render the age in bold amber | |
+|20.11| **Pending Payments** worklist, filter by status = **Authorized** or **Captured** | Health tiles and rows still work correctly (empty today — see B08's dormancy note; this just confirms nothing broke when B19 extended the same worklist query) | |
+
+**Automated gates at build time (2026-07-24, B19):** tsc clean (3 pre-existing unrelated errors, none in any B19 file) · eslint 0 (project-wide) · `finance-jobs.service.test.ts` new, 10 tests · `gift-card-service.test.ts` +7 new (`expireGiftCard`/`expireGiftCards`) alongside all 46 pre-existing cases unchanged · `erp-lite-exceptions-retry.service.test.ts` new, 2 tests · targeted jest 65/65 across the 3 touched/new suites · full jest **232/232 suites, 2243/2243 tests — zero known failures** · `npm run build` ✓ (exit 0, 3 new routes confirmed compiled) · `check:i18n` ✓ · `check:ui-access-contract --wire` PASS (`/dashboard/internal_fin/outbox`, `/dashboard/erp-lite/exceptions`) · `sync:ui-access-contract` PASS (144/144, drift 0). **Migration 0429 APPLIED (owner, 2026-07-24) to local + remote, verified via remote DB** — §20 above is ready to run once deployed to Preview.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -332,10 +424,17 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B3 | migration 0412 applied; backend + tender-step UI implemented, not yet deployed to Preview | | |
 | B30 | migration 0415 applied (owner, 2026-07-23); implemented, not yet deployed to Preview | | |
 | B32 | migration 0415 applied (owner, 2026-07-23, shared with B30); implemented, not yet deployed to Preview | | |
-| B9 | blocked on migration 0418 apply | | |
+| B9 | migration 0418 applied (owner) and committed (1d31887e); implemented, not yet deployed to Preview | | |
+| B10 | migration 0421 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B6 | migration 0424 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B8 | migration 0426 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B19 | migration 0429 applied (owner, 2026-07-24), verified via remote DB; implemented, not yet deployed to Preview | | |
+| B22 | no migration (pure TS refactor, zero behavior change) — build gate currently blocked by unrelated owner WIP (see B22 Completion evidence); no new manual QA scenarios (existing refund-list scenarios already cover the touched screen; a smoke-check that Refunds list badges/actions still render correctly on Preview is sufficient) | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 
 **Automated gates at build time (2026-07-23, B30/B32):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `payment-transition.service.test.ts` 19/19 · `cash-drawer-wiring.handler.test.ts` 7/7 · reconciliation check-modules +2 · planner/collect-payment investigation pinning tests +2 · full jest **222/222 suites, 2135/2135 tests — zero known failures** (one transient Windows Prisma query-engine file-lock flake on the first run, self-resolved on retry, not a code issue) · check:i18n ✓ · build ✓ (exit 0) · check:ui-access-contract --wire PASS · sync:ui-access-contract PASS (144/144 routes, drift 0) · check:platform-info-inventories PASS. **Migration 0415 APPLIED (owner, 2026-07-23) to local + remote, verified via remote DB** — B30/B32's permission codes, audit columns, and worklist nav entry are all live; §15 above is ready to run once deployed to Preview.
 
-**Automated gates at build time (2026-07-23, B9):** tsc clean (same pre-existing unrelated errors) · eslint 0 · `order-refund-b9-execution.test.ts` 8/8 · `order-refund-cash-drawer-wiring.handler.test.ts` 9/9 · reconciliation check-modules +4 · all 31 pre-existing `refund-b01-matrix.test.ts` scenarios re-run and pass unchanged (zero regression to the flag-off path) · full jest **224/224 suites, 2156/2156 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0). Migration **0418 is authored (STOP-AND-WAIT)** — §16 above is not testable until the owner applies it.
+**Automated gates at build time (2026-07-23, B9):** tsc clean (same pre-existing unrelated errors) · eslint 0 · `order-refund-b9-execution.test.ts` 8/8 · `order-refund-cash-drawer-wiring.handler.test.ts` 9/9 · reconciliation check-modules +4 · all 31 pre-existing `refund-b01-matrix.test.ts` scenarios re-run and pass unchanged (zero regression to the flag-off path) · full jest **224/224 suites, 2156/2156 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0). Migration 0418 was subsequently **APPLIED (owner)** and committed together with B10's session — §16 above is now runnable once deployed to Preview.
+
+**Automated gates at build time (2026-07-24, B10):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `payment-transition.service.test.ts` +17 new (VOID/REVERSE legality, idempotency-payload, cash-session-required/not-open, compensating-movement lineage, orphan-movement trip-wire) · reconciliation check-modules +5 (`VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT` ×2, `REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT` ×3) · full jest **224/224 suites, 2173/2173 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0) · check:ui-access-contract --wire PASS (`/dashboard/internal_fin/pending-payments`, `/dashboard/orders/[id]`) · sync:ui-access-contract PASS (144/144 routes, drift 0). Migration **0421 is authored (STOP-AND-WAIT)** — §17 below is not testable until the owner applies it.

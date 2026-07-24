@@ -37,13 +37,19 @@ export interface ErpLitePostingDimensions {
  */
 export interface ErpLitePostingMeta {
   created_by?: string | null;
-  payment_method_code?: PaymentMethodCode | 'WALLET' | null;
+  // B6: widened for refund destinations (WALLET/CREDIT_NOTE/ORIGINAL_METHOD)
+  // and the ORDER_CREDIT_APPLICATION wallet-settlement case — metadata only,
+  // never used for account resolution (see ErpLiteRefundAutoPostInput's own
+  // doc comment for why).
+  payment_method_code?: PaymentMethodCode | 'WALLET' | 'CREDIT_NOTE' | 'ORIGINAL_METHOD' | null;
   source_context?: string | null;
   payload_version?: string | null;
   /** Optional diagnostics / linkage (auto-post, order workflows) */
   issue_type?: string | null;
   order_id?: string | null;
   invoice_id?: string | null;
+  /** B6 — stored-value funding events (wallet top-up / customer advance). */
+  customer_id?: string | null;
 }
 
 /**
@@ -140,6 +146,8 @@ export interface ErpLitePostingExecuteResult extends ErpLitePostingPreviewResult
  */
 export interface ErpLiteRetryParams {
   posting_log_id: string;
+  /** B19 — explicit tenant for a cross-tenant scheduled retry sweep (no session to derive it from). Interactive callers omit this. */
+  tenant_org_id?: string;
 }
 
 /**

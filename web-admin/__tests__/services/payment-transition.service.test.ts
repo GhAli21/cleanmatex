@@ -391,6 +391,7 @@ describe('transitionPaymentTx — D001 legality + D010 idempotency', () => {
       fallbackClassification: null,
       reclassifiedPaymentType: false,
       deferredCashMovementCreated: false,
+      compensatingCashMovementCreated: false,
     };
     mockIdempotencyFindFirst.mockResolvedValue({
       response_cache: {
@@ -407,6 +408,7 @@ describe('transitionPaymentTx — D001 legality + D010 idempotency', () => {
       action: 'VERIFY',
       reason: null,
       fallbackClassification: null,
+      cashDrawerSessionId: null,
     });
     mockIdempotencyFindFirst.mockResolvedValue({
       response_cache: { payload_hash: requestHash, result: cachedResult },
@@ -442,6 +444,358 @@ describe('transitionPaymentTx — D001 legality + D010 idempotency', () => {
         idempotencyKey: 'conflicting-key',
       }),
     ).rejects.toThrow('IDEMPOTENCY_CONFLICT');
+    expect(mockPaymentUpdateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('transitionPaymentTx — VOID (B10)', () => {
+  it('requires a non-empty reason but no fallback classification', async () => {
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'VOID',
+        idempotencyKey: 'key-void-noreason',
+      }),
+    ).rejects.toThrow('TRANSITION_REASON_REQUIRED');
+  });
+
+  it('flips PENDING -> VOIDED, stamps voided_by/at, writes no fallback_classification, emits PAYMENT_VOIDED', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow()]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VOID',
+      reason: 'duplicate entry — wrong order',
+      idempotencyKey: 'key-void-1',
+    });
+
+    expect(result).toMatchObject({ previousStatus: 'PENDING', newStatus: 'VOIDED', flipped: true });
+    expect(mockPaymentUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          payment_status: 'VOIDED',
+          voided_by: USER_ID,
+          transition_reason: 'duplicate entry — wrong order',
+          fallback_classification: null,
+        }),
+      }),
+    );
+    expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
+      event_type: OUTBOX_EVENT_TYPES.PAYMENT_VOIDED,
+    });
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('is legal from AUTHORIZED (D001 never-effective set)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'AUTHORIZED' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VOID',
+      reason: 'mistaken auth',
+      idempotencyKey: 'key-void-auth',
+    });
+
+    expect(result.newStatus).toBe('VOIDED');
+  });
+
+  it('rejects ILLEGAL_TRANSITION for a COMPLETED row (needs REVERSE, not VOID)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'COMPLETED' })]);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'VOID',
+        reason: 'test',
+        idempotencyKey: 'key-void-illegal',
+      }),
+    ).rejects.toThrow('ILLEGAL_TRANSITION');
+  });
+
+  it('warns (does not auto-reverse) when an orphan movement unexpectedly exists', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow()]);
+    mockMovementFindFirst.mockResolvedValue({ id: 'unexpected-movement' });
+
+    await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'VOID',
+      reason: 'test',
+      idempotencyKey: 'key-void-orphan',
+    });
+
+    expect(mockLoggerWarn).toHaveBeenCalled();
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('transitionPaymentTx — REVERSE (B10)', () => {
+  function completedRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return pendingRow({ payment_status: 'COMPLETED', payment_method_code: 'CHECK', ...overrides });
+  }
+
+  it('requires a non-empty reason but no fallback classification', async () => {
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'REVERSE',
+        idempotencyKey: 'key-reverse-noreason',
+      }),
+    ).rejects.toThrow('TRANSITION_REASON_REQUIRED');
+  });
+
+  it('is legal from CAPTURED/SETTLED in addition to COMPLETED (D001 completed-synonym set)', async () => {
+    mockQueryRaw.mockResolvedValue([completedRow({ payment_status: 'CAPTURED' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'REVERSE',
+      reason: 'error correction',
+      idempotencyKey: 'key-reverse-captured',
+    });
+
+    expect(result.newStatus).toBe('REVERSED');
+  });
+
+  it('rejects ILLEGAL_TRANSITION for a PENDING row (nothing settled to negate yet)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow()]);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'REVERSE',
+        reason: 'test',
+        idempotencyKey: 'key-reverse-illegal',
+      }),
+    ).rejects.toThrow('ILLEGAL_TRANSITION');
+  });
+
+  it('a non-cash (CHECK) leg reverses with no compensating movement — flips status, stamps reversed_by/at, emits PAYMENT_REVERSED', async () => {
+    mockQueryRaw.mockResolvedValue([completedRow()]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'REVERSE',
+      reason: 'issued to wrong order',
+      idempotencyKey: 'key-reverse-check',
+    });
+
+    expect(result).toMatchObject({ newStatus: 'REVERSED', compensatingCashMovementCreated: false });
+    expect(mockPaymentUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ payment_status: 'REVERSED', reversed_by: USER_ID }),
+      }),
+    );
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+    expect(mockOutboxCreate.mock.calls[0][0].data).toMatchObject({
+      event_type: OUTBOX_EVENT_TYPES.PAYMENT_REVERSED,
+    });
+  });
+
+  it('a CASH leg with no cashDrawerSessionId throws CASH_DRAWER_SESSION_REQUIRED (no silent mutation)', async () => {
+    mockQueryRaw.mockResolvedValue([completedRow({ payment_method_code: 'CASH' })]);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'REVERSE',
+        reason: 'wrong amount collected',
+        idempotencyKey: 'key-reverse-cash-nosession',
+      }),
+    ).rejects.toThrow('CASH_DRAWER_SESSION_REQUIRED');
+    expect(mockPaymentUpdateMany).toHaveBeenCalled(); // row already flipped before the compensation step
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('a CASH leg with a supplied session that is not OPEN throws CASH_DRAWER_SESSION_NOT_OPEN', async () => {
+    mockQueryRaw.mockResolvedValue([completedRow({ payment_method_code: 'CASH' })]);
+    mockSessionFindFirst.mockResolvedValue(null);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'REVERSE',
+        reason: 'wrong amount collected',
+        cashDrawerSessionId: 'closed-session',
+        idempotencyKey: 'key-reverse-cash-closed',
+      }),
+    ).rejects.toThrow('CASH_DRAWER_SESSION_NOT_OPEN');
+    expect(mockMovementCreate).not.toHaveBeenCalled();
+  });
+
+  it('a CASH leg with an OPEN session creates a PAYMENT_REVERSAL OUT movement linked via reversed_payment_id (not order_payment_id)', async () => {
+    const sessionId = 'session-open-1';
+    mockQueryRaw.mockResolvedValue([
+      completedRow({ payment_method_code: 'CASH', amount: '75.00' }),
+    ]);
+    mockSessionFindFirst.mockResolvedValue({
+      id: sessionId,
+      cash_drawer_id: 'drawer-1',
+      branch_id: 'branch-1',
+      currency_code: 'SAR',
+    });
+    mockMovementCreate.mockResolvedValue({ id: 'reversal-movement-1' });
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'REVERSE',
+      reason: 'wrong amount collected',
+      cashDrawerSessionId: sessionId,
+      idempotencyKey: 'key-reverse-cash-ok',
+    });
+
+    expect(result.compensatingCashMovementCreated).toBe(true);
+    const createCall = mockMovementCreate.mock.calls[0][0].data;
+    expect(createCall).toMatchObject({
+      movement_type: 'PAYMENT_REVERSAL',
+      direction: 'OUT',
+      amount: '75.00',
+      reversed_payment_id: PAYMENT_ID,
+      cash_drawer_session_id: sessionId,
+    });
+    expect(createCall.order_payment_id).toBeUndefined();
+  });
+});
+
+describe('transitionPaymentTx — CAPTURE / SETTLE (B08)', () => {
+  it('CAPTURE flips AUTHORIZED -> CAPTURED with no reason required, stamps captured_by/at, emits PAYMENT_CAPTURED', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'AUTHORIZED' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'CAPTURE',
+      idempotencyKey: 'key-capture-ok',
+    });
+
+    expect(result.newStatus).toBe('CAPTURED');
+    expect(result.flipped).toBe(true);
+    const updateData = mockPaymentUpdateMany.mock.calls[0][0].data;
+    expect(updateData.captured_by).toBe(USER_ID);
+    expect(updateData.captured_at).toBeInstanceOf(Date);
+    expect(updateData.transition_reason).toBeNull();
+    const outboxCall = mockOutboxCreate.mock.calls[0][0].data;
+    expect(outboxCall.event_type).toBe(OUTBOX_EVENT_TYPES.PAYMENT_CAPTURED);
+  });
+
+  it('CAPTURE accepts a null actorId (webhook-driven, no interactive user)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'AUTHORIZED' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: null,
+      action: 'CAPTURE',
+      idempotencyKey: 'key-capture-webhook',
+    });
+
+    expect(result.newStatus).toBe('CAPTURED');
+    const updateData = mockPaymentUpdateMany.mock.calls[0][0].data;
+    expect(updateData.captured_by).toBeNull();
+  });
+
+  it('CAPTURE rejects ILLEGAL_TRANSITION from PROCESSING (only AUTHORIZED is legal)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'PROCESSING' })]);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'CAPTURE',
+        idempotencyKey: 'key-capture-illegal',
+      }),
+    ).rejects.toThrow('ILLEGAL_TRANSITION');
+  });
+
+  it('SETTLE flips CAPTURED -> SETTLED, stamps settled_by/at, emits PAYMENT_SETTLED', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'CAPTURED' })]);
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'SETTLE',
+      idempotencyKey: 'key-settle-ok',
+    });
+
+    expect(result.newStatus).toBe('SETTLED');
+    const updateData = mockPaymentUpdateMany.mock.calls[0][0].data;
+    expect(updateData.settled_by).toBe(USER_ID);
+    expect(updateData.settled_at).toBeInstanceOf(Date);
+    const outboxCall = mockOutboxCreate.mock.calls[0][0].data;
+    expect(outboxCall.event_type).toBe(OUTBOX_EVENT_TYPES.PAYMENT_SETTLED);
+  });
+
+  it('SETTLE rejects ILLEGAL_TRANSITION from AUTHORIZED (must CAPTURE first)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'AUTHORIZED' })]);
+
+    await expect(
+      transitionPaymentTx({
+        orderId: ORDER_ID,
+        paymentId: PAYMENT_ID,
+        tenantId: TENANT_A,
+        actorId: USER_ID,
+        action: 'SETTLE',
+        idempotencyKey: 'key-settle-illegal',
+      }),
+    ).rejects.toThrow('ILLEGAL_TRANSITION');
+  });
+
+  it('is idempotent on an already-CAPTURED row for CAPTURE (no-op, no UPDATE)', async () => {
+    mockQueryRaw.mockResolvedValue([pendingRow({ payment_status: 'CAPTURED' })]);
+    mockOrderFindFirstOrThrow.mockResolvedValue({ payment_status: 'PARTIAL', outstanding_amount: '0.00' });
+
+    const result = await transitionPaymentTx({
+      orderId: ORDER_ID,
+      paymentId: PAYMENT_ID,
+      tenantId: TENANT_A,
+      actorId: USER_ID,
+      action: 'CAPTURE',
+      idempotencyKey: 'key-capture-noop',
+    });
+
+    expect(result.flipped).toBe(false);
     expect(mockPaymentUpdateMany).not.toHaveBeenCalled();
   });
 });

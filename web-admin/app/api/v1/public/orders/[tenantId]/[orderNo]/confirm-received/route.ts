@@ -80,6 +80,16 @@ export async function POST(
 
     const toStatus: OrderStatus = 'delivered';
 
+    // Already delivered — idempotent success
+    if (fromStatus === 'delivered') {
+      return NextResponse.json({
+        success: true,
+        data: { orderId: order.id, status: 'delivered', idempotent: true },
+      });
+    }
+
+    // P4: cut over to WorkflowEngine CONFIRM_DELIVERY with a service actor UUID.
+    // Public path has no authenticated user; keep Legacy until that lands.
     const result = await WorkflowService.changeStatus({
       orderId: order.id,
       tenantId,

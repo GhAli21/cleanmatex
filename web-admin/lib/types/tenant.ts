@@ -113,6 +113,8 @@ export interface FeatureFlags {
     white_label: boolean;
     white_label_enabled: boolean;
     workflow_automation: boolean;
+    /** Workflow Order Advance V1.0 — single app engine canary (HQ-seeded; env override for emergency). */
+    workflow_engine_v2: boolean;
     workflow_per_service_category: boolean;
     tenant_pdf_invoices: boolean;
     tenant_custom_domain: string;

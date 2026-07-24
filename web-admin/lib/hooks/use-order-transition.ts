@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { workflowContextQueryKey } from '@/lib/hooks/use-workflow-context';
 
 /**
  *
@@ -68,10 +69,10 @@ export function useOrderTransition() {
       return json;
     },
     onSuccess: (data, variables) => {
-      // Invalidate queries to refresh data
+      // Refresh only after a successful mutation (event-driven, not polling)
       if (data?.success) {
         queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
-        queryClient.invalidateQueries({ queryKey: ['workflow-context', variables.orderId] });
+        queryClient.invalidateQueries({ queryKey: workflowContextQueryKey(variables.orderId) });
         queryClient.invalidateQueries({ queryKey: ['orders'] });
       }
     },

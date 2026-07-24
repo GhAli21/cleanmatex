@@ -419,6 +419,8 @@
     "counts": {
       "pending": "Pending",
       "processing": "Processing",
+      "authorized": "Authorized",
+      "captured": "Captured",
       "total": "Total"
     },
     "columns": {
@@ -429,12 +431,16 @@
       "amount": "Amount",
       "status": "Status",
       "reference": "Reference",
-      "age": "Created"
+      "age": "Age",
+      "ageDays": "{count, plural, =0 {Today} one {# day} other {# days}}"
     },
     "actions": {
       "verify": "Verify",
       "cancel": "Cancel",
-      "failBounce": "Mark Failed/Bounced"
+      "failBounce": "Mark Failed/Bounced",
+      "void": "Void",
+      "capture": "Capture",
+      "settle": "Settle"
     },
     "transition": {
       "verifyTitle": "Verify Payment",
@@ -449,9 +455,29 @@
       "failBounceDescription": "Mark this pending/processing payment leg as failed (bounced check, rejected bank transfer, etc.). A reason and a fallback classification are required.",
       "failBounceSuccess": "Payment marked failed",
       "failBounceConfirm": "Mark Failed",
+      "voidTitle": "Void Payment",
+      "voidDescription": "Void this payment leg as a mistaken or duplicate entry. No money ever moved — the outstanding balance simply reopens by this amount. A reason is required.",
+      "voidSuccess": "Payment voided",
+      "voidConfirm": "Void Payment",
+      "reverseTitle": "Reverse Payment",
+      "reverseDescription": "Reverse this completed payment leg as an error correction. A reason is required; a cash payment additionally needs an open cash-drawer session to record the compensating cash-out.",
+      "reverseSuccess": "Payment reversed",
+      "reverseConfirm": "Reverse Payment",
+      "captureTitle": "Capture Payment",
+      "captureDescription": "Confirm the gateway has captured this authorized payment. It will flip to CAPTURED. Use this when no webhook confirmation has arrived.",
+      "captureSuccess": "Payment captured",
+      "captureConfirm": "Capture",
+      "settleTitle": "Settle Payment",
+      "settleDescription": "Confirm the gateway has settled (disbursed) this captured payment. It will flip to SETTLED. Use this when no webhook confirmation has arrived.",
+      "settleSuccess": "Payment settled",
+      "settleConfirm": "Settle",
       "reasonPlaceholder": "Reason (required)",
       "fallbackClassificationLabel": "What happens to the outstanding balance?",
       "fallbackClassificationPlaceholder": "Select a classification",
+      "cashDrawerSessionLabel": "Cash-drawer session for the compensating cash-out",
+      "cashDrawerSessionLoading": "Loading open cash-drawer sessions…",
+      "cashDrawerSessionNoneOpen": "No open cash-drawer session — open one before reversing this cash payment.",
+      "cashDrawerSessionPlaceholder": "Select an open session",
       "fallback": {
         "RETRY_TENDER": "Customer will retry the payment",
         "PAY_ON_COLLECTION": "Collect on delivery/pickup",
@@ -467,9 +493,34 @@
         "illegalTransition": "This payment can no longer be transitioned this way",
         "raceDetected": "Another update just happened — please retry",
         "idempotencyConflict": "This request conflicts with a previous attempt — please retry from a fresh dialog",
+        "cashDrawerSessionRequired": "An open cash-drawer session is required to reverse this cash payment",
+        "cashDrawerSessionNotOpen": "The selected cash-drawer session is no longer open — pick another",
         "notFound": "Payment not found",
         "notRealPayment": "This is not a real-payment leg"
       }
+    }
+  },
+  "financeJobs": {
+    "title": "Scheduled Jobs",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "neverRun": "Never run",
+    "runNow": "Run Now",
+    "running": "Running…",
+    "runSuccess": "Job run completed",
+    "runFailed": "Job run failed",
+    "outcome": "{processed} processed, {failed} failed",
+    "columns": {
+      "job": "Job",
+      "schedule": "Schedule",
+      "lastRun": "Last Run",
+      "status": "Status",
+      "outcome": "Outcome"
+    },
+    "jobNames": {
+      "gift_card_expiry": "Gift-Card Expiry",
+      "idempotency_cleanup": "Idempotency-Key Cleanup",
+      "erp_posting_retry": "ERP Posting Retry"
     }
   }
 }

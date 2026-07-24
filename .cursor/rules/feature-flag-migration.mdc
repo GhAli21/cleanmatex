@@ -1,0 +1,54 @@
+---
+description: Every new feature flag must have a DB upsert migration into hq_ff_feature_flags_mst — not just TypeScript
+alwaysApply: true
+---
+
+# New Feature Flags Require a DB Migration
+
+Feature flags are database-backed. A flag that exists only in `web-admin/lib/constants/feature-flags.ts`
+(`FLAG_CATALOG`) without a corresponding row in `hq_ff_feature_flags_mst` is **incomplete** — and the
+reverse (DB row with no `FLAG_CATALOG` entry) leaves the flag unusable/untyped in the tenant app.
+
+## Rule
+
+For every new feature flag:
+
+1. **Create a migration file** — insert the flag into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl`
+   plan mappings when `plan_binding_type = 'plan_bound'`), using `ON CONFLICT ... DO UPDATE` (upsert, not
+   `DO NOTHING`) so re-running or later edits update the row instead of silently no-op'ing
+2. **Flag keys are flat snake_case, no dots** (e.g. `erp_lite_gl_enabled`) — matches 100% of existing flags
+3. **Plan codes are the real uppercase codes** from `sys_pln_subscription_plans_mst`: `FREE_TRIAL`, `STARTER`,
+   `GROWTH`, `PRO`, `ENTERPRISE` — never lowercase
+4. **Sync `web-admin/lib/constants/feature-flags.ts`** (`FLAG_CATALOG`) after the migration is applied —
+   this is a required step, not covered by "no type regen needed" (that note only means no Postgres/Prisma
+   type regen)
+5. **Never apply the migration** — create the `.sql` file, then STOP and ask the user to review and apply
+
+## What "only in TypeScript" looks like (WRONG)
+
+```ts
+// lib/constants/feature-flags.ts
+{ flag_key: 'new_thing_enabled', flag_name: 'New Thing', ... }
+// ← No migration → flag doesn't exist in hq_ff_feature_flags_mst → hq_ff_get_effective_value() can't resolve it
+```
+
+## What complete looks like (CORRECT)
+
+```sql
+-- supabase/migrations/0430_add_feature_flag_new_thing_enabled.sql
+INSERT INTO hq_ff_feature_flags_mst (flag_key, flag_name, ...)
+VALUES ('new_thing_enabled', 'New Thing', ...)
+ON CONFLICT (flag_key) DO UPDATE SET flag_name = EXCLUDED.flag_name, ...; -- upsert
+```
+Then hand-add (or regenerate via `scripts/extract-flag-catalog.js` + `scripts/generate-flag-catalog.js`)
+the matching entry in `web-admin/lib/constants/feature-flags.ts`.
+
+## Skill
+
+Use `/create-feature-flag` for the full workflow, templates, and troubleshooting:
+`.claude/skills/create-feature-flag/SKILL.md` (full detail: `.claude/skills/create-feature-flag/reference.md`)
+
+## References
+- Flag table: `hq_ff_feature_flags_mst` · Plan mappings: `sys_ff_pln_flag_mappings_dtl`
+- TS mirror: `web-admin/lib/constants/feature-flags.ts` (`FLAG_CATALOG`)
+- Migration conventions: `/database` skill

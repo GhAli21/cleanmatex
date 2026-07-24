@@ -126,6 +126,8 @@ import {
   checkCancelledPaymentNoOrphanMovement,
   checkCashMovementAmountEqualsRetained,
   checkCashMovementLink,
+  checkReversedCashPaymentHasCompensatingMovement,
+  checkVoidedPaymentNoOrphanMovement,
   runVoucherIntegrityChecks,
 } from '@/lib/services/reconciliation/voucher-checks';
 import { reconcileVoucher } from '@/lib/services/voucher-reconciliation.service';
@@ -673,6 +675,62 @@ describe('voucher-checks', () => {
       { id: 'p1', order_id: 'o1', payment_status: 'FAILED', org_cash_drawer_movements_dtl: [] },
     ]);
     expect(await checkCancelledPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
+  });
+
+  // ── B10 — void/reversal trip-wires ─────────────────────────────────────
+  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — flags a VOIDED payment with a live CASH_SALE movement', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      {
+        id: 'p2',
+        order_id: 'o2',
+        payment_status: 'VOIDED',
+        org_cash_drawer_movements_dtl: [{ id: 'm2', amount: new Decimal('30') }],
+      },
+    ]);
+    const result = await checkVoidedPaymentNoOrphanMovement(TENANT, WINDOW);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      checkName: 'VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT',
+      severity: 'BLOCKER',
+      actualValue: 30,
+      affectedEntityId: 'p2',
+    });
+  });
+
+  it('VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT — clean when no movement is attached', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      { id: 'p2', order_id: 'o2', payment_status: 'VOIDED', org_cash_drawer_movements_dtl: [] },
+    ]);
+    expect(await checkVoidedPaymentNoOrphanMovement(TENANT, WINDOW)).toEqual([]);
+  });
+
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — flags a REVERSED cash payment with no PAYMENT_REVERSAL movement', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      { id: 'p3', order_id: 'o3', amount: new Decimal('75') },
+    ]);
+    mockCashMovementsFindMany.mockResolvedValue([]); // no compensating movement found
+    const result = await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      checkName: 'REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT',
+      severity: 'BLOCKER',
+      actualValue: 75,
+      affectedEntityId: 'p3',
+    });
+  });
+
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — clean when the compensating movement exists', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([
+      { id: 'p3', order_id: 'o3', amount: new Decimal('75') },
+    ]);
+    mockCashMovementsFindMany.mockResolvedValue([{ reversed_payment_id: 'p3' }]);
+    expect(await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW)).toEqual([]);
+  });
+
+  it('REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT — empty set short-circuits without querying movements', async () => {
+    mockOrderPaymentsFindMany.mockResolvedValue([]);
+    expect(await checkReversedCashPaymentHasCompensatingMovement(TENANT, WINDOW)).toEqual([]);
+    expect(mockCashMovementsFindMany).not.toHaveBeenCalled();
   });
 });
 

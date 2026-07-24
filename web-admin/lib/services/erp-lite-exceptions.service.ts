@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { ErpLitePostingEngineService } from '@/lib/services/erp-lite-posting-engine.service';
 import type {
   ErpLiteOpenExceptionRow,
   ExceptionStatus,
@@ -108,6 +109,53 @@ export class ErpLiteExceptionsService {
         new_status_code: newStatus,
         action_notes: input.resolution_notes ?? null,
       });
+    });
+  }
+
+  // -------------------------------------------------------
+  // B19 — manually retry the posting attempt behind an exception
+  // -------------------------------------------------------
+  /**
+   * Replays the stored posting attempt via `ErpLitePostingEngineService.retry()`
+   * (idempotency-checked — a duplicate posted journal is never created). On
+   * success, marks the original exception RETRIED. On failure, leaves the
+   * exception open — the new attempt's own error is what the operator sees
+   * (via the fresh posting-audit row), not a silent no-op.
+   *
+   * Any exception type/age is eligible here (operator-initiated, presumably
+   * after fixing the underlying cause — e.g. adding a missing usage
+   * mapping). The scheduled B19 sweep is deliberately narrower (SYSTEM_ERROR
+   * only, bounded window) — see migration 0429's
+   * `list_retryable_posting_exceptions()` comment.
+   *
+   * @param exceptionId
+   * @param postingLogId
+   */
+  static async retryException(exceptionId: string, postingLogId: string): Promise<{ success: boolean; error?: string }> {
+    const tenantId = await this.requireTenantId();
+    const auth = await getAuthContext();
+
+    return withTenantContext(tenantId, async () => {
+      const result = await ErpLitePostingEngineService.retry({ posting_log_id: postingLogId, tenant_org_id: tenantId });
+
+      if (result.success) {
+        await prisma.$executeRaw(Prisma.sql`
+          UPDATE public.org_fin_post_exc_tr
+          SET status_code = 'RETRIED', resolved_at = NOW(), resolved_by = ${auth.userId},
+              updated_at = NOW(), updated_by = ${auth.userId}
+          WHERE id = ${exceptionId}::uuid AND tenant_org_id = ${tenantId}::uuid
+        `);
+      }
+
+      await this.writeActionAudit(tenantId, auth.userId, {
+        action_domain: 'EXCEPTION',
+        action_code: 'RETRY',
+        exception_id: exceptionId,
+        new_status_code: result.success ? 'RETRIED' : undefined,
+        action_notes: result.success ? 'Manually retried successfully' : (result.error_message ?? 'Manual retry failed'),
+      });
+
+      return { success: result.success, error: result.success ? undefined : result.error_message };
     });
   }
 

@@ -25,7 +25,7 @@ jest.mock('bcryptjs', () => ({
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
-    org_gift_cards_mst: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
+    org_gift_cards_mst: { findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn() },
     org_gift_card_txn_dtl: { create: jest.fn() },
     org_orders_mst: { findUnique: jest.fn() },
   },
@@ -68,10 +68,14 @@ import {
   sellGiftCard,
   adminActivateGiftCard,
   adminAdjustGiftCard,
+  expireGiftCard,
+  expireGiftCards,
 } from '@/lib/services/gift-card-service';
 
 const mockGcFindFirst = prisma.org_gift_cards_mst.findFirst as jest.Mock;
+const mockGcFindMany = prisma.org_gift_cards_mst.findMany as jest.Mock;
 const mockGcUpdate = prisma.org_gift_cards_mst.update as jest.Mock;
+const mockGcTxnCreate = prisma.org_gift_card_txn_dtl.create as jest.Mock;
 const mockPrismaTransaction = prisma.$transaction as jest.Mock;
 const mockBcryptCompare = bcrypt.compare as jest.Mock;
 
@@ -1053,6 +1057,110 @@ describe('gift-card-service', () => {
       await expect(
         adminActivateGiftCard('gc-gen-1', 'tenant-xyz', 'admin-1')
       ).rejects.toThrow(/Cannot activate card in status/);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // B19 — expireGiftCard / expireGiftCards
+  // -------------------------------------------------------------------------
+
+  describe('expireGiftCard (single, ledger + GL aware)', () => {
+    beforeEach(() => {
+      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+        fn({
+          org_gift_cards_mst: { findFirst: mockGcFindFirst, update: mockGcUpdate },
+          org_gift_card_txn_dtl: { create: mockGcTxnCreate },
+        }),
+      );
+    });
+
+    it('flips status to EXPIRED and writes an EXPIRE ledger row', async () => {
+      mockGcFindFirst.mockResolvedValue({
+        id: 'gc-1',
+        available_amount: { toNumber: () => 42.5 },
+        currency_code: 'OMR',
+      });
+      mockGcTxnCreate.mockResolvedValue({ id: 'txn-1' });
+
+      const result = await expireGiftCard('gc-1', 'tenant-xyz');
+
+      expect(result.success).toBe(true);
+      expect(mockGcUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'EXPIRED' }) }),
+      );
+      expect(mockGcTxnCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            transaction_type: 'EXPIRE',
+            amount: 42.5,
+            balance_before: 42.5,
+            balance_after: 0,
+          }),
+        }),
+      );
+    });
+
+    it('returns success:false when the card is not found', async () => {
+      mockGcFindFirst.mockResolvedValue(null);
+
+      const result = await expireGiftCard('gc-missing', 'tenant-xyz');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('GIFT_CARD_NOT_FOUND');
+      expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('expireGiftCards (batch sweep, B19)', () => {
+    beforeEach(() => {
+      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+        fn({
+          org_gift_cards_mst: { findFirst: mockGcFindFirst, update: mockGcUpdate },
+          org_gift_card_txn_dtl: { create: mockGcTxnCreate },
+        }),
+      );
+    });
+
+    it('loops eligible cards and expires each via the ledger+GL-aware path (not a bare updateMany)', async () => {
+      mockGcFindMany.mockResolvedValue([{ id: 'gc-1' }, { id: 'gc-2' }]);
+      mockGcFindFirst
+        .mockResolvedValueOnce({ id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR' })
+        .mockResolvedValueOnce({ id: 'gc-2', available_amount: { toNumber: () => 20 }, currency_code: 'OMR' });
+      mockGcTxnCreate.mockResolvedValue({ id: 'txn-x' });
+
+      const result = await expireGiftCards('tenant-xyz');
+
+      expect(result).toEqual({ expiredCount: 2, failedCount: 0 });
+      expect(mockGcTxnCreate).toHaveBeenCalledTimes(2);
+      expect(mockGcFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenant_org_id: 'tenant-xyz',
+            status: { in: ['ACTIVE', 'PARTIALLY_REDEEMED', 'GENERATED'] },
+          }),
+        }),
+      );
+    });
+
+    it('a mix of success and not-found cards yields separate expired/failed counts (one failure never blocks the rest)', async () => {
+      mockGcFindMany.mockResolvedValue([{ id: 'gc-1' }, { id: 'gc-missing' }]);
+      mockGcFindFirst
+        .mockResolvedValueOnce({ id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR' })
+        .mockResolvedValueOnce(null);
+      mockGcTxnCreate.mockResolvedValue({ id: 'txn-1' });
+
+      const result = await expireGiftCards('tenant-xyz');
+
+      expect(result).toEqual({ expiredCount: 1, failedCount: 1 });
+    });
+
+    it('returns zero counts when nothing is eligible', async () => {
+      mockGcFindMany.mockResolvedValue([]);
+
+      const result = await expireGiftCards('tenant-xyz');
+
+      expect(result).toEqual({ expiredCount: 0, failedCount: 0 });
+      expect(mockGcTxnCreate).not.toHaveBeenCalled();
     });
   });
 });

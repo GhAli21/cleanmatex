@@ -298,7 +298,11 @@
     },
     "transitions": {
       "failBounce": "تحديد كفاشلة/مرتجعة",
-      "cancel": "إلغاء الدفعة"
+      "cancel": "إلغاء الدفعة",
+      "void": "إلغاء (تصفير)",
+      "reverse": "عكس",
+      "capture": "قبض",
+      "settle": "تسوية"
     },
     "warning": {
       "title": "اتساق مالي",

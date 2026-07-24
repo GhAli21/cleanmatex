@@ -11,6 +11,7 @@ import {
   REFUND_METHODS,
   REFUND_REASON_CODES,
   REFUND_SOURCE_TYPES,
+  REFUND_STATUSES,
 } from '@/lib/constants/order-financial';
 import type {
   RefundContext,
@@ -36,6 +37,8 @@ import {
   PARTY_TYPE,
   TARGET_TYPE,
 } from '@/lib/constants/voucher';
+import { ErpLiteAutoPostService } from './erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from './erp-lite-auto-post.util';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -199,7 +202,7 @@ async function getRefundableBalanceSummaryTx(
       tenant_org_id: tenantId,
       order_id: orderId,
       is_active: true,
-      refund_status: 'PROCESSED',
+      refund_status: REFUND_STATUSES.PROCESSED,
     },
     _sum: { refund_amount: true },
   });
@@ -231,7 +234,7 @@ async function sumProcessedRefundsForCreditAppTx(
       order_id: orderId,
       original_credit_app_id: originalCreditAppId,
       is_active: true,
-      refund_status: 'PROCESSED',
+      refund_status: REFUND_STATUSES.PROCESSED,
     },
     _sum: { refund_amount: true },
   });
@@ -250,7 +253,7 @@ async function sumProcessedRefundsForPaymentTx(
       order_id: orderId,
       original_payment_id: originalPaymentId,
       is_active: true,
-      refund_status: 'PROCESSED',
+      refund_status: REFUND_STATUSES.PROCESSED,
     },
     _sum: { refund_amount: true },
   });
@@ -604,7 +607,7 @@ export async function initiateRefund(
         refund_source_type: refundSourceType,
         refund_context: refundContext,
         pos_session_id: posSessionId ?? null,
-        refund_status: approvalRequired ? 'PENDING_APPROVAL' : 'APPROVED',
+        refund_status: approvalRequired ? REFUND_STATUSES.PENDING_APPROVAL : REFUND_STATUSES.APPROVED,
         idempotency_key: idempotencyKey,
         created_by: requestedBy,
         metadata: mergeMetadata(metadata, {
@@ -663,7 +666,7 @@ export async function approveRefund(
       where: {
         id: refundId,
         tenant_org_id: tenantId,
-        refund_status: 'PENDING_APPROVAL',
+        refund_status: REFUND_STATUSES.PENDING_APPROVAL,
       },
     });
 
@@ -683,7 +686,7 @@ export async function approveRefund(
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refund.id },
       data: {
-        refund_status: 'APPROVED',
+        refund_status: REFUND_STATUSES.APPROVED,
         approved_by: approverId,
         approved_at: new Date(),
         updated_at: new Date(),
@@ -764,14 +767,14 @@ export async function processRefund(
       SELECT id FROM public.org_order_refunds_dtl
       WHERE id = ${refundId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
-        AND refund_status = 'APPROVED'
+        AND refund_status = ${REFUND_STATUSES.APPROVED}
       FOR UPDATE`;
     if (!locked[0]) {
       throw new Error('Refund not found or not awaiting processing');
     }
 
     const refund = await tx.org_order_refunds_dtl.findFirstOrThrow({
-      where: { id: refundId, tenant_org_id: tenantId, refund_status: 'APPROVED' },
+      where: { id: refundId, tenant_org_id: tenantId, refund_status: REFUND_STATUSES.APPROVED },
     });
 
     const { order, refundableBalance } = await getRefundableBalanceSummaryTx(
@@ -1064,7 +1067,7 @@ export async function processRefund(
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refundId },
       data: {
-        refund_status: 'PROCESSED',
+        refund_status: REFUND_STATUSES.PROCESSED,
         reopens_due_amount: reopensDueAmount,
         processed_at: new Date(),
         updated_at: new Date(),
@@ -1079,6 +1082,27 @@ export async function processRefund(
       tx,
       tenantId,
       refund.order_id
+    );
+
+    // B6 — one REFUND_ISSUED dispatch covers every destination (WALLET,
+    // CREDIT_NOTE, CASH, ORIGINAL_METHOD): the accounting effect is the same
+    // revenue/AR reversal regardless of where the value went, and this
+    // single hook after refund_status flips to PROCESSED avoids needing four
+    // separate call sites. NON_BLOCKING: a GL posting failure never
+    // prevents the refund itself from completing (D007).
+    await safeDispatchAutoPost('refund_issued', () =>
+      ErpLiteAutoPostService.dispatchRefundIssuedInTransaction(tx, {
+        tenant_org_id: tenantId,
+        refund_payment_id: refundId,
+        original_payment_id: refund.original_payment_id ?? refund.original_credit_app_id ?? refundId,
+        order_id: refund.order_id,
+        branch_id: order.branch_id ?? null,
+        currency_code: refund.currency_code ?? order.currency_code,
+        refund_date: new Date().toISOString(),
+        payment_method_code: method,
+        refund_amount: amount,
+        created_by: processedBy ?? null,
+      }),
     );
 
     await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.REFUND_PROCESSED, 'order', order.id, {

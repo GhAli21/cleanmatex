@@ -279,6 +279,111 @@ export async function checkCancelledPaymentNoOrphanMovement(
 }
 
 /**
+ * VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT (B10) — same trip-wire as
+ * CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT, extended to the new VOIDED status: a
+ * never-effective leg (PENDING/PROCESSING/AUTHORIZED source) must never carry
+ * a live CASH_SALE movement.
+ */
+export async function checkVoidedPaymentNoOrphanMovement(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const rows = await withTenantContext(tenantOrgId, () =>
+    prisma.org_order_payments_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        payment_status: 'VOIDED',
+        updated_at: { gte: window.periodFrom, lte: window.periodTo },
+      },
+      select: {
+        id: true,
+        order_id: true,
+        payment_status: true,
+        org_cash_drawer_movements_dtl: {
+          where: { movement_type: 'CASH_SALE', is_active: true },
+          select: { id: true, amount: true },
+        },
+      },
+    }),
+  );
+
+  const violations: CheckResult[] = [];
+  for (const row of rows) {
+    for (const movement of row.org_cash_drawer_movements_dtl ?? []) {
+      violations.push({
+        checkName: RECONCILIATION_CHECK_NAMES.VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        actualValue: toNumber(movement.amount),
+        message: `Payment ${row.id} (order ${row.order_id}) is VOIDED but still has a live CASH_SALE movement ${movement.id} — B10 void invariant violated (never-effective legs move no money)`,
+        affectedEntityType: 'org_order_payments_dtl',
+        affectedEntityId: row.id,
+      });
+    }
+  }
+  return violations;
+}
+
+/**
+ * REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT (B10) — the inverse
+ * invariant: a REVERSED cash-family leg MUST carry exactly one live
+ * PAYMENT_REVERSAL compensating movement (`reversed_payment_id` back-link),
+ * otherwise the drawer's expected cash silently lost the correction. A
+ * non-cash REVERSED leg is skipped (no compensating movement expected —
+ * gateway-side reversal is B8, out of scope).
+ */
+export async function checkReversedCashPaymentHasCompensatingMovement(
+  tenantOrgId: string,
+  window: PeriodWindow,
+): Promise<CheckResult[]> {
+  const rows = await withTenantContext(tenantOrgId, () =>
+    prisma.org_order_payments_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        payment_status: 'REVERSED',
+        payment_method_code: { equals: 'CASH', mode: 'insensitive' },
+        updated_at: { gte: window.periodFrom, lte: window.periodTo },
+      },
+      select: {
+        id: true,
+        order_id: true,
+        amount: true,
+      },
+    }),
+  );
+  if (rows.length === 0) return [];
+
+  const compensatingMovements = await withTenantContext(tenantOrgId, () =>
+    prisma.org_cash_drawer_movements_dtl.findMany({
+      where: {
+        tenant_org_id: tenantOrgId,
+        reversed_payment_id: { in: rows.map((r) => r.id) },
+        movement_type: 'PAYMENT_REVERSAL',
+        is_active: true,
+      },
+      select: { reversed_payment_id: true },
+    }),
+  );
+  const compensatedPaymentIds = new Set(compensatingMovements.map((m) => m.reversed_payment_id));
+
+  const violations: CheckResult[] = [];
+  for (const row of rows) {
+    if (!compensatedPaymentIds.has(row.id)) {
+      violations.push({
+        checkName: RECONCILIATION_CHECK_NAMES.REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT,
+        severity: RECONCILIATION_SEVERITIES.BLOCKER,
+        passed: false,
+        actualValue: toNumber(row.amount),
+        message: `Cash payment ${row.id} (order ${row.order_id}) is REVERSED but has no PAYMENT_REVERSAL compensating movement — the drawer's expected cash never reflected the correction`,
+        affectedEntityType: 'org_order_payments_dtl',
+        affectedEntityId: row.id,
+      });
+    }
+  }
+  return violations;
+}
+
+/**
  * CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT — for each linked cash
  * movement in the window, the movement's `amount` must equal the trx line's
  * retained amount, where retained = `amount - (change_returned_amount ?? 0)`.

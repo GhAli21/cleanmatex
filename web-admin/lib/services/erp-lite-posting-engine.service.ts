@@ -222,7 +222,7 @@ export class ErpLitePostingEngineService {
    * @param params
    */
   static async retry(params: ErpLiteRetryParams): Promise<ErpLitePostingExecuteResult> {
-    return this.replayStoredAttempt(params.posting_log_id, ERP_LITE_POSTING_MODES.RETRY);
+    return this.replayStoredAttempt(params.posting_log_id, ERP_LITE_POSTING_MODES.RETRY, params.tenant_org_id);
   }
 
   /**
@@ -235,9 +235,10 @@ export class ErpLitePostingEngineService {
 
   private static async replayStoredAttempt(
     postingLogId: string,
-    mode: ErpLitePostingMode
+    mode: ErpLitePostingMode,
+    explicitTenantId?: string
   ): Promise<ErpLitePostingExecuteResult> {
-    const tenantId = await this.resolveTenantId();
+    const tenantId = await this.resolveTenantId(explicitTenantId);
 
     return withTenantContext(tenantId, async () => {
       const stored = await this.loadStoredPostingLog(tenantId, postingLogId);

@@ -6,6 +6,13 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { logger } from '@/lib/utils/logger';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2';
+import {
+  WorkflowEngineError,
+  executeAction,
+  listAvailableActions,
+} from '@/lib/services/workflow/workflow-engine.service';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 const bodySchema = z.object({
   physicalIntakeInfo: z.string().max(8000).optional(),
@@ -82,29 +89,77 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
       );
     }
 
-    const transition = await WorkflowService.changeStatus({
-      orderId,
-      tenantId,
-      fromStatus: 'draft',
-      toStatus: 'intake',
-      userId,
-      userName,
-      notes: body.receivedInfo ?? 'Physical intake confirmed',
-      metadata: {},
-    });
-
-    if (!transition.success) {
-      logger.warn('confirm-physical-intake transition failed', {
-        feature: 'orders',
-        action: 'confirm_physical_intake',
-        tenantId,
+    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
+      try {
+        const available = await listAvailableActions({
+          tenantId,
+          orderId,
+          screen: 'new_order',
+        });
+        await executeAction({
+          tenantId,
+          orderId,
+          screen: 'new_order',
+          actionCode: WORKFLOW_ACTIONS.CONFIRM_PHYSICAL_INTAKE,
+          expectedStateVersion: available.stateVersion,
+          actorUserId: userId,
+          actorName: userName,
+          input: {
+            notes: body.receivedInfo ?? 'Physical intake confirmed',
+            physicalIntakeInfo: body.physicalIntakeInfo ?? null,
+          },
+          idempotencyKey:
+            request.headers.get('Idempotency-Key')?.trim() ||
+            `confirm-physical-intake:${orderId}`,
+        });
+      } catch (error) {
+        const message =
+          error instanceof WorkflowEngineError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Workflow transition failed';
+        logger.warn('confirm-physical-intake engine failed', {
+          feature: 'orders',
+          action: 'confirm_physical_intake',
+          tenantId,
+          orderId,
+          error: message,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: message,
+            code: error instanceof WorkflowEngineError ? error.code : undefined,
+          },
+          { status: error instanceof WorkflowEngineError && error.code === 'VERSION_CONFLICT' ? 409 : 400 },
+        );
+      }
+    } else {
+      const transition = await WorkflowService.changeStatus({
         orderId,
-        error: transition.error,
+        tenantId,
+        fromStatus: 'draft',
+        toStatus: 'intake',
+        userId,
+        userName,
+        notes: body.receivedInfo ?? 'Physical intake confirmed',
+        metadata: {},
       });
-      return NextResponse.json(
-        { success: false, error: transition.error ?? 'Workflow transition failed' },
-        { status: 400 },
-      );
+
+      if (!transition.success) {
+        logger.warn('confirm-physical-intake transition failed', {
+          feature: 'orders',
+          action: 'confirm_physical_intake',
+          tenantId,
+          orderId,
+          error: transition.error,
+        });
+        return NextResponse.json(
+          { success: false, error: transition.error ?? 'Workflow transition failed' },
+          { status: 400 },
+        );
+      }
     }
 
     const now = new Date();

@@ -10,11 +10,15 @@
  * Revision v3 added the payment-status gate and the invariants this file
  * enforces).
  *
- * Explicitly NOT this file's job (see B03 "Rejected/trimmed"): GL/liability
- * posting (B6), async gateway-callback funding (no gateway integration
- * exists for these 3 entry points today — a leg that would resolve
- * PENDING/PROCESSING/AUTHORIZED is rejected up front, never silently
- * accepted), reversal UI/API (contract only).
+ * B6 note: `finalizeStoredValueFundingIfReady` now also dispatches the
+ * funding-side ERP-Lite liability event (GIFT_CARD_SOLD / WALLET_TOPPED_UP /
+ * CUSTOMER_ADVANCE_RECEIVED, D008) once the ledger credit succeeds — the
+ * five-artifact rule's last artifact, previously deferred to B6.
+ *
+ * Explicitly NOT this file's job (see B03 "Rejected/trimmed"): async
+ * gateway-callback funding (no gateway integration exists for these 3 entry
+ * points today — a leg that would resolve PENDING/PROCESSING/AUTHORIZED is
+ * rejected up front, never silently accepted), reversal UI/API (contract only).
  */
 
 import 'server-only';
@@ -42,6 +46,9 @@ import { GIFT_CARD_STATUS } from '@/lib/constants/gift-card';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 import { hashPayload } from '@/lib/utils/idempotency';
 import bcrypt from 'bcryptjs';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
+import type { PaymentMethodCode } from '@/lib/constants/payment';
 
 /** Prisma interactive-transaction client type, matching every other financial service. */
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -463,7 +470,14 @@ export async function finalizeStoredValueFundingIfReady(
 
   const tenders = await tx.org_sv_funding_tenders_dtl.findMany({
     where: { tenant_org_id: tenantOrgId, fin_voucher_id: voucherId, status: SV_FUNDING_TENDER_STATUS.COMPLETED },
-    select: { amount: true, currency_code: true, funding_type: true, target_type: true, target_id: true },
+    select: {
+      amount: true,
+      currency_code: true,
+      funding_type: true,
+      target_type: true,
+      target_id: true,
+      payment_method_code: true,
+    },
   });
   if (tenders.length === 0) return;
 
@@ -484,6 +498,11 @@ export async function finalizeStoredValueFundingIfReady(
   const fundingType = tenders[0]!.funding_type as FundingType;
   const targetType = tenders[0]!.target_type;
   const targetId = tenders[0]!.target_id;
+  // B6 (v1 simplification, documented): multi-leg funding posts one journal
+  // against the FIRST confirmed leg's payment method rather than splitting
+  // Dr lines per leg. Exact multi-leg GL splitting is a tracked follow-up
+  // gap, not silently dropped — see B06 Completion evidence.
+  const primaryTenderMethod = tenders[0]!.payment_method_code as PaymentMethodCode;
 
   const creditIdempotencyKey = `${voucherId}_sv_credit`;
 
@@ -498,6 +517,31 @@ export async function finalizeStoredValueFundingIfReady(
       voucherId,
       voucherLineId: triggeringLineId,
     });
+
+    // B6/D008 — funding-side liability event: DR Cash/Clearing, CR Gift Card
+    // Liability. NON_BLOCKING: a GL posting failure never blocks the sale.
+    // The gift-card-code lookup is a nice-to-have for the journal's
+    // source_doc_no display field — it lives inside the same safe wrapper so
+    // a lookup hiccup can never block the funding transaction either.
+    await safeDispatchAutoPost('gift_card_sold', async () => {
+      const card = await tx.org_gift_cards_mst.findFirst({
+        where: { id: targetId, tenant_org_id: tenantOrgId },
+        select: { gift_card_code: true },
+      });
+      return ErpLiteAutoPostService.dispatchGiftCardSoldInTransaction(tx, {
+        tenant_org_id: tenantOrgId,
+        gift_card_id: targetId,
+        gift_card_code: card?.gift_card_code ?? targetId,
+        issue_type: 'SOLD',
+        amount: fundedAmount,
+        currency_code: currencyCode,
+        sold_date: new Date().toISOString(),
+        branch_id: voucher.branch_id ?? null,
+        customer_id: voucher.customer_id ?? null,
+        created_by: userId,
+      });
+    },
+    );
   } else if (fundingType === FUNDING_TYPES.WALLET_TOPUP) {
     if (!voucher.customer_id) throw new Error('STORED_VALUE_FUNDING_MISSING_CUSTOMER');
     await topUpWalletTx(tx, {
@@ -510,6 +554,22 @@ export async function finalizeStoredValueFundingIfReady(
       voucherId,
       voucherLineId: triggeringLineId,
     });
+
+    // B6/D008 — DR Cash/Clearing, CR Wallet Liability (WALLET_CLEARING —
+    // the same usage code ORDER_SETTLED_WALLET debits on spend).
+    await safeDispatchAutoPost('wallet_topped_up', () =>
+      ErpLiteAutoPostService.dispatchWalletToppedUpInTransaction(tx, {
+        tenant_org_id: tenantOrgId,
+        voucher_id: voucherId,
+        customer_id: voucher.customer_id!,
+        amount: fundedAmount,
+        currency_code: currencyCode,
+        funded_date: new Date().toISOString(),
+        payment_method_code: primaryTenderMethod,
+        branch_id: voucher.branch_id ?? null,
+        created_by: userId,
+      }),
+    );
   } else if (fundingType === FUNDING_TYPES.CUSTOMER_ADVANCE_RECEIPT) {
     if (!voucher.customer_id) throw new Error('STORED_VALUE_FUNDING_MISSING_CUSTOMER');
     await issueAdvanceTx(tx, {
@@ -522,6 +582,21 @@ export async function finalizeStoredValueFundingIfReady(
       voucherId,
       voucherLineId: triggeringLineId,
     });
+
+    // B6/D008 — DR Cash/Clearing, CR Customer Advance Liability.
+    await safeDispatchAutoPost('customer_advance_received', () =>
+      ErpLiteAutoPostService.dispatchCustomerAdvanceReceivedInTransaction(tx, {
+        tenant_org_id: tenantOrgId,
+        voucher_id: voucherId,
+        customer_id: voucher.customer_id!,
+        amount: fundedAmount,
+        currency_code: currencyCode,
+        funded_date: new Date().toISOString(),
+        payment_method_code: primaryTenderMethod,
+        branch_id: voucher.branch_id ?? null,
+        created_by: userId,
+      }),
+    );
   } else {
     throw new Error(`STORED_VALUE_FUNDING_UNKNOWN_TYPE: ${fundingType as string}`);
   }

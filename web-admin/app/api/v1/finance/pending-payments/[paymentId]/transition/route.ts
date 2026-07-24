@@ -1,16 +1,25 @@
 /**
  * POST /api/v1/finance/pending-payments/[paymentId]/transition
  *
- * B30 — back-office transition action on a PENDING/PROCESSING REAL_PAYMENT
- * leg: VERIFY (-> COMPLETED), CANCEL (-> CANCELLED), or FAIL_BOUNCE
- * (-> FAILED). CANCEL/FAIL_BOUNCE require a mandatory reason and a D009
- * fallback classification.
+ * B30/B10 — back-office transition action on a REAL_PAYMENT leg: VERIFY
+ * (-> COMPLETED), CANCEL (-> CANCELLED), FAIL_BOUNCE (-> FAILED), VOID
+ * (-> VOIDED), or REVERSE (-> REVERSED). CANCEL/FAIL_BOUNCE require a
+ * mandatory reason and a D009 fallback classification; VOID/REVERSE require
+ * a mandatory reason only. REVERSE additionally requires
+ * `cashDrawerSessionId` when the leg being reversed is a cash-family method
+ * (validated server-side by the service, not here — only the service knows
+ * the leg's payment method).
  *
  * Permission is action-dependent (checked after body validation, since the
  * action determines which code applies):
- *   VERIFY      -> orders:verify_payment (existing, migration 0332)
- *   CANCEL      -> orders:cancel_payment (migration 0415)
- *   FAIL_BOUNCE -> orders:fail_payment   (migration 0415)
+ *   VERIFY      -> orders:verify_payment  (existing, migration 0332)
+ *   CANCEL      -> orders:cancel_payment  (migration 0415)
+ *   FAIL_BOUNCE -> orders:fail_payment    (migration 0415)
+ *   VOID        -> orders:void_payment    (migration 0421)
+ *   REVERSE     -> orders:reverse_payment (migration 0421)
+ *   CAPTURE     -> orders:verify_payment  (B08 — manual re-sync, same "confirm
+ *                  gateway progress" spirit as VERIFY, no new code minted)
+ *   SETTLE      -> orders:verify_payment  (B08 — same as CAPTURE)
  *
  * CSRF: enforced via validateCSRF — state-changing POST from the worklist
  * and per-order payments-tab UI.
@@ -27,6 +36,11 @@ const TRANSITION_PERMISSION_BY_ACTION: Record<string, string> = {
   [PAYMENT_TRANSITION_ACTIONS.VERIFY]: 'orders:verify_payment',
   [PAYMENT_TRANSITION_ACTIONS.CANCEL]: 'orders:cancel_payment',
   [PAYMENT_TRANSITION_ACTIONS.FAIL_BOUNCE]: 'orders:fail_payment',
+  [PAYMENT_TRANSITION_ACTIONS.VOID]: 'orders:void_payment',
+  [PAYMENT_TRANSITION_ACTIONS.REVERSE]: 'orders:reverse_payment',
+  // B08 — manual re-sync actions reuse verify_payment (no new code minted).
+  [PAYMENT_TRANSITION_ACTIONS.CAPTURE]: 'orders:verify_payment',
+  [PAYMENT_TRANSITION_ACTIONS.SETTLE]: 'orders:verify_payment',
 };
 
 const transitionSchema = z.object({
@@ -35,6 +49,10 @@ const transitionSchema = z.object({
     PAYMENT_TRANSITION_ACTIONS.VERIFY,
     PAYMENT_TRANSITION_ACTIONS.CANCEL,
     PAYMENT_TRANSITION_ACTIONS.FAIL_BOUNCE,
+    PAYMENT_TRANSITION_ACTIONS.VOID,
+    PAYMENT_TRANSITION_ACTIONS.REVERSE,
+    PAYMENT_TRANSITION_ACTIONS.CAPTURE,
+    PAYMENT_TRANSITION_ACTIONS.SETTLE,
   ]),
   reason: z.string().trim().min(1).max(2000).optional(),
   fallbackClassification: z
@@ -47,6 +65,8 @@ const transitionSchema = z.object({
     ])
     .optional(),
   idempotencyKey: z.string().trim().min(1).max(200),
+  /** B10/REVERSE only — OPEN cash-drawer session id for the compensating OUT movement. */
+  cashDrawerSessionId: z.string().uuid().optional(),
 });
 
 const ERROR_STATUS: Record<string, number> = {
@@ -58,6 +78,8 @@ const ERROR_STATUS: Record<string, number> = {
   ILLEGAL_TRANSITION: 409,
   PAYMENT_TRANSITION_RACE_DETECTED: 409,
   IDEMPOTENCY_CONFLICT: 409,
+  CASH_DRAWER_SESSION_REQUIRED: 400,
+  CASH_DRAWER_SESSION_NOT_OPEN: 409,
 };
 
 export async function POST(
@@ -91,7 +113,7 @@ export async function POST(
       { status: 400 },
     );
   }
-  const { orderId, action, reason, fallbackClassification, idempotencyKey } = parsed.data;
+  const { orderId, action, reason, fallbackClassification, idempotencyKey, cashDrawerSessionId } = parsed.data;
 
   const requiredPermission = TRANSITION_PERMISSION_BY_ACTION[action];
   const allowed = await hasPermissionServer(requiredPermission);
@@ -112,6 +134,7 @@ export async function POST(
       reason,
       fallbackClassification,
       idempotencyKey,
+      cashDrawerSessionId,
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (err) {

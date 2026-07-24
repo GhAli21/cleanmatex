@@ -7,6 +7,10 @@ import type { ColumnDef } from '@tanstack/react-table'
 import type { ErpLiteOpenExceptionRow } from '@/lib/types/erp-lite-ops'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
+import { CmxButton } from '@ui/primitives/cmx-button'
+import { retryExceptionAction } from '@/app/actions/erp-lite/ops-actions'
+
+const RETRYABLE_STATUSES = new Set(['NEW', 'OPEN', 'RETRY_PENDING'])
 
 interface ErpLiteExceptionsScreenProps {
   rows: ErpLiteOpenExceptionRow[]
@@ -122,6 +126,22 @@ export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) 
           {row.original.error_message ?? '—'}
         </div>
       ),
+    },
+    {
+      id: 'retry',
+      header: '',
+      cell: ({ row }) => {
+        if (!RETRYABLE_STATUSES.has(row.original.status_code)) return null
+        return (
+          <form action={retryExceptionAction}>
+            <input type="hidden" name="exception_id" value={row.original.exception_id} />
+            <input type="hidden" name="posting_log_id" value={row.original.posting_log_id} />
+            <CmxButton type="submit" variant="outline" size="sm">
+              {t('actions.retry')}
+            </CmxButton>
+          </form>
+        )
+      },
     },
   ]
 

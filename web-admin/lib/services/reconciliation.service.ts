@@ -46,6 +46,8 @@ import {
   checkCancelledPaymentNoOrphanMovement,
   checkCashMovementAmountEqualsRetained,
   checkCashMovementLink,
+  checkReversedCashPaymentHasCompensatingMovement,
+  checkVoidedPaymentNoOrphanMovement,
   getPostedVouchersInWindow,
   runVoucherIntegrityChecks,
 } from './reconciliation/voucher-checks';
@@ -54,6 +56,10 @@ import {
   checkRefundReopenConsistency,
   checkTaxCalculation,
 } from './reconciliation/financial-integrity-checks';
+import {
+  checkOrderPaymentErpPostAttempted,
+  checkRefundErpPostAttempted,
+} from './reconciliation/erp-lite-checks';
 
 /**
  *
@@ -126,6 +132,12 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   RECONCILIATION_CHECK_NAMES.CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT,
   // ── B30/B32 — pending-payment transition trip-wire ────────────────────
   RECONCILIATION_CHECK_NAMES.CANCELLED_PAYMENT_NO_ORPHAN_MOVEMENT,
+  // ── B10 — void/reversal trip-wires ─────────────────────────────────────
+  RECONCILIATION_CHECK_NAMES.VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT,
+  RECONCILIATION_CHECK_NAMES.REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT,
+  // ── B6 — BVM↔GL posting-attempt trip-wires ─────────────────────────────
+  RECONCILIATION_CHECK_NAMES.ORDER_PAYMENT_ERP_POST_ATTEMPTED,
+  RECONCILIATION_CHECK_NAMES.REFUND_ERP_POST_ATTEMPTED,
   // ── AR link checks (PRD §22.1) ────────────────────────────────────────
   RECONCILIATION_CHECK_NAMES.INVOICE_PAYMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.REFUND_LINK_EXISTS,
@@ -306,6 +318,12 @@ export async function runReconciliation(
       checkCashMovementAmountEqualsRetained(tenantId, window),
       // B30/B32 — pending-payment transition trip-wire
       checkCancelledPaymentNoOrphanMovement(tenantId, window),
+      // B10 — void/reversal trip-wires
+      checkVoidedPaymentNoOrphanMovement(tenantId, window),
+      checkReversedCashPaymentHasCompensatingMovement(tenantId, window),
+      // B6 — BVM↔GL posting-attempt trip-wires
+      checkOrderPaymentErpPostAttempted(tenantId, window),
+      checkRefundErpPostAttempted(tenantId, window),
       // AR
       checkInvoicePaymentLink(tenantId, window),
       checkRefundLink(tenantId, window),

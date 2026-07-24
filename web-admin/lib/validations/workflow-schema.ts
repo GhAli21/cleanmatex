@@ -355,3 +355,19 @@ export type CreateIssueRequest = z.infer<typeof CreateIssueRequestSchema>;
  */
 export type RecordStepRequest = z.infer<typeof RecordStepRequestSchema>;
 
+// Workflow engine v1 — available-actions + executeAction API contracts
+export const ExecuteWorkflowActionRequestSchema = z.object({
+  screen: z.string().min(1).max(64),
+  actionCode: z.string().min(1).max(64),
+  expectedStateVersion: z.number().int().nonnegative(),
+  input: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const AvailableActionsQuerySchema = z.object({
+  screen: z.string().min(1).max(64),
+  locale: z.string().max(10).optional(),
+});
+
+export type ExecuteWorkflowActionRequest = z.infer<typeof ExecuteWorkflowActionRequestSchema>;
+export type AvailableActionsQuery = z.infer<typeof AvailableActionsQuerySchema>;
+

@@ -924,6 +924,9 @@ model org_orders_mst {
   workflow_template_id               String?                           @db.Uuid
   current_status                     String?
   current_stage                      String?
+  state_version                      BigInt                            @default(1)
+  wf_profile_id                      String?                           @db.Uuid
+  wf_version_no                      Int?
   parent_order_id                    String?                           @db.Uuid
   order_subtype                      String?
   has_split                          Boolean?                          @default(false)
@@ -3720,6 +3723,7 @@ model sys_payment_gateway_cd {
 
   org_payment_methods_cf   org_payment_methods_cf[]
   org_payment_terminals_cf org_payment_terminals_cf[] @relation("TerminalGateway")
+  sys_gw_webhook_events_tr sys_gw_webhook_events_tr[]
 
   @@index([is_active, display_order], map: "idx_payment_gateway_active")
   @@index([gateway_type], map: "idx_payment_gateway_type")
@@ -6657,16 +6661,23 @@ model org_cash_drawer_movements_dtl {
   // for (migration 0412). Plain scalar, no modeled relation, mirrors
   // fin_voucher_id above.
   funding_tender_id            String?                      @db.Uuid
+  // B10 (migration 0421) — back-link to the payment this PAYMENT_REVERSAL OUT
+  // movement compensates. Deliberately distinct from order_payment_id — see
+  // the migration comment for why (B16/B35 expected-cash formula).
+  reversed_payment_id          String?                      @db.Uuid
   org_tenants_mst              org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_cash_drawers_mst         org_cash_drawers_mst         @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst @relation(fields: [cash_drawer_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   // DB FK fk_org_cdm_order_payment (0271) targets the CANONICAL order-payment
   // table; the previous relation to the dropped legacy ledger was stale drift.
-  org_order_payments_dtl       org_order_payments_dtl?      @relation(fields: [order_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cdm_order_payment")
+  org_order_payments_dtl       org_order_payments_dtl?      @relation("OrdCdmOrderPayment", fields: [order_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cdm_order_payment")
+  // B10 — fk_org_cdm_reversed_payment (0421).
+  org_reversed_payment         org_order_payments_dtl?      @relation("OrdCdmReversedPayment", fields: [reversed_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cdm_reversed_payment")
 
   @@index([tenant_org_id, cash_drawer_session_id, performed_at], map: "idx_org_cdm_session")
   @@index([tenant_org_id, cash_drawer_id, performed_at(sort: Desc)], map: "idx_org_cdm_drawer")
   @@index([fin_voucher_id], map: "idx_cd_mov_fin_voucher")
+  @@index([reversed_payment_id], map: "idx_org_cdm_reversed_payment")
   @@schema("public")
 }
 
@@ -6834,20 +6845,90 @@ model org_order_payments_dtl {
   failed_at                     DateTime?                      @db.Timestamptz(6)
   transition_reason             String?
   fallback_classification       String?
+  // B10 (migration 0421) — dedicated actor-audit columns for the VOID/REVERSE
+  // back-office transition service (D001 canonical graph; D004 taxonomy).
+  voided_by                     String?                        @db.Uuid
+  voided_at                     DateTime?                      @db.Timestamptz(6)
+  reversed_by                   String?                        @db.Uuid
+  reversed_at                   DateTime?                      @db.Timestamptz(6)
+  // B08 (migration 0426) — dedicated actor-audit columns for the CAPTURE/SETTLE
+  // gateway-webhook/manual-resync transition service (D001 canonical graph,
+  // AUTHORIZED -> CAPTURED -> SETTLED). Nullable: a webhook-driven transition
+  // has no interactive actor (provenance is the linked sys_gw_webhook_events_tr row).
+  captured_by                   String?                        @db.Uuid
+  captured_at                   DateTime?                      @db.Timestamptz(6)
+  settled_by                    String?                        @db.Uuid
+  settled_at                    DateTime?                      @db.Timestamptz(6)
   org_tenants_mst               org_tenants_mst                @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_payment_methods_cf        org_payment_methods_cf?        @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_branch_payment_methods_cf org_branch_payment_methods_cf? @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_payment_terminals_cf      org_payment_terminals_cf?      @relation("OrdPayTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_cash_drawers_mst          org_cash_drawers_mst?          @relation("OrdPayCashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?  @relation("OrdPayCashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
+  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[] @relation("OrdCdmOrderPayment")
+  org_cash_drawer_reversal_movements org_cash_drawer_movements_dtl[] @relation("OrdCdmReversedPayment")
   org_order_refunds_dtl         org_order_refunds_dtl[]        @relation("RefundOriginalPayment")
+  sys_gw_webhook_events_tr      sys_gw_webhook_events_tr[]      @relation("GwWebhookEventPayment")
 
   @@index([tenant_org_id], map: "idx_org_ord_pay_dtl_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_ord_pay_dtl_order")
   @@index([fin_voucher_id], map: "idx_ord_pay_fin_voucher")
   @@index([tenant_org_id, pos_session_id], map: "idx_ordpay_possess")
   @@map("org_order_payments_dtl")
+  @@schema("public")
+}
+
+// B08 (migration 0426) — inbound gateway-webhook event log + dedup ledger.
+// System-level (no tenant_org_id NOT NULL, no RLS): one webhook endpoint per
+// gateway_code serves every tenant configured on that gateway; tenant_org_id
+// is populated only once the event is matched to a payment leg.
+model sys_gw_webhook_events_tr {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gateway_code        String
+  provider_event_id   String
+  event_type          String
+  raw_payload         Json
+  signature_valid     Boolean   @default(false)
+  tenant_org_id       String?   @db.Uuid
+  order_id            String?   @db.Uuid
+  payment_id          String?   @db.Uuid
+  transition_action   String?
+  processing_status   String    @default("RECEIVED")
+  error_message       String?
+  received_at         DateTime  @default(now()) @db.Timestamptz(6)
+  processed_at        DateTime? @db.Timestamptz(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  updated_at          DateTime? @db.Timestamptz(6)
+  updated_by          String?
+
+  sys_payment_gateway_cd sys_payment_gateway_cd  @relation(fields: [gateway_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  org_order_payments_dtl org_order_payments_dtl? @relation("GwWebhookEventPayment", fields: [payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([gateway_code, provider_event_id], map: "uq_gw_webhook_event")
+  @@index([payment_id], map: "idx_gw_webhook_events_payment")
+  @@map("sys_gw_webhook_events_tr")
+  @@schema("public")
+}
+
+// B19 (migration 0429) — run-history ledger for the scheduled finance
+// maintenance jobs (gift-card expiry, idempotency-key cleanup, ERP
+// posting-retry). System-level, no RLS — every job is a cross-tenant sweep.
+model sys_fin_job_run_log {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_code        String
+  trigger_source  String    @default("SCHEDULE")
+  triggered_by    String?   @db.Uuid
+  status          String    @default("RUNNING")
+  processed_count Int?
+  failed_count    Int?
+  error_message   String?
+  started_at      DateTime  @default(now()) @db.Timestamptz(6)
+  finished_at     DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([job_code, started_at(sort: Desc)], map: "idx_fjrl_job_started")
+  @@map("sys_fin_job_run_log")
   @@schema("public")
 }
 
