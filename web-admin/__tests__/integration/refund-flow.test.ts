@@ -104,6 +104,11 @@ function installTxMock() {
       org_domain_events_outbox: {
         create: mockOutboxCreate,
       },
+      // B14 — issueCorrectionTaxDocumentTx no-ops when there's no ISSUED
+      // original tax document (the case for every tenant today).
+      org_tax_documents_mst: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       $queryRaw: mockQueryRaw,
     };
 

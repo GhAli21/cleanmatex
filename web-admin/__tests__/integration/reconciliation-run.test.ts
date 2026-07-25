@@ -35,6 +35,8 @@ const mockVoucherFindMany = jest.fn();
 const mockVoucherTrxLinesFindMany = jest.fn();
 const mockCashMovementsFindMany = jest.fn();
 const mockSvFundingTendersFindMany = jest.fn();
+const mockTaxDocSeqCountersFindMany = jest.fn();
+const mockTaxDocumentsFindMany = jest.fn();
 const mockOutboxCount = jest.fn();
 const mockReconRunCount = jest.fn();
 const mockReconRunCreate = jest.fn();
@@ -112,6 +114,13 @@ jest.mock('@/lib/db/prisma', () => ({
     org_sv_funding_tenders_dtl: {
       findMany: (...args: unknown[]) => mockSvFundingTendersFindMany(...args),
     },
+    // B14 — tax-document lifecycle reconciliation checks
+    org_tax_doc_seq_counters: {
+      findMany: (...args: unknown[]) => mockTaxDocSeqCountersFindMany(...args),
+    },
+    org_tax_documents_mst: {
+      findMany: (...args: unknown[]) => mockTaxDocumentsFindMany(...args),
+    },
     org_domain_events_outbox: {
       count: (...args: unknown[]) => mockOutboxCount(...args),
     },
@@ -174,6 +183,8 @@ function setupBaselineEmpty() {
   mockVoucherTrxLinesFindMany.mockResolvedValue([]);
   mockCashMovementsFindMany.mockResolvedValue([]);
   mockSvFundingTendersFindMany.mockResolvedValue([]);
+  mockTaxDocSeqCountersFindMany.mockResolvedValue([]);
+  mockTaxDocumentsFindMany.mockResolvedValue([]);
   mockOutboxCount.mockResolvedValue(0);
   mockReconRunCount.mockResolvedValue(0);
   mockReconRunCreate.mockResolvedValue({ id: RUN, run_no: 'RECON-2026-001' });

@@ -203,6 +203,9 @@ function makeRecalcTx(disposedAmount: number) {
     org_order_credit_apps_dtl: { findMany: jest.fn().mockResolvedValue([]) },
     org_order_refunds_dtl: { findMany: jest.fn().mockResolvedValue([]) },
     org_invoice_orders_dtl: { findFirst: jest.fn().mockResolvedValue(null) },
+    // B14 — the fiscal-total comparand now joins org_tax_documents_mst by
+    // order_id (no linked document → FN-03 comparand stays null, unchanged).
+    org_tax_documents_mst: { findFirst: jest.fn().mockResolvedValue(null) },
     // Disposition sum read in recalculateOrderFinancialSnapshotTx.
     $queryRaw: jest.fn().mockResolvedValue([{ total: disposedAmount }]),
   };

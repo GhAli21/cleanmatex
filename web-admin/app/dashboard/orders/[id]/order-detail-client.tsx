@@ -58,6 +58,7 @@ type TabId = (typeof TAB_IDS)[number];
 
 interface OrderDetailClientProps {
   order: Record<string, unknown>;
+  publicTrackingPath?: string | null;
   financialData?: OrderFinancialData;
   orderPreferences: OrderPreferenceRow[];
   orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
@@ -77,6 +78,7 @@ interface OrderDetailClientProps {
  *
  * @param root0
  * @param root0.order
+ * @param root0.publicTrackingPath
  * @param root0.financialData
  * @param root0.orderPreferences
  * @param root0.orderPreferenceDtlColumnLabels
@@ -93,6 +95,7 @@ interface OrderDetailClientProps {
  */
 export function OrderDetailClient({
   order,
+  publicTrackingPath,
   financialData,
   orderPreferences,
   orderPreferenceDtlColumnLabels,
@@ -239,7 +242,6 @@ export function OrderDetailClient({
   })?.sys_customers_mst;
   const items = (order.items ?? order.org_order_items_dtl ?? []) as unknown[];
 
-  const publicTrackingPath = tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
   const publicTrackingUrl =
     typeof window !== 'undefined' && publicTrackingPath
       ? `${window.location.origin}${publicTrackingPath}`

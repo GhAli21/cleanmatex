@@ -55,6 +55,7 @@ const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'i
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
+  publicTrackingPath?: string | null;
   /** Canonical payment rows (`org_order_payments_dtl`) — same source as `financialData.payments`. */
   allPayments: OrderPaymentRow[];
   orderInvoices: Invoice[];
@@ -101,6 +102,7 @@ interface OrderDetailsFullClientProps {
  *
  * @param root0
  * @param root0.order
+ * @param root0.publicTrackingPath
  * @param root0.allPayments
  * @param root0.orderInvoices
  * @param root0.vouchers
@@ -123,6 +125,7 @@ interface OrderDetailsFullClientProps {
  */
 export function OrderDetailsFullClient({
   order,
+  publicTrackingPath,
   allPayments,
   orderInvoices,
   vouchers,
@@ -207,7 +210,6 @@ export function OrderDetailsFullClient({
     router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const publicTrackingPath = tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
   const publicTrackingUrl =
     typeof window !== 'undefined' && publicTrackingPath
       ? `${window.location.origin}${publicTrackingPath}`

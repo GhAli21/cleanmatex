@@ -1,6 +1,6 @@
 ---
 name: Workflow Order Advance
-overview: Engine-first V1.0 cutover (ADR 2026-07-24). Overnight 2026-07-24 shipped P1 migration files (0427/0428), WorkflowEngine + APIs, partial writer cutover; public tracking confirm UX now shows PAY_ON_COLLECTION due + disables after delivered; canary WORKFLOW_ENGINE_V2 off by default. V1.1/V1.2 unchanged.
+overview: Engine-first V1.0 cutover (ADR 2026-07-24). Overnight 2026-07-24 shipped P1 migration files (0427/0428), WorkflowEngine + APIs, partial writer cutover; public tracking now uses opaque /track/{token} links plus confirm UX hardening (create-only migration 0441); canary WORKFLOW_ENGINE_V2 off by default. V1.1/V1.2 unchanged.
 todos:
   - id: p0-readme
     content: Write README + index (audits, Full Pack reference, non-goals)

@@ -12,17 +12,14 @@ import { logger } from './logger';
 /**
  * Generate QR code data URL for order tracking
  * Returns a data URL suitable for <img src={dataUrl} /> display
- * @param orderNumber
+ * @param trackingUrl
  * @param tenantId
  */
 export async function generateQRCode(
-  orderNumber: string,
+  trackingUrl: string,
   tenantId: string
 ): Promise<string> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.cleanmatex.com';
-    const trackingUrl = `${baseUrl}/track/${orderNumber}`;
-
     const dataUrl = await QRCode.toDataURL(trackingUrl, {
       width: 300,
       margin: 2,
@@ -34,7 +31,6 @@ export async function generateQRCode(
 
     logger.info('QR code generated', {
       tenantId,
-      orderNumber,
       trackingUrl,
       feature: 'receipts',
       action: 'generate_qr',
@@ -44,11 +40,10 @@ export async function generateQRCode(
   } catch (error) {
     logger.error('Failed to generate QR code', error as Error, {
       tenantId,
-      orderNumber,
+      trackingUrl,
     });
     // Return URL even on error
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.cleanmatex.com';
-    return `${baseUrl}/track/${orderNumber}`;
+    return trackingUrl;
   }
 }
 

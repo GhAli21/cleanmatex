@@ -11,6 +11,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tracking.service';
+import { buildAbsolutePublicTrackingUrl } from '@/lib/utils/public-order-tracking';
 import { logger } from '@/lib/utils/logger';
 import { AppError } from '@/lib/errors/base-errors';
 
@@ -190,8 +192,18 @@ export class ReceiptService {
         currencyCode,
       });
 
+      const publicTrackingPath = await getPublicTrackingPathForOrderId({
+        tenantId,
+        orderId,
+        fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
+      });
+      const publicTrackingUrl = buildAbsolutePublicTrackingUrl(
+        process.env.NEXT_PUBLIC_APP_URL || 'https://app.cleanmatex.com',
+        publicTrackingPath || '/',
+      );
+
       // Generate QR code
-      const qrCode = await this.generateQRCode(order.order_no, tenantId);
+      const qrCode = await this.generateQRCode(publicTrackingUrl, tenantId);
 
       // Create receipt record
       const orderWithBranch = order as { branch_id?: string | null };
@@ -576,11 +588,11 @@ export class ReceiptService {
    * Generate QR code for order tracking
    */
   private static async generateQRCode(
-    orderNumber: string,
+    trackingUrl: string,
     tenantId: string
   ): Promise<string> {
     const { generateQRCode } = await import('@/lib/utils/qr-code-generator');
-    return generateQRCode(orderNumber, tenantId);
+    return generateQRCode(trackingUrl, tenantId);
   }
 
   /**

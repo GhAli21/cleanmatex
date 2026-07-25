@@ -11,6 +11,7 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tracking.service';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
@@ -174,6 +175,11 @@ async function OrderDetailContent({
   };
 
   const tInvoices = await getTranslations('invoices');
+  const publicTrackingPath = await getPublicTrackingPathForOrderId({
+    tenantId,
+    orderId,
+    fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
+  });
   const preferenceDtlColumnLabels = Object.fromEntries(
     ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])
   ) as Record<OrderPreferenceDtlColumn, string>;
@@ -181,6 +187,7 @@ async function OrderDetailContent({
   return (
     <OrderDetailClient
       order={serializedOrder}
+      publicTrackingPath={publicTrackingPath}
       financialData={financialData}
       orderPreferences={orderPreferences}
       orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}

@@ -86,7 +86,8 @@ Exact HQ OpenAPI: document in cleanmatexsaas integration contract; tenant app co
 
 | Item | Value |
 |------|--------|
-| Path | `POST /api/v1/public/orders/{tenantId}/{orderNo}/confirm-received` |
+| Canonical path | `POST /api/v1/public/track/{token}/confirm-received` |
+| Legacy compatibility | `POST /api/v1/public/orders/{tenantId}/{orderNo}/confirm-received` remains available during rollout and old readable page links redirect to `/track/{token}` when a token exists |
 | Auth | None (public link); IP rate limit |
 | Allowed from | `ready`, `out_for_delivery` (idempotent if already `delivered`) |
 | V2 action | `CONFIRM_DELIVERY` on screen `public_tracking` |

@@ -35,7 +35,7 @@ export async function POST(
   if (authCheck instanceof NextResponse) {
     return authCheck;
   }
-  const { tenantId } = authCheck;
+  const { tenantId, userId } = authCheck;
   const { id: orderId, editHistoryId } = await params;
 
   const body = await request.json().catch(() => null);
@@ -55,6 +55,7 @@ export async function POST(
       paymentAdjustmentType: parsed.data.paymentAdjustmentType,
       paymentAdjustmentAmount: parsed.data.paymentAdjustmentAmount,
       settlementLineage: parsed.data.settlementLineage,
+      issuedBy: userId,
     });
     return NextResponse.json({ success: true, data: result });
   } catch (error) {

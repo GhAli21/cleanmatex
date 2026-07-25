@@ -3536,6 +3536,7 @@ export type Database = {
           s_date: string | null
           street: string | null
           tax_pricing_mode: string | null
+          tax_registration_no: string | null
           tenant_org_id: string
           type: string | null
           updated_at: string | null
@@ -3569,6 +3570,7 @@ export type Database = {
           s_date?: string | null
           street?: string | null
           tax_pricing_mode?: string | null
+          tax_registration_no?: string | null
           tenant_org_id: string
           type?: string | null
           updated_at?: string | null
@@ -3602,6 +3604,7 @@ export type Database = {
           s_date?: string | null
           street?: string | null
           tax_pricing_mode?: string | null
+          tax_registration_no?: string | null
           tenant_org_id?: string
           type?: string | null
           updated_at?: string | null
@@ -21557,6 +21560,7 @@ export type Database = {
           stng_profile_locked: boolean | null
           stng_profile_version_applied: number | null
           tax_pricing_mode: string
+          tax_registration_no: string | null
           time_format: string | null
           timezone: string | null
           updated_at: string | null
@@ -21605,6 +21609,7 @@ export type Database = {
           stng_profile_locked?: boolean | null
           stng_profile_version_applied?: number | null
           tax_pricing_mode?: string
+          tax_registration_no?: string | null
           time_format?: string | null
           timezone?: string | null
           updated_at?: string | null
@@ -21653,6 +21658,7 @@ export type Database = {
           stng_profile_locked?: boolean | null
           stng_profile_version_applied?: number | null
           tax_pricing_mode?: string
+          tax_registration_no?: string | null
           time_format?: string | null
           timezone?: string | null
           updated_at?: string | null

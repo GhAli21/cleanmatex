@@ -49,6 +49,11 @@ const ELIGIBLE_STATUSES: Record<TaxDocumentTriggerEvent, string[]> = {
   [TAX_DOCUMENT_TRIGGER_EVENTS.ON_SERVICE_COMPLETION]:   ['READY', 'COMPLETED'],
   [TAX_DOCUMENT_TRIGGER_EVENTS.ON_DELIVERY]:             ['DELIVERED', 'COMPLETED'],
   [TAX_DOCUMENT_TRIGGER_EVENTS.ON_AR_INVOICE_ISSUE]:     ['INVOICED', 'PROCESSING'],
+  // B14 — correction-document triggers never flow through this primary
+  // decision path (they're issued directly by issueCorrectionTaxDocumentTx);
+  // empty = decideTaxDocumentIssuance always rejects them if ever misused here.
+  [TAX_DOCUMENT_TRIGGER_EVENTS.ON_REFUND]:               [],
+  [TAX_DOCUMENT_TRIGGER_EVENTS.ON_AMENDMENT]:             [],
   [TAX_DOCUMENT_TRIGGER_EVENTS.LEGACY_BACKFILL]:         [],
 };
 

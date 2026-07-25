@@ -22,6 +22,7 @@ import {
   storeIdempotencyHash,
 } from '@/lib/utils/idempotency';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
+import { issueCorrectionTaxDocumentTx } from '@/lib/services/tax-document-issuance.service';
 
 export const ORDER_AMENDMENT_IDEMPOTENCY_RESOURCE_TYPE = 'order_amendment';
 
@@ -221,6 +222,7 @@ export async function recordAmendmentSettlement(params: {
   paymentAdjustmentType: PaymentAdjustmentType;
   paymentAdjustmentAmount: number;
   settlementLineage: SettlementLineage;
+  issuedBy?: string;
 }): Promise<{ alreadySettled: boolean }> {
   const existing = await prisma.org_order_edit_history.findFirst({
     where: {
@@ -237,14 +239,33 @@ export async function recordAmendmentSettlement(params: {
     return { alreadySettled: true };
   }
 
-  await prisma.org_order_edit_history.update({
-    where: { id: params.editHistoryId },
-    data: {
-      payment_adjusted: true,
-      payment_adjustment_amount: Math.abs(params.paymentAdjustmentAmount),
-      payment_adjustment_type: params.paymentAdjustmentType,
-      settlement_lineage: params.settlementLineage as unknown as object,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.org_order_edit_history.update({
+      where: { id: params.editHistoryId },
+      data: {
+        payment_adjusted: true,
+        payment_adjustment_amount: Math.abs(params.paymentAdjustmentAmount),
+        payment_adjustment_type: params.paymentAdjustmentType,
+        settlement_lineage: params.settlementLineage as unknown as object,
+      },
+    });
+
+    // B14 — companion fiscal CREDIT_NOTE/DEBIT_NOTE, only if this order
+    // already has an ISSUED tax document (no-op otherwise — registration-
+    // driven, dormant for every tenant today). Atomic with the settlement
+    // record: CHARGE = customer owes more (DEBIT_NOTE), REFUND = customer
+    // owed back (CREDIT_NOTE) — same sign convention as decideCorrectionDocumentType.
+    await issueCorrectionTaxDocumentTx(tx, {
+      tenantId: params.tenantId,
+      orderId: params.orderId,
+      netDelta:
+        params.paymentAdjustmentType === 'REFUND'
+          ? -Math.abs(params.paymentAdjustmentAmount)
+          : Math.abs(params.paymentAdjustmentAmount),
+      triggerEvent: 'ON_AMENDMENT',
+      issuedBy: params.issuedBy ?? 'system',
+    });
   });
+
   return { alreadySettled: false };
 }

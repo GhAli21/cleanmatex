@@ -15,6 +15,7 @@ import {
   ORDER_PAYMENT_LIFECYCLE_STATUSES,
   ORDER_PAYMENT_STATUS,
   SETTLEMENT_TYPE_CODES,
+  TAX_DOCUMENT_STATUSES,
   TAX_PRICING_MODES,
   isArReceivablePaymentTypeCode,
 } from '@/lib/constants/order-financial';
@@ -620,12 +621,19 @@ export async function recalculateOrderFinancialSnapshotTx(
 
   // Fiscal-total comparand (spec §16.1): when the order is linked to a tax
   // document, its stored fiscal total must equal the recomputed order total.
-  const linkedTaxDocument = order.tax_document_id
-    ? await tx.org_tax_documents_mst.findFirst({
-        where: { id: order.tax_document_id, tenant_org_id: tenantId, is_active: true },
-        select: { total_amount: true },
-      })
-    : null;
+  // B14: joins org_tax_documents_mst by order_id — org_orders_mst.tax_document_id
+  // is DEPRECATED (migration 0341: "new code must join org_tax_documents_mst"),
+  // and nothing writes it going forward (see maybeIssueTaxDocumentTx).
+  const linkedTaxDocument = await tx.org_tax_documents_mst.findFirst({
+    where: {
+      tenant_org_id: tenantId,
+      order_id: orderId,
+      status: TAX_DOCUMENT_STATUSES.ISSUED,
+      is_active: true,
+    },
+    orderBy: { issued_at: 'desc' },
+    select: { id: true, document_no: true, status: true, document_type: true, total_amount: true },
+  });
   const taxDocumentTotalAmount =
     linkedTaxDocument != null ? toNumber(linkedTaxDocument.total_amount) : null;
 
@@ -714,7 +722,7 @@ export async function recalculateOrderFinancialSnapshotTx(
     // Comparand read from the linked `org_tax_documents_mst` row above
     // (FN-03, Order-Fin remediation Phase 6) — no linked document → no check.
     hasTaxDocumentAmountMismatch: evaluateTaxDocumentTotalMismatch({
-      taxDocumentId: order.tax_document_id,
+      taxDocumentId: linkedTaxDocument?.id ?? null,
       taxDocumentTotalAmount,
       orderTotalAmount: totalAmount,
     }),
@@ -799,10 +807,10 @@ export async function recalculateOrderFinancialSnapshotTx(
       arInvoiceId: arInvoice?.id ?? null,
       arInvoiceNo: arInvoice?.invoice_no ?? null,
       arInvoiceStatus: arInvoice?.status ?? null,
-      taxDocumentId: null,
-      taxDocumentNo: null,
-      taxDocumentStatus: null,
-      taxDocumentType: null,
+      taxDocumentId: linkedTaxDocument?.id ?? null,
+      taxDocumentNo: linkedTaxDocument?.document_no ?? null,
+      taxDocumentStatus: linkedTaxDocument?.status ?? null,
+      taxDocumentType: linkedTaxDocument?.document_type ?? null,
     },
   });
   const financialCalculationHash = buildFinancialCalculationHash(calculationSnapshot);

@@ -56,8 +56,8 @@ interface PublicOrderTimelineEntry {
 }
 
 interface PublicOrderTrackingPageProps {
-    tenantId: string;
-    orderNo: string;
+    lookupPath: string;
+    confirmPath: string;
 }
 
 interface PublicOrderMoneyConfig {
@@ -89,10 +89,10 @@ interface ConfirmReceivedResponse {
 /**
  *
  * @param root0
- * @param root0.tenantId
- * @param root0.orderNo
+ * @param root0.lookupPath
+ * @param root0.confirmPath
  */
-export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTrackingPageProps) {
+export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrderTrackingPageProps) {
     const isRTL = useRTL();
     const locale = useLocale();
     const { currencyCode: ctxCurrencyCode, decimalPlaces: ctxDecimalPlaces } = useTenantCurrency();
@@ -128,7 +128,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                 setLoadError(null);
                 setActionError(null);
 
-                const response = await fetch(`/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}`, {
+                const response = await fetch(lookupPath, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -166,7 +166,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
         return () => {
             cancelled = true;
         };
-    }, [tenantId, orderNo, t]);
+    }, [lookupPath, t]);
 
     if (loading) {
         return (
@@ -256,7 +256,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
             setActionError(null);
 
             const response = await fetch(
-                `/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}/confirm-received`,
+                confirmPath,
                 {
                     method: 'POST',
                     headers: {

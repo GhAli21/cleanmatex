@@ -952,6 +952,10 @@ export const TAX_DOCUMENT_TRIGGER_EVENTS = {
   ON_SERVICE_COMPLETION:    'ON_SERVICE_COMPLETION',
   ON_DELIVERY:              'ON_DELIVERY',
   ON_AR_INVOICE_ISSUE:      'ON_AR_INVOICE_ISSUE',
+  /** B14 — correction document (CREDIT_NOTE/DEBIT_NOTE) issued from a refund. */
+  ON_REFUND:                'ON_REFUND',
+  /** B14 — correction document (CREDIT_NOTE/DEBIT_NOTE) issued from a governed order amendment (B12). */
+  ON_AMENDMENT:             'ON_AMENDMENT',
   LEGACY_BACKFILL:          'LEGACY_BACKFILL',
 } as const;
 /** Derived union for tax document trigger events. */

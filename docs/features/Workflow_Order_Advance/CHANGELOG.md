@@ -1,5 +1,11 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.9-p4-public-tracking-token — 2026-07-25
+
+- Added create-only migration `0441_public_order_tracking_tokens.sql` for opaque `/track/{token}` customer links
+- Added token-based public tracking page + APIs while keeping readable legacy links as rollout compatibility fallback
+- Dashboard public-link copy actions and receipt QR generation now prefer opaque tracking paths instead of `{tenantId}/{orderNo}`
+
 ## 0.3.8-p4-public-tracking-ux — 2026-07-25
 
 - Public tracking now surfaces the remaining `PAY_ON_COLLECTION` amount inline with the current order status

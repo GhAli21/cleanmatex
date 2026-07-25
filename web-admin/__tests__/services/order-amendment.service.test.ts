@@ -14,6 +14,7 @@ const mockStoreIdempotencyHash = jest.fn();
 const mockFindIdempotencyHash = jest.fn();
 const mockEditHistoryFindFirst = jest.fn();
 const mockEditHistoryUpdate = jest.fn();
+const mockTaxDocumentFindFirst = jest.fn();
 
 jest.mock('@/lib/services/permission-service-server', () => ({
   hasPermissionServer: (...a: unknown[]) => mockHasPermissionServer(...a),
@@ -26,12 +27,26 @@ jest.mock('@/lib/utils/idempotency', () => ({
   hashPayload: (payload: unknown) => `hash:${JSON.stringify(payload)}`,
 }));
 
+const mockTxClient = {
+  org_order_edit_history: {
+    findFirst: (...a: unknown[]) => mockEditHistoryFindFirst(...a),
+    update: (...a: unknown[]) => mockEditHistoryUpdate(...a),
+  },
+  // B14 — recordAmendmentSettlement issues a companion correction tax
+  // document inside the same transaction; defaults to "no original document"
+  // (null) so it no-ops without needing to mock the full issuance chain.
+  org_tax_documents_mst: {
+    findFirst: (...a: unknown[]) => mockTaxDocumentFindFirst(...a),
+  },
+};
+
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     org_order_edit_history: {
       findFirst: (...a: unknown[]) => mockEditHistoryFindFirst(...a),
       update: (...a: unknown[]) => mockEditHistoryUpdate(...a),
     },
+    $transaction: (fn: (tx: unknown) => unknown) => fn(mockTxClient),
   },
 }));
 

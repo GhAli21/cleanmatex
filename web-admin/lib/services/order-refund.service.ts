@@ -39,6 +39,7 @@ import {
 } from '@/lib/constants/voucher';
 import { ErpLiteAutoPostService } from './erp-lite-auto-post.service';
 import { safeDispatchAutoPost } from './erp-lite-auto-post.util';
+import { issueCorrectionTaxDocumentTx } from './tax-document-issuance.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -1083,6 +1084,19 @@ export async function processRefund(
       tenantId,
       refund.order_id
     );
+
+    // B14 — companion fiscal CREDIT_NOTE, only if this order already has an
+    // ISSUED tax document (no-op otherwise — registration-driven, dormant
+    // for every tenant today). Atomic with the refund: a real failure here
+    // rolls back the whole refund rather than silently skipping a required
+    // fiscal correction.
+    await issueCorrectionTaxDocumentTx(tx, {
+      tenantId,
+      orderId: refund.order_id,
+      netDelta: -amount,
+      triggerEvent: 'ON_REFUND',
+      issuedBy: processedBy ?? 'system',
+    });
 
     // B6 — one REFUND_ISSUED dispatch covers every destination (WALLET,
     // CREDIT_NOTE, CASH, ORIGINAL_METHOD): the accounting effect is the same

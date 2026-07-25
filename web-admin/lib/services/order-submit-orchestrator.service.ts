@@ -19,6 +19,8 @@ import { createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrderTx } from '@/lib/services/order-settlement.service';
+import { maybeIssueTaxDocumentTx } from '@/lib/services/tax-document-issuance.service';
+import { TAX_DOCUMENT_TRIGGER_EVENTS } from '@/lib/constants/order-financial';
 import { checkCreditLimit, assertCreditWithinPolicy } from '@/lib/services/credit-limit.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
@@ -1003,6 +1005,29 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         posSessionId:        input.posSessionId,
         wiringMode:          plan.shouldCreateReceiptVoucher,
       });
+
+      // B14 — tax-document issuance trigger. Non-blocking by design: a new
+      // fiscal side-effect must never be able to take down order submission
+      // itself (D007 failure-coupling — same posture as the ERP-Lite auto-
+      // post dispatch elsewhere in this flow). No-ops for every tenant today
+      // (dormant: no org_tax_doc_triggers_cfg rows are enabled anywhere yet).
+      try {
+        await maybeIssueTaxDocumentTx(tx, {
+          tenantId,
+          orderId,
+          branchId: branchId ?? null,
+          triggerEvent: TAX_DOCUMENT_TRIGGER_EVENTS.ON_ORDER_SUBMIT,
+          orderStatus: currentStatus,
+          issuedBy: userId,
+        });
+      } catch (taxDocError) {
+        logger.error('[submitOrder] Tax-document issuance failed (non-blocking)', taxDocError as Error, {
+          feature: 'orders',
+          action: 'submit_order_tax_document',
+          orderId,
+          tenantId,
+        });
+      }
 
       return { orderId, orderNo, invoiceId, currentStatus, voucherPostResult };
     }, { maxWait: 10000, timeout: 30000 })

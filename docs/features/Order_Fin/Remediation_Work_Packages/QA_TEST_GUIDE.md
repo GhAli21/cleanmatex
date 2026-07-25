@@ -530,6 +530,29 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 26. B14 — Tax Document Runtime Integration (backend only — no UI yet, dormant for every tenant)
+
+**What changed:** an already-built (migration 0341) but completely orphaned tax-document writer/decision/sequence chain is now wired to real trigger points. Behind two independent gates — a tenant/branch `tax_registration_no` (new, both NULL for every tenant today) AND an enabled `org_tax_doc_triggers_cfg` row (existing table, zero enabled rows for every tenant today) — order submission can now issue a numbered, immutable tax document; refunds and governed amendments can now issue a companion correction (credit/debit note) against an existing one; and the fiscal-total mismatch check (FN-03) and 3 tax-document reconciliation checks are now live instead of permanently starved.
+
+> **Migration 0440 is authored, STOP-AND-WAIT — not yet applied.** Nothing in this section is reachable until it's applied AND an owner configures at least one pilot tenant's registration number + one enabled trigger-config row (direct DB — no settings UI exists for either yet). There is no new screen to click through this pass — see B14 doc, Design decision #7 for the deferred frontend follow-up.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|26.1| (Owner/dev only, once migration 0440 is applied) `SELECT tax_registration_no FROM org_tenants_mst WHERE id = '<pilot tenant>';` — confirm NULL by default | NULL for every tenant immediately after the migration applies (no backfill) | |
+|26.2| Submit any order for a tenant with `tax_registration_no` still NULL | No tax document created — confirm via `SELECT * FROM org_tax_documents_mst WHERE order_id = '<order>';` returns 0 rows. Order submission succeeds exactly as before (dormant, non-blocking) | |
+|26.3| Set the pilot tenant's `tax_registration_no` to a test value, but leave `org_tax_doc_triggers_cfg` with no enabled row for that tenant | Submit an order → still no tax document (second gate not satisfied) | |
+|26.4| Insert one enabled row: `INSERT INTO org_tax_doc_triggers_cfg (tenant_org_id, trigger_event, document_type, is_enabled) VALUES ('<pilot tenant>', 'ON_ORDER_SUBMIT', 'INVOICE', true);` then submit a qualifying order (has tax, eligible status) | A DRAFT-then-ISSUED `org_tax_documents_mst` row is created for the order, with a real `document_no` (e.g. `INV-2026-000001`), `sequence_number > 0`, `status = 'ISSUED'` | |
+|26.5| Re-fetch the same order's financial snapshot (any subsequent edit/recalc) | `financial_calculation_snapshot`'s `lineage.taxDocumentId/No/Status/Type` are populated (previously always null) | |
+|26.6| (Dev/DB-level) Manually update the issued document's `total_amount` to a wrong value, then trigger a recalc on its order | Reconciliation (or the order's own `financial_mismatch_warning_count`) now reflects `TAX_DOCUMENT_TOTAL_MISMATCH` (FN-03) — previously could never fire | |
+|26.7| Process a refund on an order from 26.4 (which now has an ISSUED invoice) | A companion `CREDIT_NOTE` document is created and issued, `supersedes_id` pointing at the original invoice; the original invoice's own `status` stays `ISSUED` (not superseded) | |
+|26.8| Complete a governed order amendment (B12) that increases the total, on an order with an ISSUED invoice, then call the settlement-recording endpoint | A companion `DEBIT_NOTE` document is created and issued the same way | |
+|26.9| Attempt to directly `UPDATE org_tax_documents_mst SET total_amount = 1 WHERE status = 'ISSUED'` (any issued row) | Rejected by the DB immutability trigger — `tax_document.immutable: ... may only transition to SUPERSEDED` | |
+|26.10| (Owner/finance) Run reconciliation for the pilot tenant after 26.4/26.7/26.8 | New checks `RECON_TAX_DOC_SEQUENCE_GAPS`, `RECON_TAX_DOC_IMMUTABILITY`, `RECON_TAX_DOC_VS_ORDER_TOTALS` all appear in the run's check set (previously never ran) and are clean for well-formed data | |
+
+**Automated gates at build time (2026-07-25, B14 — backend-only pass):** tsc clean (4 pre-existing/unrelated errors — same 3 as every prior package this session, plus 1 transient one from an unrelated concurrent owner file that self-resolved before the final run — none in any B14 file) · eslint 0 (all B14 files) · full jest **242/242 suites, 2341/2341 tests, zero known failures** (+12 new in `tax-document-issuance.service.test.ts`; 7 pre-existing suites needed a `org_tax_documents_mst`/`org_tax_doc_seq_counters` mock added since the corresponding queries became unconditional — zero behavior assertions changed) · **`npm run build` ✓ (exit 0, full route manifest)**. Migration `0440_b14_tax_registration_and_correction_triggers.sql` — **authored, STOP-AND-WAIT** (not yet applied — review then apply via normal process). No UI this pass — scenarios above are DB/API-level only until the deferred frontend follow-up lands.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -561,6 +584,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B17 | no migration (column + rules table pre-existed); requires a direct SQL UPDATE on one currency's `rounding_unit` (no settings UI) to see a non-zero adjustment before §23 is meaningfully runnable on Preview | | |
 | B18 | no migration; live for every tenant immediately, no config needed; the earlier unrelated assembly-exceptions build blocker (owner's own WIP) is resolved, build green; top-bar pill UI redesign is the current (3rd) iteration — not yet deployed to Preview; 67 pre-existing orders intentionally NOT backfilled (owner-approved fix-forward-only, flagged as a separate future package) | | |
 | B12 | migration 0438 APPLIED (owner, 2026-07-25), verified via remote DB; backend/API/gate + frontend reason-prompt/delta-notice UI fully implemented and tested; settlement automation deliberately NOT built (real `collectPaymentTx` PAY_ON_COLLECTION-only blocker, see Design decision #13 — operator settles manually via the order's Payments tab); flag `order_fin_governed_amendments` defaults OFF, zero effect on any tenant; §25 above covers both API-level (25.1–25.10) and UI-level (25.11–25.16) scenarios | | |
+| B14 | migration 0440 authored, STOP-AND-WAIT (not yet applied); backend trigger-wiring + lineage/FN-03 fix + 3 reconciliation checks + correction-document hooks (B34 refund, B12 amendment) implemented and tested; dormant for every tenant (requires both `tax_registration_no` and an enabled `org_tax_doc_triggers_cfg` row, neither configured anywhere); frontend print/QR/issue-cancel-replace UI deliberately deferred, see Design decision #7; §26 above is DB/API-level only | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

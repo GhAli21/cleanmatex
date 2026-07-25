@@ -13,6 +13,7 @@ import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tracking.service';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
@@ -198,6 +199,11 @@ async function OrderDetailsFullContent({
   };
 
   const tInvoices = await getTranslations('invoices');
+  const publicTrackingPath = await getPublicTrackingPathForOrderId({
+    tenantId,
+    orderId,
+    fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
+  });
 
   const preferenceDtlColumnLabels = Object.fromEntries(
     ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])
@@ -206,6 +212,7 @@ async function OrderDetailsFullContent({
   return (
     <OrderDetailsFullClient
       order={serializedOrder}
+      publicTrackingPath={publicTrackingPath}
       allPayments={financialData?.payments ?? []}
       orderInvoices={orderInvoices}
       vouchers={vouchers}

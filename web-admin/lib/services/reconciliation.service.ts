@@ -38,6 +38,9 @@ import {
   checkOrderPaymentAmountMatchesLine,
   checkOrderPaymentLink,
   checkOutboxStuck,
+  checkTaxDocSequenceGaps,
+  checkTaxDocImmutability,
+  checkTaxDocVsOrderTotals,
   runOrderBalanceChecks,
   type ReconciliationOrderRow,
 } from './reconciliation/order-checks';
@@ -141,6 +144,10 @@ const EXECUTED_CHECK_NAMES: readonly ReconciliationCheckName[] = [
   // ── AR link checks (PRD §22.1) ────────────────────────────────────────
   RECONCILIATION_CHECK_NAMES.INVOICE_PAYMENT_LINK_EXISTS,
   RECONCILIATION_CHECK_NAMES.REFUND_LINK_EXISTS,
+  // ── B14 — tax-document lifecycle ──────────────────────────────────────
+  RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_SEQUENCE_GAPS,
+  RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_IMMUTABILITY,
+  RECONCILIATION_CHECK_NAMES.RECON_TAX_DOC_VS_ORDER_TOTALS,
 ];
 
 /** Total executed checks per run — published as `total_checked` on the run row. */
@@ -327,6 +334,10 @@ export async function runReconciliation(
       // AR
       checkInvoicePaymentLink(tenantId, window),
       checkRefundLink(tenantId, window),
+      // B14 — tax-document lifecycle
+      checkTaxDocSequenceGaps(tenantId, window),
+      checkTaxDocImmutability(tenantId, window),
+      checkTaxDocVsOrderTotals(tenantId, window),
     ])
   ).flat();
 

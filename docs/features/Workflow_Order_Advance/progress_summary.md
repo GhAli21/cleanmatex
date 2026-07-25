@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-07-25  
-**Overall:** P6 tenant profile UI in repo; public confirm UX hardened; run **0437** smoke next
+**Overall:** Public tracking tokenized in repo; apply **0441** then smoke **0437**/tracking next
 
 ## Accurate status
 
@@ -10,9 +10,10 @@ Discovery signed; migrations through 0436 applied (operator)
 0437 created: system actor + public_tracking ready/OFD → delivered
 Public confirm-received → CONFIRM_DELIVERY when V2 on
 Public tracking shows pay-on-collection due + disables confirm after delivered
+Public links now prefer opaque /track/{token} paths (migration 0441 create-only)
 ActionBar false-bounce fixed (hasLoaded)
 Tenant workflow settings now show read-only effective profile on V2
-Next: apply 0437 → smoke public confirm + cancel/hold → P7 / docs
+Next: apply 0441 with 0437 already applied → smoke public confirm + cancel/hold → P7 / docs
 ```
 
 ## Completed
@@ -30,7 +31,8 @@ Next: apply 0437 → smoke public confirm + cancel/hold → P7 / docs
 
 ## Remaining
 
-- [ ] Apply `0437_sys_wf_public_confirm_actor.sql`
+- [x] Apply `0437_sys_wf_public_confirm_actor.sql`
+- [ ] Apply `0441_public_order_tracking_tokens.sql`
 - [ ] Smoke cancel/hold/stop + public confirm-received
 - [ ] P7 e2e + checklist + `/documentation`
 - [ ] V1.1 return sub-order
