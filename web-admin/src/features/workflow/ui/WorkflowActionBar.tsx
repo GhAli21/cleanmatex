@@ -1,8 +1,11 @@
 'use client';
 
-import { Alert, AlertDescription, CmxButton } from '@ui/primitives';
+import { useState } from 'react';
+import { Alert, AlertDescription, CmxButton, CmxInput, Label } from '@ui/primitives';
 import { useTranslations, useLocale } from 'next-intl';
-import { useWorkflowActions } from '@/lib/hooks/use-workflow-actions';
+import { useWorkflowActions, type WorkflowActionDto } from '@/lib/hooks/use-workflow-actions';
+
+const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
 export interface WorkflowActionBarProps {
   orderId: string;
@@ -13,9 +16,22 @@ export interface WorkflowActionBarProps {
   onActionSuccess?: () => void;
 }
 
+function isOnlyRackBlocked(action: WorkflowActionDto): boolean {
+  return (
+    !action.enabled &&
+    action.blockedReasons.length > 0 &&
+    action.blockedReasons.every((r) => r.code === GATE_RACK_REQUIRED)
+  );
+}
+
+function needsRackPrompt(actions: WorkflowActionDto[]): boolean {
+  return actions.some((a) => a.blockedReasons.some((r) => r.code === GATE_RACK_REQUIRED));
+}
+
 /**
  * Floor action CTA bar driven by listAvailableActions / executeAction.
  * Shows enabled actions as primary buttons; disabled actions with blocked reasons.
+ * When rack_required blocks an action, collects rack and passes it on execute.
  * No raw toStatus picker — action codes only (V1.0 UX contract).
  */
 export function WorkflowActionBar({
@@ -31,6 +47,8 @@ export function WorkflowActionBar({
     orderId,
     screen,
   );
+  const [rackLocation, setRackLocation] = useState('');
+  const [rackError, setRackError] = useState<string | null>(null);
 
   if (!enabled && hideWhenDisabled) {
     return null;
@@ -45,6 +63,8 @@ export function WorkflowActionBar({
   }
 
   const visible = actions.filter((a) => a.enabled || a.blockedReasons.length > 0);
+  const showRackField = needsRackPrompt(actions);
+  const rackTrimmed = rackLocation.trim();
 
   return (
     <section
@@ -70,6 +90,30 @@ export function WorkflowActionBar({
         </Alert>
       ) : null}
 
+      {showRackField ? (
+        <div className="space-y-1.5">
+          <Label htmlFor={`wf-rack-${orderId}`}>{t('rackLocationLabel')}</Label>
+          <CmxInput
+            id={`wf-rack-${orderId}`}
+            value={rackLocation}
+            onChange={(e) => {
+              setRackLocation(e.target.value);
+              setRackError(null);
+            }}
+            placeholder={t('rackLocationPlaceholder')}
+            autoComplete="off"
+            aria-invalid={Boolean(rackError)}
+            aria-describedby={rackError ? `wf-rack-err-${orderId}` : undefined}
+          />
+          <p className="text-xs text-muted-foreground">{t('rackLocationHelp')}</p>
+          {rackError ? (
+            <p id={`wf-rack-err-${orderId}`} className="text-xs text-destructive" role="alert">
+              {rackError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {visible.map((action) => {
           const label =
@@ -77,31 +121,44 @@ export function WorkflowActionBar({
           const blockedHint = action.blockedReasons
             .map((r) => (locale.startsWith('ar') && r.message2 ? r.message2 : r.message))
             .join(' · ');
+          const rackUnblocks = isOnlyRackBlocked(action) && rackTrimmed.length > 0;
+          const canClick = (action.enabled || rackUnblocks) && !loading;
 
           return (
-            <div key={action.actionCode} className="flex flex-col gap-1 min-w-[10rem] flex-1 sm:flex-none">
+            <div
+              key={`${action.actionCode}:${action.toStatus ?? ''}`}
+              className="flex flex-col gap-1 min-w-[10rem] flex-1 sm:flex-none"
+            >
               <CmxButton
                 type="button"
-                variant={action.enabled ? 'primary' : 'outline'}
+                variant={canClick ? 'primary' : 'outline'}
                 size="sm"
                 className="w-full"
-                disabled={!action.enabled || loading}
+                disabled={!canClick}
                 loading={loading}
-                title={!action.enabled ? blockedHint : undefined}
+                title={!canClick ? blockedHint : undefined}
                 onClick={() => {
                   void (async () => {
+                    if (isOnlyRackBlocked(action) && !rackTrimmed) {
+                      setRackError(t('rackLocationRequired'));
+                      return;
+                    }
                     const ok = await execute(
                       action.actionCode,
-                      undefined,
+                      rackTrimmed ? { rackLocation: rackTrimmed } : undefined,
                       action.toStatus,
                     );
-                    if (ok) onActionSuccess?.();
+                    if (ok) {
+                      setRackLocation('');
+                      setRackError(null);
+                      onActionSuccess?.();
+                    }
                   })();
                 }}
               >
                 {label}
               </CmxButton>
-              {!action.enabled && blockedHint ? (
+              {!canClick && blockedHint ? (
                 <p className="text-xs text-muted-foreground" role="status">
                   {blockedHint}
                 </p>

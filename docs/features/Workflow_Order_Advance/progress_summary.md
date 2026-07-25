@@ -9,8 +9,9 @@
 Discovery signed; migrations through 0434 applied (operator)
 P3: useOrderTransition → executeAction under client canary
 WorkflowActionBar on prep/processing/assembly/qa/packing/ready
-0434 skip transitions applied — template flag skips ready to smoke
-Next: re-smoke full stage path (stages on/off) → cancel/return + P5 retire Legacy
+0434 skip transitions applied; 0435 pack→ready rack_required (create-only)
+ActionBar + Ready page rack UX to unblock RELEASE_*
+Next: apply 0435 → re-smoke rack paths → cancel/return + P5 retire Legacy
 ```
 
 ## Completed
@@ -19,10 +20,12 @@ Next: re-smoke full stage path (stages on/off) → cancel/return + P5 retire Leg
 - [x] Stage Complete buttons use engine when public canary flag on
 - [x] Action bars on processing / assembly / qa / packing
 - [x] preferredToStatus + skip-edge migration `0434` applied
+- [x] Rack gap: ActionBar input, Ready edit/save, packing passes rackLocation; `0435` file ready
 
 ## Remaining
 
-- [ ] Re-smoke processing→ready with assembly/qa/packing off and on
+- [ ] Apply `0435` local+remote
+- [ ] Re-smoke processing→ready with assembly/qa/packing off and on (+ rack)
 - [ ] Cancel/return engine wire
 - [ ] P4 public confirm actor
 - [ ] P5 block Legacy/Enhanced when server flag on

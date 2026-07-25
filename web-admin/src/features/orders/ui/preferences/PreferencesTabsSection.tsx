@@ -13,6 +13,7 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
 import { ServicePreferenceSelector } from './ServicePreferenceSelector';
+import { LevelPreferenceCard } from './LevelPreferenceCard';
 import { CarePackageBundles } from './CarePackageBundles';
 import { RepeatLastOrderPanel } from './RepeatLastOrderPanel';
 import { SmartSuggestionsPanel } from './SmartSuggestionsPanel';
@@ -54,8 +55,26 @@ export function PreferencesTabsSection({
   const tItems = useTranslations('newOrder.itemsGrid');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
-  const { state, updateItemServicePrefs, updateItemPieces, updateOrderServicePrefs } = useNewOrderStateWithDispatch();
-  const { servicePrefs } = usePreferenceCatalog(state.branchId, true);
+  const {
+    state,
+    updateItemServicePrefs,
+    updateItemPieces,
+    updateOrderServicePrefs,
+    updateItemPackingPref,
+  } = useNewOrderStateWithDispatch();
+  const { servicePrefs, packingPrefs, preferenceKinds, prefsByKind, kindsLoading } =
+    usePreferenceCatalog(state.branchId, true);
+
+  // B18 redesign: LevelPreferenceCard filters `preferenceKinds` down to the
+  // PREFERENCES main type internally, and additionally hides packing_prefs
+  // whenever `onPackingChange` is omitted — so order-level (no packing prop
+  // passed below) naturally offers service prefs only, no order-wide packing
+  // backend exists yet (deliberate scope decision, see B18 doc). Item-level
+  // passes `onPackingChange`, so it additionally offers packing (already
+  // fully supported end to end). Piece level keeps its existing dedicated
+  // ServicePreferenceSelector in this tab — its full kind-toolbar experience
+  // already lives in the separate "Edit Items Preferences" wizard step
+  // (OrderPiecePreferencesSection).
 
   const [activePrefTab, setActivePrefTab] = useState<'quick' | 'service'>('quick');
 
@@ -169,17 +188,18 @@ export function PreferencesTabsSection({
             </p>
 
             {/* B18 — order-level preferences: independent of any single item/piece. */}
-            <div className="rounded-lg border border-gray-200 p-3 bg-blue-50/40">
-              <div className={`font-medium text-sm text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('orderLevelPrefs') || 'Whole Order'}
-              </div>
-              <ServicePreferenceSelector
-                selectedPrefs={state.orderServicePrefs ?? []}
-                availablePrefs={servicePrefs}
-                onChange={(prefs) => updateOrderServicePrefs(prefs)}
-                enforceCompatibility={enforcePrefCompatibility}
-              />
-            </div>
+            <LevelPreferenceCard
+              title={t('orderLevelPrefs') || 'Whole Order'}
+              servicePrefs={state.orderServicePrefs ?? []}
+              preferenceKinds={preferenceKinds}
+              prefsByKind={prefsByKind}
+              packingPrefs={packingPrefs}
+              servicePrefsFallback={servicePrefs}
+              currencyCode=""
+              kindsLoading={kindsLoading}
+              enforcePrefCompatibility={enforcePrefCompatibility}
+              onServicePrefsChange={(prefs) => updateOrderServicePrefs(prefs)}
+            />
 
             <div className="space-y-4 max-h-[50vh] sm:max-h-[40vh] overflow-y-auto">
               {state.items.map((item) => (
@@ -200,7 +220,7 @@ export function PreferencesTabsSection({
                     )}
                   </div>
 
-                  {/* B18 — item-level selector shown always (not just when untracked-by-piece),
+                  {/* B18 — item-level card shown always (not just when untracked-by-piece),
                       so an operator can add a whole-item preference in addition to per-piece ones. */}
                   <div>
                     {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
@@ -208,13 +228,27 @@ export function PreferencesTabsSection({
                         {tItems('wholeItem') || 'Whole item'}
                       </span>
                     )}
-                    <ServicePreferenceSelector
-                      selectedPrefs={item.servicePrefs ?? []}
-                      availablePrefs={servicePrefs}
-                      onChange={(prefs, charge) =>
+                    <LevelPreferenceCard
+                      title=""
+                      bare
+                      servicePrefs={item.servicePrefs ?? []}
+                      packingPrefCode={item.packingPrefCode}
+                      preferenceKinds={preferenceKinds}
+                      prefsByKind={prefsByKind}
+                      packingPrefs={packingPrefs}
+                      servicePrefsFallback={servicePrefs}
+                      currencyCode=""
+                      kindsLoading={kindsLoading}
+                      enforcePrefCompatibility={enforcePrefCompatibility}
+                      onServicePrefsChange={(prefs, charge) =>
                         updateItemServicePrefs(item.productId, prefs, charge)
                       }
-                      enforceCompatibility={enforcePrefCompatibility}
+                      onPackingChange={(code, packingCfId) => {
+                        const charge = code
+                          ? Number(packingPrefs.find((p) => p.code === code)?.default_extra_price ?? 0)
+                          : 0;
+                        updateItemPackingPref(item.productId, code ?? '', false, 'manual', packingCfId, charge);
+                      }}
                     />
                   </div>
 

@@ -25,9 +25,10 @@ export interface PreferenceChipProps {
   /** When set (e.g. color prefs), chip uses catalog swatch hex — overrides kind accent */
   catalogColorHex?: string | null;
   onRemove: () => void;
-  onCopy: () => void;
+  /** Omit to hide the copy action (e.g. order/item-level chips, which have no siblings to copy to). */
+  onCopy?: () => void;
   removeLabel: string;
-  copyLabel: string;
+  copyLabel?: string;
 }
 
 /**
@@ -85,23 +86,25 @@ export function PreferenceChip({
         </span>
       )}
       <span className="inline-flex shrink-0 items-center gap-0.5 ps-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCopy();
-          }}
-          className={cn(
-            'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500',
-            swatchStyle
-              ? 'text-white/90 hover:bg-white/15'
-              : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
-          )}
-          aria-label={copyLabel}
-          title={copyLabel}
-        >
-          <Copy className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        {onCopy && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopy();
+            }}
+            className={cn(
+              'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500',
+              swatchStyle
+                ? 'text-white/90 hover:bg-white/15'
+                : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+            )}
+            aria-label={copyLabel}
+            title={copyLabel}
+          >
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
         <button
           type="button"
           onClick={(e) => {

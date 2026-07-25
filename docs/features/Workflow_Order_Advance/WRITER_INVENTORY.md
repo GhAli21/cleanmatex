@@ -21,4 +21,4 @@ Track every path that mutates order operational status. Exit criterion: all prod
 
 Flag: HQ `workflow_engine_v2` / `WORKFLOW_ENGINE_V2` / `NEXT_PUBLIC_WORKFLOW_ENGINE_V2`.
 
-**Skip edges:** `0434_sys_wf_stage_skip_transitions.sql` **applied** — ready to smoke template skip-paths.
+**Skip edges:** `0434` applied. **Rack:** apply `0435_sys_wf_pack_ready_rack_required.sql` — packing→ready requires rack; ActionBar + Ready detail can set rack.

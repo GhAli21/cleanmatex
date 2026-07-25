@@ -170,6 +170,7 @@ export default function PackingDetailPage() {
           to_status: 'ready',
           notes: undefined,
           useOldWfCodeOrNew: useNewWorkflowSystem,
+          rackLocation: rackLocation.trim(),
         },
       });
 

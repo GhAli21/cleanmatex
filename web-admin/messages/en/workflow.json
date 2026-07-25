@@ -251,6 +251,7 @@
       "title": "Delivery Actions",
       "open": "Open",
       "backToReady": "Back to Ready",
+      "saveRack": "Save rack",
       "markDelivered": "Mark as Delivered",
       "printReceipt": "Print Receipt",
       "printReceiptThermal": "Print Receipt (80mm)",
@@ -269,8 +270,13 @@
       "notFound": "Order not found",
       "deliveredSuccess": "Order marked as delivered",
       "deliveredFailed": "Failed to deliver order",
-      "blockersTitle": "Cannot complete action"
-    }
+      "blockersTitle": "Cannot complete action",
+      "rackRequired": "Rack location is required",
+      "rackSaved": "Rack location saved",
+      "rackSaveFailed": "Failed to save rack location"
+    },
+    "rackPlaceholder": "e.g., Rack A-12",
+    "rackHelp": "Assign a rack so release for pickup/delivery can proceed."
   },
   "packing": {
     "description": "Orders pending packing",
@@ -405,6 +411,10 @@
     "noActions": "No workflow actions are available for this order on this screen.",
     "canaryOff": "Workflow Engine V2 is off for this tenant. Use the legacy screen actions.",
     "actionSuccess": "Action completed",
-    "actionFailed": "Action failed"
+    "actionFailed": "Action failed",
+    "rackLocationLabel": "Rack location",
+    "rackLocationPlaceholder": "e.g., Rack A-12",
+    "rackLocationHelp": "Required before release or moving to ready. Saved with the action.",
+    "rackLocationRequired": "Enter a rack location to continue"
   }
 }

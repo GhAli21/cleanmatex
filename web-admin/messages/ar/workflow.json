@@ -251,6 +251,7 @@
       "title": "إجراءات التسليم",
       "open": "فتح",
       "backToReady": "العودة إلى الجاهز",
+      "saveRack": "حفظ الرف",
       "markDelivered": "تمييز كتم التسليم",
       "printReceipt": "طباعة الإيصال",
       "printReceiptThermal": "طباعة الإيصال (٨٠ ملم)",
@@ -269,8 +270,13 @@
       "notFound": "الطلب غير موجود",
       "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
       "deliveredFailed": "فشل تسليم الطلب",
-      "blockersTitle": "لا يمكن إكمال الإجراء"
-    }
+      "blockersTitle": "لا يمكن إكمال الإجراء",
+      "rackRequired": "موقع الرف مطلوب",
+      "rackSaved": "تم حفظ موقع الرف",
+      "rackSaveFailed": "فشل حفظ موقع الرف"
+    },
+    "rackPlaceholder": "مثال: رف A-12",
+    "rackHelp": "عيّن رفًا حتى يمكن الإفراج للاستلام أو التوصيل."
   },
   "packing": {
     "description": "طلبات بانتظار التغليف",
@@ -405,6 +411,10 @@
     "noActions": "لا تتوفر إجراءات سير عمل لهذا الطلب على هذه الشاشة.",
     "canaryOff": "محرك سير العمل V2 متوقف لهذا المستأجر. استخدم إجراءات الشاشة القديمة.",
     "actionSuccess": "تم تنفيذ الإجراء",
-    "actionFailed": "فشل الإجراء"
+    "actionFailed": "فشل الإجراء",
+    "rackLocationLabel": "موقع الرف",
+    "rackLocationPlaceholder": "مثال: رف A-12",
+    "rackLocationHelp": "مطلوب قبل الإفراج أو الانتقال إلى الجاهز. يُحفظ مع الإجراء.",
+    "rackLocationRequired": "أدخل موقع الرف للمتابعة"
   }
 }
