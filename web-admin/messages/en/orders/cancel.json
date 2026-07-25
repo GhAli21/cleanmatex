@@ -1,6 +1,7 @@
 {
   "title": "Cancel Order",
-  "description": "This order will be cancelled. Please provide a reason (required for audit).",
+  "description": "This order will be cancelled. Please provide a reason (required for audit). Money is not adjusted automatically — record refunds or credits in Fin if needed.",
+  "moneyFinHint": "This order has collected payments ({amount}). Cancelling does not refund or move money automatically. Handle disposition explicitly in Finance after cancel.",
   "reasonLabel": "Cancellation reason",
   "reasonPlaceholder": "Enter the reason for cancelling this order...",
   "reasonHint": "Minimum {min} characters required",

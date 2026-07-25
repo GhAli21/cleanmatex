@@ -421,6 +421,11 @@
     "emptyScreenBodyWithStatus": "This order has no workflow actions here (current status: {status}). It may already be on another stage.",
     "emptyBack": "Go back",
     "redirectedNoActions": "No actions on this screen — returned to the list.",
-    "redirecting": "Returning to the list…"
+    "redirecting": "Returning to the list…",
+    "controlNotesLabel": "Reason / notes",
+    "controlNotesPlaceholder": "Required for hold or permanent stop…",
+    "controlNotesHelp": "Minimum {min} characters. Saved with the action for audit.",
+    "controlNotesRequired": "Enter a reason (at least {min} characters) to continue",
+    "orderControlTitle": "Hold / resume / stop"
   }
 }

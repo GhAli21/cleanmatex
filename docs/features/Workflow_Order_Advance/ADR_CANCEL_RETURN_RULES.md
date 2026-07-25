@@ -1,76 +1,50 @@
-# ADR — Cancel vs Return vs Stop (proposed product lock)
+# ADR — Cancel vs Hold vs Stop vs Return
 
-**Status:** Proposed (awaiting your confirm) · **Date:** 2026-07-25  
-**Supersedes (when accepted):** broad cancel-from-any-ops-status + auto Fin unwind on cancel; return as status-only flip.
+**Status:** Accepted · **Date:** 2026-07-25  
+**Supersedes:** Broad cancel-from-any-ops-status + automatic Fin unwind on cancel.
 
-## 1. Problem
+## 1. Locked decisions (product confirm 2026-07-25)
 
-Current V1 cutover allows cancel from many floor statuses and runs Fin unwind automatically after cancel. Return flips terminal status (`returned`) without a commercial/ops child document. Product intent is stricter:
+1. **Cancel allowlist** = `draft` + `intake` + `preparing` **only if preparation is not completed** and **before real processing starts**.
+2. Temporary halt after work started = **`on_hold`** (user can **resume**). Permanent halt = action **`STOP_ORDER_WORK`** → terminal **`stopped`**.
+3. **Return sub-order** = **V1.1**. Until then: create a normal order with discount/notes (manual workaround).
+4. **No automatic Fin unwind / no auto refund.** Every monetary disposition is **explicit and recorded by users** (Fin screens / future flows).
 
-- Cancel only before real processing starts.
-- After that, a different action (“stop”) — money decided by the user, **no auto refund**.
-- Customer return of a finished (or partial) order creates a **sub-order** with full return details.
+## 2. Definitions
 
-## 2. Definitions (target)
+| Concept | When | Result | Money |
+|---------|------|--------|-------|
+| **Cancel** | `draft` / `intake` / incomplete `preparing` only | Same order → `cancelled` | User-driven only; engine does **not** auto-unwind |
+| **Hold** (`HOLD_ORDER_WORK`) | After real processing may have started | → `on_hold`; resume later | None |
+| **Resume** (`RESUME_ORDER_WORK`) | From `on_hold` | → prior status (`hold_from_status`) | None |
+| **Stop** (`STOP_ORDER_WORK`) | Permanent stop (from ops or hold) | → `stopped` (terminal) | None (user Fin later) |
+| **Return** | Finished / partial customer return | **V1.1 sub-order** + details | Explicit Fin later |
 
-| Concept | Meaning | Creates |
-|---------|---------|---------|
-| **Cancel** | Abandon order **before laundry work truly starts** | Terminal `cancelled` on the **same** order |
-| **Stop** (working name; confirm) | Halt an order that **already entered real processing** — not a customer return | Ops outcome TBD (`on_hold` or dedicated stop path); **no auto money movement** |
-| **Return** | Accept goods back from customer for a **finished** order (full or **partial**) | **Sub-order** linked to parent + return detail records; money optional / user-decided |
+## 3. Cancel rules
 
-## 3. Cancel — restrictions
+**Allowed when:**
 
-**Allowed only when** operational status is in:
+| Status | Extra condition |
+|--------|-----------------|
+| `draft` | — |
+| `intake` | — |
+| `preparing` (or synonym `preparation`) | `preparation_status` ≠ `completed` |
 
-- `draft`
-- `intake`
-- optionally `preparing` **only if** preparation has **not** completed / processing not started  
+**Forbidden when:** `processing`, `assembly`, `qa`, `packing`, `ready`, `out_for_delivery`, `delivered`, `closed`, `cancelled`, `returned`, `on_hold`, `stopped`, or preparing with prep already completed.
 
-**Not allowed when** status is: `processing`, `assembly`, `qa`, `packing`, `ready`, `out_for_delivery`, `delivered`, `closed`, `cancelled`, `returned`, `on_hold` (or use Stop instead).
+## 4. Hold / resume / stop
 
-**Money:** Operator chooses what to do with any collected funds (refund / store credit / keep / none). **No automatic refund** as a silent side effect. Disposition UI may still be offered; defaults to **manual / operator decision**, not engine auto-unwind.
+- **Hold:** reason/notes required; persist `hold_from_status` = status before hold.
+- **Resume:** only from `on_hold` with non-empty `hold_from_status`.
+- **Stop:** permanent; terminal `stopped`; reason/notes required; no auto money.
 
-## 4. Stop — after processing started (confirm name)
+## 5. Return (V1.1)
 
-When cancel is forbidden because work started:
+Sub-order of parent with return details (reason, notes, preferences, scope, money optional). Out of V1.0 canary scope.
 
-- Offer **Stop** (not Cancel, not Return).
-- Requires reason/notes.
-- Suggested status: `on_hold` (reuse) **or** new terminal/ops code later — **TBD**.
-- **No auto Fin unwind / no auto refund.**
-
-## 5. Return — sub-order model
-
-When customer returns a finished order (or part of it) and staff **accept** the return:
-
-1. Parent order stays the commercial/fulfilment anchor (status policy TBD — often stays `delivered` / `closed` with return linkage).
-2. System creates a **sub-order** (`parent_order_id` / return link) — with or without money lines.
-3. Persist return details: reason, notes, preferences, scope (full vs which items/pieces), accepted_by, timestamps.
-4. Downstream Fin (refund/credit) is **explicit operator/Fin flow**, not silent on accept.
-
-This is larger than a status flip to `returned`; treat as **V1.1 feature package** unless we thin-slice a stub.
-
-## 6. Mapping to current code (gap)
-
-| Area | Today | Target |
-|------|-------|--------|
-| `canCancelOrder` | Many ops statuses | Only draft / intake / (prep not started) |
-| Fin on cancel | Auto `unwindOrderFinancialsOnCancel` | User decides; no auto refund |
-| Return UI/engine | `RETURN_ORDER` → `returned` | Sub-order + return detail pack |
-| Stop | Missing | New action after processing started |
-
-## 7. Confirm before implement (need your OK)
-
-Reply with yes/no (or edit):
-
-1. **Cancel allowlist** = `draft` + `intake` only? Or also `preparing` while prep incomplete?
-2. **“Stop enforce”** = put order **`on_hold`** with reason, no money side effects? (Or different name/status?)
-3. **Return sub-order** = schedule as **next build (V1.1)** after narrowing cancel + stop? Or block canary until sub-order exists?
-4. **Paid cancel in allowlist** = show disposition UI but **do not** call auto unwind unless user explicitly confirms a refund action?
-
-## 8. Decision log
+## 6. Decision log
 
 | Date | Decision |
 |------|----------|
-| 2026-07-25 | Proposal captured from product suggestion; not yet locked |
+| 2026-07-25 | Proposal captured |
+| 2026-07-25 | Locked: cancel allowlist + hold/resume + STOP_ORDER_WORK + no auto unwind + return V1.1 |

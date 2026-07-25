@@ -510,6 +510,7 @@ export function OrderDetailClient({
                     id: string;
                     status: string;
                     tenant_org_id: string;
+                    preparation_status?: string | null;
                   }
                 }
               />

@@ -9,6 +9,6 @@
 | Scope ADR | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) |
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
-| Next (you) | Apply `0436`; smoke cancel (paid/unpaid) + return → `returned` |
-| Next (code) | P4 public confirm actor; P6 tenant UI; P7 e2e; `/documentation` |
+| Next (you) | Smoke cancel (early) + hold/resume/stop with `workflow_engine_v2` on |
+| Next (code) | P4 public confirm actor; P6 tenant UI; P7 e2e; return V1.1 |
 | Ready for production canary | **Yes (single-tenant)** — discovery OK; enable flag and smoke |

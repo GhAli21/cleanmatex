@@ -26,6 +26,7 @@ import {
 } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { type PaymentEngineCurrencyConfig } from '@features/orders/hooks/use-payment-engine';
+import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import type { PaymentServerGuard } from '@features/orders/hooks/use-order-submission';
 import { PAYMENT_MODAL_MODE, type PaymentModalMode } from './payment-modal-v4.utils';
 import { PaymentFullView } from './payment-full-view';
@@ -41,6 +42,8 @@ interface PaymentModalProps {
   /** Order amount for checkout-options eligibility; defaults to preview saleTotal when loaded. */
   checkoutAmount?: number;
   items: { productId: string; quantity: number; priceOverride?: number | null; servicePrefCharge?: number; packingPrefCharge?: number }[];
+  /** B18 — order-level preferences threaded into the totals preview so the modal total includes their charge. */
+  orderServicePrefs?: OrderItemServicePref[];
   isExpress?: boolean;
   tenantOrgId: string;
   customerId?: string;
@@ -102,6 +105,7 @@ export function PaymentModalV4({
   total,
   checkoutAmount,
   items,
+  orderServicePrefs,
   isExpress = false,
   tenantOrgId,
   customerId,
@@ -213,6 +217,7 @@ export function PaymentModalV4({
       csrfToken={csrfToken}
       open={open}
       items={items}
+      orderServicePrefs={orderServicePrefs}
       total={total}
       checkoutAmount={checkoutAmount}
       isExpress={isExpress}

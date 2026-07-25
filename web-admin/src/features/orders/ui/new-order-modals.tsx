@@ -142,6 +142,18 @@ export function NewOrderModals() {
     [state.state.items]
   );
 
+  // B18 — sum of order-level preference charges (independent of any item), added to the
+  // checkout eligibility amount so the modal's pre-preview fallback is correct; the server
+  // preview (which now receives orderServicePrefs) is authoritative once loaded.
+  const orderChargesTotal = useMemo(
+    () =>
+      (state.state.orderServicePrefs ?? []).reduce(
+        (sum, p) => sum + (p.extra_price ?? 0),
+        0
+      ),
+    [state.state.orderServicePrefs]
+  );
+
   // Retail-only: all items are RETAIL_ITEMS (payment must be at POS, no PAY_ON_COLLECTION)
   const isRetailOnlyOrder = useMemo(() => {
     const items = state.state.items;
@@ -374,8 +386,9 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
-          checkoutAmount={totals.subtotal + totals.servicePrefCharge + totals.packingPrefCharge}
+          checkoutAmount={totals.subtotal + totals.servicePrefCharge + totals.packingPrefCharge + orderChargesTotal}
           items={paymentItems}
+          orderServicePrefs={state.state.orderServicePrefs}
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}

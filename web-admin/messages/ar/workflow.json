@@ -421,6 +421,11 @@
     "emptyScreenBodyWithStatus": "لا تتوفر إجراءات سير عمل لهذا الطلب هنا (الحالة الحالية: {status}). قد يكون في مرحلة أخرى.",
     "emptyBack": "رجوع",
     "redirectedNoActions": "لا توجد إجراءات في هذه الشاشة — تمت العودة إلى القائمة.",
-    "redirecting": "جارٍ الرجوع إلى القائمة…"
+    "redirecting": "جارٍ الرجوع إلى القائمة…",
+    "controlNotesLabel": "السبب / الملاحظات",
+    "controlNotesPlaceholder": "مطلوب للتعليق أو الإيقاف النهائي…",
+    "controlNotesHelp": "الحد الأدنى {min} أحرف. تُحفظ مع الإجراء للتدقيق.",
+    "controlNotesRequired": "أدخل سبباً (على الأقل {min} أحرف) للمتابعة",
+    "orderControlTitle": "تعليق / استئناف / إيقاف"
   }
 }

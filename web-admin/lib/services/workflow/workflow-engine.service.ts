@@ -100,6 +100,7 @@ type LockedOrderRow = {
   state_version: bigint | number | null;
   preparation_status: string | null;
   rack_location: string | null;
+  hold_from_status: string | null;
 };
 
 type ActionTransitionRow = {
@@ -116,6 +117,7 @@ type ActionTransitionRow = {
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 const PREPARATION_COMPLETED = 'completed';
+const MIN_HOLD_STOP_NOTE_LENGTH = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -161,6 +163,11 @@ function gateBlockedReason(gateCode: string, locale?: string): BlockedReason {
       en: 'Preparation must be completed before this action.',
       ar: 'يجب إكمال التحضير قبل هذا الإجراء.',
     },
+    prep_not_completed: {
+      code: 'GATE_PREP_ALREADY_COMPLETED',
+      en: 'Cancel is only allowed before preparation is completed. Use hold or stop instead.',
+      ar: 'الإلغاء مسموح فقط قبل إكمال التحضير. استخدم التعليق أو الإيقاف بدلاً من ذلك.',
+    },
     fin_release_eligible: {
       code: 'GATE_FIN_RELEASE',
       en: 'Order is not eligible for release (financial check pending).',
@@ -192,7 +199,8 @@ async function loadOrderForRead(
       status,
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
-      rack_location
+      rack_location,
+      hold_from_status
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -218,7 +226,8 @@ async function loadOrderForUpdate(
       status,
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
-      rack_location
+      rack_location,
+      hold_from_status
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -336,6 +345,15 @@ async function evaluateGate(
       return {
         allowed: false,
         blockedReasons: [gateBlockedReason('prep_stage_complete', locale)],
+      };
+    }
+    case 'prep_not_completed': {
+      const prepDone =
+        normalizeStatus(order.preparation_status) === PREPARATION_COMPLETED;
+      if (!prepDone) return { allowed: true, blockedReasons: [] };
+      return {
+        allowed: false,
+        blockedReasons: [gateBlockedReason('prep_not_completed', locale)],
       };
     }
     case 'fin_release_eligible': {
@@ -656,7 +674,51 @@ export async function executeAction(
       );
     }
 
-    const toStatus = normalizeStatus(transition.to_status);
+    const isHold =
+      params.actionCode === WORKFLOW_ACTIONS.HOLD_ORDER_WORK;
+    const isResume =
+      params.actionCode === WORKFLOW_ACTIONS.RESUME_ORDER_WORK;
+    const isStop =
+      params.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK;
+
+    const controlNote =
+      (typeof params.input?.notes === 'string' ? params.input.notes.trim() : '') ||
+      (typeof params.input?.hold_note === 'string'
+        ? params.input.hold_note.trim()
+        : '') ||
+      (typeof params.input?.stop_note === 'string'
+        ? params.input.stop_note.trim()
+        : '');
+
+    if ((isHold || isStop) && controlNote.length < MIN_HOLD_STOP_NOTE_LENGTH) {
+      throw new WorkflowEngineError(
+        'ACTION_NOT_ALLOWED',
+        `Reason/notes must be at least ${MIN_HOLD_STOP_NOTE_LENGTH} characters for hold/stop.`,
+      );
+    }
+
+    let toStatus = normalizeStatus(transition.to_status);
+    let nextHoldFrom: string | null = null;
+    let clearHoldFrom = false;
+
+    if (isHold) {
+      toStatus = 'on_hold';
+      nextHoldFrom = currentStatus;
+    } else if (isResume) {
+      const resumeTo = normalizeStatus(order.hold_from_status);
+      if (!resumeTo) {
+        throw new WorkflowEngineError(
+          'ACTION_NOT_ALLOWED',
+          'Cannot resume: hold_from_status is missing on this order.',
+        );
+      }
+      toStatus = resumeTo;
+      clearHoldFrom = true;
+    } else if (isStop) {
+      toStatus = 'stopped';
+      clearHoldFrom = true;
+    }
+
     const nextVersion = currentVersion + 1;
     const now = new Date();
     const isCompletePreparation =
@@ -682,6 +744,9 @@ export async function executeAction(
         ? params.input.return_reason.trim()
         : '') || cancelNote;
 
+    const applyHoldFrom = Boolean(nextHoldFrom);
+    const holdFromValue = nextHoldFrom ?? '';
+
     const updated = await tx.$executeRaw`
       UPDATE public.org_orders_mst
       SET
@@ -691,6 +756,11 @@ export async function executeAction(
         last_transition_at = ${now},
         last_transition_by = ${params.actorUserId}::uuid,
         updated_at = ${now},
+        hold_from_status = CASE
+          WHEN ${applyHoldFrom} THEN ${holdFromValue}
+          WHEN ${clearHoldFrom} THEN NULL
+          ELSE hold_from_status
+        END,
         rack_location = CASE
           WHEN ${applyRack} THEN ${rackFromInput}
           ELSE rack_location

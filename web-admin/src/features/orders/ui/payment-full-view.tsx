@@ -117,6 +117,7 @@ import {
   type PaymentEngineItem,
   type PaymentEngineCurrencyConfig,
 } from '@features/orders/hooks/use-payment-engine';
+import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
@@ -283,6 +284,8 @@ interface PaymentFullViewProps {
   // ---- order context ----
   open: boolean;
   items: PaymentEngineItem[];
+  /** B18 — order-level preferences threaded into the totals preview so the modal total includes them. */
+  orderServicePrefs?: OrderItemServicePref[];
   total: number;
   checkoutAmount?: number;
   isExpress: boolean;
@@ -329,6 +332,7 @@ export function PaymentFullView({
   csrfToken,
   open,
   items,
+  orderServicePrefs,
   total,
   checkoutAmount,
   isExpress = false,
@@ -518,6 +522,7 @@ export function PaymentFullView({
   const engine = usePaymentEngine({
     open,
     items,
+    orderServicePrefs,
     tenantOrgId,
     branchId,
     customerId,

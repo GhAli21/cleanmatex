@@ -1,29 +1,14 @@
 /**
- * Cancel/return orchestrator — disposition gate + Fin unwind after engine action.
+ * Cancel orchestrator — ADR: narrow cancel, no auto Fin unwind, return deferred.
  */
 
 const mockQueryRaw = jest.fn();
-const mockHasPermissionServer = jest.fn();
-const mockUnwind = jest.fn();
 const mockExecuteAction = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
   },
-}));
-
-jest.mock('@/lib/services/permission-service-server', () => ({
-  hasPermissionServer: (...args: unknown[]) => mockHasPermissionServer(...args),
-}));
-
-jest.mock('@/lib/services/order-cancel-financials.service', () => ({
-  CANCEL_DISPOSITIONS: {
-    REFUND: 'REFUND',
-    STORE_CREDIT: 'STORE_CREDIT',
-    KEEP_ON_ACCOUNT: 'KEEP_ON_ACCOUNT',
-  },
-  unwindOrderFinancialsOnCancel: (...args: unknown[]) => mockUnwind(...args),
 }));
 
 jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
@@ -37,10 +22,7 @@ jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
   executeAction: (...args: unknown[]) => mockExecuteAction(...args),
 }));
 
-import {
-  CancelReturnOrchestratorError,
-  executeCancelOrReturnAction,
-} from '@/lib/services/workflow/cancel-return-orchestrator.service';
+import { executeCancelOrReturnAction } from '@/lib/services/workflow/cancel-return-orchestrator.service';
 
 describe('executeCancelOrReturnAction', () => {
   beforeEach(() => {
@@ -49,7 +31,7 @@ describe('executeCancelOrReturnAction', () => {
 
   it('rejects cancel without long enough reason', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'processing', current_status: 'processing', paid: 0 },
+      { status: 'intake', current_status: 'intake', preparation_status: null },
     ]);
 
     await expect(
@@ -66,9 +48,13 @@ describe('executeCancelOrReturnAction', () => {
     ).rejects.toMatchObject({ code: 'CANCEL_REASON_REQUIRED' });
   });
 
-  it('rejects cancel when status is delivered', async () => {
+  it('rejects cancel when status is processing', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'delivered', current_status: 'delivered', paid: 0 },
+      {
+        status: 'processing',
+        current_status: 'processing',
+        preparation_status: 'completed',
+      },
     ]);
 
     await expect(
@@ -80,14 +66,18 @@ describe('executeCancelOrReturnAction', () => {
         expectedStateVersion: 1,
         actorUserId: 'u1',
         idempotencyKey: 'k1',
-        input: { cancelled_note: 'Trying to cancel a delivered order' },
+        input: { cancelled_note: 'Trying to cancel after processing started' },
       }),
     ).rejects.toMatchObject({ code: 'CANCEL_NOT_ALLOWED' });
   });
 
-  it('requires disposition when order has paid amount', async () => {
+  it('rejects cancel when preparing but prep completed', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'processing', current_status: 'processing', paid: 12.5 },
+      {
+        status: 'preparing',
+        current_status: 'preparing',
+        preparation_status: 'completed',
+      },
     ]);
 
     await expect(
@@ -99,28 +89,19 @@ describe('executeCancelOrReturnAction', () => {
         expectedStateVersion: 1,
         actorUserId: 'u1',
         idempotencyKey: 'k1',
-        input: { cancelled_note: 'Customer cancelled after payment' },
+        input: { cancelled_note: 'Prep done so cancel should fail now' },
       }),
-    ).rejects.toMatchObject({ code: 'CANCEL_DISPOSITION_REQUIRED' });
+    ).rejects.toMatchObject({ code: 'CANCEL_NOT_ALLOWED' });
   });
 
-  it('executes cancel + Fin unwind when disposition provided', async () => {
+  it('executes cancel without Fin unwind even when historically paid', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'processing', current_status: 'processing', paid: 5 },
+      { status: 'intake', current_status: 'intake', preparation_status: null },
     ]);
     mockExecuteAction.mockResolvedValueOnce({
       ok: true,
       currentStatus: 'cancelled',
       stateVersion: 2,
-    });
-    mockUnwind.mockResolvedValueOnce({
-      reversedCreditApplications: 0,
-      restoredStoredValueAmount: 0,
-      paidAmountDisposed: 5,
-      disposition: 'REFUND',
-      refundIds: ['r1'],
-      creditNoteId: null,
-      warnings: [],
     });
 
     const result = await executeCancelOrReturnAction({
@@ -132,21 +113,23 @@ describe('executeCancelOrReturnAction', () => {
       actorUserId: 'u1',
       idempotencyKey: 'k1',
       input: {
-        cancelled_note: 'Customer cancelled after payment',
+        cancelled_note: 'Customer cancelled before preparation',
         cancellation_disposition: 'REFUND',
       },
     });
 
     expect(result.currentStatus).toBe('cancelled');
     expect(mockExecuteAction).toHaveBeenCalled();
-    expect(mockUnwind).toHaveBeenCalledWith(
-      expect.objectContaining({ disposition: 'REFUND' }),
-    );
+    expect(result).not.toHaveProperty('financialWarnings');
   });
 
-  it('rejects return when status is still in ops', async () => {
+  it('rejects RETURN_ORDER as deferred to V1.1', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'ready', current_status: 'ready', paid: 0 },
+      {
+        status: 'delivered',
+        current_status: 'delivered',
+        preparation_status: 'completed',
+      },
     ]);
 
     await expect(
@@ -160,41 +143,26 @@ describe('executeCancelOrReturnAction', () => {
         idempotencyKey: 'k2',
         input: { return_reason: 'Quality issue reported by customer' },
       }),
-    ).rejects.toMatchObject({ code: 'RETURN_NOT_ALLOWED' });
+    ).rejects.toMatchObject({ code: 'RETURN_DEFERRED_V11' });
+    expect(mockExecuteAction).not.toHaveBeenCalled();
   });
 
-  it('forces return preferredToStatus to returned', async () => {
+  it('throws CancelReturnOrchestratorError for unknown actions via WorkflowEngineError path', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { status: 'delivered', current_status: 'delivered', paid: 0 },
+      { status: 'intake', current_status: 'intake', preparation_status: null },
     ]);
-    mockExecuteAction.mockResolvedValueOnce({
-      ok: true,
-      currentStatus: 'returned',
-      stateVersion: 3,
-    });
 
-    await executeCancelOrReturnAction({
-      tenantId: 't1',
-      orderId: 'o1',
-      screen: 'returning',
-      actionCode: 'RETURN_ORDER',
-      expectedStateVersion: 2,
-      actorUserId: 'u1',
-      idempotencyKey: 'k2',
-      input: {
-        return_reason: 'Quality issue reported by customer',
-        preferredToStatus: 'cancelled',
-      },
-    });
-
-    expect(mockExecuteAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: expect.objectContaining({
-          preferredToStatus: 'returned',
-          return_reason: 'Quality issue reported by customer',
-        }),
+    await expect(
+      executeCancelOrReturnAction({
+        tenantId: 't1',
+        orderId: 'o1',
+        screen: 'canceling',
+        actionCode: 'COMPLETE_PACKING',
+        expectedStateVersion: 0,
+        actorUserId: 'u1',
+        idempotencyKey: 'k3',
+        input: {},
       }),
-    );
-    expect(mockHasPermissionServer).not.toHaveBeenCalled();
+    ).rejects.toBeInstanceOf(Error);
   });
 });

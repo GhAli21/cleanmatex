@@ -38,6 +38,7 @@ import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { FixOrderDataModal } from './fix-order-data-modal';
 import { CancelOrderDialog } from './cancel-order-dialog';
 import { CustomerReturnOrderDialog } from './customer-return-order-dialog';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
 import {
@@ -50,6 +51,7 @@ interface OrderActionsProps {
     id: string;
     status: string;
     tenant_org_id: string;
+    preparation_status?: string | null;
   };
   /**
    * Optional screen identifier for workflow validation/transition routing.
@@ -67,6 +69,7 @@ interface OrderActionsProps {
 export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
   const router = useRouter();
   const t = useTranslations('orders.actions');
+  const tEngine = useTranslations('workflow.engine');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
@@ -161,6 +164,7 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
 
   // Quick action buttons for common transitions
   const currentStatus = (order.status || '').toLowerCase() as OrderStatus;
+  const prepStatus = order.preparation_status ?? null;
   const canMoveTo = (status: OrderStatus) => allowedTransitions.includes(status);
 
   // Generate action buttons based on current status
@@ -230,7 +234,16 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           </CmxButton>
         ))}
 
-        {/* Customer Return — delivered/closed only (cancel ≠ return) */}
+        {/* Hold / resume / stop (engine V2 order_control) */}
+        <WorkflowActionBar
+          orderId={order.id}
+          screen="order_control"
+          hideWhenEmpty
+          title={tEngine('orderControlTitle')}
+          onActionSuccess={() => router.refresh()}
+        />
+
+        {/* Customer Return — V1.1 deferred (canReturnOrder always false for now) */}
         {canReturnOrder(currentStatus) && (
             <CmxButton
               onClick={() => setShowReturnDialog(true)}
@@ -244,8 +257,8 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
             </CmxButton>
           )}
 
-        {/* Cancel Order — ops statuses only; never after delivered/closed/returned */}
-        {canCancelOrder(currentStatus) && (
+        {/* Cancel — draft / intake / incomplete preparing only */}
+        {canCancelOrder(currentStatus, prepStatus) && (
             <CmxButton
               onClick={() => setShowCancelDialog(true)}
               disabled={loading}
@@ -259,7 +272,7 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           )}
 
         {/* Edit Order - for draft/intake/preparation status */}
-        {(currentStatus === 'draft' || currentStatus === 'intake' || currentStatus === 'preparation') && (
+        {(currentStatus === 'draft' || currentStatus === 'intake' || currentStatus === 'preparation' || currentStatus === 'preparing') && (
           <CmxButton
             variant="outline"
             onClick={() => router.push(`/dashboard/orders/${order.id}/edit`)}

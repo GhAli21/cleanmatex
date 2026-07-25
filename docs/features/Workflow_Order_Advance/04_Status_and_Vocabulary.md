@@ -44,7 +44,7 @@ Target ownership (projections or columns — not all in `current_status`):
 | `MARK_READY` | Operational ready |
 | `RELEASE_FOR_PICKUP` / `RELEASE_FOR_DELIVERY` | Fin gate |
 | `CONFIRM_DELIVERY` | **Atomic** finalize: POD + attempt + release/custody hooks + status + history + outbox |
-| `CANCEL_ORDER` / `RETURN_ORDER` | After Fin unwind |
+| `CANCEL_ORDER` / `HOLD_*` / `STOP_*` / `RETURN_ORDER` | Cancel early only; hold/stop; return V1.1 (no auto Fin) |
 
 POD draft/upload may be a **non-finalizing** upload API; it must not flip fulfilment alone.
 
@@ -93,43 +93,41 @@ Business rule detail: [05_Business_Rules_and_Gates.md](05_Business_Rules_and_Gat
 | Gates | `sys_wf_gate_defs_cd` / `gate_set_code` | `rack_required`, `fin_release_eligible` |
 | Screens | `sys_wf_screens_cd` | `packing`, `ready_release` |
 
-## 5. Cancel vs return (canonical)
+## 5. Cancel vs hold/stop vs return (canonical)
+
+Authority: [`ADR_CANCEL_RETURN_RULES.md`](./ADR_CANCEL_RETURN_RULES.md) (Accepted 2026-07-25).
 
 These are **different business events**. Do not treat them as synonyms.
 
-| | **Cancel** | **Return** |
-|---|------------|------------|
-| **Meaning** | Stop / abandon the order **before** (or instead of) successful customer fulfilment | Customer **brings goods back** after fulfilment (or after commercial close) |
-| **Typical when** | Order still in ops: draft → ready (and OFD if aborting delivery) | Order already **`delivered`** or **`closed`** |
-| **Action** | `CANCEL_ORDER` (screen `canceling`) | `RETURN_ORDER` (screen `returning`) |
-| **Terminal status (V1 engine)** | **`cancelled`** | **`returned`** |
-| **Audit columns** | `cancelled_at`, `cancelled_by`, `cancelled_note` | `returned_at`, `returned_by`, `return_reason` (+ optional reason code) |
-| **Money (Fin)** | If money was collected: **disposition required** (REFUND / STORE_CREDIT / KEEP_ON_ACCOUNT) then unwind | **No auto Fin unwind in V1.0** — refunds/credits follow Order Fin separately |
-| **UI** | Cancel Order dialog (reason + disposition when paid) | Customer Return dialog (reason) |
+| | **Cancel** | **Hold / Resume / Stop** | **Return** |
+|---|------------|--------------------------|------------|
+| **Meaning** | Abandon early (before real processing) | Temporary halt (`on_hold`) or permanent stop (`stopped`) | Customer return after fulfilment |
+| **When (V1.0)** | `draft` / `intake` / `preparing` with prep **not** completed | After work may have started | **V1.1** sub-order (workaround: new order + discount/notes) |
+| **Action** | `CANCEL_ORDER` (`canceling`) | `HOLD_ORDER_WORK` / `RESUME_ORDER_WORK` / `STOP_ORDER_WORK` (`order_control`) | `RETURN_ORDER` deferred |
+| **Result status** | `cancelled` | `on_hold` → prior via `hold_from_status` / `stopped` | Sub-order (V1.1); not a status flip in V1.0 |
+| **Money** | **No auto Fin unwind** — explicit Fin only | None | Explicit Fin later |
 
 ### Rules of thumb
 
-1. **Not yet handed to the customer as fulfilled** → **cancel** → `cancelled`.
-2. **Already delivered / closed, customer returns items** → **return** → `returned`.
-3. **Ready ≠ cancel:** releasing for pickup/delivery is not cancel; aborting an OFD run may be cancel (graph allows `out_for_delivery` → `cancelled`).
-4. **Do not** map customer return onto status `cancelled` under Workflow Engine V2 (legacy Enhanced RPC historically wrote `cancelled` + `returned_*` — V2 corrects that to terminal **`returned`**).
+1. **Early abandon** (draft / intake / incomplete prep) → **cancel** → `cancelled`.
+2. **Need a pause after work started** → **hold** → resume later; or **stop** → `stopped`.
+3. **Customer return of goods** → V1.1 sub-order; until then create a normal order with discount/notes.
+4. **Never** auto-refund / auto-unwind money on cancel/hold/stop/return in V1.0.
 
-### Restrictions (enforced UI + orchestrator)
+### Restrictions (enforced UI + orchestrator + gates)
 
-| Rule | Cancel | Return |
-|------|--------|--------|
-| Allowed from | `draft`, `intake`, `preparing`, `processing`, `assembly`, `qa`, `packing`, `ready`, `on_hold`, `out_for_delivery` | **`delivered`**, **`closed`** only |
-| Forbidden from | `delivered`, `closed`, `cancelled`, `returned` | All other statuses (incl. ops + terminal) |
-| Reason | Required (min length) | Required (min length) |
-| Paid money | Disposition required (REFUND / STORE_CREDIT / KEEP_ON_ACCOUNT); KEEP needs `orders:approve_refund` | No auto Fin unwind (V1.0) |
-| Terminal result | Must be `cancelled` | Must be `returned` |
-| Mutual exclusion | Cancel button hidden when return applies | Return button hidden when cancel applies |
+| Rule | Cancel | Hold/Stop | Return (V1.0) |
+|------|--------|-----------|----------------|
+| Allowed from | `draft`, `intake`, `preparing` + `preparation_status` ≠ `completed` | Hold: preparing→OFD; Resume: `on_hold`; Stop: those + `on_hold` | UI hidden (`canReturnOrder` → false) |
+| Reason | Required | Hold/Stop required | N/A (deferred) |
+| Paid money | Info only; Fin later | — | — |
+| Terminal | `cancelled` | Stop → `stopped` | V1.1 |
 
-Code authority: `web-admin/lib/constants/workflow-cancel-return.ts` (`canCancelOrder` / `canReturnOrder`).
+Code authority: `web-admin/lib/constants/workflow-cancel-return.ts`.
 
 ### Legacy drift (flag off)
 
-Enhanced `cmx_ord_returning_transition` still ends at `cancelled` while setting `returned_*`. When `workflow_engine_v2` is on, authority is this table (`returned`).
+Enhanced cancel may still require disposition + Fin unwind. When `workflow_engine_v2` is on, ADR lock applies (no auto unwind; narrow cancel).
 
 ## 6. Initial rules
 

@@ -1110,7 +1110,16 @@ export function OrderDetailsFullClient({
           {isTerminalStatus ? (
             <p className="text-sm text-gray-500">{t.noActionsForClosedOrder}</p>
           ) : (
-            <OrderActions order={order as { id: string; status: string; tenant_org_id: string }} />
+            <OrderActions
+              order={
+                order as {
+                  id: string;
+                  status: string;
+                  tenant_org_id: string;
+                  preparation_status?: string | null;
+                }
+              }
+            />
           )}
         </div>
       ),

@@ -135,6 +135,14 @@ export function NewOrderContent() {
         showPaymentModalVersionSelector,
     } = usePaymentModalVersion(currentTenant);
     const totals = useOrderTotals();
+    // B18 — order-level preference charges (independent of any item) added to the
+    // running total the cashier sees in the summary rail, so it stays consistent
+    // with the payment modal (which also includes them via the server preview).
+    const orderChargesTotal = useMemo(
+        () => (state.state.orderServicePrefs ?? []).reduce((sum, p) => sum + (p.extra_price ?? 0), 0),
+        [state.state.orderServicePrefs]
+    );
+    const summaryTotal = totals.subtotal + orderChargesTotal;
     const { warnings, hasErrors } = useOrderWarnings({ hasBranches: branches.length > 0 });
     const { calculateReadyBy } = useReadyByEstimation();
     const tEdit = useTranslations('orders.edit');
@@ -549,7 +557,7 @@ export function NewOrderContent() {
         notes: state.state.notes,
         onNotesChange: state.setNotes,
         readyByAt: state.state.readyByAt,
-        total: totals.subtotal,
+        total: summaryTotal,
         onSubmit: handleSubmitOrderClick,
         isEditMode: state.state.isEditMode,
         isDirty,
@@ -855,7 +863,7 @@ export function NewOrderContent() {
                 ) : (
                     <OrderSummaryBottomSheet
                         itemCount={state.state.items.length}
-                        total={totals.subtotal}
+                        total={summaryTotal}
                         currencyCode={currencyCode}
                         isOpen={bottomSheetOpen}
                         onOpen={() => setBottomSheetOpen(true)}

@@ -1,12 +1,18 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.5-adr-cancel-hold-stop — 2026-07-25
+
+- ADR lock: cancel allowlist + hold/resume + STOP_ORDER_WORK + no auto Fin unwind + return V1.1
+- Migration (create only): `0436_sys_wf_cancel_hold_stop_adr.sql` (consolidated; unapplied 0436/0437 drafts removed)
+- Orchestrator: narrow cancel; remove auto unwind; RETURN deferred
+- Engine: `hold_from_status`, gate `prep_not_completed`, HOLD/RESUME/STOP
+- UI: order_control ActionBar; cancel dialog Fin-hint (V2)
+
 ## 0.3.4-p3b-cancel-return-p5 — 2026-07-25
 
-- Cancel/return orchestrator: disposition gate + `executeAction` + Fin unwind (after status)
+- Cancel/return orchestrator (superseded by 0.3.5 for money + allowlist)
 - Engine writes `cancelled_*` / `returned_*` audit columns on CANCEL/RETURN
-- Return terminal status under V2: **`returned`** (catalog); UI dialog updated
 - P5: `POST …/transition` never calls Legacy/Enhanced when `workflow_engine_v2` is on
-- Migration (create only): `0436_sys_wf_cancel_return_graph_parity.sql` (draft/OFD cancel, closed return)
 
 ## 0.3.3-p3-stage-engine — 2026-07-25
 

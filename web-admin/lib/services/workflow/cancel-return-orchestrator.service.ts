@@ -2,16 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
-import {
-  canCancelOrder,
-  canReturnOrder,
-} from '@/lib/constants/workflow-cancel-return';
-import { hasPermissionServer } from '@/lib/services/permission-service-server';
-import {
-  CANCEL_DISPOSITIONS,
-  type CancelDisposition,
-  unwindOrderFinancialsOnCancel,
-} from '@/lib/services/order-cancel-financials.service';
+import { canCancelOrder } from '@/lib/constants/workflow-cancel-return';
 import {
   WorkflowEngineError,
   executeAction,
@@ -19,7 +10,6 @@ import {
   type ExecuteActionResult,
 } from '@/lib/services/workflow/workflow-engine.service';
 
-const MONEY_EPSILON = 0.001;
 const MIN_REASON_LENGTH = 10;
 
 export class CancelReturnOrchestratorError extends Error {
@@ -41,14 +31,18 @@ function asTrimmedString(value: unknown): string {
 async function loadOrderCancelReturnContext(
   tenantId: string,
   orderId: string,
-): Promise<{ status: string; paid: number }> {
+): Promise<{ status: string; preparationStatus: string }> {
   const rows = await prisma.$queryRaw<
-    Array<{ status: string | null; current_status: string | null; paid: number }>
+    Array<{
+      status: string | null;
+      current_status: string | null;
+      preparation_status: string | null;
+    }>
   >`
     SELECT
       status,
       current_status,
-      COALESCE(total_paid_amount, 0)::float8 AS paid
+      preparation_status
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -59,28 +53,31 @@ async function loadOrderCancelReturnContext(
     throw new CancelReturnOrchestratorError('NOT_FOUND', 'Order not found.', 404);
   }
   const status = (row.current_status || row.status || '').trim().toLowerCase();
-  return { status, paid: Number(row.paid ?? 0) };
+  const preparationStatus = (row.preparation_status || '').trim().toLowerCase();
+  return { status, preparationStatus };
 }
 
 /**
- * Production cancel/return path for Workflow Engine V2:
- * 1) Status eligibility (cancel ≠ return)
- * 2) Validate reason (+ FN-02 disposition for paid cancels)
- * 3) executeAction (status + audit columns)
- * 4) Financial unwind AFTER cancel status (idempotent)
+ * Cancel path for Workflow Engine V2 (ADR lock):
+ * 1) Narrow status eligibility (draft / intake / incomplete preparing)
+ * 2) Reason required
+ * 3) executeAction → cancelled
+ * No automatic Fin unwind — money disposition is explicit via Fin screens.
+ *
+ * RETURN_ORDER is deferred to V1.1 (sub-order model).
  */
 export async function executeCancelOrReturnAction(
   params: ExecuteActionParams,
-): Promise<ExecuteActionResult & { financialWarnings?: string[] }> {
+): Promise<ExecuteActionResult> {
   const action = params.actionCode.trim();
   const input = { ...(params.input ?? {}) };
   const ctx = await loadOrderCancelReturnContext(params.tenantId, params.orderId);
 
   if (action === WORKFLOW_ACTIONS.CANCEL_ORDER) {
-    if (!canCancelOrder(ctx.status)) {
+    if (!canCancelOrder(ctx.status, ctx.preparationStatus)) {
       throw new CancelReturnOrchestratorError(
         'CANCEL_NOT_ALLOWED',
-        `Order status "${ctx.status || 'unknown'}" cannot be cancelled. Use customer return after delivered/closed, or the order is already terminal.`,
+        `Order status "${ctx.status || 'unknown'}" cannot be cancelled. Use hold/stop after work starts, or handle money explicitly in Fin. Return is V1.1.`,
         422,
       );
     }
@@ -99,67 +96,15 @@ export async function executeCancelOrReturnAction(
     input.notes = reason;
     input.preferredToStatus = 'cancelled';
 
-    let disposition: CancelDisposition | undefined;
-    if (ctx.paid > MONEY_EPSILON) {
-      const requested = asTrimmedString(input.cancellation_disposition).toUpperCase();
-      if (!Object.values(CANCEL_DISPOSITIONS).includes(requested as CancelDisposition)) {
-        throw new CancelReturnOrchestratorError(
-          'CANCEL_DISPOSITION_REQUIRED',
-          'This order has collected payments. Choose a disposition (refund, store credit, or keep on account) to cancel it.',
-        );
-      }
-      disposition = requested as CancelDisposition;
-      if (disposition === CANCEL_DISPOSITIONS.KEEP_ON_ACCOUNT) {
-        const canKeep = await hasPermissionServer('orders:approve_refund');
-        if (!canKeep) {
-          throw new CancelReturnOrchestratorError(
-            'PERMISSION_DENIED',
-            'Keeping collected money on a cancelled order requires refund-approval permission.',
-            403,
-          );
-        }
-      }
-      input.cancellation_disposition = disposition;
-    }
-
-    const result = await executeAction({ ...params, input });
-
-    const unwind = await unwindOrderFinancialsOnCancel({
-      tenantId: params.tenantId,
-      orderId: params.orderId,
-      userId: params.actorUserId,
-      disposition,
-      reason,
-    });
-
-    return { ...result, financialWarnings: unwind.warnings };
+    return executeAction({ ...params, input });
   }
 
   if (action === WORKFLOW_ACTIONS.RETURN_ORDER) {
-    if (!canReturnOrder(ctx.status)) {
-      throw new CancelReturnOrchestratorError(
-        'RETURN_NOT_ALLOWED',
-        `Order status "${ctx.status || 'unknown'}" cannot be returned. Customer return is only for delivered or closed orders.`,
-        422,
-      );
-    }
-
-    const reason =
-      asTrimmedString(input.return_reason) ||
-      asTrimmedString(input.cancelled_note) ||
-      asTrimmedString(input.notes);
-    if (reason.length < MIN_REASON_LENGTH) {
-      throw new CancelReturnOrchestratorError(
-        'RETURN_REASON_REQUIRED',
-        `Return reason must be at least ${MIN_REASON_LENGTH} characters.`,
-      );
-    }
-    input.return_reason = reason;
-    input.notes = reason;
-    // Catalog terminal is `returned` (never map return → cancelled under V2).
-    input.preferredToStatus = 'returned';
-
-    return executeAction({ ...params, input });
+    throw new CancelReturnOrchestratorError(
+      'RETURN_DEFERRED_V11',
+      'Customer return via RETURN_ORDER is deferred to V1.1 (sub-order). Until then create a normal order with discount/notes.',
+      422,
+    );
   }
 
   throw new WorkflowEngineError(

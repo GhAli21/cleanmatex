@@ -33,6 +33,7 @@ import { taxService } from '@/lib/services/tax.service';
 import { cmxMessage } from '@ui/feedback';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import type { AppliedPromoCode, AppliedGiftCard } from './use-gift-card-and-promo';
+import type { OrderItemServicePref } from '../model/new-order-types';
 
 /**
  * Minimal translate signature compatible with next-intl's `useTranslations`.
@@ -129,6 +130,8 @@ export interface UsePaymentTotalsParams {
   percentDiscount: number;
   amountDiscount: number;
   serviceCategories?: string[];
+  /** B18 — order-level preferences (not tied to any item). Sent to preview so the modal total includes their extra_price. */
+  orderServicePrefs?: OrderItemServicePref[];
   appliedPromoCode: AppliedPromoCode | null;
   appliedGiftCard: AppliedGiftCard | null;
   decimalPlaces: number;
@@ -171,6 +174,7 @@ export function usePaymentTotals({
   percentDiscount,
   amountDiscount,
   serviceCategories,
+  orderServicePrefs,
   appliedPromoCode,
   appliedGiftCard,
   decimalPlaces,
@@ -256,6 +260,9 @@ export function usePaymentTotals({
           amountDiscount: amountDiscount ?? 0,
           serviceCategories: serviceCategories && serviceCategories.length > 0 ? serviceCategories : undefined,
           taxProfileIds: taxProfileEntries.filter((entry) => entry.enabled).map((entry) => entry.id),
+          ...(orderServicePrefs && orderServicePrefs.length > 0 && {
+            orderServicePrefs,
+          }),
           ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
             promoCode: appliedPromoCode?.code || undefined,
             giftCardNumber: appliedGiftCard?.number || undefined,
@@ -307,7 +314,7 @@ export function usePaymentTotals({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, serviceCategories, taxProfileEntries, orderServicePrefs, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken, t]);
 
   useEffect(() => {
     if (!open || items.length === 0) {

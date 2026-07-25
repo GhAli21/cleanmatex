@@ -1,7 +1,7 @@
 /**
  * Cancel Order Dialog
- * Requires cancellation reason (+ disposition when paid).
- * Engine V2 (tenant flag): CANCEL_ORDER + Fin unwind. Flag off: Enhanced RPC.
+ * Requires cancellation reason. Engine V2: no auto Fin unwind (money via Fin).
+ * Flag off: Enhanced RPC path (may still use disposition).
  */
 
 'use client';
@@ -19,9 +19,11 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { Label, CmxTextarea } from '@ui/primitives';
+import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 interface CancelOrderDialogProps {
   orderId: string;
@@ -33,7 +35,7 @@ interface CancelOrderDialogProps {
 
 const MIN_REASON_LENGTH = 10;
 
-/** Mirrors CANCEL_DISPOSITIONS in order-cancel-financials.service (server). */
+/** Legacy Enhanced path only — mirrors CANCEL_DISPOSITIONS. */
 const DISPOSITIONS = ['REFUND', 'STORE_CREDIT', 'KEEP_ON_ACCOUNT'] as const;
 type Disposition = (typeof DISPOSITIONS)[number];
 
@@ -57,15 +59,12 @@ export function CancelOrderDialog({
   const { showSuccess, showErrorFrom, showError } = useMessage();
   const transition = useOrderTransition();
   const { formatMoneyWithCode } = useTenantCurrency();
+  const engineV2 = isWorkflowEngineV2Enabled();
   const [reason, setReason] = useState('');
   const [reasonCode, setReasonCode] = useState<string>('');
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const [disposition, setDisposition] = useState<Disposition>('REFUND');
 
-  // Canonical collected total decides whether a money disposition is required
-  // (FN-02): cancelling a paid order must state where the money goes. The
-  // stale reset happens in handleOpenChange (close), so this effect only
-  // syncs with the external fetch — no synchronous setState in the body.
   useEffect(() => {
     if (!open) return;
     let stale = false;
@@ -96,10 +95,13 @@ export function CancelOrderDialog({
         orderId,
         input: {
           screen: 'canceling',
+          actionCode: WORKFLOW_ACTIONS.CANCEL_ORDER,
           to_status: 'cancelled',
           cancelled_note: trimmed,
           cancellation_reason_code: reasonCode || undefined,
-          cancellation_disposition: hasCollectedMoney ? disposition : undefined,
+          // Legacy Enhanced only — V2 ignores disposition (no auto unwind).
+          cancellation_disposition:
+            !engineV2 && hasCollectedMoney ? disposition : undefined,
           useOldWfCodeOrNew: true,
         },
       });
@@ -132,9 +134,8 @@ export function CancelOrderDialog({
   const canSubmit =
     reason.trim().length >= MIN_REASON_LENGTH &&
     !transition.isPending &&
-    // Wait for the paid check so a paid order can never slip through without
-    // an explicit disposition.
-    paidAmount !== null;
+    paidAmount !== null &&
+    (engineV2 || !hasCollectedMoney || Boolean(disposition));
 
   return (
     <CmxDialog open={open} onOpenChange={handleOpenChange}>
@@ -167,7 +168,17 @@ export function CancelOrderDialog({
             </p>
           </div>
 
-          {hasCollectedMoney && (
+          {engineV2 && hasCollectedMoney && (
+            <Alert variant="warning">
+              <AlertDescription>
+                {t('moneyFinHint', {
+                  amount: formatMoneyWithCode(paidAmount ?? 0),
+                })}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!engineV2 && hasCollectedMoney && (
             <fieldset className="rounded-md border border-amber-300 bg-amber-50 p-3">
               <legend className="px-1 text-sm font-semibold text-amber-900">
                 {t('disposition.title', { amount: formatMoneyWithCode(paidAmount ?? 0) })}

@@ -10,11 +10,22 @@ import { useWorkflowActions, type WorkflowActionDto } from '@/lib/hooks/use-work
 
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
+const MIN_CONTROL_NOTES = 10;
+const CONTROL_ACTIONS_NEEDING_NOTES = new Set([
+  'HOLD_ORDER_WORK',
+  'STOP_ORDER_WORK',
+]);
+
 export interface WorkflowActionBarProps {
   orderId: string;
   screen: string;
   /** Optional: hide when engine canary is off (default true). */
   hideWhenDisabled?: boolean;
+  /**
+   * When true and there are no visible actions, render nothing (no empty state).
+   * Useful for secondary bars like order_control on order detail.
+   */
+  hideWhenEmpty?: boolean;
   className?: string;
   onActionSuccess?: () => void;
   /**
@@ -27,6 +38,8 @@ export interface WorkflowActionBarProps {
    * (avoids editing an order that does not belong on this screen).
    */
   children?: ReactNode;
+  /** Optional title override (e.g. hold/resume/stop). */
+  title?: string;
 }
 
 function isOnlyRackBlocked(action: WorkflowActionDto): boolean {
@@ -51,10 +64,12 @@ export function WorkflowActionBar({
   orderId,
   screen,
   hideWhenDisabled = true,
+  hideWhenEmpty = false,
   className,
   onActionSuccess,
   emptyBackHref,
   children,
+  title,
 }: WorkflowActionBarProps) {
   const t = useTranslations('workflow.engine');
   const locale = useLocale();
@@ -65,10 +80,15 @@ export function WorkflowActionBar({
   );
   const [rackLocation, setRackLocation] = useState('');
   const [rackError, setRackError] = useState<string | null>(null);
+  const [controlNotes, setControlNotes] = useState('');
+  const [controlNotesError, setControlNotesError] = useState<string | null>(null);
   const didRedirectRef = useRef(false);
 
   const visible = actions.filter((a) => a.enabled || a.blockedReasons.length > 0);
   const isEmpty = enabled && !loading && visible.length === 0;
+  const needsControlNotes = visible.some((a) =>
+    CONTROL_ACTIONS_NEEDING_NOTES.has(a.actionCode),
+  );
 
   useEffect(() => {
     if (!isEmpty || !emptyBackHref || didRedirectRef.current) return;
@@ -104,6 +124,9 @@ export function WorkflowActionBar({
   }
 
   if (isEmpty) {
+    if (hideWhenEmpty) {
+      return children ? <>{children}</> : null;
+    }
     if (emptyBackHref) {
       // Redirect in flight — avoid flashing floor tools for the wrong stage.
       return (
@@ -127,6 +150,7 @@ export function WorkflowActionBar({
 
   const showRackField = needsRackPrompt(actions);
   const rackTrimmed = rackLocation.trim();
+  const notesTrimmed = controlNotes.trim();
 
   return (
     <>
@@ -135,7 +159,9 @@ export function WorkflowActionBar({
         aria-label={t('actionBarLabel')}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">{t('actionBarTitle')}</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            {title ?? t('actionBarTitle')}
+          </h2>
           {currentStatus ? (
             <span className="text-xs text-muted-foreground">
               {t('statusLabel', { status: currentStatus })}
@@ -162,6 +188,38 @@ export function WorkflowActionBar({
             {rackError ? (
               <p id={`wf-rack-err-${orderId}`} className="text-xs text-destructive" role="alert">
                 {rackError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {needsControlNotes ? (
+          <div className="space-y-1.5">
+            <Label htmlFor={`wf-control-notes-${orderId}`}>{t('controlNotesLabel')}</Label>
+            <CmxInput
+              id={`wf-control-notes-${orderId}`}
+              value={controlNotes}
+              onChange={(e) => {
+                setControlNotes(e.target.value);
+                setControlNotesError(null);
+              }}
+              placeholder={t('controlNotesPlaceholder')}
+              autoComplete="off"
+              aria-invalid={Boolean(controlNotesError)}
+              aria-describedby={
+                controlNotesError ? `wf-control-notes-err-${orderId}` : undefined
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('controlNotesHelp', { min: MIN_CONTROL_NOTES })}
+            </p>
+            {controlNotesError ? (
+              <p
+                id={`wf-control-notes-err-${orderId}`}
+                className="text-xs text-destructive"
+                role="alert"
+              >
+                {controlNotesError}
               </p>
             ) : null}
           </div>
@@ -196,14 +254,26 @@ export function WorkflowActionBar({
                         setRackError(t('rackLocationRequired'));
                         return;
                       }
+                      const needsNotes = CONTROL_ACTIONS_NEEDING_NOTES.has(action.actionCode);
+                      if (needsNotes && notesTrimmed.length < MIN_CONTROL_NOTES) {
+                        setControlNotesError(
+                          t('controlNotesRequired', { min: MIN_CONTROL_NOTES }),
+                        );
+                        return;
+                      }
+                      const input: Record<string, unknown> = {};
+                      if (rackTrimmed) input.rackLocation = rackTrimmed;
+                      if (needsNotes) input.notes = notesTrimmed;
                       const ok = await execute(
                         action.actionCode,
-                        rackTrimmed ? { rackLocation: rackTrimmed } : undefined,
+                        Object.keys(input).length > 0 ? input : undefined,
                         action.toStatus,
                       );
                       if (ok) {
                         setRackLocation('');
                         setRackError(null);
+                        setControlNotes('');
+                        setControlNotesError(null);
                         onActionSuccess?.();
                       }
                     })();

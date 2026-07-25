@@ -90,6 +90,7 @@ import {
 } from '@features/orders/hooks/use-payment-catalog';
 import { useGiftCardAndPromo } from '@features/orders/hooks/use-gift-card-and-promo';
 import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
+import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import {
@@ -168,6 +169,8 @@ export type StoredValueSummaryResponse = {
 export interface UsePaymentEngineParams {
   open: boolean;
   items: PaymentEngineItem[];
+  /** B18 — order-level preferences threaded into the totals preview so the modal reflects their charge. */
+  orderServicePrefs?: OrderItemServicePref[];
   tenantOrgId: string;
   branchId?: string;
   customerId?: string;
@@ -224,6 +227,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
   const {
     open,
     items,
+    orderServicePrefs,
     tenantOrgId,
     branchId,
     customerId,
@@ -326,6 +330,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     percentDiscount,
     amountDiscount,
     serviceCategories,
+    orderServicePrefs,
     appliedPromoCode,
     appliedGiftCard,
     decimalPlaces,
