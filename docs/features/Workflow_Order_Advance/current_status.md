@@ -10,5 +10,5 @@
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
 | Next (you) | Apply `0437`; smoke public confirm-received + cancel/hold/stop |
-| Next (code) | P3 PATCH/bulk gate; P6 tenant UI; P7 e2e; return V1.1 |
+| Next (code) | P7 e2e + checklist + docs refresh; P5 retire RPCs; return V1.1 |
 | Ready for production canary | **Yes (single-tenant)** — discovery OK; enable flag and smoke |

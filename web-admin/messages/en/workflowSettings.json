@@ -13,6 +13,58 @@
     "defaultCategory": "DEFAULT",
     "loadError": "Failed to load workflow configs"
   },
+  "effectiveProfile": {
+    "description": "Review the HQ-managed workflow profile, active tenant capabilities, and operational screen coverage for Workflow Engine V2.",
+    "summaryTitle": "Workflow Engine V2 is active for this tenant",
+    "summaryPoints": {
+      "readOnly": "This page is read-only while Workflow Engine V2 is enabled.",
+      "hqManaged": "HQ-managed assignments and approved templates are shown here for visibility.",
+      "legacyGuard": "Legacy workflow editing stays available only for tenants that are still off the V2 canary."
+    },
+    "tabs": {
+      "overview": "Overview",
+      "assignments": "Assignments",
+      "templates": "Approved Templates",
+      "screens": "Operational Screens",
+      "overrides": "Category Overrides"
+    },
+    "currentModeTitle": "Current operating mode",
+    "currentModeDescription": "Workflow execution is now driven by the shared action engine and HQ-authored profile inputs.",
+    "modeLabel": "Mode",
+    "modeV2": "Workflow Engine V2",
+    "defaultTemplateLabel": "Default template",
+    "assignmentCountLabel": "Published assignments",
+    "approvedTemplatesLabel": "Approved templates",
+    "capabilitiesTitle": "Tenant capabilities",
+    "capabilitiesDescription": "These toggles reflect the tenant-level operational capabilities currently available to this workflow setup.",
+    "capabilities": {
+      "preparation": "Preparation screen",
+      "assembly": "Assembly screen",
+      "qa": "QA screen",
+      "trackPieces": "Piece tracking",
+      "splitOrders": "Order splitting"
+    },
+    "assignmentsEmptyTitle": "No V2 assignments published yet",
+    "assignmentsEmptyDescription": "This tenant does not have published workflow assignment rows yet. The default workflow template remains the visible fallback.",
+    "templatesEmptyTitle": "No approved workflow templates found",
+    "templatesEmptyDescription": "No active workflow templates are currently assigned to this tenant.",
+    "screensEmptyTitle": "No operational screens found",
+    "screensEmptyDescription": "The V2 screen catalog is not available yet for this tenant environment.",
+    "overridesEmptyTitle": "No category overrides configured",
+    "overridesEmptyDescription": "This tenant is currently using the default workflow behavior across all service categories.",
+    "versionPending": "Version pending",
+    "versionValue": "Version {version}",
+    "defaultBadge": "Default",
+    "backStepsEnabled": "Back steps allowed",
+    "serviceScopeLabel": "Service scope",
+    "branchScopeLabel": "Branch scope",
+    "allServices": "All services",
+    "allBranches": "All branches",
+    "noStatuses": "No statuses mapped",
+    "notAssigned": "Not assigned",
+    "overrideTemplate": "Override template",
+    "overrideFallback": "Uses the tenant default template"
+  },
   "screenContracts": {
     "add": "Add tenant override",
     "edit": "Edit screen contract",

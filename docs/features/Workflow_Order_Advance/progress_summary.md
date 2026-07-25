@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-07-25  
-**Overall:** P4 public confirm actor in repo (apply **0437** next)
+**Overall:** P6 tenant profile UI in repo; apply **0437** and run smoke next
 
 ## Accurate status
 
@@ -10,7 +10,8 @@ Discovery signed; migrations through 0436 applied (operator)
 0437 created: system actor + public_tracking ready/OFD → delivered
 Public confirm-received → CONFIRM_DELIVERY when V2 on
 ActionBar false-bounce fixed (hasLoaded)
-Next: apply 0437 → smoke public confirm + cancel/hold → P3 PATCH gate / P6 / P7
+Tenant workflow settings now show read-only effective profile on V2
+Next: apply 0437 → smoke public confirm + cancel/hold → P7 / docs
 ```
 
 ## Completed
@@ -24,11 +25,11 @@ Next: apply 0437 → smoke public confirm + cancel/hold → P3 PATCH gate / P6 /
 - [x] Apply `0436_sys_wf_cancel_hold_stop_adr.sql`
 - [x] P4 public confirm actor (code + migration 0437 create-only)
 - [x] P3: PATCH/bulk status gated 410 when V2 on
+- [x] P6 tenant profile UI on `settings/workflows` for V2 tenants
 
 ## Remaining
 
 - [ ] Apply `0437_sys_wf_public_confirm_actor.sql`
 - [ ] Smoke cancel/hold/stop + public confirm-received
-- [ ] P6 tenant profile UI
 - [ ] P7 e2e + checklist + `/documentation`
 - [ ] V1.1 return sub-order

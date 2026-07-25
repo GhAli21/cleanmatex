@@ -1,5 +1,11 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.7-p6-tenant-profile-ui — 2026-07-25
+
+- `settings/workflows` now switches to a read-only V2 tenant profile view when `workflow_engine_v2` is enabled
+- Added tenant-safe workflow profile read service using existing template tables plus published `org_wf_profile_assign_cf` / `sys_wf_*` catalogs when present
+- Added EN/AR workflow profile tabs for overview, assignments, approved templates, operational screens, and category overrides
+
 ## 0.3.6-p4-public-confirm-actor — 2026-07-25
 
 - Public confirm-received → `CONFIRM_DELIVERY` + `WORKFLOW_SYSTEM_ACTOR` when V2 on

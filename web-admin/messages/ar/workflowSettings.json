@@ -13,6 +13,58 @@
     "defaultCategory": "افتراضي",
     "loadError": "فشل تحميل تهيئات سير العمل"
   },
+  "effectiveProfile": {
+    "description": "راجع ملف سير العمل المُدار من المقر، والقدرات التشغيلية الفعّالة للمستأجر، وتغطية الشاشات التشغيلية ضمن Workflow Engine V2.",
+    "summaryTitle": "تم تفعيل Workflow Engine V2 لهذا المستأجر",
+    "summaryPoints": {
+      "readOnly": "هذه الصفحة للعرض فقط عند تفعيل Workflow Engine V2.",
+      "hqManaged": "تُعرض هنا التعيينات والقوالب المعتمدة المُدارة من المقر لغايات المراجعة.",
+      "legacyGuard": "يبقى تعديل سير العمل القديم متاحًا فقط للمستأجرين الذين لم يُفعّل لهم مسار V2 بعد."
+    },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "assignments": "التعيينات",
+      "templates": "القوالب المعتمدة",
+      "screens": "الشاشات التشغيلية",
+      "overrides": "تخصيصات الفئات"
+    },
+    "currentModeTitle": "وضع التشغيل الحالي",
+    "currentModeDescription": "أصبح تنفيذ سير العمل يعتمد الآن على محرك الإجراءات المشترك ومدخلات الملفات التي يؤلفها المقر.",
+    "modeLabel": "الوضع",
+    "modeV2": "Workflow Engine V2",
+    "defaultTemplateLabel": "القالب الافتراضي",
+    "assignmentCountLabel": "التعيينات المنشورة",
+    "approvedTemplatesLabel": "القوالب المعتمدة",
+    "capabilitiesTitle": "قدرات المستأجر",
+    "capabilitiesDescription": "تعكس هذه المؤشرات القدرات التشغيلية الفعّالة حاليًا لهذا التكوين في سير العمل.",
+    "capabilities": {
+      "preparation": "شاشة التحضير",
+      "assembly": "شاشة التجميع",
+      "qa": "شاشة الجودة",
+      "trackPieces": "تتبع القطع",
+      "splitOrders": "تقسيم الطلبات"
+    },
+    "assignmentsEmptyTitle": "لا توجد تعيينات V2 منشورة بعد",
+    "assignmentsEmptyDescription": "لا توجد لهذا المستأجر صفوف تعيين منشورة بعد. يبقى قالب سير العمل الافتراضي هو المرجع الظاهر حاليًا.",
+    "templatesEmptyTitle": "لم يتم العثور على قوالب سير عمل معتمدة",
+    "templatesEmptyDescription": "لا توجد قوالب سير عمل نشطة مُعيّنة لهذا المستأجر حاليًا.",
+    "screensEmptyTitle": "لم يتم العثور على شاشات تشغيلية",
+    "screensEmptyDescription": "كتالوج الشاشات الخاص بمسار V2 غير متاح بعد في بيئة هذا المستأجر.",
+    "overridesEmptyTitle": "لا توجد تخصيصات لفئات الخدمة",
+    "overridesEmptyDescription": "يستخدم هذا المستأجر حاليًا سلوك سير العمل الافتراضي عبر جميع فئات الخدمة.",
+    "versionPending": "الإصدار قيد التحديد",
+    "versionValue": "الإصدار {version}",
+    "defaultBadge": "افتراضي",
+    "backStepsEnabled": "السماح بالرجوع للخلف",
+    "serviceScopeLabel": "نطاق الخدمة",
+    "branchScopeLabel": "نطاق الفرع",
+    "allServices": "جميع الخدمات",
+    "allBranches": "جميع الفروع",
+    "noStatuses": "لا توجد حالات مرتبطة",
+    "notAssigned": "غير معيّن",
+    "overrideTemplate": "قالب التخصيص",
+    "overrideFallback": "يستخدم القالب الافتراضي للمستأجر"
+  },
   "screenContracts": {
     "add": "إضافة تخصيص للمستأجر",
     "edit": "تعديل عقد الشاشة",

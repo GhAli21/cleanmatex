@@ -112,7 +112,7 @@ todos:
     status: pending
   - id: p6-studio-ui
     content: "P6: Studio + floor UX; update plan status + progress"
-    status: pending
+    status: completed
   - id: p6-docs-update
     content: "P6: refresh UI/UX + RBAC/nav docs after Studio"
     status: pending

@@ -1,6 +1,8 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 
 const DEFAULT_WORKFLOW_CONFIG = {
   service_category_code: null,
@@ -39,6 +41,34 @@ export default function NewWorkflowPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [json, setJson] = useState(JSON.stringify(DEFAULT_WORKFLOW_CONFIG, null, 2));
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const response = await fetch('/api/feature-flags', { cache: 'no-store' });
+        const payload = await response.json();
+
+        if (!isMounted) return;
+
+        if (!response.ok || payload?.[FEATURE_FLAG_KEYS.WORKFLOW_ENGINE_V2] === true) {
+          router.replace('/dashboard/settings/workflows');
+          return;
+        }
+
+        setCheckingAccess(false);
+      } catch {
+        if (!isMounted) return;
+        router.replace('/dashboard/settings/workflows');
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   async function onCreate() {
     try {
@@ -55,6 +85,10 @@ export default function NewWorkflowPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid JSON');
     }
+  }
+
+  if (checkingAccess) {
+    return <div className="p-4">Loading...</div>;
   }
 
   return (
@@ -79,4 +113,3 @@ export default function NewWorkflowPage() {
     </div>
   );
 }
-

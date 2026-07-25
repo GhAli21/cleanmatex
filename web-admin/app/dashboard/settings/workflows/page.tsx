@@ -1,10 +1,13 @@
 import { getTranslations } from 'next-intl/server'
 import { Prisma } from '@prisma/client'
 import { getAuthContext } from '@/lib/auth/server-auth'
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server'
 import { prisma } from '@/lib/db/prisma'
 import { withTenantContext } from '@/lib/db/tenant-context'
+import { getTenantWorkflowProfileView } from '@/lib/services/workflow-profile.service'
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { SETTINGS_WORKFLOWS_ACCESS } from '@features/settings/access/settings-access'
+import { WorkflowProfileSettingsScreen } from '@features/settings/workflows/ui/workflow-profile-settings-screen'
 import { WorkflowsSettingsScreen } from '@features/settings/workflows/ui/workflows-settings-screen'
 import type { SerializedScreenContract } from '@features/settings/workflows/model/screen-contract-types'
 
@@ -51,6 +54,27 @@ function serializeContract(row: {
 export default async function WorkflowsPage() {
   const t = await getTranslations('workflowSettings')
   const { tenantId } = await getAuthContext()
+  const workflowEngineV2Enabled = await resolveWorkflowEngineV2Enabled(tenantId)
+
+  if (workflowEngineV2Enabled) {
+    const workflowProfile = await getTenantWorkflowProfileView(tenantId)
+
+    return (
+      <RequireAnyPermission
+        permissions={SETTINGS_WORKFLOWS_ACCESS.page.permissions ?? []}
+      >
+        <div className="space-y-6 p-6">
+          <div>
+            <h1 className="text-3xl font-bold">{t('title')}</h1>
+            <p className="mt-1 text-muted-foreground">
+              {t('effectiveProfile.description')}
+            </p>
+          </div>
+          <WorkflowProfileSettingsScreen data={workflowProfile} />
+        </div>
+      </RequireAnyPermission>
+    )
+  }
 
   const [contracts, configs] = await withTenantContext(tenantId, async () => {
     const [contractRows, configRows] = await Promise.all([

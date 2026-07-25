@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+
 /**
  *
  */
@@ -14,10 +16,23 @@ export default function EditWorkflowPage() {
 
   useEffect(() => {
     if (!params.id) return;
+    let isMounted = true;
+
     (async () => {
       try {
+        const flagResponse = await fetch('/api/feature-flags', { cache: 'no-store' });
+        const flagPayload = await flagResponse.json();
+
+        if (!isMounted) return;
+
+        if (!flagResponse.ok || flagPayload?.[FEATURE_FLAG_KEYS.WORKFLOW_ENGINE_V2] === true) {
+          router.replace('/dashboard/settings/workflows');
+          return;
+        }
+
         const res = await fetch('/api/v1/workflows/config?page=1&limit=100');
         const payload = await res.json();
+        if (!isMounted) return;
         if (!payload.success) throw new Error(payload.error || 'Failed to load');
         const row = (payload.data as any[]).find((r) => r.id === params.id);
         if (!row) throw new Error('Config not found');
@@ -37,10 +52,16 @@ export default function EditWorkflowPage() {
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unknown error');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     })();
-  }, [params.id]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id, router]);
 
   async function onSave() {
     try {
@@ -77,5 +98,4 @@ export default function EditWorkflowPage() {
     </div>
   );
 }
-
 

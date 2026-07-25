@@ -518,6 +518,9 @@ export async function getOrderById(
 
   return {
     ...order,
+    // state_version is BIGINT in the DB (workflow-engine optimistic concurrency token);
+    // Prisma returns it as a native bigint, which JSON.stringify cannot serialize.
+    state_version: typeof order.state_version === 'bigint' ? Number(order.state_version) : order.state_version,
     customer: customerData,
     items: order.org_order_items_dtl,
     branch: order.org_branches_mst,
