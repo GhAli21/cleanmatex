@@ -17,6 +17,8 @@ export interface WorkflowActionDto {
 export interface UseWorkflowActionsResult {
   enabled: boolean;
   loading: boolean;
+  /** True after the first available-actions fetch settles (success or error). */
+  hasLoaded: boolean;
   stateVersion: number | null;
   currentStatus: string | null;
   actions: WorkflowActionDto[];
@@ -38,7 +40,10 @@ export function useWorkflowActions(
 ): UseWorkflowActionsResult {
   const t = useTranslations('workflow.engine');
   const enabled = isWorkflowEngineV2Enabled();
-  const [loading, setLoading] = useState(false);
+  // Start loading when canary+order are present so ActionBar does not treat the
+  // pre-fetch empty list as "no actions" and bounce via emptyBackHref.
+  const [loading, setLoading] = useState(() => enabled && Boolean(orderId));
+  const [hasLoaded, setHasLoaded] = useState(() => !enabled || !orderId);
   const [stateVersion, setStateVersion] = useState<number | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [actions, setActions] = useState<WorkflowActionDto[]>([]);
@@ -46,8 +51,11 @@ export function useWorkflowActions(
   const refresh = useCallback(async () => {
     if (!enabled || !orderId) {
       setActions([]);
+      setLoading(false);
+      setHasLoaded(true);
       return;
     }
+    setHasLoaded(false);
     setLoading(true);
     try {
       const qs = new URLSearchParams({ screen });
@@ -65,6 +73,7 @@ export function useWorkflowActions(
       setActions([]);
     } finally {
       setLoading(false);
+      setHasLoaded(true);
     }
   }, [enabled, orderId, screen, t]);
 
@@ -123,6 +132,7 @@ export function useWorkflowActions(
   return {
     enabled,
     loading,
+    hasLoaded,
     stateVersion,
     currentStatus,
     actions,

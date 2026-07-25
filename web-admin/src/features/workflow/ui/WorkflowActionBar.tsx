@@ -74,10 +74,8 @@ export function WorkflowActionBar({
   const t = useTranslations('workflow.engine');
   const locale = useLocale();
   const router = useRouter();
-  const { enabled, loading, actions, currentStatus, execute } = useWorkflowActions(
-    orderId,
-    screen,
-  );
+  const { enabled, loading, hasLoaded, actions, currentStatus, execute } =
+    useWorkflowActions(orderId, screen);
   const [rackLocation, setRackLocation] = useState('');
   const [rackError, setRackError] = useState<string | null>(null);
   const [controlNotes, setControlNotes] = useState('');
@@ -85,7 +83,8 @@ export function WorkflowActionBar({
   const didRedirectRef = useRef(false);
 
   const visible = actions.filter((a) => a.enabled || a.blockedReasons.length > 0);
-  const isEmpty = enabled && !loading && visible.length === 0;
+  // Wait for first fetch — initial [] must not count as empty (false bounce).
+  const isEmpty = enabled && hasLoaded && !loading && visible.length === 0;
   const needsControlNotes = visible.some((a) =>
     CONTROL_ACTIONS_NEEDING_NOTES.has(a.actionCode),
   );
@@ -112,14 +111,19 @@ export function WorkflowActionBar({
     );
   }
 
+  // Keep floor children mounted while actions load — preparation itemizer etc.
+  // must not disappear behind a loading-only shell.
   if (loading && visible.length === 0) {
     return (
-      <section
-        className={className ?? 'rounded-lg border border-border bg-card p-4 space-y-3'}
-        aria-label={t('actionBarLabel')}
-      >
-        <p className="text-sm text-muted-foreground">{t('loading')}</p>
-      </section>
+      <>
+        <section
+          className={className ?? 'rounded-lg border border-border bg-card p-4 space-y-3'}
+          aria-label={t('actionBarLabel')}
+        >
+          <p className="text-sm text-muted-foreground">{t('loading')}</p>
+        </section>
+        {children}
+      </>
     );
   }
 
@@ -137,14 +141,17 @@ export function WorkflowActionBar({
     }
 
     return (
-      <CmxEmptyState
-        title={t('emptyScreenTitle')}
-        description={
-          currentStatus
-            ? t('emptyScreenBodyWithStatus', { status: currentStatus })
-            : t('emptyScreenBody')
-        }
-      />
+      <>
+        <CmxEmptyState
+          title={t('emptyScreenTitle')}
+          description={
+            currentStatus
+              ? t('emptyScreenBodyWithStatus', { status: currentStatus })
+              : t('emptyScreenBody')
+          }
+        />
+        {children}
+      </>
     );
   }
 

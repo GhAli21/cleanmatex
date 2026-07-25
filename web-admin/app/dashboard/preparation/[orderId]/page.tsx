@@ -159,10 +159,11 @@ async function PreparationContent({
           </AlertDescription>
         </Alert>
       ) : (
+        // No emptyBackHref: prep primary work is FastItemizer; do not bounce on empty CTAs.
         <WorkflowActionBar
           orderId={order.id}
           screen="preparation"
-          emptyBackHref={backHref}
+          hideWhenEmpty
         >
           <FastItemizer order={order} productCatalog={productCatalog} />
         </WorkflowActionBar>

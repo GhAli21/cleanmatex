@@ -1259,6 +1259,17 @@ export function PaymentFullView({
       const discountRows: OrderValueBreakdownRow[] = [];
       const taxRows: OrderValueBreakdownRow[] = [];
 
+      // B18 — order-level preference charges (e.g. "Whole Order" prefs added via
+      // the top-bar pill). Flat non-taxable addend, shown as its own gross row so
+      // the receipt explains the gap between subtotal and total.
+      if ((totals.chargesTotal ?? 0) > moneyEpsilon) {
+        grossRows.push({
+          id: 'order-charges',
+          label: t('summary.orderCharges'),
+          value: `${currencyCode} ${formatAmount(totals.chargesTotal ?? 0)}`,
+        });
+      }
+
       if ((totals.autoRuleDiscount ?? 0) > moneyEpsilon) {
         discountRows.push({
           id: 'rules-discount',

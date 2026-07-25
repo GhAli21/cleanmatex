@@ -515,24 +515,24 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           <p className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('mode.simpleView.receiptTitle')}
           </p>
-          {/* Full-story breakdown (gross → discounts → tax) — only surfaced
-              once there's a discount to explain; otherwise the single Order
-              Total row below already tells the whole story. */}
-          {orderValueBreakdown.discountRows.length > 0 ? (
-            <div className="pb-2">
-              <OrderValueBreakdownPanel
-                model={orderValueBreakdown}
-                labels={orderValueBreakdownLabels}
-                isRTL={isRTL}
-                taxLoading={orderValueBreakdownTaxLoading}
-              />
-            </div>
-          ) : null}
+          {/* Full-story breakdown (gross → discounts → tax) — always shown,
+              matching the Full/Advanced view's Financial Inspector (which
+              never gated this on discounts existing). Previously hidden
+              unless a discount or order-level charge was present, which
+              silently hid the subtotal/tax story on every plain order. */}
+          <div className="pb-2">
+            <OrderValueBreakdownPanel
+              model={orderValueBreakdown}
+              labels={orderValueBreakdownLabels}
+              isRTL={isRTL}
+              taxLoading={orderValueBreakdownTaxLoading}
+            />
+          </div>
           <SummaryRow
             label={t('rightRail.orderTotal')}
             value={`${currencyCode} ${formatAmount(saleTotal)}`}
             loading={totalsLoading}
-            bold={orderValueBreakdown.discountRows.length > 0}
+            bold
           />
           <SettlementNowBreakdown
             currencyCode={currencyCode}

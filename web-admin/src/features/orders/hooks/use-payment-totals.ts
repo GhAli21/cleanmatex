@@ -86,6 +86,8 @@ export type ServerTotals = {
   saleTotal: number;
   vatTaxPercent: number;
   taxBreakdown: TaxBreakdownLine[];
+  /** B18 — sum of order-level preference charges (e.g. "Whole Order" prefs). 0 when none applied. */
+  chargesTotal?: number;
   /** B11 — resolved server-side; drives the "tax included" label. Client never chooses. */
   taxPricingMode?: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE';
   /** B17 — currency cash-rounding delta applied to saleTotal; 0 when no rule changes it. */
@@ -292,6 +294,7 @@ export function usePaymentTotals({
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
           taxPricingMode: d.taxPricingMode === 'TAX_INCLUSIVE' ? 'TAX_INCLUSIVE' : 'TAX_EXCLUSIVE',
           roundingAdjustmentAmount: typeof d.roundingAdjustmentAmount === 'number' ? d.roundingAdjustmentAmount : 0,
+          chargesTotal: typeof d.chargesTotal === 'number' ? d.chargesTotal : 0,
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
       } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
@@ -440,6 +443,8 @@ export function usePaymentTotals({
       vatValue,
       giftCardApplied,
       saleTotal,
+      // B18: never assume order-level charges before the server preview confirms them.
+      chargesTotal: 0,
       totalSavings: subtotal + taxAmount + vatValue - saleTotal,
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
