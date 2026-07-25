@@ -5,12 +5,18 @@ import {
   WorkflowEngineError,
   executeAction,
 } from '@/lib/services/workflow/workflow-engine.service';
+import {
+  CancelReturnOrchestratorError,
+  executeCancelOrReturnAction,
+  isCancelOrReturnAction,
+} from '@/lib/services/workflow/cancel-return-orchestrator.service';
 
 /**
  * POST /api/v1/orders/[id]/actions
  *
  * Execute a workflow action with optimistic concurrency (expectedStateVersion)
  * and mandatory Idempotency-Key header. Requires orders:transition permission.
+ * Cancel/return go through Fin-aware orchestrator.
  */
 export async function POST(
   request: NextRequest,
@@ -49,7 +55,7 @@ export async function POST(
       );
     }
 
-    const result = await executeAction({
+    const execParams = {
       tenantId,
       orderId,
       screen: parsed.data.screen,
@@ -59,7 +65,11 @@ export async function POST(
       actorName: userName,
       input: parsed.data.input,
       idempotencyKey,
-    });
+    };
+
+    const result = isCancelOrReturnAction(parsed.data.actionCode)
+      ? await executeCancelOrReturnAction(execParams)
+      : await executeAction(execParams);
 
     return NextResponse.json({
       success: true,
@@ -68,9 +78,23 @@ export async function POST(
       currentStatus: result.currentStatus,
       stateVersion: result.stateVersion,
       blockedReasons: result.blockedReasons,
+      financialWarnings:
+        'financialWarnings' in result ? result.financialWarnings : undefined,
       effects: ['history', 'outbox'],
     });
   } catch (error) {
+    if (error instanceof CancelReturnOrchestratorError) {
+      return NextResponse.json(
+        {
+          success: false,
+          ok: false,
+          error: error.message,
+          code: error.code,
+        },
+        { status: error.httpStatus },
+      );
+    }
+
     if (error instanceof WorkflowEngineError) {
       const status =
         error.code === 'NOT_FOUND'

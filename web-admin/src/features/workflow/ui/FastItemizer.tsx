@@ -82,12 +82,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
 
     if (!canCompletePreparation(order)) {
       showInfo(t('preparation.detail.alreadyPastPreparation'));
-      const statusNow = resolveWorkflowStatus(order);
-      if (statusNow === 'processing') {
-        router.push(`/dashboard/processing/${order.id}`);
-      } else {
-        router.push(`/dashboard/orders/${order.id}`);
-      }
+      router.replace('/dashboard/preparation');
       return;
     }
 
@@ -116,7 +111,8 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
           throw new Error(res.error || t('validation.transitionNotAllowed'));
         }
         showSuccess(t('preparation.actions.preparationCompleteSuccess'));
-        router.push('/dashboard/processing');
+        // Stay on preparation worklist — do not auto-advance to the next stage.
+        router.replace('/dashboard/preparation');
         return;
       }
 
@@ -132,7 +128,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
 
       if (result.success) {
         showSuccess(t('preparation.actions.preparationCompleteSuccess'));
-        router.push('/dashboard/processing');
+        router.replace('/dashboard/preparation');
         return;
       }
 
@@ -143,7 +139,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
         result.code === 'TRANSITION_NOT_ALLOWED'
       ) {
         showInfo(t('preparation.detail.alreadyPastPreparation'));
-        router.push(`/dashboard/processing/${order.id}`);
+        router.replace('/dashboard/preparation');
         return;
       }
 

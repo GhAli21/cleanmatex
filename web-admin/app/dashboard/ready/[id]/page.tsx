@@ -150,7 +150,8 @@ export default function ReadyDetailPage() {
 
       if (result.success) {
         showSuccess(t('ready.messages.deliveredSuccess'));
-        router.push('/dashboard/orders');
+        // Stay on ready worklist — do not auto-jump to orders.
+        router.replace('/dashboard/ready');
       } else {
         setError(result.error || t('ready.messages.deliveredFailed'));
         if (result.blockers?.length) setBlockers(result.blockers);
@@ -190,13 +191,13 @@ export default function ReadyDetailPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <Link href="/dashboard/ready" className="text-blue-600 hover:underline mb-2 inline-block">
-          Ã¢â€ Â {t('ready.actions.backToReady')}
+          &laquo; {t('ready.actions.backToReady')}
         </Link>
         <h1 className="text-3xl font-bold">
           {t('screens.ready')} - {order.orderNo}
         </h1>
         <p className="text-gray-600 mt-1">
-          {order.customer.name} Ã¢â‚¬Â¢ {order.customer.phone}
+          {order.customer.name} &nbsp;&bull;&nbsp; {order.customer.phone}
         </p>
       </div>
 
@@ -326,6 +327,7 @@ export default function ReadyDetailPage() {
               key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
               orderId={orderId}
               screen="ready_release"
+              emptyBackHref="/dashboard/ready"
               onActionSuccess={() => {
                 void loadOrder();
               }}

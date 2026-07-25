@@ -43,6 +43,7 @@ import { ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import { OrderCustomerDetailsSection } from './order-customer-details-section';
 import { OrderPiecePreferencesSection } from './piece-preferences/order-piece-preferences-section';
+import { OrderPreferencesDialog } from './preferences/OrderPreferencesDialog';
 import { OrderPiecesNotesSection } from './order-pieces-notes-section';
 import { EditOrderBar } from './edit-order-bar';
 import { PosSessionOrderBanner } from '@features/pos-sessions/ui/pos-session-order-banner';
@@ -83,6 +84,7 @@ export function NewOrderContent() {
         servicePrefs,
         conditionCatalog,
         packingPrefs,
+        hasServicePrefs,
     } = orderCatalog;
     const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
     const packingExtraPriceByCode = useMemo(() => {
@@ -120,6 +122,7 @@ export function NewOrderContent() {
     const { isDesktop } = useBreakpoint();
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [orderPrefsDialogOpen, setOrderPrefsDialogOpen] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
     const [currencyCode, setCurrencyCode] = useState<string>('');
@@ -623,9 +626,17 @@ export function NewOrderContent() {
                 categoriesLoading={state.state.categoriesLoading}
                 showCategories={activeTab === 'select'}
                 hasBranchDependentData={hasBranchDependentData}
+                orderPrefsCount={state.state.orderServicePrefs?.length ?? 0}
+                onOpenOrderPreferences={hasServicePrefs ? () => setOrderPrefsDialogOpen(true) : undefined}
                 sessionSlot={!state.state.isEditMode ? (
                     <PosSessionHub branchId={state.state.branchId} />
                 ) : null}
+            />
+
+            <OrderPreferencesDialog
+                open={orderPrefsDialogOpen}
+                onOpenChange={setOrderPrefsDialogOpen}
+                enforcePrefCompatibility={enforcePrefCompatibility}
             />
 
             {!state.state.isEditMode && (

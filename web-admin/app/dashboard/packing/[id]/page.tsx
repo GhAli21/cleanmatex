@@ -176,7 +176,8 @@ export default function PackingDetailPage() {
 
       if (result.success) {
         showSuccess(t('packing.messages.completeSuccess'));
-        router.push('/dashboard/ready');
+        // Stay on packing worklist — do not auto-advance to ready.
+        router.replace('/dashboard/packing');
       } else {
         setError(result.error || t('packing.messages.completeFailed'));
         if (result.blockers?.length) setBlockers(result.blockers);
@@ -210,6 +211,7 @@ export default function PackingDetailPage() {
         <WorkflowActionBar
           orderId={orderId}
           screen="packing"
+          emptyBackHref="/dashboard/packing"
           onActionSuccess={() => {
             void loadOrder();
           }}

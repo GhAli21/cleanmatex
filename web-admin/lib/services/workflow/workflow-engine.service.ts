@@ -661,6 +661,8 @@ export async function executeAction(
     const now = new Date();
     const isCompletePreparation =
       params.actionCode === WORKFLOW_ACTIONS.COMPLETE_PREPARATION;
+    const isCancelOrder = params.actionCode === WORKFLOW_ACTIONS.CANCEL_ORDER;
+    const isReturnOrder = params.actionCode === WORKFLOW_ACTIONS.RETURN_ORDER;
 
     const rackFromInput =
       typeof params.input?.rackLocation === 'string'
@@ -669,6 +671,16 @@ export async function executeAction(
           ? params.input.rack_location.trim()
           : '';
     const applyRack = rackFromInput.length > 0;
+
+    const cancelNote =
+      (typeof params.input?.cancelled_note === 'string'
+        ? params.input.cancelled_note.trim()
+        : '') ||
+      (typeof params.input?.notes === 'string' ? params.input.notes.trim() : '');
+    const returnReason =
+      (typeof params.input?.return_reason === 'string'
+        ? params.input.return_reason.trim()
+        : '') || cancelNote;
 
     const updated = await tx.$executeRaw`
       UPDATE public.org_orders_mst
@@ -694,6 +706,30 @@ export async function executeAction(
         prepared_by = CASE
           WHEN ${isCompletePreparation} THEN ${params.actorUserId}::uuid
           ELSE prepared_by
+        END,
+        cancelled_at = CASE
+          WHEN ${isCancelOrder} THEN ${now}
+          ELSE cancelled_at
+        END,
+        cancelled_by = CASE
+          WHEN ${isCancelOrder} THEN ${params.actorUserId}::uuid
+          ELSE cancelled_by
+        END,
+        cancelled_note = CASE
+          WHEN ${isCancelOrder} AND ${cancelNote.length > 0} THEN ${cancelNote}
+          ELSE cancelled_note
+        END,
+        returned_at = CASE
+          WHEN ${isReturnOrder} THEN ${now}
+          ELSE returned_at
+        END,
+        returned_by = CASE
+          WHEN ${isReturnOrder} THEN ${params.actorUserId}::uuid
+          ELSE returned_by
+        END,
+        return_reason = CASE
+          WHEN ${isReturnOrder} AND ${returnReason.length > 0} THEN ${returnReason}
+          ELSE return_reason
         END
       WHERE id = ${params.orderId}::uuid
         AND tenant_org_id = ${params.tenantId}::uuid

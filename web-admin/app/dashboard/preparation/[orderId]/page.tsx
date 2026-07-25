@@ -159,10 +159,13 @@ async function PreparationContent({
           </AlertDescription>
         </Alert>
       ) : (
-        <>
-          <WorkflowActionBar orderId={order.id} screen="preparation" />
+        <WorkflowActionBar
+          orderId={order.id}
+          screen="preparation"
+          emptyBackHref={backHref}
+        >
           <FastItemizer order={order} productCatalog={productCatalog} />
-        </>
+        </WorkflowActionBar>
       )}
     </div>
   );

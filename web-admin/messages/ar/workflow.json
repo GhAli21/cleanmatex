@@ -415,6 +415,12 @@
     "rackLocationLabel": "موقع الرف",
     "rackLocationPlaceholder": "مثال: رف A-12",
     "rackLocationHelp": "مطلوب قبل الإفراج أو الانتقال إلى الجاهز. يُحفظ مع الإجراء.",
-    "rackLocationRequired": "أدخل موقع الرف للمتابعة"
+    "rackLocationRequired": "أدخل موقع الرف للمتابعة",
+    "emptyScreenTitle": "لا يوجد ما يمكن تنفيذه في هذه الشاشة",
+    "emptyScreenBody": "لا تتوفر إجراءات سير عمل لهذا الطلب هنا. قد يكون في مرحلة أخرى.",
+    "emptyScreenBodyWithStatus": "لا تتوفر إجراءات سير عمل لهذا الطلب هنا (الحالة الحالية: {status}). قد يكون في مرحلة أخرى.",
+    "emptyBack": "رجوع",
+    "redirectedNoActions": "لا توجد إجراءات في هذه الشاشة — تمت العودة إلى القائمة.",
+    "redirecting": "جارٍ الرجوع إلى القائمة…"
   }
 }

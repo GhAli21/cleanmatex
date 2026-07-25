@@ -1,6 +1,7 @@
 /**
  * Cancel Order Dialog
- * Requires cancellation reason. Calls cmx_ord_canceling_transition via transition API.
+ * Requires cancellation reason (+ disposition when paid).
+ * Engine V2 (tenant flag): CANCEL_ORDER + Fin unwind. Flag off: Enhanced RPC.
  */
 
 'use client';

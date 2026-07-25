@@ -151,7 +151,8 @@ export default function QADetailPage() {
       });
       if (result.success) {
         showSuccess(t('qa.messages.acceptSuccess'));
-        router.push(nextStatus === 'packing' ? '/dashboard/packing' : '/dashboard/ready');
+        // Stay on QA worklist — do not auto-advance to packing/ready.
+        router.replace('/dashboard/qa');
       } else {
         setError(result.error || t('qa.messages.acceptFailed'));
       }
@@ -199,7 +200,8 @@ export default function QADetailPage() {
 
       if (result.success) {
         showSuccess(t('qa.messages.rejectSuccess'));
-        router.push('/dashboard/processing');
+        // Stay on QA worklist after reject (order returns to processing elsewhere).
+        router.replace('/dashboard/qa');
       } else {
         setError(result.error || t('qa.messages.rejectFailed'));
       }
@@ -233,6 +235,7 @@ export default function QADetailPage() {
           <WorkflowActionBar
             orderId={orderId}
             screen="qa"
+            emptyBackHref="/dashboard/qa"
             onActionSuccess={() => {
               void loadOrder();
             }}

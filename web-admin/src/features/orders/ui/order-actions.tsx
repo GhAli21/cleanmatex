@@ -40,6 +40,10 @@ import { CancelOrderDialog } from './cancel-order-dialog';
 import { CustomerReturnOrderDialog } from './customer-return-order-dialog';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
+import {
+  canCancelOrder,
+  canReturnOrder,
+} from '@/lib/constants/workflow-cancel-return';
 
 interface OrderActionsProps {
   order: {
@@ -226,9 +230,8 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           </CmxButton>
         ))}
 
-        {/* Customer Return - when delivered/closed (customer brings items back) */}
-        {(currentStatus === 'delivered' || currentStatus === 'closed') &&
-          canMoveTo('cancelled') && (
+        {/* Customer Return — delivered/closed only (cancel ≠ return) */}
+        {canReturnOrder(currentStatus) && (
             <CmxButton
               onClick={() => setShowReturnDialog(true)}
               disabled={loading}
@@ -241,11 +244,8 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
             </CmxButton>
           )}
 
-        {/* Cancel Order - draft through out_for_delivery (no items with customer) */}
-        {currentStatus !== 'cancelled' &&
-          currentStatus !== 'closed' &&
-          currentStatus !== 'delivered' &&
-          canMoveTo('cancelled') && (
+        {/* Cancel Order — ops statuses only; never after delivered/closed/returned */}
+        {canCancelOrder(currentStatus) && (
             <CmxButton
               onClick={() => setShowCancelDialog(true)}
               disabled={loading}

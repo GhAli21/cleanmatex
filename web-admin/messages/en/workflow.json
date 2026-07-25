@@ -415,6 +415,12 @@
     "rackLocationLabel": "Rack location",
     "rackLocationPlaceholder": "e.g., Rack A-12",
     "rackLocationHelp": "Required before release or moving to ready. Saved with the action.",
-    "rackLocationRequired": "Enter a rack location to continue"
+    "rackLocationRequired": "Enter a rack location to continue",
+    "emptyScreenTitle": "Nothing to do on this screen",
+    "emptyScreenBody": "This order has no workflow actions here. It may already be on another stage.",
+    "emptyScreenBodyWithStatus": "This order has no workflow actions here (current status: {status}). It may already be on another stage.",
+    "emptyBack": "Go back",
+    "redirectedNoActions": "No actions on this screen — returned to the list.",
+    "redirecting": "Returning to the list…"
   }
 }

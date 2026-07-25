@@ -15,7 +15,6 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
@@ -108,7 +107,6 @@ export default function AssemblyDetailPage() {
   };
 
   const orderId = (params as any)?.id as string | undefined;
-  const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   useEffect(() => {
     loadOrder();
@@ -150,6 +148,7 @@ export default function AssemblyDetailPage() {
           <WorkflowActionBar
             orderId={orderId}
             screen="assembly"
+            emptyBackHref="/dashboard/assembly"
             onActionSuccess={() => {
               void loadOrder();
             }}
@@ -261,18 +260,8 @@ export default function AssemblyDetailPage() {
           onClose={() => setTaskId(null)}
           onComplete={() => {
             setTaskId(null);
-            const nextStatus = wfContext?.flags?.qa_enabled
-              ? 'qa'
-              : wfContext?.flags?.packing_enabled
-                ? 'packing'
-                : 'ready';
-            router.push(
-              nextStatus === 'qa'
-                ? '/dashboard/qa'
-                : nextStatus === 'packing'
-                  ? '/dashboard/packing'
-                  : '/dashboard/ready'
-            );
+            // Stay on assembly worklist — do not auto-advance to QA/packing/ready.
+            router.replace('/dashboard/assembly');
           }}
         />
       ) : null}

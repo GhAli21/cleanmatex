@@ -1,7 +1,7 @@
 /**
  * Customer Return Order Dialog
  * When customer brings items back to facility. Requires return reason.
- * Calls cmx_ord_returning_transition via transition API.
+ * Engine V2: RETURN_ORDER → status `returned`. Flag off: Enhanced RPC path.
  */
 
 'use client';
@@ -66,7 +66,7 @@ export function CustomerReturnOrderDialog({
         orderId,
         input: {
           screen: 'returning',
-          to_status: 'cancelled',
+          to_status: 'returned',
           return_reason: trimmed,
           return_reason_code: reasonCode || undefined,
           useOldWfCodeOrNew: true,

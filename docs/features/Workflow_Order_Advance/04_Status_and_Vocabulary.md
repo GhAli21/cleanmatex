@@ -93,6 +93,44 @@ Business rule detail: [05_Business_Rules_and_Gates.md](05_Business_Rules_and_Gat
 | Gates | `sys_wf_gate_defs_cd` / `gate_set_code` | `rack_required`, `fin_release_eligible` |
 | Screens | `sys_wf_screens_cd` | `packing`, `ready_release` |
 
-## 5. Initial rules
+## 5. Cancel vs return (canonical)
+
+These are **different business events**. Do not treat them as synonyms.
+
+| | **Cancel** | **Return** |
+|---|------------|------------|
+| **Meaning** | Stop / abandon the order **before** (or instead of) successful customer fulfilment | Customer **brings goods back** after fulfilment (or after commercial close) |
+| **Typical when** | Order still in ops: draft → ready (and OFD if aborting delivery) | Order already **`delivered`** or **`closed`** |
+| **Action** | `CANCEL_ORDER` (screen `canceling`) | `RETURN_ORDER` (screen `returning`) |
+| **Terminal status (V1 engine)** | **`cancelled`** | **`returned`** |
+| **Audit columns** | `cancelled_at`, `cancelled_by`, `cancelled_note` | `returned_at`, `returned_by`, `return_reason` (+ optional reason code) |
+| **Money (Fin)** | If money was collected: **disposition required** (REFUND / STORE_CREDIT / KEEP_ON_ACCOUNT) then unwind | **No auto Fin unwind in V1.0** — refunds/credits follow Order Fin separately |
+| **UI** | Cancel Order dialog (reason + disposition when paid) | Customer Return dialog (reason) |
+
+### Rules of thumb
+
+1. **Not yet handed to the customer as fulfilled** → **cancel** → `cancelled`.
+2. **Already delivered / closed, customer returns items** → **return** → `returned`.
+3. **Ready ≠ cancel:** releasing for pickup/delivery is not cancel; aborting an OFD run may be cancel (graph allows `out_for_delivery` → `cancelled`).
+4. **Do not** map customer return onto status `cancelled` under Workflow Engine V2 (legacy Enhanced RPC historically wrote `cancelled` + `returned_*` — V2 corrects that to terminal **`returned`**).
+
+### Restrictions (enforced UI + orchestrator)
+
+| Rule | Cancel | Return |
+|------|--------|--------|
+| Allowed from | `draft`, `intake`, `preparing`, `processing`, `assembly`, `qa`, `packing`, `ready`, `on_hold`, `out_for_delivery` | **`delivered`**, **`closed`** only |
+| Forbidden from | `delivered`, `closed`, `cancelled`, `returned` | All other statuses (incl. ops + terminal) |
+| Reason | Required (min length) | Required (min length) |
+| Paid money | Disposition required (REFUND / STORE_CREDIT / KEEP_ON_ACCOUNT); KEEP needs `orders:approve_refund` | No auto Fin unwind (V1.0) |
+| Terminal result | Must be `cancelled` | Must be `returned` |
+| Mutual exclusion | Cancel button hidden when return applies | Return button hidden when cancel applies |
+
+Code authority: `web-admin/lib/constants/workflow-cancel-return.ts` (`canCancelOrder` / `canReturnOrder`).
+
+### Legacy drift (flag off)
+
+Enhanced `cmx_ord_returning_transition` still ends at `cancelled` while setting `returned_*`. When `workflow_engine_v2` is on, authority is this table (`returned`).
+
+## 6. Initial rules
 
 Every `order_source_code` × modifiers; optional `order_type_id`; retail-only → operationally completed **policy**, not `closed`.

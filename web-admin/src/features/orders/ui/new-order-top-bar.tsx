@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
-import { UserPlus, UserCheck, Edit2, Zap } from 'lucide-react';
+import { UserPlus, UserCheck, Edit2, Zap, Settings2 } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
 
 interface ServiceCategory {
@@ -39,6 +39,10 @@ interface NewOrderTopBarProps {
   showCategories?: boolean;
   hasBranchDependentData?: boolean;
   sessionSlot?: ReactNode;
+  /** Count of order-wide preferences already applied, shown as a badge. Omit/0 hides the badge. */
+  orderPrefsCount?: number;
+  /** Presence gates whether the order-preferences pill renders at all (tenant may have no service-pref catalog). */
+  onOpenOrderPreferences?: () => void;
 }
 
 export const NewOrderTopBar = memo(function NewOrderTopBar({
@@ -58,6 +62,8 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   showCategories = true,
   hasBranchDependentData = false,
   sessionSlot,
+  orderPrefsCount = 0,
+  onOpenOrderPreferences,
 }: NewOrderTopBarProps) {
   const t = useTranslations('newOrder');
   const tCommon = useTranslations('common');
@@ -136,6 +142,34 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           <Zap className="w-4 h-4 shrink-0" aria-hidden />
           <span>{t('topBar.expressLabel') || t('express.label') || 'Express'}</span>
         </button>
+
+        {/* Order-wide preferences pill — always visible on every step, so staff don't
+            need to remember which step/tab holds order-level entry (see B18 redesign). */}
+        {onOpenOrderPreferences && (
+          <button
+            type="button"
+            onClick={onOpenOrderPreferences}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${isRTL ? 'flex-row-reverse' : ''} ${
+              orderPrefsCount > 0
+                ? 'border-blue-400 bg-blue-50 text-blue-800'
+                : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+            }`}
+            aria-label={
+              t('topBar.orderPreferencesAria', { count: orderPrefsCount }) ||
+              `Order preferences${orderPrefsCount > 0 ? `, ${orderPrefsCount} applied` : ''}`
+            }
+          >
+            <Settings2 className="w-4 h-4 shrink-0" aria-hidden />
+            <span>{t('topBar.orderPreferences') || 'Preferences'}</span>
+            {orderPrefsCount > 0 && (
+              <span
+                className={`flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-blue-600 text-white text-xs font-semibold ${isRTL ? 'ms-0.5' : ''}`}
+              >
+                {orderPrefsCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {sessionSlot ? (
           <div className="ms-auto flex min-w-0 items-center">

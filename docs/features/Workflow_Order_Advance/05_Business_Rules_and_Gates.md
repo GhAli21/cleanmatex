@@ -45,7 +45,11 @@ Retail-only create:
 
 ## 6. Cancel / return
 
-Fin unwind then engine action; keyed idempotency.
+See vocabulary: [04_Status_and_Vocabulary.md](04_Status_and_Vocabulary.md) §5 (**cancel ≠ return**).
+
+- **Cancel** → `cancelled`; paid orders require disposition then Fin unwind (idempotent; after status in current orchestrator).
+- **Return** → `returned` (V2); no auto Fin unwind in V1.0.
+- Keyed idempotency on engine execute.
 
 ## 7. Items / pieces
 

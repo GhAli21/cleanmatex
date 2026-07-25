@@ -190,15 +190,8 @@ export default function ProcessingDetailPage() {
 
       if (result.success) {
         showSuccess(t('success.transitioned') || 'Transitioned');
-        const nextRoute =
-          nextStatus === 'assembly'
-            ? '/dashboard/assembly'
-            : nextStatus === 'qa'
-            ? '/dashboard/qa'
-            : nextStatus === 'packing'
-            ? '/dashboard/packing'
-            : '/dashboard/ready';
-        router.push(nextRoute);
+        // Stay on processing worklist — next stage is opened by the user when ready.
+        router.replace('/dashboard/processing');
       } else {
         setError(result.error || t('error.transitionFailed') || 'Transition failed');
       }
@@ -283,6 +276,7 @@ export default function ProcessingDetailPage() {
         <WorkflowActionBar
           orderId={orderId}
           screen="processing"
+          emptyBackHref="/dashboard/processing"
           onActionSuccess={() => {
             void loadOrder();
           }}

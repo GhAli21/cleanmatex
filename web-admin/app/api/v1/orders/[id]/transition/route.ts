@@ -19,6 +19,13 @@ import {
   WorkflowEngineError,
   executeAction,
 } from '@/lib/services/workflow/workflow-engine.service';
+import {
+  CancelReturnOrchestratorError,
+  executeCancelOrReturnAction,
+  isCancelOrReturnAction,
+} from '@/lib/services/workflow/cancel-return-orchestrator.service';
+import { resolveEngineActionCode } from '@/lib/services/workflow/resolve-engine-action-code';
+import { prisma } from '@/lib/db/prisma';
 
 const ORDER_STATUS_EVENT: Record<string, string> = {
   ready:     'order.ready',
@@ -54,53 +61,82 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const screen = body.screen;
     const authHeader = request.headers.get('Authorization');
 
-    // Workflow Order Advance V1.0 canary — action-based path (no Legacy/Enhanced RPC)
-    if (
-      (await resolveWorkflowEngineV2Enabled(tenantId)) &&
-      typeof body.actionCode === 'string' &&
-      body.actionCode.trim() &&
-      typeof screen === 'string' &&
-      screen.trim()
-    ) {
-      const idempotencyKey =
-        request.headers.get('Idempotency-Key')?.trim() ||
-        (typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '');
-      if (!idempotencyKey) {
+    // P5: when Workflow Engine V2 is on for the tenant, never call Legacy/Enhanced.
+    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
+      const actionCode = resolveEngineActionCode({
+        actionCode: body.actionCode,
+        screen,
+        toStatus: body.toStatus,
+        to_status: body.input?.to_status,
+      });
+      if (!screen || typeof screen !== 'string' || !screen.trim() || !actionCode) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Idempotency-Key header (or body.idempotencyKey) is required for workflow_v2',
-            code: 'IDEMPOTENCY_KEY_REQUIRED',
-          },
-          { status: 400 },
-        );
-      }
-      if (typeof body.expectedStateVersion !== 'number') {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'expectedStateVersion is required for workflow_v2',
-            code: 'EXPECTED_STATE_VERSION_REQUIRED',
+            error:
+              'Workflow Engine V2 is enabled: provide screen + mappable action (or use POST /actions).',
+            code: 'WORKFLOW_ENGINE_V2_REQUIRED',
           },
           { status: 400 },
         );
       }
 
+      const idempotencyKey =
+        request.headers.get('Idempotency-Key')?.trim() ||
+        (typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '') ||
+        crypto.randomUUID();
+
+      let expectedStateVersion =
+        typeof body.expectedStateVersion === 'number' ? body.expectedStateVersion : null;
+      if (expectedStateVersion == null) {
+        const rows = await prisma.$queryRaw<Array<{ state_version: bigint | number | null }>>`
+          SELECT COALESCE(state_version, 0) AS state_version
+          FROM public.org_orders_mst
+          WHERE id = ${id}::uuid
+            AND tenant_org_id = ${tenantId}::uuid
+          LIMIT 1
+        `;
+        if (!rows[0]) {
+          return NextResponse.json(
+            { success: false, error: 'Order not found', code: 'NOT_FOUND' },
+            { status: 404 },
+          );
+        }
+        expectedStateVersion = Number(rows[0].state_version ?? 0);
+      }
+
+      const nestedInput =
+        body.input && typeof body.input === 'object' && !Array.isArray(body.input)
+          ? (body.input as Record<string, unknown>)
+          : {};
+
       try {
-        const result = await executeAction({
+        const execParams = {
           tenantId,
           orderId: id,
-          screen,
-          actionCode: body.actionCode.trim(),
-          expectedStateVersion: body.expectedStateVersion,
+          screen: screen.trim(),
+          actionCode,
+          expectedStateVersion,
           actorUserId: userId,
           actorName: userName,
           input: {
-            notes: body.notes,
-            ...(body.input && typeof body.input === 'object' ? body.input : {}),
+            ...nestedInput,
+            notes: body.notes ?? nestedInput.notes,
+            preferredToStatus:
+              body.toStatus ?? nestedInput.to_status ?? nestedInput.preferredToStatus,
+            cancelled_note: nestedInput.cancelled_note,
+            cancellation_disposition: nestedInput.cancellation_disposition,
+            return_reason: nestedInput.return_reason,
+            return_reason_code: nestedInput.return_reason_code,
+            rackLocation: nestedInput.rackLocation ?? nestedInput.rack_location,
+            metadata: body.metadata ?? nestedInput.metadata,
           },
           idempotencyKey,
-        });
+        };
+
+        const result = isCancelOrReturnAction(actionCode)
+          ? await executeCancelOrReturnAction(execParams)
+          : await executeAction(execParams);
 
         const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
         if (eventCode) {
@@ -126,8 +162,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               stateVersion: result.stateVersion,
             },
           },
+          financialWarnings:
+            'financialWarnings' in result ? result.financialWarnings : undefined,
         });
       } catch (error) {
+        if (error instanceof CancelReturnOrchestratorError) {
+          return NextResponse.json(
+            {
+              success: false,
+              ok: false,
+              engine: 'workflow_v2',
+              error: error.message,
+              code: error.code,
+            },
+            { status: error.httpStatus },
+          );
+        }
         if (error instanceof WorkflowEngineError) {
           const status =
             error.code === 'NOT_FOUND'
@@ -155,7 +205,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    // If using new workflow system with screen parameter
+    // If using new workflow system with screen parameter (flag OFF only)
     if (screen && useOldWfCodeOrNew !== false) {
       try {
         const result = await WorkflowServiceEnhanced.executeScreenTransition(

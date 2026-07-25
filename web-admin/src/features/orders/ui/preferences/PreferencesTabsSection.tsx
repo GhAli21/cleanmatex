@@ -12,12 +12,10 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
-import { ServicePreferenceSelector } from './ServicePreferenceSelector';
 import { LevelPreferenceCard } from './LevelPreferenceCard';
 import { CarePackageBundles } from './CarePackageBundles';
 import { RepeatLastOrderPanel } from './RepeatLastOrderPanel';
 import { SmartSuggestionsPanel } from './SmartSuggestionsPanel';
-import type { PreSubmissionPiece } from '../../model/new-order-types';
 import { Zap, Settings2 } from 'lucide-react';
 
 interface PreferencesTabsSectionProps {
@@ -58,23 +56,19 @@ export function PreferencesTabsSection({
   const {
     state,
     updateItemServicePrefs,
-    updateItemPieces,
-    updateOrderServicePrefs,
     updateItemPackingPref,
   } = useNewOrderStateWithDispatch();
   const { servicePrefs, packingPrefs, preferenceKinds, prefsByKind, kindsLoading } =
     usePreferenceCatalog(state.branchId, true);
 
-  // B18 redesign: LevelPreferenceCard filters `preferenceKinds` down to the
-  // PREFERENCES main type internally, and additionally hides packing_prefs
-  // whenever `onPackingChange` is omitted — so order-level (no packing prop
-  // passed below) naturally offers service prefs only, no order-wide packing
-  // backend exists yet (deliberate scope decision, see B18 doc). Item-level
-  // passes `onPackingChange`, so it additionally offers packing (already
-  // fully supported end to end). Piece level keeps its existing dedicated
-  // ServicePreferenceSelector in this tab — its full kind-toolbar experience
-  // already lives in the separate "Edit Items Preferences" wizard step
-  // (OrderPiecePreferencesSection).
+  // B18 redesign: order-level preferences moved to OrderPreferencesDialog,
+  // reachable via the sticky top bar's "Preferences" pill on every step —
+  // not nested in this tab, since staff kept losing track of it here.
+  // Piece-level preferences live exclusively in the "Edit Items Preferences"
+  // wizard step (OrderPiecePreferencesSection); this tab is items only now.
+  // LevelPreferenceCard filters `preferenceKinds` down to the PREFERENCES
+  // main type internally, and additionally hides packing_prefs whenever
+  // `onPackingChange` is omitted.
 
   const [activePrefTab, setActivePrefTab] = useState<'quick' | 'service'>('quick');
 
@@ -82,33 +76,6 @@ export function PreferencesTabsSection({
   const hasAnyPrefs = hasQuickApply || hasServicePrefs;
 
   if (!hasAnyPrefs) return null;
-
-  const handlePieceUpdate = (
-    productId: string,
-    pieceId: string,
-    updates: Partial<PreSubmissionPiece>
-  ) => {
-    const item = state.items.find((c) => c.productId === productId);
-    if (!item) return;
-    const existingPieces: PreSubmissionPiece[] = item.pieces ?? [];
-    const updatedPieces = existingPieces.map((p) =>
-      p.id === pieceId ? { ...p, ...updates } : p
-    );
-    updateItemPieces(productId, updatedPieces);
-
-    // When piece-level servicePrefs change, recalculate item.servicePrefCharge
-    if ('servicePrefs' in updates) {
-      const pieceCharge = (updatedPieces: PreSubmissionPiece[]) =>
-        updatedPieces.reduce(
-          (sum, p) =>
-            sum +
-            (p.servicePrefs ?? []).reduce((s, pref) => s + (pref.extra_price ?? 0), 0),
-          0
-        );
-      const newCharge = pieceCharge(updatedPieces);
-      updateItemServicePrefs(productId, item.servicePrefs ?? [], newCharge);
-    }
-  };
 
   return (
     <div className="border-b border-gray-100">
@@ -184,22 +151,8 @@ export function PreferencesTabsSection({
           >
             <p className="text-xs text-gray-500">
               {t('servicePrefsDesc') ||
-                'Configure service preferences (starch, perfume, delicate, etc.) for the whole order, per item, or per piece.'}
+                'Configure service and packing preferences per item. Use the Preferences button in the top bar for whole-order preferences.'}
             </p>
-
-            {/* B18 — order-level preferences: independent of any single item/piece. */}
-            <LevelPreferenceCard
-              title={t('orderLevelPrefs') || 'Whole Order'}
-              servicePrefs={state.orderServicePrefs ?? []}
-              preferenceKinds={preferenceKinds}
-              prefsByKind={prefsByKind}
-              packingPrefs={packingPrefs}
-              servicePrefsFallback={servicePrefs}
-              currencyCode=""
-              kindsLoading={kindsLoading}
-              enforcePrefCompatibility={enforcePrefCompatibility}
-              onServicePrefsChange={(prefs) => updateOrderServicePrefs(prefs)}
-            />
 
             <div className="space-y-4 max-h-[50vh] sm:max-h-[40vh] overflow-y-auto">
               {state.items.map((item) => (
@@ -251,32 +204,6 @@ export function PreferencesTabsSection({
                       }}
                     />
                   </div>
-
-                  {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
-                    <div className="space-y-3 mt-3">
-                      {(item.pieces ?? []).map((piece) => (
-                        <div
-                          key={piece.id}
-                          className="flex flex-wrap items-center gap-3 ps-4 border-s-2 border-gray-200"
-                        >
-                          <span className="text-xs font-medium text-gray-600 min-w-[4rem]">
-                            {tPieces('pieceNumber', { number: piece.pieceSeq })}
-                          </span>
-                          <ServicePreferenceSelector
-                            selectedPrefs={piece.servicePrefs ?? []}
-                            availablePrefs={servicePrefs}
-                            onChange={(prefs) =>
-                              handlePieceUpdate(item.productId, piece.id, {
-                                servicePrefs: prefs,
-                              })
-                            }
-                            maxPrefs={5}
-                            enforceCompatibility={enforcePrefCompatibility}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

@@ -108,6 +108,11 @@ export function useOrderTransition() {
               notes: input.notes,
               rackLocation: input.rackLocation ?? input.rack_location,
               metadata: input.metadata,
+              cancelled_note: input.cancelled_note,
+              cancellation_disposition: input.cancellation_disposition,
+              cancellation_reason_code: input.cancellation_reason_code,
+              return_reason: input.return_reason,
+              return_reason_code: input.return_reason_code,
             },
           }),
         });

@@ -16,9 +16,9 @@ Track every path that mutates order operational status. Exit criterion: all prod
 | Public confirm-received | `POST /api/v1/public/…/confirm-received` | ⏳ Legacy (no auth user) — P4 |
 | Legacy status API | `PATCH /api/orders/[orderId]/status` | ⏳ Still Legacy — retire or gate in P5 |
 | Enhanced RPC | `cmx_ord_execute_transition` | ⏳ Used when flag off / no actionCode |
-| Cancel/return | canceling/returning screens | ⏳ Open — P3b |
+| Cancel/return | canceling/returning screens | ✅ Engine orchestrator when flag on (Fin unwind after cancel); Enhanced when flag off |
 | Item processing | piece step writers | ⏳ Item-level only (OK if order status unchanged) |
 
 Flag: HQ `workflow_engine_v2` / `WORKFLOW_ENGINE_V2` / `NEXT_PUBLIC_WORKFLOW_ENGINE_V2`.
 
-**Skip edges:** `0434` applied. **Rack:** apply `0435_sys_wf_pack_ready_rack_required.sql` — packing→ready requires rack; ActionBar + Ready detail can set rack.
+**Skip edges:** `0434` applied. **Rack:** `0435` applied — packing→ready requires rack; ActionBar + Ready detail can set rack.

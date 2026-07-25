@@ -1,5 +1,13 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.4-p3b-cancel-return-p5 — 2026-07-25
+
+- Cancel/return orchestrator: disposition gate + `executeAction` + Fin unwind (after status)
+- Engine writes `cancelled_*` / `returned_*` audit columns on CANCEL/RETURN
+- Return terminal status under V2: **`returned`** (catalog); UI dialog updated
+- P5: `POST …/transition` never calls Legacy/Enhanced when `workflow_engine_v2` is on
+- Migration (create only): `0436_sys_wf_cancel_return_graph_parity.sql` (draft/OFD cancel, closed return)
+
 ## 0.3.3-p3-stage-engine — 2026-07-25
 
 - `useOrderTransition` uses `/available-actions` + `/actions` under client canary

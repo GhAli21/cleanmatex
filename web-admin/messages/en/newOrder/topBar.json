@@ -1,5 +1,7 @@
 {
   "expressLabel": "Express",
   "expressOn": "Express On",
-  "expressOff": "Express Off"
+  "expressOff": "Express Off",
+  "orderPreferences": "Preferences",
+  "orderPreferencesAria": "{count, plural, =0 {Order preferences} other {Order preferences, # applied}}"
 }

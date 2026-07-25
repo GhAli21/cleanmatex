@@ -9,6 +9,6 @@
 | Scope ADR | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) |
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
-| Next (you) | Apply `0435` (pack→ready rack); smoke rack on ActionBar + Ready save; then cancel/return |
-| Next (code) | P4 public actor + release harden; P5 retire Legacy/Enhanced; P6 tenant UI; P7 e2e; `/documentation` |
+| Next (you) | Apply `0436`; smoke cancel (paid/unpaid) + return → `returned` |
+| Next (code) | P4 public confirm actor; P6 tenant UI; P7 e2e; `/documentation` |
 | Ready for production canary | **Yes (single-tenant)** — discovery OK; enable flag and smoke |
