@@ -87,6 +87,8 @@ export type ServerTotals = {
   taxBreakdown: TaxBreakdownLine[];
   /** B11 — resolved server-side; drives the "tax included" label. Client never chooses. */
   taxPricingMode?: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE';
+  /** B17 — currency cash-rounding delta applied to saleTotal; 0 when no rule changes it. */
+  roundingAdjustmentAmount?: number;
   creditLimit?: {
     currentBalance: number;
     creditLimit: number;
@@ -282,6 +284,7 @@ export function usePaymentTotals({
           vatTaxPercent: d.vatTaxPercent ?? 0,
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
           taxPricingMode: d.taxPricingMode === 'TAX_INCLUSIVE' ? 'TAX_INCLUSIVE' : 'TAX_EXCLUSIVE',
+          roundingAdjustmentAmount: typeof d.roundingAdjustmentAmount === 'number' ? d.roundingAdjustmentAmount : 0,
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
       } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
@@ -438,6 +441,9 @@ export function usePaymentTotals({
   // B11: only label "tax included" once the server has actually confirmed it —
   // never assume during the fallback/loading window (mode is server-resolved).
   const isTaxInclusive = serverTotals?.taxPricingMode === 'TAX_INCLUSIVE';
+  // B17: 0 during the fallback/loading window — the client never invents a
+  // rounding rule, the server preview is the only source for this value.
+  const roundingAdjustmentAmount = serverTotals?.roundingAdjustmentAmount ?? 0;
 
   return {
     serverTotals,
@@ -449,5 +455,6 @@ export function usePaymentTotals({
     profilesTaxAmount,
     checkoutEligibilityAmount,
     isTaxInclusive,
+    roundingAdjustmentAmount,
   };
 }

@@ -100,6 +100,8 @@ export interface CapabilityContextSource {
   cashDrawerBlocked: boolean;
   /** Currency exchange rate in effect (`currencyConfig.currencyExRate`); ≠ 1 ⇒ FX/rounding shown. */
   currencyExRate: number | null | undefined;
+  /** B17 — server-resolved cash-rounding delta (`serverTotals.roundingAdjustmentAmount`); non-zero also shows the rounding row, independent of FX. */
+  roundingAdjustmentAmount: number | null | undefined;
   /** Engine validation reports blocking issues (`engine.submitHasBlockingIssues`). */
   submitHasBlockingIssues: boolean;
 }
@@ -145,7 +147,9 @@ export function projectCapabilityContext(
     cashDrawerRequired: src.cashDrawerRequired,
     cashDrawerSessionChoiceCount: src.cashDrawerSessionChoiceCount,
     cashDrawerBlocked: src.cashDrawerBlocked,
-    showCurrencyRounding: (src.currencyExRate ?? 1) !== 1,
+    // B17: a same-currency order can still carry a real cash-rounding delta —
+    // show the row on FX presence OR a non-zero persisted/previewed adjustment.
+    showCurrencyRounding: (src.currencyExRate ?? 1) !== 1 || (src.roundingAdjustmentAmount ?? 0) !== 0,
     submitHasBlockingIssues: src.submitHasBlockingIssues,
   });
 }

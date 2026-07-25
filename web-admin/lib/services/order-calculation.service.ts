@@ -22,6 +22,7 @@ import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-car
 import { calculateTax } from './tax-engine.service';
 import { resolveTaxPricingMode } from './pricing-mode-resolver.service';
 import { extractTaxFromInclusive } from './order-financial-write.service';
+import { resolveCurrencyRoundingRule, roundToIncrement } from '@/lib/money/currency-rounding';
 import type { PriceResult } from '@/lib/types/pricing';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { TAX_TYPES, TAX_PRICING_MODES } from '@/lib/constants/order-financial';
@@ -92,6 +93,8 @@ export interface OrderCalculationResult {
   discountLines: DiscountLineInput[];
   /** Resolved tenant/branch tax pricing mode (B11) — drives "tax included" display. */
   taxPricingMode: TaxPricingMode;
+  /** B17 — delta applied by the currency cash-rounding rule; 0 when no rule changes the total. */
+  roundingAdjustmentAmount: number;
 }
 
 function round(value: number, decimals: number): number {
@@ -162,6 +165,7 @@ export async function calculateOrderTotals(
       decimalPlaces,
       discountLines: [],
       taxPricingMode: pricingMode,
+      roundingAdjustmentAmount: 0,
     };
   }
 
@@ -351,7 +355,7 @@ export async function calculateOrderTotals(
   // B11: TAX_INCLUSIVE — item prices already embed VAT/GST (and profile-driven
   // CUSTOM tax); `afterDiscounts` is the gross and must not be added to again.
   // TAX_EXCLUSIVE — unchanged, byte-identical to pre-B11 behavior.
-  const amountBeforeGiftCard = isInclusive
+  let amountBeforeGiftCard = isInclusive
     ? round(afterDiscounts + (additionalTaxEmbedded ? 0 : additionalTaxAmount), decimalPlaces)
     : round(afterDiscounts + vatValue + additionalTaxAmount, decimalPlaces);
 
@@ -361,6 +365,23 @@ export async function calculateOrderTotals(
   const netAfterDiscounts = isInclusive
     ? round(afterDiscounts - vatValue - (additionalTaxEmbedded ? additionalTaxAmount : 0), decimalPlaces)
     : afterDiscounts;
+
+  // B17: apply the tenant-currency cash-rounding rule to the grand total
+  // BEFORE the gift-card cap so the cap, saleTotal, and the persisted
+  // adjustment all agree on the same rounded figure. No-op (adjustment 0)
+  // whenever no active rule exists or the rule's increment equals the
+  // currency's native decimal step — true for every currently-seeded row.
+  let roundingAdjustmentAmount = 0;
+  const currencyRoundingRule = await resolveCurrencyRoundingRule(currencyCode);
+  if (currencyRoundingRule) {
+    const roundedTotal = roundToIncrement(
+      amountBeforeGiftCard,
+      currencyRoundingRule.roundingUnit,
+      currencyRoundingRule.roundingMethod,
+    );
+    roundingAdjustmentAmount = round(roundedTotal - amountBeforeGiftCard, decimalPlaces);
+    amountBeforeGiftCard = roundedTotal;
+  }
 
   let giftCardApplied = 0;
   const resolvedGiftCardId = giftCardId?.trim();
@@ -442,6 +463,7 @@ export async function calculateOrderTotals(
     decimalPlaces,
     discountLines,
     taxPricingMode: pricingMode,
+    roundingAdjustmentAmount,
   };
 }
 

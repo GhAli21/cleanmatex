@@ -597,6 +597,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         : (input.additionalTaxRate ?? (input.additionalTaxAmount != null && serverTotals.afterDiscounts > 0
           ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
           : undefined)),
+      roundingAdjustment: serverTotals.roundingAdjustmentAmount,
     },
     discountRate:           input.percentDiscount ?? 0,
     promoCodeId:            input.promoCodeId,

@@ -1,6 +1,6 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-07-25 (same session, continued — B11 implemented; see block directly below). **Read this file + [CLAUDE.md](CLAUDE.md) first in any new session, then follow it exactly.**
+**Updated:** 2026-07-25 (same session, continued — B17 implemented; see block directly below). **Read this file + [CLAUDE.md](CLAUDE.md) first in any new session, then follow it exactly.**
 
 ---
 
@@ -63,6 +63,26 @@ Three new scheduled jobs registered via a shared `fin_trigger_job()` dispatcher 
 **Gates ALL GREEN:** tsc clean (3 pre-existing unrelated errors — same `order-service.ts` ×2 / `processing-piece-row.tsx` ×1 as every prior package this session, none touched) · eslint 0 · full jest **235/235 suites, 2277/2277 tests, zero known failures** · `npm run build` ✓ · `check:i18n` ✓ (new `newOrder.payment.tax.includedSuffix` key, both locales). Updated B11's own file, README (row + Seq 10 narrative), this RESUME, QA_TEST_GUIDE.md (new §22), and memory.
 
 **▶ NOW:** continuing Seq 10 → B17 (Currency Rounding Runtime) next, then B18 (Order Charge Write Path) — both explicitly wanted B11's fixtures coordinated first. Owner queue (accumulating, uncommitted): B6, B8, B10, B19, B21, B22, B11 all await a single batched commit → Preview-deploy → QA → approval.
+
+---
+
+## ⏩ 2026-07-25 (continued) — B17 IMPLEMENTED (no migration)
+
+**Owner directed continuing autonomously** ("As the best expert You decide and choose as expert follow best practices... production-ready, with no gaps, no bugs, UI/UX best practices") in response to a choice between continuing straight into B17 or pausing for the growing uncommitted batch — proceeded with B17, same full rigor as every prior package.
+
+**B17 (Currency Rounding Runtime) IMPLEMENTED, no migration required** — both `org_orders_mst.rounding_adjustment_amount` (migration 0282) and `sys_currency_rounding_rules_cd` (migration 0290) already existed; this was purely the engine-consumption gap the doc described.
+
+**Research corrected/extended the doc before implementing:** the payment modal's `FxRoundingLine` gap was worse than "display-only, not persisted" — its visibility gate (`showCurrencyRounding`) was independently computed at **3 separate call sites** (`project-capability-context.ts`'s registry gate, `use-payment-engine.ts`'s Simple→Advanced escalation predicate, `payment-modal-v4.right-rail.ts`'s summary card), all wired to FX-rate presence only — a same-currency rounding adjustment would never have shown even after wiring a real value into the component's prop. All 3 fixed. Also surfaced, not in the original doc: a **second, older, independently-designed** cash-rounding config surface on `sys_currency_cd` (migration 0264, HQ platform catalog scope) with a **conflicting mode vocabulary** (`HALF_EVEN/UP/DOWN` vs this table's `HALF_UP/HALF_DOWN/FLOOR/CEIL`) and a stale Prisma schema mirror missing its own newest columns — explicitly scoped OUT of B17 (flagged in the doc's Design decisions and README, not silently left for a future audit to rediscover) rather than trying to reconcile two DB-mirror constants for a table CLAUDE.md already treats as HQ-managed.
+
+**Design — single-total rounding, applied once, before the gift-card cap.** `calculateOrderTotals` resolves `resolveCurrencyRoundingRule(currencyCode)` (new `lib/money/currency-rounding.ts`, mirrors `loyalty.service.ts`'s `roundLoyaltyPoints` mode-switch shape from B21 without sharing its enum, per the DB-mirror rule) and, if an active non-native rule exists, rounds the grand total via `roundToIncrement` before the existing gift-card-cap logic runs — keeping the cap, `saleTotal`, and the persisted delta internally consistent. Considered and rejected: a "cash-only differential rounding" pattern (recorded total stays exact, only a CASH tender rounds, producing a gain/loss to post to GL) — that pattern needs its own discrepancy-tracking/GL-posting mechanism, which is exactly what this package's own "Out of scope: GL rounding gain/loss journal (B6)" defers; the simpler single-total design fully satisfies the doc's actual acceptance criteria (`preview==submit==snapshot==receipt` equality on one figure) without inventing it.
+
+**Safe by data, not by flag.** All 13 seeded `sys_currency_rounding_rules_cd` rows use `HALF_UP` with each currency's *native* decimal increment — meaning `roundToIncrement` is mathematically a no-op (delta always 0) for every tenant today, byte-identical to pre-B17 behavior, until an admin explicitly edits a row to a non-native increment (e.g. OMR to 0.005). This mirrors the doc's own "no separate flag" framing, just proven by the seed data's shape rather than declared.
+
+**Writer added** to both `OrderService.createOrder`/`createOrderInTransaction` (order-service.ts, header-create calls) and the item-edit recalculation path (same file, preserves the already-persisted value on a non-recalculating edit rather than zeroing it — matches the existing pattern for `subtotal`/`total`/`vatRate` in that same function) — the RECALC-read path in `order-financial-write.service.ts` needed no changes, since it already correctly read (but never wrote) the column.
+
+**Gates ALL GREEN:** tsc clean (3 pre-existing unrelated errors — same `order-service.ts` ×2 / `processing-piece-row.tsx` ×1 as every prior package this session, none touched) · eslint 0 (one transient cwd-drift false failure on the first eslint attempt — `pwd` had silently reset to repo root between the tsc and eslint Bash calls; re-ran from the confirmed correct `web-admin/` directory) · full jest **237/237 suites, 2295/2295 tests, zero known failures** · `npm run build` ✓ · `check:i18n` ✓ (no new keys — `FxRoundingLine` already had complete EN/AR display logic, only needed a real value). Updated B17's own file, README (row + Seq 10 narrative), this RESUME, QA_TEST_GUIDE.md (new §23), and memory.
+
+**▶ NOW:** continuing Seq 10 → B18 (Order Charge Write Path) — the last package in Seq 10. Owner queue (accumulating, uncommitted): B6, B8, B10, B19, B21, B22, B11, B17 all await a single batched commit → Preview-deploy → QA → approval.
 
 ---
 

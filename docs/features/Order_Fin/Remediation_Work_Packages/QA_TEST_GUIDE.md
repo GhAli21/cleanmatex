@@ -442,6 +442,25 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 23. B17 — Currency rounding runtime
+
+**What changed:** order totals now actually apply a tenant currency's cash-rounding rule (`sys_currency_rounding_rules_cd`) — previously seeded but never consumed. The payment modal's rounding row now shows the real adjustment (was permanently hidden/hardcoded to 0) whenever a rule changes the total, independent of whether FX is also in play.
+
+> **DB/config prerequisite — no settings-screen toggle exists yet.** Every seeded currency uses its *native* decimal increment today (e.g. OMR 0.001, SAR 0.01), which makes the adjustment mathematically 0 for every tenant — a true no-op, byte-identical to before this package. To see a real, non-zero adjustment on Preview, the owner needs to run a direct SQL update on the pilot currency's row, e.g.: `UPDATE sys_currency_rounding_rules_cd SET rounding_unit = 0.005 WHERE currency_code = 'OMR';` (revert with `rounding_unit = 0.001` afterward). Coordinate with the owner before running §23.1–23.2.
+
+> Where: **any order's payment step** (new order → Payment) for the pilot-currency tenant.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|23.1| With the pilot currency's `rounding_unit` set to a non-native increment (e.g. 0.005): build an order whose pre-rounding total is NOT already a multiple of that increment, open the payment modal | The totals summary shows a rounding row with the actual delta (e.g. "+0.002"); the grand total is the rounded figure | |
+|23.2| Submit that order | Order submits without an `AMOUNT_MISMATCH` error; open the order's Financial tab — the total shown matches the payment-modal preview exactly, including the rounding delta | |
+|23.3| Revert the pilot currency's `rounding_unit` back to its native value (or leave any OTHER currency untouched), build and submit an order | Totals are byte-identical to pre-B17 behavior — no rounding row shown, no adjustment applied | |
+|23.4| Edit an order that already has a persisted rounding adjustment WITHOUT changing items or triggering a recalculation (e.g. just update customer notes) | The order's rounding adjustment is preserved, not reset to 0 | |
+
+**Automated gates at build time (2026-07-25, B17):** tsc clean (3 pre-existing unrelated errors, none in any B17 file) · eslint 0 (project-wide, incl. a transient cwd-drift false failure caught and re-run correctly) · `currency-rounding.test.ts` new, 11/11 (all 4 rounding modes, native/non-native increments, no-op guards on bad config, rule resolution incl. inactive/missing row and unknown-method fallback) · `order-calculation.service.test.ts` +4 new (no-op default, non-native increment with gift-card cap consistency, native-increment no-op, TAX_INCLUSIVE + rounding combined) · `b17-currency-rounding-consistency.test.ts` new, 3/3 (preview/submit/snapshot formula equality for exclusive, no-rule, and inclusive+rounding combined) · full jest **237/237 suites, 2295/2295 tests — zero known failures** · `npm run build` ✓ (exit 0) · `check:i18n` ✓ (no new keys). No migration — column and rules table both pre-existed; §23 above is a config-only rollout (one SQL UPDATE), not a deploy-blocked one.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -470,6 +489,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B22 | no migration (pure TS refactor, zero behavior change) — build gate was transiently blocked by unrelated owner WIP, confirmed resolved as of the B21 gate run; no new manual QA scenarios (existing refund-list scenarios already cover the touched screen; a smoke-check that Refunds list badges/actions still render correctly on Preview is sufficient) | | |
 | B21 | migration 0433 applied (owner), verified via remote DB; extends the existing loyalty settings screen (no new screen) | | |
 | B11 | no migration (schema/flag pre-existed from 0339); requires direct DB config (no settings UI) to opt a pilot tenant into TAX_INCLUSIVE before §22 is runnable on Preview | | |
+| B17 | no migration (column + rules table pre-existed); requires a direct SQL UPDATE on one currency's `rounding_unit` (no settings UI) to see a non-zero adjustment before §23 is meaningfully runnable on Preview | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

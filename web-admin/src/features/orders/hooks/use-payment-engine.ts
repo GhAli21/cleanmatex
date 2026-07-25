@@ -341,6 +341,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     displayTaxBreakdown,
     profilesTaxAmount,
     checkoutEligibilityAmount,
+    roundingAdjustmentAmount,
   } = totals;
 
   // Read-only payment catalog: card brands, branch terminals, and checkout
@@ -1383,7 +1384,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         invalidImmediateAmount,
         canReturnChangeFromCash,
         currencyExRate: currencyConfig?.currencyExRate,
-        roundingAmount: 0,
+        roundingAmount: roundingAdjustmentAmount ?? 0,
       }),
     [
       submitHasBlockingIssues,
@@ -1402,6 +1403,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       invalidImmediateAmount,
       canReturnChangeFromCash,
       currencyConfig?.currencyExRate,
+      roundingAdjustmentAmount,
     ]
   );
 
@@ -1484,7 +1486,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         pinRequired,
         cashDrawerSessionChoiceCount: cashDrawerSessionChoices.length,
         cashDrawerBlocked: !!cashDrawerBlockingMessage,
-        showCurrencyRounding: (currencyConfig?.currencyExRate ?? 1) !== 1,
+        showCurrencyRounding: (currencyConfig?.currencyExRate ?? 1) !== 1 || (roundingAdjustmentAmount ?? 0) !== 0,
       }),
     [
       settlementLegEntries.length,
@@ -1497,6 +1499,7 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       pinRequired,
       cashDrawerSessionChoices.length,
       cashDrawerBlockingMessage,
+      roundingAdjustmentAmount,
       currencyConfig?.currencyExRate,
     ]
   );

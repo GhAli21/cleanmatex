@@ -702,6 +702,7 @@ export function PaymentFullView({
     profilesTaxAmount,
     checkoutEligibilityAmount,
     isTaxInclusive,
+    roundingAdjustmentAmount,
   } = totalsSlice;
   const {
     paymentLegs,
@@ -1413,6 +1414,7 @@ export function PaymentFullView({
       cashDrawerSessionChoiceCount: cashDrawerSessionChoices.length,
       cashDrawerBlocked: !!cashDrawerBlockingMessage,
       currencyExRate: currencyConfig?.currencyExRate,
+      roundingAdjustmentAmount,
       submitHasBlockingIssues,
     }),
     [
@@ -1432,6 +1434,7 @@ export function PaymentFullView({
       cashDrawerSessionChoices.length,
       cashDrawerBlockingMessage,
       currencyConfig?.currencyExRate,
+      roundingAdjustmentAmount,
       submitHasBlockingIssues,
     ]
   );
@@ -2657,7 +2660,7 @@ export function PaymentFullView({
                     slot.key === PAYMENT_CAPABILITY.FX_ROUNDING ? (
                       <FxRoundingLine
                         exchangeRate={currencyConfig?.currencyExRate ?? 1}
-                        roundingAmount={0}
+                        roundingAmount={roundingAdjustmentAmount}
                         moneyEpsilon={moneyEpsilon}
                         currencyCode={currencyCode}
                         formatAmount={formatAmount}

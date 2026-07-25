@@ -199,7 +199,7 @@ export interface CreateOrderParams {
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
-  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number };
+  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number; roundingAdjustment?: number };
   discountRate?: number;
   discountType?: string;
   promoCodeId?: string;
@@ -631,6 +631,7 @@ export class OrderService {
       const discount = totals?.discount ?? 0;
       const tax = totals?.tax ?? 0;
       const total = totals?.total ?? subtotal - discount + tax;
+      const roundingAdjustment = totals?.roundingAdjustment ?? 0;
       const vatRate = totals?.vatRate;
 
       // Currency: prefer passed values, else fetch from tenant settings when we have payment-related data
@@ -685,6 +686,7 @@ export class OrderService {
         total_discount_amount: discount,
         total_tax_amount: tax,
         total_amount: total,
+        rounding_adjustment_amount: roundingAdjustment,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
         total_paid_amount: 0,
@@ -1250,6 +1252,7 @@ export class OrderService {
     const total = totals?.total ?? subtotal - discount + tax;
     const vatRate = totals?.vatRate;
     const taxRate = totals?.taxRate;
+    const roundingAdjustment = totals?.roundingAdjustment ?? 0;
     const currencyCode = passedCurrencyCode;
     const currencyExRate = passedCurrencyExRate ?? 1;
     const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
@@ -1298,6 +1301,7 @@ export class OrderService {
         total_discount_amount: discount,
         total_tax_amount: tax,
         total_amount: total,
+        rounding_adjustment_amount: roundingAdjustment,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
         idempotency_key: idempotencyKey ?? null,
@@ -2906,6 +2910,9 @@ export class OrderService {
         let tax = snapshotBeforeFinancial.totalTaxAmount;
         let total = snapshotBeforeFinancial.totalAmount;
         let vatRate = (existingOrder as any).vat_rate;
+        // B17: preserve the already-persisted adjustment unless a recalc runs —
+        // a non-recalculating edit (e.g. notes-only) must never zero it out.
+        let roundingAdjustment = Number((existingOrder as any).rounding_adjustment_amount ?? 0);
 
         const shouldRecalculateTotals = Boolean((items && items.length > 0) || recalculate || express !== undefined);
 
@@ -2948,6 +2955,7 @@ export class OrderService {
           tax = calculationResult.taxAmount;
           total = calculationResult.saleTotal;
           vatRate = calculationResult.taxRate;
+          roundingAdjustment = calculationResult.roundingAdjustmentAmount;
         }
 
         // 9. Create new items/pieces
@@ -3068,6 +3076,7 @@ export class OrderService {
           updateData.total_tax_amount = tax;
           updateData.total_amount = total;
           updateData.vat_rate = vatRate;
+          updateData.rounding_adjustment_amount = roundingAdjustment;
           updateData.outstanding_amount = total;
           updateData.total_items = items.length;
         }

@@ -27,6 +27,33 @@ export interface AssemblyTask {
 /**
  *
  */
+export interface AssemblyTaskItem {
+  id: string;
+  orderItemId: string;
+  itemStatus: string;
+  barcode: string | null;
+  scannedAt: string | null;
+  hasException: boolean;
+  productName: string;
+  productName2: string;
+  quantity: number;
+}
+
+/**
+ *
+ */
+export interface AssemblyTaskDetail extends AssemblyTask {
+  orderNo: string | null;
+  qaStatus: string | null;
+  items: AssemblyTaskItem[];
+}
+
+const assemblyTaskQueryKey = (tenantId: string | undefined, taskId: string) =>
+  ['assembly', 'task', tenantId, taskId] as const;
+
+/**
+ *
+ */
 export interface AssemblyDashboard {
   pendingTasks: number;
   inProgressTasks: number;
@@ -60,6 +87,30 @@ export function useAssemblyDashboard() {
 }
 
 /**
+ * Load a single assembly task with items for the task modal.
+ */
+export function useAssemblyTask(taskId: string | undefined) {
+  const { currentTenant } = useAuth();
+
+  return useQuery<AssemblyTaskDetail>({
+    queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, taskId ?? ''),
+    queryFn: async () => {
+      if (!currentTenant || !taskId) throw new Error('No tenant or task');
+
+      const response = await fetch(`/api/v1/assembly/tasks/${taskId}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        return result.data as AssemblyTaskDetail;
+      }
+      throw new Error(result.error || 'Failed to load assembly task');
+    },
+    enabled: !!currentTenant && !!taskId,
+    staleTime: 10_000,
+  });
+}
+
+/**
  *
  */
 export function useCreateAssemblyTask() {
@@ -85,9 +136,11 @@ export function useCreateAssemblyTask() {
       throw new Error(result.error || 'Failed to create task');
     },
     onSuccess: () => {
-      // Invalidate dashboard query
       queryClient.invalidateQueries({
         queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['assembly', 'task', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, orderId: string) => {
@@ -130,9 +183,12 @@ export function useStartAssemblyTask() {
       }
       throw new Error(result.error || 'Failed to start task');
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, variables.taskId),
       });
     },
     onError: (error: Error, variables) => {
@@ -155,33 +211,42 @@ export function useScanItem() {
     mutationFn: async ({
       taskId,
       barcode,
+      assemblyItemId,
     }: {
       taskId: string;
-      barcode: string;
+      barcode?: string;
+      assemblyItemId?: string;
     }) => {
       if (!currentTenant || !user) {
         throw new Error('Not authenticated');
       }
 
+      if (!barcode && !assemblyItemId) {
+        throw new Error('Barcode or assembly item is required');
+      }
+
       const response = await fetch(`/api/v1/assembly/tasks/${taskId}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode }),
+        body: JSON.stringify({ barcode, assemblyItemId }),
       });
       const result = await response.json();
 
       if (result.success) {
         return {
           success: true,
-          itemId: result.itemId,
-          isMatch: result.isMatch,
+          itemId: result.itemId as string | undefined,
+          isMatch: result.isMatch as boolean | undefined,
         };
       }
       throw new Error(result.error || 'Scan failed');
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, variables.taskId),
       });
     },
     onError: (error: Error, variables) => {

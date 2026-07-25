@@ -263,6 +263,21 @@ export const LOYALTY_ROUNDING_RULES = {
 export type LoyaltyRoundingRule = (typeof LOYALTY_ROUNDING_RULES)[keyof typeof LOYALTY_ROUNDING_RULES];
 
 /**
+ * B17 — mirrors `sys_currency_rounding_rules_cd.rounding_method` (migration
+ * 0290) exactly — DB-mirror rule. Kept as its own constant rather than reusing
+ * `LOYALTY_ROUNDING_RULES` even though the values are identical today: each
+ * mirrors a different DB column/domain and must not be coupled to the other.
+ */
+export const CURRENCY_ROUNDING_MODES = {
+  HALF_UP: 'HALF_UP',
+  HALF_DOWN: 'HALF_DOWN',
+  FLOOR: 'FLOOR',
+  CEIL: 'CEIL',
+} as const;
+/** Derived union for currency rounding modes. */
+export type CurrencyRoundingMode = (typeof CURRENCY_ROUNDING_MODES)[keyof typeof CURRENCY_ROUNDING_MODES];
+
+/**
  * B21 — stable machine-readable codes for loyalty redemption failures.
  * Redemption must fail loudly on missing/invalid config or an under-threshold
  * request — never silently fall back to another field's value (the exact

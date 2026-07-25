@@ -1,19 +1,25 @@
 /**
  * Assembly Task Modal Component
- * Full assembly interface with scanning, exceptions, and packing
+ * Full assembly interface with item list, scanning, exceptions, and packing
  * PRD-009: Assembly & QA Workflow
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { CmxButton, CmxSkeleton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { AssemblyScanner } from './assembly-scanner';
+import { AssemblyItemsList } from './assembly-items-list';
 import { ExceptionDialog } from './exception-dialog';
-import { useStartAssemblyTask, usePackOrder } from '../hooks/use-assembly';
+import {
+  useAssemblyTask,
+  useStartAssemblyTask,
+  usePackOrder,
+} from '../hooks/use-assembly';
 import { useMessage } from '@ui/feedback/useMessage';
-import { X, Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { X, Package, AlertTriangle } from 'lucide-react';
 
 interface AssemblyTaskModalProps {
   orderId: string;
@@ -23,7 +29,6 @@ interface AssemblyTaskModalProps {
 }
 
 /**
- *
  * @param root0
  * @param root0.orderId
  * @param root0.taskId
@@ -36,81 +41,94 @@ export function AssemblyTaskModal({
   onClose,
   onComplete,
 }: AssemblyTaskModalProps) {
+  const t = useTranslations('workflow.assembly.task');
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
-  const [taskData, setTaskData] = useState<any>(null);
   const { showSuccess, showError } = useMessage();
   const { mutate: startTask, isPending: isStarting } = useStartAssemblyTask();
   const { mutate: packOrder, isPending: isPacking } = usePackOrder();
+  const startAttemptedRef = useRef<string | null>(null);
 
+  const {
+    data: taskData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useAssemblyTask(taskId);
+
+  // Auto-start PENDING tasks so scan / manual select can proceed
   useEffect(() => {
-    // Fetch task data if taskId provided
-    if (taskId) {
-      // TODO: Fetch task details
-    }
-  }, [taskId]);
+    if (!taskId || !taskData) return;
+    if (taskData.taskStatus !== 'PENDING') return;
+    if (startAttemptedRef.current === taskId) return;
 
-  const handleStart = () => {
-    if (!taskId) {
-      showError('Task ID is required');
-      return;
-    }
-
+    startAttemptedRef.current = taskId;
     startTask(
       { taskId },
       {
         onSuccess: () => {
-          showSuccess('Assembly task started');
+          showSuccess(t('messages.taskStarted'));
+          void refetch();
         },
-        onError: (error) => {
-          showError(error.message || 'Failed to start task');
+        onError: (err) => {
+          startAttemptedRef.current = null;
+          showError(err.message || t('messages.taskStartFailed'));
         },
       }
     );
-  };
+  }, [taskId, taskData, startTask, showSuccess, showError, t, refetch]);
 
   const handlePack = () => {
     if (!taskId) {
-      showError('Task ID is required');
+      showError(t('messages.taskIdRequired'));
       return;
     }
 
     packOrder(
       {
         taskId,
-        packagingTypeCode: 'BOX', // Default, should come from selection
+        packagingTypeCode: 'BOX',
       },
       {
         onSuccess: () => {
-          showSuccess('Order packed successfully');
+          showSuccess(t('messages.packSuccess'));
           onComplete?.();
           onClose();
         },
-        onError: (error) => {
-          showError(error.message || 'Packing failed');
+        onError: (err) => {
+          showError(err.message || t('messages.packFailed'));
         },
       }
     );
   };
 
+  const orderLabel = taskData?.orderNo || orderId;
+  const totalItems = taskData?.totalItems ?? 0;
+  const scannedItems = taskData?.scannedItems ?? 0;
+  const exceptionItems = taskData?.exceptionItems ?? 0;
+  const allScanned = totalItems > 0 && scannedItems >= totalItems;
+
   if (!taskId) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <CmxCard className="w-full max-w-md">
           <CmxCardHeader className="flex flex-row items-center justify-between">
-            <CmxCardTitle>Assembly Task</CmxCardTitle>
-            <button
+            <CmxCardTitle>{t('title')}</CmxCardTitle>
+            <CmxButton
+              variant="ghost"
+              size="xs"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label={t('actions.close')}
             >
               <X className="h-5 w-5" />
-            </button>
+            </CmxButton>
           </CmxCardHeader>
           <CmxCardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Assembly task not found. Creating task...
+            <p className="mb-4 text-sm text-muted-foreground">
+              {t('creatingTask')}
             </p>
             <CmxButton onClick={onClose} variant="outline" className="w-full">
-              Close
+              {t('actions.close')}
             </CmxButton>
           </CmxCardContent>
         </CmxCard>
@@ -120,82 +138,124 @@ export function AssemblyTaskModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assembly-task-title"
+      >
+        <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto">
           <CmxCard>
-            <CmxCardHeader className="flex flex-row items-center justify-between">
-              <CmxCardTitle>Assembly Task - Order {orderId}</CmxCardTitle>
-              <button
+            <CmxCardHeader className="flex flex-row items-center justify-between gap-2">
+              <CmxCardTitle id="assembly-task-title">
+                {t('titleWithOrder', { orderNo: orderLabel })}
+              </CmxCardTitle>
+              <CmxButton
+                variant="ghost"
+                size="xs"
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label={t('actions.close')}
               >
                 <X className="h-5 w-5" />
-              </button>
+              </CmxButton>
             </CmxCardHeader>
             <CmxCardContent className="space-y-6">
-              {/* Task Status */}
+              {isError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {(error as Error)?.message || t('messages.loadFailed')}
+                </div>
+              ) : null}
+
+              {/* Metrics */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Total Items</div>
+                <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950/40">
+                  <div className="text-sm text-muted-foreground">
+                    {t('metrics.totalItems')}
+                  </div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {taskData?.totalItems || 0}
+                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : totalItems}
                   </div>
                 </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Scanned</div>
+                <div className="rounded-lg bg-green-50 p-4 dark:bg-green-950/40">
+                  <div className="text-sm text-muted-foreground">
+                    {t('metrics.scanned')}
+                  </div>
                   <div className="text-2xl font-bold text-green-600">
-                    {taskData?.scannedItems || 0}
+                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : scannedItems}
                   </div>
                 </div>
-                <div className="p-4 bg-red-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Exceptions</div>
+                <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950/40">
+                  <div className="text-sm text-muted-foreground">
+                    {t('metrics.exceptions')}
+                  </div>
                   <div className="text-2xl font-bold text-red-600">
-                    {taskData?.exceptionItems || 0}
+                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : exceptionItems}
                   </div>
                 </div>
               </div>
 
-              {/* Scanner */}
-              <AssemblyScanner taskId={taskId} onScanSuccess={() => {
-                // Refresh task data
-              }} />
+              {isStarting ? (
+                <p className="text-sm text-muted-foreground">{t('startingTask')}</p>
+              ) : null}
+
+              {/* Scanner + manual item selection */}
+              <AssemblyScanner
+                taskId={taskId}
+                onScanSuccess={() => {
+                  void refetch();
+                }}
+              />
+
+              <AssemblyItemsList
+                taskId={taskId}
+                items={taskData?.items ?? []}
+                isLoading={isLoading}
+                onItemMarked={() => {
+                  void refetch();
+                }}
+              />
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <CmxButton
                   variant="outline"
                   onClick={() => setShowExceptionDialog(true)}
                   className="flex-1"
                 >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Record Exception
+                  <AlertTriangle className="me-2 h-4 w-4" />
+                  {t('actions.recordException')}
                 </CmxButton>
                 <CmxButton
                   onClick={handlePack}
                   loading={isPacking}
-                  disabled={isPacking}
+                  disabled={isPacking || !allScanned}
                   className="flex-1"
+                  title={!allScanned ? t('packRequiresAllItems') : undefined}
                 >
-                  <Package className="h-4 w-4 mr-2" />
-                  Pack Order
+                  <Package className="me-2 h-4 w-4" />
+                  {t('actions.packOrder')}
                 </CmxButton>
               </div>
+              {!allScanned && !isLoading ? (
+                <p className="text-xs text-muted-foreground">
+                  {t('packRequiresAllItems')}
+                </p>
+              ) : null}
             </CmxCardContent>
           </CmxCard>
         </div>
       </div>
 
-      {showExceptionDialog && (
+      {showExceptionDialog ? (
         <ExceptionDialog
           taskId={taskId}
           onClose={() => setShowExceptionDialog(false)}
           onSuccess={() => {
             setShowExceptionDialog(false);
-            // Refresh task data
+            void refetch();
           }}
         />
-      )}
+      ) : null}
     </>
   );
 }
-

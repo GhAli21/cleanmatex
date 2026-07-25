@@ -7,8 +7,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxInput } from '@ui/primitives/cmx-input';
+import { useTranslations } from 'next-intl';
+import { CmxButton, CmxInput } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useScanItem } from '../hooks/use-assembly';
 import { useMessage } from '@ui/feedback/useMessage';
@@ -20,12 +20,12 @@ interface AssemblyScannerProps {
 }
 
 /**
- *
  * @param root0
  * @param root0.taskId
  * @param root0.onScanSuccess
  */
 export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps) {
+  const t = useTranslations('workflow.assembly.task');
   const [barcode, setBarcode] = useState('');
   const [lastScanResult, setLastScanResult] = useState<{
     success: boolean;
@@ -37,13 +37,12 @@ export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps)
   const { showSuccess, showError } = useMessage();
 
   useEffect(() => {
-    // Auto-focus input on mount
     inputRef.current?.focus();
   }, []);
 
   const handleScan = () => {
     if (!barcode.trim()) {
-      showError('Please enter a barcode');
+      showError(t('messages.barcodeRequired'));
       return;
     }
 
@@ -55,9 +54,9 @@ export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps)
             setLastScanResult({
               success: true,
               isMatch: true,
-              message: 'Item scanned successfully',
+              message: t('messages.scanSuccess'),
             });
-            showSuccess('Item scanned successfully');
+            showSuccess(t('messages.scanSuccess'));
             setBarcode('');
             inputRef.current?.focus();
             onScanSuccess?.();
@@ -65,25 +64,26 @@ export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps)
             setLastScanResult({
               success: false,
               isMatch: result.isMatch || false,
-              message: 'Barcode not found in expected items',
+              message: t('messages.scanNotFound'),
             });
-            showError('Barcode not found in expected items');
+            showError(t('messages.scanNotFound'));
           }
         },
         onError: (error) => {
           setLastScanResult({
             success: false,
             isMatch: false,
-            message: error.message || 'Scan failed',
+            message: error.message || t('messages.scanFailed'),
           });
-          showError(error.message || 'Scan failed');
+          showError(error.message || t('messages.scanFailed'));
         },
       }
     );
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleScan();
     }
   };
@@ -93,42 +93,43 @@ export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps)
       <CmxCardHeader>
         <CmxCardTitle className="flex items-center gap-2">
           <Scan className="h-5 w-5" />
-          Barcode Scanner
+          {t('scannerTitle')}
         </CmxCardTitle>
       </CmxCardHeader>
       <CmxCardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">{t('scannerHint')}</p>
         <div className="flex gap-2">
           <CmxInput
             ref={inputRef}
             type="text"
-            placeholder="Scan or enter barcode..."
+            placeholder={t('scannerPlaceholder')}
             value={barcode}
             onChange={(e) => setBarcode(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             className="flex-1"
             autoFocus
           />
           <CmxButton onClick={handleScan} loading={isPending} disabled={isPending}>
-            Scan
+            {t('actions.scan')}
           </CmxButton>
         </div>
 
-        {lastScanResult && (
+        {lastScanResult ? (
           <div
-            className={`p-3 rounded-lg flex items-center gap-2 ${
+            className={`flex items-center gap-2 rounded-lg border p-3 ${
               lastScanResult.success
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
             }`}
           >
             {lastScanResult.success ? (
-              <CheckCircle2 className="h-5 w-5" />
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
             ) : (
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-5 w-5 shrink-0" />
             )}
             <span className="text-sm font-medium">{lastScanResult.message}</span>
           </div>
-        )}
+        ) : null}
       </CmxCardContent>
     </CmxCard>
   );

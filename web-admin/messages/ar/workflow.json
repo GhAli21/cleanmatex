@@ -99,6 +99,55 @@
       "qaPending": "بانتظار فحص الجودة",
       "completedToday": "مكتمل اليوم",
       "openExceptions": "استثناءات مفتوحة"
+    },
+    "task": {
+      "title": "مهمة التجميع",
+      "titleWithOrder": "مهمة التجميع - الطلب {orderNo}",
+      "creatingTask": "لم يتم العثور على مهمة التجميع. جارٍ إنشاء المهمة...",
+      "startingTask": "جارٍ بدء مهمة التجميع...",
+      "scannerTitle": "ماسح الباركود",
+      "scannerHint": "امسح الباركود، أو اختر صنفاً من القائمة أدناه إذا كنت لا تريد المسح.",
+      "scannerPlaceholder": "امسح أو أدخل الباركود...",
+      "itemsTitle": "أصناف الطلب",
+      "pendingRemaining": "{count} متبقية",
+      "emptyItemsTitle": "لا توجد أصناف في هذه المهمة",
+      "emptyItemsDescription": "لا تحتوي مهمة التجميع هذه على أصناف بعد.",
+      "quantity": "الكمية {count}",
+      "barcodeLabel": "الباركود",
+      "noBarcode": "بدون باركود",
+      "packRequiresAllItems": "يجب تعليم أو مسح جميع الأصناف قبل التعبئة.",
+      "itemStatus": {
+        "PENDING": "قيد الانتظار",
+        "SCANNED": "تم التجميع",
+        "EXCEPTION": "استثناء",
+        "RESOLVED": "تم الحل"
+      },
+      "metrics": {
+        "totalItems": "إجمالي الأصناف",
+        "scanned": "تم المسح",
+        "exceptions": "الاستثناءات"
+      },
+      "actions": {
+        "close": "إغلاق",
+        "scan": "مسح",
+        "markAssembled": "تعليم كمجمّع",
+        "recordException": "تسجيل استثناء",
+        "packOrder": "تعبئة الطلب"
+      },
+      "messages": {
+        "taskStarted": "تم بدء مهمة التجميع",
+        "taskStartFailed": "فشل بدء المهمة",
+        "taskIdRequired": "معرف المهمة مطلوب",
+        "loadFailed": "فشل تحميل مهمة التجميع",
+        "packSuccess": "تم تعبئة الطلب بنجاح",
+        "packFailed": "فشلت التعبئة",
+        "barcodeRequired": "يرجى إدخال الباركود",
+        "scanSuccess": "تم مسح الصنف بنجاح",
+        "scanNotFound": "الباركود غير موجود ضمن الأصناف المتوقعة",
+        "scanFailed": "فشل المسح",
+        "itemMarked": "تم تعليم الصنف كمجمّع",
+        "itemMarkFailed": "فشل تعليم الصنف"
+      }
     }
   },
   "qa": {

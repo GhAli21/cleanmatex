@@ -31,11 +31,37 @@ export async function POST(
     const { tenantId, userId } = authContext;
     const { taskId } = params;
     const body = await request.json();
-    const { barcode } = body;
+    const { barcode, assemblyItemId } = body as {
+      barcode?: string;
+      assemblyItemId?: string;
+    };
 
-    if (!barcode) {
+    // Manual select path: mark by assembly item id (no barcode required)
+    if (assemblyItemId && typeof assemblyItemId === 'string') {
+      const result = await AssemblyService.markItemSelected({
+        taskId,
+        tenantId,
+        assemblyItemId,
+        userId,
+      });
+
+      if (!result.success) {
+        return NextResponse.json(
+          { success: false, error: result.error, isMatch: result.isMatch },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        itemId: result.itemId,
+        isMatch: result.isMatch,
+      });
+    }
+
+    if (!barcode || typeof barcode !== 'string') {
       return NextResponse.json(
-        { success: false, error: 'Barcode is required' },
+        { success: false, error: 'Barcode or assemblyItemId is required' },
         { status: 400 }
       );
     }

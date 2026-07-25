@@ -1478,6 +1478,50 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/assembly',
     label: 'Assembly',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Assembly dashboard',
+        method: 'GET',
+        path: '/api/v1/assembly/dashboard',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Create assembly task',
+        method: 'POST',
+        path: '/api/v1/assembly/tasks',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Get assembly task',
+        method: 'GET',
+        path: '/api/v1/assembly/tasks/[taskId]',
+        notes: ['Auth-only local route; loads task metrics and items for the assembly modal.'],
+      },
+      {
+        label: 'Start assembly task',
+        method: 'POST',
+        path: '/api/v1/assembly/tasks/[taskId]/start',
+        notes: ['Auth-only local route; auto-started when the assembly modal opens.'],
+      },
+      {
+        label: 'Scan or mark assembly item',
+        method: 'POST',
+        path: '/api/v1/assembly/tasks/[taskId]/scan',
+        notes: ['Auth-only local route; accepts barcode or assemblyItemId for manual select.'],
+      },
+      {
+        label: 'Create assembly exception',
+        method: 'POST',
+        path: '/api/v1/assembly/tasks/[taskId]/exceptions',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Pack assembly order',
+        method: 'POST',
+        path: '/api/v1/assembly/tasks/[taskId]/pack',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {

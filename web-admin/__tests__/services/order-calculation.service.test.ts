@@ -25,9 +25,15 @@ const mockValidateGiftCard     = jest.fn();
 const mockValidateGiftCardById = jest.fn();
 const mockCalculateTax         = jest.fn();
 const mockResolveTaxPricingMode = jest.fn();
+const mockResolveCurrencyRoundingRule = jest.fn();
 
 jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
   resolveTaxPricingMode: (...a: unknown[]) => mockResolveTaxPricingMode(...a),
+}));
+
+jest.mock('@/lib/money/currency-rounding', () => ({
+  resolveCurrencyRoundingRule: (...a: unknown[]) => mockResolveCurrencyRoundingRule(...a),
+  roundToIncrement: jest.requireActual('@/lib/money/currency-rounding').roundToIncrement,
 }));
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -97,6 +103,9 @@ function setupDefaults() {
   // byte-identical — only the dedicated TAX_INCLUSIVE describe block below
   // overrides this per-test.
   mockResolveTaxPricingMode.mockResolvedValue('TAX_EXCLUSIVE');
+  // B17: no active rounding rule by default — every pre-existing test stays
+  // byte-identical; only the dedicated rounding describe block below overrides.
+  mockResolveCurrencyRoundingRule.mockResolvedValue(null);
 }
 
 // ---------------------------------------------------------------------------
@@ -293,5 +302,66 @@ describe('order-calculation.service — calculateOrderTotals TAX_INCLUSIVE (B11)
     expect(result.vatValue).toBe(0);
     expect(result.afterDiscounts).toBeCloseTo(100);
     expect(result.saleTotal).toBeCloseTo(100);
+  });
+});
+
+describe('order-calculation.service — calculateOrderTotals currency rounding (B17)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupDefaults();
+  });
+
+  it('is byte-identical when no active rounding rule exists (default mock: null)', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.roundingAdjustmentAmount).toBe(0);
+    expect(result.saleTotal).toBeCloseTo(100);
+  });
+
+  it('applies a non-native increment rule and persists the delta, capping gift card against the rounded total', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 12.343, basePrice: 12.343 });
+    mockResolveCurrencyRoundingRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.005 });
+    mockValidateGiftCard.mockResolvedValue({ isValid: true, availableBalance: 100 });
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      giftCardNumber: 'GC-100',
+    });
+
+    // 12.343 -> nearest 0.005 (HALF_UP) = 12.345
+    expect(result.saleTotal).toBeCloseTo(12.345, 3);
+    expect(result.roundingAdjustmentAmount).toBeCloseTo(0.002, 3);
+    // Gift card (unlimited balance) applies against the ROUNDED total, not the pre-round figure.
+    expect(result.giftCardApplied).toBeCloseTo(12.345, 3);
+  });
+
+  it('is a true no-op (adjustment 0) when the resolved rule matches the native decimal increment', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100.001, basePrice: 100.001 });
+    mockGetCurrencyConfig.mockResolvedValue({ currencyCode: 'OMR', decimalPlaces: 3 });
+    mockResolveCurrencyRoundingRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.001 });
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.roundingAdjustmentAmount).toBe(0);
+    expect(result.saleTotal).toBeCloseTo(100.001, 3);
+  });
+
+  it('carries the rounding adjustment through inclusive-mode totals unchanged (B11+B17 combined)', async () => {
+    mockResolveTaxPricingMode.mockResolvedValue('TAX_INCLUSIVE');
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 105, basePrice: 105 });
+    mockCalculateTax.mockResolvedValue([
+      { taxType: 'VAT', label: 'VAT', label2: null, rate: 5, isCompound: false, baseAmount: 100, taxAmount: 5, profileId: 'p1' },
+    ]);
+    mockResolveCurrencyRoundingRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.05 });
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    // Gross 105 is already a multiple of 0.05 -> adjustment 0, saleTotal unchanged at 105.
+    expect(result.roundingAdjustmentAmount).toBe(0);
+    expect(result.saleTotal).toBeCloseTo(105);
+    expect(result.afterDiscounts).toBeCloseTo(100); // net-of-tax unaffected by rounding
   });
 });

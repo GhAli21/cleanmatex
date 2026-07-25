@@ -122,6 +122,44 @@ export interface AssemblyDashboardData {
   exceptionsOpen: number;
 }
 
+export interface AssemblyTaskItemDetail {
+  id: string;
+  orderItemId: string;
+  itemStatus: string;
+  barcode: string | null;
+  scannedAt: string | null;
+  hasException: boolean;
+  productName: string;
+  productName2: string;
+  quantity: number;
+}
+
+export interface AssemblyTaskDetail {
+  id: string;
+  orderId: string;
+  orderNo: string | null;
+  taskStatus: string;
+  totalItems: number;
+  scannedItems: number;
+  exceptionItems: number;
+  assignedTo: string | null;
+  locationId: string | null;
+  qaStatus: string | null;
+  items: AssemblyTaskItemDetail[];
+}
+
+export interface MarkItemSelectedParams {
+  taskId: string;
+  tenantId: string;
+  assemblyItemId: string;
+  userId: string;
+}
+
+export interface GetAssemblyTaskParams {
+  taskId: string;
+  tenantId: string;
+}
+
 export class AssemblyService {
   /**
    * Create assembly task for an order
@@ -322,6 +360,17 @@ export class AssemblyService {
           .eq('id', locationId);
       }
 
+      // Idempotent: already started tasks can be resumed without error
+      if (task.task_status === 'IN_PROGRESS') {
+        return { success: true };
+      }
+
+      if (task.task_status !== 'PENDING') {
+        throw new InvalidScanError(
+          `Task cannot be started. Current status: ${task.task_status}`
+        );
+      }
+
       // Update task
       const { error: updateError } = await supabase
         .from('org_asm_tasks_mst')
@@ -333,7 +382,8 @@ export class AssemblyService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId);
 
       if (updateError) {
         logger.error('Failed to start assembly task', updateError as Error, {
@@ -912,6 +962,277 @@ export class AssemblyService {
         tenantId: params.tenantId,
         userId: params.userId,
         taskId: params.taskId,
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Load assembly task with line items for scanning / manual selection UI.
+   */
+  static async getAssemblyTask(
+    params: GetAssemblyTaskParams
+  ): Promise<AssemblyTaskDetail | null> {
+    try {
+      const { taskId, tenantId } = params;
+      const supabase = await createClient();
+
+      const { data: task, error: taskError } = await supabase
+        .from('org_asm_tasks_mst')
+        .select(
+          `
+          id,
+          order_id,
+          task_status,
+          total_items,
+          scanned_items,
+          exception_items,
+          assigned_to,
+          location_id,
+          qa_status,
+          order:org_orders_mst(
+            id,
+            order_no
+          ),
+          items:org_asm_items_dtl(
+            id,
+            order_item_id,
+            item_status,
+            barcode,
+            scanned_at,
+            has_exception,
+            item_name,
+            item_name2,
+            order_item:org_order_items_dtl(
+              id,
+              barcode,
+              product_name,
+              product_name2,
+              quantity
+            )
+          )
+        `
+        )
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (taskError || !task) {
+        logger.warn('Assembly task not found', {
+          tenantId,
+          taskId,
+          error: taskError?.message,
+        });
+        return null;
+      }
+
+      const order = task.order as { id?: string; order_no?: string } | null;
+      const rawItems = (task.items as Array<Record<string, unknown>> | null) ?? [];
+
+      const items: AssemblyTaskItemDetail[] = rawItems.map((item) => {
+        const orderItem = item.order_item as {
+          id?: string;
+          barcode?: string | null;
+          product_name?: string | null;
+          product_name2?: string | null;
+          quantity?: number | null;
+        } | null;
+
+        return {
+          id: String(item.id),
+          orderItemId: String(item.order_item_id ?? orderItem?.id ?? ''),
+          itemStatus: String(item.item_status ?? 'PENDING'),
+          barcode:
+            (item.barcode as string | null) ??
+            orderItem?.barcode ??
+            null,
+          scannedAt: (item.scanned_at as string | null) ?? null,
+          hasException: Boolean(item.has_exception),
+          productName:
+            (item.item_name as string | null) ||
+            orderItem?.product_name ||
+            'Item',
+          productName2:
+            (item.item_name2 as string | null) ||
+            orderItem?.product_name2 ||
+            '',
+          quantity: Number(orderItem?.quantity ?? 1),
+        };
+      });
+
+      // Stable list order: pending first, then scanned, then exceptions
+      const statusRank: Record<string, number> = {
+        PENDING: 0,
+        SCANNED: 1,
+        EXCEPTION: 2,
+        RESOLVED: 3,
+      };
+      items.sort(
+        (a, b) =>
+          (statusRank[a.itemStatus] ?? 9) - (statusRank[b.itemStatus] ?? 9) ||
+          a.productName.localeCompare(b.productName)
+      );
+
+      return {
+        id: task.id,
+        orderId: task.order_id,
+        orderNo: order?.order_no ?? null,
+        taskStatus: task.task_status,
+        totalItems: task.total_items ?? items.length,
+        scannedItems: task.scanned_items ?? 0,
+        exceptionItems: task.exception_items ?? 0,
+        assignedTo: task.assigned_to ?? null,
+        locationId: task.location_id ?? null,
+        qaStatus: task.qa_status ?? null,
+        items,
+      };
+    } catch (error) {
+      logger.error('Failed to get assembly task', error as Error, {
+        tenantId: params.tenantId,
+        taskId: params.taskId,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Mark a pending assembly item as scanned via manual selection (no barcode required).
+   */
+  static async markItemSelected(
+    params: MarkItemSelectedParams
+  ): Promise<ScanItemResult> {
+    try {
+      const { taskId, tenantId, assemblyItemId, userId } = params;
+      const supabase = await createClient();
+
+      logger.info('Marking assembly item selected', {
+        tenantId,
+        userId,
+        taskId,
+        assemblyItemId,
+        feature: 'assembly',
+        action: 'mark_item_selected',
+      });
+
+      const { data: task, error: taskError } = await supabase
+        .from('org_asm_tasks_mst')
+        .select('*')
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (taskError || !task) {
+        throw new AssemblyTaskNotFoundError(taskId);
+      }
+
+      if (task.task_status !== 'IN_PROGRESS') {
+        throw new InvalidScanError(
+          `Task is not in progress. Current status: ${task.task_status}`
+        );
+      }
+
+      const { data: item, error: itemError } = await supabase
+        .from('org_asm_items_dtl')
+        .select(
+          `
+          id,
+          item_status,
+          barcode,
+          order_item:org_order_items_dtl(
+            id,
+            barcode
+          )
+        `
+        )
+        .eq('id', assemblyItemId)
+        .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (itemError || !item) {
+        return {
+          success: false,
+          isMatch: false,
+          error: 'Assembly item not found on this task',
+        };
+      }
+
+      if (item.item_status === 'SCANNED') {
+        return {
+          success: true,
+          itemId: item.id,
+          isMatch: true,
+        };
+      }
+
+      if (item.item_status !== 'PENDING') {
+        return {
+          success: false,
+          isMatch: false,
+          error: `Item cannot be selected. Current status: ${item.item_status}`,
+        };
+      }
+
+      const orderItem = item.order_item as { barcode?: string | null } | null;
+      const resolvedBarcode =
+        item.barcode || orderItem?.barcode || `MANUAL:${assemblyItemId}`;
+
+      const { error: updateError } = await supabase
+        .from('org_asm_items_dtl')
+        .update({
+          item_status: 'SCANNED',
+          scanned_at: new Date().toISOString(),
+          scanned_by: userId,
+          barcode: resolvedBarcode,
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', item.id)
+        .eq('tenant_org_id', tenantId);
+
+      if (updateError) {
+        logger.error('Failed to mark assembly item selected', updateError as Error, {
+          tenantId,
+          userId,
+          taskId,
+          assemblyItemId,
+        });
+        throw new Error('Failed to update item status');
+      }
+
+      const newScannedCount = (task.scanned_items || 0) + 1;
+      await supabase
+        .from('org_asm_tasks_mst')
+        .update({
+          scanned_items: newScannedCount,
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId);
+
+      logger.info('Assembly item marked selected', {
+        tenantId,
+        userId,
+        taskId,
+        itemId: item.id,
+        scannedCount: newScannedCount,
+      });
+
+      return {
+        success: true,
+        itemId: item.id,
+        isMatch: true,
+      };
+    } catch (error) {
+      logger.error('Failed to mark assembly item selected', error as Error, {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        taskId: params.taskId,
+        assemblyItemId: params.assemblyItemId,
       });
       return {
         success: false,

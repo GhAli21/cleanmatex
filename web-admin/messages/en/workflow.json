@@ -99,6 +99,55 @@
       "qaPending": "QA Pending",
       "completedToday": "Completed Today",
       "openExceptions": "Open Exceptions"
+    },
+    "task": {
+      "title": "Assembly Task",
+      "titleWithOrder": "Assembly Task - Order {orderNo}",
+      "creatingTask": "Assembly task not found. Creating task...",
+      "startingTask": "Starting assembly task...",
+      "scannerTitle": "Barcode Scanner",
+      "scannerHint": "Scan a barcode, or select an item from the list below if you prefer not to scan.",
+      "scannerPlaceholder": "Scan or enter barcode...",
+      "itemsTitle": "Order items",
+      "pendingRemaining": "{count} remaining",
+      "emptyItemsTitle": "No items on this task",
+      "emptyItemsDescription": "This assembly task has no line items yet.",
+      "quantity": "Qty {count}",
+      "barcodeLabel": "Barcode",
+      "noBarcode": "No barcode",
+      "packRequiresAllItems": "Mark or scan all items before packing.",
+      "itemStatus": {
+        "PENDING": "Pending",
+        "SCANNED": "Assembled",
+        "EXCEPTION": "Exception",
+        "RESOLVED": "Resolved"
+      },
+      "metrics": {
+        "totalItems": "Total Items",
+        "scanned": "Scanned",
+        "exceptions": "Exceptions"
+      },
+      "actions": {
+        "close": "Close",
+        "scan": "Scan",
+        "markAssembled": "Mark assembled",
+        "recordException": "Record Exception",
+        "packOrder": "Pack Order"
+      },
+      "messages": {
+        "taskStarted": "Assembly task started",
+        "taskStartFailed": "Failed to start task",
+        "taskIdRequired": "Task ID is required",
+        "loadFailed": "Failed to load assembly task",
+        "packSuccess": "Order packed successfully",
+        "packFailed": "Packing failed",
+        "barcodeRequired": "Please enter a barcode",
+        "scanSuccess": "Item scanned successfully",
+        "scanNotFound": "Barcode not found in expected items",
+        "scanFailed": "Scan failed",
+        "itemMarked": "Item marked as assembled",
+        "itemMarkFailed": "Failed to mark item"
+      }
     }
   },
   "qa": {
