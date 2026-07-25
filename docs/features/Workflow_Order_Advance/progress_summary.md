@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-07-25  
-**Overall:** P6 tenant profile UI in repo; apply **0437** and run smoke next
+**Overall:** P6 tenant profile UI in repo; public confirm UX hardened; run **0437** smoke next
 
 ## Accurate status
 
@@ -9,6 +9,7 @@
 Discovery signed; migrations through 0436 applied (operator)
 0437 created: system actor + public_tracking ready/OFD → delivered
 Public confirm-received → CONFIRM_DELIVERY when V2 on
+Public tracking shows pay-on-collection due + disables confirm after delivered
 ActionBar false-bounce fixed (hasLoaded)
 Tenant workflow settings now show read-only effective profile on V2
 Next: apply 0437 → smoke public confirm + cancel/hold → P7 / docs

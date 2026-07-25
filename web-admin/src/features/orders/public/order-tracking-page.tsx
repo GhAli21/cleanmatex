@@ -5,12 +5,15 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 
 interface PublicOrderTotals {
     subtotal: number | null;
     total: number | null;
     paidAmount: number | null;
     paymentStatus: string | null;
+    outstandingAmount: number | null;
+    payOnCollectionAmount: number | null;
 }
 
 interface PublicOrderCustomer {
@@ -33,6 +36,7 @@ interface PublicOrderData {
     orderNo: string;
     status: string;
     priority: string | null;
+    paymentTypeCode: string | null;
     receivedAt: string | null;
     readyBy: string | null;
     bagCount?: number | null;
@@ -71,6 +75,17 @@ interface ApiResponse {
     error?: string;
 }
 
+interface ConfirmReceivedResponse {
+    success: boolean;
+    data?: {
+        orderId?: string;
+        orderNo?: string;
+        status?: string;
+        idempotent?: boolean;
+    };
+    error?: string;
+}
+
 /**
  *
  * @param root0
@@ -97,7 +112,8 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
     const tOrders = useTranslations('orders');
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
     const [order, setOrder] = useState<PublicOrderData | null>(null);
     const [timeline, setTimeline] = useState<PublicOrderTimelineEntry[]>([]);
     const [isConfirming, setIsConfirming] = useState(false);
@@ -109,7 +125,8 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
         async function loadOrder() {
             try {
                 setLoading(true);
-                setError(null);
+                setLoadError(null);
+                setActionError(null);
 
                 const response = await fetch(`/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}`, {
                     method: 'GET',
@@ -122,7 +139,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
 
                 if (!response.ok || !json.success || !json.data) {
                     if (!cancelled) {
-                        setError(json.error || t('errors.notFound'));
+                        setLoadError(json.error || t('errors.notFound'));
                     }
                     return;
                 }
@@ -135,7 +152,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setError(t('errors.generic'));
+                    setLoadError(t('errors.generic'));
                 }
             } finally {
                 if (!cancelled) {
@@ -162,7 +179,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
         );
     }
 
-    if (error || !order) {
+    if (loadError || !order) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
                 <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
@@ -170,7 +187,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                         {t('title')}
                     </h1>
                     <p className="text-sm text-slate-600 mb-4">
-                        {error || t('errors.notFound')}
+                        {loadError || t('errors.notFound')}
                     </p>
                 </div>
             </div>
@@ -181,13 +198,31 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
     try {
         statusLabel = tOrders(`statuses.${order.status}` as any);
     } catch {
-        statusLabel = order.status.replace('_', ' ').toUpperCase();
+        statusLabel = order.status.replaceAll('_', ' ').toUpperCase();
     }
 
+    const normalizedPaymentStatus = normalizeOrderPaymentStatus(order.totals.paymentStatus, {
+        paymentTypeCode: order.paymentTypeCode,
+        outstandingAmount: order.totals.outstandingAmount,
+        payOnCollectionAmount: order.totals.payOnCollectionAmount,
+    });
+    const isPaymentSettled =
+        normalizedPaymentStatus === 'PAID' ||
+        normalizedPaymentStatus === 'OVERPAID';
     const paymentLabel =
-        order.totals.paymentStatus === 'paid'
+        isPaymentSettled
             ? tOrders('paid')
             : tOrders('pendingPayment');
+    const remainingCollectionAmount = Math.max(
+        0,
+        order.totals.payOnCollectionAmount
+        ?? order.totals.outstandingAmount
+        ?? ((order.totals.total ?? 0) - (order.totals.paidAmount ?? 0)),
+    );
+    const showPayOnCollectionNotice =
+        order.paymentTypeCode === 'PAY_ON_COLLECTION' &&
+        !isPaymentSettled &&
+        remainingCollectionAmount > 0;
 
     const formattedReceivedAt = order.receivedAt
         ? new Date(order.receivedAt).toLocaleString()
@@ -201,12 +236,24 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
         order.status === 'ready' ||
         order.status === 'out_for_delivery' ||
         order.status === 'delivered';
+    const isConfirmReceivedDisabled =
+        isConfirming ||
+        order.status === 'delivered';
+    const confirmButtonLabel = isConfirming
+        ? t('actions.confirmingReceived')
+        : order.status === 'delivered'
+            ? t('actions.confirmReceivedDone')
+            : t('actions.confirmReceived');
 
     async function handleConfirmReceived() {
+        if (isConfirmReceivedDisabled) {
+            return;
+        }
+
         try {
             setIsConfirming(true);
             setConfirmSuccess(null);
-            setError(null);
+            setActionError(null);
 
             const response = await fetch(
                 `/api/v1/public/orders/${encodeURIComponent(tenantId)}/${encodeURIComponent(orderNo)}/confirm-received`,
@@ -218,16 +265,25 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                 },
             );
 
-            const json: ApiResponse = await response.json();
+            const json: ConfirmReceivedResponse = await response.json();
 
             if (!response.ok || !json.success) {
-                setError(json.error || t('errors.generic'));
+                setActionError(json.error || t('errors.generic'));
                 return;
             }
 
+            const nextStatus = String(json.data?.status ?? 'delivered').trim().toLowerCase();
+            setOrder((currentOrder) => (
+                currentOrder
+                    ? {
+                        ...currentOrder,
+                        status: nextStatus,
+                    }
+                    : currentOrder
+            ));
             setConfirmSuccess(t('actions.confirmReceivedSuccess'));
         } catch {
-            setError(t('errors.generic'));
+            setActionError(t('errors.generic'));
         } finally {
             setIsConfirming(false);
         }
@@ -309,24 +365,38 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                         </div>
                     </div>
 
+                    {showPayOnCollectionNotice && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p className="text-xs font-medium text-amber-900">
+                                {t('paymentNotice.title')}
+                            </p>
+                            <p className="mt-1 text-xs text-amber-800">
+                                {t('paymentNotice.description', {
+                                    status: statusLabel,
+                                    amount: fmt(remainingCollectionAmount),
+                                })}
+                            </p>
+                        </div>
+                    )}
+
                     {canConfirmReceived && (
                         <div className="mt-3 flex flex-col gap-2">
                             <button
                                 type="button"
                                 onClick={handleConfirmReceived}
-                                disabled={isConfirming}
+                                disabled={isConfirmReceivedDisabled}
                                 className="inline-flex justify-center items-center rounded-full bg-blue-600 text-white text-sm font-medium px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                {isConfirming ? t('actions.confirmingReceived') : t('actions.confirmReceived')}
+                                {confirmButtonLabel}
                             </button>
                             {confirmSuccess && (
                                 <p className="text-xs text-emerald-700">
                                     {confirmSuccess}
                                 </p>
                             )}
-                            {error && (
+                            {actionError && (
                                 <p className="text-xs text-red-600">
-                                    {error}
+                                    {actionError}
                                 </p>
                             )}
                         </div>

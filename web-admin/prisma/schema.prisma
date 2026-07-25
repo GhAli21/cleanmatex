@@ -924,7 +924,7 @@ model org_orders_mst {
   workflow_template_id               String?                           @db.Uuid
   current_status                     String?
   current_stage                      String?
-  state_version                      BigInt                            @default(1)
+  state_version                      Int                               @default(1)
   wf_profile_id                      String?                           @db.Uuid
   wf_version_no                      Int?
   parent_order_id                    String?                           @db.Uuid

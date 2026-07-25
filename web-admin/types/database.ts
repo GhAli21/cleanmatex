@@ -14983,6 +14983,7 @@ export type Database = {
           change_summary: string | null
           changes: Json
           edit_number: number
+          edit_reason: string | null
           edited_at: string
           edited_by: string
           edited_by_name: string | null
@@ -14993,6 +14994,7 @@ export type Database = {
           payment_adjusted: boolean | null
           payment_adjustment_amount: number | null
           payment_adjustment_type: string | null
+          settlement_lineage: Json | null
           snapshot_after: Json
           snapshot_before: Json
           tenant_org_id: string
@@ -15002,6 +15004,7 @@ export type Database = {
           change_summary?: string | null
           changes: Json
           edit_number: number
+          edit_reason?: string | null
           edited_at?: string
           edited_by: string
           edited_by_name?: string | null
@@ -15012,6 +15015,7 @@ export type Database = {
           payment_adjusted?: boolean | null
           payment_adjustment_amount?: number | null
           payment_adjustment_type?: string | null
+          settlement_lineage?: Json | null
           snapshot_after: Json
           snapshot_before: Json
           tenant_org_id: string
@@ -15021,6 +15025,7 @@ export type Database = {
           change_summary?: string | null
           changes?: Json
           edit_number?: number
+          edit_reason?: string | null
           edited_at?: string
           edited_by?: string
           edited_by_name?: string | null
@@ -15031,6 +15036,7 @@ export type Database = {
           payment_adjusted?: boolean | null
           payment_adjustment_amount?: number | null
           payment_adjustment_type?: string | null
+          settlement_lineage?: Json | null
           snapshot_after?: Json
           snapshot_before?: Json
           tenant_org_id?: string
@@ -16879,6 +16885,7 @@ export type Database = {
           gift_card_id: string | null
           has_issue: boolean | null
           has_split: boolean | null
+          hold_from_status: string | null
           id: string
           idempotency_key: string | null
           internal_notes: string | null
@@ -17036,6 +17043,7 @@ export type Database = {
           gift_card_id?: string | null
           has_issue?: boolean | null
           has_split?: boolean | null
+          hold_from_status?: string | null
           id?: string
           idempotency_key?: string | null
           internal_notes?: string | null
@@ -17193,6 +17201,7 @@ export type Database = {
           gift_card_id?: string | null
           has_issue?: boolean | null
           has_split?: boolean | null
+          hold_from_status?: string | null
           id?: string
           idempotency_key?: string | null
           internal_notes?: string | null

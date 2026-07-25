@@ -1,5 +1,11 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.8-p4-public-tracking-ux — 2026-07-25
+
+- Public tracking now surfaces the remaining `PAY_ON_COLLECTION` amount inline with the current order status
+- Confirm-received button now disables once the order reaches `delivered` or the public confirm succeeds
+- Public confirm action errors now stay inline on the tracking page instead of collapsing into the full-page load error state
+
 ## 0.3.7-p6-tenant-profile-ui — 2026-07-25
 
 - `settings/workflows` now switches to a read-only V2 tenant profile view when `workflow_engine_v2` is enabled

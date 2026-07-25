@@ -27,9 +27,14 @@
     "notFound": "We could not find this order. Please check the link with the laundry shop.",
     "generic": "Something went wrong while loading your order. Please try again in a moment."
   },
+  "paymentNotice": {
+    "title": "Payment due on collection",
+    "description": "Order status: {status}. Please pay the remaining amount of {amount} when you receive your order."
+  },
   "actions": {
     "confirmReceived": "I have received my clothes",
     "confirmingReceived": "Confirming...",
+    "confirmReceivedDone": "Order received",
     "confirmReceivedSuccess": "Thank you! Your order has been marked as received."
   },
   "footer": "Powered by CleanMateX – Smart laundry management."
