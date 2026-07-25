@@ -3035,7 +3035,14 @@ export class OrderService {
         });
         return {
           success: true,
-          order: currentOrder,
+          order: currentOrder && {
+            ...currentOrder,
+            // state_version is BIGINT in the DB — see migration 0439.
+            state_version:
+              typeof currentOrder.state_version === 'bigint'
+                ? Number(currentOrder.state_version)
+                : currentOrder.state_version,
+          },
           idempotentReplay: true,
           editHistoryId: idempotentReplayEditHistoryId,
           requiresSettlement: replayed ? !replayed.payment_adjusted : false,
@@ -3388,7 +3395,16 @@ export class OrderService {
 
       return {
         success: true,
-        order: updatedOrderWithItems,
+        order: {
+          ...updatedOrderWithItems,
+          // state_version is BIGINT in the DB (workflow-engine optimistic
+          // concurrency token); Prisma returns it as a native bigint, which
+          // JSON.stringify cannot serialize (see migration 0439).
+          state_version:
+            typeof updatedOrderWithItems.state_version === 'bigint'
+              ? Number(updatedOrderWithItems.state_version)
+              : updatedOrderWithItems.state_version,
+        },
         ...(amendmentGate && {
           financialDelta: amendmentGate.delta,
           editHistoryId: auditEntry.id,
