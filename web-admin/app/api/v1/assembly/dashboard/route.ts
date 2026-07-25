@@ -1,30 +1,23 @@
 /**
  * Assembly API - Dashboard
  * GET /api/v1/assembly/dashboard
- * Gets assembly dashboard statistics
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- *
  * @param request
  */
 export async function GET(request: NextRequest) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:read')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId } = authContext;
-
-    const data = await AssemblyService.getAssemblyDashboard(tenantId);
+    const data = await AssemblyService.getAssemblyDashboard(authCheck.tenantId);
 
     return NextResponse.json({
       success: true,
@@ -40,4 +33,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

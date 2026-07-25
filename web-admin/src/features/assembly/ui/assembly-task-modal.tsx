@@ -1,7 +1,6 @@
 /**
  * Assembly Task Modal Component
- * Full assembly interface with item list, scanning, exceptions, and packing
- * PRD-009: Assembly & QA Workflow
+ * Scan / manual select items, record exceptions, complete assembly + advance workflow
  */
 
 'use client';
@@ -16,13 +15,17 @@ import { ExceptionDialog } from './exception-dialog';
 import {
   useAssemblyTask,
   useStartAssemblyTask,
-  usePackOrder,
+  useCompleteAssemblyTask,
 } from '../hooks/use-assembly';
+import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback/useMessage';
-import { X, Package, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface AssemblyTaskModalProps {
   orderId: string;
+  orderNo?: string | null;
   taskId?: string;
   onClose: () => void;
   onComplete?: () => void;
@@ -31,12 +34,14 @@ interface AssemblyTaskModalProps {
 /**
  * @param root0
  * @param root0.orderId
+ * @param root0.orderNo
  * @param root0.taskId
  * @param root0.onClose
  * @param root0.onComplete
  */
 export function AssemblyTaskModal({
   orderId,
+  orderNo,
   taskId,
   onClose,
   onComplete,
@@ -45,7 +50,11 @@ export function AssemblyTaskModal({
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
   const { showSuccess, showError } = useMessage();
   const { mutate: startTask, isPending: isStarting } = useStartAssemblyTask();
-  const { mutate: packOrder, isPending: isPacking } = usePackOrder();
+  const { mutateAsync: completeTask, isPending: isCompletingTask } =
+    useCompleteAssemblyTask();
+  const transition = useOrderTransition();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  const { data: wfContext } = useWorkflowContext(orderId);
   const startAttemptedRef = useRef<string | null>(null);
 
   const {
@@ -56,7 +65,6 @@ export function AssemblyTaskModal({
     refetch,
   } = useAssemblyTask(taskId);
 
-  // Auto-start PENDING tasks so scan / manual select can proceed
   useEffect(() => {
     if (!taskId || !taskData) return;
     if (taskData.taskStatus !== 'PENDING') return;
@@ -66,8 +74,10 @@ export function AssemblyTaskModal({
     startTask(
       { taskId },
       {
-        onSuccess: () => {
-          showSuccess(t('messages.taskStarted'));
+        onSuccess: (result) => {
+          if (!result.alreadyStarted) {
+            showSuccess(t('messages.taskStarted'));
+          }
           void refetch();
         },
         onError: (err) => {
@@ -78,35 +88,66 @@ export function AssemblyTaskModal({
     );
   }, [taskId, taskData, startTask, showSuccess, showError, t, refetch]);
 
-  const handlePack = () => {
+  const totalItems = taskData?.totalItems ?? 0;
+  const scannedItems = taskData?.scannedItems ?? 0;
+  const exceptionItems = taskData?.exceptionItems ?? 0;
+  const pendingItems =
+    taskData?.items.filter((item) => item.itemStatus === 'PENDING').length ?? 0;
+  const allAssembled = totalItems > 0 && pendingItems === 0;
+  const hasOpenExceptions = exceptionItems > 0;
+  const canComplete = allAssembled && !hasOpenExceptions;
+  const isBusy = isCompletingTask || transition.isPending;
+
+  const handleComplete = async () => {
     if (!taskId) {
       showError(t('messages.taskIdRequired'));
       return;
     }
+    if (!canComplete) {
+      showError(
+        hasOpenExceptions
+          ? t('messages.openExceptionsBlock')
+          : t('messages.completeRequiresAllItems')
+      );
+      return;
+    }
 
-    packOrder(
-      {
-        taskId,
-        packagingTypeCode: 'BOX',
-      },
-      {
-        onSuccess: () => {
-          showSuccess(t('messages.packSuccess'));
-          onComplete?.();
-          onClose();
+    try {
+      await completeTask(taskId);
+
+      const nextStatus = wfContext?.flags?.qa_enabled
+        ? 'qa'
+        : wfContext?.flags?.packing_enabled
+          ? 'packing'
+          : 'ready';
+
+      const result = await transition.mutateAsync({
+        orderId,
+        input: {
+          screen: 'assembly',
+          to_status: nextStatus,
+          notes: 'Assembly complete',
+          useOldWfCodeOrNew: useNewWorkflowSystem,
         },
-        onError: (err) => {
-          showError(err.message || t('messages.packFailed'));
-        },
+      });
+
+      if (result.success === false) {
+        showError(result.error || t('messages.completeFailed'));
+        return;
       }
-    );
+
+      showSuccess(t('messages.completeSuccess'));
+      onComplete?.();
+      onClose();
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : t('messages.completeFailed')
+      );
+    }
   };
 
-  const orderLabel = taskData?.orderNo || orderId;
-  const totalItems = taskData?.totalItems ?? 0;
-  const scannedItems = taskData?.scannedItems ?? 0;
-  const exceptionItems = taskData?.exceptionItems ?? 0;
-  const allScanned = totalItems > 0 && scannedItems >= totalItems;
+  const orderLabel =
+    orderNo || taskData?.orderNo || t('orderFallback');
 
   if (!taskId) {
     return (
@@ -166,7 +207,6 @@ export function AssemblyTaskModal({
                 </div>
               ) : null}
 
-              {/* Metrics */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950/40">
                   <div className="text-sm text-muted-foreground">
@@ -198,7 +238,6 @@ export function AssemblyTaskModal({
                 <p className="text-sm text-muted-foreground">{t('startingTask')}</p>
               ) : null}
 
-              {/* Scanner + manual item selection */}
               <AssemblyScanner
                 taskId={taskId}
                 onScanSuccess={() => {
@@ -215,30 +254,40 @@ export function AssemblyTaskModal({
                 }}
               />
 
-              {/* Actions */}
               <div className="flex flex-col gap-2 sm:flex-row">
                 <CmxButton
                   variant="outline"
                   onClick={() => setShowExceptionDialog(true)}
                   className="flex-1"
+                  disabled={isBusy}
                 >
                   <AlertTriangle className="me-2 h-4 w-4" />
                   {t('actions.recordException')}
                 </CmxButton>
                 <CmxButton
-                  onClick={handlePack}
-                  loading={isPacking}
-                  disabled={isPacking || !allScanned}
+                  onClick={() => {
+                    void handleComplete();
+                  }}
+                  loading={isBusy}
+                  disabled={isBusy || !canComplete}
                   className="flex-1"
-                  title={!allScanned ? t('packRequiresAllItems') : undefined}
+                  title={
+                    !canComplete
+                      ? hasOpenExceptions
+                        ? t('messages.openExceptionsBlock')
+                        : t('messages.completeRequiresAllItems')
+                      : undefined
+                  }
                 >
-                  <Package className="me-2 h-4 w-4" />
-                  {t('actions.packOrder')}
+                  <CheckCircle2 className="me-2 h-4 w-4" />
+                  {t('actions.completeAssembly')}
                 </CmxButton>
               </div>
-              {!allScanned && !isLoading ? (
+              {!canComplete && !isLoading ? (
                 <p className="text-xs text-muted-foreground">
-                  {t('packRequiresAllItems')}
+                  {hasOpenExceptions
+                    ? t('messages.openExceptionsBlock')
+                    : t('messages.completeRequiresAllItems')}
                 </p>
               ) : null}
             </CmxCardContent>
@@ -249,6 +298,7 @@ export function AssemblyTaskModal({
       {showExceptionDialog ? (
         <ExceptionDialog
           taskId={taskId}
+          items={taskData?.items ?? []}
           onClose={() => setShowExceptionDialog(false)}
           onSuccess={() => {
             setShowExceptionDialog(false);

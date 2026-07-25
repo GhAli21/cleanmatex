@@ -1,35 +1,28 @@
 /**
  * Assembly API - Resolve Exception
  * PATCH /api/v1/assembly/exceptions/:id/resolve
- * Resolves an assembly exception
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- *
  * @param request
- * @param root0
- * @param root0.params
- * @param root0.params.id
+ * @param context
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:transition')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId, userId } = authContext;
-    const { id: exceptionId } = params;
+    const { tenantId, userId } = authCheck;
+    const { id: exceptionId } = await context.params;
     const body = await request.json();
     const { resolution } = body;
 
@@ -65,4 +58,3 @@ export async function PATCH(
     );
   }
 }
-

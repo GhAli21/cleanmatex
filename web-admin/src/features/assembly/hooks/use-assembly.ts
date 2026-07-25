@@ -179,7 +179,10 @@ export function useStartAssemblyTask() {
       const result = await response.json();
 
       if (result.success) {
-        return { success: true };
+        return {
+          success: true as const,
+          alreadyStarted: Boolean(result.alreadyStarted),
+        };
       }
       throw new Error(result.error || 'Failed to start task');
     },
@@ -195,6 +198,52 @@ export function useStartAssemblyTask() {
       logger.error('Failed to start assembly task', error, {
         tenantId: currentTenant?.tenant_id,
         taskId: variables.taskId,
+      });
+    },
+  });
+}
+
+/**
+ * Complete assembly verification (items assembled) before order workflow advance.
+ */
+export function useCompleteAssemblyTask() {
+  const { currentTenant, user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      if (!currentTenant || !user) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/v1/assembly/tasks/${taskId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        return {
+          success: true as const,
+          orderId: result.orderId as string | undefined,
+          orderNo: (result.orderNo as string | null | undefined) ?? null,
+        };
+      }
+      throw new Error(result.error || 'Failed to complete assembly');
+    },
+    onSuccess: (_data, taskId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, taskId),
+      });
+    },
+    onError: (error: Error, taskId) => {
+      logger.error('Failed to complete assembly task', error, {
+        tenantId: currentTenant?.tenant_id,
+        taskId,
       });
     },
   });
@@ -297,9 +346,12 @@ export function usePerformQA() {
       }
       throw new Error(result.error || 'QA decision failed');
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, variables.taskId),
       });
     },
     onError: (error: Error, variables) => {
@@ -350,9 +402,12 @@ export function usePackOrder() {
       }
       throw new Error(result.error || 'Packing failed');
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: assemblyTaskQueryKey(currentTenant?.tenant_id, variables.taskId),
       });
     },
     onError: (error: Error, variables) => {

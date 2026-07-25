@@ -365,3 +365,72 @@ describe('order-calculation.service — calculateOrderTotals currency rounding (
     expect(result.afterDiscounts).toBeCloseTo(100); // net-of-tax unaffected by rounding
   });
 });
+
+describe('order-calculation.service — calculateOrderTotals order-level charges (B18)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupDefaults();
+  });
+
+  it('is byte-identical when no orderCharges are supplied', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.chargesTotal).toBe(0);
+    expect(result.saleTotal).toBeCloseTo(100);
+  });
+
+  it('adds order-level charges to the grand total as a flat, non-taxable addend', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+    mockGetVatRate.mockResolvedValue(0.05);
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      orderCharges: [
+        { label: 'RUSH_DELIVERY', amount: 5 },
+        { label: 'SPECIAL_HANDLING', amount: 2.5 },
+      ],
+    });
+
+    expect(result.chargesTotal).toBeCloseTo(7.5);
+    // 100 (items) + 5 (VAT on items only, charges untaxed) + 7.5 (charges) = 112.5
+    expect(result.vatValue).toBeCloseTo(5);
+    expect(result.saleTotal).toBeCloseTo(112.5);
+    // afterDiscounts stays items-only net — charges are reported separately.
+    expect(result.afterDiscounts).toBeCloseTo(100);
+  });
+
+  it('sums multiple order charges and caps gift card against the total including charges', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 50, basePrice: 50 });
+    mockValidateGiftCard.mockResolvedValue({ isValid: true, availableBalance: 1000 });
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      orderCharges: [{ label: 'EXPRESS', amount: 10 }],
+      giftCardNumber: 'GC-200',
+    });
+
+    expect(result.chargesTotal).toBeCloseTo(10);
+    expect(result.saleTotal).toBeCloseTo(60); // 50 items + 10 charge, no tax configured
+    expect(result.giftCardApplied).toBeCloseTo(60); // capped against the charge-inclusive total
+  });
+
+  it('combines correctly with B17 rounding — charges participate in the rounded total', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+    mockResolveCurrencyRoundingRule.mockResolvedValue({ roundingMethod: 'HALF_UP', roundingUnit: 0.005 });
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      orderCharges: [{ label: 'EXPRESS', amount: 3.001 }],
+    });
+
+    // 100 + 3.001 = 103.001 -> nearest 0.005 (HALF_UP) = 103.0
+    expect(result.chargesTotal).toBeCloseTo(3.001, 3);
+    expect(result.saleTotal).toBeCloseTo(103, 3);
+    expect(result.roundingAdjustmentAmount).toBeCloseTo(-0.001, 3);
+  });
+});

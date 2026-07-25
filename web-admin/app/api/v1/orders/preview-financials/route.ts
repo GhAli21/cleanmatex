@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
       giftCardNumber: parsed.data.giftCardNumber,
       giftCardAmount: parsed.data.giftCardAmount,
       giftCardId: parsed.data.giftCardId,
+      orderCharges: (parsed.data.orderServicePrefs ?? []).map((p) => ({
+        label: p.preference_code,
+        amount: p.extra_price,
+      })),
     });
 
     let creditLimit: Awaited<ReturnType<typeof checkCreditLimit>> | undefined;

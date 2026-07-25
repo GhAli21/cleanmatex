@@ -461,6 +461,28 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 24. B18 — Order charge write path (order-level preferences)
+
+**What changed:** the new-order page's Preferences → Service tab gained a "Whole Order" preference section (order-wide extras, e.g. a rush/handling fee), and the item-level preference selector now shows alongside the piece-level selectors (previously hidden whenever the tenant tracks by piece). Every preference with a non-zero amount — order, item, or piece level — now also writes a matching fact row into the order's charges ledger, closing a real gap where that ledger was always empty.
+
+> **No DB/config prerequisite** — this is live for every tenant immediately, no flag, no data change needed. The fix is additive-only: nothing changes for an order unless an operator actually adds an order-level or (previously-hidden) item-level preference.
+
+> **Known gap, not yet fixed:** orders created **before** this package shipped will still show a mismatch if reconciliation is run against them, since their preference charges were never backfilled into the ledger. This is intentional and owner-approved (fix-forward-only) — a separate backfill migration is a future, explicitly deferred follow-up requiring its own sign-off.
+
+> Where: **new order page → Preferences → Service tab** (any order, any tenant).
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|24.1| New order → add at least one item → Preferences → Service tab | A **"Whole Order"** section appears above the per-item list, with the same preference picker used elsewhere | |
+|24.2| In the "Whole Order" section, add a preference with a non-zero price (e.g. a rush fee) | The order total updates live to include the amount; the item subtotal is unaffected (the charge is a separate line internally) | |
+|24.3| For a tenant that tracks by piece: open an item that has pieces | The item now shows its OWN preference selector labeled **"Whole item"**, in addition to the per-piece selectors below it — both can be used together, not one-or-the-other | |
+|24.4| Submit an order with an order-level preference and at least one item/piece-level preference | Order submits without error; open the order's Financial tab — the total matches what was previewed | |
+|24.5| (Owner/finance only) Run reconciliation for a NEWLY submitted order from this build that has a preference charge | `ORDER_CHARGES_MATCH_SNAPSHOT`, `ORDER_PIECES_MATCH_CHARGES`, `ORDER_PREFERENCES_MATCH_CHARGES`, and `PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE` are all clean for that order (see the "known gap" note above for orders predating this build) | |
+
+**Automated gates at build time (2026-07-25, B18):** tsc clean for all B18 files (4 pre-existing/unrelated errors — same 3 as every prior package this session, plus 1 new one from unrelated, uncommitted owner WIP in `app/api/v1/assembly/exceptions/[id]/resolve/route.ts`, confirmed via `git status`, not touched) · eslint 0 (project-wide) · `order-calculation.service.test.ts` +4 new (no-op default, flat non-taxable addend, gift-card cap consistency, combined with B17 rounding) · `check-modules.test.ts` +1 new (proves the exact write-shape — one charge row per preference with `charge_source_id` lineage — passes all five `order-snapshot-checks` reconciliation checks cleanly) · full jest **237/237 suites, 2300/2300 tests — zero known failures** · `check:i18n` ✓ (new `newOrder.preferences.orderLevelPrefs` / `newOrder.itemsGrid.wholeItem` keys, EN/AR) · **`npm run build` currently FAILS — confirmed NOT from B18.** The unrelated assembly-exceptions route has a broken relative import (`../../_lib/route-auth`, needs one more `../`); someone else's uncommitted, in-progress work — not fixed here. §24 above cannot be exercised on a real deployed Preview build until that's resolved (not independently verified, but `npm run dev`'s on-demand/lazy compilation likely does not fail at startup the way `next build`'s eager compile does — worth trying locally first rather than waiting on the blocker).
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -490,6 +512,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B21 | migration 0433 applied (owner), verified via remote DB; extends the existing loyalty settings screen (no new screen) | | |
 | B11 | no migration (schema/flag pre-existed from 0339); requires direct DB config (no settings UI) to opt a pilot tenant into TAX_INCLUSIVE before §22 is runnable on Preview | | |
 | B17 | no migration (column + rules table pre-existed); requires a direct SQL UPDATE on one currency's `rounding_unit` (no settings UI) to see a non-zero adjustment before §23 is meaningfully runnable on Preview | | |
+| B18 | no migration; live for every tenant immediately, no config needed — BUT blocked from Preview deployment by an unrelated owner build issue (assembly-exceptions route, not B18) until resolved; 67 pre-existing orders intentionally NOT backfilled (owner-approved fix-forward-only, flagged as a separate future package) | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

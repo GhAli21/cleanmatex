@@ -179,6 +179,8 @@ export interface CreateOrderParams {
     /** Aggregated charge from service prefs. Included in order total. */
     servicePrefCharge?: number;
   }>;
+  /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item. */
+  orderServicePrefs?: CreateOrderServicePref[];
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
   priority?: string;
@@ -199,7 +201,7 @@ export interface CreateOrderParams {
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
-  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number; roundingAdjustment?: number };
+  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number; roundingAdjustment?: number; chargesTotal?: number };
   discountRate?: number;
   discountType?: string;
   promoCodeId?: string;
@@ -1180,6 +1182,7 @@ export class OrderService {
       branchId,
       orderTypeId,
       items,
+      orderServicePrefs,
       isQuickDrop,
       quickDropQuantity,
       priority,
@@ -1253,6 +1256,7 @@ export class OrderService {
     const vatRate = totals?.vatRate;
     const taxRate = totals?.taxRate;
     const roundingAdjustment = totals?.roundingAdjustment ?? 0;
+    const chargesTotal = totals?.chargesTotal ?? 0;
     const currencyCode = passedCurrencyCode;
     const currencyExRate = passedCurrencyExRate ?? 1;
     const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
@@ -1302,6 +1306,7 @@ export class OrderService {
         total_tax_amount: tax,
         total_amount: total,
         rounding_adjustment_amount: roundingAdjustment,
+        total_charges_amount: chargesTotal,
         payment_status: paymentMethod ? 'partial' : 'pending',
         payment_method_code: paymentMethod,
         idempotency_key: idempotencyKey ?? null,
@@ -1598,6 +1603,61 @@ export class OrderService {
             }
           }
         }
+      }
+
+      // ── B18: order-level preferences + PREFERENCE charge facts ──────────────
+      // Order-level preferences have no item/piece to fold into — write them
+      // directly at prefs_level=ORDER. Then, for EVERY preference row on this
+      // order with extra_price > 0 (item, piece, AND order level — including
+      // the pre-existing item/piece writes above, untouched), write a mirror
+      // org_order_charges_dtl fact row (charge_type=PREFERENCE, charge_source_id
+      // = the preference row's id). This closes the live reconciliation gap:
+      // ORDER_PIECES_MATCH_CHARGES / ORDER_PREFERENCES_MATCH_CHARGES /
+      // ORDER_CHARGES_MATCH_SNAPSHOT previously always failed for any order
+      // with a non-zero preference extra_price, since org_order_charges_dtl
+      // never received any rows at all (confirmed via live DB: 0 rows across
+      // all orders despite 171 items/pieces/preferences with extra_price > 0).
+      if (orderServicePrefs && orderServicePrefs.length > 0) {
+        await tx.org_order_preferences_dtl.createMany({
+          data: orderServicePrefs.map((pref, idx) => ({
+            tenant_org_id: tenantId,
+            order_id: order.id,
+            prefs_no: idx + 1,
+            prefs_level: 'ORDER',
+            preference_code: pref.preference_code,
+            preference_content: pref.preference_code,
+            preference_sys_kind: 'service_prefs',
+            prefs_source: pref.source ?? 'ORDER_CREATE',
+            extra_price: pref.extra_price ?? 0,
+            branch_id: branchId ?? null,
+            created_by: userId,
+            ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
+          })),
+        });
+      }
+
+      const chargeablePreferences = await tx.org_order_preferences_dtl.findMany({
+        where: {
+          tenant_org_id: tenantId,
+          order_id: order.id,
+          extra_price: { gt: 0 },
+        },
+        select: { id: true, extra_price: true, preference_code: true },
+      });
+      if (chargeablePreferences.length > 0) {
+        await tx.org_order_charges_dtl.createMany({
+          data: chargeablePreferences.map((pref, idx) => ({
+            tenant_org_id: tenantId,
+            order_id: order.id,
+            charge_type: 'PREFERENCE',
+            charge_source_id: pref.id,
+            label: pref.preference_code,
+            amount: pref.extra_price,
+            currency_code: order.currency_code,
+            applied_seq: idx + 1,
+            created_by: userId,
+          })),
+        });
       }
 
       if (isRetailOnlyOrder) {

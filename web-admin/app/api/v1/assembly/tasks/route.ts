@@ -1,29 +1,23 @@
 /**
  * Assembly API - Create Task
  * POST /api/v1/assembly/tasks
- * Creates an assembly task for an order
- * Body: { orderId: string }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- *
  * @param request
  */
 export async function POST(request: NextRequest) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:transition')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId, userId } = authContext;
+    const { tenantId, userId } = authCheck;
     const body = await request.json();
     const { orderId } = body;
 
@@ -61,4 +55,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

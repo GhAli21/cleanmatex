@@ -53,5 +53,6 @@
   "applyToAllPieces": "Apply to all pieces",
   "itemsSubtotal": "Items",
   "additionalServices": "Additional Services",
-  "item": "Item"
+  "item": "Item",
+  "wholeItem": "Whole item"
 }

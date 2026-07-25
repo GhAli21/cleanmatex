@@ -592,6 +592,44 @@ describe('order-snapshot-checks', () => {
     const result = await runOrderSnapshotChecks(TENANT, [orderRow]);
     expect(result.find((r) => r.checkName === 'PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE')).toBeDefined();
   });
+
+  it('B18 write-shape: one PREFERENCE charge row per preference row (item+piece+order) with matching charge_source_id passes all five checks cleanly', async () => {
+    // Mirrors exactly what OrderService.createOrderInTransaction now writes:
+    // one org_order_charges_dtl row per org_order_preferences_dtl row with
+    // extra_price > 0, charge_source_id = that preference row's id, and
+    // total_charges_amount on the header set to the same sum.
+    const pieceExtra = 3;
+    const itemExtra = 2;
+    const orderExtra = 5;
+    const totalCharges = pieceExtra * 2 + itemExtra + orderExtra; // 2 pieces @ 3 + 1 item @ 2 + order @ 5 = 13
+
+    mockChargesAggregate.mockResolvedValue({ _sum: { amount: new Decimal(String(totalCharges)) } });
+    mockChargesFindMany.mockResolvedValue([
+      { id: 'chg-item-1', amount: new Decimal(String(itemExtra)), charge_source_id: 'pref-item-1' },
+      { id: 'chg-piece-1', amount: new Decimal(String(pieceExtra)), charge_source_id: 'pref-piece-1' },
+      { id: 'chg-piece-2', amount: new Decimal(String(pieceExtra)), charge_source_id: 'pref-piece-2' },
+      { id: 'chg-order-1', amount: new Decimal(String(orderExtra)), charge_source_id: 'pref-order-1' },
+    ]);
+    mockItemsFindMany.mockResolvedValue([{ id: 'item-1', service_pref_charge: new Decimal(String(itemExtra)) }]);
+    mockPiecesFindMany.mockResolvedValue([
+      { id: 'piece-1', service_pref_charge: new Decimal(String(pieceExtra)) },
+      { id: 'piece-2', service_pref_charge: new Decimal(String(pieceExtra)) },
+    ]);
+    mockPreferencesFindMany.mockResolvedValue([
+      { id: 'pref-item-1', extra_price: new Decimal(String(itemExtra)) },
+      { id: 'pref-piece-1', extra_price: new Decimal(String(pieceExtra)) },
+      { id: 'pref-piece-2', extra_price: new Decimal(String(pieceExtra)) },
+      { id: 'pref-order-1', extra_price: new Decimal(String(orderExtra)) },
+    ]);
+    mockOrderFindUnique.mockResolvedValue({ total_charges_amount: new Decimal(String(totalCharges)) });
+
+    const result = await runOrderSnapshotChecks(TENANT, [orderRow]);
+
+    // None of the five checks in this module should fire — the write-shape
+    // fully accounts for every piece/item/order preference extra, with no
+    // duplicate charge_source_id.
+    expect(result).toEqual([]);
+  });
 });
 
 // ── voucher-checks ────────────────────────────────────────────────────────

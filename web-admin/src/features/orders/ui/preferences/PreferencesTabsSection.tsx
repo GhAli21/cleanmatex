@@ -54,7 +54,7 @@ export function PreferencesTabsSection({
   const tItems = useTranslations('newOrder.itemsGrid');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
-  const { state, updateItemServicePrefs, updateItemPieces } = useNewOrderStateWithDispatch();
+  const { state, updateItemServicePrefs, updateItemPieces, updateOrderServicePrefs } = useNewOrderStateWithDispatch();
   const { servicePrefs } = usePreferenceCatalog(state.branchId, true);
 
   const [activePrefTab, setActivePrefTab] = useState<'quick' | 'service'>('quick');
@@ -165,8 +165,22 @@ export function PreferencesTabsSection({
           >
             <p className="text-xs text-gray-500">
               {t('servicePrefsDesc') ||
-                'Configure service preferences (starch, perfume, delicate, etc.) per item or per piece.'}
+                'Configure service preferences (starch, perfume, delicate, etc.) for the whole order, per item, or per piece.'}
             </p>
+
+            {/* B18 — order-level preferences: independent of any single item/piece. */}
+            <div className="rounded-lg border border-gray-200 p-3 bg-blue-50/40">
+              <div className={`font-medium text-sm text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('orderLevelPrefs') || 'Whole Order'}
+              </div>
+              <ServicePreferenceSelector
+                selectedPrefs={state.orderServicePrefs ?? []}
+                availablePrefs={servicePrefs}
+                onChange={(prefs) => updateOrderServicePrefs(prefs)}
+                enforceCompatibility={enforcePrefCompatibility}
+              />
+            </div>
+
             <div className="space-y-4 max-h-[50vh] sm:max-h-[40vh] overflow-y-auto">
               {state.items.map((item) => (
                 <div
@@ -186,7 +200,14 @@ export function PreferencesTabsSection({
                     )}
                   </div>
 
-                  {!trackByPiece || (item.pieces?.length ?? 0) === 0 ? (
+                  {/* B18 — item-level selector shown always (not just when untracked-by-piece),
+                      so an operator can add a whole-item preference in addition to per-piece ones. */}
+                  <div>
+                    {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
+                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                        {tItems('wholeItem') || 'Whole item'}
+                      </span>
+                    )}
                     <ServicePreferenceSelector
                       selectedPrefs={item.servicePrefs ?? []}
                       availablePrefs={servicePrefs}
@@ -195,8 +216,10 @@ export function PreferencesTabsSection({
                       }
                       enforceCompatibility={enforcePrefCompatibility}
                     />
-                  ) : (
-                    <div className="space-y-3">
+                  </div>
+
+                  {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
+                    <div className="space-y-3 mt-3">
                       {(item.pieces ?? []).map((piece) => (
                         <div
                           key={piece.id}

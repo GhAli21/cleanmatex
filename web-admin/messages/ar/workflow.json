@@ -86,6 +86,8 @@
     "description": "طلبات جاهزة للتجميع",
     "empty": "لا توجد طلبات في التجميع",
     "items": "أصناف",
+    "unknownCustomer": "عميل غير معروف",
+    "phoneUnavailable": "غير متوفر",
     "actions": {
       "assembleOrder": "تجميع الطلب"
     },
@@ -103,6 +105,7 @@
     "task": {
       "title": "مهمة التجميع",
       "titleWithOrder": "مهمة التجميع - الطلب {orderNo}",
+      "orderFallback": "—",
       "creatingTask": "لم يتم العثور على مهمة التجميع. جارٍ إنشاء المهمة...",
       "startingTask": "جارٍ بدء مهمة التجميع...",
       "scannerTitle": "ماسح الباركود",
@@ -115,7 +118,6 @@
       "quantity": "الكمية {count}",
       "barcodeLabel": "الباركود",
       "noBarcode": "بدون باركود",
-      "packRequiresAllItems": "يجب تعليم أو مسح جميع الأصناف قبل التعبئة.",
       "itemStatus": {
         "PENDING": "قيد الانتظار",
         "SCANNED": "تم التجميع",
@@ -132,21 +134,58 @@
         "scan": "مسح",
         "markAssembled": "تعليم كمجمّع",
         "recordException": "تسجيل استثناء",
-        "packOrder": "تعبئة الطلب"
+        "completeAssembly": "إكمال التجميع"
       },
       "messages": {
         "taskStarted": "تم بدء مهمة التجميع",
         "taskStartFailed": "فشل بدء المهمة",
         "taskIdRequired": "معرف المهمة مطلوب",
         "loadFailed": "فشل تحميل مهمة التجميع",
-        "packSuccess": "تم تعبئة الطلب بنجاح",
-        "packFailed": "فشلت التعبئة",
+        "completeSuccess": "تم إكمال التجميع",
+        "completeFailed": "فشل إكمال التجميع",
+        "completeRequiresAllItems": "يجب تعليم أو مسح جميع الأصناف قبل إكمال التجميع.",
+        "openExceptionsBlock": "يجب حل الاستثناءات المفتوحة قبل إكمال التجميع.",
         "barcodeRequired": "يرجى إدخال الباركود",
         "scanSuccess": "تم مسح الصنف بنجاح",
         "scanNotFound": "الباركود غير موجود ضمن الأصناف المتوقعة",
         "scanFailed": "فشل المسح",
         "itemMarked": "تم تعليم الصنف كمجمّع",
         "itemMarkFailed": "فشل تعليم الصنف"
+      },
+      "exception": {
+        "title": "تسجيل استثناء",
+        "typeLabel": "نوع الاستثناء *",
+        "typePlaceholder": "اختر النوع...",
+        "severityLabel": "الخطورة",
+        "itemLabel": "الصنف المرتبط (اختياري)",
+        "itemPlaceholder": "اختر صنفاً...",
+        "itemNone": "بدون صنف محدد",
+        "descriptionEn": "الوصف (الإنجليزية) *",
+        "descriptionEnPlaceholder": "صف الاستثناء...",
+        "descriptionAr": "الوصف (العربية)",
+        "descriptionArPlaceholder": "وصف الاستثناء...",
+        "types": {
+          "MISSING": "صنف مفقود",
+          "WRONG_ITEM": "صنف خاطئ",
+          "DAMAGED": "صنف تالف",
+          "EXTRA": "صنف إضافي",
+          "QUALITY_ISSUE": "مشكلة جودة"
+        },
+        "severity": {
+          "LOW": "منخفضة",
+          "MEDIUM": "متوسطة",
+          "HIGH": "عالية",
+          "CRITICAL": "حرجة"
+        },
+        "actions": {
+          "cancel": "إلغاء",
+          "submit": "تسجيل الاستثناء"
+        },
+        "messages": {
+          "required": "نوع الاستثناء والوصف مطلوبان",
+          "success": "تم تسجيل الاستثناء بنجاح",
+          "failed": "فشل تسجيل الاستثناء"
+        }
       }
     }
   },

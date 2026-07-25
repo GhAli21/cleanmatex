@@ -300,6 +300,10 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     taxProfileIds:       input.taxProfileIds,
     additionalTaxRate:   input.additionalTaxRate,
     additionalTaxAmount: input.additionalTaxAmount,
+    orderCharges: (input.orderServicePrefs ?? []).map((p) => ({
+      label: p.preference_code,
+      amount: p.extra_price,
+    })),
   });
   const clientSaleTotal = clientTotals.saleTotal;
   const serverSaleTotal = serverTotals.saleTotal;
@@ -585,6 +589,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     readyByAt:         input.readyByAt,
     paymentMethod:     input.paymentMethod,
     idempotencyKey:    input.idempotencyKey,
+    /** B18 — order-level preferences; written as prefs_level=ORDER rows + PREFERENCE charge facts. */
+    orderServicePrefs: input.orderServicePrefs,
     totals: {
       subtotal:  serverTotals.subtotal,
       discount:  serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
@@ -598,6 +604,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
           : undefined)),
       roundingAdjustment: serverTotals.roundingAdjustmentAmount,
+      chargesTotal: serverTotals.chargesTotal,
     },
     discountRate:           input.percentDiscount ?? 0,
     promoCodeId:            input.promoCodeId,

@@ -52,6 +52,9 @@ export const initialState: NewOrderState = {
   // Order Items
   items: [],
 
+  // B18 — order-level preferences
+  orderServicePrefs: [],
+
   // Order Settings
   branchId: null,
   isQuickDrop: false,
@@ -302,6 +305,14 @@ export function newOrderReducer(
               }
             : item
         ),
+      };
+    }
+
+    case 'UPDATE_ORDER_SERVICE_PREFS': {
+      const { servicePrefs } = action.payload;
+      return {
+        ...state,
+        orderServicePrefs: servicePrefs,
       };
     }
 

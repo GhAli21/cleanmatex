@@ -38,6 +38,7 @@ export default function AssemblyPage() {
 
   const [page, setPage] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const { data: dashboardData } = useAssemblyDashboard();
@@ -58,25 +59,33 @@ export default function AssemblyPage() {
       total_items: order.total_items || 0,
       current_status: order.current_status || order.status || 'assembly',
       customer: {
-        name: order.customer?.name || 'Unknown Customer',
-        phone: order.customer?.phone || 'N/A',
+        name: order.customer?.name || t('assembly.unknownCustomer'),
+        phone: order.customer?.phone || t('assembly.phoneUnavailable'),
       },
     }));
-  }, [rawOrders]);
+  }, [rawOrders, t]);
 
-  const handleAssembleOrder = async (orderId: string, e: React.MouseEvent) => {
+  const handleAssembleOrder = async (
+    order: AssemblyOrder,
+    e: React.MouseEvent
+  ) => {
     e.preventDefault();
     e.stopPropagation();
 
     try {
-      const result = await createTask(orderId);
+      const result = await createTask(order.id);
       if (result.success && result.taskId) {
-        setSelectedOrderId(orderId);
+        setSelectedOrderId(order.id);
+        setSelectedOrderNo(order.order_no);
         setSelectedTaskId(result.taskId);
         showSuccess(t('assembly.messages.taskCreated'));
       }
-    } catch (err: any) {
-      showErrorMsg(err?.message || t('assembly.messages.taskCreateFailed'));
+    } catch (err: unknown) {
+      showErrorMsg(
+        err instanceof Error
+          ? err.message
+          : t('assembly.messages.taskCreateFailed')
+      );
     }
   };
 
@@ -148,11 +157,11 @@ export default function AssemblyPage() {
                 <div className="pt-4 border-t border-gray-200">
                   <CmxButton
                     className="w-full"
-                    onClick={(e) => handleAssembleOrder(order.id, e)}
+                    onClick={(e) => handleAssembleOrder(order, e)}
                     loading={isCreatingTask}
                     disabled={isCreatingTask}
                   >
-                    <Package className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                    <Package className="h-4 w-4 me-2" />
                     {t('assembly.actions.assembleOrder')}
                   </CmxButton>
                 </div>
@@ -164,38 +173,41 @@ export default function AssemblyPage() {
 
       {pagination.totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
-          <button
-            type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+          <CmxButton
+            variant="outline"
+            size="sm"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             {t('labels.previous')}
-          </button>
+          </CmxButton>
           <div className="text-sm text-gray-600">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
-          <button
-            type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+          <CmxButton
+            variant="outline"
+            size="sm"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
           >
             {t('labels.next')}
-          </button>
+          </CmxButton>
         </div>
       )}
 
       {selectedOrderId && selectedTaskId && (
         <AssemblyTaskModal
           orderId={selectedOrderId}
+          orderNo={selectedOrderNo}
           taskId={selectedTaskId}
           onClose={() => {
             setSelectedOrderId(null);
+            setSelectedOrderNo(null);
             setSelectedTaskId(null);
           }}
           onComplete={() => {
             setSelectedOrderId(null);
+            setSelectedOrderNo(null);
             setSelectedTaskId(null);
             refetch();
           }}

@@ -30,6 +30,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
+  updateOrderServicePrefs: (servicePrefs: OrderItemServicePref[]) => void;
   updateItemPackingPref: (
     productId: string,
     packingPrefCode: string,
@@ -124,6 +125,13 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({
         type: 'UPDATE_ITEM_SERVICE_PREFS',
         payload: { productId, servicePrefs, servicePrefCharge },
+      });
+    },
+
+    updateOrderServicePrefs: (servicePrefs: OrderItemServicePref[]) => {
+      dispatch({
+        type: 'UPDATE_ORDER_SERVICE_PREFS',
+        payload: { servicePrefs },
       });
     },
 

@@ -252,6 +252,9 @@ export interface NewOrderState {
 
   // Customer/Order/Item/Pieces Preferences - selected piece for applying conditions
   selectedPieceId: string | null;
+
+  /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item/piece. */
+  orderServicePrefs: OrderItemServicePref[];
 }
 
 // ==================================================================
@@ -282,6 +285,7 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
   | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
+  | { type: 'UPDATE_ORDER_SERVICE_PREFS'; payload: { servicePrefs: OrderItemServicePref[] } }
   | {
       type: 'UPDATE_ITEM_PACKING_PREF';
       payload: {

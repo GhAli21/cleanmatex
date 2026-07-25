@@ -370,6 +370,13 @@ export const previewPaymentRequestSchema = z.object({
       packingPrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
+  /** B18 — order-level preferences, independent of any item. Included in preview so the payment modal reflects them before submit. */
+  orderServicePrefs: z.array(z.object({
+    preference_code: z.string(),
+    source: z.string(),
+    extra_price: z.number().nonnegative(),
+    preferenceCfId: z.string().uuid().optional().nullable(),
+  })).optional(),
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().uuid().optional()
@@ -469,6 +476,13 @@ export const createWithPaymentRequestSchema = z.object({
       packingPrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
+  /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item. */
+  orderServicePrefs: z.array(z.object({
+    preference_code: z.string(),
+    source: z.string(),
+    extra_price: z.number().nonnegative(),
+    preferenceCfId: z.string().uuid().optional().nullable(),
+  })).optional(),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().positive().optional(),
   express: z.boolean().optional(),

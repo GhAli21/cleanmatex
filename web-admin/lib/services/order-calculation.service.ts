@@ -64,6 +64,13 @@ export interface OrderCalculationParams {
   additionalTaxAmount?: number;
   /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
   userId?: string;
+  /**
+   * B18 — order-level charge facts (e.g. order-wide preferences selected via
+   * `prefs_level=ORDER`), independent of any single item. Not discountable
+   * (added after commercial discounts); participates in the tax base like
+   * everything else afterDiscounts feeds into.
+   */
+  orderCharges?: { label: string; label2?: string | null; amount: number; sourceId?: string }[];
 }
 
 /**
@@ -95,6 +102,8 @@ export interface OrderCalculationResult {
   taxPricingMode: TaxPricingMode;
   /** B17 — delta applied by the currency cash-rounding rule; 0 when no rule changes the total. */
   roundingAdjustmentAmount: number;
+  /** B18 — sum of order-level charge facts (`orderCharges`); 0 when none were supplied. */
+  chargesTotal: number;
 }
 
 function round(value: number, decimals: number): number {
@@ -128,6 +137,7 @@ export async function calculateOrderTotals(
     taxProfileIds,
     additionalTaxRate,
     additionalTaxAmount: additionalTaxAmountParam,
+    orderCharges,
   } = params;
 
   const supabase = await createClient();
@@ -145,6 +155,10 @@ export async function calculateOrderTotals(
   // B15: getCurrencyConfig now fails loudly when the tenant currency is
   // unconfigured, so no fallback exists here.
   const currencyCode = currencyConfig.currencyCode;
+  const chargesTotal = round(
+    (orderCharges ?? []).reduce((sum, charge) => sum + (charge.amount || 0), 0),
+    decimalPlaces
+  );
 
   if (items.length === 0) {
     return {
@@ -164,6 +178,7 @@ export async function calculateOrderTotals(
       currencyCode,
       decimalPlaces,
       discountLines: [],
+      chargesTotal: 0,
       taxPricingMode: pricingMode,
       roundingAdjustmentAmount: 0,
     };
@@ -355,9 +370,13 @@ export async function calculateOrderTotals(
   // B11: TAX_INCLUSIVE — item prices already embed VAT/GST (and profile-driven
   // CUSTOM tax); `afterDiscounts` is the gross and must not be added to again.
   // TAX_EXCLUSIVE — unchanged, byte-identical to pre-B11 behavior.
+  // B18: order-level charges (`chargesTotal`) are always a flat, non-taxable
+  // addend regardless of mode — analogous to the ad-hoc additionalTaxAmount
+  // surcharge, not a catalog price. No `is_taxable` config exists per-charge
+  // today (see B18 doc); taxable charges are a documented future extension.
   let amountBeforeGiftCard = isInclusive
-    ? round(afterDiscounts + (additionalTaxEmbedded ? 0 : additionalTaxAmount), decimalPlaces)
-    : round(afterDiscounts + vatValue + additionalTaxAmount, decimalPlaces);
+    ? round(afterDiscounts + (additionalTaxEmbedded ? 0 : additionalTaxAmount) + chargesTotal, decimalPlaces)
+    : round(afterDiscounts + vatValue + additionalTaxAmount + chargesTotal, decimalPlaces);
 
   // Net-of-tax figure reported to callers (snapshot `netBeforeTax`, receipts).
   // Exclusive: identical to afterDiscounts (nothing embedded). Inclusive: back
@@ -464,6 +483,7 @@ export async function calculateOrderTotals(
     discountLines,
     taxPricingMode: pricingMode,
     roundingAdjustmentAmount,
+    chargesTotal,
   };
 }
 

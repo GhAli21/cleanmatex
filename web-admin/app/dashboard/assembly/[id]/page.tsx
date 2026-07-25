@@ -16,11 +16,12 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
-import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { useCreateAssemblyTask } from '@features/assembly/hooks/use-assembly';
+import { AssemblyTaskModal } from '@features/assembly/ui/assembly-task-modal';
+import { CmxButton } from '@ui/primitives';
 
 interface AssemblyItem {
   id: string;
@@ -50,14 +51,13 @@ export default function AssemblyDetailPage() {
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
-  const useNewWorkflowSystem = useWorkflowSystemMode();
-  const transition = useOrderTransition();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
   const [order, setOrder] = useState<AssemblyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItemIds(prev => {
@@ -114,38 +114,16 @@ export default function AssemblyDetailPage() {
     loadOrder();
   }, [orderId, currentTenant]);
 
-  const handleAssemble = async () => {
+  const handleOpenAssembleModal = async () => {
     if (!orderId) return;
-    setSubmitting(true);
     try {
-      // Resolve next status using workflow context
-      const nextStatus =
-        wfContext?.flags?.qa_enabled
-          ? 'qa'
-          : wfContext?.flags?.packing_enabled
-          ? 'packing'
-          : 'ready';
-
-      const result = await transition.mutateAsync({
-        orderId,
-        input: {
-          screen: 'assembly',
-          to_status: nextStatus,
-          notes: 'Assembly complete',
-          useOldWfCodeOrNew: useNewWorkflowSystem,
-        },
-      });
-
-      if (result.success) {
+      const result = await createTask(orderId);
+      if (result.success && result.taskId) {
+        setTaskId(result.taskId);
         showSuccess(t('assembly.messages.taskCreated'));
-        router.push(nextStatus === 'qa' ? '/dashboard/qa' : nextStatus === 'packing' ? '/dashboard/packing' : '/dashboard/ready');
-      } else {
-        setError(result.error || t('assembly.messages.taskCreateFailed'));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       showErrorFrom(err, { fallback: t('assembly.messages.taskCreateFailed') });
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -160,7 +138,7 @@ export default function AssemblyDetailPage() {
   if (!order) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-        Order not found
+        {error || t('assembly.task.messages.loadFailed')}
       </div>
     );
   }
@@ -261,16 +239,43 @@ export default function AssemblyDetailPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold mb-4">{t('assemblyDetail.actionsTitle')}</h3>
             
-            <button
-              onClick={handleAssemble}
-              disabled={submitting}
-              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
+            <CmxButton
+              className="w-full"
+              onClick={() => {
+                void handleOpenAssembleModal();
+              }}
+              loading={isCreatingTask}
+              disabled={isCreatingTask}
             >
-              {submitting ? t('assemblyDetail.processing') : t('assemblyDetail.complete')}
-            </button>
+              {t('assembly.actions.assembleOrder')}
+            </CmxButton>
           </div>
         </div>
       </div>
+
+      {orderId && taskId ? (
+        <AssemblyTaskModal
+          orderId={orderId}
+          orderNo={order.order_no}
+          taskId={taskId}
+          onClose={() => setTaskId(null)}
+          onComplete={() => {
+            setTaskId(null);
+            const nextStatus = wfContext?.flags?.qa_enabled
+              ? 'qa'
+              : wfContext?.flags?.packing_enabled
+                ? 'packing'
+                : 'ready';
+            router.push(
+              nextStatus === 'qa'
+                ? '/dashboard/qa'
+                : nextStatus === 'packing'
+                  ? '/dashboard/packing'
+                  : '/dashboard/ready'
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }

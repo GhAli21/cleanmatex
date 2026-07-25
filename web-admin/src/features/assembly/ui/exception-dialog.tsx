@@ -1,57 +1,71 @@
 /**
- * Exception Dialog Component
- * Record missing/wrong/damaged items
- * PRD-009: Assembly & QA Workflow
+ * Exception Dialog — record missing/wrong/damaged assembly items
  */
 
 'use client';
 
 import { useState } from 'react';
-import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxInput } from '@ui/primitives/cmx-input';
+import { useTranslations } from 'next-intl';
+import { CmxButton, CmxTextarea, Label } from '@ui/primitives';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+} from '@ui/forms';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useMessage } from '@ui/feedback/useMessage';
+import type { AssemblyTaskItem } from '../hooks/use-assembly';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface ExceptionDialogProps {
   taskId: string;
+  items?: AssemblyTaskItem[];
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-const EXCEPTION_TYPES = [
-  { value: 'MISSING', label: 'Missing Item' },
-  { value: 'WRONG_ITEM', label: 'Wrong Item' },
-  { value: 'DAMAGED', label: 'Damaged Item' },
-  { value: 'EXTRA', label: 'Extra Item' },
-  { value: 'QUALITY_ISSUE', label: 'Quality Issue' },
-];
+const EXCEPTION_TYPE_CODES = [
+  'MISSING',
+  'WRONG_ITEM',
+  'DAMAGED',
+  'EXTRA',
+  'QUALITY_ISSUE',
+] as const;
 
-const SEVERITY_LEVELS = [
-  { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'CRITICAL', label: 'Critical' },
-];
+const SEVERITY_CODES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 
 /**
- *
  * @param root0
  * @param root0.taskId
+ * @param root0.items
  * @param root0.onClose
  * @param root0.onSuccess
  */
-export function ExceptionDialog({ taskId, onClose, onSuccess }: ExceptionDialogProps) {
+export function ExceptionDialog({
+  taskId,
+  items = [],
+  onClose,
+  onSuccess,
+}: ExceptionDialogProps) {
+  const t = useTranslations('workflow.assembly.task.exception');
+  const tTask = useTranslations('workflow.assembly.task');
   const [exceptionType, setExceptionType] = useState('');
   const [severity, setSeverity] = useState('MEDIUM');
+  const [assemblyItemId, setAssemblyItemId] = useState('');
   const [description, setDescription] = useState('');
   const [descriptionAr, setDescriptionAr] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showSuccess, showError } = useMessage();
 
+  const selectableItems = items.filter(
+    (item) => item.itemStatus === 'PENDING' || item.itemStatus === 'SCANNED'
+  );
+
   const handleSubmit = async () => {
     if (!exceptionType || !description.trim()) {
-      showError('Exception type and description are required');
+      showError(t('messages.required'));
       return;
     }
 
@@ -66,99 +80,136 @@ export function ExceptionDialog({ taskId, onClose, onSuccess }: ExceptionDialogP
           severity,
           description: description.trim(),
           description2: descriptionAr.trim() || undefined,
+          assemblyItemId: assemblyItemId || undefined,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        showSuccess('Exception recorded successfully');
+        showSuccess(t('messages.success'));
         onSuccess?.();
         onClose();
       } else {
-        showError(result.error || 'Failed to record exception');
+        showError(result.error || t('messages.failed'));
       }
-    } catch (error) {
-      showError('Failed to record exception');
+    } catch {
+      showError(t('messages.failed'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <CmxCard className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <CmxCard className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <CmxCardHeader className="flex flex-row items-center justify-between">
           <CmxCardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            Record Exception
+            {t('title')}
           </CmxCardTitle>
-          <button
+          <CmxButton
+            variant="ghost"
+            size="xs"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label={tTask('actions.close')}
           >
             <X className="h-5 w-5" />
-          </button>
+          </CmxButton>
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Exception Type *</label>
-            <select
-              value={exceptionType}
-              onChange={(e) => setExceptionType(e.target.value)}
-              className="w-full h-9 rounded-md border border-gray-300 px-3 text-sm"
-            >
-              <option value="">Select type...</option>
-              {EXCEPTION_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1.5">
+            <Label>{t('typeLabel')}</Label>
+            <CmxSelectDropdown value={exceptionType} onValueChange={setExceptionType}>
+              <CmxSelectDropdownTrigger>
+                <CmxSelectDropdownValue placeholder={t('typePlaceholder')} />
+              </CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                {EXCEPTION_TYPE_CODES.map((code) => (
+                  <CmxSelectDropdownItem key={code} value={code}>
+                    {t(`types.${code}`)}
+                  </CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Severity</label>
-            <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="w-full h-9 rounded-md border border-gray-300 px-3 text-sm"
-            >
-              {SEVERITY_LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>
-                  {level.label}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1.5">
+            <Label>{t('severityLabel')}</Label>
+            <CmxSelectDropdown value={severity} onValueChange={setSeverity}>
+              <CmxSelectDropdownTrigger>
+                <CmxSelectDropdownValue />
+              </CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                {SEVERITY_CODES.map((code) => (
+                  <CmxSelectDropdownItem key={code} value={code}>
+                    {t(`severity.${code}`)}
+                  </CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Description (English) *</label>
-            <textarea
+          {selectableItems.length > 0 ? (
+            <div className="space-y-1.5">
+              <Label>{t('itemLabel')}</Label>
+              <CmxSelectDropdown
+                value={assemblyItemId || '__none__'}
+                onValueChange={(value) =>
+                  setAssemblyItemId(value === '__none__' ? '' : value)
+                }
+              >
+                <CmxSelectDropdownTrigger>
+                  <CmxSelectDropdownValue placeholder={t('itemPlaceholder')} />
+                </CmxSelectDropdownTrigger>
+                <CmxSelectDropdownContent>
+                  <CmxSelectDropdownItem value="__none__">
+                    {t('itemNone')}
+                  </CmxSelectDropdownItem>
+                  {selectableItems.map((item) => (
+                    <CmxSelectDropdownItem key={item.id} value={item.id}>
+                      {item.productName}
+                      {item.barcode ? ` (${item.barcode})` : ''}
+                    </CmxSelectDropdownItem>
+                  ))}
+                </CmxSelectDropdownContent>
+              </CmxSelectDropdown>
+            </div>
+          ) : null}
+
+          <div className="space-y-1.5">
+            <Label>{t('descriptionEn')}</Label>
+            <CmxTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full min-h-[100px] rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="Describe the exception..."
+              placeholder={t('descriptionEnPlaceholder')}
+              className="min-h-[100px]"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Description (Arabic)</label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label>{t('descriptionAr')}</Label>
+            <CmxTextarea
               value={descriptionAr}
               onChange={(e) => setDescriptionAr(e.target.value)}
-              className="w-full min-h-[100px] rounded-md border border-gray-300 px-3 py-2 text-sm"
-              placeholder="وصف الاستثناء..."
+              placeholder={t('descriptionArPlaceholder')}
+              className="min-h-[100px]"
               dir="rtl"
             />
           </div>
 
-          <div className="flex gap-2 justify-end pt-4 border-t">
+          <div className="flex justify-end gap-2 border-t pt-4">
             <CmxButton variant="outline" onClick={onClose} disabled={isSubmitting}>
-              Cancel
+              {t('actions.cancel')}
             </CmxButton>
-            <CmxButton onClick={handleSubmit} loading={isSubmitting} disabled={isSubmitting}>
-              Record Exception
+            <CmxButton
+              onClick={() => {
+                void handleSubmit();
+              }}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            >
+              {t('actions.submit')}
             </CmxButton>
           </div>
         </CmxCardContent>
@@ -166,4 +217,3 @@ export function ExceptionDialog({ taskId, onClose, onSuccess }: ExceptionDialogP
     </div>
   );
 }
-

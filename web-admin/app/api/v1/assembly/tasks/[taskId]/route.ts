@@ -1,34 +1,28 @@
 /**
  * Assembly API - Get Task
  * GET /api/v1/assembly/tasks/:taskId
- * Returns assembly task details and line items for scan / manual select UI
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- * @param _request
- * @param root0
- * @param root0.params
- * @param root0.params.taskId
+ * @param request
+ * @param context
  */
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: { taskId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:read')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId } = authContext;
-    const { taskId } = params;
+    const { tenantId } = authCheck;
+    const { taskId } = await context.params;
 
     if (!taskId) {
       return NextResponse.json(

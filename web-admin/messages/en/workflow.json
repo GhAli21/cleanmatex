@@ -86,6 +86,8 @@
     "description": "Orders ready for assembly",
     "empty": "No orders in assembly",
     "items": "items",
+    "unknownCustomer": "Unknown customer",
+    "phoneUnavailable": "N/A",
     "actions": {
       "assembleOrder": "Assemble Order"
     },
@@ -103,6 +105,7 @@
     "task": {
       "title": "Assembly Task",
       "titleWithOrder": "Assembly Task - Order {orderNo}",
+      "orderFallback": "—",
       "creatingTask": "Assembly task not found. Creating task...",
       "startingTask": "Starting assembly task...",
       "scannerTitle": "Barcode Scanner",
@@ -115,7 +118,6 @@
       "quantity": "Qty {count}",
       "barcodeLabel": "Barcode",
       "noBarcode": "No barcode",
-      "packRequiresAllItems": "Mark or scan all items before packing.",
       "itemStatus": {
         "PENDING": "Pending",
         "SCANNED": "Assembled",
@@ -132,21 +134,58 @@
         "scan": "Scan",
         "markAssembled": "Mark assembled",
         "recordException": "Record Exception",
-        "packOrder": "Pack Order"
+        "completeAssembly": "Complete Assembly"
       },
       "messages": {
         "taskStarted": "Assembly task started",
         "taskStartFailed": "Failed to start task",
         "taskIdRequired": "Task ID is required",
         "loadFailed": "Failed to load assembly task",
-        "packSuccess": "Order packed successfully",
-        "packFailed": "Packing failed",
+        "completeSuccess": "Assembly completed",
+        "completeFailed": "Failed to complete assembly",
+        "completeRequiresAllItems": "Mark or scan all items before completing assembly.",
+        "openExceptionsBlock": "Resolve open exceptions before completing assembly.",
         "barcodeRequired": "Please enter a barcode",
         "scanSuccess": "Item scanned successfully",
         "scanNotFound": "Barcode not found in expected items",
         "scanFailed": "Scan failed",
         "itemMarked": "Item marked as assembled",
         "itemMarkFailed": "Failed to mark item"
+      },
+      "exception": {
+        "title": "Record Exception",
+        "typeLabel": "Exception type *",
+        "typePlaceholder": "Select type...",
+        "severityLabel": "Severity",
+        "itemLabel": "Related item (optional)",
+        "itemPlaceholder": "Select item...",
+        "itemNone": "No specific item",
+        "descriptionEn": "Description (English) *",
+        "descriptionEnPlaceholder": "Describe the exception...",
+        "descriptionAr": "Description (Arabic)",
+        "descriptionArPlaceholder": "وصف الاستثناء...",
+        "types": {
+          "MISSING": "Missing item",
+          "WRONG_ITEM": "Wrong item",
+          "DAMAGED": "Damaged item",
+          "EXTRA": "Extra item",
+          "QUALITY_ISSUE": "Quality issue"
+        },
+        "severity": {
+          "LOW": "Low",
+          "MEDIUM": "Medium",
+          "HIGH": "High",
+          "CRITICAL": "Critical"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "submit": "Record Exception"
+        },
+        "messages": {
+          "required": "Exception type and description are required",
+          "success": "Exception recorded successfully",
+          "failed": "Failed to record exception"
+        }
       }
     }
   },

@@ -1,6 +1,6 @@
 /**
- * Assembly API - Create Exception
- * POST /api/v1/assembly/tasks/:taskId/exceptions
+ * Assembly API - Complete Task
+ * POST /api/v1/assembly/tasks/:taskId/complete
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,32 +23,17 @@ export async function POST(
 
     const { tenantId, userId } = authCheck;
     const { taskId } = await context.params;
-    const body = await request.json();
-    const {
-      exceptionTypeCode,
-      description,
-      description2,
-      severity,
-      photoUrls,
-      assemblyItemId,
-    } = body;
 
-    if (!exceptionTypeCode || !description) {
+    if (!taskId) {
       return NextResponse.json(
-        { success: false, error: 'Exception type and description are required' },
+        { success: false, error: 'Task ID is required' },
         { status: 400 }
       );
     }
 
-    const result = await AssemblyService.createException({
+    const result = await AssemblyService.completeAssemblyTask({
       taskId,
       tenantId,
-      exceptionTypeCode,
-      description,
-      description2,
-      severity,
-      photoUrls,
-      assemblyItemId,
       userId,
     });
 
@@ -61,7 +46,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      exceptionId: result.exceptionId,
+      orderId: result.orderId,
+      orderNo: result.orderNo,
     });
   } catch (error) {
     return NextResponse.json(

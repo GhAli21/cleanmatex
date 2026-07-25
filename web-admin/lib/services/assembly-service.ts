@@ -14,7 +14,6 @@ import {
   InvalidScanError,
   ExceptionNotResolvedError,
   AssemblyNotCompleteError,
-  QANotPassedError,
   LocationNotFoundError,
   LocationCapacityExceededError,
 } from '@/lib/errors/assembly-errors';
@@ -40,6 +39,20 @@ export interface StartAssemblyTaskParams {
 
 export interface StartAssemblyTaskResult {
   success: boolean;
+  alreadyStarted?: boolean;
+  error?: string;
+}
+
+export interface CompleteAssemblyTaskParams {
+  taskId: string;
+  tenantId: string;
+  userId: string;
+}
+
+export interface CompleteAssemblyTaskResult {
+  success: boolean;
+  orderId?: string;
+  orderNo?: string | null;
   error?: string;
 }
 
@@ -65,6 +78,7 @@ export interface CreateExceptionParams {
   description2?: string;
   severity?: string;
   photoUrls?: string[];
+  assemblyItemId?: string;
   userId: string;
 }
 
@@ -162,6 +176,42 @@ export interface GetAssemblyTaskParams {
 
 export class AssemblyService {
   /**
+   * Recount scanned / exception / total counters from org_asm_items_dtl (race-safe).
+   */
+  private static async syncTaskItemCounters(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    taskId: string,
+    tenantId: string,
+    userId: string
+  ): Promise<{ total: number; scanned: number; exceptions: number; pending: number }> {
+    const { data: items } = await supabase
+      .from('org_asm_items_dtl')
+      .select('item_status')
+      .eq('task_id', taskId)
+      .eq('tenant_org_id', tenantId);
+
+    const rows = items ?? [];
+    const total = rows.length;
+    const scanned = rows.filter((row) => row.item_status === 'SCANNED').length;
+    const exceptions = rows.filter((row) => row.item_status === 'EXCEPTION').length;
+    const pending = rows.filter((row) => row.item_status === 'PENDING').length;
+
+    await supabase
+      .from('org_asm_tasks_mst')
+      .update({
+        total_items: total,
+        scanned_items: scanned,
+        exception_items: exceptions,
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', taskId)
+      .eq('tenant_org_id', tenantId);
+
+    return { total, scanned, exceptions, pending };
+  }
+
+  /**
    * Create assembly task for an order
    * Auto-creates when order enters ASSEMBLY status
    */
@@ -201,10 +251,10 @@ export class AssemblyService {
         };
       }
 
-      // Get order items count
+      // Get order items (include names/barcodes for assembly item seed)
       const { data: orderItems, error: itemsError } = await supabase
         .from('org_order_items_dtl')
-        .select('id')
+        .select('id, barcode, product_name, product_name2')
         .eq('order_id', orderId)
         .eq('tenant_org_id', tenantId);
 
@@ -235,16 +285,17 @@ export class AssemblyService {
         .single();
 
       if (taskError || !task) {
-        logger.error('Failed (1) to create assembly task', taskError as Error, {
+        logger.error('Failed to create assembly task', taskError as Error, {
           tenantId,
           userId,
           orderId,
+          code: taskError?.code,
+          details: taskError?.details,
+          hint: taskError?.hint,
         });
-        console.log('taskError', taskError?.message);
-        console.log('taskError', taskError?.details);
-        console.log('taskError', taskError?.hint);
-        console.log('taskError', taskError?.code);
-        throw new Error('Failed (2) to create assembly task'+taskError?.message);
+        throw new Error(
+          `Failed to create assembly task${taskError?.message ? `: ${taskError.message}` : ''}`
+        );
       }
 
       // Create assembly items for each order item
@@ -254,6 +305,9 @@ export class AssemblyService {
           order_item_id: item.id,
           tenant_org_id: tenantId,
           item_status: 'PENDING',
+          barcode: item.barcode || null,
+          item_name: item.product_name || null,
+          item_name2: item.product_name2 || null,
           created_by: userId,
         }));
 
@@ -262,12 +316,14 @@ export class AssemblyService {
           .insert(assemblyItems);
 
         if (itemsInsertError) {
-          logger.error('Failed (3) to create assembly items', itemsInsertError as Error, {
+          logger.error('Failed to create assembly items', itemsInsertError as Error, {
             tenantId,
             userId,
             taskId: task.id,
           });
-          // Don't fail the whole operation, log and continue
+          throw new Error(
+            `Failed to create assembly items: ${itemsInsertError.message}`
+          );
         }
       }
 
@@ -357,12 +413,17 @@ export class AssemblyService {
             updated_by: userId,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', locationId);
+          .eq('id', locationId)
+          .eq('tenant_org_id', tenantId);
       }
 
       // Idempotent: already started tasks can be resumed without error
       if (task.task_status === 'IN_PROGRESS') {
-        return { success: true };
+        return { success: true, alreadyStarted: true };
+      }
+
+      if (task.task_status === 'COMPLETE' || task.task_status === 'READY') {
+        return { success: true, alreadyStarted: true };
       }
 
       if (task.task_status !== 'PENDING') {
@@ -466,6 +527,7 @@ export class AssemblyService {
         `
         )
         .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId)
         .eq('item_status', 'PENDING');
 
       if (itemsError) {
@@ -477,10 +539,17 @@ export class AssemblyService {
         throw new Error('Failed to fetch assembly items');
       }
 
-      // Find matching item
-      const matchingItem = items?.find(
-        (item: any) => item.order_item?.barcode === barcode
-      );
+      // Match asm-item barcode OR order-item barcode
+      const matchingItem = items?.find((item: {
+        barcode?: string | null;
+        order_item?: { barcode?: string | null } | { barcode?: string | null }[] | null;
+      }) => {
+        const orderItem = Array.isArray(item.order_item)
+          ? item.order_item[0]
+          : item.order_item;
+        const candidates = [item.barcode, orderItem?.barcode].filter(Boolean);
+        return candidates.includes(barcode);
+      });
 
       if (!matchingItem) {
         logger.warn('Barcode not found in pending items', {
@@ -507,7 +576,8 @@ export class AssemblyService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', matchingItem.id);
+        .eq('id', matchingItem.id)
+        .eq('tenant_org_id', tenantId);
 
       if (updateError) {
         logger.error('Failed to update item status', updateError as Error, {
@@ -519,23 +589,19 @@ export class AssemblyService {
         throw new Error('Failed to update item status');
       }
 
-      // Update task counters
-      const newScannedCount = (task.scanned_items || 0) + 1;
-      await supabase
-        .from('org_asm_tasks_mst')
-        .update({
-          scanned_items: newScannedCount,
-          updated_by: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', taskId);
+      const counts = await AssemblyService.syncTaskItemCounters(
+        supabase,
+        taskId,
+        tenantId,
+        userId
+      );
 
       logger.info('Item scanned successfully', {
         tenantId,
         userId,
         taskId,
         itemId: matchingItem.id,
-        scannedCount: newScannedCount,
+        scannedCount: counts.scanned,
       });
 
       return {
@@ -571,6 +637,7 @@ export class AssemblyService {
         description2,
         severity,
         photoUrls,
+        assemblyItemId,
         userId,
       } = params;
       const supabase = await createClient();
@@ -580,6 +647,7 @@ export class AssemblyService {
         userId,
         taskId,
         exceptionTypeCode,
+        assemblyItemId,
         feature: 'assembly',
         action: 'create_exception',
       });
@@ -602,7 +670,7 @@ export class AssemblyService {
         .insert({
           task_id: taskId,
           tenant_org_id: tenantId,
-          branch_id: (task as any).branch_id ?? null,
+          branch_id: (task as { branch_id?: string | null }).branch_id ?? null,
           exception_type_code: exceptionTypeCode,
           severity: severity || 'MEDIUM',
           description,
@@ -623,16 +691,27 @@ export class AssemblyService {
         throw new Error('Failed to create exception');
       }
 
-      // Update task exception counter
-      const newExceptionCount = (task.exception_items || 0) + 1;
-      await supabase
-        .from('org_asm_tasks_mst')
-        .update({
-          exception_items: newExceptionCount,
-          updated_by: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', taskId);
+      if (assemblyItemId) {
+        await supabase
+          .from('org_asm_items_dtl')
+          .update({
+            item_status: 'EXCEPTION',
+            has_exception: true,
+            exception_id: exception.id,
+            updated_by: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', assemblyItemId)
+          .eq('task_id', taskId)
+          .eq('tenant_org_id', tenantId);
+      }
+
+      await AssemblyService.syncTaskItemCounters(
+        supabase,
+        taskId,
+        tenantId,
+        userId
+      );
 
       logger.info('Exception created successfully', {
         tenantId,
@@ -699,7 +778,8 @@ export class AssemblyService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', exceptionId);
+        .eq('id', exceptionId)
+        .eq('tenant_org_id', tenantId);
 
       if (updateError) {
         logger.error('Failed to resolve exception', updateError as Error, {
@@ -708,6 +788,28 @@ export class AssemblyService {
           exceptionId,
         });
         throw new Error('Failed to resolve exception');
+      }
+
+      // Clear EXCEPTION flag on linked items so they can be re-marked
+      await supabase
+        .from('org_asm_items_dtl')
+        .update({
+          item_status: 'PENDING',
+          has_exception: false,
+          exception_id: null,
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('exception_id', exceptionId)
+        .eq('tenant_org_id', tenantId);
+
+      if (exception.task_id) {
+        await AssemblyService.syncTaskItemCounters(
+          supabase,
+          exception.task_id,
+          tenantId,
+          userId
+        );
       }
 
       logger.info('Exception resolved successfully', {
@@ -779,6 +881,7 @@ export class AssemblyService {
         .from('org_asm_exceptions_tr')
         .select('id')
         .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId)
         .eq('exception_status', 'OPEN');
 
       if (openExceptions && openExceptions.length > 0) {
@@ -789,8 +892,8 @@ export class AssemblyService {
       const { error: qaError } = await supabase.from('org_qa_decisions_tr').insert({
         task_id: taskId,
         tenant_org_id: tenantId,
-        branch_id: (task as any).branch_id ?? null,
-        order_id: (task.order as any).id,
+        branch_id: (task as { branch_id?: string | null }).branch_id ?? null,
+        order_id: (task.order as { id?: string })?.id,
         decision_type_code: decisionTypeCode,
         qa_by: userId,
         qa_note: qaNote || null,
@@ -821,7 +924,8 @@ export class AssemblyService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId);
 
       logger.info('QA decision recorded successfully', {
         tenantId,
@@ -888,34 +992,80 @@ export class AssemblyService {
         throw new AssemblyTaskNotFoundError(taskId);
       }
 
-      // Verify QA passed
+      // Packing requires assembly verification (all items scanned, no open exceptions).
+      // Separate QA screen may still apply at order-workflow level.
+      const counts = await AssemblyService.syncTaskItemCounters(
+        supabase,
+        taskId,
+        tenantId,
+        userId
+      );
+      if (counts.pending > 0 || counts.scanned < counts.total) {
+        throw new AssemblyNotCompleteError(
+          (task.order as { id?: string })?.id || task.order_id,
+          { scanned: counts.scanned, total: counts.total }
+        );
+      }
+
+      const { data: openExceptions } = await supabase
+        .from('org_asm_exceptions_tr')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .eq('exception_status', 'OPEN');
+
+      if (openExceptions && openExceptions.length > 0) {
+        throw new ExceptionNotResolvedError(openExceptions[0].id);
+      }
+
+      // Assembly-level verification stamp (does not replace the QA screen)
       if (task.qa_status !== 'QA_PASSED') {
-        throw new QANotPassedError((task.order as any).id);
+        await supabase
+          .from('org_asm_tasks_mst')
+          .update({
+            qa_status: 'QA_PASSED',
+            qa_by: userId,
+            qa_at: new Date().toISOString(),
+            updated_by: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', taskId)
+          .eq('tenant_org_id', tenantId);
       }
 
       // Generate packing list number
-      const orderNo = (task.order as any).order_no;
+      const orderNo = (task.order as { order_no?: string })?.order_no;
       const listNumber = `PL-${orderNo}-${Date.now()}`;
 
       // Build items summary
-      const itemsSummary = (task.items as any[])?.map((item: any) => ({
-        productName: item.order_item?.product_name || '',
-        productName2: item.order_item?.product_name2 || '',
-        quantity: item.order_item?.quantity || 1,
-      })) || [];
+      const itemsSummary =
+        (task.items as Array<{
+          order_item?:
+            | { product_name?: string; product_name2?: string; quantity?: number }
+            | Array<{ product_name?: string; product_name2?: string; quantity?: number }>;
+        }>)?.map((item) => {
+          const orderItem = Array.isArray(item.order_item)
+            ? item.order_item[0]
+            : item.order_item;
+          return {
+            productName: orderItem?.product_name || '',
+            productName2: orderItem?.product_name2 || '',
+            quantity: orderItem?.quantity || 1,
+          };
+        }) || [];
 
       // Create packing list
       const { data: packingList, error: listError } = await supabase
         .from('org_pck_packing_lists_mst')
         .insert({
           tenant_org_id: tenantId,
-          branch_id: (task as any).branch_id ?? null,
-          order_id: (task.order as any).id,
+          branch_id: (task as { branch_id?: string | null }).branch_id ?? null,
+          order_id: (task.order as { id?: string })?.id,
           task_id: taskId,
           list_number: listNumber,
           items_summary: itemsSummary,
           packaging_type_code: packagingTypeCode,
-          item_count: task.total_items,
+          item_count: counts.total,
           generated_by: userId,
           created_by: userId,
         })
@@ -944,7 +1094,8 @@ export class AssemblyService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId);
 
       logger.info('Order packed successfully', {
         tenantId,
@@ -968,6 +1119,73 @@ export class AssemblyService {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  /**
+   * Ensure org_asm_items_dtl rows exist for every order line on the task.
+   * Safe to call repeatedly — only inserts missing order_item_id rows.
+   */
+  static async ensureAssemblyItemsForTask(params: {
+    taskId: string;
+    orderId: string;
+    tenantId: string;
+    userId: string;
+  }): Promise<number> {
+    const { taskId, orderId, tenantId, userId } = params;
+    const supabase = await createClient();
+
+    const [{ data: orderItems }, { data: existing }] = await Promise.all([
+      supabase
+        .from('org_order_items_dtl')
+        .select('id, barcode, product_name, product_name2')
+        .eq('order_id', orderId)
+        .eq('tenant_org_id', tenantId),
+      supabase
+        .from('org_asm_items_dtl')
+        .select('order_item_id')
+        .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId),
+    ]);
+
+    if (!orderItems?.length) return 0;
+
+    const existingIds = new Set(
+      (existing ?? []).map((row) => String(row.order_item_id))
+    );
+    const missing = orderItems.filter((item) => !existingIds.has(String(item.id)));
+
+    if (missing.length === 0) return 0;
+
+    const { error } = await supabase.from('org_asm_items_dtl').insert(
+      missing.map((item) => ({
+        task_id: taskId,
+        order_item_id: item.id,
+        tenant_org_id: tenantId,
+        item_status: 'PENDING',
+        barcode: item.barcode || null,
+        item_name: item.product_name || null,
+        item_name2: item.product_name2 || null,
+        created_by: userId,
+      }))
+    );
+
+    if (error) {
+      logger.error('Failed to backfill assembly items', error as Error, {
+        tenantId,
+        taskId,
+        orderId,
+      });
+      return 0;
+    }
+
+    logger.info('Backfilled assembly items', {
+      tenantId,
+      taskId,
+      orderId,
+      inserted: missing.length,
+    });
+
+    return missing.length;
   }
 
   /**
@@ -1030,10 +1248,61 @@ export class AssemblyService {
       }
 
       const order = task.order as { id?: string; order_no?: string } | null;
-      const rawItems = (task.items as Array<Record<string, unknown>> | null) ?? [];
+      let rawItems = (task.items as Array<Record<string, unknown>> | null) ?? [];
+
+      // Always reconcile missing assembly rows from order lines
+      if (task.order_id) {
+        const inserted = await AssemblyService.ensureAssemblyItemsForTask({
+          taskId,
+          orderId: task.order_id,
+          tenantId,
+          userId: 'system',
+        });
+
+        if (inserted > 0 || rawItems.length === 0) {
+          const { data: refreshedItems } = await supabase
+            .from('org_asm_items_dtl')
+            .select(
+              `
+              id,
+              order_item_id,
+              item_status,
+              barcode,
+              scanned_at,
+              has_exception,
+              item_name,
+              item_name2,
+              order_item:org_order_items_dtl(
+                id,
+                barcode,
+                product_name,
+                product_name2,
+                quantity
+              )
+            `
+            )
+            .eq('task_id', taskId)
+            .eq('tenant_org_id', tenantId);
+
+          rawItems = (refreshedItems as Array<Record<string, unknown>> | null) ?? [];
+        }
+
+        const counts = await AssemblyService.syncTaskItemCounters(
+          supabase,
+          taskId,
+          tenantId,
+          'system'
+        );
+        task.total_items = counts.total;
+        task.scanned_items = counts.scanned;
+        task.exception_items = counts.exceptions;
+      }
 
       const items: AssemblyTaskItemDetail[] = rawItems.map((item) => {
-        const orderItem = item.order_item as {
+        const orderItemRaw = item.order_item;
+        const orderItem = (
+          Array.isArray(orderItemRaw) ? orderItemRaw[0] : orderItemRaw
+        ) as {
           id?: string;
           barcode?: string | null;
           product_name?: string | null;
@@ -1176,7 +1445,10 @@ export class AssemblyService {
         };
       }
 
-      const orderItem = item.order_item as { barcode?: string | null } | null;
+      const orderItemRaw = item.order_item;
+      const orderItem = (
+        Array.isArray(orderItemRaw) ? orderItemRaw[0] : orderItemRaw
+      ) as { barcode?: string | null } | null;
       const resolvedBarcode =
         item.barcode || orderItem?.barcode || `MANUAL:${assemblyItemId}`;
 
@@ -1203,23 +1475,19 @@ export class AssemblyService {
         throw new Error('Failed to update item status');
       }
 
-      const newScannedCount = (task.scanned_items || 0) + 1;
-      await supabase
-        .from('org_asm_tasks_mst')
-        .update({
-          scanned_items: newScannedCount,
-          updated_by: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', taskId)
-        .eq('tenant_org_id', tenantId);
+      const counts = await AssemblyService.syncTaskItemCounters(
+        supabase,
+        taskId,
+        tenantId,
+        userId
+      );
 
       logger.info('Assembly item marked selected', {
         tenantId,
         userId,
         taskId,
         itemId: item.id,
-        scannedCount: newScannedCount,
+        scannedCount: counts.scanned,
       });
 
       return {
@@ -1233,6 +1501,128 @@ export class AssemblyService {
         userId: params.userId,
         taskId: params.taskId,
         assemblyItemId: params.assemblyItemId,
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Complete assembly verification for a task (all items assembled, no open exceptions).
+   * Marks the task COMPLETE and stamps assembly-level QA_PASSED so packing can proceed.
+   * Order status advance remains the caller's responsibility (workflow transition).
+   */
+  static async completeAssemblyTask(
+    params: CompleteAssemblyTaskParams
+  ): Promise<CompleteAssemblyTaskResult> {
+    try {
+      const { taskId, tenantId, userId } = params;
+      const supabase = await createClient();
+
+      const { data: task, error: taskError } = await supabase
+        .from('org_asm_tasks_mst')
+        .select(
+          `
+          id,
+          order_id,
+          task_status,
+          order:org_orders_mst(id, order_no)
+        `
+        )
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (taskError || !task) {
+        throw new AssemblyTaskNotFoundError(taskId);
+      }
+
+      if (task.task_status === 'COMPLETE' || task.task_status === 'READY') {
+        const order = task.order as { id?: string; order_no?: string } | null;
+        return {
+          success: true,
+          orderId: order?.id || task.order_id,
+          orderNo: order?.order_no ?? null,
+        };
+      }
+
+      await AssemblyService.ensureAssemblyItemsForTask({
+        taskId,
+        orderId: task.order_id,
+        tenantId,
+        userId,
+      });
+
+      const counts = await AssemblyService.syncTaskItemCounters(
+        supabase,
+        taskId,
+        tenantId,
+        userId
+      );
+
+      if (counts.total === 0) {
+        return {
+          success: false,
+          error: 'Assembly task has no items to complete',
+        };
+      }
+
+      if (counts.pending > 0) {
+        throw new AssemblyNotCompleteError(task.order_id, {
+          scanned: counts.scanned,
+          total: counts.total,
+        });
+      }
+
+      const { data: openExceptions } = await supabase
+        .from('org_asm_exceptions_tr')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('tenant_org_id', tenantId)
+        .eq('exception_status', 'OPEN');
+
+      if (openExceptions && openExceptions.length > 0) {
+        throw new ExceptionNotResolvedError(openExceptions[0].id);
+      }
+
+      const { error: updateError } = await supabase
+        .from('org_asm_tasks_mst')
+        .update({
+          task_status: 'COMPLETE',
+          qa_status: 'QA_PASSED',
+          qa_by: userId,
+          qa_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .eq('tenant_org_id', tenantId);
+
+      if (updateError) {
+        throw new Error('Failed to complete assembly task');
+      }
+
+      const order = task.order as { id?: string; order_no?: string } | null;
+      logger.info('Assembly task completed', {
+        tenantId,
+        userId,
+        taskId,
+        orderId: order?.id || task.order_id,
+      });
+
+      return {
+        success: true,
+        orderId: order?.id || task.order_id,
+        orderNo: order?.order_no ?? null,
+      };
+    } catch (error) {
+      logger.error('Failed to complete assembly task', error as Error, {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        taskId: params.taskId,
       });
       return {
         success: false,

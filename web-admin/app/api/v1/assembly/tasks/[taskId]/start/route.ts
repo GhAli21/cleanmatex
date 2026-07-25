@@ -1,37 +1,33 @@
 /**
  * Assembly API - Start Task
  * POST /api/v1/assembly/tasks/:taskId/start
- * Starts an assembly task and assigns location/user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- *
  * @param request
- * @param root0
- * @param root0.params
- * @param root0.params.taskId
+ * @param context
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  context: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:transition')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId, userId } = authContext;
-    const { taskId } = params;
-    const body = await request.json();
-    const { locationId } = body;
+    const { tenantId, userId } = authCheck;
+    const { taskId } = await context.params;
+    const body = await request.json().catch(() => ({}));
+    const locationId =
+      body && typeof body === 'object' && 'locationId' in body
+        ? (body as { locationId?: string }).locationId
+        : undefined;
 
     const result = await AssemblyService.startAssemblyTask({
       taskId,
@@ -47,7 +43,10 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      alreadyStarted: Boolean(result.alreadyStarted),
+    });
   } catch (error) {
     return NextResponse.json(
       {
@@ -58,4 +57,3 @@ export async function POST(
     );
   }
 }
-

@@ -343,6 +343,9 @@ export function useOrderSubmission() {
                             overrideBy: item.overrideBy,
                         }),
                     })),
+                    ...(state.state.orderServicePrefs && state.state.orderServicePrefs.length > 0 && {
+                        orderServicePrefs: state.state.orderServicePrefs,
+                    }),
                     isQuickDrop: state.state.isQuickDrop || false,
                     ...(state.state.isQuickDrop && state.state.quickDropQuantity > 0 && {
                         quickDropQuantity: state.state.quickDropQuantity,

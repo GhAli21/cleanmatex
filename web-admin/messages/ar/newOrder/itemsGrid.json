@@ -53,5 +53,6 @@
   "applyToAllPieces": "تطبيق على جميع القطع",
   "itemsSubtotal": "العناصر",
   "additionalServices": "خدمات إضافية",
-  "item": "عنصر"
+  "item": "عنصر",
+  "wholeItem": "كامل العنصر"
 }

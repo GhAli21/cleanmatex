@@ -1,35 +1,28 @@
 /**
  * Assembly API - Pack Order
  * POST /api/v1/assembly/tasks/:taskId/pack
- * Packs order and generates packing list
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 /**
- *
  * @param request
- * @param root0
- * @param root0.params
- * @param root0.params.taskId
+ * @param context
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  context: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authCheck = await requirePermission('orders:transition')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
     }
 
-    const { tenantId, userId } = authContext;
-    const { taskId } = params;
+    const { tenantId, userId } = authCheck;
+    const { taskId } = await context.params;
     const body = await request.json();
     const { packagingTypeCode, packingNote } = body;
 
@@ -69,4 +62,3 @@ export async function POST(
     );
   }
 }
-
