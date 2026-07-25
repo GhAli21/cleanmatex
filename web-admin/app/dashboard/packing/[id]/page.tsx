@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -19,6 +19,7 @@ import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 interface PackingItem {
   id: string;
@@ -78,49 +79,49 @@ export default function PackingDetailPage() {
     return (order?.items ?? []).reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
   }, [order]);
 
-  useEffect(() => {
-    const loadOrder = async () => {
-      if (!currentTenant || !orderId) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/v1/orders/${orderId}/state`);
-        const json = await res.json();
-        const rawOrder = getOrderFromStateResponse(json);
-        if (!rawOrder || typeof rawOrder !== 'object') {
-          setError(json.error || t('packing.messages.loadFailed'));
-          return;
-        }
-        const raw = rawOrder as Record<string, unknown>;
-        const items: PackingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
-          id: String(item.id),
-          product_name:
-            (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
-            (item.product_name as string) ||
-            'Unknown Product',
-          quantity: Number(item.quantity ?? 0),
-          quantity_ready:
-            typeof item.quantity_ready === 'number' ? item.quantity_ready : undefined,
-        }));
-        const mapped: PackingOrder = {
-          id: String(raw.id),
-          order_no: String(raw.order_no ?? ''),
-          branch_id: (raw.branch_id as string | null | undefined) ?? null,
-          customer: mapOrderCustomerFromStateRow(raw),
-          rack_location: String(raw.rack_location ?? ''),
-          items,
-        };
-        setOrder(mapped);
-        setRackLocation(mapped.rack_location || '');
-      } catch (err: any) {
-        setError(err.message || t('packing.messages.loadFailed'));
-      } finally {
-        setLoading(false);
+  const loadOrder = useCallback(async () => {
+    if (!currentTenant || !orderId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/state`);
+      const json = await res.json();
+      const rawOrder = getOrderFromStateResponse(json);
+      if (!rawOrder || typeof rawOrder !== 'object') {
+        setError(json.error || t('packing.messages.loadFailed'));
+        return;
       }
-    };
-
-    loadOrder();
+      const raw = rawOrder as Record<string, unknown>;
+      const items: PackingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
+        id: String(item.id),
+        product_name:
+          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
+          (item.product_name as string) ||
+          'Unknown Product',
+        quantity: Number(item.quantity ?? 0),
+        quantity_ready:
+          typeof item.quantity_ready === 'number' ? item.quantity_ready : undefined,
+      }));
+      const mapped: PackingOrder = {
+        id: String(raw.id),
+        order_no: String(raw.order_no ?? ''),
+        branch_id: (raw.branch_id as string | null | undefined) ?? null,
+        customer: mapOrderCustomerFromStateRow(raw),
+        rack_location: String(raw.rack_location ?? ''),
+        items,
+      };
+      setOrder(mapped);
+      setRackLocation(mapped.rack_location || '');
+    } catch (err: any) {
+      setError(err.message || t('packing.messages.loadFailed'));
+    } finally {
+      setLoading(false);
+    }
   }, [orderId, currentTenant, t]);
+
+  useEffect(() => {
+    void loadOrder();
+  }, [loadOrder]);
 
   const saveRackLocation = async () => {
     if (!orderId) return;
@@ -204,6 +205,15 @@ export default function PackingDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {orderId ? (
+        <WorkflowActionBar
+          orderId={orderId}
+          screen="packing"
+          onActionSuccess={() => {
+            void loadOrder();
+          }}
+        />
+      ) : null}
       <div>
         <Link href="/dashboard/packing" className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('packing.actions.back')}
@@ -222,11 +232,11 @@ export default function PackingDetailPage() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-gray-500">{t('packing.metrics.itemsCount')}:</span>{' '}
-              <span className="font-medium">{wfContext.metrics.items_count}</span>
+              <span className="font-medium">{order.items.length}</span>
             </div>
             <div>
               <span className="text-gray-500">{t('packing.metrics.piecesTotal')}:</span>{' '}
-              <span className="font-medium">{wfContext.metrics.pieces_total}</span>
+              <span className="font-medium">{totalQty}</span>
             </div>
           </div>
         </div>

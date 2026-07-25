@@ -25,6 +25,7 @@ import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 interface ProcessingItem {
   id: string;
@@ -278,6 +279,15 @@ export default function ProcessingDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      {orderId ? (
+        <WorkflowActionBar
+          orderId={orderId}
+          screen="processing"
+          onActionSuccess={() => {
+            void loadOrder();
+          }}
+        />
+      ) : null}
       {/* Header Section */}
       <CmxCard className="border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

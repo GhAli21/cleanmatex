@@ -1,7 +1,7 @@
 # B21 — Loyalty Conversion Rate
 
 ## Metadata
-Backlog ID: B21 · Severity: MEDIUM · Classification: MAINTENANCE_RISK · Status: IMPLEMENTED (2026-07-24/25, uncommitted; migration `0433_b21_loyalty_conversion_rate.sql` — STOP-AND-WAIT)
+Backlog ID: B21 · Severity: MEDIUM · Classification: MAINTENANCE_RISK · Status: IMPLEMENTED (2026-07-24/25, uncommitted; migration `0433_b21_loyalty_conversion_rate.sql` APPLIED (owner) to local + remote, verified)
 Authoritative report sections: §7 concern, §33 loyalty, §50-B21
 Required decisions: none (config design is technical; liability valuation belongs to D012/B25)
 Dependencies: none · Blocks: — · Recommended phase: Seq 9
@@ -85,7 +85,7 @@ Rollback: drop the 3 new CHECK constraints + `rounding_rule` column (additive/nu
 UI states: standard Cmx state contract on the settings screen (loading/empty/validation/save-success) — unchanged from the pre-existing screen, now correctly localized (previously missing i18n keys rendered raw paths).
 
 ## Completion evidence
-Migration: `0433_b21_loyalty_conversion_rate.sql` — **STOP-AND-WAIT, not yet applied** (renumbered from an initially-authored `0431` after discovering the owner's own concurrent workflow-engine work had already claimed that number — confirmed via `mcp__supabase_remote_db__list_migrations` before finalizing at `0433`, the first free slot).
+Migration: `0433_b21_loyalty_conversion_rate.sql` — **APPLIED (owner) to local + remote, verified via `mcp__supabase_remote_db` read-only queries** (`rounding_rule` column present; all 3 new CHECK constraints — `chk_loyalty_rounding_rule`, `chk_loyalty_redeem_rate_positive`, `chk_loyalty_min_redeem_nonneg` — confirmed live). Owner also regenerated Supabase types. (Renumbered from an initially-authored `0431` after discovering the owner's own concurrent workflow-engine work had already claimed that number — confirmed via `mcp__supabase_remote_db__list_migrations` before finalizing at `0433`, the first free slot.)
 
 Implementation files: `lib/services/loyalty.service.ts` (new `resolveLoyaltyRedemptionPoints`/`roundLoyaltyPoints`), `lib/constants/order-financial.ts` (`LOYALTY_ROUNDING_RULES`/`LOYALTY_ERROR_CODES`), `lib/services/order-credit-application.service.ts` (`applyStoredValueDebitTx`'s LOYALTY_CREDIT branch now calls the shared helper; `getAvailableStoredValueSummary` extended with points balance + `loyaltyAvailableValue`/`loyaltyMinRedeemPoints`), `lib/services/order-settlement.service.ts` (legacy branch now calls the shared helper instead of `option.minAmount`), `app/api/v1/orders/checkout-options/route.ts` (new LOYALTY_CREDIT `available_balance` branch + 3 new response fields — the real live-bug fix), `app/api/v1/loyalty/config/route.ts` (PATCH field-name fix + roundingRule support), `app/actions/marketing/loyalty-actions.ts` (permission checks added to all 3 mutations + roundingRule plumbed through + rate/min-redeem validation), `src/features/marketing/ui/loyalty-config-client.tsx` (rounding-rule field), `src/features/marketing/access/marketing-access.ts` (loyalty-actions apiDependency now declares `loyalty:manage_config`), `messages/en(ar)/marketing.json` (new `loyalty.*` namespace — was completely missing), `prisma/schema.prisma` (hand-mirrored + `npx prisma generate`).
 

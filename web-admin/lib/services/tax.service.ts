@@ -8,13 +8,12 @@
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { roundMoneyAmount } from '@/lib/money/format-money';
+import { logger } from '@/lib/utils/logger';
 import {
   tenantSettingsService,
   SETTING_CODES,
   type TenantSettingsService,
 } from './tenant-settings.service';
-
-const DEFAULT_VAT_RATE = 0.05; // 5%
 
 /**
  *
@@ -76,20 +75,37 @@ export class TaxService {
         userId ?? undefined
       );
 
-      let taxRate = DEFAULT_VAT_RATE;
+      // B15 policy: tax fallbacks are forbidden — an unset or unparsable rate
+      // means the tenant does not use tax, never an assumed positive rate.
+      let taxRate = 0;
       if (value !== null && value !== undefined) {
         const parsed = typeof value === 'number' ? value : parseFloat(String(value));
         if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
           taxRate = parsed;
+        } else {
+          logger.warn('TaxService.getTaxRate: unparsable TENANT_VAT_RATE setting — treating tenant as zero-rated', {
+            tenantId,
+            branchId,
+            rawValue: value,
+          });
         }
+      } else {
+        logger.warn('TaxService.getTaxRate: no TENANT_VAT_RATE setting configured — treating tenant as zero-rated', {
+          tenantId,
+          branchId,
+        });
       }
 
       this.taxRateCache.set(key, { rate: taxRate, timestamp: Date.now() });
       return taxRate;
     } catch (error) {
-      console.error(`[TaxService] Error fetching tax rate for tenant ${tenantId}:`, error);
-      this.taxRateCache.set(key, { rate: DEFAULT_VAT_RATE, timestamp: Date.now() });
-      return DEFAULT_VAT_RATE;
+      logger.warn('TaxService.getTaxRate: error resolving VAT rate — treating tenant as zero-rated', {
+        tenantId,
+        branchId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      this.taxRateCache.set(key, { rate: 0, timestamp: Date.now() });
+      return 0;
     }
   }
 

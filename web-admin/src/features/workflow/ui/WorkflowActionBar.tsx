@@ -90,7 +90,11 @@ export function WorkflowActionBar({
                 title={!action.enabled ? blockedHint : undefined}
                 onClick={() => {
                   void (async () => {
-                    const ok = await execute(action.actionCode);
+                    const ok = await execute(
+                      action.actionCode,
+                      undefined,
+                      action.toStatus,
+                    );
                     if (ok) onActionSuccess?.();
                   })();
                 }}

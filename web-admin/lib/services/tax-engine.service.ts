@@ -2,8 +2,9 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
-import { TAX_TYPES } from '@/lib/constants/order-financial';
-import type { TaxLineItem, TaxType } from '@/lib/types/order-financial';
+import { TAX_TYPES, TAX_PRICING_MODES } from '@/lib/constants/order-financial';
+import { extractTaxFromInclusive } from './order-financial-write.service';
+import type { TaxLineItem, TaxType, TaxPricingMode } from '@/lib/types/order-financial';
 import { Decimal } from '@prisma/client/runtime/library';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -21,6 +22,14 @@ export interface TaxCalcParams {
   currency?: string;
   decimalPlaces?: number;
   selectedProfileIds?: string[];
+  /**
+   * Resolved tax pricing mode (B11). TAX_EXCLUSIVE (default) treats `baseAmount`
+   * as the net taxable amount and adds tax on top. TAX_INCLUSIVE treats
+   * `baseAmount` as the tax-inclusive gross and extracts the embedded tax —
+   * the returned lines' `baseAmount`/`taxAmount` reflect the extracted split,
+   * so `netExtractedBase + sum(taxAmount) === baseAmount` (mod rounding).
+   */
+  pricingMode?: TaxPricingMode;
 }
 
 function toNumber(d: Decimal | null | undefined): number {
@@ -128,6 +137,7 @@ export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]
     baseAmount,
     decimalPlaces = 3,
     selectedProfileIds,
+    pricingMode = TAX_PRICING_MODES.TAX_EXCLUSIVE,
   } = params;
 
   const effectiveServiceTypes = Array.from(
@@ -148,12 +158,31 @@ export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]
     ...profiles.filter((profile) => profile.is_compound ?? false),
   ];
 
+  // B11: under TAX_INCLUSIVE, `baseAmount` is the tax-inclusive gross (item
+  // prices already embed all configured tax profiles). Solve the equivalent
+  // net taxable base by running the SAME rate/compound rules used below in
+  // a unitless pre-pass to get the combined multiplier K (gross = net * K),
+  // then extract via the shared inclusive helper. The forward loop afterward
+  // is untouched — it always adds tax on top of whatever base it is given,
+  // so feeding it the extracted net base reproduces the correct per-line split.
+  let effectiveBaseAmount = baseAmount;
+  if (pricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE) {
+    let priorTaxFraction = 0;
+    for (const profile of orderedProfiles) {
+      const rateFraction = toNumber(profile.rate) / 100;
+      const isCompound = profile.is_compound ?? false;
+      const taxableFraction = isCompound ? 1 + priorTaxFraction : 1;
+      priorTaxFraction += taxableFraction * rateFraction;
+    }
+    effectiveBaseAmount = extractTaxFromInclusive(baseAmount, priorTaxFraction).taxableAmount;
+  }
+
   let accumulatedPriorTax = 0;
 
   return orderedProfiles.map((profile) => {
     const rate = toNumber(profile.rate);
     const isCompound = profile.is_compound ?? false;
-    const taxableBase = isCompound ? baseAmount + accumulatedPriorTax : baseAmount;
+    const taxableBase = isCompound ? effectiveBaseAmount + accumulatedPriorTax : effectiveBaseAmount;
     const taxAmount = roundAmount(taxableBase * (rate / 100), decimalPlaces);
 
     accumulatedPriorTax += taxAmount;

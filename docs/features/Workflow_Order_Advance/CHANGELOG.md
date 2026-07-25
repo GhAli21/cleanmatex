@@ -1,5 +1,12 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.3-p3-stage-engine — 2026-07-25
+
+- `useOrderTransition` uses `/available-actions` + `/actions` under client canary
+- Engine: `preferredToStatus`, rack from input for gates/write; action list includes `toStatus`
+- `WorkflowActionBar` on processing / assembly / qa / packing
+- Migration (create only): `0434_sys_wf_stage_skip_transitions.sql` for template skip edges
+
 ## 0.3.2-graph-fix-flag — 2026-07-24
 
 - Graph check #2 gap `ready_release:packing→ready` → fix migration `0431` (deactivate bad MARK_READY map)

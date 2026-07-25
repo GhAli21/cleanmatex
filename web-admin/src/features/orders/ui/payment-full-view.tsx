@@ -701,6 +701,7 @@ export function PaymentFullView({
     displayTaxBreakdown,
     profilesTaxAmount,
     checkoutEligibilityAmount,
+    isTaxInclusive,
   } = totalsSlice;
   const {
     paymentLegs,
@@ -1284,9 +1285,10 @@ export function PaymentFullView({
           return;
         }
         const entryLabel = isRTL ? (entry.label2 || entry.label) : entry.label;
+        const inclusiveSuffix = isTaxInclusive ? ` — ${t('tax.includedSuffix')}` : '';
         taxRows.push({
           id: `tax-${entry.profileId ?? entry.taxType}-${index}`,
-          label: `${entryLabel} (${entry.rate.toFixed(2)}%)`,
+          label: `${entryLabel} (${entry.rate.toFixed(2)}%)${inclusiveSuffix}`,
           value: `${currencyCode} ${formatAmount(entry.taxAmount)}`,
         });
       });
@@ -1312,7 +1314,7 @@ export function PaymentFullView({
         totalRow,
       };
     },
-    [currencyCode, displayTaxBreakdown, formatAmount, isRTL, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
+    [currencyCode, displayTaxBreakdown, formatAmount, isRTL, isTaxInclusive, moneyEpsilon, profilesTaxAmount, saleTotal, t, totals]
   );
 
   const hasDiscountBreakdown =

@@ -5,16 +5,20 @@ Track every path that mutates order operational status. Exit criterion: all prod
 | Writer | Path | V2 canary status |
 |--------|------|------------------|
 | Prep complete | `POST /api/v1/preparation/[id]/complete` | ✅ Engine when flag; legacy → `processing` (no sorting) |
-| Transition | `POST /api/v1/orders/[id]/transition` | ✅ Engine when `actionCode` + flag; else Legacy/Enhanced |
+| Transition hook | `useOrderTransition` | ✅ Engine via `/actions` when `NEXT_PUBLIC_WORKFLOW_ENGINE_V2` (client canary) |
+| Transition API | `POST /api/v1/orders/[id]/transition` | ✅ Engine when `actionCode` + server flag; else Legacy/Enhanced |
 | Actions API | `POST /api/v1/orders/[id]/actions` | ✅ Engine |
+| Stage screens | processing / assembly / qa / packing Complete buttons | ✅ Via `useOrderTransition` + `WorkflowActionBar` |
+| Ready | `/dashboard/ready/[id]` | ✅ Action bar RELEASE_* |
 | POD capture | `DeliveryService.capturePOD` | ✅ `CONFIRM_DELIVERY` when flag |
 | Physical intake | `POST …/confirm-physical-intake` | ✅ Engine when flag |
-| Batch auto-ready | `POST …/batch-update` | ✅ `COMPLETE_PACKING` when available + flag; else skip (no bypass) |
-| Public confirm-received | `POST /api/v1/public/…/confirm-received` | ⏳ Legacy (no auth user for engine actor) — P4 |
-| Legacy status API | `POST /api/orders/[orderId]/status` | ⏳ Open |
-| Enhanced RPC | `cmx_ord_execute_transition` via WorkflowServiceEnhanced | ⏳ Still used when flag off / no actionCode |
-| Cancel/return RPCs | canceling/returning screens | ⏳ Open |
-| Item processing | piece step writers | ⏳ Item-level; order status may still bypass |
-| Workflow stats / other | misc | ⏳ Audit |
+| Batch auto-ready | `POST …/batch-update` | ✅ `COMPLETE_PACKING` when available + flag; else skip |
+| Public confirm-received | `POST /api/v1/public/…/confirm-received` | ⏳ Legacy (no auth user) — P4 |
+| Legacy status API | `PATCH /api/orders/[orderId]/status` | ⏳ Still Legacy — retire or gate in P5 |
+| Enhanced RPC | `cmx_ord_execute_transition` | ⏳ Used when flag off / no actionCode |
+| Cancel/return | canceling/returning screens | ⏳ Open — P3b |
+| Item processing | piece step writers | ⏳ Item-level only (OK if order status unchanged) |
 
-Flag: `WORKFLOW_ENGINE_V2=true`.
+Flag: HQ `workflow_engine_v2` / `WORKFLOW_ENGINE_V2` / `NEXT_PUBLIC_WORKFLOW_ENGINE_V2`.
+
+**Skip edges:** `0434_sys_wf_stage_skip_transitions.sql` **applied** — ready to smoke template skip-paths.

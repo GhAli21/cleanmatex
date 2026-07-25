@@ -136,7 +136,14 @@ export function extractTaxFromInclusive(
   return { taxableAmount, taxAmount };
 }
 
-function resolveCanonicalTotalAmount(input: {
+/**
+ * Exported for direct testing (B11) — the taxAddend branch is exactly what
+ * ties the snapshot writer's total to whatever calculateOrderTotals/calculateTax
+ * produced upstream; the preview==submit==snapshot invariant depends on this
+ * formula, not a reimplementation of it, matching.
+ * @param input
+ */
+export function resolveCanonicalTotalAmount(input: {
   itemsBaseAmount: number;
   totalChargesAmount: number;
   totalDiscountAmount: number;

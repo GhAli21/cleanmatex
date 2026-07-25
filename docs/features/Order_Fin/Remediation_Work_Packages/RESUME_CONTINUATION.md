@@ -1,6 +1,6 @@
 # RESUME — Order Fin Remediation Program (session continuation)
 
-**Updated:** 2026-07-24 (same session, continued — B19 implemented; see block directly below). **Read this file + [CLAUDE.md](CLAUDE.md) first in any new session, then follow it exactly.**
+**Updated:** 2026-07-25 (same session, continued — B11 implemented; see block directly below). **Read this file + [CLAUDE.md](CLAUDE.md) first in any new session, then follow it exactly.**
 
 ---
 
@@ -42,7 +42,27 @@ Three new scheduled jobs registered via a shared `fin_trigger_job()` dispatcher 
 
 **Gates ALL GREEN:** tsc clean (3 pre-existing unrelated errors, none in B21 files) · eslint 0 · full jest **233/233 suites, 2256/2256 tests** · `npm run build` ✓ (exit 0 — confirms the owner's workflow-engine build blocker from the B22 session is now resolved) · `check:i18n` ✓ · `check:ui-access-contract --wire` PASS (`/dashboard/marketing/loyalty`) · `sync:ui-access-contract` PASS (144/144, drift 0). Updated B21's own file, README (row + Seq 9 CLOSED), this RESUME, and memory.
 
-**Seq 9 is now fully closed** (B8, B19, B22, B21 all IMPLEMENTED). **▶ NOW:** owner applies migration 0433 → commits the full Seq 8+9 batch (B6, B8, B19, B22, B21 — B10 from Seq 7 too, still pending commit) → Preview QA. **Seq 10 is next: B11, B17, B18** — none scoped yet this session.
+**Same-session follow-up:** owner applied migration 0433 to local + remote and regenerated Supabase types. Verified via `mcp__supabase_remote_db` read-only queries: `rounding_rule` column present on `org_loyalty_programs_cf`, all 3 new CHECK constraints (`chk_loyalty_rounding_rule`/`chk_loyalty_redeem_rate_positive`/`chk_loyalty_min_redeem_nonneg`) confirmed live. Updated B21's own file, README, this RESUME, and QA guide from STOP-AND-WAIT to APPLIED.
+
+**Seq 9 is now fully closed** (B8, B19, B22, B21 all IMPLEMENTED, all migrations APPLIED). **▶ NOW:** owner commits the full Seq 8+9 batch (B6, B8, B19, B22, B21 — B10 from Seq 7 too, still pending commit) → Preview QA. **Seq 10 is next: B11, B17, B18** — none scoped yet this session.
+
+---
+
+## ⏩ 2026-07-25 — Seq 10 started: B11 IMPLEMENTED (no migration)
+
+**Owner explicitly authorized entering Seq 10** (core pricing engine — a materially higher-risk category than every package this session so far) via `AskUserQuestion`, choosing "Continue into Seq 10 now" with B11 sequenced first since B17/B18 explicitly want its fixtures coordinated.
+
+**B11 (Tax-Inclusive Calculation) IMPLEMENTED, no migration required** — the `tax_pricing_mode` columns on `org_tenants_mst`/`org_branches_mst` and the `tax_inclusive_pricing` feature flag already existed from migration 0339; this package was purely the engine fix the doc always said it was.
+
+**Research corrected the doc before implementing (established discipline held again):** the doc's `lib/db/orders.ts:919` "0.05 fallback" claim was **stale** — B15 already fixed that exact file (proven by a passing regression test). The real, still-live 0.05 fallback was in a **different, uncited file**: `tax.service.ts`'s `TaxService.getTaxRate()` — `DEFAULT_VAT_RATE = 0.05` was silently returned whenever `TENANT_VAT_RATE` was unset, unparsable, or resolution threw, directly violating the shipped B15 zero-rate policy, and reachable from `calculateOrderTotals`'s own no-tax-profile fallback branch — the exact code this package modifies. Fixed to zero-rate + `logger.warn`, matching `lib/db/orders.ts`'s existing pattern exactly. Also confirmed `extractTaxFromInclusive` (order-financial-write.service.ts:127, not :273 as the doc said) was **dead code** before this package — zero production callers, only its own unit test exercised it.
+
+**Design — solve-then-replay, not a parallel formula.** `calculateTax` (tax-engine.service.ts) gained a `pricingMode` param: under TAX_INCLUSIVE it runs a lightweight unitless pre-pass over the *same* rate/compound rules already in the forward loop to solve a combined multiplier K, extracts the net taxable base via the existing (previously-dead) `extractTaxFromInclusive` helper, then feeds that net base into the **unchanged** forward per-profile loop. Inclusive and exclusive modes literally share the same per-line compounding math — proven correct for 1 profile, 2 parallel non-compound profiles, and a non-compound-then-compound stack (unit + integration tests). `calculateOrderTotals` now resolves `resolveTaxPricingMode` server-side (client never chooses) and branches its `amountBeforeGiftCard`/returned-`afterDiscounts` formulas on it — every touched formula reduces to the byte-identical pre-B11 expression when mode=exclusive (full existing suite, 235/235, confirms zero regression). Payment modal shows a "— tax included" suffix on tax rows when the server confirms inclusive mode.
+
+**Rollout is dormant by construction, not by discipline alone**: `resolveTaxPricingMode` additionally gates TAX_INCLUSIVE behind the pre-existing `tax_inclusive_pricing` feature flag, default OFF for every tenant — the fix does nothing for any live tenant until the owner explicitly opts one in on Preview.
+
+**Gates ALL GREEN:** tsc clean (3 pre-existing unrelated errors — same `order-service.ts` ×2 / `processing-piece-row.tsx` ×1 as every prior package this session, none touched) · eslint 0 · full jest **235/235 suites, 2277/2277 tests, zero known failures** · `npm run build` ✓ · `check:i18n` ✓ (new `newOrder.payment.tax.includedSuffix` key, both locales). Updated B11's own file, README (row + Seq 10 narrative), this RESUME, QA_TEST_GUIDE.md (new §22), and memory.
+
+**▶ NOW:** continuing Seq 10 → B17 (Currency Rounding Runtime) next, then B18 (Order Charge Write Path) — both explicitly wanted B11's fixtures coordinated first. Owner queue (accumulating, uncommitted): B6, B8, B10, B19, B21, B22, B11 all await a single batched commit → Preview-deploy → QA → approval.
 
 ---
 

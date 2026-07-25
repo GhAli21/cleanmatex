@@ -9,6 +9,6 @@
 | Scope ADR | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) |
 | Checkpoint | [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md) |
 | Writers | [WRITER_INVENTORY.md](WRITER_INVENTORY.md) |
-| Next (you) | Enable HQ `workflow_engine_v2` (or env) on **one** canary tenant; smoke prep → processing + ready release actions |
+| Next (you) | Re-smoke stage path with template flags on/off (skip edges from 0434); then cancel/return |
 | Next (code) | P4 public actor + release harden; P5 retire Legacy/Enhanced; P6 tenant UI; P7 e2e; `/documentation` |
 | Ready for production canary | **Yes (single-tenant)** — discovery OK; enable flag and smoke |

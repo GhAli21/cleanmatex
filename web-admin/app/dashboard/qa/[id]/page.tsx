@@ -20,6 +20,7 @@ import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 interface QAItem {
   id: string;
@@ -227,6 +228,17 @@ export default function QADetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {orderId ? (
+        <div className="mb-6">
+          <WorkflowActionBar
+            orderId={orderId}
+            screen="qa"
+            onActionSuccess={() => {
+              void loadOrder();
+            }}
+          />
+        </div>
+      ) : null}
       <div className="mb-6">
         <Link href="/dashboard/qa" className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('qa.actions.backToQa')}

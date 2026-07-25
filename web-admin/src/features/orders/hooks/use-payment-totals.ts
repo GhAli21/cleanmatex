@@ -85,6 +85,8 @@ export type ServerTotals = {
   saleTotal: number;
   vatTaxPercent: number;
   taxBreakdown: TaxBreakdownLine[];
+  /** B11 — resolved server-side; drives the "tax included" label. Client never chooses. */
+  taxPricingMode?: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE';
   creditLimit?: {
     currentBalance: number;
     creditLimit: number;
@@ -279,6 +281,7 @@ export function usePaymentTotals({
           saleTotal: d.saleTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
           taxBreakdown: Array.isArray(d.taxBreakdown) ? d.taxBreakdown : [],
+          taxPricingMode: d.taxPricingMode === 'TAX_INCLUSIVE' ? 'TAX_INCLUSIVE' : 'TAX_EXCLUSIVE',
           ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
       } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
@@ -432,6 +435,9 @@ export function usePaymentTotals({
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces, fallbackTaxBreakdown]);
 
   const saleTotal = totals.saleTotal;
+  // B11: only label "tax included" once the server has actually confirmed it —
+  // never assume during the fallback/loading window (mode is server-resolved).
+  const isTaxInclusive = serverTotals?.taxPricingMode === 'TAX_INCLUSIVE';
 
   return {
     serverTotals,
@@ -442,5 +448,6 @@ export function usePaymentTotals({
     displayTaxBreakdown,
     profilesTaxAmount,
     checkoutEligibilityAmount,
+    isTaxInclusive,
   };
 }

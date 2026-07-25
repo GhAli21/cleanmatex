@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db/prisma';
 import { pricingService } from './pricing.service';
 import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
@@ -19,11 +20,13 @@ import {
 } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import { calculateTax } from './tax-engine.service';
+import { resolveTaxPricingMode } from './pricing-mode-resolver.service';
+import { extractTaxFromInclusive } from './order-financial-write.service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
-import { TAX_TYPES } from '@/lib/constants/order-financial';
+import { TAX_TYPES, TAX_PRICING_MODES } from '@/lib/constants/order-financial';
 import type { DiscountLineInput } from '@/lib/db/order-discounts';
-import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
+import type { FinancialBreakdownSnapshot, TaxLineItem, TaxPricingMode } from '@/lib/types/order-financial';
 
 /**
  *
@@ -87,6 +90,8 @@ export interface OrderCalculationResult {
   decimalPlaces: number;
   /** Structured discount lines for the audit trail — one entry per discount source. */
   discountLines: DiscountLineInput[];
+  /** Resolved tenant/branch tax pricing mode (B11) — drives "tax included" display. */
+  taxPricingMode: TaxPricingMode;
 }
 
 function round(value: number, decimals: number): number {
@@ -125,6 +130,8 @@ export async function calculateOrderTotals(
   const supabase = await createClient();
   const tenantSettings = createTenantSettingsService(supabase);
   const tax = new TaxService({ tenantSettings });
+  const pricingMode = await resolveTaxPricingMode(prisma, tenantId, branchId ?? null);
+  const isInclusive = pricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE;
 
   const currencyConfig = await tenantSettings.getCurrencyConfig(
     tenantId,
@@ -154,6 +161,7 @@ export async function calculateOrderTotals(
       currencyCode,
       decimalPlaces,
       discountLines: [],
+      taxPricingMode: pricingMode,
     };
   }
 
@@ -285,7 +293,7 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  let taxBreakdown = await calculateTax({
+  const taxBreakdown = await calculateTax({
     tenantId,
     branchId,
     customerId,
@@ -293,6 +301,7 @@ export async function calculateOrderTotals(
     baseAmount: afterDiscounts,
     decimalPlaces,
     selectedProfileIds: taxProfileIds,
+    pricingMode,
   });
 
   let vatTaxPercent = round(
@@ -312,10 +321,20 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
+  // B11: profile-driven tax (taxBreakdown non-empty) is already extracted/embedded
+  // by calculateTax under TAX_INCLUSIVE — including CUSTOM-type profile lines, since
+  // they share the same tenant tax-profile configuration mechanism as VAT/GST. The
+  // ad-hoc additionalTaxRate/additionalTaxAmount params below (used only when no tax
+  // profile is configured at all) are a manually-entered order-level surcharge that
+  // was never part of the priced item, so they stay additive in both modes.
+  const additionalTaxEmbedded = isInclusive && taxBreakdown.length > 0;
+
   if (taxBreakdown.length === 0) {
     const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
     vatTaxPercent = round(vatRate * 100, 2);
-    vatValue = round(afterDiscounts * vatRate, decimalPlaces);
+    vatValue = isInclusive
+      ? round(extractTaxFromInclusive(afterDiscounts, vatRate).taxAmount, decimalPlaces)
+      : round(afterDiscounts * vatRate, decimalPlaces);
 
     if (additionalTaxAmountParam != null && additionalTaxAmountParam > 0) {
       additionalTaxAmount = round(additionalTaxAmountParam, decimalPlaces);
@@ -329,10 +348,19 @@ export async function calculateOrderTotals(
 
   const taxAmount = vatValue;
 
-  const amountBeforeGiftCard = round(
-    afterDiscounts + vatValue + additionalTaxAmount,
-    decimalPlaces
-  );
+  // B11: TAX_INCLUSIVE — item prices already embed VAT/GST (and profile-driven
+  // CUSTOM tax); `afterDiscounts` is the gross and must not be added to again.
+  // TAX_EXCLUSIVE — unchanged, byte-identical to pre-B11 behavior.
+  const amountBeforeGiftCard = isInclusive
+    ? round(afterDiscounts + (additionalTaxEmbedded ? 0 : additionalTaxAmount), decimalPlaces)
+    : round(afterDiscounts + vatValue + additionalTaxAmount, decimalPlaces);
+
+  // Net-of-tax figure reported to callers (snapshot `netBeforeTax`, receipts).
+  // Exclusive: identical to afterDiscounts (nothing embedded). Inclusive: back
+  // out the embedded tax so downstream consumers see the true taxable base.
+  const netAfterDiscounts = isInclusive
+    ? round(afterDiscounts - vatValue - (additionalTaxEmbedded ? additionalTaxAmount : 0), decimalPlaces)
+    : afterDiscounts;
 
   let giftCardApplied = 0;
   const resolvedGiftCardId = giftCardId?.trim();
@@ -401,7 +429,7 @@ export async function calculateOrderTotals(
     manualDiscount,
     autoRuleDiscount,
     promoDiscount,
-    afterDiscounts,
+    afterDiscounts: netAfterDiscounts,
     taxRate: vatTaxPercent / 100,
     taxAmount,
     additionalTaxAmount,
@@ -413,6 +441,7 @@ export async function calculateOrderTotals(
     currencyCode,
     decimalPlaces,
     discountLines,
+    taxPricingMode: pricingMode,
   };
 }
 

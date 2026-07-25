@@ -67,22 +67,22 @@ todos:
     status: completed
   - id: integ-processing
     content: "Integrate Processing: worklist + leave actions; ItemProcessing auto-ready via engine; update progress"
-    status: pending
+    status: completed
   - id: integ-assembly
     content: "Integrate Assembly: worklist + leave gated by all_pieces_scanned; update progress"
-    status: pending
+    status: completed
   - id: integ-qa
     content: "Integrate QA: worklist + pass/fail actions + issue gates; update progress"
-    status: pending
+    status: completed
   - id: integ-packing
     content: "Integrate Packing (when profile on): worklist + pack-complete action; update progress"
-    status: pending
+    status: completed
   - id: integ-ready
     content: "Integrate Ready: MARK_READY vs RELEASE_* + Fin eligibility; screen-key ready_release; update progress"
-    status: pending
+    status: completed
   - id: integ-pickup
     content: "Integrate Pickup: Fin settle + release records + engine status; update progress"
-    status: pending
+    status: completed
   - id: integ-delivery
     content: "Integrate Delivery: out/POD/delivered via engine (no capturePOD bypass); update progress"
     status: completed

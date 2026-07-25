@@ -3,5 +3,6 @@
   "listTitle": "Tax List",
   "rate": "Rate",
   "noProfiles": "No default tax profiles configured",
-  "totalTax": "Total Tax"
+  "totalTax": "Total Tax",
+  "includedSuffix": "tax included"
 }

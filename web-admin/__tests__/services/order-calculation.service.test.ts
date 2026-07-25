@@ -24,6 +24,11 @@ const mockEvaluateBestAutoApplyPromo = jest.fn();
 const mockValidateGiftCard     = jest.fn();
 const mockValidateGiftCardById = jest.fn();
 const mockCalculateTax         = jest.fn();
+const mockResolveTaxPricingMode = jest.fn();
+
+jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
+  resolveTaxPricingMode: (...a: unknown[]) => mockResolveTaxPricingMode(...a),
+}));
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
@@ -88,6 +93,10 @@ function setupDefaults() {
   mockEvaluateBestAutoApplyPromo.mockResolvedValue({ isValid: false });
   mockValidateGiftCard.mockResolvedValue({ isValid: false });
   mockValidateGiftCardById.mockResolvedValue({ isValid: false });
+  // B11: every pre-existing test in this file is exclusive-mode and must stay
+  // byte-identical — only the dedicated TAX_INCLUSIVE describe block below
+  // overrides this per-test.
+  mockResolveTaxPricingMode.mockResolvedValue('TAX_EXCLUSIVE');
 }
 
 // ---------------------------------------------------------------------------
@@ -205,5 +214,84 @@ describe('order-calculation.service — calculateOrderTotals', () => {
     const result = await calculateOrderTotals(defaultParams);
     expect(result.currencyCode).toBe('SAR');
     expect(result.decimalPlaces).toBe(2);
+  });
+
+  it('resolves and reports the tax pricing mode on every result (incl. empty items)', async () => {
+    mockResolveTaxPricingMode.mockResolvedValue('TAX_EXCLUSIVE');
+    const empty = await calculateOrderTotals({ tenantId: TENANT, items: [] });
+    expect(empty.taxPricingMode).toBe('TAX_EXCLUSIVE');
+
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 10, basePrice: 10 });
+    const nonEmpty = await calculateOrderTotals(defaultParams);
+    expect(nonEmpty.taxPricingMode).toBe('TAX_EXCLUSIVE');
+  });
+});
+
+describe('order-calculation.service — calculateOrderTotals TAX_INCLUSIVE (B11)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupDefaults();
+    mockResolveTaxPricingMode.mockResolvedValue('TAX_INCLUSIVE');
+  });
+
+  it('extracts embedded VAT via the profile-driven path — saleTotal stays the gross price, afterDiscounts becomes net', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 105, basePrice: 105 });
+    // calculateTax is mocked at this layer — simulate what the real
+    // pricingMode-aware engine (tested separately) would return: the
+    // embedded VAT already extracted from the 105 gross.
+    mockCalculateTax.mockResolvedValue([
+      { taxType: 'VAT', label: 'VAT', label2: null, rate: 5, isCompound: false, baseAmount: 100, taxAmount: 5, profileId: 'p1' },
+    ]);
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.vatValue).toBeCloseTo(5);
+    expect(result.afterDiscounts).toBeCloseTo(100); // net-of-tax, not the 105 gross
+    expect(result.saleTotal).toBeCloseTo(105); // tax already embedded — not re-added
+    expect(result.taxPricingMode).toBe('TAX_INCLUSIVE');
+  });
+
+  it('treats profile-driven CUSTOM tax as embedded too (same tenant tax-profile mechanism as VAT)', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 107, basePrice: 107 });
+    mockCalculateTax.mockResolvedValue([
+      { taxType: 'VAT', label: 'VAT', label2: null, rate: 5, isCompound: false, baseAmount: 100, taxAmount: 5, profileId: 'p1' },
+      { taxType: 'CUSTOM', label: 'Municipality', label2: null, rate: 2, isCompound: false, baseAmount: 100, taxAmount: 2, profileId: 'p2' },
+    ]);
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.vatValue).toBeCloseTo(5);
+    expect(result.additionalTaxAmount).toBeCloseTo(2);
+    expect(result.afterDiscounts).toBeCloseTo(100);
+    expect(result.saleTotal).toBeCloseTo(107); // gross unchanged — nothing re-added
+  });
+
+  it('extracts VAT via the no-profile-configured fallback, and keeps an ad-hoc additionalTaxAmount additive', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 105, basePrice: 105 });
+    mockCalculateTax.mockResolvedValue([]); // no tax profile configured
+    mockGetVatRate.mockResolvedValue(0.05);
+
+    const result = await calculateOrderTotals({
+      tenantId: TENANT,
+      items: [{ productId: 'p1', quantity: 1 }],
+      additionalTaxAmount: 3, // ad-hoc order-level surcharge — never embedded in the priced item
+    });
+
+    expect(result.vatValue).toBeCloseTo(5); // extracted from the 105 gross
+    expect(result.afterDiscounts).toBeCloseTo(100); // net after extracting only the embedded VAT
+    expect(result.additionalTaxAmount).toBeCloseTo(3);
+    expect(result.saleTotal).toBeCloseTo(108); // 105 gross + 3 ad-hoc surcharge, added on top
+  });
+
+  it('is a no-op when no tax profile and no VAT setting exist (zero-rated, B15 policy)', async () => {
+    mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 100, basePrice: 100 });
+    mockCalculateTax.mockResolvedValue([]);
+    mockGetVatRate.mockResolvedValue(0);
+
+    const result = await calculateOrderTotals({ tenantId: TENANT, items: [{ productId: 'p1', quantity: 1 }] });
+
+    expect(result.vatValue).toBe(0);
+    expect(result.afterDiscounts).toBeCloseTo(100);
+    expect(result.saleTotal).toBeCloseTo(100);
   });
 });

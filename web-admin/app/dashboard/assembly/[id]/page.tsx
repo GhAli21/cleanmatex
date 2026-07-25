@@ -20,6 +20,7 @@ import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 
 interface AssemblyItem {
   id: string;
@@ -166,6 +167,17 @@ export default function AssemblyDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {orderId ? (
+        <div className="mb-6">
+          <WorkflowActionBar
+            orderId={orderId}
+            screen="assembly"
+            onActionSuccess={() => {
+              void loadOrder();
+            }}
+          />
+        </div>
+      ) : null}
       <div className="mb-6">
         <Link href="/dashboard/assembly" className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('assembly.backToAssembly')}

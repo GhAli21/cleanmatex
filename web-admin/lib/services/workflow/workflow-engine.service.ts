@@ -50,6 +50,8 @@ export class WorkflowEngineError extends Error {
 
 export interface AvailableAction {
   actionCode: string;
+  /** Destination status for this edge (disambiguates skip-path duplicates). */
+  toStatus: string;
   label: string;
   label2: string | null;
   enabled: boolean;
@@ -307,12 +309,19 @@ async function evaluateGate(
   gateCode: string,
   order: LockedOrderRow,
   locale?: string,
+  input?: Record<string, unknown>,
 ): Promise<GateEvaluation> {
   const normalized = gateCode.trim().toLowerCase();
 
   switch (normalized) {
     case 'rack_required': {
-      const hasRack = Boolean(order.rack_location?.trim());
+      const inputRack =
+        typeof input?.rackLocation === 'string'
+          ? input.rackLocation.trim()
+          : typeof input?.rack_location === 'string'
+            ? input.rack_location.trim()
+            : '';
+      const hasRack = Boolean(order.rack_location?.trim() || inputRack);
       if (hasRack) return { allowed: true, blockedReasons: [] };
       return {
         allowed: false,
@@ -344,6 +353,7 @@ async function evaluateGateSet(
   gateSetCode: string | null,
   order: LockedOrderRow,
   locale?: string,
+  input?: Record<string, unknown>,
 ): Promise<GateEvaluation> {
   const gates = parseGateSet(gateSetCode);
   if (gates.length === 0) {
@@ -352,7 +362,7 @@ async function evaluateGateSet(
 
   const blockedReasons: BlockedReason[] = [];
   for (const gate of gates) {
-    const result = await evaluateGate(gate, order, locale);
+    const result = await evaluateGate(gate, order, locale, input);
     if (!result.allowed) {
       blockedReasons.push(...result.blockedReasons);
     }
@@ -480,9 +490,17 @@ export async function listAvailableActions(
 
   for (const row of transitions) {
     const gateResult = await evaluateGateSet(row.gate_set_code, order, params.locale);
+    const toStatus = normalizeStatus(row.to_status);
+    const baseLabel = pickLabel(row, params.locale);
+    // Disambiguate skip-path duplicates (same action, different to_status)
+    const label =
+      transitions.filter((t) => t.action_code === row.action_code).length > 1
+        ? `${baseLabel} → ${toStatus}`
+        : baseLabel;
     actions.push({
       actionCode: row.action_code,
-      label: pickLabel(row, params.locale),
+      toStatus,
+      label,
       label2: row.name2,
       enabled: gateResult.allowed,
       blockedReasons: gateResult.blockedReasons,
@@ -596,10 +614,27 @@ export async function executeAction(
         AND COALESCE(t.is_active, true) = true
         AND t.from_status = ${currentStatus}
         AND a.action_code = ${params.actionCode}
-      LIMIT 1
+      ORDER BY t.to_status
     `;
 
-    const transition = transitions[0];
+    const preferredRaw = params.input?.preferredToStatus ?? params.input?.toStatus;
+    const preferredToStatus =
+      typeof preferredRaw === 'string' ? normalizeStatus(preferredRaw) : '';
+
+    let transition = transitions[0];
+    if (preferredToStatus) {
+      const matched = transitions.find(
+        (t) => normalizeStatus(t.to_status) === preferredToStatus,
+      );
+      if (!matched) {
+        throw new WorkflowEngineError(
+          'ACTION_NOT_ALLOWED',
+          `Action "${params.actionCode}" cannot go to "${preferredToStatus}" from "${currentStatus}" on screen "${screen}".`,
+        );
+      }
+      transition = matched;
+    }
+
     if (!transition) {
       throw new WorkflowEngineError(
         'ACTION_NOT_ALLOWED',
@@ -607,7 +642,12 @@ export async function executeAction(
       );
     }
 
-    const gateResult = await evaluateGateSet(transition.gate_set_code, order, undefined);
+    const gateResult = await evaluateGateSet(
+      transition.gate_set_code,
+      order,
+      undefined,
+      params.input,
+    );
     if (!gateResult.allowed) {
       throw new WorkflowEngineError(
         'GATE_FAILED',
@@ -622,6 +662,14 @@ export async function executeAction(
     const isCompletePreparation =
       params.actionCode === WORKFLOW_ACTIONS.COMPLETE_PREPARATION;
 
+    const rackFromInput =
+      typeof params.input?.rackLocation === 'string'
+        ? params.input.rackLocation.trim()
+        : typeof params.input?.rack_location === 'string'
+          ? params.input.rack_location.trim()
+          : '';
+    const applyRack = rackFromInput.length > 0;
+
     const updated = await tx.$executeRaw`
       UPDATE public.org_orders_mst
       SET
@@ -631,6 +679,10 @@ export async function executeAction(
         last_transition_at = ${now},
         last_transition_by = ${params.actorUserId}::uuid,
         updated_at = ${now},
+        rack_location = CASE
+          WHEN ${applyRack} THEN ${rackFromInput}
+          ELSE rack_location
+        END,
         preparation_status = CASE
           WHEN ${isCompletePreparation} THEN ${PREPARATION_COMPLETED}
           ELSE preparation_status

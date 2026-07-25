@@ -7,6 +7,7 @@ import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 
 export interface WorkflowActionDto {
   actionCode: string;
+  toStatus?: string;
   label: string;
   label2: string | null;
   enabled: boolean;
@@ -20,7 +21,11 @@ export interface UseWorkflowActionsResult {
   currentStatus: string | null;
   actions: WorkflowActionDto[];
   refresh: () => Promise<void>;
-  execute: (actionCode: string, input?: Record<string, unknown>) => Promise<boolean>;
+  execute: (
+    actionCode: string,
+    input?: Record<string, unknown>,
+    preferredToStatus?: string,
+  ) => Promise<boolean>;
 }
 
 /**
@@ -68,7 +73,11 @@ export function useWorkflowActions(
   }, [refresh]);
 
   const execute = useCallback(
-    async (actionCode: string, input?: Record<string, unknown>) => {
+    async (
+      actionCode: string,
+      input?: Record<string, unknown>,
+      preferredToStatus?: string,
+    ) => {
       if (!enabled || !orderId || stateVersion == null) {
         return false;
       }
@@ -88,7 +97,10 @@ export function useWorkflowActions(
             screen,
             actionCode,
             expectedStateVersion: stateVersion,
-            input,
+            input: {
+              ...input,
+              ...(preferredToStatus ? { preferredToStatus } : {}),
+            },
           }),
         });
         const json = await res.json();
