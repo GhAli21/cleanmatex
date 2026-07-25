@@ -80,6 +80,8 @@ export interface OrderEditAuditEntry {
   paymentAdjusted: boolean;
   paymentAdjustmentAmount: number | null;
   paymentAdjustmentType: string | null;
+  /** B12 — required when the edit was financially governed; null otherwise. */
+  editReason: string | null;
 }
 
 export interface CreateEditAuditParams {
@@ -95,6 +97,8 @@ export interface CreateEditAuditParams {
   paymentAdjusted?: boolean;
   paymentAdjustmentAmount?: number;
   paymentAdjustmentType?: 'CHARGE' | 'REFUND';
+  /** B12 — operator-entered reason for a financially-governed edit (D011). */
+  editReason?: string;
 }
 
 /**
@@ -116,6 +120,7 @@ export async function createEditAudit(
     paymentAdjusted = false,
     paymentAdjustmentAmount,
     paymentAdjustmentType,
+    editReason,
   } = params;
 
   return withTenantContext(tenantId, async () => {
@@ -171,6 +176,7 @@ export async function createEditAudit(
         payment_adjusted: paymentAdjusted,
         payment_adjustment_amount: paymentAdjustmentAmount || null,
         payment_adjustment_type: paymentAdjustmentType || null,
+        edit_reason: editReason || null,
       },
     });
 
@@ -458,5 +464,6 @@ function mapToAuditEntry(entry: any): OrderEditAuditEntry {
       ? Number(entry.payment_adjustment_amount)
       : null,
     paymentAdjustmentType: entry.payment_adjustment_type,
+    editReason: entry.edit_reason ?? null,
   };
 }

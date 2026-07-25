@@ -27,5 +27,25 @@
   "lockStatusLabel": "حالة القفل",
   "lockedBy": "مقفل بواسطة",
   "expiresAt": "ينتهي في",
-  "extendLock": "تمديد القفل"
+  "extendLock": "تمديد القفل",
+  "amendment": {
+    "reasonDialog": {
+      "title": "السبب مطلوب",
+      "description": "هذا الطلب لديه مدفوعات مسجلة بالفعل. تعديل عناصره يغيّر الإجمالي — الرجاء إدخال سبب قبل الحفظ.",
+      "reasonLabel": "سبب هذا التغيير",
+      "reasonPlaceholder": "مثال: طلب العميل إضافة عنصر إضافي",
+      "reasonHint": "{min} أحرف على الأقل.",
+      "cancel": "إلغاء",
+      "confirm": "حفظ مع السبب"
+    },
+    "deltaNotice": {
+      "increaseTitle": "زاد إجمالي الطلب",
+      "decreaseTitle": "نقص إجمالي الطلب",
+      "description": "تغيّر إجمالي الطلب من {previous} إلى {next}.",
+      "increaseGuidance": "أصبح مبلغ إضافي قدره {amount} مستحقًا الآن. قم بتحصيله من تبويب المدفوعات في الطلب.",
+      "decreaseGuidance": "أصبح مبلغ {amount} مستحقًا للعميل الآن. قم بمعالجته كاسترداد أو رصيد من تبويب المدفوعات في الطلب.",
+      "recordedNote": "تم تسجيل هذا التغيير وسببه في سجل تعديلات الطلب.",
+      "gotIt": "حسنًا"
+    }
+  }
 }

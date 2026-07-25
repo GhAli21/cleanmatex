@@ -109,6 +109,12 @@ export async function PATCH(
         statusCode = 404; // Not Found
       } else if (result.error?.includes('cannot be edited') || result.error?.includes('modified by another')) {
         statusCode = 409; // Conflict
+      } else if (result.errorCode === 'PERMISSION_DENIED') {
+        statusCode = 403;
+      } else if (result.errorCode === 'IDEMPOTENCY_CONFLICT') {
+        statusCode = 409;
+      } else if (result.errorCode === 'EDIT_REASON_REQUIRED' || result.errorCode === 'IDEMPOTENCY_KEY_REQUIRED') {
+        statusCode = 400;
       }
 
       logger.warn('[update-order] Update failed', {
@@ -117,11 +123,12 @@ export async function PATCH(
         orderId,
         userId,
         error: result.error,
+        errorCode: result.errorCode,
         statusCode,
       });
 
       return NextResponse.json(
-        { success: false, error: result.error },
+        { success: false, error: result.error, errorCode: result.errorCode },
         { status: statusCode }
       );
     }
@@ -131,11 +138,23 @@ export async function PATCH(
       action: 'update_order',
       orderId,
       userId,
+      governedAmendment: !!result.financialDelta,
     });
 
     return NextResponse.json({
       success: true,
-      data: { order: result.order },
+      data: {
+        order: result.order,
+        // B12 — present only for a governed edit (item change on an order
+        // with prior payments): the caller must complete a settlement step
+        // and POST it to .../edit-history/[editHistoryId]/settlement.
+        ...(result.financialDelta && {
+          financialDelta: result.financialDelta,
+          editHistoryId: result.editHistoryId,
+          requiresSettlement: result.requiresSettlement,
+        }),
+        ...(result.idempotentReplay && { idempotentReplay: true }),
+      },
     });
   } catch (error) {
     logger.error('[update-order] Unexpected error', error as Error, {

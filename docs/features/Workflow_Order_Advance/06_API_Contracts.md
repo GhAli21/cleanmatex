@@ -82,9 +82,18 @@ Release body (target): lines (item/piece ids), channel (`pickup`|`delivery`), am
 
 Exact HQ OpenAPI: document in cleanmatexsaas integration contract; tenant app consumes via HQ API (no direct `sys_feature_flags_*` / stng tables).
 
-## 7. Public confirm-intake
+## 7. Public confirm-received (tracking link)
 
-Maps to `CONFIRM_PHYSICAL_INTAKE`; auth + rate limit required. Spec detail: Pending fill from existing public routes.
+| Item | Value |
+|------|--------|
+| Path | `POST /api/v1/public/orders/{tenantId}/{orderNo}/confirm-received` |
+| Auth | None (public link); IP rate limit |
+| Allowed from | `ready`, `out_for_delivery` (idempotent if already `delivered`) |
+| V2 action | `CONFIRM_DELIVERY` on screen `public_tracking` |
+| Actor | System user `WORKFLOW_SYSTEM_ACTOR` (`0437`) — satisfies history FK |
+| Flag off | Legacy `WorkflowService.changeStatus` with same system actor UUID |
+
+Staff physical intake remains `POST …/confirm-physical-intake` → `CONFIRM_PHYSICAL_INTAKE` (authenticated).
 
 ## 8. Mobile / cmx-api
 

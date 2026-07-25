@@ -102,6 +102,11 @@ export const updateOrderInputSchema = z.object({
 
   // Optimistic locking (for concurrent edit detection)
   expectedUpdatedAt: z.coerce.date().optional(),
+
+  // B12 — required only when this edit is financially governed (item change
+  // on an order with prior payments, order_fin_governed_amendments ON).
+  editReason: z.string().max(500).optional(),
+  idempotencyKey: z.string().max(200).optional(),
 });
 
 /**
@@ -134,6 +139,29 @@ export const unlockOrderInputSchema = z.object({
 export const checkOrderLockInputSchema = z.object({
   orderId: z.string().uuid(),
 });
+
+/**
+ * B12 — records the real settlement artifact (a payment or an overpayment
+ * disposition) that resolved a governed amendment's financial delta. Posted
+ * once the cashier completes `OrderCollectPaymentModal` (CHARGE) or the
+ * overpayment-resolution flow (REFUND) after a governed Edit Order save.
+ */
+export const recordAmendmentSettlementSchema = z.object({
+  paymentAdjustmentType: z.enum(['CHARGE', 'REFUND']),
+  paymentAdjustmentAmount: z.number().positive(),
+  settlementLineage: z.object({
+    paymentId: z.string().uuid().optional(),
+    dispositionIds: z.array(z.string().uuid()).optional(),
+  }).refine(
+    (v) => !!v.paymentId || (v.dispositionIds && v.dispositionIds.length > 0),
+    { message: 'settlementLineage must reference at least one payment or disposition id' },
+  ),
+});
+
+/**
+ *
+ */
+export type RecordAmendmentSettlementInput = z.infer<typeof recordAmendmentSettlementSchema>;
 
 /**
  * Payment adjustment schema (for edited orders with payment changes)

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { createClient } from '@/lib/supabase/server';
 import type { OrderStatus } from '@/lib/types/workflow';
+import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 
 /**
  *
@@ -51,6 +52,19 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: 'Tenant ID not found' },
         { status: 400 }
+      );
+    }
+
+    // P3: raw status PATCH is retired when Workflow Engine V2 is on.
+    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Direct status PATCH is disabled for Workflow Engine V2. Use POST /api/v1/orders/{id}/actions with an actionCode.',
+          code: 'ENGINE_V2_USE_ACTIONS',
+        },
+        { status: 410 },
       );
     }
 

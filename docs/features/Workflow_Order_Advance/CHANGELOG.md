@@ -1,5 +1,12 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.6-p4-public-confirm-actor — 2026-07-25
+
+- Public confirm-received → `CONFIRM_DELIVERY` + `WORKFLOW_SYSTEM_ACTOR` when V2 on
+- Migration (create only): `0437_sys_wf_public_confirm_actor.sql` (system user + `public_tracking` + `TR_READY_DELIV`)
+- IP rate limit helper for public confirm; ActionBar `hasLoaded` false-bounce fix
+- P3: `PATCH /api/orders/.../status` + `POST /api/orders/bulk-status` return 410 when V2 on
+
 ## 0.3.5-adr-cancel-hold-stop — 2026-07-25
 
 - ADR lock: cancel allowlist + hold/resume + STOP_ORDER_WORK + no auto Fin unwind + return V1.1

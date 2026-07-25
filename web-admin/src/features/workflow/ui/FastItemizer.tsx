@@ -54,12 +54,15 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
   const { token: csrfToken } = useCSRFToken();
   const { data: wfContext } = useWorkflowContext(order?.id ?? null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Separate busy flags so quick-add presets do not look like "Completing...".
+  const [isAddingItems, setIsAddingItems] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [items, setItems] = useState<OrderItem[]>(order.items || []);
   const [pricePreviewNonce, setPricePreviewNonce] = useState(0);
 
   const bumpPricePreview = () => setPricePreviewNonce((n) => n + 1);
-  const busy = isSubmitting || transition.isPending;
+  const isCompletingBusy = isCompleting || transition.isPending;
+  const busy = isAddingItems || isCompletingBusy;
 
   const mergeCreatedItems = (created: OrderItem[]) => {
     setItems((prev) => {
@@ -86,7 +89,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsCompleting(true);
     try {
       // V1.0 canary: complete via preparation API → WorkflowEngine COMPLETE_PREPARATION
       // (never toStatus / never sorting).
@@ -147,7 +150,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
     } catch (error) {
       showErrorFrom(error, { fallback: t('validation.transitionNotAllowed') });
     } finally {
-      setIsSubmitting(false);
+      setIsCompleting(false);
     }
   };
 
@@ -158,7 +161,8 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
           productCatalog={productCatalog}
           disabled={busy}
           onAddPreset={async (presetItems) => {
-            setIsSubmitting(true);
+            if (busy) return;
+            setIsAddingItems(true);
             try {
               const response = await fetch(`/api/v1/preparation/${order.id}/items`, {
                 method: 'POST',
@@ -176,7 +180,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
             } catch (error) {
               showErrorFrom(error, { fallback: t('preparation.detail.addItemsFailed') });
             } finally {
-              setIsSubmitting(false);
+              setIsAddingItems(false);
             }
           }}
         />
@@ -251,12 +255,12 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
             variant="primary"
             className="w-full"
             disabled={busy || items.length === 0 || !canCompletePreparation(order)}
-            loading={busy}
+            loading={isCompletingBusy}
             onClick={() => {
               void handleComplete();
             }}
           >
-            {busy
+            {isCompletingBusy
               ? t('preparation.detail.completing')
               : t('preparation.actions.completeAndContinue')}
           </CmxButton>

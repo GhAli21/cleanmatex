@@ -1,0 +1,229 @@
+/**
+ * Tests: order-amendment.service (B12)
+ *
+ * Covers:
+ * - computeAmendmentDelta — increase/decrease/tolerance/unpaid-order/flag-off
+ * - assertGovernedAmendmentAllowed — reason + permission gate
+ * - stakeAmendmentIdempotency — required key, conflict, replay
+ * - recordAmendmentSettlement — not-found, already-settled no-op, fresh write
+ */
+
+const mockHasPermissionServer = jest.fn();
+const mockStakeIdempotencyHash = jest.fn();
+const mockStoreIdempotencyHash = jest.fn();
+const mockFindIdempotencyHash = jest.fn();
+const mockEditHistoryFindFirst = jest.fn();
+const mockEditHistoryUpdate = jest.fn();
+
+jest.mock('@/lib/services/permission-service-server', () => ({
+  hasPermissionServer: (...a: unknown[]) => mockHasPermissionServer(...a),
+}));
+
+jest.mock('@/lib/utils/idempotency', () => ({
+  stakeIdempotencyHash: (...a: unknown[]) => mockStakeIdempotencyHash(...a),
+  storeIdempotencyHash: (...a: unknown[]) => mockStoreIdempotencyHash(...a),
+  findIdempotencyHash: (...a: unknown[]) => mockFindIdempotencyHash(...a),
+  hashPayload: (payload: unknown) => `hash:${JSON.stringify(payload)}`,
+}));
+
+jest.mock('@/lib/db/prisma', () => ({
+  prisma: {
+    org_order_edit_history: {
+      findFirst: (...a: unknown[]) => mockEditHistoryFindFirst(...a),
+      update: (...a: unknown[]) => mockEditHistoryUpdate(...a),
+    },
+  },
+}));
+
+import {
+  computeAmendmentDelta,
+  assertGovernedAmendmentAllowed,
+  stakeAmendmentIdempotency,
+  recordAmendmentSettlement,
+} from '@/lib/services/order-amendment.service';
+
+describe('order-amendment.service (B12)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('computeAmendmentDelta', () => {
+    it('is governed when the flag is on, there are prior payments, and the delta exceeds tolerance (increase)', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 10,
+        newTotal: 15,
+        totalPaidAmount: 10,
+        governedFlagEnabled: true,
+      });
+      expect(result.deltaAmount).toBe(5);
+      expect(result.isGoverned).toBe(true);
+    });
+
+    it('is governed on a decrease too (negative delta)', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 15,
+        newTotal: 10,
+        totalPaidAmount: 15,
+        governedFlagEnabled: true,
+      });
+      expect(result.deltaAmount).toBe(-5);
+      expect(result.isGoverned).toBe(true);
+    });
+
+    it('is NOT governed when the order has no prior payments — nothing to collect or resolve yet', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 10,
+        newTotal: 15,
+        totalPaidAmount: 0,
+        governedFlagEnabled: true,
+      });
+      expect(result.isGoverned).toBe(false);
+    });
+
+    it('is NOT governed when the flag is off', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 10,
+        newTotal: 15,
+        totalPaidAmount: 10,
+        governedFlagEnabled: false,
+      });
+      expect(result.isGoverned).toBe(false);
+    });
+
+    it('is NOT governed for a rounding-only delta within tolerance', () => {
+      const result = computeAmendmentDelta({
+        previousTotal: 10,
+        newTotal: 10.0001,
+        totalPaidAmount: 10,
+        governedFlagEnabled: true,
+      });
+      expect(result.isGoverned).toBe(false);
+    });
+  });
+
+  describe('assertGovernedAmendmentAllowed', () => {
+    it('throws EDIT_REASON_REQUIRED when reason is missing', async () => {
+      await expect(
+        assertGovernedAmendmentAllowed({ tenantId: 't1', userId: 'u1', editReason: undefined })
+      ).rejects.toMatchObject({ code: 'EDIT_REASON_REQUIRED' });
+    });
+
+    it('throws EDIT_REASON_REQUIRED when reason is whitespace-only', async () => {
+      await expect(
+        assertGovernedAmendmentAllowed({ tenantId: 't1', userId: 'u1', editReason: '   ' })
+      ).rejects.toMatchObject({ code: 'EDIT_REASON_REQUIRED' });
+    });
+
+    it('throws PERMISSION_DENIED when the actor lacks orders:post_settlement_edit', async () => {
+      mockHasPermissionServer.mockResolvedValue(false);
+      await expect(
+        assertGovernedAmendmentAllowed({ tenantId: 't1', userId: 'u1', editReason: 'customer changed mind' })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(mockHasPermissionServer).toHaveBeenCalledWith('orders:post_settlement_edit', {
+        userId: 'u1',
+        tenantId: 't1',
+      });
+    });
+
+    it('resolves when both reason and permission are present', async () => {
+      mockHasPermissionServer.mockResolvedValue(true);
+      await expect(
+        assertGovernedAmendmentAllowed({ tenantId: 't1', userId: 'u1', editReason: 'customer changed mind' })
+      ).resolves.toBeUndefined();
+    });
+
+    it('fails closed when hasPermissionServer throws', async () => {
+      mockHasPermissionServer.mockRejectedValue(new Error('rpc down'));
+      await expect(
+        assertGovernedAmendmentAllowed({ tenantId: 't1', userId: 'u1', editReason: 'x' })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    });
+  });
+
+  describe('stakeAmendmentIdempotency', () => {
+    it('throws IDEMPOTENCY_KEY_REQUIRED when no key is supplied', async () => {
+      await expect(
+        stakeAmendmentIdempotency('t1', 'order1', undefined, { items: [] })
+      ).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
+    });
+
+    it('throws IDEMPOTENCY_CONFLICT when the key was staked with a different payload', async () => {
+      mockStakeIdempotencyHash.mockResolvedValue({ conflict: true, existingHash: 'other-hash' });
+      await expect(
+        stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] })
+      ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    });
+
+    it('returns editHistoryId: null on first stake (no prior completion)', async () => {
+      mockStakeIdempotencyHash.mockResolvedValue({ conflict: false, resourceId: null });
+      const result = await stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] });
+      expect(result.editHistoryId).toBeNull();
+      expect(mockStakeIdempotencyHash).toHaveBeenCalledWith(
+        't1',
+        'key-1',
+        'order_amendment',
+        expect.any(String),
+      );
+    });
+
+    it('returns the cached editHistoryId on replay (same key + same payload, already completed)', async () => {
+      mockStakeIdempotencyHash.mockResolvedValue({ conflict: false, resourceId: 'edit-history-123' });
+      const result = await stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] });
+      expect(result.editHistoryId).toBe('edit-history-123');
+    });
+  });
+
+  describe('recordAmendmentSettlement', () => {
+    it('throws when the edit-history row does not exist for this tenant/order', async () => {
+      mockEditHistoryFindFirst.mockResolvedValue(null);
+      await expect(
+        recordAmendmentSettlement({
+          tenantId: 't1',
+          editHistoryId: 'missing',
+          orderId: 'order1',
+          paymentAdjustmentType: 'CHARGE',
+          paymentAdjustmentAmount: 5,
+          settlementLineage: { paymentId: 'p1' },
+        })
+      ).rejects.toThrow('Edit history row not found');
+      expect(mockEditHistoryUpdate).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when the row is already settled (immutable once payment_adjusted)', async () => {
+      mockEditHistoryFindFirst.mockResolvedValue({ payment_adjusted: true });
+      const result = await recordAmendmentSettlement({
+        tenantId: 't1',
+        editHistoryId: 'eh1',
+        orderId: 'order1',
+        paymentAdjustmentType: 'CHARGE',
+        paymentAdjustmentAmount: 5,
+        settlementLineage: { paymentId: 'p1' },
+      });
+      expect(result.alreadySettled).toBe(true);
+      expect(mockEditHistoryUpdate).not.toHaveBeenCalled();
+    });
+
+    it('writes payment_adjusted/amount/type/settlement_lineage on first settlement', async () => {
+      mockEditHistoryFindFirst.mockResolvedValue({ payment_adjusted: false });
+      mockEditHistoryUpdate.mockResolvedValue({});
+      const result = await recordAmendmentSettlement({
+        tenantId: 't1',
+        editHistoryId: 'eh1',
+        orderId: 'order1',
+        paymentAdjustmentType: 'REFUND',
+        paymentAdjustmentAmount: -7.5,
+        settlementLineage: { dispositionIds: ['d1', 'd2'] },
+      });
+      expect(result.alreadySettled).toBe(false);
+      expect(mockEditHistoryUpdate).toHaveBeenCalledWith({
+        where: { id: 'eh1' },
+        data: expect.objectContaining({
+          payment_adjusted: true,
+          payment_adjustment_amount: 7.5,
+          payment_adjustment_type: 'REFUND',
+          settlement_lineage: { dispositionIds: ['d1', 'd2'] },
+        }),
+      });
+    });
+  });
+});

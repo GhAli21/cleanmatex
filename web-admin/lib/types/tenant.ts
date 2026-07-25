@@ -88,6 +88,12 @@ export interface FeatureFlags {
      * by default; flag-off keeps the exact pre-B9 record-only behavior.
      */
     order_fin_refund_execution: boolean;
+    /**
+     * B12 — Governed order amendments (post-payment item edits require a
+     * reason and route the financial delta through a real collect-additional
+     * / overpayment-resolution step instead of silently reprising the total).
+     */
+    order_fin_governed_amendments: boolean;
     tenant_new_dashboard_ui: boolean;
     tenant_beta_ai_classification: boolean;
     tenant_beta_voice_orders: boolean;

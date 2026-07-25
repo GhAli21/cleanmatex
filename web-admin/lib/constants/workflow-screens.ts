@@ -15,6 +15,7 @@ export const WORKFLOW_SCREEN_KEYS = [
   'canceling',
   'returning',
   'order_control',
+  'public_tracking',
 ] as const
 
 export type WorkflowScreenKey = (typeof WORKFLOW_SCREEN_KEYS)[number]

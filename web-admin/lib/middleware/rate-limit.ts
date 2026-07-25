@@ -89,6 +89,11 @@ export const rateLimiters = {
    * Registration: 5 per hour per IP
    */
   registration: createRateLimiter(5, '1 h', 'registration'),
+
+  /**
+   * Public order confirm-received: 30 per hour per IP
+   */
+  publicConfirmReceived: createRateLimiter(30, '1 h', 'public-confirm-received'),
 };
 
 /**
@@ -327,6 +332,42 @@ export async function checkRegistrationRateLimit(
     });
 
     // Fail open - allow request if rate limiting fails
+    return null;
+  }
+}
+
+/**
+ * Rate limit check for public confirm-received (unauthenticated).
+ */
+export async function checkPublicConfirmReceivedRateLimit(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  if (!rateLimiters.publicConfirmReceived) {
+    return null;
+  }
+
+  try {
+    const ip = getClientIP(request);
+    const { success, limit, remaining, reset } =
+      await rateLimiters.publicConfirmReceived.limit(ip);
+
+    if (!success) {
+      logger.warn('Public confirm-received rate limit exceeded', {
+        feature: 'rate-limit',
+        action: 'public_confirm_received',
+        ip,
+        limit,
+        remaining,
+      });
+      return createRateLimitResponse(limit, remaining, reset);
+    }
+
+    return null;
+  } catch (error) {
+    logger.error('Error checking public confirm-received rate limit', error as Error, {
+      feature: 'rate-limit',
+      action: 'public_confirm_received',
+    });
     return null;
   }
 }

@@ -88,19 +88,19 @@ todos:
     status: completed
   - id: integ-cancel-return
     content: "Integrate Cancel/Return: Fin unwind then CANCEL_ORDER/RETURN_ORDER; update progress"
-    status: pending
+    status: completed
   - id: integ-docs-refresh
     content: Refresh 08_UI_UX + user_guide per-screen integration after all integ-* tasks
     status: pending
   - id: p3-cutover
     content: "P3: remaining writer cutover (bulk/PATCH/batch-update/public); inventory checkmarks; plan status"
-    status: pending
+    status: completed
   - id: p3-docs-update
     content: "P3: refresh edge-cases/writer inventory + cutover notes in docs"
     status: pending
   - id: p4-create-release
     content: "P4: create/list/release hardening + public confirm-intake; update plan status + progress"
-    status: pending
+    status: completed
   - id: p4-docs-update
     content: "P4: refresh create/release/user-guide docs"
     status: pending

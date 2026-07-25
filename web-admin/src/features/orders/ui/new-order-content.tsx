@@ -46,6 +46,8 @@ import { OrderPiecePreferencesSection } from './piece-preferences/order-piece-pr
 import { OrderPreferencesDialog } from './preferences/OrderPreferencesDialog';
 import { OrderPiecesNotesSection } from './order-pieces-notes-section';
 import { EditOrderBar } from './edit-order-bar';
+import { AmendmentReasonDialog } from './amendment-reason-dialog';
+import { AmendmentDeltaNotice } from './amendment-delta-notice';
 import { PosSessionOrderBanner } from '@features/pos-sessions/ui/pos-session-order-banner';
 import { PosSessionHub } from '@features/pos-sessions/ui/pos-session-hub';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
@@ -126,7 +128,16 @@ export function NewOrderContent() {
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
     const [currencyCode, setCurrencyCode] = useState<string>('');
-    const { submitOrder: _submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
+    const {
+        submitOrder: _submitOrder,
+        saveOrderUpdate,
+        isSubmitting,
+        amendmentReasonPromptOpen,
+        confirmAmendmentReason,
+        cancelAmendmentReason,
+        amendmentDeltaNotice,
+        closeAmendmentDeltaNotice,
+    } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);
     const {
@@ -910,6 +921,16 @@ export function NewOrderContent() {
                 cancelLabel={tCommon('cancel')}
                 onConfirm={handleConfirmCancelEdit}
                 onCancel={() => setShowCancelConfirm(false)}
+            />
+            <AmendmentReasonDialog
+                open={amendmentReasonPromptOpen}
+                submitting={isSubmitting}
+                onConfirm={confirmAmendmentReason}
+                onCancel={cancelAmendmentReason}
+            />
+            <AmendmentDeltaNotice
+                info={amendmentDeltaNotice}
+                onClose={closeAmendmentDeltaNotice}
             />
         </div>
     );

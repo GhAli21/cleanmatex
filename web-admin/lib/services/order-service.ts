@@ -22,6 +22,15 @@ import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';
 import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
 import { createEditAudit } from '@/lib/services/order-audit.service';
+import {
+  computeAmendmentDelta,
+  assertGovernedAmendmentAllowed,
+  stakeAmendmentIdempotency,
+  completeAmendmentIdempotency,
+  AmendmentGovernanceError,
+  type AmendmentDeltaResult,
+} from '@/lib/services/order-amendment.service';
+import { canAccess } from '@/lib/services/feature-flags.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import {
   recalculateOrderFinancialSnapshot,
@@ -285,12 +294,26 @@ export interface UpdateOrderParams extends Partial<UpdateOrderInput> {
   userName: string;
   ipAddress?: string;
   userAgent?: string;
+  /** B12 — required when this edit is financially governed (see UpdateOrderResult.financialDelta). */
+  editReason?: string;
+  /** B12 — required when this edit is financially governed; D010-shaped replay/conflict key. */
+  idempotencyKey?: string;
 }
 
 export interface UpdateOrderResult {
   success: boolean;
   order?: any;
   error?: string;
+  /** B12 — set when `error` came from a governed-amendment gate (AmendmentGovernanceError.code). */
+  errorCode?: 'EDIT_REASON_REQUIRED' | 'PERMISSION_DENIED' | 'IDEMPOTENCY_KEY_REQUIRED' | 'IDEMPOTENCY_CONFLICT';
+  /** B12 — signed grand-total delta from a governed edit (item change on an order with prior payments). Absent when not governed. */
+  financialDelta?: AmendmentDeltaResult;
+  /** B12 — the org_order_edit_history row id to attach a settlement outcome to, when financialDelta.isGoverned is true. */
+  editHistoryId?: string;
+  /** B12 — true when the caller must still complete a collect-additional/overpayment-resolution step before this edit is considered settled. */
+  requiresSettlement?: boolean;
+  /** B12 — true when this call replayed a prior successful edit with the same idempotency key (no new writes). */
+  idempotentReplay?: boolean;
 }
 
 export class OrderService {
@@ -2844,6 +2867,8 @@ export class OrderService {
       expectedUpdatedAt,
       isQuickDrop,
       quickDropQuantity,
+      editReason,
+      idempotencyKey,
     } = params;
 
     try {
@@ -2942,6 +2967,88 @@ export class OrderService {
           damageNotes: item.damage_notes ?? null,
         })) || [],
       };
+
+      // 5b. B12 — governed-amendment gate. Only item-list replacements are in
+      // scope (matches the doc's "item add/remove/qty/price-override" scope);
+      // notes-only/express-only/recalculate-only edits never reach this branch.
+      // Runs entirely BEFORE the transaction opens: a dry-run reprice (same
+      // canonical-engine call the real repricing below makes, side-effect-free)
+      // tells us the prospective delta so reason/permission/idempotency can
+      // fail fast with zero partial writes.
+      let amendmentGate: {
+        delta: AmendmentDeltaResult;
+        payloadHash: string;
+      } | null = null;
+      let idempotentReplayEditHistoryId: string | null = null;
+
+      if (items && items.length > 0) {
+        const totalPaidAmount = Number((existingOrder as any).total_paid_amount ?? 0);
+        const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments');
+
+        if (governedFlagEnabled && totalPaidAmount > 0) {
+          const dryRunResult = await calculateOrderTotals({
+            tenantId,
+            branchId: branchId ?? existingOrder.branch_id,
+            items: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              servicePrefCharge: item.servicePrefCharge ?? 0,
+              packingPrefCharge: item.packingPrefCharge ?? 0,
+            })),
+            customerId: customerId ?? existingOrder.customer_id,
+            isExpress: express ?? existingOrder.priority_multiplier === 0.5,
+            userId,
+          });
+
+          const delta = computeAmendmentDelta({
+            previousTotal: snapshotBeforeFinancial.totalAmount,
+            newTotal: dryRunResult.saleTotal,
+            totalPaidAmount,
+            governedFlagEnabled,
+          });
+
+          if (delta.isGoverned) {
+            await assertGovernedAmendmentAllowed({ tenantId, userId, editReason });
+            const staked = await stakeAmendmentIdempotency(
+              tenantId,
+              orderId,
+              idempotencyKey,
+              { items, express, customerId, branchId },
+            );
+            if (staked.editHistoryId) {
+              // Replay: a prior call with this exact key+payload already
+              // completed. Short-circuit — no re-edit, no duplicate audit row.
+              idempotentReplayEditHistoryId = staked.editHistoryId;
+            } else {
+              amendmentGate = { delta, payloadHash: staked.payloadHash };
+            }
+          }
+        }
+      }
+
+      if (idempotentReplayEditHistoryId) {
+        const replayed = await prisma.org_order_edit_history.findFirst({
+          where: { id: idempotentReplayEditHistoryId, tenant_org_id: tenantId, order_id: orderId },
+        });
+        const currentOrder = await prisma.org_orders_mst.findUnique({
+          where: { id: orderId, tenant_org_id: tenantId },
+        });
+        return {
+          success: true,
+          order: currentOrder,
+          idempotentReplay: true,
+          editHistoryId: idempotentReplayEditHistoryId,
+          requiresSettlement: replayed ? !replayed.payment_adjusted : false,
+          ...(replayed?.payment_adjustment_amount != null && {
+            financialDelta: {
+              previousTotal: snapshotBeforeFinancial.totalAmount,
+              newTotal: snapshotBeforeFinancial.totalAmount + Number(replayed.payment_adjustment_amount) * (replayed.payment_adjustment_type === 'REFUND' ? -1 : 1),
+              deltaAmount: Number(replayed.payment_adjustment_amount) * (replayed.payment_adjustment_type === 'REFUND' ? -1 : 1),
+              isGoverned: true,
+            },
+          }),
+        };
+      }
 
       // 6. Use Prisma transaction for atomic updates
       const result = await prisma.$transaction(async (tx) => {
@@ -3137,7 +3244,12 @@ export class OrderService {
           updateData.total_amount = total;
           updateData.vat_rate = vatRate;
           updateData.rounding_adjustment_amount = roundingAdjustment;
-          updateData.outstanding_amount = total;
+          // B12 Design decision #5: outstanding_amount is no longer set here.
+          // Setting it to `total` ignored total_paid_amount entirely (a paid
+          // order's outstanding would read as the full new total for one
+          // write) — recalculateOrderFinancialSnapshotTx below is the single
+          // canonical writer of outstanding_amount, matching every other
+          // financially-governed path in the codebase.
           updateData.total_items = items.length;
         }
 
@@ -3225,8 +3337,11 @@ export class OrderService {
         }),
       };
 
-      // 13. Create audit entry
-      await createEditAudit({
+      // 13. Create audit entry. payment_adjusted stays false at this point even
+      // for a governed edit — the delta is known, but settlement (collect-
+      // additional / overpayment-resolution) is a separate cashier-driven step
+      // the caller completes afterward via recordAmendmentSettlement (B12).
+      const auditEntry = await createEditAudit({
         tenantId,
         orderId,
         orderNo: existingOrder.order_no,
@@ -3236,10 +3351,15 @@ export class OrderService {
         userAgent,
         snapshotBefore,
         snapshotAfter,
-        paymentAdjusted: false, // Phase 5: will implement payment adjustment
+        paymentAdjusted: false,
         paymentAdjustmentAmount: undefined,
         paymentAdjustmentType: undefined,
+        editReason: amendmentGate ? editReason : undefined,
       });
+
+      if (amendmentGate && idempotencyKey) {
+        await completeAmendmentIdempotency(tenantId, idempotencyKey, amendmentGate.payloadHash, auditEntry.id);
+      }
 
       // 14. Unlock order
       try {
@@ -3269,6 +3389,11 @@ export class OrderService {
       return {
         success: true,
         order: updatedOrderWithItems,
+        ...(amendmentGate && {
+          financialDelta: amendmentGate.delta,
+          editHistoryId: auditEntry.id,
+          requiresSettlement: true,
+        }),
       };
     } catch (error) {
       logger.error('[updateOrder] Failed to update order', error as Error, {
@@ -3281,6 +3406,7 @@ export class OrderService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update order',
+        ...(error instanceof AmendmentGovernanceError && { errorCode: error.code }),
       };
     }
   }

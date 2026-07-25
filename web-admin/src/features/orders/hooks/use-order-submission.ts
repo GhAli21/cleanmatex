@@ -162,6 +162,19 @@ export function useOrderSubmission() {
     const [serverGuard, setServerGuard] = useState<PaymentServerGuard | null>(null);
     const clearServerGuard = useCallback(() => setServerGuard(null), []);
 
+    // B12 — governed order amendment: reason prompt (opened when the server
+    // rejects a save with errorCode EDIT_REASON_REQUIRED) and the post-save
+    // delta notice (shown when a governed edit's response carries
+    // requiresSettlement). Both are no-ops for the vast majority of edits
+    // (order_fin_governed_amendments defaults OFF).
+    const [amendmentReasonPromptOpen, setAmendmentReasonPromptOpen] = useState(false);
+    const [amendmentDeltaNotice, setAmendmentDeltaNotice] = useState<{
+        deltaAmount: number;
+        previousTotal: number;
+        newTotal: number;
+        editHistoryId: string;
+    } | null>(null);
+
     const submitOrder = useCallback(
         async (paymentData: PaymentFormData, payload?: NewOrderPaymentPayload) => {
             setIsSubmitting(true);
@@ -822,7 +835,7 @@ export function useOrderSubmission() {
         ]
     );
 
-    const saveOrderUpdate = useCallback(async () => {
+    const saveOrderUpdate = useCallback(async (editReason?: string) => {
         const isEditMode = state.state.isEditMode && state.state.editingOrderId;
         if (!isEditMode) return;
 
@@ -914,6 +927,16 @@ export function useOrderSubmission() {
                     : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
                 expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
                 recalculate: true,
+                // B12 — always sent (D010 baseline hygiene); the server only
+                // enforces its presence/requires a reason when this edit turns
+                // out to be financially governed (item change on an order with
+                // prior payments, order_fin_governed_amendments ON — default
+                // OFF today). A safe no-op key for the common, ungoverned case.
+                // A fresh key per call is safe here: a rejected attempt (missing
+                // reason/permission) never reaches the idempotency stake on the
+                // server, so a retry-with-reason staking a new key never conflicts.
+                idempotencyKey: crypto.randomUUID(),
+                ...(editReason && { editReason }),
             };
 
             const res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
@@ -927,15 +950,16 @@ export function useOrderSubmission() {
             });
 
             const json = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const errorMessage = formatValidationErrorMessage(json, res.status);
-                cmxMessage.error(errorMessage);
-                setIsSubmitting(false);
-                state.setLoading(false);
-                return;
-            }
-
-            if (!json.success) {
+            if (!res.ok || !json.success) {
+                // B12 — a governed edit missing its reason isn't a generic
+                // failure: open the reason prompt and let the caller retry
+                // with it, instead of surfacing a raw error toast.
+                if (json.errorCode === 'EDIT_REASON_REQUIRED') {
+                    setAmendmentReasonPromptOpen(true);
+                    setIsSubmitting(false);
+                    state.setLoading(false);
+                    return;
+                }
                 const errorMessage = formatValidationErrorMessage(json, res.status);
                 cmxMessage.error(errorMessage);
                 setIsSubmitting(false);
@@ -953,8 +977,19 @@ export function useOrderSubmission() {
                 state.dispatch({ type: 'SET_EXPECTED_UPDATED_AT', payload: new Date(newUpdatedAt) });
             }
 
-            // Navigate back to previous page after successful save
-            router.back();
+            // B12 — a governed edit shows the delta notice first and navigates
+            // back only once the operator dismisses it; every other edit keeps
+            // the existing immediate-navigate behavior unchanged.
+            if (json.data?.requiresSettlement && json.data?.financialDelta && json.data?.editHistoryId) {
+                setAmendmentDeltaNotice({
+                    deltaAmount: json.data.financialDelta.deltaAmount,
+                    previousTotal: json.data.financialDelta.previousTotal,
+                    newTotal: json.data.financialDelta.newTotal,
+                    editHistoryId: json.data.editHistoryId,
+                });
+            } else {
+                router.back();
+            }
         } catch (err: unknown) {
             const error = err as Error;
             cmxMessage.error(error.message || t('errors.unknownError'));
@@ -964,6 +999,23 @@ export function useOrderSubmission() {
         }
     }, [state, trackByPiece, packingPerPieceEnabled, csrfToken, t, tEdit, router]);
 
+    // B12 — reason-prompt confirm/cancel retries or abandons the same save
+    // attempt; the delta notice's close navigates back (the step the
+    // non-governed success path already does immediately).
+    const confirmAmendmentReason = useCallback((reason: string) => {
+        setAmendmentReasonPromptOpen(false);
+        void saveOrderUpdate(reason);
+    }, [saveOrderUpdate]);
+
+    const cancelAmendmentReason = useCallback(() => {
+        setAmendmentReasonPromptOpen(false);
+    }, []);
+
+    const closeAmendmentDeltaNotice = useCallback(() => {
+        setAmendmentDeltaNotice(null);
+        router.back();
+    }, [router]);
+
     return {
         submitOrder,
         saveOrderUpdate,
@@ -972,5 +1024,10 @@ export function useOrderSubmission() {
         setAmountMismatch,
         serverGuard,
         clearServerGuard,
+        amendmentReasonPromptOpen,
+        confirmAmendmentReason,
+        cancelAmendmentReason,
+        amendmentDeltaNotice,
+        closeAmendmentDeltaNotice,
     };
 }

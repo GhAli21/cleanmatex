@@ -1,16 +1,16 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-07-25  
-**Overall:** ADR cancel/hold/stop in repo + **0436 applied** (operator)
+**Overall:** P4 public confirm actor in repo (apply **0437** next)
 
 ## Accurate status
 
 ```text
 Discovery signed; migrations through 0436 applied (operator)
-0436 ADR cancel/hold/stop live (narrow cancel, hold/resume/stop, stopped)
-Cancel: draft/intake/incomplete preparing only; NO auto Fin unwind
-Return deferred to V1.1
-Next: smoke cancel/hold/resume/stop → P4 / e2e
+0437 created: system actor + public_tracking ready/OFD → delivered
+Public confirm-received → CONFIRM_DELIVERY when V2 on
+ActionBar false-bounce fixed (hasLoaded)
+Next: apply 0437 → smoke public confirm + cancel/hold → P3 PATCH gate / P6 / P7
 ```
 
 ## Completed
@@ -22,11 +22,13 @@ Next: smoke cancel/hold/resume/stop → P4 / e2e
 - [x] P5: `/transition` uses engine only when `workflow_engine_v2` on
 - [x] ADR_CANCEL_RETURN_RULES Accepted + vocabulary §5 updated
 - [x] Apply `0436_sys_wf_cancel_hold_stop_adr.sql`
+- [x] P4 public confirm actor (code + migration 0437 create-only)
+- [x] P3: PATCH/bulk status gated 410 when V2 on
 
 ## Remaining
 
-- [ ] Smoke cancel (early only) + hold/resume/stop (no auto money)
-- [ ] P4 public confirm actor
+- [ ] Apply `0437_sys_wf_public_confirm_actor.sql`
+- [ ] Smoke cancel/hold/stop + public confirm-received
 - [ ] P6 tenant profile UI
 - [ ] P7 e2e + checklist + `/documentation`
 - [ ] V1.1 return sub-order

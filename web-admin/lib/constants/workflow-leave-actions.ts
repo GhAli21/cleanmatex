@@ -15,6 +15,7 @@ export const WORKFLOW_SCREEN_LEAVE_ACTION: Record<string, string> = {
   canceling: WORKFLOW_ACTIONS.CANCEL_ORDER,
   returning: WORKFLOW_ACTIONS.RETURN_ORDER,
   order_control: WORKFLOW_ACTIONS.HOLD_ORDER_WORK,
+  public_tracking: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
 };
 
 export function leaveActionForScreen(screen: string): string | null {

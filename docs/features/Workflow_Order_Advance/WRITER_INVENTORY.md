@@ -13,8 +13,9 @@ Track every path that mutates order operational status. Exit criterion: all prod
 | POD capture | `DeliveryService.capturePOD` | ✅ `CONFIRM_DELIVERY` when flag |
 | Physical intake | `POST …/confirm-physical-intake` | ✅ Engine when flag |
 | Batch auto-ready | `POST …/batch-update` | ✅ `COMPLETE_PACKING` when available + flag; else skip |
-| Public confirm-received | `POST /api/v1/public/…/confirm-received` | ⏳ Legacy (no auth user) — P4 |
-| Legacy status API | `PATCH /api/orders/[orderId]/status` | ⏳ Still Legacy — retire or gate in P5 |
+| Public confirm-received | `POST /api/v1/public/…/confirm-received` | ✅ Engine `CONFIRM_DELIVERY` + system actor when flag on (migration `0437`); Legacy fallback |
+| Legacy status API | `PATCH /api/orders/[orderId]/status` | ✅ Gated 410 when V2 on (`ENGINE_V2_USE_ACTIONS`) |
+| Legacy bulk status | `POST /api/orders/bulk-status` | ✅ Gated 410 when V2 on (`ENGINE_V2_USE_ACTIONS`) |
 | Enhanced RPC | `cmx_ord_execute_transition` | ⏳ Used when flag off / no actionCode |
 | Cancel/hold/stop | canceling + order_control | ✅ Engine: narrow cancel (no Fin unwind); HOLD/RESUME/STOP; return V1.1 deferred; Enhanced cancel when flag off |
 | Item processing | piece step writers | ⏳ Item-level only (OK if order status unchanged) |

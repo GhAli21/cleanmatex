@@ -27,5 +27,25 @@
   "lockStatusLabel": "Lock Status",
   "lockedBy": "Locked by",
   "expiresAt": "Expires at",
-  "extendLock": "Extend Lock"
+  "extendLock": "Extend Lock",
+  "amendment": {
+    "reasonDialog": {
+      "title": "Reason required",
+      "description": "This order already has payment recorded. Editing its items changes the total — please enter a reason before saving.",
+      "reasonLabel": "Reason for this change",
+      "reasonPlaceholder": "e.g. Customer requested an extra item",
+      "reasonHint": "At least {min} characters.",
+      "cancel": "Cancel",
+      "confirm": "Save with reason"
+    },
+    "deltaNotice": {
+      "increaseTitle": "Order total increased",
+      "decreaseTitle": "Order total decreased",
+      "description": "The order total changed from {previous} to {next}.",
+      "increaseGuidance": "An additional {amount} is now due. Collect it from the order's Payments tab.",
+      "decreaseGuidance": "{amount} is now owed back to the customer. Process it as a refund or credit from the order's Payments tab.",
+      "recordedNote": "This change and its reason have been recorded in the order's edit history.",
+      "gotIt": "Got it"
+    }
+  }
 }
