@@ -15,7 +15,7 @@ BEGIN
     -- Resolve DEFAULT_PHONE_COUNTRY_CODE for tenant with GCC_OM_MAIN
     SELECT * INTO v_result
     FROM fn_stng_resolve_setting_value(
-        p_tenant_id := '11111111-1111-1111-1111-111111111111',
+        p_tenant_id := '11111111-1111-4111-8111-111111111111',
         p_setting_code := 'DEFAULT_PHONE_COUNTRY_CODE'
     );
 
@@ -46,7 +46,7 @@ BEGIN
     -- Get priorities for GCC_MAIN_PROFILE and GCC_OM_MAIN
     SELECT layer_priority INTO v_gcc_main_priority
     FROM fn_stng_explain_setting(
-        p_tenant_id := '11111111-1111-1111-1111-111111111111',
+        p_tenant_id := '11111111-1111-4111-8111-111111111111',
         p_setting_code := 'DEFAULT_PHONE_COUNTRY_CODE'
     )
     WHERE source_id = 'GCC_MAIN_PROFILE'
@@ -54,7 +54,7 @@ BEGIN
 
     SELECT layer_priority INTO v_gcc_om_priority
     FROM fn_stng_explain_setting(
-        p_tenant_id := '11111111-1111-1111-1111-111111111111',
+        p_tenant_id := '11111111-1111-4111-8111-111111111111',
         p_setting_code := 'DEFAULT_PHONE_COUNTRY_CODE'
     )
     WHERE source_id = 'GCC_OM_MAIN'
@@ -92,7 +92,7 @@ BEGIN
     LOOP
         BEGIN
             PERFORM * FROM fn_stng_resolve_setting_value(
-                p_tenant_id := '11111111-1111-1111-1111-111111111111',
+                p_tenant_id := '11111111-1111-4111-8111-111111111111',
                 p_setting_code := v_setting_code
             );
         EXCEPTION WHEN OTHERS THEN

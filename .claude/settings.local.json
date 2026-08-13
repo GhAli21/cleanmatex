@@ -29,7 +29,8 @@
       "Bash(findstr*)",
       "Bash(wc*)",
       "Bash(node -e*)",
-      "Bash(sed 's/\\(.*//')"
+      "Bash(sed 's/\\(.*//')",
+      "mcp__supabase_remote_db__list_migrations"
     ],
     "deny": [
       "Read(**/node_modules/**)",
@@ -92,8 +93,8 @@
     "supabase_local",
     "supabase_remote_db"
   ],
-  "outputStyle": "concise",
   "disabledMcpjsonServers": [
     "supabase"
-  ]
+  ],
+  "outputStyle": "concise"
 }

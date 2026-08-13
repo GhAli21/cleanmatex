@@ -94,7 +94,7 @@ BEGIN
   -- Tenant 1 cash drawers
   SELECT id INTO v_branch_id
   FROM org_branches_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111'
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111'
     AND is_active = true
   ORDER BY created_at
   LIMIT 1;
@@ -105,13 +105,13 @@ BEGIN
        drawer_type, currency_code, requires_session, opening_float_required,
        max_cash_limit, is_active, rec_status, created_by)
     VALUES
-      (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+      (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
        v_branch_id, 'DRAWER-01', 'Main Counter Drawer', 'صندوق الكاونتر الرئيسي',
        'COUNTER', 'OMR', true, true, 2000.000, true, 1, NULL),
-      (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+      (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
        v_branch_id, 'SAFE-01', 'Branch Safe', 'خزنة الفرع',
        'SAFE', 'OMR', false, false, 20000.000, true, 1, NULL),
-      (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+      (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
        v_branch_id, 'DRIVER-01', 'Driver Bag #1', 'حقيبة السائق 1',
        'DRIVER_BAG', 'OMR', true, false, 800.000, true, 1, NULL)
     ON CONFLICT (tenant_org_id, drawer_code) DO NOTHING;
@@ -173,7 +173,7 @@ INSERT INTO org_payment_methods_cf (
   requires_reference, requires_approval, display_order
 )
 SELECT
-  gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   s.payment_method_code, s.payment_nature, NULL,
   NULL,
   CASE s.payment_method_code
@@ -211,7 +211,7 @@ WHERE s.is_active = true AND s.is_enabled = true AND s.rec_status = 1
   AND s.payment_method_code != 'PAYMENT_GATEWAY'
   AND NOT EXISTS (
     SELECT 1 FROM org_payment_methods_cf o
-    WHERE o.tenant_org_id = '11111111-1111-1111-1111-111111111111'
+    WHERE o.tenant_org_id = '11111111-1111-4111-8111-111111111111'
       AND o.payment_method_code = s.payment_method_code
       AND COALESCE(o.gateway_code, '') = ''
   );
@@ -231,7 +231,7 @@ INSERT INTO org_payment_methods_cf (
   requires_reference, requires_approval, display_order
 )
 SELECT
-  gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   'PAYMENT_GATEWAY', 'REAL_PAYMENT', g.code,
   NULL, NULL,
   false, true,
@@ -246,7 +246,7 @@ FROM sys_payment_gateway_cd g
 WHERE g.is_active = true AND g.is_globally_disabled = false
   AND NOT EXISTS (
     SELECT 1 FROM org_payment_methods_cf o
-    WHERE o.tenant_org_id = '11111111-1111-1111-1111-111111111111'
+    WHERE o.tenant_org_id = '11111111-1111-4111-8111-111111111111'
       AND o.payment_method_code = 'PAYMENT_GATEWAY'
       AND o.gateway_code = g.code
   );
@@ -266,21 +266,21 @@ INSERT INTO org_payment_methods_cf (
   requires_reference, requires_approval, display_order
 )
 SELECT * FROM (VALUES
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111'::UUID,
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111'::UUID,
    'PAY_ON_COLLECTION', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_COLLECTION', NULL::TEXT, false, false,
    true, false, true, 1,
    'Pay on Collection', 'الدفع عند الاستلام', '{}'::JSONB,
    true, false, false, true, false, true, false, false,
    true, false, false, false, false, 200),
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111'::UUID,
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111'::UUID,
    'PAY_ON_DELIVERY', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_DELIVERY', NULL::TEXT, false, false,
    true, false, true, 1,
    'Pay on Delivery', 'الدفع عند التسليم', '{}'::JSONB,
    false, false, false, true, false, false, false, false,
    true, false, false, false, false, 201),
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111'::UUID,
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111'::UUID,
    'CREDIT_INVOICE', 'AR_ALLOCATION', NULL::TEXT,
    'CREDIT_INVOICE', NULL::TEXT, false, false,
    false, false, true, 1,
@@ -310,10 +310,10 @@ INSERT INTO org_payment_terminals_cf
   (id, tenant_org_id, branch_id, terminal_code, terminal_name, terminal_name2,
    terminal_type, is_enabled, is_active, rec_status, created_by)
 VALUES
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    NULL, 'POS-001', 'Main POS Terminal', 'جهاز البيع الرئيسي',
    'POS_CARD_TERMINAL', true, true, 1, NULL),
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    NULL, 'MOB-001', 'Mobile POS #1', 'جهاز بيع متنقل 1',
    'POS_CARD_TERMINAL', true, true, 1, NULL)
 ON CONFLICT (tenant_org_id, terminal_code) DO NOTHING;

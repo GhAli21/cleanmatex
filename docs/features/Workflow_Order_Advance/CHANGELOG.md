@@ -1,5 +1,11 @@
 # Changelog — Workflow Order Advance
 
+## 0.3.10-p7-doc-pack-hardening — 2026-07-25
+
+- Added targeted Jest coverage for public tracking token utilities and service fallback behavior
+- Refreshed workflow feature docs for opaque public tracking links, pay-on-collection notice behavior, and delivered-state confirm disabling
+- Added the missing documentation-pack guides: developer, user, deploy, testing, and technical notes
+
 ## 0.3.9-p4-public-tracking-token — 2026-07-25
 
 - Added create-only migration `0441_public_order_tracking_tokens.sql` for opaque `/track/{token}` customer links

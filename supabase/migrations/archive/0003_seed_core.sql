@@ -44,7 +44,7 @@ set ctg_name=excluded.ctg_name,
 -- ===== Tenant and subscription =====
 insert into org_tenants_mst (id, name, name2, slug, email, phone, s_current_plan, country, currency, timezone, language, is_active, status)
 values (
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'Demo Laundry LLC', 'شركة ديمو للغسيل',
   'demo-laundry',
   'owner@demo-laundry.example',
@@ -65,7 +65,7 @@ set name=excluded.name,
 insert into org_subscriptions_mst (id, tenant_org_id, plan, status, orders_limit, orders_used, branch_limit, user_limit, start_date, end_date)
 values (
   gen_random_uuid(),
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'FREE_TRIAL','trial', 100, 0, 2, 5, now(), now() + interval '30 days'
 )
 on conflict do nothing;
@@ -74,8 +74,8 @@ on conflict do nothing;
 insert into org_branches_mst (
   id, tenant_org_id, branch_name, phone, email, address, city, area, latitude, longitude, is_active
 ) values (
-  '22222222-2222-2222-2222-222222222222',
-  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '11111111-1111-4111-8111-111111111111',
   'Main Branch', '+96871111111', 'main@demo-laundry.example',
   'Way 1234, Muscat', 'Muscat', 'Al Khuwair', 23.5859, 58.4059, true
 )
@@ -109,7 +109,7 @@ set first_name=excluded.first_name,
 insert into org_customers_mst (customer_id, tenant_org_id, is_active, created_at)
 values (
   '33333333-3333-3333-3333-333333333333',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   true, now()
 )
 on conflict (customer_id, tenant_org_id) do nothing;
@@ -117,9 +117,9 @@ on conflict (customer_id, tenant_org_id) do nothing;
 -- ===== Enable service categories for tenant =====
 insert into org_service_category_cf (tenant_org_id, service_category_code)
 values
-  ('11111111-1111-1111-1111-111111111111','LAUNDRY'),
-  ('11111111-1111-1111-1111-111111111111','DRY_CLEAN'),
-  ('11111111-1111-1111-1111-111111111111','IRON')
+  ('11111111-1111-4111-8111-111111111111','LAUNDRY'),
+  ('11111111-1111-4111-8111-111111111111','DRY_CLEAN'),
+  ('11111111-1111-4111-8111-111111111111','IRON')
 on conflict (tenant_org_id, service_category_code) do nothing;
 
 -- ===== Product =====
@@ -128,7 +128,7 @@ insert into org_product_data_mst (
   default_sell_price, default_express_sell_price, is_active, created_at2
 ) values (
   '44444444-4444-4444-4444-444444444444',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'LAUNDRY',
   'PROD-SHIRT-WI',
   'Shirt - Wash & Iron',
@@ -149,8 +149,8 @@ insert into org_orders_mst (
   payment_status, received_at, created_at, updated_at
 ) values (
   '55555555-5555-5555-5555-555555555555',
-  '11111111-1111-1111-1111-111111111111',
-  '22222222-2222-2222-2222-222222222222',
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
   '33333333-3333-3333-3333-333333333333',
   'POS',
   'CMX-2025-0001',
@@ -165,7 +165,7 @@ insert into org_order_items_dtl (
 ) values (
   gen_random_uuid(),
   '55555555-5555-5555-5555-555555555555',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'LAUNDRY',
   '001',
   '44444444-4444-4444-4444-444444444444',
@@ -180,7 +180,7 @@ insert into org_invoice_mst (
 ) values (
   '66666666-6666-6666-6666-666666666666',
   '55555555-5555-5555-5555-555555555555',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'INV-2025-0001',
   0.800, 0.000, 0.040, 0.840,
   'pending', now()
@@ -192,7 +192,7 @@ insert into org_payments_dtl_tr (
 ) values (
   '77777777-7777-7777-7777-777777777777',
   '66666666-6666-6666-6666-666666666666',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   0.840, 'paid', 'cash', now(), '{"note":"seed payment"}'::jsonb
 )
 on conflict do nothing;

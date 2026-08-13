@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** P1–P2b **in repo** (migrations not applied); P0 discovery **unsigned**; canary off by default  
+**Status:** P1–P6 **in repo**; discovery **signed 2026-07-25**; canary off by default; `0441` still operator-applied  
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -34,7 +34,7 @@ See [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md).
 9. Rename tables only when responsibility is wrong  
 10. Full seed + graph validation; EN/AR; RLS; canary  
 
-## Activate canary (after you apply `0427`/`0428`)
+## Activate canary (after you apply `0427`/`0428` and the current rollout migrations)
 
 ```bash
 # server
@@ -51,6 +51,18 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 | [01_PRD.md](01_PRD.md) … [13_Production_Readiness_Checklist.md](13_Production_Readiness_Checklist.md) | Design pack |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Work packages |
 | [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md) | Remote SQL runbook |
+
+## Delivery guides
+
+| Doc | Purpose |
+|-----|---------|
+| [developer_guide.md](developer_guide.md) | Repo implementation map and extension notes |
+| [developer_guide_mermaid.md](developer_guide_mermaid.md) | Sequence diagrams for engine/public tracking flows |
+| [user_guide.md](user_guide.md) | Floor/operator/customer usage notes and smoke steps |
+| [user_guide_mermaid.md](user_guide_mermaid.md) | User-facing flow diagrams |
+| [deploy_guide.md](deploy_guide.md) | Migration/apply/canary/smoke rollout notes |
+| [testing_guide_and_scenarios.md](testing_guide_and_scenarios.md) | Practical validation matrix and commands |
+| [technical_docs/README.md](technical_docs/README.md) | Deep implementation notes |
 
 ## Progress
 

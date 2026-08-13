@@ -98,37 +98,37 @@ INSERT INTO org_promotions_mst
 VALUES
 
 -- Welcome — auto-apply (NULL code), first-order only
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   NULL, 'Welcome 10% Off', 'خصم ترحيبي 10%',
   'percentage', 10.000, 'PERCENTAGE',
   NULL, NULL, 1, '2024-01-01', NULL, false, 'OMR', true, 1, NULL),
 
 -- Ramadan campaign
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   'RAMADAN25', 'Ramadan Special 25%', 'عرض رمضان 25%',
   'percentage', 25.000, 'PERCENTAGE',
   20.000, 500, 1, '2025-03-01', '2025-03-31', false, 'OMR', true, 1, NULL),
 
 -- Fixed OMR discount
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   'SAVE8', 'Save 8 OMR', 'وفّر 8 ريال عماني',
   'fixed_amount', 8.000, 'FIXED_AMOUNT',
   40.000, 1000, 2, '2024-01-01', NULL, false, 'OMR', true, 1, NULL),
 
 -- Weekend stackable
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   'WEEKEND15', 'Weekend 15% Off', 'خصم نهاية الأسبوع 15%',
   'percentage', 15.000, 'PERCENTAGE',
   12.000, NULL, NULL, '2024-01-01', NULL, true, 'OMR', true, 1, NULL),
 
 -- Bulk auto-apply — stackable
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   NULL, 'Bulk Order 5% Off', 'خصم الطلبات الكبيرة 5%',
   'percentage', 5.000, 'PERCENTAGE',
   80.000, NULL, NULL, '2024-01-01', NULL, true, 'OMR', true, 1, NULL),
 
 -- B2B corporate
-(gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+(gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
   'CORP30', 'Corporate Partner 30%', 'شريك مؤسسي 30%',
   'percentage', 30.000, 'PERCENTAGE',
   60.000, NULL, NULL, '2024-01-01', NULL, false, 'OMR', true, 1, NULL);

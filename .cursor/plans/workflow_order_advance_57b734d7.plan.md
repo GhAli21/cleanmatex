@@ -46,7 +46,7 @@ todos:
     status: completed
   - id: p0-discovery-signoff
     content: Run/document production discovery SQL; update progress; block P1 until signed
-    status: pending
+    status: completed
   - id: p1-schema-seed
     content: "P1: rename/seed schema; update plan status + CHANGELOG after migrate files created"
     status: completed
@@ -91,19 +91,19 @@ todos:
     status: completed
   - id: integ-docs-refresh
     content: Refresh 08_UI_UX + user_guide per-screen integration after all integ-* tasks
-    status: pending
+    status: completed
   - id: p3-cutover
     content: "P3: remaining writer cutover (bulk/PATCH/batch-update/public); inventory checkmarks; plan status"
     status: completed
   - id: p3-docs-update
     content: "P3: refresh edge-cases/writer inventory + cutover notes in docs"
-    status: pending
+    status: completed
   - id: p4-create-release
     content: "P4: create/list/release hardening + public confirm-intake; update plan status + progress"
     status: completed
   - id: p4-docs-update
     content: "P4: refresh create/release/user-guide docs"
-    status: pending
+    status: completed
   - id: p5-retire-rpcs
     content: "P5: retire RPCs; update plan status + do-not-remove list"
     status: pending
@@ -115,7 +115,7 @@ todos:
     status: completed
   - id: p6-docs-update
     content: "P6: refresh UI/UX + RBAC/nav docs after Studio"
-    status: pending
+    status: completed
   - id: p7-harden
     content: "P7: harden/e2e/canary; update plan status + production checklist"
     status: pending
@@ -124,7 +124,7 @@ todos:
     status: pending
   - id: final-documentation-skill
     content: "FINAL: load /documentation skill and generate/complete full Workflow_Order_Advance pack (README, guides, progress, changelog, technical_docs, etc.)"
-    status: pending
+    status: completed
   - id: final-plan-status
     content: "FINAL: mark all plan todos complete; write final progress_summary + current_status + version.txt"
     status: pending

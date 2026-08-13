@@ -283,7 +283,7 @@ COMMENT ON COLUMN org_tenants_mst.is_hq_test_demo IS 'True for HQ test/demo tena
 UPDATE org_tenants_mst
 SET is_hq_test_demo = true
 WHERE id IN (
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   '20000002-2222-2222-2222-222222222221',
   'c9ac29d1-219c-4a3a-8887-f860550c32be'
 );

@@ -288,8 +288,8 @@ BEGIN
   -- Skip auto-initialization for known demo/test tenants
   -- These are seeded manually with specific configurations
   IF NEW.id IN (
-    '11111111-1111-1111-1111-111111111111',  -- Demo tenant
-    '22222222-2222-2222-2222-222222222222'   -- Test tenant 2
+    '11111111-1111-4111-8111-111111111111',  -- Demo tenant
+    '22222222-2222-4222-8222-222222222222'   -- Test tenant 2
   ) THEN
     RAISE NOTICE 'Skipping auto-initialization for demo/test tenant: %', NEW.id;
     RETURN NEW;
@@ -355,7 +355,7 @@ BEGIN
 
   -- Test with demo tenant (should handle already-initialized gracefully)
   v_test_result := initialize_new_tenant(
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     NULL,  -- Don't create duplicate admin user
     NULL,
     NULL

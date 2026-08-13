@@ -30,7 +30,7 @@ INSERT INTO org_tenants_mst (
   created_at
 )
 VALUES (
-  '11111111-1111-1111-1111-111111111111', -- Fixed UUID for testing
+  '11111111-1111-4111-8111-111111111111', -- Fixed UUID for testing
   'Demo Laundry Services',
   'خدمات المغسلة التجريبية',
   'demo-laundry',
@@ -66,8 +66,8 @@ INSERT INTO org_subscriptions_mst (
   created_at
 )
 VALUES (
-  '22222222-2222-2222-2222-222222222222',
-  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '11111111-1111-4111-8111-111111111111',
   'FREE_TRIAL',
   'trial',
   50,
@@ -96,7 +96,7 @@ INSERT INTO org_branches_mst (
 )
 VALUES (
   '33333333-3333-3333-3333-333333333333',
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'Main Branch',
   'Building 123, Way 456, Al Khuwair',
   'Muscat',
@@ -193,7 +193,7 @@ INSERT INTO org_service_category_cf (
   service_category_code
 )
 SELECT
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   service_category_code
 FROM sys_service_category_cd
 WHERE is_active = true
@@ -230,14 +230,14 @@ BEGIN
   -- Check demo tenant created
   SELECT COUNT(*) INTO v_tenant_count
   FROM org_tenants_mst
-  WHERE id = '11111111-1111-1111-1111-111111111111';
+  WHERE id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_tenant_count = 1, 'Demo tenant not created';
 
   -- Check branch created
   SELECT COUNT(*) INTO v_branch_count
   FROM org_branches_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111';
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_branch_count >= 1, 'Demo branch not created';
 

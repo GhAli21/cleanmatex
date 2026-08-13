@@ -605,7 +605,7 @@ BEGIN
     -- Test resolution for tenant with GCC_OM_MAIN profile
     SELECT * INTO v_result
     FROM fn_stng_resolve_setting_value(
-        p_tenant_id := '11111111-1111-1111-1111-111111111111',
+        p_tenant_id := '11111111-1111-4111-8111-111111111111',
         p_setting_code := 'DEFAULT_PHONE_COUNTRY_CODE'
     );
 
@@ -632,7 +632,7 @@ SELECT
     layer_priority,
     reason
 FROM fn_stng_explain_setting(
-    p_tenant_id := '11111111-1111-1111-1111-111111111111',
+    p_tenant_id := '11111111-1111-4111-8111-111111111111',
     p_setting_code := 'DEFAULT_PHONE_COUNTRY_CODE'
 )
 ORDER BY layer_order;

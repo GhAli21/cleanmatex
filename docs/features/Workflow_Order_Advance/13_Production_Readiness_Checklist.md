@@ -1,11 +1,11 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** P0 correction pass · **Date:** 2026-07-24
+**Status:** P7 hardening working checklist · **Date:** 2026-07-25
 
 ## Design / P0
 
 - [ ] ADR accepted by product/engineering
-- [ ] Discovery SQL signed (drift, flags, outbox reuse)
+- [x] Discovery SQL signed (drift, flags, outbox reuse) — 2026-07-25
 - [ ] Correction checklist in IMPLEMENTATION_PLAN §6 green
 
 ## Engineering go-live
@@ -21,6 +21,7 @@
 - [ ] Central outbox; no duplicate notify
 - [ ] Canary + rollback rehearsed
 - [ ] Access contracts + i18n
+- [ ] Public token rollout applied (`0441`) and customer smoke completed
 - [ ] T01–T18 pass on pilot tenants
 
 ## Explicitly not required for V1.0 go-live

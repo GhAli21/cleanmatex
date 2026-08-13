@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** P0 correction pass · **Date:** 2026-07-24  
+**Status:** P4 public tracking + token rollout refreshed · **Date:** 2026-07-25  
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions
@@ -86,6 +86,8 @@ Exact HQ OpenAPI: document in cleanmatexsaas integration contract; tenant app co
 
 | Item | Value |
 |------|--------|
+| Customer page | `GET /track/{token}` |
+| Legacy page | `GET /public/orders/{tenantId}/{orderNo}` redirects to `/track/{token}` when a valid active token exists |
 | Canonical path | `POST /api/v1/public/track/{token}/confirm-received` |
 | Legacy compatibility | `POST /api/v1/public/orders/{tenantId}/{orderNo}/confirm-received` remains available during rollout and old readable page links redirect to `/track/{token}` when a token exists |
 | Auth | None (public link); IP rate limit |
@@ -93,6 +95,7 @@ Exact HQ OpenAPI: document in cleanmatexsaas integration contract; tenant app co
 | V2 action | `CONFIRM_DELIVERY` on screen `public_tracking` |
 | Actor | System user `WORKFLOW_SYSTEM_ACTOR` (`0437`) — satisfies history FK |
 | Flag off | Legacy `WorkflowService.changeStatus` with same system actor UUID |
+| Payment notice | Read APIs also expose `payment_type_code`, `outstanding_amount`, and `pay_on_collection_amount` so the public page can warn before confirm |
 
 Staff physical intake remains `POST …/confirm-physical-intake` → `CONFIRM_PHYSICAL_INTAKE` (authenticated).
 

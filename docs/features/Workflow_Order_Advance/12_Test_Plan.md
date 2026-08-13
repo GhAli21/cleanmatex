@@ -1,6 +1,6 @@
 # 12 — Test Plan
 
-**Status:** P0 correction pass · **Date:** 2026-07-24
+**Status:** P7 hardening refreshed · **Date:** 2026-07-25
 
 ## 1. V1.0 mandatory scenarios
 
@@ -24,6 +24,8 @@
 | T16 | RLS isolation |
 | T17 | Central outbox single emit (no duplicate notify) |
 | T18 | EN/AR action labels |
+| T19 | Public tracking token route resolves opaque `/track/{token}` links and falls back cleanly while `0441` is unapplied |
+| T20 | Public confirm-received shows pay-on-collection notice and disables once delivered |
 
 ## 2. V1.1 / V1.2 suites (planned, not V1.0 gate)
 
@@ -38,3 +40,8 @@
 ## 3. Layers
 
 Unit / integration / e2e / canary parity as in IMPLEMENTATION_PLAN.
+
+## 4. Current automated coverage added on 2026-07-25
+
+- `web-admin/__tests__/lib/utils/public-order-tracking.test.ts`
+- `web-admin/__tests__/services/public-order-tracking.service.test.ts`

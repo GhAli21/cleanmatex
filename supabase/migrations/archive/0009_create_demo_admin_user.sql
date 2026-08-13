@@ -63,7 +63,7 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN
     -- Fallback to localhost for development
     v_supabase_url := 'http://127.0.0.1:54321';
-    v_service_key := 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
+    --v_service_key := 'Put the key for the db e.g. sb_secret';
     RAISE WARNING 'Using default Supabase local configuration';
   END;
 
@@ -281,7 +281,7 @@ COMMENT ON FUNCTION create_and_link_auth_user IS
 
 DO $$
 DECLARE
-  v_demo_tenant_id UUID := '11111111-1111-1111-1111-111111111111';
+  v_demo_tenant_id UUID := '11111111-1111-4111-8111-111111111111';
   v_demo_email TEXT := 'admin@demo-laundry.local';
   v_demo_password TEXT := 'Admin123';
   v_demo_display_name TEXT := 'Demo Admin';
@@ -344,7 +344,7 @@ BEGIN
   -- Check if user is linked to tenant
   SELECT COUNT(*) INTO v_link_count
   FROM org_users_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111'
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111'
   AND role = 'admin';
 
   IF v_user_count > 0 AND v_link_count > 0 THEN
@@ -367,7 +367,7 @@ COMMIT;
 -- DROP FUNCTION IF EXISTS create_and_link_auth_user CASCADE;
 -- DROP FUNCTION IF EXISTS generate_manual_auth_user_commands CASCADE;
 -- DROP FUNCTION IF EXISTS create_auth_user_via_http CASCADE;
--- DELETE FROM org_users_mst WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111';
+-- DELETE FROM org_users_mst WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111';
 -- DELETE FROM auth.users WHERE email = 'admin@demo-laundry.local';
 -- DROP EXTENSION IF EXISTS pg_net;
 -- COMMIT;

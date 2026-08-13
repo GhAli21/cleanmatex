@@ -43,7 +43,7 @@ INSERT INTO org_tenants_mst (
   created_at
 )
 VALUES (
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   'Demo Laundry LLC',
   'شركة ديمو للغسيل',
   'demo-laundry',
@@ -87,7 +87,7 @@ INSERT INTO org_subscriptions_mst (
 )
 VALUES (
   '11111111-1111-1111-1111-111111111112', -- Subscription ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
   'FREE_TRIAL',
   'trial',
   100,
@@ -121,8 +121,8 @@ INSERT INTO org_branches_mst (
   created_at
 )
 VALUES (
-  'af9cc2dc-ac2a-4866-be4a-7f54529e4796', -- '22222222-2222-2222-2222-222222222222', -- Branch ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
+  'af9cc2dc-ac2a-4866-be4a-7f54529e4796', -- '22222222-2222-4222-8222-222222222222', -- Branch ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
   'Main Branch',
   'Main Branch Name',
   'الفرع الرئيسي',
@@ -151,7 +151,7 @@ ON CONFLICT (id, tenant_org_id) DO UPDATE SET
 -- Enable Service Categories for Tenant
 INSERT INTO org_service_category_cf (tenant_org_id, service_category_code, rec_order)--, is_enabled)
 SELECT
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   service_category_code,
   rec_order
   --true is_enabled
@@ -191,7 +191,7 @@ VALUES (
   'customer@demo-laundry.example',
   'walk_in',
   'Muscat',
-  '11111111-1111-1111-1111-111111111111', -- First tenant
+  '11111111-1111-4111-8111-111111111111', -- First tenant
   NOW(),
   NOW()
 )
@@ -214,7 +214,7 @@ INSERT INTO org_customers_mst (
 VALUES (
   '33333333-3333-3333-3333-333333333333', -- id
   '33333333-3333-3333-3333-333333333333', -- Customer ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
   100, -- Starting loyalty points
   true,
   NOW()
@@ -241,7 +241,7 @@ INSERT INTO org_product_data_mst (
 VALUES
   (
     '44444444-4444-4444-4444-444444444441',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     'WASH_AND_IRON',
     'PROD-SHIRT-WI',
     'Shirt - Wash & Iron',
@@ -254,7 +254,7 @@ VALUES
   ),
   (
     '44444444-4444-4444-4444-444444444442',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     'WASH_AND_IRON',
     'PROD-PANTS-WI',
     'Pants - Wash & Iron',
@@ -267,7 +267,7 @@ VALUES
   ),
   (
     '44444444-4444-4444-4444-444444444443',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     'DRY_CLEAN',
     'PROD-SUIT-DC',
     'Suit - Dry Clean',
@@ -280,7 +280,7 @@ VALUES
   ),
   (
     '44444444-4444-4444-4444-444444444444',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-8111-111111111111',
     'IRON_ONLY',
     'PROD-SHIRT-IO',
     'Shirt - Iron Only',
@@ -324,8 +324,8 @@ INSERT INTO org_orders_mst (
 )
 VALUES (
   '55555555-5555-5555-5555-555555555555', -- Order ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
-  'af9cc2dc-ac2a-4866-be4a-7f54529e4796', -- '22222222-2222-2222-2222-222222222222', -- Branch ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
+  'af9cc2dc-ac2a-4866-be4a-7f54529e4796', -- '22222222-2222-4222-8222-222222222222', -- Branch ID
   '33333333-3333-3333-3333-333333333333', -- Customer ID
   'POS',
   'CMX-2025-0001',
@@ -361,7 +361,7 @@ VALUES
   (
     '55555555-5555-5555-5555-555555555551', -- Item 1 ID
     '55555555-5555-5555-5555-555555555555', -- Order ID
-    '11111111-1111-1111-1111-111111111111', -- Tenant ID
+    '11111111-1111-4111-8111-111111111111', -- Tenant ID
     'WASH_AND_IRON',
     '001',
     '44444444-4444-4444-4444-444444444441', -- Shirt product
@@ -374,7 +374,7 @@ VALUES
   (
     '55555555-5555-5555-5555-555555555552', -- Item 2 ID
     '55555555-5555-5555-5555-555555555555', -- Order ID
-    '11111111-1111-1111-1111-111111111111', -- Tenant ID
+    '11111111-1111-4111-8111-111111111111', -- Tenant ID
     'WASH_AND_IRON',
     '002',
     '44444444-4444-4444-4444-444444444442', -- Pants product
@@ -402,7 +402,7 @@ INSERT INTO org_invoice_mst (
 VALUES (
   '66666666-6666-6666-6666-666666666666', -- Invoice ID
   '55555555-5555-5555-5555-555555555555', -- Order ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
   'INV-2025-0001',
   1.800,
   0.000,
@@ -428,7 +428,7 @@ INSERT INTO org_payments_dtl_tr (
 VALUES (
   '77777777-7777-7777-7777-777777777777', -- Payment ID
   '66666666-6666-6666-6666-666666666666', -- Invoice ID
-  '11111111-1111-1111-1111-111111111111', -- Tenant ID
+  '11111111-1111-4111-8111-111111111111', -- Tenant ID
   1.890,
   'paid',
   'cash',
@@ -452,28 +452,28 @@ BEGIN
   -- Verify tenant created
   SELECT COUNT(*) INTO v_tenant_count
   FROM org_tenants_mst
-  WHERE id = '11111111-1111-1111-1111-111111111111';
+  WHERE id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_tenant_count = 1, 'Demo Tenant #1 not created';
 
   -- Verify branch created
   SELECT COUNT(*) INTO v_branch_count
   FROM org_branches_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111';
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_branch_count >= 1, 'Demo branch not created';
 
   -- Verify products created
   SELECT COUNT(*) INTO v_product_count
   FROM org_product_data_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111';
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_product_count >= 3, 'Demo products not created';
 
   -- Verify order created
   SELECT COUNT(*) INTO v_order_count
   FROM org_orders_mst
-  WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111';
+  WHERE tenant_org_id = '11111111-1111-4111-8111-111111111111';
 
   ASSERT v_order_count >= 1, 'Demo order not created';
 

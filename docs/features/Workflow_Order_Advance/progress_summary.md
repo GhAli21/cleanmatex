@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
 **Updated:** 2026-07-25  
-**Overall:** Public tracking tokenized in repo; apply **0441** then smoke **0437**/tracking next
+**Overall:** P1–P6 delivered in repo; public tracking tokenized and documented; apply **0441** then complete operator smoke + P7 e2e next
 
 ## Accurate status
 
@@ -13,7 +13,9 @@ Public tracking shows pay-on-collection due + disables confirm after delivered
 Public links now prefer opaque /track/{token} paths (migration 0441 create-only)
 ActionBar false-bounce fixed (hasLoaded)
 Tenant workflow settings now show read-only effective profile on V2
-Next: apply 0441 with 0437 already applied → smoke public confirm + cancel/hold → P7 / docs
+Targeted Jest coverage added for public tracking token helpers/service fallback
+Documentation pack guides added (developer/user/deploy/testing/technical)
+Next: apply 0441 with 0437 already applied → smoke public confirm + cancel/hold → P7 e2e/canary
 ```
 
 ## Completed
@@ -28,11 +30,13 @@ Next: apply 0441 with 0437 already applied → smoke public confirm + cancel/hol
 - [x] P4 public confirm actor (code + migration 0437 create-only)
 - [x] P3: PATCH/bulk status gated 410 when V2 on
 - [x] P6 tenant profile UI on `settings/workflows` for V2 tenants
+- [x] P7 targeted hardening: public token helper/service tests
+- [x] Documentation pack refresh: guide files + token rollout notes
 
 ## Remaining
 
 - [x] Apply `0437_sys_wf_public_confirm_actor.sql`
 - [ ] Apply `0441_public_order_tracking_tokens.sql`
 - [ ] Smoke cancel/hold/stop + public confirm-received
-- [ ] P7 e2e + checklist + `/documentation`
+- [ ] P7 e2e + final checklist
 - [ ] V1.1 return sub-order

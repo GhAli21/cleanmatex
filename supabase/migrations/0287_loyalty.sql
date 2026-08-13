@@ -158,7 +158,7 @@ WITH prog1 AS (
      points_expiry_days, is_active, rec_status)
   VALUES
     ('aaaaaaaa-0001-0001-0001-000000000001',
-     '11111111-1111-1111-1111-111111111111',
+     '11111111-1111-4111-8111-111111111111',
      'CleanMate Rewards', 'مكافآت كلين ميت',
      1.00, 0.01, 100, 20.00, 365, true, 1)
   RETURNING id
@@ -168,7 +168,7 @@ INSERT INTO org_loyalty_tiers_cf
    min_points, bonus_multiplier, sort_order, is_active, rec_status)
 SELECT
   gen_random_uuid(),
-  '11111111-1111-1111-1111-111111111111',
+  '11111111-1111-4111-8111-111111111111',
   prog1.id,
   t.name, t.name2, t.min_pts, t.multiplier, t.ord,
   true, 1

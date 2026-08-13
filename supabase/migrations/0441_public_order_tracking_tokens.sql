@@ -19,6 +19,8 @@
 
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 ALTER TABLE public.org_orders_mst
   ADD COLUMN IF NOT EXISTS public_tracking_token TEXT;
 
@@ -30,10 +32,10 @@ ALTER TABLE public.org_orders_mst
 
 ALTER TABLE public.org_orders_mst
   ALTER COLUMN public_tracking_token
-  SET DEFAULT lower(encode(gen_random_bytes(16), 'hex'));
+  SET DEFAULT lower(encode(extensions.gen_random_bytes(16), 'hex'));
 
 UPDATE public.org_orders_mst
-SET public_tracking_token = lower(encode(gen_random_bytes(16), 'hex'))
+SET public_tracking_token = lower(encode(extensions.gen_random_bytes(16), 'hex'))
 WHERE public_tracking_token IS NULL
    OR btrim(public_tracking_token) = '';
 

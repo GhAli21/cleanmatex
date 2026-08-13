@@ -95,19 +95,19 @@ INSERT INTO org_tax_profiles_cf
   (id, tenant_org_id, name, name2, tax_type, rate, is_compound,
    applies_to, effective_from, is_default, is_active, rec_status, created_by)
 VALUES
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    'VAT 5%', 'ضريبة القيمة المضافة 5%',
    'VAT', 5.00, false, NULL, '2024-01-01', true, true, 1, NULL),
 
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    'VAT Exempt', 'معفى من ضريبة القيمة المضافة',
    'VAT', 0.00, false, ARRAY['EXEMPT_SERVICE'], '2024-01-01', false, true, 1, NULL),
 
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    'Zero-Rated VAT', 'ضريبة صفرية',
    'VAT', 0.00, false, ARRAY['EXPORT'], '2024-01-01', false, true, 1, NULL),
 
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    'Selective Tax 100%', 'ضريبة انتقائية 100%',
    'CUSTOM', 100.00, false, ARRAY['TOBACCO'], '2024-01-01', false, true, 1, NULL);
 
@@ -116,7 +116,7 @@ INSERT INTO org_tax_exemptions_cf
   (id, tenant_org_id, customer_id, exemption_type, certificate_no,
    valid_from, is_active, created_by)
 VALUES
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+  (gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
    NULL, 'GOVERNMENT_ENTITY', 'GOV-OM-2024-001', '2024-01-01', true, NULL);
 
 -- ── Seed: Tenant 2 — Saudi Arabia (SAR) ──────────────────────────────────────
