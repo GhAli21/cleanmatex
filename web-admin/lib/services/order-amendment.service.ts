@@ -16,9 +16,9 @@ import 'server-only';
 import { prisma } from '@/lib/db/prisma';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
+  claimIdempotencyKey,
   findIdempotencyHash,
   hashPayload,
-  stakeIdempotencyHash,
   storeIdempotencyHash,
 } from '@/lib/utils/idempotency';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
@@ -82,7 +82,13 @@ function round4(value: number): number {
  * pattern).
  */
 export class AmendmentGovernanceError extends Error {
-  code: 'EDIT_REASON_REQUIRED' | 'PERMISSION_DENIED' | 'IDEMPOTENCY_KEY_REQUIRED' | 'IDEMPOTENCY_CONFLICT';
+  code:
+    | 'EDIT_REASON_REQUIRED'
+    | 'PERMISSION_DENIED'
+    | 'IDEMPOTENCY_KEY_REQUIRED'
+    | 'IDEMPOTENCY_CONFLICT'
+    /** A concurrent request holding the same key is still running (see stakeAmendmentIdempotency). */
+    | 'IDEMPOTENCY_IN_PROGRESS';
 
   constructor(code: AmendmentGovernanceError['code'], message: string) {
     super(message);
@@ -124,9 +130,18 @@ export async function assertGovernedAmendmentAllowed(params: {
 
 /**
  * Stakes a D010-shaped idempotency key for a governed amendment.
- * `resourceId` on the returned record is the `org_order_edit_history.id`
- * from a PRIOR successful call with the same key + payload — when present,
- * the caller should return the cached result instead of redoing the edit.
+ *
+ * Uses {@link claimIdempotencyKey} (atomic `INSERT ... ON CONFLICT DO NOTHING`)
+ * rather than the read-then-write `stakeIdempotencyHash`, because this is a
+ * money-bearing path: two concurrent calls carrying the same key must not both
+ * proceed to write their own edit-history row and financial delta. The plain
+ * stake cannot tell a concurrent in-flight staker from a free key — both see
+ * `resourceId: null` — so it would let both racers through.
+ *
+ * Returned `editHistoryId` is the `org_order_edit_history.id` from a PRIOR
+ * *completed* call with the same key + payload — when present, the caller
+ * should return the cached result instead of redoing the edit.
+ *
  * @param tenantId
  * @param orderId
  * @param idempotencyKey
@@ -145,23 +160,33 @@ export async function stakeAmendmentIdempotency(
     );
   }
   const payloadHash = hashPayload({ orderId, ...(payload as Record<string, unknown>) });
-  const staked = await stakeIdempotencyHash(
+  const claim = await claimIdempotencyKey(
     tenantId,
     idempotencyKey,
     ORDER_AMENDMENT_IDEMPOTENCY_RESOURCE_TYPE,
     payloadHash,
   );
-  if (staked.conflict) {
-    throw new AmendmentGovernanceError(
-      'IDEMPOTENCY_CONFLICT',
-      'This idempotency key was already used for a different edit payload.',
-    );
+
+  switch (claim.status) {
+    case 'CONFLICT':
+      throw new AmendmentGovernanceError(
+        'IDEMPOTENCY_CONFLICT',
+        'This idempotency key was already used for a different edit payload.',
+      );
+    case 'IN_FLIGHT':
+      // A duplicate of a request that is still running. Rejecting is the only
+      // safe answer: proceeding would double-apply the amendment, and waiting
+      // for the winner would still leave us guessing at its outcome.
+      throw new AmendmentGovernanceError(
+        'IDEMPOTENCY_IN_PROGRESS',
+        'An edit with this idempotency key is already being processed. Wait for it to finish before retrying.',
+      );
+    case 'COMPLETED':
+      return { payloadHash, editHistoryId: claim.resourceId };
+    case 'CLAIMED':
+    default:
+      return { payloadHash, editHistoryId: null };
   }
-  // staked is guaranteed { conflict: false; resourceId: string | null } past the
-  // throw above; asserted explicitly since some TS versions don't narrow a
-  // discriminated union returned from an awaited call as tightly as a local one.
-  const notConflicted = staked as { conflict: false; resourceId: string | null };
-  return { payloadHash, editHistoryId: notConflicted.resourceId };
 }
 
 /**

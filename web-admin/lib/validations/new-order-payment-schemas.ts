@@ -417,10 +417,6 @@ export const clientTotalsSchema = z.object({
 export const createWithPaymentRequestSchema = z.object({
   customerId: z.string(),
   orderTypeId: z.string().default('POS'),
-  /** Additional tax rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
-  additionalTaxRate: z.number().min(0).max(100).optional(),
-  /** Additional tax amount. If provided, overrides rate-based calculation. */
-  additionalTaxAmount: z.number().min(0).optional(),
   /** Canonical tax profile selection used by web-admin and external clients. */
   taxProfileIds: z.array(z.string().uuid()).optional(),
   items: z.array(

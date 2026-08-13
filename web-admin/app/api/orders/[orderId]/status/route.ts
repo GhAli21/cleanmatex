@@ -5,10 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { WorkflowService } from '@/lib/services/workflow-service';
 import { createClient } from '@/lib/supabase/server';
-import type { OrderStatus } from '@/lib/types/workflow';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 
 /**
  *
@@ -18,20 +15,8 @@ import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = await params;
-    const body = await request.json();
-    const { toStatus, notes } = body;
-
-    if (!toStatus) {
-      return NextResponse.json(
-        { success: false, error: 'toStatus is required' },
-        { status: 400 }
-      );
-    }
-
     // Get authenticated user
     const supabase = await createClient();
     const {
@@ -55,65 +40,15 @@ export async function PATCH(
       );
     }
 
-    // P3: raw status PATCH is retired when Workflow Engine V2 is on.
-    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Direct status PATCH is disabled for Workflow Engine V2. Use POST /api/v1/orders/{id}/actions with an actionCode.',
-          code: 'ENGINE_V2_USE_ACTIONS',
-        },
-        { status: 410 },
-      );
-    }
-
-    // Get current order status
-    const { data: order, error: fetchError } = await supabase
-      .from('org_orders_mst')
-      .select('status')
-      .eq('id', orderId)
-      .eq('tenant_org_id', tenantId)
-      .single();
-
-    if (fetchError || !order) {
-      return NextResponse.json(
-        { success: false, error: 'Order not found' },
-        { status: 404 }
-      );
-    }
-
-    // Change status using WorkflowService
-    const result = await WorkflowService.changeStatus({
-      orderId,
-      tenantId,
-      fromStatus: order.status as OrderStatus,
-      toStatus: toStatus as OrderStatus,
-      userId: user.id,
-      userName: user.user_metadata?.display_name || user.email || 'Unknown',
-      notes,
-      metadata: {
-        userAgent: request.headers.get('user-agent'),
-        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Direct status updates are retired. Use POST /api/v1/orders/{id}/actions with an actionCode.',
+        code: 'USE_WORKFLOW_ACTIONS',
       },
-    });
-
-    if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error,
-          blockers: result.blockers,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: result.order,
-      message: `Order status updated to ${toStatus}`,
-    });
+      { status: 410 },
+    );
   } catch (error) {
     console.error('PATCH /api/orders/[orderId]/status error:', error);
     return NextResponse.json(

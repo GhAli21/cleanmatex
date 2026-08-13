@@ -1,6 +1,6 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** P7 hardening working checklist · **Date:** 2026-07-25
+**Status:** Repository implementation complete; post-deploy acceptance open · **Date:** 2026-08-13
 
 ## Design / P0
 
@@ -11,17 +11,20 @@
 ## Engineering go-live
 
 - [ ] Additive schema + seed + graph CI + RLS
-- [ ] `state_version` enforced
-- [ ] Zero non-engine writers
+- [x] `state_version` enforced by engine commands
+- [x] Zero production non-engine post-create transition writers in the application
 - [ ] HQ assign + tenant read-only effective profile
 - [ ] No tenant graph editing
 - [ ] Fin release gate server-side
-- [ ] Retail not auto-`closed`
-- [ ] Atomic `CONFIRM_DELIVERY`
+- [x] Retail not auto-`closed`
+- [x] Atomic engine `CONFIRM_DELIVERY`
 - [ ] Central outbox; no duplicate notify
 - [ ] Canary + rollback rehearsed
-- [ ] Access contracts + i18n
-- [ ] Public token rollout applied (`0441`) and customer smoke completed
+- [x] Access contracts + i18n
+- [x] Public token rollout applied (`0441`) and anonymous customer smoke completed
+- [x] Legacy/enhanced RPC grants retirement migration `0442` applied locally and remotely — 2026-08-14
+- [x] Focused hardening: 49 Jest tests and 2 anonymous Playwright tests passed
+- [ ] Post-`0442` engine smoke passed in production
 - [ ] T01–T18 pass on pilot tenants
 
 ## Explicitly not required for V1.0 go-live

@@ -2,17 +2,13 @@
  * Preparation: Complete preparation for an order
  * POST /api/v1/preparation/[id]/complete
  *
- * When WORKFLOW_ENGINE_V2=true: uses WorkflowEngine COMPLETE_PREPARATION
- * (processing, not sorting). Legacy path also no longer writes `sorting`.
+ * Uses WorkflowEngine COMPLETE_PREPARATION (processing, not sorting).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { completePreparation } from '@/lib/db/orders';
-import { prisma } from '@/lib/db/prisma';
-import { withTenantContext } from '@/lib/db/tenant-context';
 import { isPreparationEnabled } from '@/lib/config/features';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import { requireTenantAuth } from '@/lib/middleware/tenant-guard';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {
@@ -72,71 +68,45 @@ export async function POST(
       internalNotes,
     });
 
-    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
-      const idempotencyKey =
-        request.headers.get('Idempotency-Key')?.trim() ||
-        (typeof body?.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '') ||
-        `prep-complete:${orderId}:${userId}`;
+    const idempotencyKey =
+      request.headers.get('Idempotency-Key')?.trim() ||
+      (typeof body?.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '') ||
+      `prep-complete:${orderId}:${userId}`;
 
-      const available = await listAvailableActions({
-        tenantId,
-        orderId,
-        screen: 'preparation',
-      });
+    const available = await listAvailableActions({
+      tenantId,
+      orderId,
+      screen: 'preparation',
+    });
 
-      const expectedStateVersion =
-        typeof body?.expectedStateVersion === 'number'
-          ? body.expectedStateVersion
-          : available.stateVersion;
+    const expectedStateVersion =
+      typeof body?.expectedStateVersion === 'number'
+        ? body.expectedStateVersion
+        : available.stateVersion;
 
-      const result = await executeAction({
-        tenantId,
-        orderId,
-        screen: 'preparation',
-        actionCode: WORKFLOW_ACTIONS.COMPLETE_PREPARATION,
-        expectedStateVersion,
-        actorUserId: userId,
-        input: {
-          readyByOverride: readyByOverride ?? null,
-          internalNotes: internalNotes ?? null,
-        },
-        idempotencyKey,
-      });
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          orderId,
-          status: result.currentStatus,
-          currentStatus: result.currentStatus,
-          stateVersion: result.stateVersion,
-          preparation_status: 'completed',
-          engine: 'workflow_v2',
-        },
-      });
-    }
-
-    // Legacy bridge: never write `sorting` (poison path retired)
-    await withTenantContext(tenantId, async () => {
-      await prisma.org_orders_mst.update({
-        where: { id: orderId },
-        data: {
-          status: 'processing',
-          current_status: 'processing',
-          updated_at: new Date(),
-          updated_by: userId,
-        },
-      });
+    const result = await executeAction({
+      tenantId,
+      orderId,
+      screen: 'preparation',
+      actionCode: WORKFLOW_ACTIONS.COMPLETE_PREPARATION,
+      expectedStateVersion,
+      actorUserId: userId,
+      input: {
+        readyByOverride: readyByOverride ?? null,
+        internalNotes: internalNotes ?? null,
+      },
+      idempotencyKey,
     });
 
     return NextResponse.json({
       success: true,
       data: {
         orderId,
-        status: 'processing',
-        currentStatus: 'processing',
+        status: result.currentStatus,
+        currentStatus: result.currentStatus,
+        stateVersion: result.stateVersion,
         preparation_status: 'completed',
-        engine: 'legacy_bridge',
+        engine: 'workflow_v2',
       },
     });
   } catch (error) {

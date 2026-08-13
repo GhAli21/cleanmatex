@@ -58,17 +58,26 @@ type TaxLineItem = {
 };
 ```
 
-## Additional Tax (Order Tax)
+## Additional Tax (CUSTOM tax lines)
 
-Separate from VAT — applied as a fixed rate or amount on top of the VAT-inclusive total:
+`calculateOrderTotals` reports `additionalTaxAmount` — the sum of `CUSTOM`-type
+lines from the resolved tax breakdown, kept separate from VAT/GST (`vatValue`)
+for display and reporting. Stored in `org_order_taxes_dtl` as its own row
+(`taxType='CUSTOM'`).
 
-```
-additionalTax = additionalTaxAmountParam  // if provided
-              || (afterDiscounts × additionalTaxRate / 100)  // if rate given
-              || 0
-```
+CUSTOM lines come from configured **tax profiles** only, exactly like VAT/GST —
+same resolution mechanism, same compounding rules, same TAX_INCLUSIVE handling.
+When no tax profile applies, `additionalTaxAmount` is `0`.
 
-Stored in `org_order_taxes_dtl` with a separate row (taxType='CUSTOM').
+> **Removed 2026-08-13 (B28 follow-up #4):** the ad-hoc, client-supplied
+> `additionalTaxRate` / `additionalTaxAmount` request params previously
+> documented here. They were accepted on the submit path but had no equivalent
+> on the preview routes, so a non-zero value would have made the payment-modal
+> preview disagree with the amount actually charged. Verified dead in practice
+> before removal (no caller could send a non-zero value). Tax now has exactly
+> two authoritative sources: configured tax profiles, and the server-resolved
+> `TENANT_VAT_RATE` fallback (zero by default per B15). Regression guard:
+> `__tests__/validations/preview-submit-param-parity.test.ts`.
 
 ---
 

@@ -1,6 +1,6 @@
 /**
  * Workflow screen keys used by org_ord_screen_contracts_cf.screen_key.
- * Must match DB seeds / cmx_ord_screen_pre_conditions CASE branches.
+ * Must match workflow screen catalog seeds.
  */
 export const WORKFLOW_SCREEN_KEYS = [
   'preparation',

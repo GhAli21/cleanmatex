@@ -14,6 +14,7 @@ import {
   hashPayload,
   stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
+import { resolveOrderControlTransition } from '@/lib/workflow/order-control-transition';
 
 // ─── Error types ───────────────────────────────────────────────────────────
 
@@ -117,7 +118,6 @@ type ActionTransitionRow = {
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 const PREPARATION_COMPLETED = 'completed';
-const MIN_HOLD_STOP_NOTE_LENGTH = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -674,13 +674,6 @@ export async function executeAction(
       );
     }
 
-    const isHold =
-      params.actionCode === WORKFLOW_ACTIONS.HOLD_ORDER_WORK;
-    const isResume =
-      params.actionCode === WORKFLOW_ACTIONS.RESUME_ORDER_WORK;
-    const isStop =
-      params.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK;
-
     const controlNote =
       (typeof params.input?.notes === 'string' ? params.input.notes.trim() : '') ||
       (typeof params.input?.hold_note === 'string'
@@ -690,33 +683,23 @@ export async function executeAction(
         ? params.input.stop_note.trim()
         : '');
 
-    if ((isHold || isStop) && controlNote.length < MIN_HOLD_STOP_NOTE_LENGTH) {
-      throw new WorkflowEngineError(
-        'ACTION_NOT_ALLOWED',
-        `Reason/notes must be at least ${MIN_HOLD_STOP_NOTE_LENGTH} characters for hold/stop.`,
-      );
-    }
-
     let toStatus = normalizeStatus(transition.to_status);
     let nextHoldFrom: string | null = null;
     let clearHoldFrom = false;
 
-    if (isHold) {
-      toStatus = 'on_hold';
-      nextHoldFrom = currentStatus;
-    } else if (isResume) {
-      const resumeTo = normalizeStatus(order.hold_from_status);
-      if (!resumeTo) {
-        throw new WorkflowEngineError(
-          'ACTION_NOT_ALLOWED',
-          'Cannot resume: hold_from_status is missing on this order.',
-        );
-      }
-      toStatus = resumeTo;
-      clearHoldFrom = true;
-    } else if (isStop) {
-      toStatus = 'stopped';
-      clearHoldFrom = true;
+    const orderControl = resolveOrderControlTransition({
+      actionCode: params.actionCode,
+      currentStatus,
+      holdFromStatus: order.hold_from_status,
+      note: controlNote,
+    });
+    if (orderControl !== null && orderControl.ok === false) {
+      throw new WorkflowEngineError('ACTION_NOT_ALLOWED', orderControl.message);
+    }
+    if (orderControl !== null && orderControl.ok === true) {
+      toStatus = orderControl.toStatus;
+      nextHoldFrom = orderControl.nextHoldFromStatus;
+      clearHoldFrom = orderControl.clearHoldFromStatus;
     }
 
     const nextVersion = currentVersion + 1;

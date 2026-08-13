@@ -63,6 +63,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: authFile },
       dependencies: ['setup'],
     },
+    {
+      name: 'public-chromium',
+      testMatch: /public-order-tracking\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
 
     {
       name: 'firefox',

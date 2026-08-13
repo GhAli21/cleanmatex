@@ -35,16 +35,22 @@ describe('isWorkflowEngineV2Enabled', () => {
     jest.resetModules();
   });
 
-  it('is off by default', async () => {
+  it('is on by default', async () => {
     delete process.env.WORKFLOW_ENGINE_V2;
     delete process.env.NEXT_PUBLIC_WORKFLOW_ENGINE_V2;
     const { isWorkflowEngineV2Enabled } = await import('@/lib/config/features');
-    expect(isWorkflowEngineV2Enabled()).toBe(false);
+    expect(isWorkflowEngineV2Enabled()).toBe(true);
   });
 
   it('turns on with WORKFLOW_ENGINE_V2=true', async () => {
     process.env.WORKFLOW_ENGINE_V2 = 'true';
     const { isWorkflowEngineV2Enabled } = await import('@/lib/config/features');
     expect(isWorkflowEngineV2Enabled()).toBe(true);
+  });
+
+  it('turns off with WORKFLOW_ENGINE_V2=false', async () => {
+    process.env.WORKFLOW_ENGINE_V2 = 'false';
+    const { isWorkflowEngineV2Enabled } = await import('@/lib/config/features');
+    expect(isWorkflowEngineV2Enabled()).toBe(false);
   });
 });

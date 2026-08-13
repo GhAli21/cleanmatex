@@ -58,10 +58,6 @@ export interface OrderCalculationParams {
   serviceCategories?: string[];
   /** Canonical tax profile IDs selected by the client. */
   taxProfileIds?: string[];
-  /** Additional tax (order tax) rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
-  additionalTaxRate?: number;
-  /** Additional tax amount. If provided, overrides additionalTaxRate. Applied on top of base total. */
-  additionalTaxAmount?: number;
   /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
   userId?: string;
   /**
@@ -85,7 +81,7 @@ export interface OrderCalculationResult {
   afterDiscounts: number;
   taxRate: number;
   taxAmount: number;
-  /** Additional (order) tax amount applied on top of base (VAT-inclusive) total. */
+  /** Sum of CUSTOM-type tax-profile lines, reported separately from VAT/GST (`vatValue`). */
   additionalTaxAmount: number;
   vatTaxPercent: number;
   vatValue: number;
@@ -135,8 +131,6 @@ export async function calculateOrderTotals(
     giftCardId,
     serviceCategories,
     taxProfileIds,
-    additionalTaxRate,
-    additionalTaxAmount: additionalTaxAmountParam,
     orderCharges,
   } = params;
 
@@ -333,7 +327,7 @@ export async function calculateOrderTotals(
       .reduce((sum, line) => sum + line.taxAmount, 0),
     decimalPlaces
   );
-  let additionalTaxAmount = round(
+  const additionalTaxAmount = round(
     taxBreakdown
       .filter((line) => line.taxType === TAX_TYPES.CUSTOM)
       .reduce((sum, line) => sum + line.taxAmount, 0),
@@ -342,27 +336,20 @@ export async function calculateOrderTotals(
 
   // B11: profile-driven tax (taxBreakdown non-empty) is already extracted/embedded
   // by calculateTax under TAX_INCLUSIVE — including CUSTOM-type profile lines, since
-  // they share the same tenant tax-profile configuration mechanism as VAT/GST. The
-  // ad-hoc additionalTaxRate/additionalTaxAmount params below (used only when no tax
-  // profile is configured at all) are a manually-entered order-level surcharge that
-  // was never part of the priced item, so they stay additive in both modes.
+  // they share the same tenant tax-profile configuration mechanism as VAT/GST.
   const additionalTaxEmbedded = isInclusive && taxBreakdown.length > 0;
 
+  // No tax profile configured for this order: fall back to the tenant-level
+  // TENANT_VAT_RATE setting. B15 policy — an unset/unparsable rate resolves to
+  // zero, never an assumed positive rate. `additionalTaxAmount` stays 0 here:
+  // it only ever carries CUSTOM-type *profile* lines, which by definition do
+  // not exist when taxBreakdown is empty.
   if (taxBreakdown.length === 0) {
     const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
     vatTaxPercent = round(vatRate * 100, 2);
     vatValue = isInclusive
       ? round(extractTaxFromInclusive(afterDiscounts, vatRate).taxAmount, decimalPlaces)
       : round(afterDiscounts * vatRate, decimalPlaces);
-
-    if (additionalTaxAmountParam != null && additionalTaxAmountParam > 0) {
-      additionalTaxAmount = round(additionalTaxAmountParam, decimalPlaces);
-    } else if (additionalTaxRate != null && additionalTaxRate > 0) {
-      additionalTaxAmount = round(
-        (afterDiscounts * additionalTaxRate) / 100,
-        decimalPlaces
-      );
-    }
   }
 
   const taxAmount = vatValue;
@@ -371,9 +358,9 @@ export async function calculateOrderTotals(
   // CUSTOM tax); `afterDiscounts` is the gross and must not be added to again.
   // TAX_EXCLUSIVE — unchanged, byte-identical to pre-B11 behavior.
   // B18: order-level charges (`chargesTotal`) are always a flat, non-taxable
-  // addend regardless of mode — analogous to the ad-hoc additionalTaxAmount
-  // surcharge, not a catalog price. No `is_taxable` config exists per-charge
-  // today (see B18 doc); taxable charges are a documented future extension.
+  // addend regardless of mode — not a catalog price, so never part of the
+  // inclusive envelope. No `is_taxable` config exists per-charge today
+  // (see B18 doc); taxable charges are a documented future extension.
   let amountBeforeGiftCard = isInclusive
     ? round(afterDiscounts + (additionalTaxEmbedded ? 0 : additionalTaxAmount) + chargesTotal, decimalPlaces)
     : round(afterDiscounts + vatValue + additionalTaxAmount + chargesTotal, decimalPlaces);

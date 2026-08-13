@@ -6,6 +6,8 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { listWorkflowScreenKeysForStatus } from '@/lib/services/workflow-profile.service';
+import { listAvailableActions } from '@/lib/services/workflow/workflow-engine.service';
 import { logger } from '@/lib/utils/logger';
 import type {
   OrderStatus,
@@ -22,25 +24,15 @@ import type {
   WorkflowStats,
 } from '@/lib/types/workflow';
 
-/** RPC `cmx_order_transition` JSON payload (not in generated types). */
-type CmxOrderTransitionResult = {
-  success?: boolean;
-  error?: string;
-  gate?: string;
-  order_id?: string;
-  to_status?: string;
-  transitioned_at?: string;
-};
-
-/** RPC `cmx_validate_transition` JSON payload. */
-type CmxValidateTransitionResult = {
-  allowed?: boolean;
-  error?: string;
-};
-
-/** RPC `cmx_get_allowed_transitions` JSON payload. */
-type CmxAllowedTransitionsResult = {
-  transitions?: unknown[];
+/** Compatibility shape for callers of the retired transition-reader RPC. */
+export type AllowedWorkflowTransition = {
+  to: string;
+  to_status: string;
+  action_code: string;
+  label: string;
+  label2: string | null;
+  enabled: boolean;
+  blocked_reasons: Array<{ code: string; message: string; message2?: string }>;
 };
 
 const DEFAULT_TENANT_WORKFLOW_STEPS: OrderStatus[] = [
@@ -62,145 +54,44 @@ const DEFAULT_TENANT_WORKFLOW_STEPS: OrderStatus[] = [
 
 export class WorkflowService {
   /**
-   * Change order status with full validation and audit trail
-   * PRD-010: Uses cmx_order_transition() DB function for core validation
+   * Reject the retired raw-status mutation contract.
+   *
+   * Callers must execute a configured action so gates, finance orchestration,
+   * optimistic concurrency, history, and outbox writes remain atomic.
    */
   static async changeStatus(
-    params: ChangeStatusParams
+    _params: ChangeStatusParams
   ): Promise<ChangeStatusResult> {
-    try {
-      const supabase = await createClient();
-      const {
-        orderId,
-        tenantId,
-        fromStatus,
-        toStatus,
-        userId,
-        userName,
-        notes,
-        metadata,
-      } = params;
-      // Build payload for DB function
-      const payload = {
-        notes,
-        ...metadata,
-      };
-      // Call DB function to perform transition
-      const { data, error: functionError } = await supabase.rpc(
-        'cmx_order_transition',
-        {
-          p_tenant: tenantId,
-          p_order: orderId,
-          p_from: fromStatus,
-          p_to: toStatus,
-          p_user: userId,
-          p_payload: payload,
-        }
-      );
-      
-      if (functionError || !data) {
-        logger.warn('Order transition failed (db function)', {
-          feature: 'workflow',
-          action: 'change_status',
-          tenantId,
-          orderId,
-          fromStatus,
-          toStatus,
-          userId,
-          message: functionError?.message ?? 'No data returned',
-        });
-        return {
-          success: false,
-          error: functionError?.message || 'Transition failed',
-        };
-      }
-
-      // Parse DB function result
-      const transition = data as CmxOrderTransitionResult;
-      if (transition.success === false) {
-        return {
-          success: false,
-          error: transition.error || 'Transition not allowed',
-          blockers:
-            transition.gate === 'rack_location_required'
-              ? ['Rack location required']
-              : undefined,
-        };
-      }
-
-      // Emit hooks/events (best-effort, non-blocking)
-      try {
-        await this.triggerWorkflowHooks({
-          orderId,
-          tenantId,
-          fromStatus,
-          toStatus,
-        });
-      } catch (hookErr) {
-        logger.warn('Workflow hooks failed (non-blocking)', {
-          feature: 'workflow',
-          action: 'hooks',
-          tenantId,
-          orderId,
-          fromStatus,
-          toStatus,
-        });
-      }
-
-      return {
-        success: true,
-        order: {
-          id: transition.order_id ?? orderId,
-          status: (transition.to_status ?? toStatus) as OrderStatus,
-          updated_at: transition.transitioned_at ?? new Date().toISOString(),
-        },
-      };
-    } catch (error) {
-      logger.error(
-        'WorkflowService.changeStatus error',
-        error instanceof Error ? error : new Error('Unknown error'),
-        { feature: 'workflow', action: 'change_status' }
-      );
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+    return {
+      success: false,
+      error: 'Raw status transitions are retired; execute a configured workflow action.',
+    };
   }
 
   /**
-   * Check if a status transition is allowed
-   * PRD-010: Uses cmx_validate_transition() DB function
+   * Check whether the application engine exposes an enabled action to a status.
    */
   static async isTransitionAllowed(
     params: TransitionCheckParams
   ): Promise<TransitionCheckResult> { 
     try {
-      const supabase = await createClient();
       const { tenantId, fromStatus, toStatus, orderId } = params;
 
-      // If we have an order_id, use DB function for validation
       if (orderId) {
-        const { data, error } = await supabase.rpc(
-          'cmx_validate_transition',
-          {
-            p_tenant: tenantId,
-            p_order: orderId,
-            p_from: fromStatus,
-            p_to: toStatus,
-          }
+        const transitions = await this.getAllowedTransitions(
+          orderId,
+          tenantId,
+          fromStatus,
         );
-
-        if (!error && data) {
-          const vd = data as CmxValidateTransitionResult;
-          return {
-            isAllowed: Boolean(vd.allowed),
-            reason: vd.error || undefined,
-          };
-        }
+        const matching = transitions.find((transition) => transition.to === toStatus);
+        return {
+          isAllowed: matching?.enabled ?? false,
+          reason: matching?.blocked_reasons.map((reason) => reason.message).join('; ') || undefined,
+        };
       }
 
-      // Fallback to legacy validation if order_id not provided
+      const supabase = await createClient();
+      // Configuration-only checks remain for callers that do not have an order.
       const { data: settings } = await supabase
         .from('org_workflow_settings_cf')
         .select('*')
@@ -727,28 +618,47 @@ export class WorkflowService {
   }
 
   /**
-   * PRD-010: Get allowed transitions for order
+   * Read configured actions from the application workflow engine.
+   *
+   * @param orderId Order whose tenant-scoped state and gates are evaluated.
+   * @param tenantId Authenticated tenant that owns the order.
+   * @param fromStatus Current status used to discover configured screens.
+   * @returns Configured transition edges in the legacy-compatible response shape.
+   * @example
+   * const transitions = await WorkflowService.getAllowedTransitions(orderId, tenantId, 'qa')
    */
   static async getAllowedTransitions(
     orderId: string,
     tenantId: string,
     fromStatus?: OrderStatus
-  ): Promise<any[]> {
+  ): Promise<AllowedWorkflowTransition[]> {
     try {
-      const supabase = await createClient();
+      const screens = await listWorkflowScreenKeysForStatus(tenantId, fromStatus ?? '');
+      const results = await Promise.all(
+        screens.map((screen) =>
+          listAvailableActions({ tenantId, orderId, screen })
+        )
+      );
+      const transitions = new Map<string, AllowedWorkflowTransition>();
 
-      const { data, error } = await supabase.rpc('cmx_get_allowed_transitions', {
-        p_tenant: tenantId,
-        p_order: orderId,
-        p_from: fromStatus || null,
-      });
+      for (const result of results) {
+        for (const action of result.actions) {
+          const key = `${action.actionCode}:${action.toStatus}`;
+          if (transitions.has(key)) continue;
 
-      if (error || !data) {
-        return [];
+          transitions.set(key, {
+            to: action.toStatus,
+            to_status: action.toStatus,
+            action_code: action.actionCode,
+            label: action.label,
+            label2: action.label2,
+            enabled: action.enabled,
+            blocked_reasons: action.blockedReasons,
+          });
+        }
       }
 
-      const payload = data as CmxAllowedTransitionsResult;
-      return payload.transitions || [];
+      return [...transitions.values()];
     } catch (error) {
       console.error('WorkflowService.getAllowedTransitions error:', error);
       return [];

@@ -37,16 +37,6 @@ jest.mock('@/lib/services/order-service', () => ({
   },
 }));
 
-jest.mock('@/lib/services/workflow-service', () => ({
-  WorkflowService: {
-    changeStatus: jest.fn(),
-  },
-}));
-
-jest.mock('@/lib/config/workflow-engine-v2.server', () => ({
-  resolveWorkflowEngineV2Enabled: jest.fn(),
-}));
-
 jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
   WorkflowEngineError: class WorkflowEngineError extends Error {
     code?: string;
@@ -71,7 +61,13 @@ jest.mock('@/lib/constants/workflow-system-actor', () => ({
 
 import { logger } from '@/lib/utils/logger';
 import { prisma } from '@/lib/db/prisma';
+import { createClient } from '@/lib/supabase/server';
 import {
+  executeAction,
+  listAvailableActions,
+} from '@/lib/services/workflow/workflow-engine.service';
+import {
+  confirmPublicOrderReceivedResponse,
   getPublicTrackingPathForOrderId,
   resolvePublicTrackingReferenceByToken,
   resolvePublicTrackingTokenByOrderRef,
@@ -193,6 +189,91 @@ describe('public-order-tracking service', () => {
           orderId: 'order-1',
         }),
       ).resolves.toBeNull();
+    });
+  });
+
+  describe('confirmPublicOrderReceivedResponse', () => {
+    const request = new Request('https://cmx.cleanmatex.com/api/v1/public/track/token', {
+      headers: { 'user-agent': 'jest', 'x-forwarded-for': '127.0.0.1' },
+    });
+
+    function mockOrderLookup(currentStatus: string) {
+      (createClient as jest.Mock).mockResolvedValueOnce({
+        from: jest.fn(() => ({
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn().mockResolvedValue({
+                  data: {
+                    id: 'order-1',
+                    status: currentStatus,
+                    current_status: currentStatus,
+                    state_version: 7,
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        })),
+      });
+    }
+
+    it('always uses the engine action and system actor for a ready order', async () => {
+      mockOrderLookup('ready');
+      (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
+      (executeAction as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        currentStatus: 'delivered',
+        stateVersion: 8,
+      });
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 200,
+        body: { success: true, data: { status: 'delivered', engine: 'workflow_v2' } },
+      });
+      expect(executeAction).toHaveBeenCalledWith(expect.objectContaining({
+        tenantId: 'tenant-1',
+        orderId: 'order-1',
+        screen: 'public_tracking',
+        actionCode: 'CONFIRM_DELIVERY',
+        expectedStateVersion: 7,
+        actorUserId: 'system-user',
+        actorName: 'System User',
+        idempotencyKey: 'public-confirm-received:tenant-1:order-1',
+      }));
+    });
+
+    it('returns idempotent success for delivered without executing another transition', async () => {
+      mockOrderLookup('delivered');
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 200,
+        body: { success: true, data: { status: 'delivered', idempotent: true } },
+      });
+      expect(executeAction).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid workflow status before any transition call', async () => {
+      mockOrderLookup('processing');
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({ status: 400, body: { success: false } });
+      expect(executeAction).not.toHaveBeenCalled();
     });
   });
 });

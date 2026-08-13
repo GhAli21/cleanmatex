@@ -4,12 +4,12 @@
  * Covers:
  * - computeAmendmentDelta — increase/decrease/tolerance/unpaid-order/flag-off
  * - assertGovernedAmendmentAllowed — reason + permission gate
- * - stakeAmendmentIdempotency — required key, conflict, replay
+ * - stakeAmendmentIdempotency — required key, conflict, concurrent in-flight, replay
  * - recordAmendmentSettlement — not-found, already-settled no-op, fresh write
  */
 
 const mockHasPermissionServer = jest.fn();
-const mockStakeIdempotencyHash = jest.fn();
+const mockClaimIdempotencyKey = jest.fn();
 const mockStoreIdempotencyHash = jest.fn();
 const mockFindIdempotencyHash = jest.fn();
 const mockEditHistoryFindFirst = jest.fn();
@@ -21,7 +21,7 @@ jest.mock('@/lib/services/permission-service-server', () => ({
 }));
 
 jest.mock('@/lib/utils/idempotency', () => ({
-  stakeIdempotencyHash: (...a: unknown[]) => mockStakeIdempotencyHash(...a),
+  claimIdempotencyKey: (...a: unknown[]) => mockClaimIdempotencyKey(...a),
   storeIdempotencyHash: (...a: unknown[]) => mockStoreIdempotencyHash(...a),
   findIdempotencyHash: (...a: unknown[]) => mockFindIdempotencyHash(...a),
   hashPayload: (payload: unknown) => `hash:${JSON.stringify(payload)}`,
@@ -162,18 +162,27 @@ describe('order-amendment.service (B12)', () => {
       ).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
     });
 
-    it('throws IDEMPOTENCY_CONFLICT when the key was staked with a different payload', async () => {
-      mockStakeIdempotencyHash.mockResolvedValue({ conflict: true, existingHash: 'other-hash' });
+    it('throws IDEMPOTENCY_CONFLICT when the key is held by a different payload', async () => {
+      mockClaimIdempotencyKey.mockResolvedValue({ status: 'CONFLICT', existingHash: 'other-hash' });
       await expect(
         stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] })
       ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
     });
 
-    it('returns editHistoryId: null on first stake (no prior completion)', async () => {
-      mockStakeIdempotencyHash.mockResolvedValue({ conflict: false, resourceId: null });
+    it('throws IDEMPOTENCY_IN_PROGRESS when a concurrent call already staked the same key and has not finished', async () => {
+      // The case the plain read-then-write stake could not detect: both racers
+      // saw resourceId:null and both proceeded, double-applying the amendment.
+      mockClaimIdempotencyKey.mockResolvedValue({ status: 'IN_FLIGHT' });
+      await expect(
+        stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] })
+      ).rejects.toMatchObject({ code: 'IDEMPOTENCY_IN_PROGRESS' });
+    });
+
+    it('returns editHistoryId: null when this call wins the claim (proceed with the edit)', async () => {
+      mockClaimIdempotencyKey.mockResolvedValue({ status: 'CLAIMED' });
       const result = await stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] });
       expect(result.editHistoryId).toBeNull();
-      expect(mockStakeIdempotencyHash).toHaveBeenCalledWith(
+      expect(mockClaimIdempotencyKey).toHaveBeenCalledWith(
         't1',
         'key-1',
         'order_amendment',
@@ -182,9 +191,18 @@ describe('order-amendment.service (B12)', () => {
     });
 
     it('returns the cached editHistoryId on replay (same key + same payload, already completed)', async () => {
-      mockStakeIdempotencyHash.mockResolvedValue({ conflict: false, resourceId: 'edit-history-123' });
+      mockClaimIdempotencyKey.mockResolvedValue({ status: 'COMPLETED', resourceId: 'edit-history-123' });
       const result = await stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] });
       expect(result.editHistoryId).toBe('edit-history-123');
+    });
+
+    it('hashes the orderId together with the payload, so the same key on a different order conflicts', async () => {
+      mockClaimIdempotencyKey.mockResolvedValue({ status: 'CLAIMED' });
+      await stakeAmendmentIdempotency('t1', 'order1', 'key-1', { items: [] });
+      await stakeAmendmentIdempotency('t1', 'order2', 'key-1', { items: [] });
+      const hashForOrder1 = mockClaimIdempotencyKey.mock.calls[0][3];
+      const hashForOrder2 = mockClaimIdempotencyKey.mock.calls[1][3];
+      expect(hashForOrder1).not.toBe(hashForOrder2);
     });
   });
 

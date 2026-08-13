@@ -15,8 +15,6 @@ import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-p
 import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
-import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import { resolveInitialStatus } from '@/lib/services/workflow/initial-status-resolver.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';
@@ -305,7 +303,12 @@ export interface UpdateOrderResult {
   order?: any;
   error?: string;
   /** B12 — set when `error` came from a governed-amendment gate (AmendmentGovernanceError.code). */
-  errorCode?: 'EDIT_REASON_REQUIRED' | 'PERMISSION_DENIED' | 'IDEMPOTENCY_KEY_REQUIRED' | 'IDEMPOTENCY_CONFLICT';
+  errorCode?:
+    | 'EDIT_REASON_REQUIRED'
+    | 'PERMISSION_DENIED'
+    | 'IDEMPOTENCY_KEY_REQUIRED'
+    | 'IDEMPOTENCY_CONFLICT'
+    | 'IDEMPOTENCY_IN_PROGRESS';
   /** B12 — signed grand-total delta from a governed edit (item change on an order with prior payments). Absent when not governed. */
   financialDelta?: AmendmentDeltaResult;
   /** B12 — the org_order_edit_history row id to attach a settlement outcome to, when financialDelta.isGoverned is true. */
@@ -317,69 +320,6 @@ export interface UpdateOrderResult {
 }
 
 export class OrderService {
-  /**
-   * Get initial status from workflow contract
-   * Falls back to hardcoded values if contract unavailable
-   */
-  private static async getInitialStatusFromContract(
-    tenantId: string,
-    screen: string,
-    fallbackStatus: string
-  ): Promise<string> {
-    try {
-      const supabase = await createClient();
-      const { data: contract, error } = await supabase.rpc(
-        'cmx_ord_screen_pre_conditions' as any,
-        { p_screen: screen }
-      );
-
-      if (error || !contract) {
-        logger.debug('Screen contract not available, using fallback', {
-          tenantId,
-          screen,
-          fallbackStatus,
-          feature: 'orders',
-          action: 'get_initial_status',
-        });
-        return fallbackStatus;
-      }
-
-      // Type guard for contract structure
-      const contractData = contract as any;
-      if (!contractData.statuses || !Array.isArray(contractData.statuses) || contractData.statuses.length === 0) {
-        logger.debug('Screen contract has no statuses, using fallback', {
-          tenantId,
-          screen,
-          fallbackStatus,
-          feature: 'orders',
-          action: 'get_initial_status',
-        });
-        return fallbackStatus;
-      }
-
-      // Return first valid status from contract
-      const contractStatus = contractData.statuses[0] as string;
-      logger.debug('Using contract-based initial status', {
-        tenantId,
-        screen,
-        contractStatus,
-        fallbackStatus,
-        feature: 'orders',
-        action: 'get_initial_status',
-      });
-      return contractStatus;
-    } catch (error) {
-      logger.warn('Failed to fetch screen contract, using fallback', {
-        tenantId,
-        screen,
-        fallbackStatus,
-        feature: 'orders',
-        action: 'get_initial_status',
-      });
-      return fallbackStatus;
-    }
-  }
-
   /**
    * Shared workflow + physical-intake resolution for createOrder / createOrderInTransaction.
    * - Remote channels (requires_remote_intake_confirm): screen new_order → draft, null received_at
@@ -407,11 +347,9 @@ export class OrderService {
     isRetailOnlyOrder: boolean;
   }> {
     const {
-      tenantId,
       items,
       isQuickDrop,
       quickDropQuantity,
-      useOldWfCodeOrNew,
       physicalIntakeStatus,
       initialWorkflowScreen,
       sourceRow,
@@ -422,30 +360,17 @@ export class OrderService {
 
     if (isRetailOnlyOrder) {
       // V1.0 ADR: retail must not auto-close. Prefer sys_wf_initial_rules (ready).
-      if (await resolveWorkflowEngineV2Enabled(tenantId)) {
-        const resolved = await resolveInitialStatus({
-          orderSourceCode: sourceRow.order_source_code,
-          isRetail: true,
-        });
-        const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
-        return {
-          v_initialStatus: retailStatus,
-          v_transitionFrom: retailStatus,
-          v_orderStatus: retailStatus,
-          v_current_status: retailStatus,
-          v_current_stage: retailStatus,
-          physicalIntakeStatus: 'received',
-          receivedAt: new Date(),
-          contractScreen: 'retail',
-          isRetailOnlyOrder: true,
-        };
-      }
+      const resolved = await resolveInitialStatus({
+        orderSourceCode: sourceRow.order_source_code,
+        isRetail: true,
+      });
+      const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
       return {
-        v_initialStatus: RETAIL_TERMINAL_STATUS,
-        v_transitionFrom: RETAIL_TERMINAL_STATUS,
-        v_orderStatus: RETAIL_TERMINAL_STATUS,
-        v_current_status: RETAIL_TERMINAL_STATUS,
-        v_current_stage: RETAIL_TERMINAL_STATUS,
+        v_initialStatus: retailStatus,
+        v_transitionFrom: retailStatus,
+        v_orderStatus: retailStatus,
+        v_current_status: retailStatus,
+        v_current_stage: retailStatus,
         physicalIntakeStatus: 'received',
         receivedAt: new Date(),
         contractScreen: 'retail',
@@ -464,7 +389,11 @@ export class OrderService {
 
     if (useRemoteIntake) {
       const screen = initialWorkflowScreen ?? 'new_order';
-      const contractStatus = await this.getInitialStatusFromContract(tenantId, screen, 'draft');
+      const resolved = await resolveInitialStatus({
+        orderSourceCode: sourceRow.order_source_code,
+        isRetail: false,
+      });
+      const contractStatus = resolved.initialStatus;
       return {
         v_initialStatus: contractStatus,
         v_transitionFrom: contractStatus,
@@ -503,19 +432,6 @@ export class OrderService {
     }
 
     let contractScreen = isIncompleteQuickDrop ? 'preparation' : 'new_order';
-    if (useOldWfCodeOrNew === false) {
-      const screen = isIncompleteQuickDrop ? 'preparation' : 'new_order';
-      contractScreen = screen;
-      const contractStatus = await this.getInitialStatusFromContract(
-        tenantId,
-        screen,
-        v_current_status
-      );
-      v_current_status = contractStatus;
-      v_orderStatus = contractStatus;
-      v_initialStatus = contractStatus;
-    }
-
     return {
       v_initialStatus,
       v_transitionFrom,
@@ -602,29 +518,20 @@ export class OrderService {
       } = wf;
 
       if (isRetailOnlyOrder) {
-        logger.info('Retail order created with closed status (workflow skipped)', {
+        logger.info('Retail order created from workflow initial rules', {
           tenantId,
           userId,
           feature: 'orders',
           action: 'create_order',
         });
-      } else if (useOldWfCodeOrNew === false) {
-        logger.info('Using new workflow system for order creation', {
+      } else {
+        logger.info('Using workflow initial rules for order creation', {
           tenantId,
           userId,
           screen: contractScreen,
           contractStatus: v_current_status,
           isQuickDrop,
           physicalIntakeStatus,
-          feature: 'orders',
-          action: 'create_order',
-        });
-      } else {
-        logger.debug('Using old workflow system for order creation', {
-          tenantId,
-          userId,
-          v_current_status,
-          isQuickDrop,
           feature: 'orders',
           action: 'create_order',
         });

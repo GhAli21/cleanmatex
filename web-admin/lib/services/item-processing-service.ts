@@ -5,10 +5,13 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { WorkflowService } from './workflow-service';
 import { OrderService } from './order-service';
 import { ProcessingStepsService } from './processing-steps-service';
-import type { OrderStatus } from '@/lib/types/workflow';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import {
+  executeAction,
+  listAvailableActions,
+} from '@/lib/services/workflow/workflow-engine.service';
 
 /**
  *
@@ -215,7 +218,8 @@ export class ItemProcessingService {
           item_stage: 'ready',
         })
         .eq('id', orderItemId)
-        .eq('order_id', orderId);
+        .eq('order_id', orderId)
+        .eq('tenant_org_id', tenantId);
 
       if (updateError) {
         return {
@@ -249,20 +253,30 @@ export class ItemProcessingService {
           .from('org_orders_mst')
           .select('rack_location')
           .eq('id', orderId)
+          .eq('tenant_org_id', tenantId)
           .single();
 
         if (rackLocation?.rack_location) {
-          // Auto-transition to ready
-          await WorkflowService.transitionOrder(
-            orderId,
+          const available = await listAvailableActions({
             tenantId,
-            order.current_status as OrderStatus,
-            'ready',
-            userId,
-            userName,
-            'All items processed',
-            {}
-          );
+            orderId,
+            screen: 'processing',
+          });
+          await executeAction({
+            tenantId,
+            orderId,
+            screen: 'processing',
+            actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
+            expectedStateVersion: available.stateVersion,
+            actorUserId: userId,
+            actorName: userName,
+            input: {
+              notes: 'All items processed',
+              preferredToStatus: 'ready',
+              rackLocation: rackLocation.rack_location,
+            },
+            idempotencyKey: `item-auto-ready:${tenantId}:${orderId}`,
+          });
         }
       }
 
@@ -346,4 +360,3 @@ export class ItemProcessingService {
     }
   }
 }
-

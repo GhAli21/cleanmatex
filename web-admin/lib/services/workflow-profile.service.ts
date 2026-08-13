@@ -78,6 +78,13 @@ export interface TenantWorkflowProfileView {
   workflowScreens: WorkflowProfileScreenView[]
 }
 
+/** Effective screen contract returned to workflow screen consumers. */
+export interface WorkflowScreenContractView {
+  statuses: string[]
+  additional_filters: Record<string, unknown>
+  required_permissions: string[]
+}
+
 type WorkflowAssignmentRow = {
   id: string
   workflow_profile_id: string
@@ -99,8 +106,112 @@ type WorkflowScreenRow = {
   status_display_order: number | null
 }
 
+type WorkflowScreenContractRow = {
+  pre_conditions: Prisma.JsonValue
+  required_permissions: Prisma.JsonValue
+}
+
+type WorkflowStatusScreenRow = {
+  screen_key: string
+}
+
 function asBoolean(value: boolean | null | undefined): boolean {
   return value === true
+}
+
+function asStringArray(value: Prisma.JsonValue | undefined): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function asJsonObject(value: Prisma.JsonValue | undefined): Record<string, unknown> {
+  if (!value || Array.isArray(value) || typeof value !== 'object') return {}
+  return value as Record<string, unknown>
+}
+
+/**
+ * Resolve a tenant's effective screen contract from configuration rows.
+ *
+ * @param tenantId Authenticated tenant used for tenant-override precedence.
+ * @param screen Screen key stored in `org_ord_screen_contracts_cf`.
+ * @returns The tenant override, system default, or an empty contract.
+ * @example
+ * const contract = await getWorkflowScreenContract(tenantId, 'preparation')
+ */
+export async function getWorkflowScreenContract(
+  tenantId: string,
+  screen: string,
+): Promise<WorkflowScreenContractView> {
+  const normalizedScreen = screen.trim().toLowerCase()
+  const rows = await prisma.$queryRaw<WorkflowScreenContractRow[]>(Prisma.sql`
+    SELECT pre_conditions, required_permissions
+    FROM public.org_ord_screen_contracts_cf
+    WHERE screen_key = ${normalizedScreen}
+      AND (tenant_org_id = CAST(${tenantId} AS uuid) OR tenant_org_id IS NULL)
+      AND COALESCE(is_active, true) = true
+    ORDER BY (tenant_org_id = CAST(${tenantId} AS uuid)) DESC
+    LIMIT 1
+  `)
+  const row = rows[0]
+  const preConditions = asJsonObject(row?.pre_conditions)
+
+  return {
+    statuses: asStringArray(preConditions.statuses as Prisma.JsonValue | undefined),
+    additional_filters: asJsonObject(
+      preConditions.additional_filters as Prisma.JsonValue | undefined,
+    ),
+    required_permissions: asStringArray(row?.required_permissions),
+  }
+}
+
+/**
+ * List configured application-engine screens that can expose an edge from a status.
+ *
+ * @param tenantId Authenticated tenant used to limit tenant-owned screen configuration.
+ * @param status Current order status represented by the workflow catalogs.
+ * @returns Active screen keys ordered by configured display order.
+ * @example
+ * const screens = await listWorkflowScreenKeysForStatus(tenantId, 'processing')
+ */
+export async function listWorkflowScreenKeysForStatus(
+  tenantId: string,
+  status: string,
+): Promise<string[]> {
+  const normalizedStatus = status.trim().toLowerCase()
+  if (!normalizedStatus) return []
+
+  const rows = await prisma.$queryRaw<WorkflowStatusScreenRow[]>(Prisma.sql`
+    SELECT DISTINCT ss.screen_key, COALESCE(s.display_order, 0) AS screen_display_order
+    FROM public.sys_wf_screen_status_cd ss
+    INNER JOIN public.sys_wf_screens_cd s
+      ON s.screen_key = ss.screen_key
+     AND COALESCE(s.is_active, true) = true
+    WHERE ss.status_code = ${normalizedStatus}
+      AND COALESCE(ss.is_active, true) = true
+      AND EXISTS (
+        SELECT 1
+        FROM public.org_ord_screen_contracts_cf c
+        WHERE c.screen_key = ss.screen_key
+          AND (c.tenant_org_id = CAST(${tenantId} AS uuid) OR c.tenant_org_id IS NULL)
+          AND COALESCE(c.is_active, true) = true
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM public.sys_wf_action_trans_cd at
+        INNER JOIN public.sys_wf_transitions_cd t
+          ON t.id = at.transition_id
+         AND COALESCE(t.is_active, true) = true
+        INNER JOIN public.sys_wf_actions_cd a
+          ON a.action_code = at.action_code
+         AND COALESCE(a.is_active, true) = true
+        WHERE at.screen_key = ss.screen_key
+          AND t.from_status = ${normalizedStatus}
+          AND COALESCE(at.is_active, true) = true
+      )
+    ORDER BY screen_display_order ASC, ss.screen_key ASC
+  `)
+
+  return rows.map((row) => row.screen_key)
 }
 
 async function listWorkflowAssignments(

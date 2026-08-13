@@ -15,8 +15,6 @@ import {
   PODCaptureError,
   StopNotFoundError,
 } from '@/lib/errors/delivery-errors';
-import { WorkflowService } from './workflow-service';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   executeAction,
   listAvailableActions,
@@ -588,6 +586,7 @@ export class DeliveryService {
         .from('org_dlv_pod_tr')
         .select('id')
         .eq('stop_id', stopId)
+        .eq('tenant_org_id', tenantId)
         .single();
 
       const podData: any = {
@@ -620,7 +619,8 @@ export class DeliveryService {
         await supabase
           .from('org_dlv_pod_tr')
           .update(podData)
-          .eq('id', existingPOD.id);
+          .eq('id', existingPOD.id)
+          .eq('tenant_org_id', tenantId);
         podId = existingPOD.id;
       } else {
         // Create new POD
@@ -646,50 +646,39 @@ export class DeliveryService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', stopId);
+        .eq('id', stopId)
+        .eq('tenant_org_id', tenantId);
 
       const orderId = (stop.order as { id: string }).id;
-      const useEngine = await resolveWorkflowEngineV2Enabled(tenantId);
-      if (useEngine) {
-        const available = await listAvailableActions({
-          tenantId,
-          orderId,
-          screen: 'driver_delivery',
-        });
-        await executeAction({
-          tenantId,
-          orderId,
-          screen: 'driver_delivery',
-          actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
-          expectedStateVersion: available.stateVersion,
-          actorUserId: userId,
-          actorName: 'Delivery Service',
-          input: {
-            podId,
-            podMethodCode,
-            otpVerified: Boolean(otpCode),
-            signatureUrl: signatureUrl ?? null,
-            photoUrls: photoUrls ?? [],
-          },
-          idempotencyKey: `confirm-delivery:pod:${podId}`,
-        });
-      } else {
-        await WorkflowService.changeStatus({
-          orderId,
-          tenantId,
-          fromStatus: 'out_for_delivery',
-          toStatus: 'delivered',
-          userId,
-          userName: 'Delivery Service',
-        });
-      }
+      const available = await listAvailableActions({
+        tenantId,
+        orderId,
+        screen: 'driver_delivery',
+      });
+      await executeAction({
+        tenantId,
+        orderId,
+        screen: 'driver_delivery',
+        actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+        expectedStateVersion: available.stateVersion,
+        actorUserId: userId,
+        actorName: 'Delivery Service',
+        input: {
+          podId,
+          podMethodCode,
+          otpVerified: Boolean(otpCode),
+          signatureUrl: signatureUrl ?? null,
+          photoUrls: photoUrls ?? [],
+        },
+        idempotencyKey: `confirm-delivery:pod:${podId}`,
+      });
 
       logger.info('POD captured successfully', {
         tenantId,
         stopId,
         podId,
         orderId,
-        engine: useEngine ? 'workflow_v2' : 'legacy',
+        engine: 'workflow_v2',
       });
 
       return {

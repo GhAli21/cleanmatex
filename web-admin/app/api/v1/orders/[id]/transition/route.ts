@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { WorkflowService } from '@/lib/services/workflow-service';
-import {
-  WorkflowServiceEnhanced,
-  ValidationError,
-  PermissionError,
-  FeatureFlagError,
-  SettingsError,
-  LimitExceededError,
-  QualityGateError,
-} from '@/lib/services/workflow-service-enhanced';
-import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import type { OrderStatus } from '@/lib/types/workflow';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   WorkflowEngineError,
   executeAction,
@@ -32,13 +18,14 @@ const ORDER_STATUS_EVENT: Record<string, string> = {
   cancelled: 'order.cancelled',
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * POST /api/v1/orders/[id]/transition
- * PRD-010: Transition order with permission validation
- * Supports USE_OLD_WF_CODE_OR_NEW parameter for gradual migration
- * When WORKFLOW_ENGINE_V2=true and body.actionCode is set, delegates to WorkflowEngine
- * (prefer POST /api/v1/orders/[id]/actions for new clients).
- * Requires: orders:transition permission
+ * Compatibility endpoint that resolves legacy transition fields into an engine action.
+ * Requires orders:transition permission; new clients should use POST /actions directly.
  * @param request
  * @param root0
  * @param root0.params
@@ -54,320 +41,153 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const { tenantId, userId, userName } = authCheck;
 
-    const body = await request.json();
-
-    // Support both old and new request formats
-    const useOldWfCodeOrNew = body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
-    const screen = body.screen;
-    const authHeader = request.headers.get('Authorization');
-
-    // P5: when Workflow Engine V2 is on for the tenant, never call Legacy/Enhanced.
-    if (await resolveWorkflowEngineV2Enabled(tenantId)) {
-      const actionCode = resolveEngineActionCode({
-        actionCode: body.actionCode,
-        screen,
-        toStatus: body.toStatus,
-        to_status: body.input?.to_status,
-      });
-      if (!screen || typeof screen !== 'string' || !screen.trim() || !actionCode) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'Workflow Engine V2 is enabled: provide screen + mappable action (or use POST /actions).',
-            code: 'WORKFLOW_ENGINE_V2_REQUIRED',
-          },
-          { status: 400 },
-        );
-      }
-
-      const idempotencyKey =
-        request.headers.get('Idempotency-Key')?.trim() ||
-        (typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '') ||
-        crypto.randomUUID();
-
-      let expectedStateVersion =
-        typeof body.expectedStateVersion === 'number' ? body.expectedStateVersion : null;
-      if (expectedStateVersion == null) {
-        const rows = await prisma.$queryRaw<Array<{ state_version: bigint | number | null }>>`
-          SELECT COALESCE(state_version, 0) AS state_version
-          FROM public.org_orders_mst
-          WHERE id = ${id}::uuid
-            AND tenant_org_id = ${tenantId}::uuid
-          LIMIT 1
-        `;
-        if (!rows[0]) {
-          return NextResponse.json(
-            { success: false, error: 'Order not found', code: 'NOT_FOUND' },
-            { status: 404 },
-          );
-        }
-        expectedStateVersion = Number(rows[0].state_version ?? 0);
-      }
-
-      const nestedInput =
-        body.input && typeof body.input === 'object' && !Array.isArray(body.input)
-          ? (body.input as Record<string, unknown>)
-          : {};
-
-      try {
-        const execParams = {
-          tenantId,
-          orderId: id,
-          screen: screen.trim(),
-          actionCode,
-          expectedStateVersion,
-          actorUserId: userId,
-          actorName: userName,
-          input: {
-            ...nestedInput,
-            notes: body.notes ?? nestedInput.notes,
-            preferredToStatus:
-              body.toStatus ?? nestedInput.to_status ?? nestedInput.preferredToStatus,
-            cancelled_note: nestedInput.cancelled_note,
-            cancellation_disposition: nestedInput.cancellation_disposition,
-            return_reason: nestedInput.return_reason,
-            return_reason_code: nestedInput.return_reason_code,
-            rackLocation: nestedInput.rackLocation ?? nestedInput.rack_location,
-            metadata: body.metadata ?? nestedInput.metadata,
-          },
-          idempotencyKey,
-        };
-
-        const result = isCancelOrReturnAction(actionCode)
-          ? await executeCancelOrReturnAction(execParams)
-          : await executeAction(execParams);
-
-        const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
-        if (eventCode) {
-          void emitNotificationEvent({
-            code: eventCode,
-            tenantOrgId: tenantId,
-            recipientUserIds: [userId],
-            sourceEntityType: 'order',
-            sourceEntityId: id,
-            variables: { order_number: id },
-          });
-        }
-
-        return NextResponse.json({
-          success: true,
-          ok: true,
-          engine: 'workflow_v2',
-          data: {
-            order: {
-              id,
-              status: result.currentStatus,
-              currentStatus: result.currentStatus,
-              stateVersion: result.stateVersion,
-            },
-          },
-          financialWarnings:
-            'financialWarnings' in result ? result.financialWarnings : undefined,
-        });
-      } catch (error) {
-        if (error instanceof CancelReturnOrchestratorError) {
-          return NextResponse.json(
-            {
-              success: false,
-              ok: false,
-              engine: 'workflow_v2',
-              error: error.message,
-              code: error.code,
-            },
-            { status: error.httpStatus },
-          );
-        }
-        if (error instanceof WorkflowEngineError) {
-          const status =
-            error.code === 'NOT_FOUND'
-              ? 404
-              : error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_CONFLICT'
-                ? 409
-                : error.code === 'GATE_FAILED'
-                  ? 422
-                  : error.code === 'ACTION_NOT_ALLOWED'
-                    ? 403
-                    : 400;
-          return NextResponse.json(
-            {
-              success: false,
-              ok: false,
-              engine: 'workflow_v2',
-              error: error.message,
-              code: error.code,
-              blockedReasons: error.blockedReasons,
-            },
-            { status },
-          );
-        }
-        throw error;
-      }
-    }
-
-    // If using new workflow system with screen parameter (flag OFF only)
-    if (screen && useOldWfCodeOrNew !== false) {
-      try {
-        const result = await WorkflowServiceEnhanced.executeScreenTransition(
-          screen,
-          id,
-          {
-            to_status: body.toStatus,
-            notes: body.notes,
-            ...body.input,
-            user_name: userName,
-            metadata: body.metadata,
-          },
-          {
-            useOldWfCodeOrNew: useOldWfCodeOrNew !== false,
-            authHeader,
-          }
-        );
-
-        if (result.ok && result.to_status) {
-          const eventCode = ORDER_STATUS_EVENT[result.to_status.toLowerCase()];
-          if (eventCode) {
-            void emitNotificationEvent({
-              code: eventCode,
-              tenantOrgId: tenantId,
-              recipientUserIds: [userId],
-              sourceEntityType: 'order',
-              sourceEntityId: result.order_id,
-              variables: { order_number: result.order_id },
-            });
-          }
-        }
-
-        return NextResponse.json({
-          success: result.ok,
-          ok: result.ok,
-          data: {
-            order: {
-              id: result.order_id,
-              status: result.to_status,
-            },
-          },
-          error: result.message,
-        });
-      } catch (error: any) {
-        // Handle enhanced workflow errors
-        const statusCode =
-          error instanceof ValidationError ||
-          error instanceof PermissionError ||
-          error instanceof FeatureFlagError ||
-          error instanceof SettingsError
-            ? 400
-            : error instanceof LimitExceededError
-            ? 402
-            : error instanceof QualityGateError
-            ? 400
-            : 500;
-
-        return NextResponse.json(
-          {
-            success: false,
-            ok: false,
-            error: error.message,
-            code: error.code || error.name,
-            blockers: error.blockers,
-            details: error.details,
-          },
-          { status: statusCode }
-        );
-      }
-    }
-
-    // Fallback to old workflow system
-    // IMPORTANT: allow clients to always send the "new format" body shape
-    // (screen/input/useOldWfCodeOrNew) even when explicitly using the OLD workflow system.
-    const normalizedLegacyBody = {
-      toStatus:
-        body.toStatus ??
-        body.to_status ??
-        body.input?.toStatus ??
-        body.input?.to_status,
-      notes: body.notes ?? body.input?.notes,
-      metadata: body.metadata ?? body.input?.metadata,
-    };
-
-    const parsed = TransitionRequestSchema.safeParse(normalizedLegacyBody);
-
-    if (!parsed.success) {
-      const errorDetails = parsed.error.issues?.map(e => ({
-        path: e.path.join('.'),
-        message: e.message,
-        code: e.code,
-      })) || [];
-      
+    const body: unknown = await request.json();
+    if (!isRecord(body)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid request body', 
-          details: errorDetails
-        },
-        { status: 400 }
+        { success: false, error: 'Invalid request body', code: 'INVALID_REQUEST' },
+        { status: 400 },
       );
     }
-      
-    const toStatus = parsed.data.toStatus;
-    const notes = parsed.data.notes;
-    const metadata = parsed.data.metadata;
-
-    // Get current order status
-    const supabase = await createClient();
-    const { data: order, error } = await supabase
-      .from('org_orders_mst')
-      .select('current_status, status')
-      .eq('id', id)
-      .eq('tenant_org_id', tenantId)
-      .single();
-
-    if (error || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-
-    // Normalize status values to lowercase for consistent matching
-    const fromStatus = ((order.current_status || order.status) as string)?.toLowerCase() as OrderStatus;
-    const normalizedToStatus = toStatus.toLowerCase() as OrderStatus;
-
-    // Permission check already done via requirePermission('orders:transition')
-    // Additional workflow-specific checks can be added here if needed
-
-    const result = await WorkflowService.changeStatus({
-      orderId: id,
-      tenantId,
-      fromStatus,
-      toStatus: normalizedToStatus,
-      userId,
-      userName,
-      notes,
-      metadata,
+    const nestedInput = isRecord(body.input) ? body.input : {};
+    const screen = body.screen;
+    const actionCode = resolveEngineActionCode({
+      actionCode: body.actionCode,
+      screen,
+      toStatus: body.toStatus,
+      to_status: nestedInput.to_status,
     });
-
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error, blockers: result.blockers }, { status: 400 });
+    if (typeof screen !== 'string' || !screen.trim() || !actionCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Provide screen and a mappable action, or use POST /actions.',
+          code: 'WORKFLOW_ENGINE_REQUIRED',
+        },
+        { status: 400 },
+      );
     }
 
-    if (result.order) {
-      const eventCode = ORDER_STATUS_EVENT[normalizedToStatus];
+    const idempotencyKey =
+      request.headers.get('Idempotency-Key')?.trim() ||
+      (typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '') ||
+      crypto.randomUUID();
+
+    let expectedStateVersion =
+      typeof body.expectedStateVersion === 'number' ? body.expectedStateVersion : null;
+    if (expectedStateVersion == null) {
+      const rows = await prisma.$queryRaw<Array<{ state_version: bigint | number | null }>>`
+        SELECT COALESCE(state_version, 0) AS state_version
+        FROM public.org_orders_mst
+        WHERE id = ${id}::uuid
+          AND tenant_org_id = ${tenantId}::uuid
+        LIMIT 1
+      `;
+      if (!rows[0]) {
+        return NextResponse.json(
+          { success: false, error: 'Order not found', code: 'NOT_FOUND' },
+          { status: 404 },
+        );
+      }
+      expectedStateVersion = Number(rows[0].state_version ?? 0);
+    }
+
+    try {
+      const execParams = {
+        tenantId,
+        orderId: id,
+        screen: screen.trim(),
+        actionCode,
+        expectedStateVersion,
+        actorUserId: userId,
+        actorName: userName,
+        input: {
+          ...nestedInput,
+          notes: body.notes ?? nestedInput.notes,
+          preferredToStatus:
+            body.toStatus ?? nestedInput.to_status ?? nestedInput.preferredToStatus,
+          cancelled_note: nestedInput.cancelled_note,
+          cancellation_disposition: nestedInput.cancellation_disposition,
+          return_reason: nestedInput.return_reason,
+          return_reason_code: nestedInput.return_reason_code,
+          rackLocation: nestedInput.rackLocation ?? nestedInput.rack_location,
+          metadata: body.metadata ?? nestedInput.metadata,
+        },
+        idempotencyKey,
+      };
+
+      const result = isCancelOrReturnAction(actionCode)
+        ? await executeCancelOrReturnAction(execParams)
+        : await executeAction(execParams);
+
+      const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
       if (eventCode) {
         void emitNotificationEvent({
           code: eventCode,
           tenantOrgId: tenantId,
           recipientUserIds: [userId],
           sourceEntityType: 'order',
-          sourceEntityId: result.order.id,
-          variables: { order_number: result.order.id },
+          sourceEntityId: id,
+          variables: { order_number: id },
         });
       }
-    }
 
-    return NextResponse.json({ success: true, data: result.order });
+      return NextResponse.json({
+        success: true,
+        ok: true,
+        engine: 'workflow_v2',
+        data: {
+          order: {
+            id,
+            status: result.currentStatus,
+            currentStatus: result.currentStatus,
+            stateVersion: result.stateVersion,
+          },
+        },
+        financialWarnings:
+          'financialWarnings' in result ? result.financialWarnings : undefined,
+      });
+    } catch (error) {
+      if (error instanceof CancelReturnOrchestratorError) {
+        return NextResponse.json(
+          {
+            success: false,
+            ok: false,
+            engine: 'workflow_v2',
+            error: error.message,
+            code: error.code,
+          },
+          { status: error.httpStatus },
+        );
+      }
+      if (error instanceof WorkflowEngineError) {
+        const status =
+          error.code === 'NOT_FOUND'
+            ? 404
+            : error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_CONFLICT'
+              ? 409
+              : error.code === 'GATE_FAILED'
+                ? 422
+                : error.code === 'ACTION_NOT_ALLOWED'
+                  ? 403
+                  : 400;
+        return NextResponse.json(
+          {
+            success: false,
+            ok: false,
+            engine: 'workflow_v2',
+            error: error.message,
+            code: error.code,
+            blockedReasons: error.blockedReasons,
+          },
+          { status },
+        );
+      }
+      throw error;
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
     const status = message.includes('Unauthorized') ? 401 : 400;
     return NextResponse.json({ error: message }, { status });
   }
 }
-
 

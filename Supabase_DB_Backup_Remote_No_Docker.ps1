@@ -32,7 +32,15 @@ param(
 
   # Optional explicit paths to pg_dump / pg_restore if not in PATH
   [string]$PgDumpPath    = "pg_dump",
-  [string]$PgRestorePath = "pg_restore"
+  [string]$PgRestorePath = "pg_restore",
+
+  [ValidateRange(1, 10)]
+  [int]$PgDumpMaxAttempts = 3,
+
+  [ValidateRange(1, 60)]
+  [int]$RetryDelaySeconds = 5,
+
+  [switch]$DisableInsertFallback
 )
 
 Set-StrictMode -Version Latest
@@ -51,6 +59,67 @@ function Write-Section([string]$title) {
 
 function Ensure-Dir([string]$p) {
   if (!(Test-Path $p)) { New-Item -ItemType Directory -Force -Path $p | Out-Null }
+}
+
+function Remove-IfExists([string]$p) {
+  if ($p -and (Test-Path $p)) {
+    Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Invoke-CommandWithRetries {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$CommandPath,
+
+    [Parameter(Mandatory=$true)]
+    [string[]]$Arguments,
+
+    [Parameter(Mandatory=$true)]
+    [string]$OperationName,
+
+    [Parameter(Mandatory=$true)]
+    [string]$LogDir,
+
+    [Parameter(Mandatory=$false)]
+    [string]$OutputFileToReset
+  )
+
+  $attemptLogs = @()
+
+  for ($attempt = 1; $attempt -le $PgDumpMaxAttempts; $attempt++) {
+    $attemptLog = Join-Path $LogDir ("{0}_attempt_{1}.log" -f $OperationName, $attempt)
+    $attemptLogs += $attemptLog
+
+    Remove-IfExists $OutputFileToReset
+
+    Write-Host ("Running {0} (attempt {1}/{2})..." -f $OperationName, $attempt, $PgDumpMaxAttempts)
+    & $CommandPath @Arguments *> $attemptLog
+    $exitCode = $LASTEXITCODE
+
+    if ($exitCode -eq 0) {
+      return [PSCustomObject]@{
+        Success     = $true
+        ExitCode    = 0
+        Attempt     = $attempt
+        AttemptLogs = $attemptLogs
+      }
+    }
+
+    Write-Warning ("{0} failed on attempt {1}/{2} (exit code {3}). Log: {4}" -f $OperationName, $attempt, $PgDumpMaxAttempts, $exitCode, $attemptLog)
+    Remove-IfExists $OutputFileToReset
+
+    if ($attempt -lt $PgDumpMaxAttempts) {
+      Start-Sleep -Seconds $RetryDelaySeconds
+    }
+  }
+
+  return [PSCustomObject]@{
+    Success     = $false
+    ExitCode    = $exitCode
+    Attempt     = $PgDumpMaxAttempts
+    AttemptLogs = $attemptLogs
+  }
 }
 
 # -----------------------
@@ -114,38 +183,103 @@ try {
 Write-Section "2) FULL DB backup via local pg_dump (REMOTE)"
 
 # Local output files
-$fullDumpFile   = Join-Path $dbDir ("cleanmatex_remote_nodocker_full_all_schemas_" + $timestamp + ".dump")
-$schemaSqlFile  = Join-Path $dbDir ("cleanmatex_remote_nodocker_schema_all_schemas_" + $timestamp + ".sql")
+$fullDumpFile       = Join-Path $dbDir ("cleanmatex_remote_nodocker_full_all_schemas_" + $timestamp + ".dump")
+$schemaSqlFile      = Join-Path $dbDir ("cleanmatex_remote_nodocker_schema_all_schemas_" + $timestamp + ".sql")
+$dataInsertsSqlFile = Join-Path $dbDir ("cleanmatex_remote_nodocker_data_all_schemas_inserts_" + $timestamp + ".sql")
+$restoreNotesFile   = Join-Path $runDir "restore_notes_remote_nodocker.txt"
 
-# FULL custom archive
-& $PgDumpPath --dbname="$DatabaseUrl" --format=custom --file="$fullDumpFile"
-if ($LASTEXITCODE -ne 0) { throw "REMOTE pg_dump custom failed (DatabaseUrl) using '$PgDumpPath'." }
+$customDumpSucceeded = $false
+$insertFallbackUsed  = $false
 
-# SCHEMA-only SQL
-& $PgDumpPath --dbname="$DatabaseUrl" --schema-only --no-owner --no-acl --file="$schemaSqlFile"
-if ($LASTEXITCODE -ne 0) { throw "REMOTE pg_dump schema-only failed (DatabaseUrl) using '$PgDumpPath'." }
+# SCHEMA-only SQL first so we keep a readable structural snapshot even if the data phase is unstable.
+$schemaDumpResult = Invoke-CommandWithRetries `
+  -CommandPath $PgDumpPath `
+  -Arguments @("--dbname=$DatabaseUrl", "--schema-only", "--no-owner", "--no-acl", "--file=$schemaSqlFile") `
+  -OperationName "pg_dump_schema_only" `
+  -LogDir $dbDir `
+  -OutputFileToReset $schemaSqlFile
 
-# Validate archive (quick) using pg_restore (best-effort, do not hard fail)
-try {
-  & $PgRestorePath -l "$fullDumpFile" 2>&1 |
-    Select-Object -First 20 |
-    Out-File (Join-Path $dbDir "pg_restore_list_head_remote_nodocker.txt") -Encoding utf8
+if (-not $schemaDumpResult.Success) {
+  throw "REMOTE pg_dump schema-only failed (DatabaseUrl) using '$PgDumpPath'. Logs: $($schemaDumpResult.AttemptLogs -join ', ')"
+}
 
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning "pg_restore validation returned non-zero exit code using '$PgRestorePath'. Check the log file for details, but backup will continue."
+# Try the preferred single-file custom archive first.
+$customDumpResult = Invoke-CommandWithRetries `
+  -CommandPath $PgDumpPath `
+  -Arguments @("--dbname=$DatabaseUrl", "--format=custom", "--file=$fullDumpFile") `
+  -OperationName "pg_dump_custom" `
+  -LogDir $dbDir `
+  -OutputFileToReset $fullDumpFile
+
+if ($customDumpResult.Success) {
+  $customDumpSucceeded = $true
+
+  # Validate archive (quick) using pg_restore (best-effort, do not hard fail)
+  try {
+    & $PgRestorePath -l "$fullDumpFile" 2>&1 |
+      Select-Object -First 20 |
+      Out-File (Join-Path $dbDir "pg_restore_list_head_remote_nodocker.txt") -Encoding utf8
+
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "pg_restore validation returned non-zero exit code using '$PgRestorePath'. Check the log file for details, but backup will continue."
+    }
+  } catch {
+    Write-Warning "pg_restore validation error using '$PgRestorePath': $($_.Exception.Message). Backup will continue."
   }
-} catch {
-  Write-Warning "pg_restore validation error using '$PgRestorePath': $($_.Exception.Message). Backup will continue."
+} elseif (-not $DisableInsertFallback) {
+  Write-Warning "Custom archive dump did not succeed after retries. Falling back to a data-only INSERT SQL dump."
+
+  $insertDumpResult = Invoke-CommandWithRetries `
+    -CommandPath $PgDumpPath `
+    -Arguments @("--dbname=$DatabaseUrl", "--data-only", "--inserts", "--rows-per-insert=1", "--no-owner", "--no-acl", "--file=$dataInsertsSqlFile") `
+    -OperationName "pg_dump_data_inserts" `
+    -LogDir $dbDir `
+    -OutputFileToReset $dataInsertsSqlFile
+
+  if (-not $insertDumpResult.Success) {
+    throw "REMOTE pg_dump custom failed and INSERT fallback also failed using '$PgDumpPath'. Custom logs: $($customDumpResult.AttemptLogs -join ', ') ; INSERT logs: $($insertDumpResult.AttemptLogs -join ', ')"
+  }
+
+  $insertFallbackUsed = $true
+
+  @"
+Remote custom archive dump failed after $PgDumpMaxAttempts attempts.
+
+Fallback artifacts produced instead:
+  1) Schema-only SQL: $schemaSqlFile
+  2) Data-only INSERT SQL: $dataInsertsSqlFile
+
+Restore order:
+  1) Restore schema SQL with psql
+  2) Restore data INSERT SQL with psql
+
+Review pg_dump attempt logs under:
+  $dbDir
+"@ | Out-File $restoreNotesFile -Encoding utf8
+} else {
+  throw "REMOTE pg_dump custom failed (DatabaseUrl) using '$PgDumpPath'. Logs: $($customDumpResult.AttemptLogs -join ', ')"
 }
 
 # Sanity checks
-if (-not (Test-Path $fullDumpFile)) { throw "Custom dump file missing: $fullDumpFile" }
-if ((Get-Item $fullDumpFile).Length -lt 1024) { throw "Custom dump file is too small; backup likely failed." }
-
 if (-not (Test-Path $schemaSqlFile)) { throw "Schema SQL file missing: $schemaSqlFile" }
 if ((Get-Item $schemaSqlFile).Length -lt 1024) { throw "Schema SQL file is too small; backup likely failed." }
 
-Write-Host "OK: Full custom dump -> $fullDumpFile"
+if ($customDumpSucceeded) {
+  if (-not (Test-Path $fullDumpFile)) { throw "Custom dump file missing: $fullDumpFile" }
+  if ((Get-Item $fullDumpFile).Length -lt 1024) { throw "Custom dump file is too small; backup likely failed." }
+} elseif ($insertFallbackUsed) {
+  if (-not (Test-Path $dataInsertsSqlFile)) { throw "Fallback INSERT SQL file missing: $dataInsertsSqlFile" }
+  if ((Get-Item $dataInsertsSqlFile).Length -lt 1024) { throw "Fallback INSERT SQL file is too small; backup likely failed." }
+}
+
+if ($customDumpSucceeded) {
+  Write-Host "OK: Full custom dump -> $fullDumpFile"
+} else {
+  Write-Warning "Custom archive not available for this run. Use the fallback SQL artifacts for restore."
+  Write-Host    "OK: Data-only INSERT SQL -> $dataInsertsSqlFile"
+  Write-Host    "OK: Restore notes        -> $restoreNotesFile"
+}
+
 Write-Host "OK: Schema-only SQL  -> $schemaSqlFile"
 
 # -----------------------

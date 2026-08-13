@@ -275,7 +275,7 @@ describe('order-calculation.service — calculateOrderTotals TAX_INCLUSIVE (B11)
     expect(result.saleTotal).toBeCloseTo(107); // gross unchanged — nothing re-added
   });
 
-  it('extracts VAT via the no-profile-configured fallback, and keeps an ad-hoc additionalTaxAmount additive', async () => {
+  it('extracts VAT via the no-profile-configured TENANT_VAT_RATE fallback; additionalTaxAmount stays 0 (no CUSTOM profile lines exist)', async () => {
     mockGetPriceForOrderItem.mockResolvedValue({ finalPrice: 105, basePrice: 105 });
     mockCalculateTax.mockResolvedValue([]); // no tax profile configured
     mockGetVatRate.mockResolvedValue(0.05);
@@ -283,13 +283,12 @@ describe('order-calculation.service — calculateOrderTotals TAX_INCLUSIVE (B11)
     const result = await calculateOrderTotals({
       tenantId: TENANT,
       items: [{ productId: 'p1', quantity: 1 }],
-      additionalTaxAmount: 3, // ad-hoc order-level surcharge — never embedded in the priced item
     });
 
     expect(result.vatValue).toBeCloseTo(5); // extracted from the 105 gross
-    expect(result.afterDiscounts).toBeCloseTo(100); // net after extracting only the embedded VAT
-    expect(result.additionalTaxAmount).toBeCloseTo(3);
-    expect(result.saleTotal).toBeCloseTo(108); // 105 gross + 3 ad-hoc surcharge, added on top
+    expect(result.afterDiscounts).toBeCloseTo(100); // net after extracting the embedded VAT
+    expect(result.additionalTaxAmount).toBe(0); // derived from CUSTOM profile lines only
+    expect(result.saleTotal).toBeCloseTo(105); // gross unchanged — nothing re-added
   });
 
   it('is a no-op when no tax profile and no VAT setting exist (zero-rated, B15 policy)', async () => {

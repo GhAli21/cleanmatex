@@ -1,20 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 
-/**
- *
- */
+/** Screen membership and permission metadata resolved for one tenant. */
 export interface ScreenContract {
   screen: string;
   preConditions: {
     statuses: string[];
-    additional_filters: Record<string, any>;
+    additional_filters: Record<string, unknown>;
     required_permissions: string[];
   };
 }
 
 /**
- * Hook to fetch screen contract configuration
+ * Fetch the authenticated tenant's effective screen contract configuration.
+ *
  * @param screen - Screen identifier (preparation, processing, assembly, etc.)
+ * @returns Query state containing the effective tenant screen contract.
+ * @example
+ * const { data } = useScreenContract('preparation')
  */
 export function useScreenContract(screen: string) {
   return useQuery<ScreenContract>({

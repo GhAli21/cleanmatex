@@ -1,5 +1,20 @@
 # Changelog — Workflow Order Advance
 
+## 0.4.1-rpc-grants-deployed — 2026-08-14
+
+- Operator confirmed `0442_retire_workflow_rpc_grants.sql` applied successfully to local and remote databases
+- Legacy/Enhanced workflow function definitions remain retained for controlled rollback
+- Post-apply workflow smoke and pilot T01-T18 remain production acceptance gates
+
+## 0.4.0-workflow-engine-cutover — 2026-08-13
+
+- Cut all production workflow mutation routes/services over to configured application-engine actions
+- Retired raw order status PATCH/bulk mutation contracts with authenticated `410` responses
+- Replaced screen-contract and allowed-transition RPC readers with tenant-safe catalog/application-engine reads
+- Added create-only migration `0442_retire_workflow_rpc_grants.sql`; functions are retained for controlled rollback
+- Added order-control policy tests and anonymous opaque public-tracking Playwright coverage
+- Verified 49 focused Jest tests and 2 anonymous Playwright scenarios
+
 ## 0.3.10-p7-doc-pack-hardening — 2026-07-25
 
 - Added targeted Jest coverage for public tracking token utilities and service fallback behavior

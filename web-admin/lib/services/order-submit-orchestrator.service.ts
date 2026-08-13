@@ -300,8 +300,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     giftCardId:          input.giftCardId,
     serviceCategories:   Array.from(new Set(input.items.map((item) => item.serviceCategoryCode).filter(Boolean))),
     taxProfileIds:       input.taxProfileIds,
-    additionalTaxRate:   input.additionalTaxRate,
-    additionalTaxAmount: input.additionalTaxAmount,
     orderCharges: (input.orderServicePrefs ?? []).map((p) => ({
       label: p.preference_code,
       amount: p.extra_price,
@@ -600,11 +598,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       total:     serverSaleTotal,
       vatRate:   serverTotals.vatTaxPercent,
       vatAmount: serverTotals.vatValue,
+      // Only a single CUSTOM profile line maps to one unambiguous rate; with
+      // none (or several stacked) there is no single rate to report.
       taxRate:   serverTotals.taxBreakdown.filter((line) => line.taxType === TAX_TYPES.CUSTOM).length === 1
         ? serverTotals.taxBreakdown.find((line) => line.taxType === TAX_TYPES.CUSTOM)?.rate
-        : (input.additionalTaxRate ?? (input.additionalTaxAmount != null && serverTotals.afterDiscounts > 0
-          ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
-          : undefined)),
+        : undefined,
       roundingAdjustment: serverTotals.roundingAdjustmentAmount,
       chargesTotal: serverTotals.chargesTotal,
     },
@@ -665,33 +663,21 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     && correctedOutstanding > TOLERANCE;
 
   const discountTotal = serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount;
+  // No tax profile configured: the TENANT_VAT_RATE fallback is the only tax
+  // line possible here — `additionalTaxAmount` is derived from CUSTOM *profile*
+  // lines, which by definition do not exist when taxBreakdown is empty.
   const taxLines: TaxLineItem[] = serverTotals.taxBreakdown.length > 0
     ? serverTotals.taxBreakdown
-    : ((serverTotals.additionalTaxAmount ?? 0) > 0 || serverTotals.vatValue > 0)
-      ? [
-          ...(serverTotals.vatValue > 0
-            ? [{
-                taxType:    TAX_TYPES.VAT,
-                label:      'VAT',
-                label2:     'ضريبة القيمة المضافة',
-                rate:       serverTotals.vatTaxPercent,
-                isCompound: false,
-                baseAmount: serverTotals.afterDiscounts,
-                taxAmount:  serverTotals.vatValue,
-              }]
-            : []),
-          ...((serverTotals.additionalTaxAmount ?? 0) > 0
-            ? [{
-                taxType:    TAX_TYPES.CUSTOM,
-                label:      'Additional Tax',
-                label2:     'ضريبة إضافية',
-                rate:       input.additionalTaxRate ?? 0,
-                isCompound: false,
-                baseAmount: serverTotals.afterDiscounts,
-                taxAmount:  serverTotals.additionalTaxAmount!,
-              }]
-            : []),
-        ]
+    : serverTotals.vatValue > 0
+      ? [{
+          taxType:    TAX_TYPES.VAT,
+          label:      'VAT',
+          label2:     'ضريبة القيمة المضافة',
+          rate:       serverTotals.vatTaxPercent,
+          isCompound: false,
+          baseAmount: serverTotals.afterDiscounts,
+          taxAmount:  serverTotals.vatValue,
+        }]
       : [];
   const taxTotal = taxLines.reduce((sum, line) => sum + line.taxAmount, 0);
 

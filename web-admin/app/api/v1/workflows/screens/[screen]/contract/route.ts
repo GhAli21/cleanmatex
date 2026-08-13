@@ -1,32 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthContext } from '@/lib/middleware/require-permission';
+import { getWorkflowScreenContract } from '@/lib/services/workflow-profile.service';
 
 /**
  * GET /api/v1/workflows/screens/[screen]/contract
- * Returns screen contract configuration (pre-conditions, permissions)
- * @param request
- * @param root0
- * @param root0.params
+ * Returns the effective tenant-aware screen contract configuration.
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ screen: string }> }
 ) {
   try {
+    // Tenant resolved server-side from authenticated session.
+    const { tenantId } = await getAuthContext();
     const { screen } = await params;
-    const supabase = await createClient();
-
-    const { data: contract, error } = await supabase.rpc(
-      'cmx_ord_screen_pre_conditions',
-      { p_screen: screen }
-    );
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    const contract = await getWorkflowScreenContract(tenantId, screen);
 
     return NextResponse.json({
       screen,
@@ -34,9 +22,10 @@ export async function GET(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('Unauthorized') ? 401 : 500;
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status }
     );
   }
 }

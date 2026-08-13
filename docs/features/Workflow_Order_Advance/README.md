@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** P1–P6 **in repo**; discovery **signed 2026-07-25**; canary off by default; `0441` still operator-applied  
+**Status:** P1–P7 repository implementation complete; `0441` and `0442` applied locally/remotely; post-apply smoke and pilot acceptance remain
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  

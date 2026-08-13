@@ -26,14 +26,22 @@ jest.mock('@/lib/services/processing-steps-service', () => ({
   },
 }));
 
-jest.mock('@/lib/services/workflow-service', () => ({
-  WorkflowService: {
-    transitionOrder: jest.fn().mockResolvedValue({ success: true }),
-    changeStatus: jest.fn().mockResolvedValue({ success: true }),
-    getAllowedTransitions: jest.fn().mockResolvedValue([]),
-    isTransitionAllowed: jest.fn().mockResolvedValue({ isAllowed: true }),
-    getOrderState: jest.fn().mockResolvedValue(null),
-    getWorkflowTemplate: jest.fn().mockResolvedValue(null),
+jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
+  executeAction: jest.fn().mockResolvedValue({
+    ok: true,
+    currentStatus: 'ready',
+    stateVersion: 4,
+  }),
+  listAvailableActions: jest.fn().mockResolvedValue({
+    stateVersion: 3,
+    currentStatus: 'processing',
+    actions: [],
+  }),
+}));
+
+jest.mock('@/lib/constants/workflow-actions', () => ({
+  WORKFLOW_ACTIONS: {
+    COMPLETE_PROCESSING: 'COMPLETE_PROCESSING',
   },
 }));
 
@@ -42,6 +50,11 @@ jest.mock('@/lib/services/order-service', () => ({
     getOrderById: jest.fn().mockResolvedValue(null),
   },
 }));
+
+import {
+  executeAction,
+  listAvailableActions,
+} from '@/lib/services/workflow/workflow-engine.service';
 
 // ---------------------------------------------------------------------------
 // Helper: build a self-referencing chainable mock
@@ -170,7 +183,9 @@ describe('ItemProcessingService', () => {
           const chain: any = {};
           chain.update = jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
+              }),
             }),
           });
           return chain;
@@ -196,7 +211,9 @@ describe('ItemProcessingService', () => {
           return {
             update: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                eq: jest.fn().mockResolvedValue({ error: null }),
+                eq: jest.fn().mockReturnValue({
+                  eq: jest.fn().mockResolvedValue({ error: null }),
+                }),
               }),
             }),
           };
@@ -228,6 +245,65 @@ describe('ItemProcessingService', () => {
 
       expect(result.success).toBe(true);
       expect(typeof result.allItemsReady).toBe('boolean');
+    });
+
+    it('uses the engine to auto-ready a tenant order when all items and rack are ready', async () => {
+      let orderQueryCount = 0;
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'org_order_items_dtl') {
+          return makeChain({
+            single: jest.fn(),
+          });
+        }
+        if (table === 'org_orders_mst') {
+          orderQueryCount += 1;
+          return makeChain({
+            single: jest.fn().mockResolvedValue(
+              orderQueryCount === 1
+                ? {
+                    data: {
+                      id: 'order-1',
+                      current_status: 'processing',
+                      items: [{ item_status: 'ready' }],
+                    },
+                    error: null,
+                  }
+                : { data: { rack_location: 'RACK-A1' }, error: null },
+            ),
+          });
+        }
+        return makeChain({ single: jest.fn() });
+      });
+
+      const result = await ItemProcessingService.markItemComplete({
+        orderId: 'order-1',
+        orderItemId: 'item-1',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        userName: 'Test User',
+      });
+
+      expect(result).toEqual({ success: true, allItemsReady: true });
+      expect(listAvailableActions).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        orderId: 'order-1',
+        screen: 'processing',
+      });
+      expect(executeAction).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        orderId: 'order-1',
+        screen: 'processing',
+        actionCode: 'COMPLETE_PROCESSING',
+        expectedStateVersion: 3,
+        actorUserId: 'user-1',
+        actorName: 'Test User',
+        input: {
+          notes: 'All items processed',
+          preferredToStatus: 'ready',
+          rackLocation: 'RACK-A1',
+        },
+        idempotencyKey: 'item-auto-ready:tenant-1:order-1',
+      });
     });
   });
 

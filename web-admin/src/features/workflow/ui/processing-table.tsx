@@ -27,6 +27,7 @@ import type { ProcessingOrder, SortField, SortDirection } from '@/types/processi
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
@@ -577,8 +578,13 @@ function SharedMarkReadyDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          screen: 'processing',
+          actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
           toStatus: 'ready',
           notes: 'Processing completed via quick action',
+          input: {
+            rackLocation: rack,
+          },
           metadata: {
             rack_location: rack,
           },

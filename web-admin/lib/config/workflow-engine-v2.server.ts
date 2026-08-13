@@ -8,20 +8,29 @@ import 'server-only';
 
 import { getFeatureFlags } from '@/lib/services/feature-flags.service';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
-import { envWorkflowEngineV2ForceOn } from '@/lib/config/workflow-engine-v2';
+import {
+  DEFAULT_WORKFLOW_ENGINE_V2_ENABLED,
+  envWorkflowEngineV2ForceOn,
+} from '@/lib/config/workflow-engine-v2';
 
 /**
- * Server/async resolution: HQ flag OR env force-on.
+ * Server/async resolution: explicit env override, then tenant flag, then default.
  */
 export async function resolveWorkflowEngineV2Enabled(
   tenantId?: string | null,
 ): Promise<boolean> {
+  if (
+    process.env.WORKFLOW_ENGINE_V2 === 'false' ||
+    process.env.NEXT_PUBLIC_WORKFLOW_ENGINE_V2 === 'false'
+  ) {
+    return false;
+  }
   if (envWorkflowEngineV2ForceOn()) return true;
-  if (!tenantId) return false;
+  if (!tenantId) return DEFAULT_WORKFLOW_ENGINE_V2_ENABLED;
   try {
     const flags = await getFeatureFlags(tenantId);
     return Boolean(flags[FEATURE_FLAG_KEYS.WORKFLOW_ENGINE_V2 as keyof typeof flags]);
   } catch {
-    return false;
+    return DEFAULT_WORKFLOW_ENGINE_V2_ENABLED;
   }
 }

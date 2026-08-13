@@ -7,9 +7,7 @@ import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 import { OrderService } from '@/lib/services/order-service';
-import { WorkflowService } from '@/lib/services/workflow-service';
 import type { OrderStatus } from '@/lib/types/workflow';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   WorkflowEngineError,
   executeAction,
@@ -544,139 +542,82 @@ export async function confirmPublicOrderReceivedResponse(
       ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
     };
 
-    const useEngine = await resolveWorkflowEngineV2Enabled(tenantId);
+    try {
+      const available = await listAvailableActions({
+        tenantId,
+        orderId: order.id,
+        screen: PUBLIC_TRACKING_SCREEN,
+      });
+      const result = await executeAction({
+        tenantId,
+        orderId: order.id,
+        screen: PUBLIC_TRACKING_SCREEN,
+        actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+        expectedStateVersion: available.stateVersion,
+        actorUserId: WORKFLOW_SYSTEM_ACTOR.userId,
+        actorName: WORKFLOW_SYSTEM_ACTOR.displayName,
+        input: {
+          notes,
+          preferredToStatus: toStatus,
+          metadata,
+        },
+        idempotencyKey:
+          request.headers.get('Idempotency-Key')?.trim() ||
+          `public-confirm-received:${tenantId}:${order.id}`,
+      });
 
-    if (useEngine) {
-      try {
-        const available = await listAvailableActions({
-          tenantId,
-          orderId: order.id,
-          screen: PUBLIC_TRACKING_SCREEN,
-        });
-        const result = await executeAction({
-          tenantId,
-          orderId: order.id,
-          screen: PUBLIC_TRACKING_SCREEN,
-          actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
-          expectedStateVersion: available.stateVersion,
-          actorUserId: WORKFLOW_SYSTEM_ACTOR.userId,
-          actorName: WORKFLOW_SYSTEM_ACTOR.displayName,
-          input: {
-            notes,
-            preferredToStatus: toStatus,
-            metadata,
-          },
-          idempotencyKey:
-            request.headers.get('Idempotency-Key')?.trim() ||
-            `public-confirm-received:${tenantId}:${order.id}`,
-        });
-
-        logger.info('Public confirm-received success (engine)', {
-          feature: 'public_orders',
-          action: 'confirm_received',
-          tenantId,
-          orderId: order.id,
-          orderNo,
-          engine: 'workflow_v2',
-          durationMs: Date.now() - startedAt,
-        });
-
-        return {
-          status: 200,
-          body: {
-            success: true,
-            data: {
-              orderId: order.id,
-              orderNo,
-              status: result.currentStatus || toStatus,
-              stateVersion: result.stateVersion,
-              engine: 'workflow_v2',
-            },
-          },
-        };
-      } catch (engineError) {
-        const message =
-          engineError instanceof WorkflowEngineError
-            ? engineError.message
-            : engineError instanceof Error
-              ? engineError.message
-              : 'Unable to confirm order as received';
-        logger.warn('Public confirm-received engine blocked', {
-          feature: 'public_orders',
-          action: 'confirm_received',
-          tenantId,
-          orderId: order.id,
-          orderNo,
-          error: message,
-        });
-        return {
-          status:
-            engineError instanceof WorkflowEngineError && engineError.code === 'VERSION_CONFLICT'
-              ? 409
-              : 400,
-          body: {
-            success: false,
-            error: message,
-            code: engineError instanceof WorkflowEngineError ? engineError.code : undefined,
-            blockedReasons:
-              engineError instanceof WorkflowEngineError ? engineError.blockedReasons : undefined,
-          },
-        };
-      }
-    }
-
-    const result = await WorkflowService.changeStatus({
-      orderId: order.id,
-      tenantId,
-      fromStatus,
-      toStatus,
-      userId: WORKFLOW_SYSTEM_ACTOR.userId,
-      userName: WORKFLOW_SYSTEM_ACTOR.displayName,
-      notes,
-      metadata,
-    });
-
-    if (!result.success) {
-      logger.warn('Public confirm-received workflow blocked', {
+      logger.info('Public confirm-received success (engine)', {
         feature: 'public_orders',
         action: 'confirm_received',
         tenantId,
         orderId: order.id,
         orderNo,
-        error: result.error,
-        blockers: result.blockers,
+        engine: 'workflow_v2',
+        durationMs: Date.now() - startedAt,
       });
 
       return {
-        status: 400,
+        status: 200,
+        body: {
+          success: true,
+          data: {
+            orderId: order.id,
+            orderNo,
+            status: result.currentStatus || toStatus,
+            stateVersion: result.stateVersion,
+            engine: 'workflow_v2',
+          },
+        },
+      };
+    } catch (engineError) {
+      const message =
+        engineError instanceof WorkflowEngineError
+          ? engineError.message
+          : engineError instanceof Error
+            ? engineError.message
+            : 'Unable to confirm order as received';
+      logger.warn('Public confirm-received engine blocked', {
+        feature: 'public_orders',
+        action: 'confirm_received',
+        tenantId,
+        orderId: order.id,
+        orderNo,
+        error: message,
+      });
+      return {
+        status:
+          engineError instanceof WorkflowEngineError && engineError.code === 'VERSION_CONFLICT'
+            ? 409
+            : 400,
         body: {
           success: false,
-          error: result.error || 'Unable to confirm order as received',
-          blockers: result.blockers,
+          error: message,
+          code: engineError instanceof WorkflowEngineError ? engineError.code : undefined,
+          blockedReasons:
+            engineError instanceof WorkflowEngineError ? engineError.blockedReasons : undefined,
         },
       };
     }
-
-    logger.info('Public confirm-received success', {
-      feature: 'public_orders',
-      action: 'confirm_received',
-      tenantId,
-      orderId: order.id,
-      orderNo,
-      durationMs: Date.now() - startedAt,
-    });
-
-    return {
-      status: 200,
-      body: {
-        success: true,
-        data: {
-          orderId: order.id,
-          orderNo,
-          status: toStatus,
-        },
-      },
-    };
   } catch (error) {
     logger.error('Public confirm-received failed', error as Error, {
       feature: 'public_orders',

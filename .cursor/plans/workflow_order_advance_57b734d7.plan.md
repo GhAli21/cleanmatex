@@ -1,6 +1,6 @@
 ---
 name: Workflow Order Advance
-overview: Engine-first V1.0 cutover (ADR 2026-07-24). Overnight 2026-07-24 shipped P1 migration files (0427/0428), WorkflowEngine + APIs, partial writer cutover; public tracking now uses opaque /track/{token} links plus confirm UX hardening (create-only migration 0441); canary WORKFLOW_ENGINE_V2 off by default. V1.1/V1.2 unchanged.
+overview: Engine-first V1.0 repository cutover complete. Production writers/readers use WorkflowEngine/catalogs; opaque public tracking is tested; migration 0442 was applied locally and remotely on 2026-08-14. Post-apply smoke and pilot T01-T18 remain operator acceptance steps. V1.1/V1.2 unchanged.
 todos:
   - id: p0-readme
     content: Write README + index (audits, Full Pack reference, non-goals)
@@ -106,10 +106,10 @@ todos:
     status: completed
   - id: p5-retire-rpcs
     content: "P5: retire RPCs; update plan status + do-not-remove list"
-    status: pending
+    status: completed
   - id: p5-docs-update
     content: "P5: update architecture/deploy docs for RPC retirement"
-    status: pending
+    status: completed
   - id: p6-studio-ui
     content: "P6: Studio + floor UX; update plan status + progress"
     status: completed
@@ -118,16 +118,16 @@ todos:
     status: completed
   - id: p7-harden
     content: "P7: harden/e2e/canary; update plan status + production checklist"
-    status: pending
+    status: completed
   - id: p7-docs-update
     content: "P7: refresh testing/deploy/ops runbook docs"
-    status: pending
+    status: completed
   - id: final-documentation-skill
     content: "FINAL: load /documentation skill and generate/complete full Workflow_Order_Advance pack (README, guides, progress, changelog, technical_docs, etc.)"
     status: completed
   - id: final-plan-status
     content: "FINAL: mark all plan todos complete; write final progress_summary + current_status + version.txt"
-    status: pending
+    status: completed
 isProject: false
 ---
 

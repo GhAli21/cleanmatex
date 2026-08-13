@@ -4,7 +4,7 @@
  *
  * Customer confirms receipt via public tracking link (no login).
  * V2: CONFIRM_DELIVERY via WorkflowEngine + system actor UUID.
- * Flag off: Legacy WorkflowService.changeStatus.
+ * The public tracking service executes the configured workflow action.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

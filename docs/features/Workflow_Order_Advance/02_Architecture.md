@@ -62,6 +62,8 @@ Dimensions (commercial / fulfilment / exception / custody / payment / invoice / 
 - Tenant graph editing
 - Hot-path calls to Enhanced execute RPC
 
+P5 contract state: production writers/readers use the application engine and catalogs. Migration `0442` contracts API-role execution grants while retaining function definitions for controlled rollback; function removal is a later, separately reviewed contract migration.
+
 ## 7. Related
 
 - [03_ERD_and_Data_Model.md](03_ERD_and_Data_Model.md)

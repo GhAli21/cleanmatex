@@ -16,7 +16,6 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { log } from '@/lib/utils/logger';
-import { resolveWorkflowEngineV2Enabled } from '@/lib/config/workflow-engine-v2.server';
 import {
   executeAction,
   listAvailableActions,
@@ -302,74 +301,46 @@ export async function POST(
       );
 
       if (allReady && orderRackLocation) {
-        if (await resolveWorkflowEngineV2Enabled(tenantId)) {
-          // Prefer graph action COMPLETE_PACKING when order is on packing screen status
-          try {
-            const available = await listAvailableActions({
+        // Prefer graph action COMPLETE_PACKING when order is on packing screen status.
+        try {
+          const available = await listAvailableActions({
+            tenantId,
+            orderId,
+            screen: 'packing',
+          });
+          const canPack = available.actions.some(
+            (a) => a.actionCode === WORKFLOW_ACTIONS.COMPLETE_PACKING && a.enabled,
+          );
+          if (canPack) {
+            await executeAction({
               tenantId,
               orderId,
               screen: 'packing',
+              actionCode: WORKFLOW_ACTIONS.COMPLETE_PACKING,
+              expectedStateVersion: available.stateVersion,
+              actorUserId: userId,
+              input: {
+                reason: 'All items ready',
+                rack_location: orderRackLocation,
+              },
+              idempotencyKey: `batch-auto-ready:${orderId}:${available.stateVersion}`,
             });
-            const canPack = available.actions.some(
-              (a) => a.actionCode === WORKFLOW_ACTIONS.COMPLETE_PACKING && a.enabled,
-            );
-            if (canPack) {
-              await executeAction({
-                tenantId,
-                orderId,
-                screen: 'packing',
-                actionCode: WORKFLOW_ACTIONS.COMPLETE_PACKING,
-                expectedStateVersion: available.stateVersion,
-                actorUserId: userId,
-                input: {
-                  reason: 'All items ready',
-                  rack_location: orderRackLocation,
-                },
-                idempotencyKey: `batch-auto-ready:${orderId}:${available.stateVersion}`,
-              });
-            } else {
-              log.warn('[BatchUpdate] auto-ready skipped — COMPLETE_PACKING not available', {
-                feature: 'order_pieces',
-                action: 'batch_update_auto_ready_v2',
-                tenantId,
-                orderId,
-                currentStatus: available.currentStatus,
-              });
-            }
-          } catch (engineErr) {
-            log.warn('[BatchUpdate] auto-ready engine failed', {
+          } else {
+            log.warn('[BatchUpdate] auto-ready skipped - COMPLETE_PACKING not available', {
               feature: 'order_pieces',
               action: 'batch_update_auto_ready_v2',
               tenantId,
               orderId,
-              error: engineErr instanceof Error ? engineErr.message : String(engineErr),
+              currentStatus: available.currentStatus,
             });
           }
-        } else {
-          // Legacy auto-transition to READY (bypass graph — retire with P3 canary)
-          await supabase
-            .from('org_orders_mst')
-            .update({
-              status: 'ready',
-              current_status: 'ready',
-              ready_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', orderId)
-            .eq('tenant_org_id', tenantId);
-
-          await supabase.from('org_order_history').insert({
-            tenant_org_id: tenantId,
-            order_id: orderId,
-            action_type: 'STATUS_CHANGE',
-            from_value: 'processing',
-            to_value: 'ready',
-            done_by: userId,
-            done_at: new Date().toISOString(),
-            payload: {
-              reason: 'All items ready',
-              rack_location: orderRackLocation,
-            },
+        } catch (engineErr) {
+          log.warn('[BatchUpdate] auto-ready engine failed', {
+            feature: 'order_pieces',
+            action: 'batch_update_auto_ready_v2',
+            tenantId,
+            orderId,
+            error: engineErr instanceof Error ? engineErr.message : String(engineErr),
           });
         }
       }
