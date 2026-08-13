@@ -15,26 +15,10 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale } from './i18n'
 import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } from './lib/security/csrf'
+import { isPublicRoutePath } from './lib/security/public-routes'
 
 /** Cookie storing "Remember me" choice; when "0" or missing, auth cookies are session-only. */
 const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
-
-/**
- * Routes that don't require authentication
- */
-const PUBLIC_ROUTES = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
-  '/auth/callback',
-  '/auth/confirm',
-  '/logout',
-  '/terms',
-  '/privacy',
-  '/public', // Public order tracking pages (no login required)
-]
 
 /**
  * Auth routes (should redirect to dashboard if already authenticated)
@@ -134,8 +118,7 @@ export async function proxy(request: NextRequest) {
 
   // Check route types
   const isApiRoute = pathname.startsWith('/api')
-  const isPublicRoute =
-    pathname === '/' || PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+  const isPublicRoute = isPublicRoutePath(pathname)
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route))
 
