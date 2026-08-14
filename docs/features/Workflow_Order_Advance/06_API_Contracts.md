@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** P4 public tracking + token rollout refreshed · **Date:** 2026-07-25  
+**Status:** P7R stage-command contracts started for Preparation and Delivery; staff delivery rollout remains disabled · **Date:** 2026-08-14
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions
@@ -103,11 +103,65 @@ Staff physical intake remains `POST …/confirm-physical-intake` → `CONFIRM_PH
 
 V1.0: use same action APIs; **no second transition surface**. Offline: must send `expectedStateVersion`; 409 → refresh actions.
 
-## 9. P0 sign-off gaps
+## 9. Preparation completion (P7R, active)
+
+`POST /api/v1/preparation/{orderId}/complete`
+
+This is the versioned adapter for the shared Preparation completion command. It requires an authenticated session, CSRF validation, `orders:update`, `orders:transition`, and an `Idempotency-Key` header. The request body may supply `expectedStateVersion`; otherwise the adapter reads the current state version before execution.
+
+```json
+{
+  "expectedStateVersion": 7,
+  "readyByOverride": "2026-08-15T13:00:00.000Z",
+  "internalNotes": "Items checked and prepared."
+}
+```
+
+The command locks the tenant-scoped order, verifies Preparation is active, calculates or validates `ready_by`, persists stage metadata, executes `COMPLETE_PREPARATION`, and caches the response for replay. The stage write and workflow/history/outbox write share one Prisma transaction, so an engine rejection rolls back the ready-by and note change too. The workflow engine remains the sole workflow-status writer.
+
+Errors: `400 IDEMPOTENCY_KEY_REQUIRED`, `404 ORDER_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `422 PREPARATION_NOT_ACTIVE`, `422 GATE_FAILED`, `403 ACTION_NOT_ALLOWED`.
+
+The legacy server action is an authenticated compatibility adapter only. It ignores client-supplied tenant/user arguments and resolves both from the server session before invoking the same command.
+
+## 10. Staff Delivery completion (P7R, server-disabled)
+
+`POST /api/v1/delivery/stops/{stopId}/complete`
+
+This is the only target staff command for completing a delivery. It is a stage-owned application service, not a UI-specific status writer. The server resolves the authenticated tenant and actor, requires `delivery:pod` and `orders:transition`, validates CSRF, and currently responds with `503 DELIVERY_HARDENING_REQUIRED` until the release gates are complete.
+
+Headers: authenticated session and standard CSRF protection. Body:
+
+```json
+{
+  "expectedStateVersion": 12,
+  "idempotencyKey": "delivery-complete-9d4d5d06",
+  "podMethodCode": "OTP",
+  "otpCode": "1234",
+  "signatureUrl": "private/pod/signature.png",
+  "photoUrls": ["private/pod/photo-1.jpg"]
+}
+```
+
+The command locks the tenant-scoped stop, route, and order; validates a configured POD method; blocks a remaining `PAY_ON_COLLECTION` balance; writes/upserts POD evidence; marks the stop delivered; executes engine `CONFIRM_DELIVERY`; recomputes route counters/status; writes workflow history and outbox events; and stores a replay response. All of those writes share one transaction.
+
+Method evidence policy currently enforced by the command:
+
+| POD method | Required evidence |
+|---|---|
+| `OTP` | A valid generated OTP for the same tenant stop |
+| `SIGNATURE` | Non-empty `signatureUrl` |
+| `PHOTO` | At least one non-empty `photoUrls` entry |
+| `MIXED` | Signature and at least one photo |
+
+Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 OTP_INVALID`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
+
+The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Signed URL/storage ownership validation, OTP expiry/retry controls, and database-backed integration testing are remaining release gates.
+
+## 11. P0 sign-off gaps
 
 - [x] state_version contract
 - [x] blocker reason shape
-- [x] atomic CONFIRM_DELIVERY input
+- [ ] Staff Delivery endpoint and atomic transaction implemented, but server rollout and database-backed atomicity/evidence/payment tests remain pending
 - [x] Existing path inventory (baseline for P2 align) — see below
 - [ ] HQ OpenAPI link once saas contract exists (**accepted defer** to HQ integration doc)
 - [ ] Release JSON schema finalized with Fin (**accepted defer** to P4 with Fin owners)

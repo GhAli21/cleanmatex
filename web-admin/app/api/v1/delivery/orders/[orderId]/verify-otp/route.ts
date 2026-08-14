@@ -6,7 +6,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { DeliveryService } from '@/lib/services/delivery-service';
-import { getAuthContext } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import {
+  DELIVERY_HARDENING_ERROR,
+  STAFF_DELIVERY_WRITES_ENABLED,
+} from '@/lib/config/delivery-safety';
 
 /**
  *
@@ -19,16 +23,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
-  try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  const authCheck = await requirePermission('delivery:pod')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
+  if (!STAFF_DELIVERY_WRITES_ENABLED) {
+    return NextResponse.json(DELIVERY_HARDENING_ERROR, { status: 503 });
+  }
 
-    const { tenantId } = authContext;
+  try {
+    const { tenantId } = authCheck;
     const { orderId } = params;
     const body = await request.json();
     const { otpCode } = body;

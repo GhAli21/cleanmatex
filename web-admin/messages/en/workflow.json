@@ -316,6 +316,14 @@
     "description": "Orders out for delivery",
     "empty": "No orders out for delivery",
     "items": "Items",
+    "fallbacks": {
+      "unknownCustomer": "Unknown customer",
+      "noPhone": "No phone"
+    },
+    "hardening": {
+      "title": "Staff delivery completion is temporarily unavailable",
+      "description": "Orders remain visible, but route creation and delivery confirmation are disabled until proof of delivery, payment checks, and workflow updates can be committed safely together."
+    },
     "stats": {
       "outForDelivery": "Out for delivery",
       "completedToday": "Completed today"
@@ -426,6 +434,9 @@
     "controlNotesPlaceholder": "Required for hold or permanent stop…",
     "controlNotesHelp": "Minimum {min} characters. Saved with the action for audit.",
     "controlNotesRequired": "Enter a reason (at least {min} characters) to continue",
+    "stopConfirmTitle": "Permanently stop this order?",
+    "stopConfirmDescription": "This is a terminal workflow action. The order cannot resume after it is stopped.",
+    "stopConfirmAction": "Stop order permanently",
     "orderControlTitle": "Hold / resume / stop"
   }
 }

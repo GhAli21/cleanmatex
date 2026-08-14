@@ -20,7 +20,7 @@
 | Assembly / QA / Packing | profile-gated | actions + gates |
 | Ready | `ready_release` | `MARK_READY` / `RELEASE_*` |
 | Pickup | `pickup_counter` | Fin + release + engine |
-| Delivery | `driver_delivery` | `CONFIRM_DELIVERY` atomic |
+| Delivery | `driver_delivery` | Target: atomic `CONFIRM_DELIVERY`; staff writes currently fail-closed pending hardening |
 | Cancel/Return | | Fin then engine |
 
 ## 3. Tenant settings (not a Studio graph editor)

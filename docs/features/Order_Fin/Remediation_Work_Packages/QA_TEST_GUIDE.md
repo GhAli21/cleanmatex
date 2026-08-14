@@ -1,9 +1,59 @@
 # Order Fin Remediation — Manual QA Test Guide
 
-**Living document — updated after every implemented package.** Last update: 2026-07-25 (B21).
+**Living document — updated after every implemented package.** Last update: **2026-08-14** (triage index added; 5 flag prerequisites corrected against the remote DB; B28 §27 added).
 **Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22, B21**. Run on **Preview** (never straight to production).
 
-> **How to use:** work top-to-bottom. Each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
+> **How to use:** each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
+>
+> ⚠️ **Do NOT work top-to-bottom.** This guide holds **209 scenarios (~10–17 hours)**. Use the triage below — Tier 1 is ~40 scenarios (~2.5 h) and covers the live money paths that actually gate a release.
+
+---
+
+## 0.0 ▶ RUN THIS FIRST — release-gate triage (added 2026-08-14)
+
+Sections are ordered by **risk**, not by package number. Tiers 3 and 4 are **not release blockers**.
+
+### 🔴 Tier 0 — do before starting (otherwise QA is wasted)
+| Action | Why |
+|---|---|
+| Apply migration **`0443_seed_missing_order_fin_feature_flags.sql`** | `order_fin_refund_execution` + `tax_inclusive_pricing` exist in TypeScript but were **never registered in the DB** — §16 and §22 flag-ON scenarios are unrunnable without it |
+| Note the corrected flag states below | Two sections previously documented as "default OFF" are in fact **LIVE** |
+
+**Corrected flag prerequisites** (verified against remote `hq_ff_feature_flags_mst` + `org_ff_overrides_cf`, 2026-08-14):
+
+| Flag | Guide previously said | Actual | Effect |
+|---|---|---|---|
+| `order_fin_refund_ui` (§5) | default OFF | **`true`** | §5 is **live** — must test |
+| `order_fin_sv_funding_capture` (§14) | default OFF | **`true`** | §14 is **live** — must test |
+| `order_fin_governed_amendments` (§25) | default OFF | **overridden `true`** for 2 tenants | §25 is **live** — must test |
+| `order_fin_refund_execution` (§16) | flag OFF by default | **missing from DB** | flag-ON scenarios unrunnable until 0443 |
+| `tax_inclusive_pricing` (§22) | flag OFF by default | **missing from DB** | §22.1–22.2 unrunnable until 0443 |
+| `erp_lite_enabled` (§18) | — | `false`, no overrides | §18 correctly dormant → Tier 3 |
+
+### ✅ Tier 1 — MUST pass before release (~40 scenarios, ~2.5 h)
+Live for every tenant, no config needed, and they touch money on every order.
+
+| § | Package | Why Tier 1 |
+|---|---|---|
+| §1 | B15 — currency defaults & tolerances | ships unconditionally; affects all money formatting |
+| §2 | B01 — refund lineage & reopen-due | core refund correctness |
+| §3 | B02 — outstanding formula | the formula every balance depends on |
+| §5 | B34 — refund back-office UI | **flag is ON** |
+| §13 | Cross-cutting regression | catches wave-level breakage |
+| §14 | B3 — stored-value funding capture | **flag is ON** |
+| §24 | B18 — order charge write path | live for every tenant, no config |
+| §25 | B12 — order amendment & delta | **flag overridden ON** for 2 tenants |
+| §27 | B28 — tax-override removal + idempotency | live now; expected result is **no visible change** |
+
+### 🟡 Tier 2 — should pass before release (~65 scenarios, ~4 h)
+Live, but narrower blast radius or back-office only: **§6** (B16), **§7** (B35), **§10** (B4/B5/B31), **§12** (B27), **§15** (B30/B32), **§17** (B10), **§21** (B21).
+
+### ⏸️ Tier 3 — safe to defer (NOT release blockers, ~63 scenarios)
+Flag-off, dormant, or needing pilot-tenant DB config — verified unreachable for any tenant today:
+**§16** (B9 — flag missing), **§18** (B6 — `erp_lite_enabled=false`), **§19** (B8 — no gateway configured), **§22** (B11 — flag missing), **§23** (B17 — needs a non-native `rounding_unit` SQL update), **§26** (B14 — needs `tax_registration_no` + an enabled trigger row).
+
+### 🔧 Tier 4 — not manual QA (~23 scenarios)
+Pure SQL/DB verification, better run as a script than by a person: **§8** (B20), **§9** (B29 — docs-only), **§11** (B7), **§20** (B19).
 
 ---
 
@@ -112,7 +162,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
-## 5. B34 — Refund back-office UI  *(flag `order_fin_refund_ui` = ON + refund permissions)*
+## 5. B34 — Refund back-office UI  *(flag `order_fin_refund_ui` — ⚠️ **LIVE: default `true`**, + refund permissions)*
+
+> ⚠️ **Prerequisite corrected 2026-08-14.** Verified against remote `hq_ff_feature_flags_mst`: `order_fin_refund_ui` has `default_value = true` and is additionally overridden `true` (approved) for the demo tenant. Earlier revisions of this guide implied it defaulted OFF. **These scenarios are testing live behaviour for every tenant — do not skip them.**
 **What changed:** the refund maker-checker workflow is fully usable from screens (was API-only).
 
 | # | Where + how | Expected | Result |
@@ -248,7 +300,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 ---
 
 ## 14. B3 — Stored-value funding capture (backend + tender-step UI)
-**What changed:** gift-card sale, wallet top-up, and customer-advance receipt can now be funded through a real tender (payment method + cash/change + drawer session when cash) instead of a bare ledger credit with no payment fact. Migration `0412` **APPLIED**. Requires feature flag **`order_fin_sv_funding_capture` = ON** (HQ console) for the tender step to appear — **OFF is the default and must also be verified** (§14.7–14.8 below), since the existing no-tender admin actions must keep working unchanged while the flag is off.
+**What changed:** gift-card sale, wallet top-up, and customer-advance receipt can now be funded through a real tender (payment method + cash/change + drawer session when cash) instead of a bare ledger credit with no payment fact. Migration `0412` **APPLIED**. Requires feature flag **`order_fin_sv_funding_capture` = ON** (HQ console) for the tender step to appear.
+
+> ⚠️ **Prerequisite corrected 2026-08-14.** Verified against remote `hq_ff_feature_flags_mst`: this flag's `default_value` is **`true`**, and it is additionally overridden `true` (approved) for the demo tenant — it is **NOT** off by default as earlier revisions of this guide stated. **The tender step is live for every tenant; these scenarios test production behaviour — do not skip them.** §14.7–14.8 (flag-off regression) now require *explicitly turning the flag OFF* for that tenant to exercise the legacy no-tender path.
 
 > Where: **Marketing → Gift Cards** (`/dashboard/marketing/gift-cards`) → **Sell Card**; **Customer Management → Stored Value** (`/dashboard/customers/stored-value`) → open a customer → **Top Up** / **Issue Advance**.
 
@@ -294,6 +348,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ## 16. B9 — Refund execution parity
 **What changed:** processing an **approved** CASH or ORIGINAL_METHOD refund used to be record-only (status flips to PROCESSED, nothing else happens). Behind the new flag `order_fin_refund_execution` (default OFF), CASH refunds now create a real REFUND_VOUCHER wired to a cash-drawer CASH_OUT movement (the drawer's expected cash actually drops); ORIGINAL_METHOD refunds require the accountant to type a manual-settlement reference (bank transfer ref, terminal void slip no., gateway dashboard ref) since no gateway integration exists yet. Migration **0418 is APPLIED (owner), verified via remote DB**.
+
+> 🔴 **BLOCKED until migration `0443` is applied (found 2026-08-14).** The flag `order_fin_refund_execution` exists in the TypeScript `FLAG_CATALOG` but was **never registered in `hq_ff_feature_flags_mst`** — migration 0418 only mentions it in SQL comments, it never inserts it. Verified: `SELECT flag_key FROM hq_ff_feature_flags_mst WHERE flag_key='order_fin_refund_execution'` → **0 rows**. It therefore cannot be switched on from the HQ console, and **every flag-ON scenario below is unrunnable**. Migration `0443_seed_missing_order_fin_feature_flags.sql` has been authored to fix this and is **awaiting owner review + apply**. The flag-OFF (record-only) scenarios remain runnable today.
 
 > Where: **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`).
 
@@ -427,7 +483,9 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 **What changed:** order preview/submit now compute correct totals for TAX_INCLUSIVE tenants (tax extracted from the priced item, not added on top); the payment modal labels tax rows "— tax included" when the server confirms inclusive mode. A separate live bug was also fixed: an unconfigured/misconfigured tax rate no longer silently assumes 5% VAT (now zero-rates + logs a warning, matching the existing B15 policy).
 
-> **DB/config prerequisite — no settings-screen toggle exists yet.** TAX_INCLUSIVE is dormant for every tenant until both of the following are set for the test tenant/branch: (1) the `tax_inclusive_pricing` feature flag enabled (HQ feature-flag console, or directly via `org_ff_overrides_cf`/plan mapping — there is no web-admin UI for this flag), and (2) `org_tenants_mst.tax_pricing_mode` (or the branch override on `org_branches_mst`) set to `'TAX_INCLUSIVE'` — currently only settable via direct SQL, since `/dashboard/settings/tax` has no pricing-mode field (out of B11's scope; the doc did not ask for one). Coordinate with the owner before running §22.1–22.3 on Preview.
+> 🔴 **BLOCKED until migration `0443` is applied (found 2026-08-14).** The `tax_inclusive_pricing` flag exists in the TypeScript `FLAG_CATALOG` but was **never registered in `hq_ff_feature_flags_mst`** — no migration anywhere seeds it. Verified: `SELECT flag_key FROM hq_ff_feature_flags_mst WHERE flag_key='tax_inclusive_pricing'` → **0 rows**. It cannot be enabled from the HQ console, so **§22.1–22.2 are unrunnable today**. Migration `0443_seed_missing_order_fin_feature_flags.sql` has been authored and is **awaiting owner review + apply**. §22.3 (the zero-rate regression) is independent of the flag and runnable now.
+
+> **DB/config prerequisite — no settings-screen toggle exists yet.** TAX_INCLUSIVE is dormant for every tenant until both of the following are set for the test tenant/branch: (1) the `tax_inclusive_pricing` feature flag enabled (HQ feature-flag console — **requires migration 0443 first**, see above), and (2) `org_tenants_mst.tax_pricing_mode` (or the branch override on `org_branches_mst`) set to `'TAX_INCLUSIVE'` — currently only settable via direct SQL, since `/dashboard/settings/tax` has no pricing-mode field (out of B11's scope; the doc did not ask for one). Coordinate with the owner before running §22.1–22.3 on Preview.
 
 > Where: **any order's payment step** (new order → Payment, or an existing order's Payments tab preview) for §22.1–22.2; **Marketing → any tenant without a configured tax profile** for §22.3 (the zero-rate regression).
 
@@ -555,6 +613,30 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 27. B28 — Tax-override removal + amendment idempotency hardening (2026-08-13/14)
+
+**What changed:** B28 is normally a test-only umbrella, but this pass shipped two real production-behaviour changes found by its own audit, so they need owner-runnable verification like any other package.
+
+1. **Ad-hoc tax override removed (follow-up #4).** The client-supplied `additionalTaxRate` / `additionalTaxAmount` request params are gone. They were accepted on submit but had no equivalent on the preview routes, so a non-zero value would have made the payment-modal preview disagree with the amount actually charged. **Verified dead before removal** (the client hardcodes its own `taxRate` to 0, so nothing could send a non-zero value) — expected QA outcome is therefore *no visible change at all*. Tax now comes only from configured tax profiles + the server-resolved `TENANT_VAT_RATE` fallback.
+2. **Amendment idempotency hardened (follow-up #5).** A governed order amendment whose idempotency key is already being processed by a concurrent request is now rejected with `IDEMPOTENCY_IN_PROGRESS` instead of silently double-applying. **Only reachable when the same key is sent twice concurrently** (HTTP retry / proxy replay / API client) — the New Order UI mints a fresh key per click, so normal double-clicking will not produce it.
+
+> **No migration. No DB change** — verified against the remote DB that no `additional_tax*` column ever existed. **Do not drop `org_orders_mst.tax_rate`**: it holds the CUSTOM tax-*profile* rate and carries real data on 72 of 74 live orders.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|27.1| **Regression — tenant WITH tax profiles.** Sidebar → Orders → New Order. Add items, open the Payment modal, note the tax line and Order Total, then submit. | Preview tax and total are unchanged from before this release; submit succeeds with no `AMOUNT_MISMATCH`. Charged total == the total the modal showed. | |
+|27.2| **Regression — tenant WITHOUT any tax profile configured** (the branch the removed params lived in). Same flow as 27.1. | Tax is either 0 or exactly the `TENANT_VAT_RATE` fallback; preview total == charged total. No "additional tax" appears anywhere. | |
+|27.3| **CUSTOM tax profile still works** (this is what stayed). Configure/keep a CUSTOM-type tax profile (e.g. Municipality 2%) active, create an order, open the Payment modal. | The CUSTOM line still appears in the tax breakdown alongside VAT, and `org_orders_mst.tax_rate` is still written (`SELECT tax_rate, vat_rate FROM org_orders_mst WHERE id='<order>';` → CUSTOM rate in `tax_rate`, VAT in `vat_rate`). | |
+|27.4| **Governed amendment still works end-to-end** (no regression from the idempotency change). With `order_fin_governed_amendments` ON for a pilot tenant, edit a paid order's items → enter a reason when prompted → confirm. | Edit saves; the delta notice appears; exactly ONE row is added to `org_order_edit_history` for that edit. | |
+|27.5| **Normal double-click is unaffected.** On the same Edit Order screen, click Save twice rapidly. | No `IDEMPOTENCY_IN_PROGRESS` error (each click mints its own key). Note: this does **not** prove double-submit protection — see the known residual below. | |
+|27.6| *(Dev/API only — optional)* Fire two concurrent `PATCH /api/v1/orders/{id}/update` calls sharing one `idempotencyKey` and an identical body, against a governed order. | Exactly one succeeds; the other returns `errorCode: 'IDEMPOTENCY_IN_PROGRESS'`. Exactly one `org_order_edit_history` row is created. | |
+
+> **Known residual, deliberately not fixed (recorded, not hidden):** `updateOrder`'s optimistic-lock check (`expectedUpdatedAt`) is a read-then-compare, not an atomic compare-and-set, so two requests that both read the order before either commits can both pass it. Sequential retries are correctly rejected. The fix belongs with the owner's in-flight workflow-engine `state_version` CAS rather than a second competing mechanism — see B28 doc → follow-up #5.
+
+**Automated gates (2026-08-13/14):** tsc clean (3 pre-existing/unrelated errors, none touched) · eslint 0 (all changed files) · full jest **251/251 suites, 2395/2395 tests** · `npm run test:db-integration` **11/11 suites, 34/34 tests** · `npm run build` ✓ (exit 0, 271 static pages). New DB-integration coverage: real cancel-chain flow, real 8-way concurrent idempotency claim, real governed-amendment flow, real concurrent refund lock.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -587,6 +669,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B18 | no migration; live for every tenant immediately, no config needed; the earlier unrelated assembly-exceptions build blocker (owner's own WIP) is resolved, build green; top-bar pill UI redesign is the current (3rd) iteration — not yet deployed to Preview; 67 pre-existing orders intentionally NOT backfilled (owner-approved fix-forward-only, flagged as a separate future package) | | |
 | B12 | migration 0438 APPLIED (owner, 2026-07-25), verified via remote DB; backend/API/gate + frontend reason-prompt/delta-notice UI fully implemented and tested; settlement automation deliberately NOT built (real `collectPaymentTx` PAY_ON_COLLECTION-only blocker, see Design decision #13 — operator settles manually via the order's Payments tab); flag `order_fin_governed_amendments` defaults OFF, zero effect on any tenant; §25 above covers both API-level (25.1–25.10) and UI-level (25.11–25.16) scenarios | | |
 | B14 | migration 0440 APPLIED (owner), verified via remote DB; Prisma schema synced; backend trigger-wiring + lineage/FN-03 fix + 3 reconciliation checks + correction-document hooks (B34 refund, B12 amendment) implemented and tested; still dormant for every tenant (requires both `tax_registration_no` and an enabled `org_tax_doc_triggers_cfg` row, neither configured anywhere yet); frontend print/QR/issue-cancel-replace UI deliberately deferred, see Design decision #7; §26 above is DB/API-level only, now runnable once a pilot tenant is configured | | |
+| B28 | no migration, no DB change (verified against remote DB — no `additional_tax*` column ever existed; do NOT drop `org_orders_mst.tax_rate`). Normally test-only, but this pass shipped 2 real behaviour changes: the ad-hoc tax-override params were removed (verified dead before removal — expected QA outcome is *no visible change*), and governed amendments now reject a concurrent same-key duplicate with `IDEMPOTENCY_IN_PROGRESS`. Live for every tenant immediately, no config needed. §27 above covers both, incl. the deliberately-unfixed residual (`updateOrder`'s non-atomic optimistic lock — belongs with the owner's in-flight `state_version` CAS) | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

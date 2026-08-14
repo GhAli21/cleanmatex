@@ -1,1 +1,1 @@
-0.4.1-rpc-grants-deployed
+0.4.4-p7r-preparation-command

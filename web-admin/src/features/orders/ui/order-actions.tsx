@@ -6,41 +6,22 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Package,
-  CheckCircle,
   XCircle,
-  ArrowRight,
-  AlertCircle,
   Wrench,
   RotateCcw,
   Edit,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useLocale } from '@/lib/hooks/useLocale';
-import { useMessage } from '@ui/feedback';
-import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
-import { useScreenContract } from '@/lib/hooks/use-screen-contract';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import {
-  CmxDialog,
-  CmxDialogContent,
-  CmxDialogDescription,
-  CmxDialogFooter,
-  CmxDialogHeader,
-  CmxDialogTitle,
-} from '@ui/overlays';
-import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { FixOrderDataModal } from './fix-order-data-modal';
 import { CancelOrderDialog } from './cancel-order-dialog';
 import { CustomerReturnOrderDialog } from './customer-return-order-dialog';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import type { OrderStatus } from '@/lib/types/workflow';
-import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
 import {
   canCancelOrder,
   canReturnOrder,
@@ -53,201 +34,45 @@ interface OrderActionsProps {
     tenant_org_id: string;
     preparation_status?: string | null;
   };
-  /**
-   * Optional screen identifier for workflow validation/transition routing.
-   * Defaults to "orders".
-   */
-  screen?: string;
 }
 
 /**
  *
  * @param root0
  * @param root0.order
- * @param root0.screen
  */
-export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
+export function OrderActions({ order }: OrderActionsProps) {
   const router = useRouter();
   const t = useTranslations('orders.actions');
   const tEngine = useTranslations('workflow.engine');
-  const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const locale = useLocale();
-  const { showSuccess, showErrorFrom, showError } = useMessage();
-  const useNewWorkflowSystem = useWorkflowSystemMode();
-  const { data: screenContract, isLoading: screenContractLoading } = useScreenContract(screen);
-  const transition = useOrderTransition();
-  const [loading, setLoading] = useState(false);
-  const [showDialog, setShowDialog] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
-  const [notes, setNotes] = useState('');
-  const [allowedTransitions, setAllowedTransitions] = useState<OrderStatus[]>([]);
-  const [blockers, setBlockers] = useState<string[]>([]);
+  const canTransition = useHasPermissionCode('orders:transition');
+  const canUpdate = useHasPermissionCode('orders:update');
   const [showFixOrderDataModal, setShowFixOrderDataModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
-  // Fetch allowed transitions on mount
-  useEffect(() => {
-    async function fetchAllowedTransitions() {
-      try {
-        const response = await fetch(`/api/v1/orders/${order.id}/transitions`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && Array.isArray(data.data)) {
-            setAllowedTransitions(data.data);
-          }
-        }
-      } catch (error) {
-        // Non-blocking: leave buttons hidden if transitions cannot be fetched
-      }
-    }
-
-    fetchAllowedTransitions();
-  }, [order.id, order.status]);
-
-  const handleStatusClick = (newStatus: OrderStatus) => {
-    setSelectedStatus(newStatus);
-    setNotes('');
-    setBlockers([]);
-    setShowDialog(true);
-  };
-
-  const handleConfirmChange = async () => {
-    if (!selectedStatus) return;
-
-    setLoading(true);
-    setBlockers([]);
-
-    try {
-      const canUseEnhancedWorkflow = useNewWorkflowSystem && !!screenContract && !screenContractLoading;
-
-      const data = await transition.mutateAsync({
-        orderId: order.id,
-        input: {
-          screen,
-          to_status: selectedStatus,
-          notes: notes.trim() || undefined,
-          // If enhanced isn't available for this screen (missing contract), force OLD path safely.
-          useOldWfCodeOrNew: canUseEnhancedWorkflow,
-        },
-      });
-
-      if (data.success) {
-        const statusLabel = locale === 'ar' 
-          ? STATUS_META[selectedStatus].labelAr 
-          : STATUS_META[selectedStatus].label;
-        showSuccess(t('success.statusUpdated', { status: statusLabel }));
-        setShowDialog(false);
-        router.refresh();
-      } else {
-        // Show error with blockers if quality gates failed
-        if (data.blockers && data.blockers.length > 0) {
-          setBlockers(data.blockers);
-        } else {
-          showError(data.error || t('errors.updateFailed'));
-        }
-      }
-    } catch (error) {
-      showErrorFrom(error, { fallback: t('errors.updateFailed') });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setShowDialog(false);
-    setSelectedStatus(null);
-    setNotes('');
-    setBlockers([]);
-  };
-
-  // Quick action buttons for common transitions
-  const currentStatus = (order.status || '').toLowerCase() as OrderStatus;
+  const currentStatus = (order.status || '').toLowerCase();
   const prepStatus = order.preparation_status ?? null;
-  const canMoveTo = (status: OrderStatus) => allowedTransitions.includes(status);
-
-  // Generate action buttons based on current status
-  const actionButtons = [];
-
-  // Intake → Preparation
-  if (currentStatus === 'intake' && canMoveTo('preparation')) {
-    actionButtons.push({
-      label: t('buttons.startPreparation'),
-      status: 'preparation' as OrderStatus,
-      color: 'blue',
-      icon: Package,
-    });
-  }
-
-  // Various statuses → Ready
-  if (canMoveTo('ready') && currentStatus !== 'ready') {
-    actionButtons.push({
-      label: t('buttons.markAsReady'),
-      status: 'ready' as OrderStatus,
-      color: 'green',
-      icon: CheckCircle,
-    });
-  }
-
-  // Ready → Out for Delivery
-  if (currentStatus === 'ready' && canMoveTo('out_for_delivery')) {
-    actionButtons.push({
-      label: t('buttons.outForDelivery'),
-      status: 'out_for_delivery' as OrderStatus,
-      color: 'teal',
-      icon: ArrowRight,
-    });
-  }
-
-  // Out for Delivery / Ready → Delivered
-  if (canMoveTo('delivered') && currentStatus !== 'delivered') {
-    actionButtons.push({
-      label: t('buttons.markAsDelivered'),
-      status: 'delivered' as OrderStatus,
-      color: 'purple',
-      icon: CheckCircle,
-    });
-  }
-
-  const colorClasses: Record<string, string> = {
-    blue: 'bg-blue-600 hover:bg-blue-700',
-    green: 'bg-green-600 hover:bg-green-700',
-    teal: 'bg-teal-600 hover:bg-teal-700',
-    purple: 'bg-purple-600 hover:bg-purple-700',
-    red: 'bg-red-600 hover:bg-red-700',
-  };
 
   return (
     <>
       <div className="space-y-2">
-        {actionButtons.map(({ label, status, color, icon: Icon }) => (
-          <CmxButton
-            key={status}
-            onClick={() => handleStatusClick(status)}
-            disabled={loading}
-            className={`w-full ${colorClasses[color]} text-white`}
-            size="lg"
-          >
-            <Icon className="w-4 h-4 mr-2" />
-            {label}
-          </CmxButton>
-        ))}
-
         {/* Hold / resume / stop (engine V2 order_control) */}
-        <WorkflowActionBar
-          orderId={order.id}
-          screen="order_control"
-          hideWhenEmpty
-          title={tEngine('orderControlTitle')}
-          onActionSuccess={() => router.refresh()}
-        />
+        {canTransition ? (
+          <WorkflowActionBar
+            orderId={order.id}
+            screen="order_control"
+            hideWhenEmpty
+            title={tEngine('orderControlTitle')}
+            onActionSuccess={() => router.refresh()}
+          />
+        ) : null}
 
         {/* Customer Return — V1.1 deferred (canReturnOrder always false for now) */}
-        {canReturnOrder(currentStatus) && (
+        {canTransition && canReturnOrder(currentStatus) && (
             <CmxButton
               onClick={() => setShowReturnDialog(true)}
-              disabled={loading}
               variant="outline"
               className={`w-full border-amber-300 text-amber-700 hover:bg-amber-50 ${isRTL ? 'flex-row-reverse' : ''}`}
               size="lg"
@@ -258,10 +83,9 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           )}
 
         {/* Cancel — draft / intake / incomplete preparing only */}
-        {canCancelOrder(currentStatus, prepStatus) && (
+        {canTransition && canCancelOrder(currentStatus, prepStatus) && (
             <CmxButton
               onClick={() => setShowCancelDialog(true)}
-              disabled={loading}
               variant="outline"
               className={`w-full border-red-300 text-red-700 hover:bg-red-50 ${isRTL ? 'flex-row-reverse' : ''}`}
               size="lg"
@@ -272,11 +96,12 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           )}
 
         {/* Edit Order - for draft/intake/preparation status */}
-        {(currentStatus === 'draft' || currentStatus === 'intake' || currentStatus === 'preparation' || currentStatus === 'preparing') && (
+        {canUpdate && (['draft', 'intake', 'preparation', 'preparing'] as const).some(
+          (status) => status === currentStatus,
+        ) && (
           <CmxButton
             variant="outline"
             onClick={() => router.push(`/dashboard/orders/${order.id}/edit`)}
-            disabled={loading}
             className={`w-full border-blue-300 text-blue-700 hover:bg-blue-50 ${isRTL ? 'flex-row-reverse' : ''}`}
             size="lg"
           >
@@ -285,28 +110,30 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           </CmxButton>
         )}
 
-        {/* Fix order data - opens modal */}
-        <CmxButton
-          variant="outline"
-          onClick={() => setShowFixOrderDataModal(true)}
-          disabled={loading}
-          className={`w-full border-gray-300 text-gray-700 hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-          size="lg"
-        >
-          <Wrench className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-          {t('buttons.fixOrderData')}
-        </CmxButton>
+        {canUpdate ? (
+          <CmxButton
+            variant="outline"
+            onClick={() => setShowFixOrderDataModal(true)}
+            className={`w-full border-gray-300 text-gray-700 hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+            size="lg"
+          >
+            <Wrench className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('buttons.fixOrderData')}
+          </CmxButton>
+        ) : null}
       </div>
 
-      <FixOrderDataModal
-        orderId={order.id}
-        open={showFixOrderDataModal}
-        onOpenChange={setShowFixOrderDataModal}
-        onSuccess={() => {
-          router.refresh();
-          setShowFixOrderDataModal(false);
-        }}
-      />
+      {canUpdate ? (
+        <FixOrderDataModal
+          orderId={order.id}
+          open={showFixOrderDataModal}
+          onOpenChange={setShowFixOrderDataModal}
+          onSuccess={() => {
+            router.refresh();
+            setShowFixOrderDataModal(false);
+          }}
+        />
+      ) : null}
 
       <CancelOrderDialog
         orderId={order.id}
@@ -323,73 +150,6 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
         onOpenChange={setShowReturnDialog}
         onSuccess={() => router.refresh()}
       />
-
-      {/* Status Change Confirmation Dialog */}
-      <CmxDialog open={showDialog} onOpenChange={setShowDialog}>
-        <CmxDialogContent className={isRTL ? 'text-right' : 'text-left'}>
-          <CmxDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-            <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
-              {selectedStatus && t('dialog.changeStatusTo', { 
-                status: locale === 'ar' 
-                  ? STATUS_META[selectedStatus].labelAr 
-                  : STATUS_META[selectedStatus].label 
-              })}
-            </CmxDialogTitle>
-            <CmxDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
-              {selectedStatus && STATUS_META[selectedStatus].description}
-            </CmxDialogDescription>
-          </CmxDialogHeader>
-
-          {blockers.length > 0 && (
-            <Alert variant="destructive" className={isRTL ? 'text-right' : 'text-left'}>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className={isRTL ? 'text-right' : 'text-left'}>
-                <div className="font-semibold mb-1">{t('dialog.cannotChangeStatus')}:</div>
-                <ul className={`list-disc ${isRTL ? 'list-inside' : 'list-inside'} space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {blockers.map((blocker, index) => (
-                    <li key={index}>{blocker}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <div>
-              <Label htmlFor="notes" className={isRTL ? 'text-right' : 'text-left'}>
-                {t('dialog.notes')} ({tCommon('optional')})
-              </Label>
-              <CmxTextarea
-                id="notes"
-                placeholder={t('dialog.notesPlaceholder')}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                dir={isRTL ? 'rtl' : 'ltr'}
-                className={`mt-1 w-full ${isRTL ? 'text-right' : 'text-left'}`}
-              />
-            </div>
-          </div>
-
-          <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
-            <CmxButton
-              variant="outline"
-              onClick={handleCancel}
-              disabled={loading}
-            >
-              {tCommon('cancel')}
-            </CmxButton>
-            <CmxButton
-              onClick={handleConfirmChange}
-              disabled={loading || blockers.length > 0}
-              className={isRTL ? 'flex-row-reverse' : ''}
-              loading={loading}
-            >
-              {t('dialog.confirmChange')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
     </>
   );
 }

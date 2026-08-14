@@ -79,6 +79,12 @@ For hold, resume, and stop, browser developer tools should show successful calls
 
 Cancellation loads available actions with `screen=canceling` and executes through the same `POST /api/v1/orders/{id}/actions` endpoint. Each successful action should return HTTP `200`, increment `stateVersion`, write order history, and enqueue an `ORDER_WORKFLOW_TRANSITIONED` outbox event.
 
+## Staff delivery containment
+
+The Delivery dashboard is currently read-only. Route creation, driver assignment, OTP generation/verification, POD capture, and direct staff **Mark delivered** actions are disabled while atomic delivery hardening is open. Direct calls to staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write route, stop, POD, order, history, or outbox data.
+
+Do not bypass this containment or use the generic order Actions tab to mark an order delivered. Continue using the opaque public `/track/{token}` confirm-received flow only for its approved customer contract. Staff delivery S10 can resume after the production checklist confirms atomic POD, route counters, financial gates, idempotency, concurrency, RBAC, tenant isolation, and rollback coverage.
+
 ### Tenant-safe database verification
 
 Use read-only queries and always provide the test tenant ID.

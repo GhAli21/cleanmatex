@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
-import { getTenantIdFromSession } from '@/lib/db/tenant-context';
-
-async function getAuthContext() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + (error?.message ?? ''));
-  }
-  return { tenantId: tenants[0].tenant_id as string };
-}
+import { requirePermission } from '@/lib/middleware/require-permission';
 
 interface StepResult {
   step_id: string;
@@ -118,8 +107,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authCheck = await requirePermission('orders:update')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck;
+    }
+
     const { id: orderId } = await params;
-    const { tenantId } = await getAuthContext();
+    const { tenantId } = authCheck;
     const supabase = await createClient();
 
     const { data: order, error: orderError } = await supabase

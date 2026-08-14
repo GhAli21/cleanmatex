@@ -1,20 +1,32 @@
 /**
  * Server Action: Complete Preparation
  *
- * Marks order preparation as complete and calculates Ready-By date.
- * Transitions order status from 'intake' to 'processing'.
+ * Authenticated compatibility adapter for the Preparation completion command.
  */
 
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { completePreparationSchema } from '@/lib/validations/order-schema';
-import { completePreparation as completePreparationDb } from '@/lib/db/orders';
-import type { Order } from '@/types/order';
+import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import {
+  listAvailableActions,
+  WorkflowEngineError,
+} from '@/lib/services/workflow/workflow-engine.service';
+import {
+  completePreparationCommand,
+  PreparationCompletionError,
+} from '@/lib/services/preparation/preparation-completion.service';
 
 interface CompletePreparationResult {
   success: boolean;
-  data?: Order;
+  data?: {
+    orderId: string;
+    readyBy: string;
+    currentStatus: string;
+    stateVersion: number;
+  };
   error?: string;
   errors?: Record<string, string[]>;
 }
@@ -22,16 +34,16 @@ interface CompletePreparationResult {
 /**
  * Complete order preparation
  *
- * @param tenantOrgId - Tenant organization ID (from session)
+ * @param _tenantOrgId - Ignored legacy argument; tenant context comes from the authenticated session.
  * @param orderId - Order ID
- * @param userId - User ID completing preparation (from session)
+ * @param _userId - Ignored legacy argument; actor context comes from the authenticated session.
  * @param data - Preparation completion data
  * @returns Result with updated order
  */
 export async function completePreparation(
-  tenantOrgId: string,
+  _tenantOrgId: string,
   orderId: string,
-  userId: string,
+  _userId: string,
   data: unknown
 ): Promise<CompletePreparationResult> {
   try {
@@ -53,8 +65,29 @@ export async function completePreparation(
       };
     }
 
-    // Complete preparation
-    const order = await completePreparationDb(tenantOrgId, orderId, userId, validation.data);
+    const [auth, canUpdate, canTransition] = await Promise.all([
+      getAuthContext(),
+      hasPermissionServer('orders:update'),
+      hasPermissionServer('orders:transition'),
+    ]);
+    if (!canUpdate || !canTransition) {
+      return { success: false, error: 'You do not have permission to complete preparation.' };
+    }
+
+    const available = await listAvailableActions({
+      tenantId: auth.tenantId,
+      orderId,
+      screen: 'preparation',
+    });
+    const result = await completePreparationCommand({
+      tenantId: auth.tenantId,
+      orderId,
+      actorUserId: auth.userId,
+      expectedStateVersion: available.stateVersion,
+      idempotencyKey: crypto.randomUUID(),
+      readyByOverride: validation.data.readyByOverride,
+      internalNotes: validation.data.internalNotes,
+    });
 
     // Revalidate order pages
     revalidatePath(`/dashboard/orders/${orderId}`);
@@ -63,14 +96,20 @@ export async function completePreparation(
 
     return {
       success: true,
-      data: order,
+      data: {
+        orderId: result.orderId,
+        readyBy: result.readyBy,
+        currentStatus: result.workflow.currentStatus,
+        stateVersion: result.workflow.stateVersion,
+      },
     };
   } catch (error) {
-    console.error('[completePreparation] Error:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to complete preparation',
+      error:
+        error instanceof PreparationCompletionError || error instanceof WorkflowEngineError
+          ? error.message
+          : 'Failed to complete preparation',
     };
   }
 }

@@ -1,5 +1,29 @@
 # Changelog — Workflow Order Advance
 
+## 0.4.4-p7r-preparation-command — 2026-08-14
+
+- Replaced direct Preparation status mutation with an authenticated, tenant-scoped stage-owned completion command and `POST /api/v1/preparation/{orderId}/complete` adapter
+- Made Preparation ready-by metadata, `COMPLETE_PREPARATION`, workflow history, outbox, and idempotency replay storage one rollback-safe transaction
+- Required `Idempotency-Key`, `orders:update`, and `orders:transition`; stale versions return the workflow conflict rather than overwriting another operator
+- Converted the legacy Preparation server action into a compatibility adapter that ignores browser-provided tenant/user IDs and resolves the authenticated context on the server
+
+## 0.4.3-p7r-foundation — 2026-08-14
+
+- Added the server-disabled `POST /api/v1/delivery/stops/{stopId}/complete` P7R contract and stage-owned completion service
+- Made `WorkflowEngine.executeAction` transaction-composable so stage operations can commit POD, stop, route, workflow history, and outbox writes atomically
+- Added tenant-scoped stop/route/order locking, method-specific POD checks, idempotency replay/conflict handling, route counter refresh, and the `PAY_ON_COLLECTION` remaining-balance block
+- Added focused fail-closed API coverage; staff delivery remains disabled pending database-backed acceptance coverage and rollout approval
+
+## 0.4.2-delivery-no-go — 2026-08-14
+
+- Release audit reopened `integ-delivery` and P7 hardening; full V1.0 is not production-ready
+- Disabled legacy raw-status quick actions and the staff direct **Mark delivered** shortcut
+- Corrected the Delivery worklist to the canonical `driver_delivery` screen key
+- Added seeded permission guards to delivery mutation APIs and explicit tenant predicates to affected updates/lookups
+- Permission-gated order transition/edit/repair controls and added confirmation for terminal `STOP_ORDER_WORK`
+- Kept public anonymous confirm-received available under its separately tested contract
+- Remaining blockers: atomic POD/order/stop/route commit, durable validated evidence, route consistency, idempotency/concurrency, and deferred-payment collection policy
+
 ## 0.4.1-rpc-grants-deployed — 2026-08-14
 
 - Operator confirmed `0442_retire_workflow_rpc_grants.sql` applied successfully to local and remote databases

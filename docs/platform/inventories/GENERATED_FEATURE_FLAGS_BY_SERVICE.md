@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-07-24T22:56:59.325Z
+Generated: 2026-08-14T00:01:03.304Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ Generated: 2026-07-24T22:56:59.325Z
 | getFeatureFlags | lib/services/feature-flags.service.ts | 337 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/feature-flags.service.ts | 360 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 263 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 456 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 267 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 497 | const flags = await getFeatureFlags(tenantId); |
+| order_fin_governed_amendments | lib/services/order-service.ts | 2893 | const governedFlagEnabled = await canAccess(tenantId, 'order_fin_governed_amendments'); |
 | pdf_invoices | lib/services/feature-flags.service.ts | 406 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

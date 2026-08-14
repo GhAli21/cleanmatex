@@ -21,3 +21,8 @@ export const WORKFLOW_SCREEN_KEYS = [
 export type WorkflowScreenKey = (typeof WORKFLOW_SCREEN_KEYS)[number]
 
 export const WORKFLOW_SCREEN_KEY_SET = new Set<string>(WORKFLOW_SCREEN_KEYS)
+
+/** Canonical screen keys for call sites that must not use historical aliases. */
+export const WORKFLOW_SCREENS = {
+  DRIVER_DELIVERY: 'driver_delivery',
+} as const satisfies Record<string, WorkflowScreenKey>

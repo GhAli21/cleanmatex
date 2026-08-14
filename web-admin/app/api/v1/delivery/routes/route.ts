@@ -6,26 +6,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { DeliveryService } from '@/lib/services/delivery-service';
-import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import {
+  DELIVERY_HARDENING_ERROR,
+  STAFF_DELIVERY_WRITES_ENABLED,
+} from '@/lib/config/delivery-safety';
 
 /**
  *
  * @param request
  */
 export async function GET(request: NextRequest) {
-  const authCheck = await requirePermission('drivers:read')(request)
-  if (authCheck instanceof NextResponse) return authCheck
+  const authCheck = await requirePermission('drivers:read')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
 
   try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { tenantId } = authContext;
+    const { tenantId } = authCheck;
     const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get('page') || '1');
     const limit = Number(searchParams.get('limit') || '20');
@@ -65,16 +61,14 @@ export async function GET(request: NextRequest) {
  * @param request
  */
 export async function POST(request: NextRequest) {
-  try {
-    const authContext = await getAuthContext();
-    if (!authContext) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  const authCheck = await requirePermission('delivery:routes')(request);
+  if (authCheck instanceof NextResponse) return authCheck;
+  if (!STAFF_DELIVERY_WRITES_ENABLED) {
+    return NextResponse.json(DELIVERY_HARDENING_ERROR, { status: 503 });
+  }
 
-    const { tenantId, userId } = authContext;
+  try {
+    const { tenantId, userId } = authCheck;
     const body = await request.json();
     const { orderIds, driverId } = body;
 

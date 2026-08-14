@@ -4,16 +4,17 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
-import { cmxMessage } from '@ui/feedback';
+import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
 import { useTranslations, useLocale } from 'next-intl';
 import { useWorkflowActions, type WorkflowActionDto } from '@/lib/hooks/use-workflow-actions';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
 
 const MIN_CONTROL_NOTES = 10;
-const CONTROL_ACTIONS_NEEDING_NOTES = new Set([
-  'HOLD_ORDER_WORK',
-  'STOP_ORDER_WORK',
+const CONTROL_ACTIONS_NEEDING_NOTES = new Set<string>([
+  WORKFLOW_ACTIONS.HOLD_ORDER_WORK,
+  WORKFLOW_ACTIONS.STOP_ORDER_WORK,
 ]);
 
 export interface WorkflowActionBarProps {
@@ -72,6 +73,7 @@ export function WorkflowActionBar({
   title,
 }: WorkflowActionBarProps) {
   const t = useTranslations('workflow.engine');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const router = useRouter();
   const { enabled, loading, hasLoaded, actions, currentStatus, execute } =
@@ -80,6 +82,7 @@ export function WorkflowActionBar({
   const [rackError, setRackError] = useState<string | null>(null);
   const [controlNotes, setControlNotes] = useState('');
   const [controlNotesError, setControlNotesError] = useState<string | null>(null);
+  const [pendingStopAction, setPendingStopAction] = useState<WorkflowActionDto | null>(null);
   const didRedirectRef = useRef(false);
 
   const visible = actions.filter((a) => a.enabled || a.blockedReasons.length > 0);
@@ -158,6 +161,26 @@ export function WorkflowActionBar({
   const showRackField = needsRackPrompt(actions);
   const rackTrimmed = rackLocation.trim();
   const notesTrimmed = controlNotes.trim();
+
+  const executeWorkflowAction = async (action: WorkflowActionDto) => {
+    const input: Record<string, unknown> = {};
+    if (rackTrimmed) input.rackLocation = rackTrimmed;
+    if (CONTROL_ACTIONS_NEEDING_NOTES.has(action.actionCode)) {
+      input.notes = notesTrimmed;
+    }
+    const ok = await execute(
+      action.actionCode,
+      Object.keys(input).length > 0 ? input : undefined,
+      action.toStatus,
+    );
+    if (ok) {
+      setRackLocation('');
+      setRackError(null);
+      setControlNotes('');
+      setControlNotesError(null);
+      onActionSuccess?.();
+    }
+  };
 
   return (
     <>
@@ -268,21 +291,11 @@ export function WorkflowActionBar({
                         );
                         return;
                       }
-                      const input: Record<string, unknown> = {};
-                      if (rackTrimmed) input.rackLocation = rackTrimmed;
-                      if (needsNotes) input.notes = notesTrimmed;
-                      const ok = await execute(
-                        action.actionCode,
-                        Object.keys(input).length > 0 ? input : undefined,
-                        action.toStatus,
-                      );
-                      if (ok) {
-                        setRackLocation('');
-                        setRackError(null);
-                        setControlNotes('');
-                        setControlNotesError(null);
-                        onActionSuccess?.();
+                      if (action.actionCode === WORKFLOW_ACTIONS.STOP_ORDER_WORK) {
+                        setPendingStopAction(action);
+                        return;
                       }
+                      await executeWorkflowAction(action);
                     })();
                   }}
                 >
@@ -298,6 +311,19 @@ export function WorkflowActionBar({
           })}
         </div>
       </section>
+      <CmxConfirmDialog
+        open={pendingStopAction !== null}
+        title={t('stopConfirmTitle')}
+        description={t('stopConfirmDescription')}
+        confirmLabel={t('stopConfirmAction')}
+        cancelLabel={tCommon('cancel')}
+        onConfirm={async () => {
+          if (pendingStopAction) {
+            await executeWorkflowAction(pendingStopAction);
+          }
+        }}
+        onCancel={() => setPendingStopAction(null)}
+      />
       {children}
     </>
   );

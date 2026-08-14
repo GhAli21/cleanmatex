@@ -1061,6 +1061,22 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Next.js server action module (not an HTTP /api route). Permissions inferred from action file or auth-only via session.'],
       },
     ],
+    actions: {
+      transition: {
+        label: 'Transition',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
 },
   {
     routePattern: '/dashboard/orders/[id]/full',
@@ -1696,7 +1712,10 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/delivery',
     label: 'Delivery',
-    page: {},
+    page: {
+      permissions: ['drivers:read', 'orders:read'],
+      requireAllPermissions: true,
+    },
     apiDependencies: [
       {
         label: 'List delivery orders',
@@ -1711,11 +1730,39 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'List delivery routes',
         method: 'GET',
         path: '/api/v1/delivery/routes',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+        requirement: {
+          permissions: ['drivers:read'],
+          requireAllPermissions: true,
+        },
       },
     ],
-    notes: ORDER_NOTES,
-  },
+    notes: [
+      'Staff delivery writes are fail-closed pending atomic POD, payment, route, and workflow hardening.',
+    ],
+    actions: {
+      create: {
+        label: 'Create',
+        requirement: {
+          permissions: ['orders:create'],
+          requireAllPermissions: true,
+        },
+      },
+      export: {
+        label: 'Export',
+        requirement: {
+          permissions: ['orders:export'],
+          requireAllPermissions: true,
+        },
+      },
+      update: {
+        label: 'Update',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+},
   {
     routePattern: '/dashboard/receipts/[orderId]',
     label: 'Receipt Details',

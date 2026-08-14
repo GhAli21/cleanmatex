@@ -1,6 +1,6 @@
 ---
 name: Workflow Order Advance
-overview: Engine-first V1.0 repository cutover complete. Production writers/readers use WorkflowEngine/catalogs; opaque public tracking is tested; migration 0442 was applied locally and remotely on 2026-08-14. Post-apply smoke and pilot T01-T18 remain operator acceptance steps. V1.1/V1.2 unchanged.
+overview: Engine-first workflow cutover and opaque public tracking are deployed, but V1.0 is not production-ready. The 2026-08-14 release audit reopened staff delivery/POD and P7 hardening because POD/order/stop writes are not atomic, delivery mutations need stronger controls, route state can drift, and deferred-payment collection is not enforced. P7R now establishes reusable workflow-command and stage-service APIs so web, mobile, and integrations consume the same tenant-safe business operations. Preparation completion and the server-disabled Delivery completion command now use this pattern; unsafe direct delivered shortcuts remain disabled pending remediation.
 todos:
   - id: p0-readme
     content: Write README + index (audits, Full Pack reference, non-goals)
@@ -84,8 +84,8 @@ todos:
     content: "Integrate Pickup: Fin settle + release records + engine status; update progress"
     status: completed
   - id: integ-delivery
-    content: "Integrate Delivery: out/POD/delivered via engine (no capturePOD bypass); update progress"
-    status: completed
+    content: "P7R Delivery cutover: consume the stage-owned atomic delivery service/API for out/POD/delivered; no direct capturePOD or status bypass; update progress"
+    status: pending
   - id: integ-cancel-return
     content: "Integrate Cancel/Return: Fin unwind then CANCEL_ORDER/RETURN_ORDER; update progress"
     status: completed
@@ -117,17 +117,32 @@ todos:
     content: "P6: refresh UI/UX + RBAC/nav docs after Studio"
     status: completed
   - id: p7-harden
-    content: "P7: harden/e2e/canary; update plan status + production checklist"
-    status: completed
+    content: "P7R: harden/e2e/canary after the shared workflow-command platform and Delivery service are complete; update production checklist"
+    status: pending
   - id: p7-docs-update
-    content: "P7: refresh testing/deploy/ops runbook docs"
-    status: completed
+    content: "P7R: refresh API contracts, testing, deploy, and operations runbooks after stage-service cutover"
+    status: pending
+  - id: p7r-command-contracts
+    content: "P7R foundation: define versioned shared workflow-command contracts, request context, idempotency, concurrency, audit/outbox, and standard errors for every stage"
+    status: in_progress
+  - id: p7r-stage-service-boundaries
+    content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
+    status: in_progress
+  - id: p7r-delivery-service
+    content: "P7R Delivery: implement atomic complete-delivery orchestration with POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics"
+    status: in_progress
+  - id: p7r-caller-cutover
+    content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; remove or fail-close all bypass writers"
+    status: pending
+  - id: p7r-assurance-rollout
+    content: "P7R assurance: add unit, API, integration, concurrency, RBAC, tenant-isolation, and pilot/rollback tests before re-enabling staff delivery"
+    status: pending
   - id: final-documentation-skill
     content: "FINAL: load /documentation skill and generate/complete full Workflow_Order_Advance pack (README, guides, progress, changelog, technical_docs, etc.)"
     status: completed
   - id: final-plan-status
     content: "FINAL: mark all plan todos complete; write final progress_summary + current_status + version.txt"
-    status: completed
+    status: pending
 isProject: false
 ---
 
@@ -161,6 +176,19 @@ Replace the current **hybrid** system (Legacy `cmx_order_transition` + Enhanced 
 - **DB functions are retired** for workflow business logic (no `cmx_ord_execute_transition`, no CASE fallbacks, no `cmx_order_transition` as authority)
 
 Documentation home: [`docs/features/Workflow_Order_Advance/`](docs/features/Workflow_Order_Advance/) (build on existing audits under `Audit_Reports_Order_Workflow/`; archive older plans already in `old/`).
+
+---
+
+## Reopened P7R — Stage-owned service and API architecture
+
+The workflow engine remains the authority for state transitions. Each operational stage must own an application service and a versioned API surface so every caller uses the same validation and transaction boundary:
+
+- **Shared workflow-command layer:** authenticated tenant context, permission checks, input validation, `state_version` concurrency, idempotency, audit metadata, central outbox events, and a stable error model.
+- **Stage-owned services:** Preparation, Processing, Quality, Packing, Ready/Release, Pickup, and Delivery own their stage-specific gates and side effects; they call the workflow engine rather than writing order workflow state directly.
+- **Versioned consumers:** web-admin, mobile applications, and third-party adapters consume `/api/v1/...` contracts or a dedicated integration adapter. UI components are never an alternative business-logic path.
+- **Delivery first:** re-enable staff delivery only after one atomic completion orchestration covers stop ownership, POD/OTP evidence, applicable pay-on-collection settlement, workflow transition, route counters, audit trail, and outbox emission.
+
+P7R is intentionally sequenced as: shared contracts → service boundaries → Delivery implementation → caller cutover → assurance/pilot. Later stages must adopt the same pattern, not create screen-local writers.
 
 ---
 

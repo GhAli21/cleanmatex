@@ -327,7 +327,8 @@ export class DeliveryService {
           updated_by: userId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', routeId);
+        .eq('id', routeId)
+        .eq('tenant_org_id', tenantId);
 
       if (updateError) {
         logger.error('Failed to assign driver', updateError as Error, {
@@ -398,6 +399,7 @@ export class DeliveryService {
         .from('org_dlv_pod_tr')
         .select('id')
         .eq('stop_id', stop.id)
+        .eq('tenant_org_id', tenantId)
         .single();
 
       if (existingPOD) {
@@ -411,7 +413,8 @@ export class DeliveryService {
             updated_by: userId,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingPOD.id);
+          .eq('id', existingPOD.id)
+          .eq('tenant_org_id', tenantId);
       } else {
         // Create new POD
         await supabase.from('org_dlv_pod_tr').insert({
@@ -499,6 +502,7 @@ export class DeliveryService {
         .from('org_dlv_pod_tr')
         .select('*')
         .eq('stop_id', stop.id)
+        .eq('tenant_org_id', tenantId)
         .single();
 
       if (podError || !pod) {
@@ -519,7 +523,8 @@ export class DeliveryService {
             verified_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('id', pod.id);
+          .eq('id', pod.id)
+          .eq('tenant_org_id', tenantId);
       }
 
       logger.info('OTP verification completed', {

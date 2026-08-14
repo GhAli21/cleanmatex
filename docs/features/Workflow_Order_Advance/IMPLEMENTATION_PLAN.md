@@ -1,7 +1,7 @@
 # Implementation Plan — Workflow Order Advance
 
-**Version:** 0.3.0-p1-p2-engine  
-**Date:** 2026-07-24  
+**Version:** 0.4.3-p7r-stage-api-architecture
+**Date:** 2026-08-14
 **Scope lock:** [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md)  
 **Checkpoint:** [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)
 
@@ -45,6 +45,36 @@ Align docs to ADR; mark P0 incomplete until checklist in §6 green.
 ### WP-P5 — Retire Legacy/Enhanced app paths
 
 ### WP-P6 — Tenant effective-profile UI + HQ assign consume; access contracts
+
+### WP-P7R — Production stage API architecture and delivery hardening (reopened)
+
+The release audit found that staff Delivery was still a screen-oriented composition of POD, stop, route, payment, and workflow writes. It is fail-closed until this work package is complete. The workflow engine stays authoritative for state transitions; P7R provides the reusable application boundary around it.
+
+#### P7R.1 — Shared workflow-command contract
+
+- Define versioned command request/result/error contracts for stage operations.
+- Standardize authenticated actor and `tenant_org_id` context, permissions, input validation, idempotency keys, `state_version` concurrency, audit metadata, and central outbox emission.
+- Keep transport adapters thin: web, mobile, and partner integrations call the same application command rather than reimplementing rules.
+
+#### P7R.2 — Stage-owned services and API surfaces
+
+- Establish one service boundary per operational stage: Preparation, Processing, Quality, Packing, Ready/Release, Pickup, and Delivery.
+- Give each stage explicit versioned endpoints and DTO/schema contracts. Stage-specific gates and side effects live in that service; workflow status changes go through the engine.
+- Inventory and retire direct screen/API writers after their service replacement is live. A disabled endpoint is not considered a completed architecture replacement.
+
+#### P7R.3 — Delivery first, atomic completion
+
+- Implement a single atomic completion orchestration that verifies tenant-scoped route/stop ownership, authorization, evidence policy (POD/OTP), pay-on-collection settlement policy, workflow eligibility, and optimistic concurrency.
+- In the same transaction, persist permitted evidence, settle or explicitly reject required collection, transition through the engine, update route/stop state and counters, write an audit record, and enqueue the integration event.
+- Define idempotent replay behavior and rollback/error semantics. Do not expose a separate delivered-status writer or unauthorised POD writer.
+
+#### P7R.4 — Consumer cutover and controlled rollout
+
+- Update web-admin to consume the new delivery API only. Mobile and third-party integration adapters must use the same versioned contract when introduced.
+- Keep legacy and bypass writers fail-closed until removal is safe; use a server-side rollout control, not a client-only visibility flag.
+- Re-enable staff delivery only after the acceptance suite passes, a pilot tenant is signed off, monitoring is in place, and rollback is rehearsed.
+
+**P7R exit criteria:** no direct workflow/status writers remain in stage screens; every command is tenant-scoped, authorized, idempotent, concurrency-safe, audited, and evented; Delivery passes unit/API/integration/concurrency/RBAC/tenant-isolation/payment regressions; S10 and pilot T01-T18 are signed; production checklist is green.
 
 ### WP-P7 — Harden / e2e / production checklist
 

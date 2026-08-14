@@ -1,18 +1,18 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-07-24T22:56:59.325Z
-Git SHA: d902f340
+Generated: 2026-08-14T00:01:03.304Z
+Git SHA: 1f4b3534
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 144 |
-| Permission usages | 259 |
-| Feature flag usages | 74 |
+| Permission usages | 313 |
+| Feature flag usages | 86 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
 | Navigation entries | 99 |
-| Flag catalog entries | 294 |
+| Flag catalog entries | 295 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ Git SHA: d902f340
 | /dashboard/customers/[id] | Customer Details | — | — | 0 |
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
 | /dashboard/customers/stored-value | Stored Value | stored_value:view_balances | — | 0 |
-| /dashboard/delivery | Delivery | — | — | 0 |
+| /dashboard/delivery | Delivery | drivers:read, orders:read | — | 0 |
 | /dashboard/drivers | Drivers | drivers:read | driver_app | 0 |
 | /dashboard/drivers/routes | Driver Routes | drivers:read | driver_app | 0 |
 | /dashboard/erp-lite | Finance & Accounting | erp_lite:view | erp_lite_enabled | 0 |

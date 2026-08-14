@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** P1–P7 repository implementation complete; `0441` and `0442` applied locally/remotely; post-apply smoke and pilot acceptance remain
+**Status:** Engine cutover/public tracking deployed; **V1.0 staff delivery NO-GO** and P7 hardening reopened after the 2026-08-14 release audit
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -33,6 +33,8 @@ See [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md).
 8. Delivery finalize = atomic `CONFIRM_DELIVERY` (+ POD payload)  
 9. Rename tables only when responsibility is wrong  
 10. Full seed + graph validation; EN/AR; RLS; canary  
+
+The staff delivery principle above is an unmet release gate, not a completed claim. Route creation, OTP/POD writes, and staff delivery confirmation are fail-closed until POD evidence, payment/release checks, stop/route updates, the order transition, history, and outbox share one rollback-safe operation. Public `/track/{token}` confirm-received remains available under its separately tested customer contract.
 
 ## Activate canary (after you apply `0427`/`0428` and the current rollout migrations)
 

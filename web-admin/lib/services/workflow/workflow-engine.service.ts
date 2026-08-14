@@ -115,7 +115,11 @@ type ActionTransitionRow = {
   transition_permission_code: string | null;
 };
 
-type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+/**
+ * Prisma transaction scope accepted by workflow commands that must be composed
+ * with a stage-owned write without splitting the business transaction.
+ */
+export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 const PREPARATION_COMPLETED = 'completed';
 
@@ -534,53 +538,56 @@ export async function listAvailableActions(
  */
 export async function executeAction(
   params: ExecuteActionParams,
+  transaction?: PrismaTransactionClient,
 ): Promise<ExecuteActionResult> {
   const screen = normalizeScreen(params.screen);
   const idempotencyPayload = buildIdempotencyPayload(params);
   const payloadHash = hashPayload(idempotencyPayload);
 
-  const existing = await findIdempotencyHash(
-    params.tenantId,
-    params.idempotencyKey,
-    WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
-  );
-
-  if (existing?.hash && existing.hash !== payloadHash) {
-    throw new WorkflowEngineError(
-      'IDEMPOTENCY_CONFLICT',
-      'Same idempotency key used with a different payload.',
+  if (!transaction) {
+    const existing = await findIdempotencyHash(
+      params.tenantId,
+      params.idempotencyKey,
+      WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
     );
-  }
 
-  if (existing?.hash === payloadHash) {
-    const cachedRow = await prisma.org_idempotency_keys.findFirst({
-      where: {
-        tenant_org_id: params.tenantId,
-        key: params.idempotencyKey,
-        resource_type: WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
-      },
-      select: { response_cache: true },
-    });
-    const cache = cachedRow?.response_cache as unknown as CachedExecuteResult | null;
-    if (cache?.result) {
-      return cache.result;
+    if (existing?.hash && existing.hash !== payloadHash) {
+      throw new WorkflowEngineError(
+        'IDEMPOTENCY_CONFLICT',
+        'Same idempotency key used with a different payload.',
+      );
+    }
+
+    if (existing?.hash === payloadHash) {
+      const cachedRow = await prisma.org_idempotency_keys.findFirst({
+        where: {
+          tenant_org_id: params.tenantId,
+          key: params.idempotencyKey,
+          resource_type: WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
+        },
+        select: { response_cache: true },
+      });
+      const cache = cachedRow?.response_cache as unknown as CachedExecuteResult | null;
+      if (cache?.result) {
+        return cache.result;
+      }
+    }
+
+    const staked = await stakeIdempotencyHash(
+      params.tenantId,
+      params.idempotencyKey,
+      WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
+      payloadHash,
+    );
+    if (staked.conflict) {
+      throw new WorkflowEngineError(
+        'IDEMPOTENCY_CONFLICT',
+        'Same idempotency key used with a different payload.',
+      );
     }
   }
 
-  const staked = await stakeIdempotencyHash(
-    params.tenantId,
-    params.idempotencyKey,
-    WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE,
-    payloadHash,
-  );
-  if (staked.conflict) {
-    throw new WorkflowEngineError(
-      'IDEMPOTENCY_CONFLICT',
-      'Same idempotency key used with a different payload.',
-    );
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
+  const run = async (tx: PrismaTransactionClient): Promise<ExecuteActionResult> => {
     const order = await loadOrderForUpdate(tx, params.tenantId, params.orderId);
     const currentStatus = normalizeStatus(order.current_status ?? order.status);
     const currentVersion = readStateVersion(order);
@@ -904,7 +911,11 @@ export async function executeAction(
     });
 
     return executeResult;
-  });
+  };
+
+  // Stage services can compose operational writes and the workflow transition
+  // in one rollback boundary; standalone callers retain the existing behavior.
+  const result = transaction ? await run(transaction) : await prisma.$transaction(run);
 
   return result;
 }
