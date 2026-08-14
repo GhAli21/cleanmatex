@@ -6,10 +6,11 @@
  * Displays a paginated list of all refunds for the tenant.
  *
  * B34: upgraded from read-only to actionable behind the `order_fin_refund_ui`
- * feature flag — PENDING_APPROVAL rows expose Approve (maker≠checker: the
- * requester's own button is disabled with the reason and the server enforces
- * it again), APPROVED rows expose Process. Every action confirms in a dialog,
- * is double-click safe, and reports the typed API error codes.
+ * feature flag — PENDING_APPROVAL rows expose Approve, APPROVED rows expose
+ * Process. No maker-checker: holding `orders:approve_refund` is sufficient even
+ * when the approver is the requester (owner rule) — permission is the control,
+ * enforced server-side by the route. Every action confirms in a dialog, is
+ * double-click safe, and reports the typed API error codes.
  */
 
 import { useEffect, useState } from 'react';
@@ -68,8 +69,6 @@ interface RefundsListClientProps {
    *  (REFUND_VOUCHER + cash-drawer CASH_OUT, or a manual-settlement reference)
    *  instead of the record-only pre-B9 behavior. */
   executionEnabled?: boolean;
-  /** Current user id for the maker≠checker self-approval disable. */
-  currentUserId?: string | null;
 }
 
 interface OpenDrawerSession {
@@ -107,14 +106,12 @@ function statusBadgeClass(status: string): string {
  * @param root0.refunds
  * @param root0.pagination
  * @param root0.actionsEnabled
- * @param root0.currentUserId
  */
 export default function RefundsListClient({
   refunds,
   pagination,
   actionsEnabled = false,
   executionEnabled = false,
-  currentUserId = null,
 }: RefundsListClientProps) {
   const t = useTranslations('billing.refunds');
   const tCommon = useTranslations('common');
@@ -264,7 +261,6 @@ export default function RefundsListClient({
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {refunds.map((r) => {
-              const isOwnRequest = false; //Boolean(currentUserId && r.created_by === currentUserId);
               return (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{r.refund_no}</td>
@@ -306,8 +302,6 @@ export default function RefundsListClient({
                         <CmxButton
                           size="sm"
                           variant="outline"
-                          disabled={isOwnRequest}
-                          title={isOwnRequest ? t('actions.selfApprovalBlocked') : undefined}
                           onClick={() => setPendingAction({ refund: r, action: 'approve' })}
                         >
                           {t('actions.approve')}

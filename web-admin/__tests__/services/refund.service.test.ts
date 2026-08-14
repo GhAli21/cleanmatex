@@ -218,12 +218,12 @@ describe('order-refund.service — approveRefund', () => {
 
   // Owner policy change (commit f7dccb8a, 2026-07-20 — "no need for maker-checker
   // in approve, even same user can approve if he has the required permission"):
-  // order-refund.service.ts gates the maker≠checker check behind a local
-  // `ENABLE_SELF_APPROVAL_CHECK = false` constant, so self-approval is
-  // currently allowed as long as the actor holds the approve permission
-  // (enforced by the route's requirePermission, not by this service). This
-  // test previously asserted the opposite (pre-policy-change) behavior.
-  it('allows self-approval now that ENABLE_SELF_APPROVAL_CHECK is off (owner policy, 2026-07-20)', async () => {
+  // The maker≠checker check has since been removed outright from
+  // order-refund.service.ts (2026-08-14) rather than left behind a dead
+  // constant, so self-approval is allowed as long as the actor holds the
+  // approve permission (enforced by the route's requirePermission, not by this
+  // service). This test previously asserted the opposite (pre-policy) behavior.
+  it('allows self-approval — permission is the only gate (owner policy)', async () => {
     mockRefundFindFirstOrThrow.mockResolvedValue({
       ...makeRefundRecord('PENDING_APPROVAL'),
       created_by: APPROVER, // approver is also the requester

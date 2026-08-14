@@ -334,12 +334,21 @@ describe('cash-drawer.service — approveSessionVariance (B16)', () => {
     );
   });
 
-  it('rejects self-approval (approver === closer)', async () => {
+  // Owner policy: no maker-checker. Holding `cash_drawer:approve_variance` is
+  // sufficient, even when the approver is the same user who closed the session
+  // (see Remediation_Work_Packages/CLAUDE.md). Permission — enforced by the
+  // route's requirePermission — is the control, not actor identity. This test
+  // previously asserted the opposite (pre-policy) behaviour.
+  it('allows self-approval (approver === closer) — permission is the only gate', async () => {
     mockSessionFindFirstOrThrow.mockResolvedValue(closedSession({ closed_by: 'user-001' }));
 
-    await expect(
-      approveSessionVariance(TENANT, SESSION, { approvedBy: 'user-001', reason: 'ok' }),
-    ).rejects.toMatchObject({ code: VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED });
+    await approveSessionVariance(TENANT, SESSION, { approvedBy: 'user-001', reason: 'ok' });
+
+    expect(mockSessionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ variance_approved_by: 'user-001' }),
+      }),
+    );
   });
 
   it('rejects a blank reason', async () => {
@@ -370,14 +379,18 @@ describe('cash-drawer.service — approveSessionVariance (B16)', () => {
   });
 
   it('VarianceApprovalError instances carry the expected error code', async () => {
-    mockSessionFindFirstOrThrow.mockResolvedValue(closedSession({ closed_by: 'user-001' }));
+    // Uses ALREADY_APPROVED — a still-enforced rule — since self-approval is no
+    // longer blocked (owner policy: no maker-checker).
+    mockSessionFindFirstOrThrow.mockResolvedValue(
+      closedSession({ variance_approved_by: 'supervisor-001' }),
+    );
 
     try {
-      await approveSessionVariance(TENANT, SESSION, { approvedBy: 'user-001', reason: 'ok' });
+      await approveSessionVariance(TENANT, SESSION, { approvedBy: 'supervisor-002', reason: 'ok' });
       throw new Error('expected rejection');
     } catch (error) {
       expect(error).toBeInstanceOf(VarianceApprovalError);
-      expect((error as VarianceApprovalError).code).toBe(VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED);
+      expect((error as VarianceApprovalError).code).toBe(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED);
     }
   });
 });

@@ -177,13 +177,6 @@ function DeliveryReadOnlyScreen() {
         <CmxKpiStatCard title={t('delivery.stats.completedToday')} value={deliveredTodayCount} icon={<CheckCircle2 className="h-5 w-5" />} />
       </div>
 
-      <Alert
-        variant="warning"
-        title={t('delivery.hardening.title')}
-        message={t('delivery.hardening.description')}
-        className="mb-6"
-      />
-
       {error && (
         <Alert variant="error" message={error} className="mb-6" />
       )}

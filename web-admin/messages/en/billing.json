@@ -202,7 +202,6 @@
       "column": "Actions",
       "approve": "Approve",
       "process": "Process",
-      "selfApprovalBlocked": "You requested this refund — a different user must approve it",
       "confirmApproveTitle": "Approve refund",
       "confirmApproveBody": "Approve refund {refundNo} for {amount} {currency}? The refund becomes ready for processing.",
       "confirmProcessTitle": "Process refund",

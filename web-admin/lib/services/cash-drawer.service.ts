@@ -1648,9 +1648,9 @@ export async function approveSessionVariance(
   if (state.approved) {
     throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.ALREADY_APPROVED)
   }
-  if (session.closed_by && session.closed_by === params.approvedBy) {
-    throw new VarianceApprovalError(VARIANCE_APPROVAL_ERRORS.SELF_APPROVAL_BLOCKED)
-  }
+  // No maker-checker: holding `cash_drawer:approve_variance` is sufficient,
+  // even when the approver is the same user who closed the session (owner rule —
+  // see Remediation_Work_Packages/CLAUDE.md). Permission is the control here.
 
   return withTenantContext(tenantId, () =>
     prisma.org_cash_drawer_sessions_mst.update({

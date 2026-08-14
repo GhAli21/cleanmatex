@@ -72,7 +72,6 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
         pagination={{ page, pageSize, total }}
         actionsEnabled={actionsEnabled}
         executionEnabled={executionEnabled}
-        currentUserId={auth?.userId ?? null}
       />
     </div>
   );

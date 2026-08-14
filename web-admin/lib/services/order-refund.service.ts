@@ -671,18 +671,9 @@ export async function approveRefund(
       },
     });
 
-  const ENABLE_SELF_APPROVAL_CHECK = false;
-
-    // B34 maker≠checker: the requester can never approve their own refund —
-    // enforced here (single authority for API and any future caller) and
-    // reflected in the UI as a disabled button with the reason.
-    if (ENABLE_SELF_APPROVAL_CHECK && refund.created_by && refund.created_by === approverId) {
-      throw new RefundValidationError(
-        REFUND_ERROR_CODES.REFUND_SELF_APPROVAL_BLOCKED,
-        'A refund cannot be approved by the user who requested it (maker-checker)',
-        403
-      );
-    }
+    // No maker-checker: holding `orders:approve_refund` is sufficient, even when
+    // the approver is the requester (owner rule — see
+    // Remediation_Work_Packages/CLAUDE.md). Permission is the control here.
 
     const updated = await tx.org_order_refunds_dtl.update({
       where: { id: refund.id },

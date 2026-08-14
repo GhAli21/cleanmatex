@@ -202,7 +202,6 @@
       "column": "إجراءات",
       "approve": "اعتماد",
       "process": "تنفيذ",
-      "selfApprovalBlocked": "أنت من طلب هذا الاسترداد — يجب أن يعتمده مستخدم آخر",
       "confirmApproveTitle": "اعتماد الاسترداد",
       "confirmApproveBody": "هل تريد اعتماد الاسترداد {refundNo} بمبلغ {amount} {currency}؟ سيصبح الاسترداد جاهزًا للتنفيذ.",
       "confirmProcessTitle": "تنفيذ الاسترداد",
