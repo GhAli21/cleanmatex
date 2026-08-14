@@ -324,6 +324,9 @@
       "title": "Staff delivery completion is temporarily unavailable",
       "description": "Orders remain visible, but route creation and delivery confirmation are disabled until proof of delivery, payment checks, and workflow updates can be committed safely together."
     },
+    "collection": {
+      "remaining": "Balance due: {amount}"
+    },
     "stats": {
       "outForDelivery": "Out for delivery",
       "completedToday": "Completed today"

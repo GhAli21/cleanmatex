@@ -135,8 +135,7 @@ Headers: authenticated session and standard CSRF protection. Body:
 {
   "expectedStateVersion": 12,
   "idempotencyKey": "delivery-complete-9d4d5d06",
-  "podMethodCode": "OTP",
-  "otpCode": "1234",
+  "podMethodCode": "MIXED",
   "signatureUrl": "private/pod/signature.png",
   "photoUrls": ["private/pod/photo-1.jpg"]
 }
@@ -148,14 +147,13 @@ Method evidence policy currently enforced by the command:
 
 | POD method | Required evidence |
 |---|---|
-| `OTP` | A valid generated OTP for the same tenant stop |
 | `SIGNATURE` | Non-empty `signatureUrl` |
 | `PHOTO` | At least one non-empty `photoUrls` entry |
 | `MIXED` | Signature and at least one photo |
 
-Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 OTP_INVALID`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
+Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
 
-The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Signed URL/storage ownership validation, OTP expiry/retry controls, and database-backed integration testing are remaining release gates.
+The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Signed URL/storage ownership validation and database-backed integration testing are remaining release gates. OTP expiry/retry controls are intentionally deferred to VNext; this release must use configured `SIGNATURE`, `PHOTO`, or `MIXED` proof methods only.
 
 ## 11. P0 sign-off gaps
 

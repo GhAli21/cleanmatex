@@ -16936,6 +16936,9 @@ export type Database = {
           priority: string | null
           priority_multiplier: number | null
           promo_code_id: string | null
+          public_tracking_token: string | null
+          public_tracking_token_expires_at: string | null
+          public_tracking_token_revoked_at: string | null
           qr_code: string | null
           quick_drop_quantity: number | null
           rack_location: string | null
@@ -17094,6 +17097,9 @@ export type Database = {
           priority?: string | null
           priority_multiplier?: number | null
           promo_code_id?: string | null
+          public_tracking_token?: string | null
+          public_tracking_token_expires_at?: string | null
+          public_tracking_token_revoked_at?: string | null
           qr_code?: string | null
           quick_drop_quantity?: number | null
           rack_location?: string | null
@@ -17252,6 +17258,9 @@ export type Database = {
           priority?: string | null
           priority_multiplier?: number | null
           promo_code_id?: string | null
+          public_tracking_token?: string | null
+          public_tracking_token_expires_at?: string | null
+          public_tracking_token_revoked_at?: string | null
           qr_code?: string | null
           quick_drop_quantity?: number | null
           rack_location?: string | null
@@ -22083,7 +22092,22 @@ export type Database = {
           wf_profile_id?: string
           wf_version_no?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_org_wf_asg_prof_ver"
+            columns: ["wf_profile_id", "wf_version_no"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["profile_id", "version_no"]
+          },
+          {
+            foreignKeyName: "fk_org_wf_asg_profile"
+            columns: ["wf_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profiles_cd"
+            referencedColumns: ["profile_id"]
+          },
+        ]
       }
       org_wf_release_ln: {
         Row: {
@@ -33473,6 +33497,213 @@ export type Database = {
             referencedColumns: ["status_code"]
           },
         ]
+      }
+      sys_wf_prof_ver_scr_dtl: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_enabled: boolean
+          rec_status: number
+          screen_key: string
+          updated_at: string | null
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          rec_status?: number
+          screen_key: string
+          updated_at?: string | null
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          rec_status?: number
+          screen_key?: string
+          updated_at?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_scr_dtl_screen_key_fkey"
+            columns: ["screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_scr_dtl_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
+      sys_wf_profile_ver_mst: {
+        Row: {
+          allow_back_steps: boolean
+          based_on_template_id: string | null
+          change_summary: string | null
+          change_summary2: string | null
+          config_json: Json
+          created_at: string
+          created_by: string | null
+          is_active: boolean
+          name: string | null
+          name2: string | null
+          orders_split_enabled: boolean
+          profile_id: string
+          published_at: string | null
+          published_by: string | null
+          rec_status: number
+          retired_at: string | null
+          retired_by: string | null
+          track_individual_piece: boolean
+          updated_at: string | null
+          updated_by: string | null
+          use_assembly_screen: boolean
+          use_packing_screen: boolean
+          use_preparation_screen: boolean
+          use_qa_screen: boolean
+          version_id: string
+          version_no: number
+          version_status: string
+        }
+        Insert: {
+          allow_back_steps?: boolean
+          based_on_template_id?: string | null
+          change_summary?: string | null
+          change_summary2?: string | null
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          name?: string | null
+          name2?: string | null
+          orders_split_enabled?: boolean
+          profile_id: string
+          published_at?: string | null
+          published_by?: string | null
+          rec_status?: number
+          retired_at?: string | null
+          retired_by?: string | null
+          track_individual_piece?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          use_assembly_screen?: boolean
+          use_packing_screen?: boolean
+          use_preparation_screen?: boolean
+          use_qa_screen?: boolean
+          version_id?: string
+          version_no: number
+          version_status?: string
+        }
+        Update: {
+          allow_back_steps?: boolean
+          based_on_template_id?: string | null
+          change_summary?: string | null
+          change_summary2?: string | null
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          name?: string | null
+          name2?: string | null
+          orders_split_enabled?: boolean
+          profile_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          rec_status?: number
+          retired_at?: string | null
+          retired_by?: string | null
+          track_individual_piece?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          use_assembly_screen?: boolean
+          use_packing_screen?: boolean
+          use_preparation_screen?: boolean
+          use_qa_screen?: boolean
+          version_id?: string
+          version_no?: number
+          version_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_profile_ver_mst_based_on_template_id_fkey"
+            columns: ["based_on_template_id"]
+            isOneToOne: false
+            referencedRelation: "sys_workflow_template_cd"
+            referencedColumns: ["template_id"]
+          },
+          {
+            foreignKeyName: "sys_wf_profile_ver_mst_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profiles_cd"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      sys_wf_profiles_cd: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          description2: string | null
+          display_order: number
+          is_active: boolean
+          is_system: boolean
+          name: string
+          name2: string | null
+          profile_code: string
+          profile_id: string
+          rec_notes: string | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          name2?: string | null
+          profile_code: string
+          profile_id?: string
+          rec_notes?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description2?: string | null
+          display_order?: number
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          name2?: string | null
+          profile_code?: string
+          profile_id?: string
+          rec_notes?: string | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       sys_wf_screen_status_cd: {
         Row: {

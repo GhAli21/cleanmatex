@@ -129,7 +129,7 @@ todos:
     content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
     status: in_progress
   - id: p7r-delivery-service
-    content: "P7R Delivery: implement atomic complete-delivery orchestration with POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics"
+    content: "P7R Delivery: implement atomic complete-delivery orchestration with signature/photo POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics; OTP expiry/retry controls are deferred to VNext"
     status: in_progress
   - id: p7r-caller-cutover
     content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; remove or fail-close all bypass writers"

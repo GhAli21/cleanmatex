@@ -76,7 +76,7 @@ INSERT INTO hq_ff_feature_flags_mst (
   'Executes refunds for real: issues a REFUND_VOUCHER and a cash-drawer CASH_OUT movement for CASH refunds, and requires a manual settlement reference for ORIGINAL_METHOD refunds. When OFF, refunds stay record-only (approved and tracked, but no voucher, drawer movement, or gateway call).',
   'ينفذ عمليات الاسترداد فعلياً: يصدر سند استرداد وحركة صرف نقدي من الدرج للمبالغ النقدية، ويتطلب مرجع تسوية يدوي للاسترداد بنفس طريقة الدفع الأصلية. عند الإيقاف يبقى الاسترداد مسجلاً فقط دون سند أو حركة درج أو استدعاء بوابة الدفع.',
   'beta', false, false, false,
-  NULL, '[]'::jsonb, 'boolean', 'false'::jsonb,
+  NULL, '[]'::jsonb, 'boolean', 'true'::jsonb,
   'independent', '[]'::jsonb,
   true, false,
   'Billing Features', 12,

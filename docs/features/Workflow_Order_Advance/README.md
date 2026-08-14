@@ -50,9 +50,22 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 | Doc | Topic |
 |-----|--------|
 | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) | Scope lock vs Full Pack |
+| [ADR_SYS_WF_PROFILES.md](ADR_SYS_WF_PROFILES.md) | HQ `sys_wf_profiles_*` shape (migration `0444`) |
+| [WORKFLOW_TABLES_INVENTORY.md](WORKFLOW_TABLES_INVENTORY.md) | All `work` / `wf` tables: Gen 0–3, live vs deprecated |
 | [01_PRD.md](01_PRD.md) … [13_Production_Readiness_Checklist.md](13_Production_Readiness_Checklist.md) | Design pack |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Work packages |
 | [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md) | Remote SQL runbook |
+
+## HQ (cleanmatexsaas) handoff
+
+SaaS-only implementation for **live** workflow config screens:
+
+- `F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\Workflow_Engine_HQ\HQ_BUILD_LIVE_WORKFLOW_SCREENS.md` ← start here (used tables only)
+- `...\HQ_WORKFLOW_CONFIG_IMPLEMENTATION_INSTRUCTIONS.md`
+- `...\HQ_WORKFLOW_CONFIG_SCREENS_TABLE_MATRIX.md`
+
+Table generations: [WORKFLOW_TABLES_INVENTORY.md](WORKFLOW_TABLES_INVENTORY.md)  
+Do not implement HQ config UI in this tenant repo. Do not build screens for deprecated Gen 0 tables.
 
 ## Delivery guides
 

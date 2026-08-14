@@ -22,7 +22,6 @@ const completeDeliverySchema = z.object({
   expectedStateVersion: z.number().int().nonnegative(),
   idempotencyKey: z.string().trim().min(1).max(200),
   podMethodCode: z.string().trim().min(1).max(50),
-  otpCode: z.string().trim().min(4).max(10).optional(),
   signatureUrl: z.string().trim().min(1).max(2048).optional(),
   photoUrls: z.array(z.string().trim().min(1).max(2048)).max(10).optional(),
 });

@@ -3,7 +3,6 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/utils/logger';
-import { decryptOTP } from '@/lib/utils/otp-encryption';
 import {
   claimIdempotencyKey,
   deleteIdempotencyHash,
@@ -26,7 +25,6 @@ export type DeliveryCompletionErrorCode =
   | 'STOP_ALREADY_DELIVERED'
   | 'POD_METHOD_INVALID'
   | 'POD_EVIDENCE_REQUIRED'
-  | 'OTP_INVALID'
   | 'DELIVERY_COLLECTION_REQUIRED'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
@@ -63,7 +61,6 @@ export interface CompleteDeliveryCommand {
   expectedStateVersion: number;
   idempotencyKey: string;
   podMethodCode: string;
-  otpCode?: string;
   signatureUrl?: string;
   photoUrls?: string[];
 }
@@ -88,8 +85,6 @@ type LockedDeliveryStop = {
 
 type LockedPod = {
   id: string;
-  otp_code: string | null;
-  otp_verified: boolean | null;
 };
 
 function normalisePodMethod(value: string): string {
@@ -159,7 +154,7 @@ async function lockPod(
   stopId: string,
 ): Promise<LockedPod | null> {
   const rows = await tx.$queryRaw<LockedPod[]>`
-    SELECT id, otp_code, otp_verified
+    SELECT id
     FROM public.org_dlv_pod_tr
     WHERE stop_id = ${stopId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -178,6 +173,15 @@ async function validateEvidence(
   existingPod: LockedPod | null,
 ): Promise<{ methodCode: string; otpVerified: boolean; photoUrls: string[] }> {
   const methodCode = normalisePodMethod(params.podMethodCode);
+  // OTP is intentionally unavailable until its durable expiry and retry controls
+  // are released; accepting it now would create an unverifiable delivery proof.
+  if (methodCode === 'OTP') {
+    throw new DeliveryCompletionError(
+      'POD_METHOD_INVALID',
+      'OTP proof is not enabled for delivery completion.',
+      422,
+    );
+  }
   const methodRows = await tx.$queryRaw<Array<{ code: string }>>`
     SELECT code
     FROM public.sys_dlv_pod_method_cd
@@ -192,18 +196,9 @@ async function validateEvidence(
 
   const signatureUrl = params.signatureUrl?.trim() ?? '';
   const photoUrls = (params.photoUrls ?? []).map((url) => url.trim()).filter(Boolean);
-  let otpVerified = false;
+  const otpVerified = false;
 
-  if (methodCode === 'OTP') {
-    if (!params.otpCode?.trim() || !existingPod?.otp_code) {
-      throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'A delivery OTP is required.', 422);
-    }
-    const plaintextOtp = await decryptOTP(existingPod.otp_code, params.tenantId);
-    if (plaintextOtp !== params.otpCode.trim()) {
-      throw new DeliveryCompletionError('OTP_INVALID', 'The delivery OTP is invalid.', 422);
-    }
-    otpVerified = true;
-  } else if (methodCode === 'SIGNATURE' && !signatureUrl) {
+  if (methodCode === 'SIGNATURE' && !signatureUrl) {
     throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'A signature is required.', 422);
   } else if (methodCode === 'PHOTO' && !hasNonBlankPhoto(photoUrls)) {
     throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'At least one delivery photo is required.', 422);
@@ -323,7 +318,6 @@ export async function completeDelivery(
     stopId: params.stopId,
     expectedStateVersion: params.expectedStateVersion,
     podMethodCode: normalisePodMethod(params.podMethodCode),
-    otpCode: params.otpCode?.trim(),
     signatureUrl: params.signatureUrl?.trim(),
     photoUrls: params.photoUrls ?? [],
   });

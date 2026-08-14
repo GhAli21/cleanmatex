@@ -13,24 +13,36 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { Alert, CmxButton, CmxSpinner } from '@ui/primitives';
 import { Truck, CheckCircle2 } from 'lucide-react';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens';
 
 interface DeliveryOrderRecord {
   id: string;
   order_no: string;
   customer?: { name?: string; phone?: string };
+  org_customers_mst?: { id?: string | null } | Array<{ id?: string | null }> | null;
+  branch_id?: string | null;
+  currency_code?: string | null;
+  payment_type_code?: string | null;
+  outstanding_amount?: number | string | null;
   total_items?: number | null;
 }
 
 interface DeliveryOrder {
   id: string;
   order_no: string;
-  customer: { name: string; phone: string };
+  customer: { id?: string | null; name: string; phone: string };
+  branchId?: string | null;
+  currencyCode: string;
+  paymentTypeCode?: string | null;
+  outstandingAmount: number;
   total_items: number;
 }
 
@@ -57,12 +69,15 @@ export default function DeliveryPage() {
 
 function DeliveryReadOnlyScreen() {
   const t = useTranslations('workflow');
+  const tCollect = useTranslations('orders.collectPayment');
   const { currentTenant } = useAuth();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const canReadRoutes = useHasPermissionCode('drivers:read');
+  const canCollectPayment = useHasPermissionCode('orders:collect_payment');
   const useNewWorkflowSystem = useWorkflowSystemMode();
 
   const [page, setPage] = useState(1);
-  const { orders: rawOrders, pagination, isLoading, error } = useScreenOrders<DeliveryOrderRecord>(WORKFLOW_SCREENS.DRIVER_DELIVERY, {
+  const { orders: rawOrders, pagination, isLoading, error, refetch: refetchOrders } = useScreenOrders<DeliveryOrderRecord>(WORKFLOW_SCREENS.DRIVER_DELIVERY, {
     page,
     limit: 20,
     enabled: !!currentTenant,
@@ -71,13 +86,19 @@ function DeliveryReadOnlyScreen() {
   });
 
   const [routesPage, setRoutesPage] = useState(1);
+  const [collectionOrder, setCollectionOrder] = useState<DeliveryOrder | null>(null);
 
   const orders: DeliveryOrder[] = useMemo(() => {
     return (rawOrders ?? []).map((o) => ({
       id: o.id,
       order_no: o.order_no,
       total_items: o.total_items || 0,
+      branchId: o.branch_id,
+      currencyCode: o.currency_code || 'OMR',
+      paymentTypeCode: o.payment_type_code,
+      outstandingAmount: Number(o.outstanding_amount ?? 0),
       customer: {
+        id: Array.isArray(o.org_customers_mst) ? o.org_customers_mst[0]?.id : o.org_customers_mst?.id,
         name: o.customer?.name || t('delivery.fallbacks.unknownCustomer'),
         phone: o.customer?.phone || t('delivery.fallbacks.noPhone'),
       },
@@ -194,6 +215,20 @@ function DeliveryReadOnlyScreen() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    {canCollectPayment &&
+                    order.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
+                    order.outstandingAmount > 0.001 ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs font-medium text-amber-700">
+                          {t('delivery.collection.remaining', {
+                            amount: formatMoneyWithCode(order.outstandingAmount),
+                          })}
+                        </span>
+                        <CmxButton onClick={() => setCollectionOrder(order)}>
+                          {tCollect('collectButton')}
+                        </CmxButton>
+                      </div>
+                    ) : null}
                     <CmxButton variant="outline" asChild>
                       <Link href={`/dashboard/orders/${order.id}`}>{t('delivery.actions.view')}</Link>
                     </CmxButton>
@@ -303,6 +338,23 @@ function DeliveryReadOnlyScreen() {
           </div>
         )}
       </div> : null}
+      {collectionOrder ? (
+        <OrderCollectPaymentModal
+          open
+          onOpenChange={(open) => {
+            if (!open) setCollectionOrder(null);
+          }}
+          orderId={collectionOrder.id}
+          customerId={collectionOrder.customer.id}
+          branchId={collectionOrder.branchId}
+          outstandingAmount={collectionOrder.outstandingAmount}
+          currencyCode={collectionOrder.currencyCode}
+          onCollected={() => {
+            setCollectionOrder(null);
+            void refetchOrders();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

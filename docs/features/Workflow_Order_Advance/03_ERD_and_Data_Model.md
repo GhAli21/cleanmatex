@@ -24,8 +24,8 @@ Suggested new catalog names (normalize suffixes):
 | `sys_wf_action_trans_cd` | action → transition |
 | `sys_wf_initial_rules_cd` | Create rules |
 | `sys_wf_gate_defs_cd` | Gates |
-| `sys_wf_profiles_cd` / versions | HQ-published profiles (may evolve from template tables) |
-| `org_wf_profile_assign_cf` | Tenant/service/branch assignment |
+| `sys_wf_profiles_cd` / `sys_wf_profile_ver_mst` / `sys_wf_prof_ver_scr_dtl` | HQ-published profiles + versions + enabled screens (see `0444`, [ADR_SYS_WF_PROFILES.md](ADR_SYS_WF_PROFILES.md)) |
+| `org_wf_profile_assign_cf` | Tenant/service/branch assignment (FK → profiles after `0444`) |
 | `org_wf_idempotency_tr` | Only if central store insufficient |
 
 **Reuse, do not invent:** central outbox tables/services already used by Fin/history consumers.
