@@ -380,6 +380,47 @@ All HQ notification operations write to `hq_audit_logs` via `AuditService`:
 
 ---
 
+## 16. Workflow Engine Config — HQ Endpoints
+
+**Base:** `/api/hq/v1/workflow-engine-config`  
+**Module:** `cleanmatexsaas/platform-api/src/modules/workflow-engine-config/`  
+**Swagger tag:** `Workflow Engine Config` (HQ local: `http://localhost:3002/api/docs`)  
+**Full reference:** `cleanmatexsaas/docs/features/SAAS_Platform_Management/Workflow_Engine_HQ/apis.md`
+
+### 16.1 Ownership
+
+| Concern | Owner | Consumer |
+|---|---|---|
+| `sys_wf_*` global catalogs | `cleanmatexsaas` (HQ UI + API) | `cleanmatex` WorkflowEngine (read) |
+| `sys_wf_profiles_*` + `org_wf_profile_assign_cf` | `cleanmatexsaas` | `cleanmatex` effective profile resolution |
+| Legacy `sys_workflow_template_*`, `org_tenant_workflow_*` | `cleanmatexsaas` | `cleanmatex` until V2 cutover |
+| `org_ord_screen_contracts_cf` | `cleanmatexsaas` (system + tenant override) | `cleanmatex` worklist / ActionBar |
+| Migrations | `cleanmatex` only | `cleanmatexsaas` regenerates types |
+
+**cleanmatex MUST NOT** mutate `sys_wf_*`, profile, or assign tables from tenant admin UI. Runtime reads only.
+
+### 16.2 Endpoint groups
+
+| Group | Paths | Notes |
+|---|---|---|
+| V2 catalogs | `/statuses`, `/screens`, `/screen-status`, `/actions`, `/transitions`, `/action-maps`, `/gates`, `/initial-rules`, `/screen-contracts` | Soft-deactivate; code fields immutable after create; new transitions/action-maps default inactive until explicitly activated (validate gate) |
+| Tools | `POST /validate`, `POST /simulate`, `POST /effective-preview` | Simulate and effective-preview accept optional `tenant_org_id`, `branch_id`, `service_code` |
+| Legacy | `/presets`, `/legacy-assignments/*` | Template assign default uniqueness per tenant |
+| V2 profiles | `/profiles`, `/profile-assignments` | Publish requires validate green; published versions immutable (409) |
+
+### 16.3 Tenant consumption pattern
+
+- **Effective profile:** HQ `POST /effective-preview` mirrors `cleanmatex/web-admin/lib/services/workflow-profile.service.ts` assign scoring.
+- **Feature flag:** `workflow_engine_v2` — when off, tenant stays on legacy template path; HQ writes remain safe.
+- **OpenAPI:** Export from HQ Swagger for approved-list / effective-profile consume contracts when tenant HQ API wiring is implemented.
+
+### 16.4 Auth & audit
+
+- **Auth:** `JwtAuthGuard` on all endpoints today; indicative permissions `hq_wf:read|catalog|preset|draft|validate|publish|assign` (see HQ `permissions.md`).
+- **Audit:** All mutations log via HQ `AuditService` with `sourceModule: workflow-engine-config`; assign rows include `tenantOrgId`.
+
+---
+
 ## Update Log
 
 | Date | Change | Author |
@@ -387,3 +428,4 @@ All HQ notification operations write to `hq_audit_logs` via `AuditService`:
 | 13-05-2026 | Initial creation — migrated cross-project protocol from both CLAUDE.md files to Option B structure | Jh |
 | 16-06-2026 | §14 added — Notification HQ Service Auth contracts (B0: ServiceRoleGuard, EncryptionService, AuditService, hq_audit_logs) | Claude |
 | 16-06-2026 | §14 extended — B1 dispatch proxy + governance contracts, schema changes (0366+0367), env var table updated | Claude |
+| 14-08-2026 | §16 added — Workflow Engine Config HQ endpoints, ownership, tenant consume notes (synced from cleanmatexsaas) | Claude |

@@ -197,7 +197,7 @@ test.describe('Workflow Order Management', () => {
   });
 
   test.describe('Ready and Delivery Workflow', () => {
-    test('should mark order as delivered from ready screen', async ({ page }) => {
+    test('should expose pickup or delivery release actions from ready screen', async ({ page }) => {
       await page.goto('/dashboard/ready');
       await expect(page.locator('h1:has-text("Ready")')).toBeVisible({ timeout: 5000 });
 
@@ -209,17 +209,10 @@ test.describe('Workflow Order Management', () => {
         // Verify ready page
         await expect(page.locator('text=Ready')).toBeVisible({ timeout: 5000 });
 
-        // Mark as delivered
-        const deliverButton = page.locator('button:has-text("Mark as Delivered")');
-        if (await deliverButton.isVisible()) {
-          await deliverButton.click();
-
-          // Wait for transition
-          await page.waitForTimeout(2000);
-
-          // Should transition to delivered
-          await expect(page.locator('text=delivered')).toBeVisible({ timeout: 5000 });
-        }
+        // Ready orders must be released through the configured workflow. A
+        // counter handover is pickup; staff delivery finishes via its own POD flow.
+        await expect(page.getByRole('button', { name: /Release for (pickup|delivery)/i }).first()).toBeVisible({ timeout: 5000 });
+        await expect(page.getByRole('button', { name: 'Mark as Delivered', exact: true })).toHaveCount(0);
       }
     });
 
@@ -306,4 +299,3 @@ test.describe('Workflow Order Management', () => {
     });
   });
 });
-

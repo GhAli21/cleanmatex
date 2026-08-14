@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -15,8 +15,6 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
@@ -32,7 +30,6 @@ import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
  *
  */
 export default function ReadyDetailPage() {
-  const router = useRouter();
   const params = useParams();
   const t = useTranslations('workflow');
   const tOrders = useTranslations('orders');
@@ -41,15 +38,11 @@ export default function ReadyDetailPage() {
   const { currentTenant, user } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { showSuccess, showError, showErrorFrom } = useMessage();
-  const useNewWorkflowSystem = useWorkflowSystemMode();
-  const transition = useOrderTransition();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [blockers, setBlockers] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
   const [printConfig, setPrintConfig] = useState<{
     type: 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt';
@@ -132,37 +125,6 @@ export default function ReadyDetailPage() {
     }
   };
 
-  const handleDeliver = async () => {
-    if (!orderId) return;
-    setSubmitting(true);
-    setError(null);
-    setBlockers([]);
-    try {
-      const result = await transition.mutateAsync({
-        orderId,
-        input: {
-          screen: 'ready',
-          to_status: 'delivered',
-          notes: 'Delivered to customer',
-          useOldWfCodeOrNew: useNewWorkflowSystem,
-        },
-      });
-
-      if (result.success) {
-        showSuccess(t('ready.messages.deliveredSuccess'));
-        // Stay on ready worklist — do not auto-jump to orders.
-        router.replace('/dashboard/ready');
-      } else {
-        setError(result.error || t('ready.messages.deliveredFailed'));
-        if (result.blockers?.length) setBlockers(result.blockers);
-      }
-    } catch (err) {
-      showErrorFrom(err, { fallback: t('ready.messages.deliveredFailed') });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const openPrintPreview = (
     type: 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt',
     layout: 'thermal' | 'a4',
@@ -204,17 +166,6 @@ export default function ReadyDetailPage() {
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}
-        </div>
-      )}
-
-      {blockers.length > 0 && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 rounded-lg">
-          <div className="font-medium mb-1">{t('ready.messages.blockersTitle')}</div>
-          <ul className="list-disc list-inside text-sm space-y-1">
-            {blockers.map((b, i) => (
-              <li key={i}>{b}</li>
-            ))}
-          </ul>
         </div>
       )}
 
@@ -394,21 +345,6 @@ export default function ReadyDetailPage() {
               </div>
             )}
 
-            <h3 className="font-semibold mb-3 pt-2 border-t border-gray-200">{t('ready.actions.title')}</h3>
-            <button
-              onClick={handleDeliver}
-              disabled={
-                submitting ||
-                (order.paymentSummary?.remaining && order.paymentSummary.remaining > 0)
-              }
-              className="mb-2 w-full rounded-lg bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {submitting ? t('ready.actions.processing') : t('ready.actions.markDelivered')}
-            </button>
-            {order.paymentSummary?.remaining && order.paymentSummary.remaining > 0 && (
-              <p className="text-xs text-amber-600 mb-2">{t('ready.paymentSection.collectBeforeHandover')}</p>
-            )}
-
             <div className="mt-2 space-y-2">
               <button
                 type="button"
@@ -533,5 +469,4 @@ export default function ReadyDetailPage() {
     </div>
   );
 }
-
 
