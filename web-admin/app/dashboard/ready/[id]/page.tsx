@@ -298,7 +298,6 @@ export default function ReadyDetailPage() {
               key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
               orderId={orderId}
               screen="ready_release"
-              emptyBackHref="/dashboard/ready"
               hideWhenEmpty
               hiddenActionCodes={
                 isReadyForPickup

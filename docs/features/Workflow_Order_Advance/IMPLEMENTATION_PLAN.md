@@ -67,10 +67,15 @@ The release audit found that staff Delivery was still a screen-oriented composit
 - Implement a single atomic completion orchestration that verifies tenant-scoped route/stop ownership, authorization, evidence policy (POD/OTP), pay-on-collection settlement policy, workflow eligibility, and optimistic concurrency.
 - In the same transaction, persist permitted evidence, settle or explicitly reject required collection, transition through the engine, update route/stop state and counters, write an audit record, and enqueue the integration event.
 - Define idempotent replay behavior and rollback/error semantics. Do not expose a separate delivered-status writer or unauthorised POD writer.
+- Build a driver/staff route manifest and stop-detail work experience on the Delivery API: assigned stops, route progress, customer/contact and order context, and a navigation-ready address. Do not add a screen-local status writer.
+- Build an atomic stop-completion panel with configured signature/photo proof capture, remaining pay-on-collection amount, an existing Financial Collection deep link, gate explanations, idempotency replay, and stale-version recovery. Do not create a duplicate payment-collection screen. OTP remains deferred to VNext.
+- Add one reusable proof-of-delivery and handover-audit view shared by Delivery and Order Details; it must show evidence, actor, time, payment state, and workflow outcome.
 
 #### P7R.4 — Consumer cutover and controlled rollout
 
 - Update web-admin to consume the new delivery API only. Mobile and third-party integration adapters must use the same versioned contract when introduced.
+- Mobile and third-party integration adapters must pass authenticated tenant context, idempotency, and optimistic-concurrency values to the same stage API. They must never implement channel-specific delivery or workflow business logic.
+- Convert the existing Processing, Quality, Packing, and Ready/Release screens to their respective stage services and APIs. These are cutovers of existing pages, not new duplicate dashboards.
 - Keep legacy and bypass writers fail-closed until removal is safe; use a server-side rollout control, not a client-only visibility flag.
 - Re-enable staff delivery only after the acceptance suite passes, a pilot tenant is signed off, monitoring is in place, and rollback is rehearsed.
 

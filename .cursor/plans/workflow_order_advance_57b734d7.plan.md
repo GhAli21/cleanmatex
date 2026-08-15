@@ -131,8 +131,20 @@ todos:
   - id: p7r-delivery-service
     content: "P7R Delivery: implement atomic complete-delivery orchestration with signature/photo POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics; OTP expiry/retry controls are deferred to VNext"
     status: in_progress
+  - id: p7r-delivery-route-stop-ui
+    content: "P7R Delivery UI: build the driver/staff route manifest and stop-detail work experience using the delivery stage API, with assigned stops, route progress, customer/contact and order context, navigation-ready address, and no screen-local workflow writes"
+    status: pending
+  - id: p7r-delivery-completion-ui
+    content: "P7R Delivery UI: build the atomic stop-completion panel with configured signature/photo POD capture, remaining pay-on-collection amount, existing Financial Collection deep link, clear evidence/payment gate explanations, idempotency, and optimistic-concurrency recovery; do not build a duplicate payment-collection screen; OTP remains deferred to VNext"
+    status: pending
+  - id: p7r-delivery-proof-audit-ui
+    content: "P7R Delivery UI: add a reusable proof-of-delivery and handover-audit view for Delivery and Order Details, exposing evidence, actor, time, payment state, and workflow outcome without duplicating data access"
+    status: pending
+  - id: p7r-mobile-integration-adapters
+    content: "P7R consumers: provide mobile and third-party integration adapters that consume the same versioned stage APIs, authenticated tenant context, idempotency, and concurrency contract as web-admin; do not create channel-specific business logic"
+    status: pending
   - id: p7r-caller-cutover
-    content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; remove or fail-close all bypass writers"
+    content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; convert the existing Processing, Quality, Packing, and Ready/Release screens to their stage services rather than creating duplicate pages; remove or fail-close all bypass writers"
     status: pending
   - id: p7r-assurance-rollout
     content: "P7R assurance: add unit, API, integration, concurrency, RBAC, tenant-isolation, and pilot/rollback tests before re-enabling staff delivery"
