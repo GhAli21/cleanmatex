@@ -5,12 +5,12 @@ import { DeliveryRouteQueryService } from '@/lib/services/delivery/delivery-rout
 /** Returns one tenant-scoped route manifest for staff, mobile, and integrations. */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ routeId: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAllPermissions(['drivers:read', 'orders:read'])(request);
   if (auth instanceof NextResponse) return auth;
 
-  const { routeId } = await params;
+  const { id: routeId } = await params;
   const route = await DeliveryRouteQueryService.getRouteManifest(auth.tenantId, routeId);
   if (!route) {
     return NextResponse.json(
