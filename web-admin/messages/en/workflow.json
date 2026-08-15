@@ -384,7 +384,8 @@
       "actions": {
         "create": "Create route",
         "creating": "Creating...",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "openManifest": "Open manifest"
       },
       "messages": {
         "created": "Route created: {routeId}",
@@ -394,6 +395,60 @@
     "messages": {
       "deliveredSuccess": "Order marked as delivered",
       "deliveredFailed": "Failed to mark order as delivered"
+    },
+    "routeStatus": {
+      "planned": "Planned",
+      "in_progress": "In progress",
+      "completed": "Completed"
+    },
+    "stopStatus": {
+      "pending": "Pending",
+      "in_transit": "In transit",
+      "delivered": "Delivered"
+    },
+    "manifest": {
+      "eyebrow": "Delivery route manifest",
+      "progress": "Route progress",
+      "progressValue": "{completed} of {total} stops",
+      "driver": "Assigned driver",
+      "started": "Started",
+      "notStarted": "Not started",
+      "stops": "Stops",
+      "stopNumber": "Stop {sequence}",
+      "openNavigation": "Open navigation",
+      "openStop": "Open stop",
+      "backToDelivery": "Back to Delivery",
+      "notFound": "Delivery route not found",
+      "loadFailed": "Unable to load the delivery route"
+    },
+    "stopDetail": {
+      "stopNumber": "Stop {sequence}",
+      "customer": "Customer",
+      "orderState": "Order state",
+      "unknownState": "Unknown state",
+      "items": "{count} items",
+      "backToRoute": "Back to route",
+      "notFound": "Delivery stop not found",
+      "loadFailed": "Unable to load the delivery stop"
+    },
+    "proof": {
+      "title": "Proof of delivery",
+      "method": "Method",
+      "verifiedAt": "Verified at",
+      "notVerified": "Not verified",
+      "photos": "Photos",
+      "none": "No proof has been recorded for this stop."
+    },
+    "completion": {
+      "title": "Delivery completion",
+      "paymentGate": "Payment gate",
+      "balanceDue": "Balance due: {amount}",
+      "paymentClear": "No payment collection is required.",
+      "collectPayment": "Collect remaining payment",
+      "holdTitle": "Completion remains safety-controlled",
+      "holdDescription": "Delivery confirmation is unavailable until the server-side proof, payment, route, and workflow release gates are approved together.",
+      "confirm": "Confirm delivery",
+      "delivered": "Already delivered"
     }
   },
   "actions": {

@@ -154,9 +154,21 @@ While there, two further hardcoded `decimalPlaces={3}` props in `stored-value-te
 
 tsc 0 · eslint 0 · `check:i18n` passed · `npm run build` 0 · **shared-component regression: 68 suites / 630 tests passed** (all `__tests__/features/orders` payment suites, `__tests__/ui` incl. keypad + popover, cash-drawer, payments) — no regression on the new-order checkout graph.
 
-### Deferred within Phase 3
+### 3.1 — keypad: initially deferred, then delivered (2026-08-15)
 
-**3.1 `PaymentAmountMoneyField` adoption** was not done. That component is engine-shaped — it expects `PaymentEngineActions` (`pressKeypad`, `fillLegRemaining`, active-leg draft state) that this modal does not have until Phase 4 adopts `usePaymentLegs`. Wiring it before then would have meant either faking an engine or editing the shared component for this caller, both of which the additive-only guardrail rules out. The keypad therefore arrives with Phase 4; `CmxMoneyField` (Phase 1) already removed the raw-number-input defects in the meantime.
+`PaymentAmountMoneyField` was **not** adopted: it is engine-shaped, expecting `PaymentEngineActions` (`pressKeypad`, `fillLegRemaining`, active-leg draft state) this modal has no equivalent of. Adopting it would have meant faking an engine surface or editing a shared component for one caller — both barred by the additive-only guardrail.
+
+**The keypad itself never needed it.** `CmxKeypadPopover` (`src/ui/overlays`) is a standalone primitive, and the draft logic lives in `lib/money/money-draft.ts` — `applyKeypadInput` already handles digits, `.`, backspace, clear, and the `+10/+20/+50` increments. The pad was therefore wired directly onto the existing `CmxMoneyField`s:
+
+- One movable, position-persisted pad serves **both** money fields; `keypadTarget` selects which.
+- `draftValue` is fed back to the targeted field so a half-typed `1.` is not snapped to `1.000`.
+- The amount path routes through `handleCollectAmountChange`, **not** `setAmount`, so keypad entry is capped and explained by exactly the same policy as typed entry. A pad that could exceed a cap the keyboard enforces would be a money bypass (CRITICAL RULE #15).
+- `linkedFieldRefs` stops hardware digits being handled twice.
+- **No new i18n keys** — the five `newOrder.payment.mode.simpleView.keypad*` keys already existed and the modal already had that namespace.
+
+Phase 3 is therefore complete as scoped: `CmxMoneyField` (Phase 1) + quick-tender chips (3.2) + keypad (3.1). Only `PaymentAmountMoneyField` *as a component* remains unadopted; it is no longer on the critical path, and its residual value is layout consistency with the POS faces — covered by [`../Reusable_Tender_Panel/DESIGN_DISCUSSION.md`](../Reusable_Tender_Panel/DESIGN_DISCUSSION.md).
+
+**Gates (keypad, 2026-08-15):** tsc 0 · eslint 0 · `check:i18n` ✓ · jest **69 suites / 641 tests** (UI incl. keypad + popover, payment, money-draft, payments) · build ✓.
 ## Phase 4 — Compose, don't fork · ✅ COMPLETE (scope corrected — 2026-08-15)
 
 ### 4.1 — Shared option type adopted; shared *fetching* deliberately not

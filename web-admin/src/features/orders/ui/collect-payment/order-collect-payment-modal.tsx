@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Banknote, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Banknote, Keyboard, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
@@ -36,6 +36,14 @@ import {
 } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { CmxChangeDueRow } from '@ui/data-display';
+import { CmxKeypadPopover } from '@ui/overlays';
+import {
+  KEYPAD_PAYMENT_4COL,
+  PAYMENT_KEY_VARIANT,
+  PAYMENT_KEY_CLASS,
+  type PaymentKeypadKey,
+} from '@ui/utilities';
+import { applyKeypadInput, formatMoneyDraft, parseMoneyDraft } from '@/lib/money/money-draft';
 import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
 import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
@@ -245,6 +253,21 @@ export function OrderCollectPaymentModal({
   const [checkDate, setCheckDate] = useState('');
   /** Free-text note persisted to `org_order_payments_dtl.rec_notes`. */
   const [notes, setNotes] = useState('');
+
+  // ---- Touch keypad -------------------------------------------------------
+  // One movable pad serves both money fields; `keypadTarget` says which field
+  // it is currently editing. Built directly on the `money-draft` helpers rather
+  // than on `PaymentAmountMoneyField`, which is engine-shaped (it expects
+  // `PaymentEngineActions` this modal has no equivalent of). The draft/apply
+  // logic itself is shared — `applyKeypadInput` is the same function the POS
+  // faces use, so digits, '.', backspace, clear and the +10/+20/+50 increments
+  // behave identically here.
+  const [keypadTarget, setKeypadTarget] = useState<'amount' | 'tendered' | null>(null);
+  const [keypadDraft, setKeypadDraft] = useState('');
+  const amountFieldRef = useRef<HTMLInputElement | null>(null);
+  const tenderedFieldRef = useRef<HTMLInputElement | null>(null);
+  const amountKeypadTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const tenderedKeypadTriggerRef = useRef<HTMLButtonElement | null>(null);
   /**
    * Submit failure kept on screen. A toast alone is wrong for a money action —
    * it disappears before the cashier can read, let alone act on, the reason.
@@ -499,6 +522,48 @@ export function OrderCollectPaymentModal({
     ]
   );
 
+  /**
+   * Opens the pad against one field, seeding the draft from that field's current
+   * value so the first keypress continues the number on screen instead of
+   * silently restarting it.
+   *
+   * @param target Which money field the pad should drive.
+   */
+  const openKeypadFor = useCallback(
+    (target: 'amount' | 'tendered') => {
+      const current = target === 'amount' ? amount : (cashTendered ?? amount);
+      setKeypadDraft(formatMoneyDraft(current, decimalPlaces, true));
+      setKeypadTarget(target);
+    },
+    [amount, cashTendered, decimalPlaces]
+  );
+
+  /**
+   * Applies one keypress to the targeted field.
+   *
+   * The amount path deliberately routes through {@link handleCollectAmountChange}
+   * rather than `setAmount`, so keypad entry is capped and explained by exactly
+   * the same policy as typed entry — a keypad that could exceed a cap the
+   * keyboard enforces would be a money bypass (CRITICAL RULE #15).
+   *
+   * @param key Key pressed on the pad.
+   */
+  const handleKeypadPress = useCallback(
+    (key: PaymentKeypadKey) => {
+      if (!keypadTarget) return;
+      const nextDraft = applyKeypadInput(keypadDraft, key, decimalPlaces);
+      setKeypadDraft(nextDraft);
+      const nextValue = parseMoneyDraft(nextDraft);
+      if (keypadTarget === 'amount') {
+        setAmountDirty(true);
+        handleCollectAmountChange(nextValue);
+      } else {
+        setCashTendered(nextValue);
+      }
+    },
+    [decimalPlaces, handleCollectAmountChange, keypadDraft, keypadTarget]
+  );
+
   const overpaymentMetrics = useMemo(() => {
     if (!selectedMethod) {
       return { unresolvedExcessAmount: 0, excessAmount: 0, canReturnChangeFromCash: false };
@@ -619,6 +684,8 @@ export function OrderCollectPaymentModal({
       setCheckBank('');
       setCheckDate('');
       setNotes('');
+      setKeypadTarget(null);
+      setKeypadDraft('');
       // Cleared so the reconcile below re-applies for this session even when the
       // authoritative figure is unchanged from the previous open.
       setReconciledOutstanding(null);
@@ -1021,19 +1088,40 @@ export function OrderCollectPaymentModal({
                       longer enter a third decimal the server would silently round,
                       and it avoids `type="number"`'s scroll-wheel mutation of a
                       focused money field. */}
-                  <CmxMoneyField
-                    id="collect-amount"
-                    value={amount}
-                    decimalPlaces={decimalPlaces}
-                    showZero
-                    min={0}
-                    autoFocus
-                    aria-required="true"
-                    onValueChange={(value) => {
-                      setAmountDirty(true);
-                      handleCollectAmountChange(value);
-                    }}
-                  />
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <CmxMoneyField
+                      id="collect-amount"
+                      ref={amountFieldRef}
+                      value={amount}
+                      // While the pad drives this field, show its in-progress
+                      // draft so a half-typed "1." is not snapped to "1.000".
+                      draftValue={keypadTarget === 'amount' ? keypadDraft : undefined}
+                      decimalPlaces={decimalPlaces}
+                      showZero
+                      min={0}
+                      autoFocus
+                      aria-required="true"
+                      className="flex-1"
+                      onValueChange={(value) => {
+                        setAmountDirty(true);
+                        handleCollectAmountChange(value);
+                      }}
+                    />
+                    <CmxButton
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      ref={amountKeypadTriggerRef}
+                      aria-label={tPayment('mode.simpleView.keypadTitle')}
+                      aria-expanded={keypadTarget === 'amount'}
+                      className="h-10 w-10 shrink-0 rounded-lg p-0"
+                      onClick={() =>
+                        keypadTarget === 'amount' ? setKeypadTarget(null) : openKeypadFor('amount')
+                      }
+                    >
+                      <Keyboard className="h-4 w-4" />
+                    </CmxButton>
+                  </div>
                   {amountCapHint ? (
                     <p className="text-xs text-amber-700" role="status">
                       {amountCapHint}
@@ -1048,17 +1136,38 @@ export function OrderCollectPaymentModal({
                         *enterable* so the existing validation can explain it —
                         silently snapping it up to `amount` would be a money value
                         rewritten behind the cashier's back (CRITICAL RULE #15). */}
-                    <CmxMoneyField
-                      id="collect-tendered"
-                      value={cashTendered ?? amount}
-                      decimalPlaces={decimalPlaces}
-                      showZero
-                      onValueChange={(value) => setCashTendered(value)}
-                      aria-invalid={cashTenderedBelowAmount || undefined}
-                      aria-describedby={
-                        cashTenderedBelowAmount ? 'collect-tendered-error' : undefined
-                      }
-                    />
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CmxMoneyField
+                        id="collect-tendered"
+                        ref={tenderedFieldRef}
+                        value={cashTendered ?? amount}
+                        draftValue={keypadTarget === 'tendered' ? keypadDraft : undefined}
+                        decimalPlaces={decimalPlaces}
+                        showZero
+                        className="flex-1"
+                        onValueChange={(value) => setCashTendered(value)}
+                        aria-invalid={cashTenderedBelowAmount || undefined}
+                        aria-describedby={
+                          cashTenderedBelowAmount ? 'collect-tendered-error' : undefined
+                        }
+                      />
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        ref={tenderedKeypadTriggerRef}
+                        aria-label={tPayment('mode.simpleView.keypadTitle')}
+                        aria-expanded={keypadTarget === 'tendered'}
+                        className="h-10 w-10 shrink-0 rounded-lg p-0"
+                        onClick={() =>
+                          keypadTarget === 'tendered'
+                            ? setKeypadTarget(null)
+                            : openKeypadFor('tendered')
+                        }
+                      >
+                        <Keyboard className="h-4 w-4" />
+                      </CmxButton>
+                    </div>
                     {/* One tap instead of typing the note the customer handed
                         over. Sets tendered only — never the amount — so this is
                         an explicit user action, not a money side effect (#15). */}
@@ -1341,6 +1450,41 @@ export function OrderCollectPaymentModal({
               {handoverIntent ? t('submitAndRelease') : t('submit')}
             </LoadingButton>
           </CmxDialogFooter>
+
+          {/* One movable pad for both money fields — anchored to whichever
+              trigger opened it, with its position remembered per operator.
+              `linkedFieldRefs` keeps hardware digits going to the input rather
+              than being handled twice. */}
+          <CmxKeypadPopover
+            open={keypadTarget !== null}
+            onClose={() => setKeypadTarget(null)}
+            anchorRef={
+              keypadTarget === 'tendered' ? tenderedKeypadTriggerRef : amountKeypadTriggerRef
+            }
+            linkedFieldRefs={
+              keypadTarget === 'tendered' ? [tenderedFieldRef] : [amountFieldRef]
+            }
+            storageKey="collect-payment-keypad"
+            isRTL={isRTL}
+            disabled={submitting}
+            keyboardMode
+            restoreFocusOnClose
+            title={tPayment('mode.simpleView.keypadTitle')}
+            echo={`${currencyCode} ${formatAmount(
+              keypadTarget === 'tendered' ? (cashTendered ?? amount) : amount
+            )}`}
+            dockLabel={tPayment('mode.simpleView.keypadDock')}
+            closeLabel={tPayment('mode.simpleView.keypadClose')}
+            hint={tPayment('mode.simpleView.keypadHint')}
+            restoredAnnouncement={tPayment('mode.simpleView.keypadRestored')}
+            keys={KEYPAD_PAYMENT_4COL}
+            onKeyPress={handleKeypadPress}
+            onKeyLongPress={(key) => {
+              if (key === 'backspace') handleKeypadPress('clear');
+            }}
+            getKeyVariant={PAYMENT_KEY_VARIANT}
+            getKeyClassName={PAYMENT_KEY_CLASS}
+          />
         </CmxDialogContent>
       </CmxDialog>
 

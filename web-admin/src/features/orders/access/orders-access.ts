@@ -1782,6 +1782,50 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
 },
   {
+    routePattern: '/dashboard/delivery/routes/[routeId]',
+    label: 'Delivery Route Manifest',
+    page: {
+      permissions: ['drivers:read', 'orders:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Get delivery route manifest',
+        method: 'GET',
+        path: '/api/v1/delivery/routes/[routeId]',
+        requirement: {
+          permissions: ['drivers:read', 'orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: [
+      'Read-only route manifest. Completion remains server-side fail-closed until Delivery safety release gates pass.',
+    ],
+  },
+  {
+    routePattern: '/dashboard/delivery/routes/[routeId]/stops/[stopId]',
+    label: 'Delivery Stop Detail',
+    page: {
+      permissions: ['drivers:read', 'orders:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Get delivery stop',
+        method: 'GET',
+        path: '/api/v1/delivery/stops/[stopId]',
+        requirement: {
+          permissions: ['drivers:read', 'orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: [
+      'Read-only stop detail with payment and proof state. The Completion API remains the sole delivery writer.',
+    ],
+  },
+  {
     routePattern: '/dashboard/receipts/[orderId]',
     label: 'Receipt Details',
     page: {},

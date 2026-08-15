@@ -68,6 +68,7 @@ The release audit found that staff Delivery was still a screen-oriented composit
 - In the same transaction, persist permitted evidence, settle or explicitly reject required collection, transition through the engine, update route/stop state and counters, write an audit record, and enqueue the integration event.
 - Define idempotent replay behavior and rollback/error semantics. Do not expose a separate delivered-status writer or unauthorised POD writer.
 - Build a driver/staff route manifest and stop-detail work experience on the Delivery API: assigned stops, route progress, customer/contact and order context, and a navigation-ready address. Do not add a screen-local status writer.
+- Delivery route-manifest and stop-detail read contracts are now in progress: the web-admin pages consume tenant-scoped `/api/v1/delivery/routes/{routeId}` and `/api/v1/delivery/stops/{stopId}` APIs, show payment/proof state, and deep-link to Financial Collection. Staff delivery completion remains server-side fail-closed pending the release assurance suite.
 - Build an atomic stop-completion panel with configured signature/photo proof capture, remaining pay-on-collection amount, an existing Financial Collection deep link, gate explanations, idempotency replay, and stale-version recovery. Do not create a duplicate payment-collection screen. OTP remains deferred to VNext.
 - Add one reusable proof-of-delivery and handover-audit view shared by Delivery and Order Details; it must show evidence, actor, time, payment state, and workflow outcome.
 

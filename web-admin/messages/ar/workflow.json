@@ -384,7 +384,8 @@
       "actions": {
         "create": "إنشاء مسار",
         "creating": "جارٍ الإنشاء...",
-        "refresh": "تحديث"
+        "refresh": "تحديث",
+        "openManifest": "فتح بيان المسار"
       },
       "messages": {
         "created": "تم إنشاء المسار: {routeId}",
@@ -394,6 +395,60 @@
     "messages": {
       "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
       "deliveredFailed": "فشل تمييز الطلب كتم التسليم"
+    },
+    "routeStatus": {
+      "planned": "مخطط",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "stopStatus": {
+      "pending": "قيد الانتظار",
+      "in_transit": "في الطريق",
+      "delivered": "تم التسليم"
+    },
+    "manifest": {
+      "eyebrow": "بيان مسار التوصيل",
+      "progress": "تقدم المسار",
+      "progressValue": "{completed} من {total} محطات",
+      "driver": "السائق المعيّن",
+      "started": "بدأ",
+      "notStarted": "لم يبدأ",
+      "stops": "المحطات",
+      "stopNumber": "المحطة {sequence}",
+      "openNavigation": "فتح الملاحة",
+      "openStop": "فتح المحطة",
+      "backToDelivery": "العودة إلى التوصيل",
+      "notFound": "لم يتم العثور على مسار التوصيل",
+      "loadFailed": "تعذر تحميل مسار التوصيل"
+    },
+    "stopDetail": {
+      "stopNumber": "المحطة {sequence}",
+      "customer": "العميل",
+      "orderState": "حالة الطلب",
+      "unknownState": "حالة غير معروفة",
+      "items": "{count} أصناف",
+      "backToRoute": "العودة إلى المسار",
+      "notFound": "لم يتم العثور على محطة التوصيل",
+      "loadFailed": "تعذر تحميل محطة التوصيل"
+    },
+    "proof": {
+      "title": "إثبات التسليم",
+      "method": "الطريقة",
+      "verifiedAt": "وقت التحقق",
+      "notVerified": "لم يتم التحقق",
+      "photos": "الصور",
+      "none": "لم يتم تسجيل إثبات لهذه المحطة."
+    },
+    "completion": {
+      "title": "إتمام التسليم",
+      "paymentGate": "بوابة الدفع",
+      "balanceDue": "المبلغ المستحق: {amount}",
+      "paymentClear": "لا يلزم تحصيل دفعة.",
+      "collectPayment": "تحصيل الدفعة المتبقية",
+      "holdTitle": "إتمام التسليم ما زال تحت تحكم الأمان",
+      "holdDescription": "تأكيد التسليم غير متاح حتى يتم اعتماد بوابات الإثبات والدفع والمسار وسير العمل على الخادم معاً.",
+      "confirm": "تأكيد التسليم",
+      "delivered": "تم التسليم بالفعل"
     }
   },
   "actions": {

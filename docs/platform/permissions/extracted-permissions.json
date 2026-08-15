@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-14T21:08:47.736Z",
+  "extractedAt": "2026-08-15T05:52:32.081Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -199,7 +199,7 @@
       "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 132,
+      "line": 198,
       "surface": "screen"
     },
     {
@@ -1913,7 +1913,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:create",
-      "line": 34,
+      "line": 35,
       "surface": "api"
     },
     {
@@ -1921,7 +1921,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 192,
+      "line": 193,
       "surface": "api"
     },
     {
@@ -1969,7 +1969,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/collect-payment",
       "permission": "orders:collect_payment",
-      "line": 37,
+      "line": 39,
       "surface": "api"
     },
     {
@@ -2217,7 +2217,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/payments",
       "permission": "orders:collect_payment",
-      "line": 41,
+      "line": 43,
       "surface": "api"
     },
     {

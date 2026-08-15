@@ -301,6 +301,11 @@ function DeliveryReadOnlyScreen() {
                   <div className="mt-3 text-xs text-gray-600">
                     {t('delivery.routes.fields.driverId')}: {r.driver_id || t('delivery.routes.fields.unassigned')}
                   </div>
+                  <CmxButton className="mt-4" size="sm" variant="outline" asChild>
+                    <Link href={`/dashboard/delivery/routes/${r.id}`}>
+                      {t('delivery.routes.actions.openManifest')}
+                    </Link>
+                  </CmxButton>
                 </CmxCardContent>
               </CmxCard>
             ))}

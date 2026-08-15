@@ -139,7 +139,7 @@ todos:
     status: in_progress
   - id: p7r-delivery-route-stop-ui
     content: "P7R Delivery UI: build the driver/staff route manifest and stop-detail work experience using the delivery stage API, with assigned stops, route progress, customer/contact and order context, navigation-ready address, and no screen-local workflow writes"
-    status: pending
+    status: in_progress
   - id: p7r-delivery-completion-ui
     content: "P7R Delivery UI: build the atomic stop-completion panel with configured signature/photo POD capture, remaining pay-on-collection amount, existing Financial Collection deep link, clear evidence/payment gate explanations, idempotency, and optimistic-concurrency recovery; do not build a duplicate payment-collection screen; OTP remains deferred to VNext"
     status: pending

@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-08-14T21:08:51.307Z
-Git SHA: 0b3552db
+Generated: 2026-08-15T05:55:35.572Z
+Git SHA: e6b6234f
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 144 |
+| Access contracts | 146 |
 | Permission usages | 314 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
@@ -42,6 +42,8 @@ Git SHA: 0b3552db
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
 | /dashboard/customers/stored-value | Stored Value | stored_value:view_balances | — | 0 |
 | /dashboard/delivery | Delivery | drivers:read, orders:read | — | 0 |
+| /dashboard/delivery/routes/[routeId] | Delivery Route Manifest | drivers:read, orders:read | — | 0 |
+| /dashboard/delivery/routes/[routeId]/stops/[stopId] | Delivery Stop Detail | drivers:read, orders:read | — | 0 |
 | /dashboard/drivers | Drivers | drivers:read | driver_app | 0 |
 | /dashboard/drivers/routes | Driver Routes | drivers:read | driver_app | 0 |
 | /dashboard/erp-lite | Finance & Accounting | erp_lite:view | erp_lite_enabled | 0 |

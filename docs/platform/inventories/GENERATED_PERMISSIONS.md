@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-08-14T21:08:51.307Z
+Generated: 2026-08-15T05:55:35.572Z
 
 ## By surface (counts)
 
@@ -209,13 +209,13 @@ Generated: 2026-08-14T21:08:51.307Z
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 72 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 76 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 76 | /dashboard/delivery |
-| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 132 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
-| orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 37 | /api/v1/orders/[id]/collect-payment |
-| orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 41 | /api/v1/orders/[id]/payments |
+| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 198 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
+| orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 39 | /api/v1/orders/[id]/collect-payment |
+| orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 43 | /api/v1/orders/[id]/payments |
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 35 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/preview-financials/route.ts | 22 | /api/v1/orders/preview-financials |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 26 | /api/v1/orders/preview-payment |
-| orders:create | api | app/api/v1/orders/route.ts | 34 | /api/v1/orders |
+| orders:create | api | app/api/v1/orders/route.ts | 35 | /api/v1/orders |
 | orders:create | api | app/api/v1/orders/submit-order/route.ts | 72 | /api/v1/orders/submit-order |
 | orders:create | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 94 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:create_adjustment | api | app/api/v1/orders/[id]/adjustments/route.ts | 38 | /api/v1/orders/[id]/adjustments |
@@ -238,7 +238,7 @@ Generated: 2026-08-14T21:08:51.307Z
 | orders:read | api | app/api/v1/catalog/preference-kinds/route.ts | 21 | /api/v1/catalog/preference-kinds |
 | orders:read | api | app/api/v1/catalog/service-preferences/route.ts | 22 | /api/v1/catalog/service-preferences |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
-| orders:read | api | app/api/v1/orders/route.ts | 192 | /api/v1/orders |
+| orders:read | api | app/api/v1/orders/route.ts | 193 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 27 | /api/v1/orders/[id]/items/[itemId]/pieces |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/scan/route.ts | 24 | /api/v1/orders/[id]/items/[itemId]/pieces/scan |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences/route.ts | 44 | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/preferences |

@@ -25,6 +25,7 @@ Production hardening of the shared Collect Payment modal across its three mount 
 - `CmxChangeDueRow` (`src/ui/data-display`) + 5 Storybook stories.
 - Full state contract: catalog-load error with Retry, empty state, persistent inline submit errors.
 - Quick-tender denomination chips, prominent change-due, Enter-to-submit, remaining-after-payment line.
+- **Touch keypad** on both money fields — one movable, position-persisted `CmxKeypadPopover` shared by Amount and Cash Tendered, built on the existing `money-draft` helpers (no engine dependency, no new i18n keys). Keypad entry routes through the same capping policy as typed entry.
 - Reference / check number / bank / date fields with `requires_reference` enforcement.
 - Collection notes → `org_order_payments_dtl.rec_notes` (column already existed, never written).
 - Optional `onPrintReceipt` (Ready wires the 80mm receipt — closes a B04 deferral) and `handoverIntent`.
