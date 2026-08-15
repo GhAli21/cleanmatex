@@ -101,6 +101,7 @@ const LINE_SELECT = {
   org_payment_method_id:   true,
   payment_terminal_id:     true,
   branch_id:               true,
+  notes:                   true,
 } as const;
 
 /**

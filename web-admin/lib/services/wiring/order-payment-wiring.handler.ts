@@ -100,6 +100,9 @@ export const orderPaymentWiringHandler: WiringHandler = {
         paid_at:                 paymentStatus === 'COMPLETED' ? now : null,
         fin_voucher_id:          voucherId,
         fin_voucher_trx_line_id: line.id,
+        // The column has always existed; nothing wrote it until collection
+        // notes were plumbed through. Submit-path lines simply leave it null.
+        rec_notes:               line.notes ?? null,
         is_active:               true,
         rec_status:              1,
         received_by:             userId,

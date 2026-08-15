@@ -117,6 +117,52 @@ export function toCanonicalLegMethod(code: PaymentMethodCode): SettlementMethodC
  * A single settlement leg in the order payment flow.
  * Real-payment and customer-credit legs can be mixed, but deferred methods must remain isolated.
  */
+/**
+ * Later-collection leg contract, shared by `POST /orders/[id]/payments` and its
+ * legacy twin `POST /orders/[id]/collect-payment`.
+ *
+ * Lives here, beside {@link paymentLegSchema}, because the two routes previously
+ * declared this inline and independently — which is how they drifted. Both were
+ * also narrower than the service they call: `CollectPaymentParams` and the
+ * voucher wiring handler have always accepted the check fields, but with no way
+ * to reach them over HTTP a CHECK or BANK_TRANSFER collection posted with no
+ * reference at all and could not be reconciled.
+ *
+ * Field names match {@link paymentLegSchema} so the collect and submit contracts
+ * stay aligned. The identity field differs on purpose: collection resolves an
+ * already-configured method row (`paymentMethodId`), submit takes a bare method
+ * code (`method`).
+ */
+export const collectionPaymentLegSchema = z
+  .object({
+    /** Configured payment-method row being collected against. */
+    paymentMethodId: z.string().uuid(),
+    /** Positive amount for this leg. */
+    amount: z.number().positive(),
+    /** Generic reference — persisted to `gateway_reference`. */
+    reference: z.string().max(200).optional(),
+    /** Cash tendered by the customer (CASH legs only — drives change returned). */
+    cashTendered: z.number().positive().optional(),
+    /** Check number. */
+    checkNumber: z.string().max(100).optional(),
+    /** Issuing bank for check payments. */
+    checkBank: z.string().max(200).optional(),
+    /** Check date (ISO date string). */
+    checkDate: z.string().optional(),
+  })
+  .superRefine((leg, ctx) => {
+    // Same helper the submit path uses, so a check collected later cannot
+    // bypass a validation the same check would have failed at order time.
+    if (!leg.checkDate) return;
+    const reason = validateCheckDueDate(leg.checkDate);
+    if (reason) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: reason, path: ['checkDate'] });
+    }
+  });
+
+/** Free-text note recorded against a collection (persisted to `rec_notes`). */
+export const collectionNotesSchema = z.string().max(500).optional();
+
 export const paymentLegSchema = z
   .object({
     /** Payment method code for this leg (must match paymentMethodCodeSchema) */

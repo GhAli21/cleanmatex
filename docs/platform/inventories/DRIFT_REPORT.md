@@ -2,7 +2,7 @@
 
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-08-14T21:08:52.784Z
+Generated: 2026-08-15T04:07:45.735Z
 
 ## Summary
 

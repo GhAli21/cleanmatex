@@ -21,7 +21,7 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { CmxButton } from '@ui/primitives';
-import { CmxInput, Label } from '@ui/primitives';
+import { CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
 import { LoadingButton } from '@ui/primitives';
@@ -29,12 +29,14 @@ import { Badge } from '@ui/primitives/badge';
 import {
   CmxDialog,
   CmxDialogContent,
+  CmxDialogDescription,
   CmxDialogFooter,
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
-import { showErrorToast, showSuccessToast } from '@ui/components/cmx-toast';
+import { CmxChangeDueRow } from '@ui/data-display';
+import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
 import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { ExtraReceiptHandlingCard } from '@features/orders/ui/payment-modal/allocation/extra-receipt-handling-card';
@@ -46,22 +48,40 @@ import { attemptPayExtraIntentChange } from '@features/orders/ui/payment-modal/p
 import { PaymentValidateButton } from '@features/orders/ui/payment-modal/pay-extra/payment-validate-button';
 import { PaymentExtraReceiptDialog } from '@features/orders/ui/payment-modal/pay-extra/payment-extra-receipt-dialog';
 import { getExtraReceiptDestinationLabel } from '@features/orders/ui/payment-modal/allocation/extra-receipt-resolution-summary';
+import {
+  PaymentQuickTenderChips,
+  type PaymentQuickTenderChipItem,
+} from '@features/orders/ui/payment-modal/quick-tender-chips';
+import { deriveQuickTenderChips } from '@features/orders/ui/payment-modal-v4.utils';
+import type { CheckoutSettlementOption } from '@features/orders/hooks/use-payment-catalog';
 import { ensurePaymentLegRefs } from '@/lib/payments/ensure-payment-leg-refs';
 import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
 
-interface CheckoutMethodOption {
-  id: string;
-  payment_method_code: string;
-  display_name: string;
-  display_name2?: string | null;
-  requires_cash_drawer: boolean;
-  supports_overpayment: boolean;
-  supports_change_return: boolean;
-  allowed_for_pay_on_collection?: boolean;
-  /** B31: D9-configured creation status — drives the "pending until verified" notice below. */
+/**
+ * Collect-payment view of a checkout settlement option.
+ *
+ * Built on the shared {@link CheckoutSettlementOption} rather than a local
+ * hand-listed subset. The old local interface omitted `requires_reference` and
+ * `requires_terminal`, which is precisely why this modal could post a CHECK or
+ * BANK_TRANSFER collection with no reference — the fields were never in the
+ * client's type, so nothing could render or validate them.
+ *
+ * The *type* is reused without adopting `usePaymentCatalog`'s fetching: that
+ * hook maps a non-ok response to an empty option list, which would silently
+ * undo this modal's load-error + Retry surface. See the Phase 4 note in
+ * `docs/features/Order_Fin/Collect_Payment_Enhancement/STATUS.md`.
+ */
+type CheckoutMethodOption = CheckoutSettlementOption & {
+  /** B31: D9-configured creation status — an *explicit* override only, often null. */
   default_creation_status?: string | null;
-}
+  /**
+   * The status the payment will actually be created with, resolved server-side
+   * through the full D9 fallback chain. Drives the "pending until verified"
+   * notice — see `willBePending`.
+   */
+  resolved_creation_status?: string | null;
+};
 
 type PosSessionApiEnvelope = {
   success?: boolean;
@@ -85,6 +105,28 @@ async function fetchActivePosSessionForBranch(branchId: string): Promise<GetMyAc
 }
 
 /**
+ * Reads the order's current outstanding balance from the canonical financial
+ * snapshot.
+ *
+ * Returns `null` rather than throwing when the read fails: a stale prefill is a
+ * usability problem, not a reason to block a collection the server would still
+ * accept and validate on its own.
+ *
+ * @param orderId Order whose outstanding balance to read.
+ * @returns The authoritative outstanding amount, or `null` when unavailable.
+ */
+async function fetchAuthoritativeOutstanding(orderId: string): Promise<number | null> {
+  const response = await fetch(`/api/v1/orders/${orderId}/state`, { credentials: 'include' });
+  if (!response.ok) return null;
+  const payload = (await response.json().catch(() => null)) as
+    | { success?: boolean; paymentSummary?: { remaining?: number } }
+    | null;
+  if (!payload?.success) return null;
+  const remaining = payload.paymentSummary?.remaining;
+  return typeof remaining === 'number' && Number.isFinite(remaining) ? remaining : null;
+}
+
+/**
  *
  */
 export interface OrderCollectPaymentModalProps {
@@ -96,6 +138,20 @@ export interface OrderCollectPaymentModalProps {
   outstandingAmount: number;
   currencyCode: string;
   onCollected?: () => void;
+  /**
+   * Opens a receipt for the collection just recorded.
+   *
+   * Optional by design: only the Ready detail screen has print infrastructure
+   * (`openPrintPreview` + its preview iframe). The Delivery list and the order
+   * Financial tab omit it and the control simply does not render — the modal
+   * never infers which surface it is on.
+   */
+  onPrintReceipt?: () => void;
+  /**
+   * Set when the dialog was opened to unblock a customer handover, so the CTA
+   * can say so. Ready-only; the other surfaces have no handover step.
+   */
+  handoverIntent?: boolean;
 }
 
 /**
@@ -119,6 +175,8 @@ export function OrderCollectPaymentModal({
   outstandingAmount,
   currencyCode,
   onCollected,
+  onPrintReceipt,
+  handoverIntent = false,
 }: OrderCollectPaymentModalProps) {
   const t = useTranslations('orders.collectPayment');
   const tPayment = useTranslations('newOrder.payment');
@@ -145,15 +203,63 @@ export function OrderCollectPaymentModal({
     staleTime: 30_000,
   });
 
+  // The `outstandingAmount` prop is whatever the *parent* last read, and the
+  // three mount surfaces differ in how fresh that is — the Delivery list passes
+  // a row value that can be minutes old, so another till collecting meanwhile
+  // leaves this dialog prefilled with a balance that no longer exists. The
+  // server is safe either way (`collectPaymentTx` locks the order FOR UPDATE and
+  // re-checks outstanding), but the cashier would see a wrong number and then an
+  // opaque rejection. Re-read the authoritative figure on open; `/state` is
+  // tenant-scoped and needs no permission beyond the session, unlike
+  // `financial-summary` which requires `orders:view_financial_breakdown` that a
+  // till user may legitimately lack.
+  const outstandingQuery = useQuery({
+    queryKey: ['order-outstanding', 'collect-payment', orderId],
+    enabled: open && canCollect && !!orderId,
+    queryFn: () => fetchAuthoritativeOutstanding(orderId),
+    staleTime: 0,
+    gcTime: 0,
+  });
+  const authoritativeOutstanding = outstandingQuery.data ?? null;
+  /** Server truth once loaded; the parent's value until then. */
+  const effectiveOutstanding = authoritativeOutstanding ?? outstandingAmount;
+
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(false);
+  const [methodsError, setMethodsError] = useState<string | null>(null);
+  /** Bumped by Retry to re-run the catalog fetch without closing the dialog. */
+  const [methodsReloadToken, setMethodsReloadToken] = useState(0);
   const [selectedMethodId, setSelectedMethodId] = useState('');
   const [amount, setAmount] = useState(outstandingAmount);
   const [cashTendered, setCashTendered] = useState<number | undefined>(undefined);
   const [amountCapHint, setAmountCapHint] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Stable UUID for the cash leg — threaded into RETURN_CASH_CHANGE resolution payloads.
-  const [cashLegRef] = useState<string>(() => crypto.randomUUID());
+  /**
+   * Per-method proof-of-receipt fields. The service and voucher wiring have
+   * always persisted these; until now there was no UI (and no route contract)
+   * to supply them, so non-cash collections were unreconcilable.
+   */
+  const [reference, setReference] = useState('');
+  const [checkNumber, setCheckNumber] = useState('');
+  const [checkBank, setCheckBank] = useState('');
+  const [checkDate, setCheckDate] = useState('');
+  /** Free-text note persisted to `org_order_payments_dtl.rec_notes`. */
+  const [notes, setNotes] = useState('');
+  /**
+   * Submit failure kept on screen. A toast alone is wrong for a money action —
+   * it disappears before the cashier can read, let alone act on, the reason.
+   */
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  /**
+   * True once the cashier edits the amount. Gates whether a late authoritative
+   * balance may re-prefill the field: overwriting typed money would be a silent
+   * mutation (CRITICAL RULE #15), so once dirty we only *tell* them it moved.
+   */
+  const [amountDirty, setAmountDirty] = useState(false);
+  // Stable UUID for the cash leg — threaded into RETURN_CASH_CHANGE resolution
+  // payloads. Regenerated per dialog-open alongside `idempotencyKey` below: one
+  // dialog session is one logical cash leg.
+  const [cashLegRef, setCashLegRef] = useState<string>(() => crypto.randomUUID());
   // B5/D010: generated once per dialog-open (reset alongside amount/cashTendered
   // below) so a network retry of THIS attempt reuses the same key — the server
   // then replays the original result instead of double-collecting — while a
@@ -163,10 +269,15 @@ export function OrderCollectPaymentModal({
   const selectedMethod = methods.find((m) => m.id === selectedMethodId);
   const isCash = selectedMethod?.payment_method_code === PAYMENT_METHODS.CASH;
   const cashDrawerRequired = !!selectedMethod?.requires_cash_drawer;
-  // B31: only flags an EXPLICIT tenant/branch override of PENDING — inherited
-  // system defaults that happen to resolve to PENDING are not surfaced here to
-  // avoid duplicating the server's full D9 fallback chain in the client.
-  const willBePending = selectedMethod?.default_creation_status === 'PENDING';
+  // B31: now driven by the SERVER-resolved status, so a method that reaches
+  // PENDING through the D9 fallback chain (rather than an explicit override) is
+  // surfaced too. The previous check read `default_creation_status` — an explicit
+  // override only — so e.g. a BANK_TRANSFER inheriting PENDING silently told the
+  // cashier the order would be fully paid. Falls back to the old field for
+  // resilience if an older API response lacks the resolved value.
+  const willBePending =
+    (selectedMethod?.resolved_creation_status ?? selectedMethod?.default_creation_status) ===
+    'PENDING';
 
   // Inline cash-drawer session management (shared with the new-order payment modal).
   // The selected cash method must be bound to an open drawer session before the API
@@ -212,6 +323,27 @@ export function OrderCollectPaymentModal({
   // Change to return to the customer when cash tendered exceeds the collected amount.
   const changeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
 
+  // Mirrors the server's CASH_TENDERED_LESS_THAN_AMOUNT guard so the cashier is
+  // told at entry time instead of on a rejected submit. Replaces the old
+  // `min={amount}` attribute on the tendered input, which only drove native form
+  // validation this dialog never invoked — it blocked nothing in practice.
+  const cashTenderedBelowAmount =
+    isCash && cashTendered != null && cashTendered + SETTLEMENT_MONEY_EPSILON < amount;
+
+  const isCheck = selectedMethod?.payment_method_code === PAYMENT_METHODS.CHECK;
+  /**
+   * `requires_reference` comes from the method's D9 config. A CHECK satisfies it
+   * with its check number, everything else with the generic reference field.
+   */
+  const referenceMissing =
+    !!selectedMethod?.requires_reference &&
+    (isCheck ? checkNumber.trim().length === 0 : reference.trim().length === 0);
+
+  // Balance left on the order if this collection goes through as entered.
+  // Partial later collection is allowed (ADR-022), so the cashier taking part of
+  // a balance previously had to work the remainder out in their head.
+  const remainingAfterPayment = Math.max(0, effectiveOutstanding - amount);
+
   // formatMoneyWithCode takes only the amount (tenant currency); the modal
   // strips the code to render a bare number. Passing currencyCode as a 2nd arg
   // was a no-op (ignored at runtime) and a tsc error — drop it.
@@ -220,11 +352,32 @@ export function OrderCollectPaymentModal({
     [currencyCode, formatMoneyWithCode]
   );
 
+  // One-tap cash denominations for the tendered field. Same pure deriver the
+  // new-order POS faces use, so the chip policy (round-ups + notes, deduped
+  // against exact, currency-aware) stays in one place.
+  const quickTenderItems = useMemo<PaymentQuickTenderChipItem[]>(() => {
+    if (!isCash) return [];
+    return deriveQuickTenderChips({
+      remaining: amount,
+      currencyCode,
+      decimalPlaces,
+      isCash: true,
+      epsilon: SETTLEMENT_MONEY_EPSILON,
+      includeExact: false,
+    }).map((chip) => ({
+      ...chip,
+      label: formatAmount(chip.tenderAmount ?? 0),
+      ariaLabel: tPayment('quickTender.tenderAria', {
+        amount: `${currencyCode} ${formatAmount(chip.tenderAmount ?? 0)}`,
+      }),
+    }));
+  }, [amount, currencyCode, decimalPlaces, formatAmount, isCash, tPayment]);
+
   const legacyOverpaymentMetrics = useMemo(() => {
     if (!selectedMethod) {
       return { unresolvedExcessAmount: 0, excessAmount: 0, canReturnChangeFromCash: false };
     }
-    return computeCollectionOverpaymentMetrics(outstandingAmount, [
+    return computeCollectionOverpaymentMetrics(effectiveOutstanding, [
       {
         legIndex: 0,
         orgPaymentMethodId: selectedMethod.id,
@@ -236,7 +389,7 @@ export function OrderCollectPaymentModal({
         requiresCashDrawer: selectedMethod.requires_cash_drawer,
       },
     ]);
-  }, [amount, cashTendered, isCash, outstandingAmount, selectedMethod]);
+  }, [amount, cashTendered, isCash, effectiveOutstanding, selectedMethod]);
 
   const canEnablePayExtra = useMemo(() => {
     if (!selectedMethod) return false;
@@ -265,12 +418,12 @@ export function OrderCollectPaymentModal({
     currencyCode,
     excessAmount: legacyOverpaymentMetrics.unresolvedExcessAmount,
     legacyUnresolvedExcess: legacyOverpaymentMetrics.unresolvedExcessAmount,
-    saleTotal: outstandingAmount,
+    saleTotal: effectiveOutstanding,
     immediateSettlementAmount: amount,
     legs: checkoutLegs,
     primaryCashLegRef: isCash ? cashLegRef : null,
     receiptAmount: amount,
-    currentOrderAllocationAmount: Math.min(amount, outstandingAmount),
+    currentOrderAllocationAmount: Math.min(amount, effectiveOutstanding),
     // Later collection of an order receivable is an order-scoped payment (sourceOrderId
     // is set), so it posts under the order-payment voucher source — the only order-scoped
     // value the auto-allocation schema accepts (CUSTOMER_RECEIPT is account-level).
@@ -303,7 +456,7 @@ export function OrderCollectPaymentModal({
       }
       const capped = capCollectPaymentAmount({
         rawAmount: raw,
-        outstandingAmount,
+        outstandingAmount: effectiveOutstanding,
         payExtraIntent,
         paymentMethodCode: selectedMethod.payment_method_code,
         supportsChangeReturn: selectedMethod.supports_change_return,
@@ -339,7 +492,7 @@ export function OrderCollectPaymentModal({
     [
       decimalPlaces,
       formatMoneyWithCode,
-      outstandingAmount,
+      effectiveOutstanding,
       payExtraIntent,
       selectedMethod,
       tPayment,
@@ -351,7 +504,7 @@ export function OrderCollectPaymentModal({
       return { unresolvedExcessAmount: 0, excessAmount: 0, canReturnChangeFromCash: false };
     }
     return computeCollectionOverpaymentMetrics(
-      outstandingAmount,
+      effectiveOutstanding,
       [
         {
           legIndex: 0,
@@ -366,7 +519,7 @@ export function OrderCollectPaymentModal({
       ],
       { payExtraIntent }
     );
-  }, [amount, cashTendered, isCash, outstandingAmount, payExtraIntent, selectedMethod]);
+  }, [amount, cashTendered, isCash, effectiveOutstanding, payExtraIntent, selectedMethod]);
 
   const unresolvedExcess = payExtraIntent
     ? payExtra.unresolvedExcessAmount
@@ -431,19 +584,79 @@ export function OrderCollectPaymentModal({
     ((!canAllocate && !payExtraIntent) ||
       (payExtraIntent && unresolvedExcess > SETTLEMENT_MONEY_EPSILON));
 
-  useEffect(() => {
-    if (!open) return;
-    setAmount(outstandingAmount);
-    setCashTendered(undefined);
-    setIdempotencyKey(crypto.randomUUID());
-    payExtra.resetPayExtraState();
-  }, [open, outstandingAmount]);
+  // Open-transition reset — done at render time (react-effects-patterns.md §2,
+  // Pattern A) rather than in an effect, so it neither trips
+  // `react-hooks/set-state-in-effect` nor needs a dep array to stay honest.
+  //
+  // Narrowing this to the open transition (the effect it replaces ran on
+  // `[open, outstandingAmount]`) also closes a no-silent-money-mutation gap
+  // (CRITICAL RULE #15): a parent refetch that moved `outstandingAmount` while
+  // the dialog was open used to overwrite an amount the cashier had already
+  // typed, with no explanation.
+  //
+  // The mount surfaces differ — Ready and the Orders Financial tab keep this
+  // component mounted and toggle `open`, while the Delivery list renders it
+  // per row and unmounts on close — so a Delivery "reopen" is a fresh mount
+  // that takes these values from the useState initialisers instead. Both
+  // shapes must land on the same state; keep that true for any state added here.
+  // Declared before the reset block below, which assigns it — a `const` binding
+  // referenced above its declaration would be a temporal-dead-zone throw.
+  const [reconciledOutstanding, setReconciledOutstanding] = useState<number | null>(null);
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setAmount(outstandingAmount);
+      setCashTendered(undefined);
+      setIdempotencyKey(crypto.randomUUID());
+      setCashLegRef(crypto.randomUUID());
+      setAmountDirty(false);
+      setSubmitError(null);
+      setMethodsError(null);
+      setReference('');
+      setCheckNumber('');
+      setCheckBank('');
+      setCheckDate('');
+      setNotes('');
+      // Cleared so the reconcile below re-applies for this session even when the
+      // authoritative figure is unchanged from the previous open.
+      setReconciledOutstanding(null);
+      payExtra.resetPayExtraState();
+    }
+  }
+
+  // Late-arriving server truth. Re-prefill only while the field is untouched;
+  // once the cashier has typed, the figure is theirs and we merely surface that
+  // the balance moved (CRITICAL RULE #15 — never rewrite entered money silently).
+  if (
+    open &&
+    authoritativeOutstanding != null &&
+    reconciledOutstanding !== authoritativeOutstanding
+  ) {
+    setReconciledOutstanding(authoritativeOutstanding);
+    if (!amountDirty) {
+      setAmount(authoritativeOutstanding);
+    }
+  }
+
+  /**
+   * True when the parent's figure was stale — drives the visible explanation.
+   * Compared against the prop (what the cashier was shown before opening).
+   */
+  const outstandingWasStale =
+    authoritativeOutstanding != null &&
+    Math.abs(authoritativeOutstanding - outstandingAmount) > SETTLEMENT_MONEY_EPSILON;
 
   useEffect(() => {
     if (!open || !canCollect) return;
+    let cancelled = false;
     setMethodsLoading(true);
+    setMethodsError(null);
     const params = new URLSearchParams();
-    params.set('amount', String(outstandingAmount));
+    // Fee/limit-eligible methods can depend on the amount, so ask against the
+    // authoritative balance rather than the parent's possibly-stale figure.
+    params.set('amount', String(effectiveOutstanding));
     if (branchId) params.set('branchId', branchId);
     if (customerId) params.set('customerId', customerId);
     fetch(`/api/v1/orders/checkout-options?${params.toString()}`, {
@@ -456,20 +669,39 @@ export function OrderCollectPaymentModal({
         const eligible = list.filter(
           (m) => m.allowed_for_pay_on_collection !== false && m.payment_method_code !== PAYMENT_METHODS.PAY_ON_COLLECTION
         );
+        if (cancelled) return;
         setMethods(eligible);
+        setMethodsError(null);
         if (eligible[0]) setSelectedMethodId(eligible[0].id);
       })
       .catch((err) => {
-        showErrorToast(err instanceof Error ? err.message : t('loadMethodsError'));
+        if (cancelled) return;
+        // Kept on screen (with Retry) instead of toast-only: a vanished toast
+        // left the cashier with an empty method list and no way back.
+        setMethodsError(err instanceof Error ? err.message : t('loadMethodsError'));
         setMethods([]);
       })
-      .finally(() => setMethodsLoading(false));
-  }, [open, canCollect, outstandingAmount, branchId, customerId, csrfToken, t]);
+      .finally(() => {
+        if (!cancelled) setMethodsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    canCollect,
+    effectiveOutstanding,
+    branchId,
+    customerId,
+    csrfToken,
+    methodsReloadToken,
+    t,
+  ]);
 
   const handleSubmit = async () => {
     if (!selectedMethod || amount <= 0) return;
     if (needsResolution) {
-      showErrorToast(
+      cmxMessage.error(
         payExtraIntent && validationPhase !== 'ready'
           ? tPayment('validatePayment.requiredBeforeSubmit')
           : t('resolutionRequired')
@@ -477,19 +709,32 @@ export function OrderCollectPaymentModal({
       return;
     }
     if (cashDrawerBlocksSubmit) {
-      showErrorToast(cashDrawerBlockingMessage ?? tPayment('cashDrawer.errors.noOpenSession'));
+      cmxMessage.error(cashDrawerBlockingMessage ?? tPayment('cashDrawer.messages.noOpenSession'));
+      return;
+    }
+    if (cashTenderedBelowAmount) {
+      cmxMessage.error(t('cashTenderedBelowAmount', { amount: formatMoneyWithCode(amount) }));
       return;
     }
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const legsWithRefs = ensurePaymentLegRefs([
         {
           method: selectedMethod.payment_method_code as 'CASH',
           amount,
           ...(isCash && cashTendered != null ? { cashTendered } : {}),
+          // Seed the stable per-dialog-open ref (`cashLegRef`, declared above) so
+          // `ensurePaymentLegRefs` preserves it instead of minting a new one. The
+          // pay-extra path already resolves RETURN_CASH_CHANGE against that same
+          // ref via `primaryCashLegRef`; previously this block generated a fresh
+          // UUID into a shadowing local, so the two paths named different legs.
+          ...(isCash ? { legRef: cashLegRef } : {}),
         },
       ]);
-      const cashLegRef = legsWithRefs.find((leg) => leg.method === PAYMENT_METHODS.CASH)?.legRef;
+      const submitCashLegRef = legsWithRefs.find(
+        (leg) => leg.method === PAYMENT_METHODS.CASH
+      )?.legRef;
       const submitResolution =
         payExtra.overpaymentResolutionPayload ??
         buildOverpaymentResolutionPayload(
@@ -497,7 +742,7 @@ export function OrderCollectPaymentModal({
           unresolvedExcess,
           {
             allocationPreviewId: allocation.allocationPreviewId,
-            cashLegRef,
+            cashLegRef: submitCashLegRef,
           }
         );
 
@@ -510,8 +755,16 @@ export function OrderCollectPaymentModal({
               paymentMethodId: selectedMethod.id,
               amount,
               ...(isCash && cashTendered != null ? { cashTendered } : {}),
+              // Only send what the selected method actually collects, so a
+              // method switch cannot smuggle a stale reference from a previous
+              // selection onto the payment record.
+              ...(!isCash && !isCheck && reference.trim() ? { reference: reference.trim() } : {}),
+              ...(isCheck && checkNumber.trim() ? { checkNumber: checkNumber.trim() } : {}),
+              ...(isCheck && checkBank.trim() ? { checkBank: checkBank.trim() } : {}),
+              ...(isCheck && checkDate ? { checkDate } : {}),
             },
           ],
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
           customerId: customerId ?? undefined,
           ...(cashDrawerRequired && selectedCashDrawerSessionId
             ? { cashDrawerSessionId: selectedCashDrawerSessionId }
@@ -540,17 +793,27 @@ export function OrderCollectPaymentModal({
             : errorCode === 'OVERPAYMENT_RESOLUTION_NOT_ALLOWED'
               ? tPayment('extraReceipt.allocation.manualBlockedReturn')
               : errorCode === 'CASH_DRAWER_SESSION_REQUIRED'
-                ? tPayment('cashDrawer.errors.noOpenSession')
+                ? tPayment('cashDrawer.messages.noOpenSession')
                 : errorCode === 'IDEMPOTENCY_CONFLICT'
                   ? t('idempotencyConflict')
                   : null;
         throw new Error(mapped ?? json.error ?? t('submitError'));
       }
-      showSuccessToast(t('success'));
+      cmxMessage.success(t('success'));
       onOpenChange(false);
       onCollected?.();
+      // Closes B04's deferred receipt gap. Fired after `onCollected` so the
+      // parent has already refreshed and the receipt reflects this payment.
+      onPrintReceipt?.();
     } catch (error) {
-      showErrorToast(error instanceof Error ? error.message : t('submitError'));
+      const message = error instanceof Error ? error.message : t('submitError');
+      // Both surfaces: the toast for immediacy, the inline banner so the reason
+      // survives long enough to be read and acted on.
+      setSubmitError(message);
+      cmxMessage.error(message);
+      // The balance is the most common reason a collection is refused, so pull
+      // server truth again — this is what turns an opaque 422 into "it moved to X".
+      void outstandingQuery.refetch();
     } finally {
       setSubmitting(false);
     }
@@ -559,6 +822,16 @@ export function OrderCollectPaymentModal({
   if (!canCollect) {
     return null;
   }
+
+  /** Single source for the footer button and the Enter-to-submit shortcut. */
+  const submitDisabled =
+    methodsLoading ||
+    !!methodsError ||
+    !selectedMethod ||
+    needsResolution ||
+    cashDrawerBlocksSubmit ||
+    cashTenderedBelowAmount ||
+    referenceMissing;
 
   const requiredMark = (
     <span className="text-red-500" aria-hidden="true">
@@ -569,10 +842,37 @@ export function OrderCollectPaymentModal({
 
   return (
     <>
-      <CmxDialog open={open} onOpenChange={onOpenChange}>
-        <CmxDialogContent className="max-w-lg">
+      <CmxDialog
+        open={open}
+        onOpenChange={(next) => {
+          // Ignore close attempts mid-request: the collection is already in
+          // flight and unmounting here would strand the cashier with no result.
+          if (submitting && !next) return;
+          onOpenChange(next);
+        }}
+      >
+        <CmxDialogContent
+          className="max-w-lg"
+          // Enter submits from anywhere in the form, matching till expectations.
+          // Guarded by the same disable conditions as the footer button, and
+          // skipped inside textareas / on the method dropdown so it never
+          // hijacks a component's own Enter handling.
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || event.defaultPrevented) return;
+            const target = event.target as HTMLElement | null;
+            if (target?.tagName === 'TEXTAREA' || target?.getAttribute('role') === 'combobox') {
+              return;
+            }
+            if (submitDisabled || submitting) return;
+            event.preventDefault();
+            void handleSubmit();
+          }}
+        >
           <CmxDialogHeader>
             <CmxDialogTitle>{t('title')}</CmxDialogTitle>
+            {/* Gives the dialog an aria-describedby target; previously it had a
+                title only, so assistive tech announced no purpose. */}
+            <CmxDialogDescription>{t('dialogDescription')}</CmxDialogDescription>
           </CmxDialogHeader>
 
           <PayExtraTopStrip
@@ -603,16 +903,70 @@ export function OrderCollectPaymentModal({
               <div className={`flex items-baseline justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-sm text-muted-foreground">{t('outstandingLabel')}</span>
                 <span className="text-lg font-bold tabular-nums text-slate-900">
-                  {formatMoneyWithCode(outstandingAmount)}
+                  {formatMoneyWithCode(effectiveOutstanding)}
                 </span>
               </div>
             </div>
+
+            {/* The balance moved between the parent's read and this dialog. Never
+                a silent correction (CRITICAL RULE #15): say what it is now, and
+                say whether the amount field was touched. */}
+            {outstandingWasStale ? (
+              <CmxSummaryMessage
+                type="warning"
+                title={t('balanceChangedTitle')}
+                items={[
+                  amountDirty
+                    ? t('balanceChangedKeepEntry', {
+                        amount: formatMoneyWithCode(effectiveOutstanding),
+                      })
+                    : t('balanceRefreshed', {
+                        amount: formatMoneyWithCode(effectiveOutstanding),
+                      }),
+                ]}
+              />
+            ) : null}
+
+            {handoverIntent ? (
+              <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('handoverHint')}
+              </p>
+            ) : null}
+
+            {submitError ? (
+              <CmxSummaryMessage type="error" title={t('submitError')} items={[submitError]} />
+            ) : null}
 
             {methodsLoading ? (
               <div className="space-y-3">
                 <CmxSkeleton className="h-10 w-full" />
                 <CmxSkeleton className="h-10 w-full" />
               </div>
+            ) : methodsError ? (
+              /* Recoverable in place — the old behaviour toasted and left an
+                 empty dropdown with no way back short of closing the dialog. */
+              <div className="space-y-2">
+                <CmxSummaryMessage
+                  type="error"
+                  title={t('loadMethodsError')}
+                  items={[methodsError]}
+                />
+                <CmxButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMethodsReloadToken((token) => token + 1)}
+                >
+                  <RefreshCw className="me-1 h-4 w-4" />
+                  {t('loadMethodsRetry')}
+                </CmxButton>
+              </div>
+            ) : methods.length === 0 ? (
+              <CmxSummaryMessage
+                type="info"
+                title={t('noMethodsTitle')}
+                items={[t('noMethodsDescription')]}
+              />
             ) : (
               <>
                 <div className="space-y-2">
@@ -654,19 +1008,31 @@ export function OrderCollectPaymentModal({
                       variant="ghost"
                       size="sm"
                       className="h-auto px-2 py-0.5 text-xs font-medium text-cyan-700"
-                      onClick={() => setAmount(outstandingAmount)}
+                      onClick={() => {
+                        setAmountDirty(true);
+                        setAmount(effectiveOutstanding);
+                      }}
                     >
                       {t('fullOutstanding')}
                     </CmxButton>
                   </div>
-                  <CmxInput
+                  {/* CmxMoneyField (not a raw number input): it sanitises the draft
+                      to the tenant's decimal places, so a 2-decimal tenant can no
+                      longer enter a third decimal the server would silently round,
+                      and it avoids `type="number"`'s scroll-wheel mutation of a
+                      focused money field. */}
+                  <CmxMoneyField
                     id="collect-amount"
-                    type="number"
-                    min={0}
-                    step="0.001"
                     value={amount}
+                    decimalPlaces={decimalPlaces}
+                    showZero
+                    min={0}
+                    autoFocus
                     aria-required="true"
-                    onChange={(e) => handleCollectAmountChange(Number(e.target.value))}
+                    onValueChange={(value) => {
+                      setAmountDirty(true);
+                      handleCollectAmountChange(value);
+                    }}
                   />
                   {amountCapHint ? (
                     <p className="text-xs text-amber-700" role="status">
@@ -678,16 +1044,115 @@ export function OrderCollectPaymentModal({
                 {isCash ? (
                   <div className="space-y-2">
                     <Label htmlFor="collect-tendered">{t('cashTendered')}</Label>
-                    <CmxInput
+                    {/* No `min` clamp here: tendered below the amount must stay
+                        *enterable* so the existing validation can explain it —
+                        silently snapping it up to `amount` would be a money value
+                        rewritten behind the cashier's back (CRITICAL RULE #15). */}
+                    <CmxMoneyField
                       id="collect-tendered"
-                      type="number"
-                      min={amount}
-                      step="0.001"
                       value={cashTendered ?? amount}
-                      onChange={(e) => setCashTendered(Number(e.target.value))}
+                      decimalPlaces={decimalPlaces}
+                      showZero
+                      onValueChange={(value) => setCashTendered(value)}
+                      aria-invalid={cashTenderedBelowAmount || undefined}
+                      aria-describedby={
+                        cashTenderedBelowAmount ? 'collect-tendered-error' : undefined
+                      }
+                    />
+                    {/* One tap instead of typing the note the customer handed
+                        over. Sets tendered only — never the amount — so this is
+                        an explicit user action, not a money side effect (#15). */}
+                    <PaymentQuickTenderChips
+                      items={quickTenderItems}
+                      onSelect={(item) => setCashTendered(item.tenderAmount ?? amount)}
+                      disabled={submitting}
+                      isRTL={isRTL}
+                    />
+                    {cashTenderedBelowAmount ? (
+                      <p
+                        id="collect-tendered-error"
+                        role="alert"
+                        className="text-xs text-red-600"
+                      >
+                        {t('cashTenderedBelowAmount', {
+                          amount: formatMoneyWithCode(amount),
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {/* Proof-of-receipt fields. Rendered per method: a check gets its
+                    own number/bank/date, anything non-cash gets the generic
+                    reference. Without these the collection posts with no trace
+                    the back office can reconcile against a bank statement. */}
+                {isCheck ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-2">
+                      <Label htmlFor="collect-check-number">
+                        {t('checkNumber')}
+                        {selectedMethod?.requires_reference ? requiredMark : null}
+                      </Label>
+                      <CmxInput
+                        id="collect-check-number"
+                        value={checkNumber}
+                        aria-required={selectedMethod?.requires_reference || undefined}
+                        aria-invalid={referenceMissing || undefined}
+                        onChange={(event) => setCheckNumber(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="collect-check-bank">{t('checkBank')}</Label>
+                      <CmxInput
+                        id="collect-check-bank"
+                        value={checkBank}
+                        onChange={(event) => setCheckBank(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="collect-check-date">{t('checkDate')}</Label>
+                      <CmxInput
+                        id="collect-check-date"
+                        type="date"
+                        value={checkDate}
+                        onChange={(event) => setCheckDate(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : !isCash ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="collect-reference">
+                      {t('reference')}
+                      {selectedMethod?.requires_reference ? requiredMark : null}
+                    </Label>
+                    <CmxInput
+                      id="collect-reference"
+                      value={reference}
+                      placeholder={t('referencePlaceholder')}
+                      aria-required={selectedMethod?.requires_reference || undefined}
+                      aria-invalid={referenceMissing || undefined}
+                      onChange={(event) => setReference(event.target.value)}
                     />
                   </div>
                 ) : null}
+
+                {referenceMissing ? (
+                  <p className="text-xs text-red-600" role="alert">
+                    {t('referenceRequired')}
+                  </p>
+                ) : null}
+
+                <div className="space-y-2">
+                  <Label htmlFor="collect-notes">{t('notes')}</Label>
+                  <CmxTextarea
+                    id="collect-notes"
+                    value={notes}
+                    rows={2}
+                    maxLength={500}
+                    placeholder={t('notesPlaceholder')}
+                    onChange={(event) => setNotes(event.target.value)}
+                  />
+                </div>
 
                 {willBePending ? (
                   <div
@@ -699,17 +1164,31 @@ export function OrderCollectPaymentModal({
                   </div>
                 ) : null}
 
-                {isCash && changeDue > SETTLEMENT_MONEY_EPSILON ? (
+                {/* Partial collection is allowed (ADR-022), so show what the
+                    order still owes rather than making the cashier subtract. */}
+                {remainingAfterPayment > SETTLEMENT_MONEY_EPSILON ? (
                   <div
                     role="status"
                     aria-live="polite"
-                    className={`flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className={`flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
                   >
-                    <span className="text-emerald-700">{t('changeDue')}</span>
-                    <span className="font-semibold tabular-nums text-emerald-800">
-                      {formatMoneyWithCode(changeDue)}
+                    <span className="text-amber-700">{t('remainingAfterPayment')}</span>
+                    <span className="font-semibold tabular-nums text-amber-800">
+                      {formatMoneyWithCode(remainingAfterPayment)}
                     </span>
                   </div>
+                ) : null}
+
+                {isCash ? (
+                  <CmxChangeDueRow
+                    label={t('changeDue')}
+                    amount={changeDue}
+                    formattedAmount={formatMoneyWithCode(changeDue)}
+                    epsilon={SETTLEMENT_MONEY_EPSILON}
+                    isRTL={isRTL}
+                    size="lg"
+                    amountTestId="collect-change-due"
+                  />
                 ) : null}
 
                 {cashDrawerRequired ? (
@@ -856,10 +1335,10 @@ export function OrderCollectPaymentModal({
             </CmxButton>
             <LoadingButton
               loading={submitting}
-              disabled={methodsLoading || !selectedMethod || needsResolution || cashDrawerBlocksSubmit}
+              disabled={submitDisabled}
               onClick={handleSubmit}
             >
-              {t('submit')}
+              {handoverIntent ? t('submitAndRelease') : t('submit')}
             </LoadingButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -986,7 +1465,7 @@ export function OrderCollectPaymentModal({
         canSaveWallet={canWallet}
         onConfirm={() => {
           if (!confirmExtraReceiptSelection()) {
-            showErrorToast(tPayment('validatePayment.requiredBeforeSubmit'));
+            cmxMessage.error(tPayment('validatePayment.requiredBeforeSubmit'));
           }
         }}
         onBack={() => setExtraReceiptDialogOpen(false)}

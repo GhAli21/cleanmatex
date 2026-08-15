@@ -128,6 +128,12 @@ todos:
   - id: p7r-stage-service-boundaries
     content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
     status: in_progress
+  - id: p7r-pickup-action-panel
+    content: "P7R Pickup UI: render Make available for pickup, Confirm customer pickup, and Collect remaining payment as context-aware first-class actions in one Ready Details action panel; retain the existing atomic pickup service/API and do not introduce a screen-local status writer"
+    status: pending
+  - id: p7r-b2b-fulfilment-policy
+    content: "P7R B2B fulfilment: at release and handover, revalidate the order's durable approved AR invoice and credit reservation (not only creation-time global credit); show account-billed context instead of cash collection, record authorized recipient/site/invoice audit data, disable anonymous public confirmation until authenticated B2B-contact confirmation exists, and block partial B2B handover unless invoice/release allocation rules are explicitly approved"
+    status: pending
   - id: p7r-delivery-service
     content: "P7R Delivery: implement atomic complete-delivery orchestration with signature/photo POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics; OTP expiry/retry controls are deferred to VNext"
     status: in_progress

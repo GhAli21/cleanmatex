@@ -702,6 +702,54 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 29. Collect Payment Enhancement — production hardening of the shared collect modal (2026-08-15)
+
+**What changed:** the Collect Payment dialog was hardened end-to-end. **No migration.** Full write-up: [`../Collect_Payment_Enhancement/STATUS.md`](../Collect_Payment_Enhancement/STATUS.md).
+
+**It is one shared dialog on three screens, with two different mount behaviours** — please run the scenarios on all three:
+
+| Screen | How to get there |
+|---|---|
+| **Ready details** | **Orders → Ready** → open a PAY_ON_COLLECTION order with a balance → `/dashboard/ready/{id}` |
+| **Delivery** | **Orders → Delivery** → `/dashboard/delivery` → a row with a balance |
+| **Order Financial tab** | **Orders → All Orders** → open the order → **Financial** tab |
+
+**Prerequisites:** an order with `payment_type_code = PAY_ON_COLLECTION` and a non-zero balance · a second login **without** `orders:collect_payment` · an open cash drawer session · one method configured `requires_reference = true` · ideally a 2-decimal-currency tenant (AED/SAR/QAR) for 29.4.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|29.1| Log in as a user **without** `orders:collect_payment` → open Ready details on an order with a balance → click **Collect Payment** | Button looks inactive and, on click, says you lack permission and names the code. **Previously it did nothing at all, silently** | |
+|29.2| Same user → the **Customer pickup** card's "Collect remaining payment" | Same explained refusal. The **Confirm handover** button on other orders is *not* affected (it is not a payment permission) | |
+|29.3| As a permitted user, select a **cash** method, then temporarily close/hide all open drawer sessions and try to collect | A readable message about opening a drawer session — **not** a raw key like `cashDrawer.errors.noOpenSession` | |
+|29.4| On a **2-decimal** currency tenant, open the dialog and inspect **Amount** and **Cash Tendered**; also **Customers → Stored value → funding** change-due row | All show **2** decimals. Previously the change-due row and its inputs forced 3 | |
+|29.5| Focus the **Amount** field and scroll the mouse wheel over it | Value does **not** change (it used to, being a raw number input) | |
+|29.6| Enter a third decimal on a 2-decimal tenant | Not accepted | |
+|29.7| **Stale balance:** open Delivery, note a row's balance, collect part of it in a second browser/tab, then open the dialog from the **first** tab's stale row | Outstanding shows the **new** balance, and a warning states it changed and that the amount was updated | |
+|29.8| Repeat 29.7 but **type an amount first**, then let the balance change and reopen | Your typed amount is **kept**, and the warning tells you the balance moved. Money is never rewritten silently | |
+|29.9| Enter a **partial** amount (less than outstanding) | A **Remaining after this payment** line shows what the order will still owe | |
+|29.10| Cash method: tap a **quick-tender chip** (round-up / note values) | Only **Cash Tendered** changes — the **Amount** must not move. **Change due** appears in large type | |
+|29.11| Cash method: set tendered **below** the amount | Inline red message; **Collect** is disabled | |
+|29.12| Select **Check** | Check number / issuing bank / check date fields appear. With `requires_reference`, Collect stays disabled until the number is filled | |
+|29.13| Select a non-cash, non-check method with `requires_reference` | A single **Reference** field appears and gates Collect | |
+|29.14| Collect a CHECK with a reference, then open **Internal Finance And Operations → Business Vouchers** → the RECEIPT voucher, and the order's payment row | Check number/bank/date are stored. **Previously these could not be sent at all — non-cash collections had no reference** | |
+|29.15| Add a **Notes** value and collect; inspect the payment row's `rec_notes` | The note is stored (the column existed but was never written before) | |
+|29.16| Disconnect the network briefly, open the dialog so payment methods fail to load | An inline error with a **Retry** button appears; Retry recovers without closing the dialog. Previously: a vanishing toast and an empty dropdown | |
+|29.17| Configure a branch with **no** collection-eligible method → open the dialog | An explanation is shown instead of an empty dropdown, and Collect is disabled | |
+|29.18| Force a collection failure (e.g. stale balance) | The reason **stays on screen** (it does not vanish like a toast) and the balance re-reads | |
+|29.19| Fill a valid collection and press **Enter** (not the button) | Submits. Pressing Enter while anything is unresolved does nothing | |
+|29.20| While a collection is submitting, try to close the dialog (Esc / backdrop) | It refuses to close mid-request | |
+|29.21| Select a method whose status resolves to **PENDING** through configuration inheritance (e.g. bank transfer with no explicit override) | The "will be recorded as pending until verified" notice appears. **Previously only an explicit override showed it, so inherited-PENDING wrongly looked fully paid** | |
+|29.22| **Ready only:** collect from the **Customer pickup** card | Button reads **Collect & release order**, a hint explains why, and a **receipt preview opens automatically** after success | |
+|29.23| **Delivery / Financial tab:** collect | No print control appears, no handover wording — those are Ready-only capabilities | |
+|29.24| ⭐ **Most important.** On **Delivery**, collect on one row, close the dialog, then open a **different** row | Everything is fresh: amount, reference, check fields, notes. Nothing leaks between orders. *(This screen remounts the dialog instead of reopening it, so it exercises a different reset path from the other two.)* | |
+|29.25| Repeat the whole set in **Arabic (RTL)** | All new labels/messages translated; layout mirrors correctly | |
+
+**Automated gates (2026-08-15):** tsc exit 0 · eslint 0 · `check:i18n` ✓ · **full jest 259/259 suites, 2423/2423 tests** · `npm run build` ✓ · `check:platform-info-inventories` drift 0 (access-contract suites 10/10).
+
+> **Known gap, not a defect:** **split tender** (paying part cash + part card in one collection) is still not available in this dialog. The API has always accepted multiple legs; the UI change was deferred because it depends on adopting the shared payment-legs engine. Do not raise it as a bug.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|

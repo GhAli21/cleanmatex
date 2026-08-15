@@ -3,15 +3,17 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { collectPaymentTx } from '@/lib/services/order-settlement.service';
-import { overpaymentResolutionSchema } from '@/lib/validations/new-order-payment-schemas';
+import {
+  collectionNotesSchema,
+  collectionPaymentLegSchema,
+  overpaymentResolutionSchema,
+} from '@/lib/validations/new-order-payment-schemas';
 
 const schema = z.object({
-  paymentLegs: z.array(z.object({
-    paymentMethodId: z.string().uuid(),
-    amount: z.number().positive(),
-    reference: z.string().optional(),
-    cashTendered: z.number().positive().optional(),
-  })).min(1),
+  paymentLegs: z.array(collectionPaymentLegSchema).min(1),
+  /** Persisted to `org_order_payments_dtl.rec_notes` — the column already existed
+   *  but nothing on this path ever wrote it. */
+  notes: collectionNotesSchema,
   cashDrawerSessionId: z.string().uuid().optional(),
   posSessionId: z.string().uuid().optional(),
   collectedBy: z.string().min(1).optional(),
@@ -60,6 +62,7 @@ export async function POST(
       collectedBy: parsed.data.collectedBy ?? userId,
       customerId: parsed.data.customerId,
       overpaymentResolution: parsed.data.overpaymentResolution,
+      notes: parsed.data.notes,
       idempotencyKey: parsed.data.idempotencyKey,
     });
     return NextResponse.json({ success: true, data: result }, { status: 201 });

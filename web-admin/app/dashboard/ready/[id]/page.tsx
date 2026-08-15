@@ -19,6 +19,7 @@ import { useMessage } from '@ui/feedback';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
+import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import {
   mapReadyOrderFromStateResponse,
   type ReadyOrder,
@@ -39,7 +40,7 @@ export default function ReadyDetailPage() {
   const tInvoices = useTranslations('invoices');
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant, user } = useAuth();
-  const { formatMoneyWithCode } = useTenantCurrency();
+  const { formatMoneyWithCode, currencyCode: tenantCurrencyCode } = useTenantCurrency();
   const { showSuccess, showError, showErrorFrom } = useMessage();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -53,6 +54,9 @@ export default function ReadyDetailPage() {
     sort?: 'asc' | 'desc';
   } | null>(null);
   const [collectOpen, setCollectOpen] = useState(false);
+  /** Which control opened the collect dialog — the pickup card's CTA collects in
+   *  order to release the handover, the payment card's is a plain collection. */
+  const [collectIntent, setCollectIntent] = useState<'payment' | 'handover'>('payment');
   const [rackDraft, setRackDraft] = useState('');
   const [savingRack, setSavingRack] = useState(false);
   const [actionBarKey, setActionBarKey] = useState(0);
@@ -307,22 +311,28 @@ export default function ReadyDetailPage() {
                     ]
                   : []
               }
+              supplementalActions={
+                order.currentStatus === 'ready' || isReadyForPickup ? (
+                  <PickupHandoverCard
+                    embedded
+                    orderId={orderId}
+                    orderNo={order.orderNo}
+                    customerName={order.customer.name}
+                    paymentTypeCode={order.paymentTypeCode}
+                    outstandingAmount={order.paymentSummary?.remaining ?? 0}
+                    formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
+                    onCollectPayment={() => {
+                      setCollectIntent('handover');
+                      setCollectOpen(true);
+                    }}
+                    onCompleted={() => {
+                      setActionBarKey((key) => key + 1);
+                      void loadOrder();
+                    }}
+                  />
+                ) : null
+              }
               onActionSuccess={() => {
-                void loadOrder();
-              }}
-            />
-          ) : null}
-          {orderId && (order.currentStatus === 'ready' || isReadyForPickup) ? (
-            <PickupHandoverCard
-              orderId={orderId}
-              orderNo={order.orderNo}
-              customerName={order.customer.name}
-              paymentTypeCode={order.paymentTypeCode}
-              outstandingAmount={order.paymentSummary?.remaining ?? 0}
-              formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
-              onCollectPayment={() => setCollectOpen(true)}
-              onCompleted={() => {
-                setActionBarKey((key) => key + 1);
                 void loadOrder();
               }}
             />
@@ -352,13 +362,13 @@ export default function ReadyDetailPage() {
                       if (isPoc) {
                         return (
                           <div className="mt-3 pt-3 border-t border-gray-200">
-                            <button
-                              type="button"
-                              onClick={() => setCollectOpen(true)}
-                              className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                            >
-                              {tOrders('collectPayment.collectButton')}
-                            </button>
+                            <CollectPaymentButton
+                              onCollect={() => {
+                                setCollectIntent('payment');
+                                setCollectOpen(true);
+                              }}
+                              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                            />
                           </div>
                         );
                       }
@@ -505,8 +515,15 @@ export default function ReadyDetailPage() {
           customerId={order.customerId}
           branchId={order.branchId}
           outstandingAmount={order.paymentSummary?.remaining ?? 0}
-          currencyCode={order.currencyCode ?? 'OMR'}
+          // Falls back to the resolved tenant currency, never a literal: a
+          // hardcoded 'OMR' silently mislabels money for every other GCC tenant
+          // (no-default rule for currency_code / locale fields).
+          currencyCode={order.currencyCode ?? tenantCurrencyCode}
           onCollected={() => loadOrder()}
+          // Ready is the only surface with print infrastructure, so it is the
+          // only one that passes this. Closes B04's deferred receipt gap.
+          onPrintReceipt={() => openPrintPreview('receipt', 'thermal')}
+          handoverIntent={collectIntent === 'handover'}
         />
       ) : null}
     </div>

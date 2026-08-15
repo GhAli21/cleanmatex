@@ -43,6 +43,11 @@ export interface WorkflowActionBarProps {
   title?: string;
   /** Action codes already represented by a stage-specific completion surface. */
   hiddenActionCodes?: readonly string[];
+  /**
+   * Stage-owned commands rendered beside configured workflow actions while
+   * retaining their own service/API boundary.
+   */
+  supplementalActions?: ReactNode;
 }
 
 function isOnlyRackBlocked(action: WorkflowActionDto): boolean {
@@ -61,7 +66,9 @@ function needsRackPrompt(actions: WorkflowActionDto[]): boolean {
  * Floor action CTA bar driven by listAvailableActions / executeAction.
  * Shows enabled actions as primary buttons; disabled actions with blocked reasons.
  * When rack_required blocks an action, collects rack and passes it on execute.
- * When no actions: redirect via emptyBackHref, else CmxEmptyState (and hide children).
+ * When no actions: redirect via emptyBackHref, else CmxEmptyState. A stage-owned
+ * supplemental command keeps the action panel available without becoming a raw
+ * workflow-status write.
  */
 export function WorkflowActionBar({
   orderId,
@@ -74,6 +81,7 @@ export function WorkflowActionBar({
   children,
   title,
   hiddenActionCodes = [],
+  supplementalActions,
 }: WorkflowActionBarProps) {
   const t = useTranslations('workflow.engine');
   const tCommon = useTranslations('common');
@@ -95,6 +103,7 @@ export function WorkflowActionBar({
   );
   // Wait for first fetch — initial [] must not count as empty (false bounce).
   const isEmpty = enabled && hasLoaded && !loading && visible.length === 0;
+  const hasSupplementalActions = supplementalActions != null;
   const needsControlNotes = visible.some((a) =>
     CONTROL_ACTIONS_NEEDING_NOTES.has(a.actionCode),
   );
@@ -138,10 +147,10 @@ export function WorkflowActionBar({
   }
 
   if (isEmpty) {
-    if (hideWhenEmpty) {
+    if (hideWhenEmpty && !hasSupplementalActions) {
       return children ? <>{children}</> : null;
     }
-    if (emptyBackHref) {
+    if (emptyBackHref && !hasSupplementalActions) {
       // Redirect in flight — avoid flashing floor tools for the wrong stage.
       return (
         <p className="text-sm text-muted-foreground" role="status">
@@ -317,6 +326,9 @@ export function WorkflowActionBar({
             );
           })}
         </div>
+        {hasSupplementalActions ? (
+          <div className="border-t border-border pt-3">{supplementalActions}</div>
+        ) : null}
       </section>
       <CmxConfirmDialog
         open={pendingStopAction !== null}

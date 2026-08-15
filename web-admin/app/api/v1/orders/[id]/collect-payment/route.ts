@@ -3,15 +3,17 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { collectPaymentTx } from '@/lib/services/order-settlement.service';
-import { overpaymentResolutionSchema } from '@/lib/validations/new-order-payment-schemas';
+import {
+  collectionNotesSchema,
+  collectionPaymentLegSchema,
+  overpaymentResolutionSchema,
+} from '@/lib/validations/new-order-payment-schemas';
 
 const schema = z.object({
-  paymentLegs: z.array(z.object({
-    paymentMethodId: z.string().uuid(),
-    amount:          z.number().positive(),
-    reference:       z.string().optional(),
-    cashTendered:    z.number().positive().optional(),
-  })).min(1),
+  // Shared with the canonical `/payments` route — these two declared the leg
+  // shape independently before, which is how their contracts drifted.
+  paymentLegs: z.array(collectionPaymentLegSchema).min(1),
+  notes: collectionNotesSchema,
   cashDrawerSessionId: z.string().uuid().optional(),
   posSessionId:         z.string().uuid().optional(),
   collectedBy:         z.string().min(1),

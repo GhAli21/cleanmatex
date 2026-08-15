@@ -22,6 +22,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Banknote, Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
@@ -30,6 +32,7 @@ import { Badge } from '@ui/primitives/badge';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxMoneyField } from '@ui/primitives';
+import { CmxChangeDueRow } from '@ui/data-display';
 
 interface FundingMethodOption {
   id: string;
@@ -78,6 +81,9 @@ export function StoredValueTenderFields({
   const tPayment = useTranslations('newOrder.payment');
   const tFunding = useTranslations('customers.storedValue.funding');
   const isRTL = useRTL();
+  // Tenant precision for every money field below. These were hardcoded to 3
+  // decimals, which is wrong for any 2-decimal GCC currency (AED/SAR/QAR).
+  const { decimalPlaces, formatMoney } = useTenantCurrency();
   const { token: csrfToken } = useCSRFToken();
 
   const [methods, setMethods] = useState<FundingMethodOption[]>([]);
@@ -229,23 +235,21 @@ export function StoredValueTenderFields({
             <Label htmlFor="sv-tender-cash">{tFunding('cashTendered')}</Label>
             <CmxMoneyField
               value={cashTendered ?? amount}
-              decimalPlaces={3}
+              decimalPlaces={decimalPlaces}
               min={amount}
               showZero
               onValueChange={(value) => setCashTendered(value ?? undefined)}
             />
-            {changeDue > 0.001 ? (
-              <div
-                role="status"
-                aria-live="polite"
-                className={`flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <span className="text-emerald-700">{tFunding('changeDue')}</span>
-                <span className="font-semibold tabular-nums text-emerald-800">
-                  {changeDue.toFixed(3)} {currencyCode}
-                </span>
-              </div>
-            ) : null}
+            <CmxChangeDueRow
+              label={tFunding('changeDue')}
+              amount={changeDue}
+              // Tenant precision, not a hardcoded 3 — a 2-decimal tenant was
+              // shown a third digit here that no other money field displayed.
+              formattedAmount={`${formatMoney(changeDue)} ${currencyCode}`}
+              // Shared settlement epsilon replaces the literal 0.001 this row used.
+              epsilon={SETTLEMENT_MONEY_EPSILON}
+              isRTL={isRTL}
+            />
           </div>
         ) : null}
 
@@ -369,7 +373,7 @@ export function StoredValueTenderFields({
               <Label>{tPayment('cashDrawer.openingBalanceLabel')}</Label>
               <CmxMoneyField
                 value={openingBalanceValue}
-                decimalPlaces={3}
+                decimalPlaces={decimalPlaces}
                 showZero
                 aria-label={tPayment('cashDrawer.openingBalanceLabel')}
                 onValueChange={(value) => {

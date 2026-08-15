@@ -3,6 +3,7 @@ import { CREDIT_APPLICATION_TYPES, PAYMENT_NATURE } from '@/lib/constants/order-
 import { requireAnyPermission } from '@/lib/middleware/require-permission';
 import { getAvailableStoredValueSummary } from '@/lib/services/order-credit-application.service';
 import { listCheckoutEligiblePaymentMethodConfigs } from '@/lib/services/payment-config.service';
+import { resolveDefaultStatus } from '@/lib/services/order-settlement-planner.service';
 
 /**
  * Returns checkout-visible payment methods and customer-credit options for the current tenant and branch context.
@@ -47,6 +48,15 @@ export async function GET(request: NextRequest) {
       // B31: surfaced so the collect-payment modal can show a "will be
       // recorded as PENDING until verified" notice for D9-configured methods.
       default_creation_status: method.default_creation_status,
+      // The status the payment will ACTUALLY be created with. `default_creation_status`
+      // alone only carries an explicit D9 override, so a method that resolves to
+      // PENDING purely through the fallback chain looked COMPLETED to the client —
+      // the cashier was told the order would be fully paid when it would not be.
+      // Mirrors `collectPaymentTx`'s resolution exactly (same `||`, same helper),
+      // so the notice cannot drift from what the server writes.
+      resolved_creation_status:
+        method.default_creation_status ||
+        resolveDefaultStatus(method.payment_method_code, method.gateway_code),
       allowed_in_pos: method.allowed_in_pos,
       allowed_for_pay_now: method.allowed_for_pay_now,
       allowed_for_pay_on_collection: method.allowed_for_pay_on_collection,

@@ -10,6 +10,7 @@ import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import type { OrderFinancialSummaryViewModel } from '@features/orders/model/order-financial-summary-view';
 import { OrderFinancialMoneyValue } from './order-financial-money-value';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
+import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 
 interface OrderReceivableCollectionPanelProps {
   viewModel: OrderFinancialSummaryViewModel;
@@ -91,7 +92,7 @@ export function OrderReceivableCollectionPanel({
         </FieldRow>
         {showCollect ? (
           <div className={`pt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <CmxButton onClick={() => setCollectOpen(true)}>{tCollect('collectButton')}</CmxButton>
+            <CollectPaymentButton onCollect={() => setCollectOpen(true)} />
           </div>
         ) : null}
       </CmxCardContent>

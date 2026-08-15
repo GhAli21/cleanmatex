@@ -13,6 +13,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
 import { PickupApiError } from '@features/pickup/api/pickup-api';
 import { usePickupHandover } from '@features/pickup/hooks/use-pickup-handover';
 
@@ -26,6 +27,8 @@ export interface PickupHandoverCardProps {
   formattedOutstandingAmount: string;
   onCollectPayment: () => void;
   onCompleted: () => void;
+  /** Removes the outer card when rendered in a shared stage action panel. */
+  embedded?: boolean;
 }
 
 /**
@@ -46,6 +49,7 @@ export function PickupHandoverCard({
   formattedOutstandingAmount,
   onCollectPayment,
   onCompleted,
+  embedded = false,
 }: PickupHandoverCardProps) {
   const t = useTranslations('workflow.pickup');
   const tCommon = useTranslations('common');
@@ -67,12 +71,17 @@ export function PickupHandoverCard({
     return null;
   }
 
+  /**
+   * Warns about the outstanding balance, then hands off to the collect-payment
+   * modal. Shared by the collect CTA and the server-side
+   * `PICKUP_COLLECTION_REQUIRED` fallback in {@link handleConfirm}.
+   */
+  const promptForCollection = () => {
+    showWarning(t('collectionRequiredMessage', { amount: formattedOutstandingAmount }));
+    onCollectPayment();
+  };
+
   const handlePrimaryAction = () => {
-    if (collectionRequired) {
-      showWarning(t('collectionRequiredMessage', { amount: formattedOutstandingAmount }));
-      onCollectPayment();
-      return;
-    }
     if (!action?.enabled) {
       showError(blockedReason || t('notAvailable'));
       return;
@@ -90,16 +99,15 @@ export function PickupHandoverCard({
     } catch (error) {
       if (error instanceof PickupApiError && error.code === 'PICKUP_COLLECTION_REQUIRED') {
         setDialogOpen(false);
-        showWarning(t('collectionRequiredMessage', { amount: formattedOutstandingAmount }));
-        onCollectPayment();
+        promptForCollection();
         return;
       }
       showError(error instanceof Error ? error.message : t('failed'));
     }
   };
 
-  return (
-    <section className="rounded-lg border border-border bg-card p-4 space-y-3" aria-label={t('title')}>
+  const handoverContent = (
+    <>
       <div className="space-y-1">
         <h2 className="text-sm font-semibold text-foreground">
           {isDirectCounterPickup ? t('directTitle') : t('title')}
@@ -121,19 +129,29 @@ export function PickupHandoverCard({
         <p className="text-xs text-muted-foreground" role="status">{blockedReason}</p>
       ) : null}
 
-      <CmxButton
-        type="button"
-        className="w-full"
-        loading={loading || submitting}
-        disabled={loading || submitting || (!collectionRequired && !action?.enabled)}
-        onClick={handlePrimaryAction}
-      >
-        {collectionRequired
-          ? t('collectPayment')
-          : isDirectCounterPickup
-            ? t('directConfirmAction')
-            : t('confirmAction')}
-      </CmxButton>
+      {/* Split intentionally: this CTA is two different actions. Only the
+          collect branch may be gated on `orders:collect_payment` — routing the
+          handover confirm through the same permission-aware button would lock
+          handover behind a payment permission it has never required. */}
+      {collectionRequired ? (
+        <CollectPaymentButton
+          className="w-full"
+          label={t('collectPayment')}
+          loading={loading || submitting}
+          disabled={loading || submitting}
+          onCollect={promptForCollection}
+        />
+      ) : (
+        <CmxButton
+          type="button"
+          className="w-full"
+          loading={loading || submitting}
+          disabled={loading || submitting || !action?.enabled}
+          onClick={handlePrimaryAction}
+        >
+          {isDirectCounterPickup ? t('directConfirmAction') : t('confirmAction')}
+        </CmxButton>
+      )}
 
       <CmxDialog
         open={dialogOpen}
@@ -182,6 +200,14 @@ export function PickupHandoverCard({
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+    </>
+  );
+
+  if (embedded) return handoverContent;
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-4 space-y-3" aria-label={t('title')}>
+      {handoverContent}
     </section>
   );
 }

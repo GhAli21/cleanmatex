@@ -71,6 +71,19 @@ The release audit found that staff Delivery was still a screen-oriented composit
 - Build an atomic stop-completion panel with configured signature/photo proof capture, remaining pay-on-collection amount, an existing Financial Collection deep link, gate explanations, idempotency replay, and stale-version recovery. Do not create a duplicate payment-collection screen. OTP remains deferred to VNext.
 - Add one reusable proof-of-delivery and handover-audit view shared by Delivery and Order Details; it must show evidence, actor, time, payment state, and workflow outcome.
 
+#### P7R.3a — Pickup action-panel consistency
+
+- Render **Make available for pickup**, **Confirm customer pickup**, and **Collect remaining payment** as context-aware first-class actions in one Ready Details action panel.
+- The UI must retain the existing atomic pickup service/API; it must not add a generic status mutation or duplicate the pickup business rules in the screen.
+
+#### P7R.3b — B2B fulfilment authorization
+
+- Validate B2B credit when creating an order and reserve it durably where Finance supports reservation. At release and handover, revalidate the order's approved AR invoice and reservation rather than relying on the customer's remaining global credit.
+- Show account-billed and AR invoice context instead of a cash-collection action. A physical payment remains an explicit Financial Collection operation, never a handover side effect.
+- Record the authorized recipient, company/site, staff actor, handover time, note, release lines, and AR invoice reference.
+- Disable anonymous public confirmation for B2B until an authenticated B2B-contact confirmation contract exists.
+- Block partial B2B handover until Finance approves invoice/release allocation semantics; do not invent a prorated receivable in the pickup screen.
+
 #### P7R.4 — Consumer cutover and controlled rollout
 
 - Update web-admin to consume the new delivery API only. Mobile and third-party integration adapters must use the same versioned contract when introduced.

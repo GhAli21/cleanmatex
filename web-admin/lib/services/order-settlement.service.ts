@@ -628,6 +628,13 @@ export interface CollectPaymentParams {
   customerId?: string | null;
   overpaymentResolution?: OverpaymentResolutionInput;
   /**
+   * Free-text note for the collection event, persisted to
+   * `org_order_payments_dtl.rec_notes`. The column already existed; nothing on
+   * this path had ever written it, so context like "paid by spouse" or
+   * "partial — rest on delivery" had nowhere to go.
+   */
+  notes?: string;
+  /**
    * D010/B5: required on every money path. The route rejects a missing key
    * with 400 before this service is ever called; kept required here too so
    * no future caller can bypass the contract.
@@ -674,6 +681,7 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     collectedBy,
     customerId: requestedCustomerId,
     overpaymentResolution,
+    notes,
     idempotencyKey,
   } = params;
   const policy = await getPartialLaterCollectionPolicy(tenantId);
@@ -689,6 +697,9 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       posSessionId,
       customerId: requestedCustomerId,
       overpaymentResolution,
+      // Part of the request, so a replay under the same key with a different
+      // note is a genuine conflict rather than a silent return of the original.
+      notes,
     });
     const existingIdempotency = await tx.org_idempotency_keys.findFirst({
       where: {
@@ -960,6 +971,10 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           check_number:           resolved.checkNumber,
           check_bank:             resolved.checkBank,
           check_date:             resolved.checkDate,
+          // Event-level note repeated on each leg: the wiring handler creates
+          // one payment row per leg, so this is where it has to live to reach
+          // `org_order_payments_dtl.rec_notes`.
+          notes:                  notes,
           pos_session_id:         posSessionId,
           idempotency_key:        `${idempotencyKey}_leg_${resolved.legIndex}`,
         },

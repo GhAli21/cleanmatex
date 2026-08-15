@@ -59,6 +59,15 @@ export interface VoucherLineForWiring {
   org_payment_method_id: string | null;
   payment_terminal_id: string | null;
   branch_id: string | null;
+  /**
+   * Free-text note captured on the line; forwarded to the operational row's
+   * `rec_notes` by the order-payment handler.
+   *
+   * Declared optional (unlike its siblings) so adding it stays strictly additive
+   * — every existing handler and test fixture that builds this shape keeps
+   * compiling untouched.
+   */
+  notes?: string | null;
 }
 
 /**
