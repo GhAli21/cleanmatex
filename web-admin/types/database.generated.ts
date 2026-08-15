@@ -98,6 +98,51 @@ export type Database = {
           },
         ]
       }
+      cmx_p_tmp: {
+        Row: {
+          chk_isuuid: boolean
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          chk_isuuid?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          chk_isuuid?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       crm_track_test: {
         Row: {
           created_at: string
@@ -22151,6 +22196,9 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          fulfillment_notes: string | null
           id: string
           notes: string | null
           order_id: string
@@ -22167,6 +22215,9 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          fulfillment_notes?: string | null
           id?: string
           notes?: string | null
           order_id: string
@@ -22183,6 +22234,9 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          fulfillment_notes?: string | null
           id?: string
           notes?: string | null
           order_id?: string

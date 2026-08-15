@@ -13,6 +13,7 @@ export const OrderStatusEnum = z.enum([
   'qa',
   'packing',
   'ready',
+  'ready_for_pickup',
   'out_for_delivery',
   'delivered',
   'closed',
@@ -370,4 +371,3 @@ export const AvailableActionsQuerySchema = z.object({
 
 export type ExecuteWorkflowActionRequest = z.infer<typeof ExecuteWorkflowActionRequestSchema>;
 export type AvailableActionsQuery = z.infer<typeof AvailableActionsQuerySchema>;
-

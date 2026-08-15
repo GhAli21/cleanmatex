@@ -22,6 +22,7 @@ export type OrderStatus =
   | 'qa'
   | 'packing'
   | 'ready'
+  | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered'
   | 'closed'
@@ -672,6 +673,7 @@ export function isOrderStatus(value: any): value is OrderStatus {
     'qa',
     'packing',
     'ready',
+    'ready_for_pickup',
     'out_for_delivery',
     'delivered',
     'closed',
@@ -749,6 +751,8 @@ export interface ItemPiece {
   piece_status?: 'intake' | 'processing' | 'qa' | 'ready' | null;
   piece_stage?: string | null;
   is_ready?: boolean | null;
+  /** Denormalized open-issue pointer on the piece row; badge fallback before issue-summary loads */
+  issue_id?: string | null;
   // Service preferences (migration 0139)
   packingPrefCode?: string | null;
   servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;

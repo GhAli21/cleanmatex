@@ -57,7 +57,7 @@ Stable graph edge IDs. Prefix encodes whether the edge may change operational st
 | Prefix | Meaning | Status change | DB rule | Examples |
 |--------|---------|---------------|---------|----------|
 | **`TR_*`** | **TR**ansition — normal stage / lifecycle move | **Yes** — `from_status` ≠ `to_status` | Default | `TR_PACK_READY`, `TR_PROC_ASM`, `TR_QA_PROC` |
-| **`REL_*`** | **REL**ease — fulfilment / handoff without advancing stage | **No** — same status allowed | `CHECK` allows `from = to` only when code `LIKE 'REL_%'` | `REL_READY_PICKUP` (`ready` → `ready`) |
+| **`REL_*`** | **REL**ease — legacy fulfilment / handoff code family | **No** — same status allowed only for legacy records | `CHECK` allows `from = to` only when code `LIKE 'REL_%'` | `REL_READY_PICKUP` (retired by `0447`) |
 
 Authority: migration `0427_sys_wf_catalogs_and_state_version.sql` (`chk_sys_wf_tr_from_to`).
 
@@ -78,9 +78,26 @@ Authority: migration `0427_sys_wf_catalogs_and_state_version.sql` (`chk_sys_wf_t
 
 | Concept | Code layer | Effect |
 |---------|------------|--------|
-| Operational ready | Status `ready` (often via `TR_PACK_READY` / skip `TR_*`) | Order appears on Ready worklist |
-| Release for pickup | Action `RELEASE_FOR_PICKUP` → transition `REL_READY_PICKUP` | Release record; status stays `ready` |
+| Operational ready | Status `ready` (often via `TR_PACK_READY` / skip `TR_*`) | Work is complete but is not yet released to a customer |
+| Ready for pickup | Status `ready_for_pickup` via `RELEASE_FOR_PICKUP` → `TR_READY_PICKUP` | Released at the counter and awaiting customer collection |
 | Release for delivery | Action `RELEASE_FOR_DELIVERY` → transition `TR_READY_OFD` | Status → `out_for_delivery` (status-changing delivery release) |
+
+### Counter pickup handover (P7R)
+
+`RELEASE_FOR_PICKUP` is labelled **Make available for pickup**. It moves an
+order from `ready` to `ready_for_pickup`; this makes the collection state
+explicit without treating availability as proof that the customer received the
+order.
+
+Actual branch-counter handover uses the stage-owned `CONFIRM_PICKUP` action on
+the `pickup_handover` screen. The normal staged route uses `TR_PICKUP_DELIV`
+(`ready_for_pickup` → `delivered`). When the customer is physically at the
+counter before shelf staging, the authenticated staff-only direct route uses
+`TR_READY_DELIV` (`ready` → `delivered`) and creates a fulfilled pickup release
+in the same transaction. Public tracking may use only the staged route. Both
+routes record the authenticated staff actor/time and fulfil the pickup audit.
+`delivered` remains the single final fulfilment status for both counter pickup
+and home delivery; the release record provides the channel.
 
 Business rule detail: [05_Business_Rules_and_Gates.md](05_Business_Rules_and_Gates.md) §3.
 

@@ -9,6 +9,7 @@
  */
 
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
@@ -107,6 +108,28 @@ export async function createServerSupabaseClient() {
 
 /** Cookie name storing user's "Remember me" choice. Used to keep auth cookies as session cookies when unchecked. */
 export const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
+
+/**
+ * Creates a request-scoped client for a verified bearer token.
+ *
+ * Browser session routes must continue to use {@link createServerSupabaseClient}
+ * so cookie refresh works normally. Mobile and third-party API consumers cannot
+ * supply that cookie pair, so they receive a client whose RPC calls execute with
+ * their supplied JWT and therefore preserve Supabase RLS and permission context.
+ */
+export function createBearerSupabaseClient(accessToken: string) {
+  const { url, anonKey } = getSupabaseEnv()
+  return createSupabaseClient<Database>(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  })
+}
 
 /** Default max age for "Remember me" cookies: 1 day (in seconds). */
 const REMEMBER_ME_COOKIE_MAX_AGE = 60 * 60 * 24

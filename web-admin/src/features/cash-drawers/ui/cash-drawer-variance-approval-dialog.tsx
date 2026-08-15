@@ -18,14 +18,15 @@ import { useCSRFToken } from '@/lib/hooks/use-csrf-token'
 import { approveCashDrawerSessionVariance } from '@features/cash-drawers/api/cash-drawer-api'
 
 /**
- * B16 — variance-approval dialog (deferred maker-checker model).
+ * B16 — variance-approval dialog (deferred approval model).
  *
  * A session that closed with |variance| over the drawer's configured
- * threshold stays flagged `varianceApproval.pending` until a supervisor other
- * than the closer approves it here with a mandatory reason. The server is the
- * source of truth for the maker-checker rule (rejects self-approval and
- * duplicate approval) — this dialog surfaces the resulting error via
- * `cmxMessage` rather than re-deriving the rule client-side.
+ * threshold stays flagged `varianceApproval.pending` until someone holding
+ * `cash_drawer:approve_variance` approves it here with a mandatory reason.
+ * No maker-checker — the approver may be the same user who closed the session;
+ * permission is the only gate. The server remains the source of truth for the
+ * remaining rules (duplicate approval, reason required) — this dialog surfaces
+ * the resulting error via `cmxMessage` rather than re-deriving them client-side.
  */
 export function CashDrawerVarianceApprovalDialog({
   open,
@@ -109,8 +110,6 @@ export function CashDrawerVarianceApprovalDialog({
 /** Map the server's stable `VARIANCE_APPROVAL_ERRORS` codes to i18n-resolved text. */
 function mapVarianceApprovalError(rawMessage: string, t: (key: string) => string): string {
   switch (rawMessage) {
-    case 'VARIANCE_SELF_APPROVAL_BLOCKED':
-      return t('messages.varianceSelfApprovalBlocked')
     case 'VARIANCE_ALREADY_APPROVED':
       return t('messages.varianceAlreadyApproved')
     case 'VARIANCE_NOT_PENDING_APPROVAL':

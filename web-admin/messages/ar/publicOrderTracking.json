@@ -31,6 +31,12 @@
     "title": "يوجد مبلغ مستحق عند الاستلام",
     "description": "حالة الطلب: {status}. يرجى سداد المبلغ المتبقي وقدره {amount} عند استلام الطلب."
   },
+  "pickupAvailability": {
+    "status": "جاهز للاستلام",
+    "notAvailableStatus": "غير متاح للاستلام بعد",
+    "title": "طلبك جاهز للاستلام",
+    "description": "يرجى زيارة المغسلة لاستلام قطعك."
+  },
   "actions": {
     "confirmReceived": "لقد استلمت الملابس",
     "confirmingReceived": "جاري التأكيد...",

@@ -31,6 +31,12 @@
     "title": "Payment due on collection",
     "description": "Order status: {status}. Please pay the remaining amount of {amount} when you receive your order."
   },
+  "pickupAvailability": {
+    "status": "Ready for collection",
+    "notAvailableStatus": "Not yet available for collection",
+    "title": "Your order is ready for collection",
+    "description": "Please visit the laundry shop to collect your items."
+  },
   "actions": {
     "confirmReceived": "I have received my clothes",
     "confirmingReceived": "Confirming...",

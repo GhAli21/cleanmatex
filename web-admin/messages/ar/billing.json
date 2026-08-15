@@ -188,7 +188,6 @@
       "summaryLoading": "جارٍ تحميل ملخص تسوية الجلسة...",
       "varianceApproved": "تم اعتماد الفرق.",
       "varianceApprovalFailed": "فشل اعتماد الفرق.",
-      "varianceSelfApprovalBlocked": "أنت من أغلق هذه الجلسة — يجب أن يعتمد الفرق مشرف آخر.",
       "varianceAlreadyApproved": "تم اعتماد هذا الفرق مسبقًا.",
       "varianceNotPendingApproval": "لا يوجد فرق بانتظار الاعتماد لهذه الجلسة.",
       "varianceReasonRequired": "السبب مطلوب لاعتماد الفرق."
@@ -214,7 +213,6 @@
       "failed": "فشل إجراء الاسترداد — يرجى المحاولة مرة أخرى"
     },
     "errors": {
-      "REFUND_SELF_APPROVAL_BLOCKED": "لا يمكن اعتماد الاسترداد من قبل المستخدم الذي طلبه",
       "REFUND_SOURCE_LINEAGE_MISMATCH": "مصدر الاسترداد لا يطابق الدفعة أو الاعتماد الأصلي المُرسل",
       "REFUND_IDEMPOTENCY_CONFLICT": "مفتاح الطلب هذا استُخدم سابقًا مع استرداد مختلف",
       "REFUND_AND_REBILL_NOT_AVAILABLE": "الاسترداد مع إعادة الفوترة غير متاح بعد — يتطلب صلاحية إعادة فتح الطلب المخصصة",

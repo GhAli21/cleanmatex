@@ -42,6 +42,7 @@ export function mapDbPieceToItemPiece(
     piece_status: pieceStatus || null,
     piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
+    issue_id: dbPiece.issue_id ?? null,
     packingPrefCode: dbPiece.packing_pref_code || null,
     servicePrefs: dbPiece.service_prefs || undefined,
     colorPrefs: dbPiece.color_prefs || undefined,

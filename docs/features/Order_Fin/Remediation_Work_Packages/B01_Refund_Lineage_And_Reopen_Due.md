@@ -289,7 +289,7 @@ Rollback: revert service write path; new columns/checks are inert without the wr
 
 1. Operator opens the refund dialog (B34; until then, API caller) and picks the source leg → client sends lineage + amount + reason_context + required idempotency key.
 2. API validates schema; service validates lineage XOR, source↔lineage match, context registry, caps → creates the refund row with `refund_source_type` + `refund_context` at initiation (PENDING_APPROVAL).
-3. Approver approves (maker≠checker) → APPROVED; replay of either call returns the existing row.
+3. Approver approves (any holder of `orders:approve_refund`, including the requester — maker-checker removed 2026-08-14) → APPROVED; replay of either call returns the existing row.
 4. Processor runs → FOR UPDATE lock, cap re-check, destination execution (wallet/CN keyed), `reopens_due_amount` written per D003 v2 (0 unless explicit rebill/manual), snapshot recalc in the same tx.
 5. Order header: commercial refunds leave the order settled with refunded/net-collected updated; explicit rebill reopens outstanding per §7; Financial tab shows classification + context + reopen; recon-preparation assertions match D005 expectations.
 6. Failure at any step rolls the tx back; retry with the same key is side-effect-free; legacy NULL rows keep their warning path.

@@ -25,6 +25,9 @@ import {
   type ReadyOrderStateResponse,
 } from '@features/orders/model/ready-order-types';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { PickupHandoverCard } from '@features/pickup/ui/pickup-handover-card';
+import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 /**
  *
@@ -132,6 +135,8 @@ export default function ReadyDetailPage() {
   ) => {
     setPrintConfig({ type, layout, sort });
   };
+
+  const isReadyForPickup = order?.currentStatus === 'ready_for_pickup';
 
   if (loading) {
     return (
@@ -273,13 +278,52 @@ export default function ReadyDetailPage() {
         </div>
 
         <div className="space-y-4">
+          <section className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <h2 className="text-sm font-semibold text-foreground">
+              {t('ready.pickupRelease.title')}
+            </h2>
+            <PickupReleaseStatus
+              release={order.pickupRelease}
+              workflowStatus={order.currentStatus}
+              showTimestamp
+            />
+            <p className="text-xs text-muted-foreground">
+              {isReadyForPickup
+                ? t('ready.pickupRelease.availableHelp')
+                : t('ready.pickupRelease.notReleasedHelp')}
+            </p>
+          </section>
           {orderId ? (
             <WorkflowActionBar
               key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
               orderId={orderId}
               screen="ready_release"
               emptyBackHref="/dashboard/ready"
+              hideWhenEmpty
+              hiddenActionCodes={
+                isReadyForPickup
+                  ? [
+                      WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP,
+                      WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY,
+                    ]
+                  : []
+              }
               onActionSuccess={() => {
+                void loadOrder();
+              }}
+            />
+          ) : null}
+          {orderId && (order.currentStatus === 'ready' || isReadyForPickup) ? (
+            <PickupHandoverCard
+              orderId={orderId}
+              orderNo={order.orderNo}
+              customerName={order.customer.name}
+              paymentTypeCode={order.paymentTypeCode}
+              outstandingAmount={order.paymentSummary?.remaining ?? 0}
+              formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
+              onCollectPayment={() => setCollectOpen(true)}
+              onCompleted={() => {
+                setActionBarKey((key) => key + 1);
                 void loadOrder();
               }}
             />
@@ -469,4 +513,3 @@ export default function ReadyDetailPage() {
     </div>
   );
 }
-

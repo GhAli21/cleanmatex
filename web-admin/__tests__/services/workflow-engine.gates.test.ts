@@ -12,6 +12,7 @@ import {
 describe('workflow-actions constants', () => {
   it('mirrors V1.0 action catalog codes', () => {
     expect(WORKFLOW_ACTIONS.COMPLETE_PREPARATION).toBe('COMPLETE_PREPARATION');
+    expect(WORKFLOW_ACTIONS.CONFIRM_PICKUP).toBe('CONFIRM_PICKUP');
     expect(WORKFLOW_ACTIONS.CONFIRM_DELIVERY).toBe('CONFIRM_DELIVERY');
     expect(WORKFLOW_OUTBOX_EVENT_TYPE).toBe('ORDER_WORKFLOW_TRANSITIONED');
     expect(WORKFLOW_ACTION_IDEMPOTENCY_RESOURCE).toBe('workflow_action');

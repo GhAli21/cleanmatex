@@ -41,6 +41,10 @@ interface PublicOrderData {
     readyBy: string | null;
     bagCount?: number | null;
     rackLocation?: string | null;
+    pickupAvailability?: {
+        availableForPickup: boolean;
+        releasedAt: string | null;
+    };
     totals: PublicOrderTotals;
     customer: PublicOrderCustomer | null;
     items: PublicOrderItem[];
@@ -194,11 +198,21 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
         );
     }
 
+    const isAvailableForPickup =
+        order.status === 'ready_for_pickup' ||
+        (order.status === 'ready' && order.pickupAvailability?.availableForPickup === true);
+    const isAwaitingPickupRelease = order.status === 'ready' && !isAvailableForPickup;
     let statusLabel: string;
-    try {
-        statusLabel = tOrders(`statuses.${order.status}` as any);
-    } catch {
-        statusLabel = order.status.replaceAll('_', ' ').toUpperCase();
+    if (isAvailableForPickup) {
+        statusLabel = t('pickupAvailability.status');
+    } else if (isAwaitingPickupRelease) {
+        statusLabel = t('pickupAvailability.notAvailableStatus');
+    } else {
+        try {
+            statusLabel = tOrders(`statuses.${order.status}` as any);
+        } catch {
+            statusLabel = order.status.replaceAll('_', ' ').toUpperCase();
+        }
     }
 
     const normalizedPaymentStatus = normalizeOrderPaymentStatus(order.totals.paymentStatus, {
@@ -233,7 +247,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
         : null;
 
     const canConfirmReceived =
-        order.status === 'ready' ||
+        (isAvailableForPickup && !showPayOnCollectionNotice) ||
         order.status === 'out_for_delivery' ||
         order.status === 'delivered';
     const isConfirmReceivedDisabled =
@@ -364,6 +378,17 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath }: PublicOrder
                             </p>
                         </div>
                     </div>
+
+                    {isAvailableForPickup && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <p className="text-xs font-medium text-emerald-900">
+                                {t('pickupAvailability.title')}
+                            </p>
+                            <p className="mt-1 text-xs text-emerald-800">
+                                {t('pickupAvailability.description')}
+                            </p>
+                        </div>
+                    )}
 
                     {showPayOnCollectionNotice && (
                         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">

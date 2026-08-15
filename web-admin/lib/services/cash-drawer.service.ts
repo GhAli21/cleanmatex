@@ -83,8 +83,6 @@ export const VARIANCE_APPROVAL_ERRORS = {
   NOT_PENDING_APPROVAL: 'VARIANCE_NOT_PENDING_APPROVAL',
   /** Variance was already approved — approval is single-shot. */
   ALREADY_APPROVED: 'VARIANCE_ALREADY_APPROVED',
-  /** Maker/checker violation — the approver cannot be the closer. */
-  SELF_APPROVAL_BLOCKED: 'VARIANCE_SELF_APPROVAL_BLOCKED',
   /** A non-empty reason is mandatory for a variance approval. */
   REASON_REQUIRED: 'VARIANCE_REASON_REQUIRED',
 } as const;
@@ -1615,15 +1613,16 @@ export async function closeSession(
 }
 
 /**
- * B16: approve an over-threshold drawer-close variance (deferred maker-checker
- * model). Performed by a supervisor holding `cash_drawer:approve_variance`, who
- * must differ from the session's closer. Single-shot and fully audited.
+ * B16: approve an over-threshold drawer-close variance (deferred approval
+ * model). Performed by anyone holding `cash_drawer:approve_variance` — no
+ * maker-checker, so the approver may be the same user who closed the session.
+ * Single-shot and fully audited.
  *
  * @param tenantId tenant resolved server-side from the authenticated session
  * @param sessionId closed session whose variance is pending approval
- * @param params approver id (the authenticated supervisor) + mandatory reason
+ * @param params approver id (the authenticated user) + mandatory reason
  * @returns the updated session row
- * @throws VarianceApprovalError on state / maker-checker / reason violations
+ * @throws VarianceApprovalError on state / reason violations
  */
 export async function approveSessionVariance(
   tenantId: string,

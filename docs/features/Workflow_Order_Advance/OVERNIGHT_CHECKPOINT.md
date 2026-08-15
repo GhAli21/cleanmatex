@@ -7,7 +7,7 @@
 
 **Mass rename map = deferred.** V1.0 is additive catalogs + engine. See [PRODUCTION_DECISION_RENAME.md](PRODUCTION_DECISION_RENAME.md).
 
-## What shipped in code/docs (pending your DB apply + canary)
+## What shipped in code/docs (migrations applied; canary smoke pending)
 
 | Area | Status | Notes |
 |------|--------|--------|

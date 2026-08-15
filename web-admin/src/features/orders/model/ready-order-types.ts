@@ -1,5 +1,9 @@
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import {
+  NOT_RELEASED_PICKUP_SUMMARY,
+  type PickupReleaseSummary,
+} from '@/lib/types/pickup-release';
 
 /**
  *
@@ -44,6 +48,7 @@ export interface ReadyOrderCustomer {
 export interface ReadyOrder {
   id: string;
   orderNo: string;
+  currentStatus: string;
   /** From `org_orders_mst.branch_id` — piece preference catalog scoping */
   branchId?: string | null;
   customerId?: string | null;
@@ -58,6 +63,7 @@ export interface ReadyOrder {
   primaryInvoiceId?: string | null;
   /** All order invoices (for choosing which invoice to pay when many) */
   invoices?: ReadyOrderInvoice[];
+  pickupRelease: PickupReleaseSummary;
 }
 
 /**
@@ -78,6 +84,7 @@ export interface ReadyOrderStateResponse {
     paid_amount: number;
     remaining: number;
   }>;
+  pickupRelease?: PickupReleaseSummary;
   error?: string;
 }
 
@@ -142,6 +149,7 @@ export function mapReadyOrderFromStateResponse(
   return {
     id: String(raw.id),
     orderNo: raw.order_no || '',
+    currentStatus: String(raw.current_status || raw.status || 'ready').trim().toLowerCase(),
     branchId: raw.branch_id ?? null,
     customerId: raw.customer_id ? String(raw.customer_id) : null,
     paymentTypeCode: raw.payment_type_code ?? null,
@@ -154,6 +162,7 @@ export function mapReadyOrderFromStateResponse(
     paymentSummary: response.paymentSummary ?? fallbackSummary,
     primaryInvoiceId: response.primaryInvoiceId ?? null,
     invoices,
+    pickupRelease: response.pickupRelease ?? { ...NOT_RELEASED_PICKUP_SUMMARY },
   };
 }
 

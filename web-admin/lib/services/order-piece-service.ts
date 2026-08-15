@@ -110,6 +110,7 @@ export const PROCESSING_PIECE_SELECT = `
   piece_stage,
   is_ready,
   is_rejected,
+  issue_id,
   last_step,
   last_step_at,
   last_step_by,

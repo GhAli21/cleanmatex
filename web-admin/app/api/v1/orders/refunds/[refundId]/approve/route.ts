@@ -26,7 +26,7 @@ export async function PATCH(
     const refund = await approveRefund(tenantId, refundId, userId);
     return NextResponse.json({ success: true, data: refund });
   } catch (err) {
-    // B34: typed refund validation failures (e.g. maker-checker self-approval)
+    // B34: typed refund validation failures
     // surface their stable code + status instead of a generic 422.
     if (err instanceof RefundValidationError) {
       return NextResponse.json(

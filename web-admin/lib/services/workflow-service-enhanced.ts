@@ -149,7 +149,7 @@ export class WorkflowServiceEnhanced {
 
     // FN-02 disposition gate (Order-Fin remediation Phase 4): cancelling an
     // order that holds collected money requires an explicit disposition —
-    // REFUND (maker-checker refund flow), STORE_CREDIT (credit note), or
+    // REFUND (approval-gated refund flow), STORE_CREDIT (credit note), or
     // KEEP_ON_ACCOUNT (retain funds; requires orders:approve_refund). Applied
     // stored-value credit is always reversed to its source ledger by the
     // unwind. Runs before the old/new workflow fork so both paths are covered.

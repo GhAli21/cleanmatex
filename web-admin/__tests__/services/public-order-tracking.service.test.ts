@@ -59,6 +59,24 @@ jest.mock('@/lib/constants/workflow-system-actor', () => ({
   },
 }));
 
+jest.mock('@/lib/services/pickup/pickup-completion.service', () => ({
+  completePickup: jest.fn(),
+  PickupCompletionError: class PickupCompletionError extends Error {
+    code?: string;
+    httpStatus?: number;
+  },
+}));
+
+jest.mock('@/lib/services/pickup/pickup-release-state.service', () => ({
+  getPickupReleaseSummary: jest.fn(),
+}));
+
+jest.mock('@/lib/types/pickup-release', () => ({
+  PICKUP_RELEASE_STATES: {
+    AVAILABLE_FOR_PICKUP: 'available_for_pickup',
+  },
+}));
+
 import { logger } from '@/lib/utils/logger';
 import { prisma } from '@/lib/db/prisma';
 import { createClient } from '@/lib/supabase/server';
@@ -66,6 +84,8 @@ import {
   executeAction,
   listAvailableActions,
 } from '@/lib/services/workflow/workflow-engine.service';
+import { completePickup } from '@/lib/services/pickup/pickup-completion.service';
+import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
 import {
   confirmPublicOrderReceivedResponse,
   getPublicTrackingPathForOrderId,
@@ -219,13 +239,13 @@ describe('public-order-tracking service', () => {
       });
     }
 
-    it('always uses the engine action and system actor for a ready order', async () => {
-      mockOrderLookup('ready');
-      (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
-      (executeAction as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        currentStatus: 'delivered',
-        stateVersion: 8,
+    it('uses the pickup service and system actor for a ready_for_pickup order', async () => {
+      mockOrderLookup('ready_for_pickup');
+      (getPickupReleaseSummary as jest.Mock).mockResolvedValueOnce({
+        state: 'available_for_pickup',
+      });
+      (completePickup as jest.Mock).mockResolvedValueOnce({
+        workflow: { currentStatus: 'delivered', stateVersion: 8 },
       });
 
       const result = await confirmPublicOrderReceivedResponse(request as never, {
@@ -237,16 +257,51 @@ describe('public-order-tracking service', () => {
         status: 200,
         body: { success: true, data: { status: 'delivered', engine: 'workflow_v2' } },
       });
-      expect(executeAction).toHaveBeenCalledWith(expect.objectContaining({
+      expect(completePickup).toHaveBeenCalledWith(expect.objectContaining({
         tenantId: 'tenant-1',
         orderId: 'order-1',
-        screen: 'public_tracking',
-        actionCode: 'CONFIRM_DELIVERY',
         expectedStateVersion: 7,
         actorUserId: 'system-user',
         actorName: 'System User',
         idempotencyKey: 'public-confirm-received:tenant-1:order-1',
+        requireReleasedPickup: true,
       }));
+    });
+
+    it('rejects ready orders that have not been made available for pickup', async () => {
+      mockOrderLookup('ready');
+      (getPickupReleaseSummary as jest.Mock).mockResolvedValueOnce({ state: 'not_released' });
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 422,
+        body: { success: false, code: 'PICKUP_RELEASE_REQUIRED' },
+      });
+      expect(completePickup).not.toHaveBeenCalled();
+      expect(executeAction).not.toHaveBeenCalled();
+    });
+
+    it('does not let a public link use the staff-only direct counter route from ready', async () => {
+      mockOrderLookup('ready');
+      (getPickupReleaseSummary as jest.Mock).mockResolvedValueOnce({
+        state: 'available_for_pickup',
+      });
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 422,
+        body: { success: false, code: 'PICKUP_RELEASE_REQUIRED' },
+      });
+      expect(completePickup).not.toHaveBeenCalled();
+      expect(executeAction).not.toHaveBeenCalled();
     });
 
     it('returns idempotent success for delivered without executing another transition', async () => {

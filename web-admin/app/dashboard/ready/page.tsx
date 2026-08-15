@@ -16,6 +16,11 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
+import {
+  NOT_RELEASED_PICKUP_SUMMARY,
+  type PickupReleaseSummary,
+} from '@/lib/types/pickup-release';
 
 interface ReadyOrder {
   id: string;
@@ -28,6 +33,7 @@ interface ReadyOrder {
   current_status: string;
   rack_location: string;
   ready_by: string;
+  pickup_release: PickupReleaseSummary;
 }
 
 /**
@@ -58,7 +64,7 @@ export default function ReadyPage() {
     limit: 20,
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
-    fallbackStatuses: ['ready'],
+    fallbackStatuses: ['ready', 'ready_for_pickup'],
     search: debouncedSearch || undefined,
     sortBy,
     sortOrder,
@@ -88,6 +94,7 @@ export default function ReadyPage() {
         current_status: order.current_status || order.status || 'ready',
         rack_location: order.rack_location || '',
         ready_by: order.ready_by || order.ready_by_at_new || '',
+        pickup_release: order.pickup_release ?? { ...NOT_RELEASED_PICKUP_SUMMARY },
       };
     });
   }, [rawOrders]);
@@ -177,9 +184,10 @@ export default function ReadyPage() {
               <div className="flex justify-between items-start mb-4 gap-2">
                 <h3 className="text-xl font-bold text-blue-600">{order.order_no}</h3>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                    {t('ready.statusBadge')}
-                  </span>
+                  <PickupReleaseStatus
+                    release={order.pickup_release}
+                    workflowStatus={order.current_status}
+                  />
                   {paymentStatusBadge(order.payment_status)}
                 </div>
               </div>

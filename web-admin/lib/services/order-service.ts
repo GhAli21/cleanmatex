@@ -2278,7 +2278,7 @@ export class OrderService {
     }
 
     return issues
-      .map((row) => {
+      .map((row): Record<string, unknown> => {
         const code =
           typeof row.issue_code === 'string' ? row.issue_code : null;
         const pri = typeof row.priority === 'string' ? row.priority : null;

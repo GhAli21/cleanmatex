@@ -131,7 +131,7 @@ export function useScreenOrders<TOrder = any>(
         assembly: ['ready', 'assembly'],
         qa: ['ready', 'qa'],
         packing: ['packing'],
-        ready: ['ready'],
+        ready: ['ready', 'ready_for_pickup'],
         delivery: ['out_for_delivery'],
       };
 

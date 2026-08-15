@@ -1627,6 +1627,14 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['QA-R4.5 — OrderCollectPaymentModal top strip.'],
       },
+      confirmCustomerPickup: {
+        label: 'Confirm customer pickup',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Atomic pickup handover command; payment collection remains a separate Order Fin action.'],
+      },
     },
     apiDependencies: [
       {
@@ -1644,6 +1652,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
         notes: ['OrderCollectPaymentModal submit.'],
+      },
+      {
+        label: 'Confirm customer pickup',
+        method: 'POST',
+        path: '/api/v1/pickup/orders/[orderId]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Atomic tenant-scoped counter handover command.'],
       },
     ],
     notes: ORDER_NOTES,

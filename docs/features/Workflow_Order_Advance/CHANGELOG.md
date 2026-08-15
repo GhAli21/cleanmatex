@@ -1,5 +1,24 @@
 # Changelog — Workflow Order Advance
 
+## 0.4.8-pickup-cutover-hardening — 2026-08-15
+
+- Migrations `0447_ready_for_pickup_workflow_status.sql` and `0448_pickup_cutover_integrity.sql` applied successfully to local and remote databases (operator confirmed 2026-08-15). `0448` reconciles the `0447` cutover window, backfills missing fulfilled-release version audit values, and enforces one open pickup release per tenant order.
+- Made staged `ready_for_pickup` handover fail closed when its release audit is missing; the service no longer manufactures a replacement record.
+- Added first-class bearer-JWT authorization for mobile/integration pickup completion while preserving CSRF protection for browser session calls.
+- Added strict pickup route parameter/body validation and focused authorization, service, route, and real-local-database test coverage.
+- Local database acceptance passed: all direct/staged handover, missing-release, and active-release uniqueness scenarios succeed.
+
+## 0.4.7-p7r-counter-pickup — 2026-08-15
+
+- Migration `0446_pickup_handover_workflow.sql` applied to local and remote (operator confirmed 2026-08-15)
+- Kept `RELEASE_FOR_PICKUP` as the `ready` → `ready` availability event and renamed it **Make available for pickup**
+- Added `CONFIRM_PICKUP` on `pickup_handover`, using the existing `TR_READY_DELIV` edge for actual counter handover
+- Added `POST /api/v1/pickup/orders/{orderId}/complete` and `PickupCompletionService`: tenant lock, optimistic state version, idempotency replay, pay-on-collection block, partial-release fail-close, release fulfilment, engine/history/outbox in one transaction
+- Added Ready-screen Cmx confirmation UX, EN/AR copy, payment-first behavior, and focused service/API regression coverage
+- Added a tenant-scoped pickup-release read model used by Ready worklists, Ready details, and safe public tracking: staff can now distinguish **Not yet available for pickup** from **Available for pickup**, including release time.
+- Made the active pickup release the prerequisite for public Ready confirmation; the public command delegates to `PickupCompletionService` rather than bypassing counter-handover safeguards.
+- Hid completed release actions in the Ready UI and reject duplicate active pickup/delivery releases in `WorkflowEngine`, including calls from API/mobile integrations.
+
 ## 0.4.6-sys-wf-profile-presets — 2026-08-14
 
 - Create-only migration (pending review/apply): `0445_sys_wf_profile_presets_seed.sql`

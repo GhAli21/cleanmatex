@@ -1,6 +1,6 @@
 # Order Fin Remediation — Manual QA Test Guide
 
-**Living document — updated after every implemented package.** Last update: **2026-08-14** (triage index added; 5 flag prerequisites corrected against the remote DB; B28 §27 added).
+**Living document — updated after every implemented package.** Last update: **2026-08-15** (§28 added — maker-checker removed, permission is now the only approval gate; §5.4 and §6.5 flipped to expect the opposite of before). Previously 2026-08-14: triage index added; 5 flag prerequisites corrected against the remote DB; B28 §27 added.
 **Scope:** all implemented-but-not-yet-verified remediation packages awaiting Preview QA — **B01, B02, B33, B34, B15, B16, B35, B20, B29, B4, B5, B31, B7, B27, B3 (backend core only — see §14 header), B30, B32, B9, B10, B6, B8, B19, B22, B21**. Run on **Preview** (never straight to production).
 
 > **How to use:** each scenario tells you **where to go** (sidebar path + URL), **what to do**, the **expected** result, and a **Result** cell — mark `PASS` / `FAIL` / `N/A` + notes. A package is not `VERIFIED` until every scenario passes on Preview and the owner records approval in the package's Completion evidence.
@@ -30,7 +30,7 @@ Sections are ordered by **risk**, not by package number. Tiers 3 and 4 are **not
 | `tax_inclusive_pricing` (§22) | flag OFF by default | **missing from DB** | §22.1–22.2 unrunnable until 0443 |
 | `erp_lite_enabled` (§18) | — | `false`, no overrides | §18 correctly dormant → Tier 3 |
 
-### ✅ Tier 1 — MUST pass before release (~40 scenarios, ~2.5 h)
+### ✅ Tier 1 — MUST pass before release (~48 scenarios, ~3 h)
 Live for every tenant, no config needed, and they touch money on every order.
 
 | § | Package | Why Tier 1 |
@@ -44,6 +44,7 @@ Live for every tenant, no config needed, and they touch money on every order.
 | §24 | B18 — order charge write path | live for every tenant, no config |
 | §25 | B12 — order amendment & delta | **flag overridden ON** for 2 tenants |
 | §27 | B28 — tax-override removal + idempotency | live now; expected result is **no visible change** |
+| §28 | Maker-checker removal | live now; **§5.4 and §6.5 now expect the opposite of before** — read §28 first so correct behaviour isn't reported as a bug |
 
 ### 🟡 Tier 2 — should pass before release (~65 scenarios, ~4 h)
 Live, but narrower blast radius or back-office only: **§6** (B16), **§7** (B35), **§10** (B4/B5/B31), **§12** (B27), **§15** (B30/B32), **§17** (B10), **§21** (B21).
@@ -65,7 +66,7 @@ Pure SQL/DB verification, better run as a script than by a person: **§8** (B20)
 | Migrations applied | up to **0429** — all of 0410 (B7), 0411 (B27), 0412 (B3), 0415 (B30/B32), 0418 (B9), 0421 (B10), 0424 (B6), 0426 (B8), and 0429 (B19) are **APPLIED (owner) and verified via remote DB**. Sections 15–20 (B30/B32, B9, B10, B6, B8, B19) are all migration-ready to test. Section 11 (Outbox Monitor) cannot be tested until `FINANCE_OUTBOX_SECRET` is set from the generated `sys_fin_runtime_cf` value; Section 14 (B3) needs the `order_fin_sv_funding_capture` flag ON; Section 16 (B9) needs `order_fin_refund_execution` ON; Section 19 (B8) has no UI path yet — see its own header (no live gateway connected). |
 | Feature flags (HQ console) | `order_fin_refund_ui` = **ON** for the test tenant to exercise B34 (OFF to confirm it stays hidden). `order_fin_sv_funding_capture` = **ON** to exercise B3's tender step (OFF to confirm the 3 entry points fall back to their pre-existing behavior unchanged — see §14). `order_fin_refund_execution` = **ON** to exercise B9's real CASH/ORIGINAL_METHOD execution (OFF to confirm record-only stays unchanged — see §16). *(The old `order_fin_drawer_close_v2` flag was removed — B16/B35 drawer math is always on.)* **B30/B32 ship unconditionally, no feature flag.** |
 | Permissions | tester needs the refund permissions (initiate/approve/process) for B34, and `cash_drawer:approve_variance` for B16 §6.5–6.6 and §12.1 (seeded by **B27**, migration 0411, APPLIED). For §12, prepare a **third** login with none of the new B27 codes granted, to exercise the denial paths. For §15 (B30/B32), the tester also needs `orders:pending_payments_view` / `orders:cancel_payment` / `orders:fail_payment` (seeded by migration **0415**, APPLIED); reuse the §12 no-new-codes login to exercise the denial paths there too. |
-| Users | prepare **two** logins: an **initiator/cashier** and a **supervisor/approver** (different users — needed for maker-checker in B34 and B16). |
+| Users | prepare **two** logins: an **initiator/cashier** and a **supervisor/approver**. **Note (2026-08-14): maker-checker was removed** — a user holding the permission may approve their own refund or drawer variance. The second login is still useful for permission-denial testing (§12) and for confirming approval works for a different user, but it is no longer *required* to approve anything. |
 | Test tenant | one with `TENANT_CURRENCY` set (e.g. OMR); ideally a second non-OMR tenant. |
 
 ### 0.1 Screen map — where to find each area (sidebar → item → URL)
@@ -89,6 +90,43 @@ Pure SQL/DB verification, better run as a script than by a person: **§8** (B20)
 | Payment / drawer setup | **Config And Settings → Payment Setup** | `/dashboard/settings/payments` |
 
 > Language toggle: use the header language switch (EN ⇄ AR) — Arabic must render right-to-left.
+
+### 0.1b Mapping — [`QA_TESTER_SHEET.md`](QA_TESTER_SHEET.md) → this guide (rebuilt 2026-08-15)
+
+Two companion files exist for delegating Preview QA:
+
+| File | For | Contents |
+|---|---|---|
+| [`QA_TESTER_SHEET_OWNER_SETUP.md`](QA_TESTER_SHEET_OWNER_SETUP.md) | **owner — do first** | migration/flag/config/login prep, plus the owner-only residual list |
+| [`QA_TESTER_SHEET.md`](QA_TESTER_SHEET.md) | non-technical tester | **94 tests across 17 parts**, plain language, covering every UI-reachable scenario |
+
+**Coverage:** of this guide's 217 scenarios, ~190 are UI-reachable and are covered by the tester sheet once the owner setup is done. The ~27 that are not delegable (raw SQL, direct API calls, injected corruption, locale sweeps) are listed in the setup file's **section E** and remain with the owner.
+
+> **A completed tester sheet + the owner's section-E residual = a complete Preview QA pass** for the packages involved. Neither half alone is sufficient for `VERIFIED`.
+
+| Sheet part | Tests | Guide sections covered |
+|---|---|---|
+| 1 — Getting started | 1–2 | §13.1, §13.4 |
+| 2 — Creating & paying | 3–8 | §1.1, §1.5, §1.6, §3.1, §13.1 |
+| 3 — Extra options that cost money | 9–16 | §24.1–24.12 |
+| 4 — Numbers agree ⭐ | 17–20 | §3.1–3.3, §4.1 |
+| 5 — Changing a paid order | 21–26 | §25.11–25.16 |
+| 6 — Refunds | 27–35 | §2.1–2.6, §5.2–5.5, §28.1–28.3 |
+| 7 — Cash drawers | 36–47 | §6.1–6.8, §7.1–7.5, §12.1–12.2, §28.4–28.6 |
+| 8 — Customer money | 48–55 | §1.2, §1.3, §14.1–14.6, §12.3–12.5 |
+| 9 — Pending payments | 56–64 | §15.1–15.13 |
+| 10 — Collecting later | 65–69 | §10.1–10.8 |
+| 11 — Background processing | 70–75 | §11.1–11.7 |
+| 12 — Permissions | 76–78 | §12.6–12.10 |
+| 13 — Reversing a payment | 79–82 | §17.x (B10 void/reverse) |
+| 14 — Loyalty | 83–85 | §21.1–21.5 |
+| 15 — Reconciliation | 86–87 | §8.1–8.2, §20.x |
+| 16 — Arabic | 88–91 | §5.6, §13.5, §25.15 |
+| 17 — Anything else | 92–94 | §13.4 |
+
+**Starred tests** (⭐ in the sheet) are the highest-value money checks — 14, 17, 25, 29, 31, 37, 40, 44, 50. Prioritise reading those results.
+
+**How to transcribe:** copy each verdict into the guide scenario's `Result` cell as `PASS (sheet #N)` or `FAIL (sheet #N — <their note verbatim>)`. Keep their wording; do not paraphrase a failure. Then work the setup file's section-E residual before recording sign-off.
 
 ### 0.2 Pre-deploy data checks (run read-only in the DB console BEFORE deploying B15)
 Both must return **0 rows**; if not, backfill currency before deploy.
@@ -165,14 +203,14 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 ## 5. B34 — Refund back-office UI  *(flag `order_fin_refund_ui` — ⚠️ **LIVE: default `true`**, + refund permissions)*
 
 > ⚠️ **Prerequisite corrected 2026-08-14.** Verified against remote `hq_ff_feature_flags_mst`: `order_fin_refund_ui` has `default_value = true` and is additionally overridden `true` (approved) for the demo tenant. Earlier revisions of this guide implied it defaulted OFF. **These scenarios are testing live behaviour for every tenant — do not skip them.**
-**What changed:** the refund maker-checker workflow is fully usable from screens (was API-only).
+**What changed:** the refund approval workflow is fully usable from screens (was API-only). **Maker-checker was removed 2026-08-14** — permission alone gates approval; the requester may approve their own refund.
 
 | # | Where + how | Expected | Result |
 |---|---|---|---|
 |5.1| Flag **OFF** → open **Internal Finance And Operations → Refunds** (`/dashboard/internal_fin/refunds`) and an order **Financial** tab | No initiate/approve/process actions appear (feature hidden) | |
 |5.2| Flag **ON** → open an order (**Orders → All Orders** → order) → **Initiate Refund** → choose a payment/credit leg → enter an amount **over** the refundable cap | Cap enforced **live** (can't exceed) | |
 |5.3| Submit a valid **partial** refund | It appears in **Refunds** hub / approval queue as *pending approval* | |
-|5.4| As the **same** user, try to **Approve** it | **Blocked** — maker can't self-approve (self-approval error) | |
+|5.4| As the **same** user, **Approve** it | **Succeeds.** ⚠️ **Changed 2026-08-14 — this scenario previously expected the opposite.** Maker-checker was removed per the owner rule ("no need for maker-checker — if the user has the permission it's OK even if same user"). Holding `orders:approve_refund` is the only gate; the Approve button is no longer disabled for the requester, and the server no longer blocks it. The same change was applied to cash-drawer variance approval (§6.5–6.6) | |
 |5.5| Log in as a **different** user with approve permission → **Approve** → **Process** | Refund processes; result shows on the order **Financial** tab and in **Refunds** hub | |
 |5.6| Toggle **Arabic** | All refund screens/labels translated + RTL correct | |
 
@@ -189,8 +227,8 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 |6.2| Same, but include a payment that stays **pending** (cheque/gateway pending) → **Close** | The pending leg is **excluded** from expected cash (no false shortage) | |
 |6.3| A drawer with **no** variance threshold (default) → **Close** with a big variance | Close **completes** normally; **no** approval prompt / pending state at all | |
 |6.4| Set a drawer `variance_approval_threshold` (e.g. `1.000`) — via **Config → Payment Setup** drawer config **if the field exists, else set it in the DB** (`org_cash_drawers_mst.variance_approval_threshold`) → **Close** with a variance **over** it | Close still **completes** (never blocked); the closed session shows an **OPTIONAL** "supervisor approval available" banner (wording says *optional / for audit*, not "required") | |
-|6.5| On that session, as the **closer**, click **Approve Variance** | Blocked — approver must differ from the closer (button also needs `cash_drawer:approve_variance`, seeded by B27) | |
-|6.6| As a **different** supervisor with the permission → **Approve Variance** → enter a reason | "Approved" banner shows approver + date + reason | |
+|6.5| On that session, as the **closer**, click **Approve Variance** | **Approves successfully.** ⚠️ **Changed 2026-08-14 — this scenario previously expected the opposite.** Maker-checker was removed (owner rule): holding `cash_drawer:approve_variance` is the only gate, and the closer may approve their own variance. A reason is still mandatory, and approval is still single-shot | |
+|6.6| As a **different** supervisor with the permission → **Approve Variance** → enter a reason | "Approved" banner shows approver + date + reason (a different user works too — it is simply no longer *required*) | |
 |6.7| Close another session **within** the threshold | No approval banner appears | |
 |6.8| Toggle **Arabic** on the session detail | Banner + dialog translated + RTL | |
 
@@ -637,6 +675,33 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 
 ---
 
+## 28. Maker-checker removal — permission-gated approvals (2026-08-14)
+
+**What changed:** the "a different user must approve" rule (maker≠checker) was **removed everywhere**, per the owner rule in [`CLAUDE.md`](CLAUDE.md): *"No need for maker-checker in approve — even same user can approve if he has the required permission."*
+
+**Permission is now the only gate.** Holding `orders:approve_refund` (refunds) or `cash_drawer:approve_variance` (drawer variance) is sufficient, regardless of who created the request or closed the session.
+
+**What was removed:** the self-approval throw in `approveSessionVariance`; the dead `ENABLE_SELF_APPROVAL_CHECK` block in `approveRefund`; the disabled Approve button in the refunds list; the `REFUND_SELF_APPROVAL_BLOCKED` and `VARIANCE_SELF_APPROVAL_BLOCKED` error codes, their route/dialog mappings, and their EN/AR i18n strings.
+
+**Still enforced (unchanged):** a mandatory reason on variance approval · single-shot approval (`VARIANCE_ALREADY_APPROVED`) · correct state checks · route-level `requirePermission`.
+
+> ⚠️ **Two earlier scenarios now expect the opposite of what they used to** — §5.4 (refund) and §6.5 (drawer variance). Both are annotated in place. If a tester reports "I was able to approve my own request" as a bug, that is **correct behaviour**, not a defect.
+
+| # | Where + how | Expected | Result |
+|---|---|---|---|
+|28.1| **Internal Finance And Operations → Refunds** — initiate a refund, then **Approve it yourself** (same login) | Approves successfully. No "self-approval" error, and the Approve button is **not** disabled | |
+|28.2| Continue: **Process** that same refund yourself | Processes normally — the whole initiate → approve → process chain is doable by one permitted user | |
+|28.3| Log in as a user **without** `orders:approve_refund` → open **Refunds** | No Approve action available; if forced via API, a permission error (not a self-approval error) | |
+|28.4| **Cash Drawers** — close a session with a variance over the drawer's threshold, then **as the same user who closed it**, click **Approve Variance** and enter a reason | Approves successfully (see §6.5) | |
+|28.5| On that same session, click **Approve Variance** again | Rejected as **already approved** — single-shot approval is still enforced | |
+|28.6| Attempt a variance approval with an **empty** reason | Rejected — a reason is still mandatory | |
+|28.7| Log in as a user **without** `cash_drawer:approve_variance` → open the pending-variance session | No approve action available / permission error | |
+|28.8| Search the UI (EN + AR) for any leftover message telling a user they cannot approve their own request | **None should exist** — those strings were deleted from both locale files | |
+
+**Automated gates (2026-08-14):** tsc clean (3 pre-existing/unrelated) · eslint 0 · full jest **257/257 suites, 2410/2410 tests** · `check:i18n` ✓ (EN/AR aligned after removing 6 orphaned keys) · `npm run build` ✓ (exit 0, 271 pages). Two service tests were flipped from asserting *blocked* to asserting *allowed*; `cash-drawer.service.test.ts`'s error-code test was repointed at `ALREADY_APPROVED`, which is still enforced.
+
+---
+
 ## Sign-off
 | Package | Preview deployed | QA result | Approved by / date |
 |---|---|---|---|
@@ -670,6 +735,7 @@ Result (2026-07-18 remote): **CLEAN** — 3 active tenants / 0 empty; 2 wallets 
 | B12 | migration 0438 APPLIED (owner, 2026-07-25), verified via remote DB; backend/API/gate + frontend reason-prompt/delta-notice UI fully implemented and tested; settlement automation deliberately NOT built (real `collectPaymentTx` PAY_ON_COLLECTION-only blocker, see Design decision #13 — operator settles manually via the order's Payments tab); flag `order_fin_governed_amendments` defaults OFF, zero effect on any tenant; §25 above covers both API-level (25.1–25.10) and UI-level (25.11–25.16) scenarios | | |
 | B14 | migration 0440 APPLIED (owner), verified via remote DB; Prisma schema synced; backend trigger-wiring + lineage/FN-03 fix + 3 reconciliation checks + correction-document hooks (B34 refund, B12 amendment) implemented and tested; still dormant for every tenant (requires both `tax_registration_no` and an enabled `org_tax_doc_triggers_cfg` row, neither configured anywhere yet); frontend print/QR/issue-cancel-replace UI deliberately deferred, see Design decision #7; §26 above is DB/API-level only, now runnable once a pilot tenant is configured | | |
 | B28 | no migration, no DB change (verified against remote DB — no `additional_tax*` column ever existed; do NOT drop `org_orders_mst.tax_rate`). Normally test-only, but this pass shipped 2 real behaviour changes: the ad-hoc tax-override params were removed (verified dead before removal — expected QA outcome is *no visible change*), and governed amendments now reject a concurrent same-key duplicate with `IDEMPOTENCY_IN_PROGRESS`. Live for every tenant immediately, no config needed. §27 above covers both, incl. the deliberately-unfixed residual (`updateOrder`'s non-atomic optimistic lock — belongs with the owner's in-flight `state_version` CAS) | | |
+| Maker-checker removal | no migration, no DB change. Removes the "a different user must approve" rule from refunds AND drawer-variance approval; permission (`orders:approve_refund` / `cash_drawer:approve_variance`) is now the only gate. Live for every tenant immediately, no config. **§5.4 and §6.5 now expect the OPPOSITE of previous revisions** — a tester reporting "I could approve my own request" is reporting correct behaviour. §28 covers it end to end | | |
 
 **Automated gates at build time (2026-07-20, all green where run):** tsc clean · eslint 0 (project-wide) · cash-drawer jest 39/39 · close-preview 3/3 · inventory/access 11/11 · reconciliation 66/66 (+2 new B3 checks) · settlement/collect-payment + wiring-handler suites 51/51 · outbox/outbox-processor/loyalty-earn suites 26/26 · B27 permission suites 16/16 · B3 suites 31/31 (fundStoredValue/finalizer 11, wiring handlers 7, reconciliation check 5, +8 from fixing 2 pre-existing suites' Prisma mocks that predated `org_sv_funding_tenders_dtl`) · full jest **220/220 suites, 2108/2108 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0, zero warnings). B3's Preview deployment is still pending (see B03 Completion evidence). This manual guide covers the end-to-end behaviour those unit gates can't.
 

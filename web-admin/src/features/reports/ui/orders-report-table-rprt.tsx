@@ -23,6 +23,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
   intake: 'bg-purple-100 text-purple-800',
   preparing: 'bg-pink-100 text-pink-800',
   ready: 'bg-cyan-100 text-cyan-800',
+  ready_for_pickup: 'bg-teal-100 text-teal-800',
   draft: 'bg-gray-100 text-gray-600',
 };
 

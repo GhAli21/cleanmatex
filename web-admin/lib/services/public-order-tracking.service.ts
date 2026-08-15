@@ -15,6 +15,9 @@ import {
 } from '@/lib/services/workflow/workflow-engine.service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
+import { completePickup, PickupCompletionError } from '@/lib/services/pickup/pickup-completion.service';
+import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
+import { PICKUP_RELEASE_STATES } from '@/lib/types/pickup-release';
 import {
   buildLegacyPublicTrackingPath,
   buildPublicTrackingPath,
@@ -383,6 +386,10 @@ export async function getPublicOrderTrackingResponse(
     const tenantSettings = createTenantSettingsService(supabase);
     const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
     const financialSnapshot = readCanonicalOrderFinancialSnapshot(order as unknown as Record<string, unknown>);
+    const pickupRelease = await getPickupReleaseSummary({
+      tenantId,
+      orderId: order.id,
+    });
 
     logger.info('Public order tracking success', {
       ...requestContext,
@@ -414,6 +421,13 @@ export async function getPublicOrderTrackingResponse(
             },
             bagCount: order.bag_count ? Number(order.bag_count) : null,
             rackLocation: order.rack_location,
+            pickupAvailability: {
+              availableForPickup:
+                String(order.current_status || order.status || '').trim().toLowerCase() ===
+                  'ready_for_pickup' ||
+                pickupRelease.state === PICKUP_RELEASE_STATES.AVAILABLE_FOR_PICKUP,
+              releasedAt: pickupRelease.releasedAt,
+            },
             customer: order.org_customers_mst
               ? {
                   name: order.org_customers_mst.name,
@@ -513,7 +527,12 @@ export async function confirmPublicOrderReceivedResponse(
       .trim()
       .toLowerCase() as OrderStatus;
 
-    const allowedFromStatuses: OrderStatus[] = ['ready', 'out_for_delivery', 'delivered'];
+    const allowedFromStatuses: OrderStatus[] = [
+      'ready',
+      'ready_for_pickup',
+      'out_for_delivery',
+      'delivered',
+    ];
     if (!allowedFromStatuses.includes(fromStatus)) {
       return {
         status: 400,
@@ -531,6 +550,70 @@ export async function confirmPublicOrderReceivedResponse(
         body: {
           success: true,
           data: { orderId: order.id, status: 'delivered', idempotent: true },
+        },
+      };
+    }
+
+    if (fromStatus === 'ready_for_pickup') {
+      const pickupRelease = await getPickupReleaseSummary({ tenantId, orderId: order.id });
+      if (pickupRelease.state !== PICKUP_RELEASE_STATES.AVAILABLE_FOR_PICKUP) {
+        return {
+          status: 422,
+          body: {
+            success: false,
+            error: 'This order is not yet available for pickup.',
+            code: 'PICKUP_RELEASE_REQUIRED',
+          },
+        };
+      }
+
+      try {
+        const result = await completePickup({
+          tenantId,
+          orderId: order.id,
+          actorUserId: WORKFLOW_SYSTEM_ACTOR.userId,
+          actorName: WORKFLOW_SYSTEM_ACTOR.displayName,
+          expectedStateVersion: Number(order.state_version ?? 0),
+          idempotencyKey:
+            request.headers.get('Idempotency-Key')?.trim() ||
+            `public-confirm-received:${tenantId}:${order.id}`,
+          handoverNotes: 'Customer confirmed receipt via public tracking link',
+          requireReleasedPickup: true,
+        });
+
+        return {
+          status: 200,
+          body: {
+            success: true,
+            data: {
+              orderId: order.id,
+              orderNo,
+              status: result.workflow.currentStatus,
+              stateVersion: result.workflow.stateVersion,
+              engine: 'workflow_v2',
+            },
+          },
+        };
+      } catch (pickupError) {
+        const isPickupError = pickupError instanceof PickupCompletionError;
+        return {
+          status: isPickupError ? pickupError.httpStatus : 400,
+          body: {
+            success: false,
+            error: pickupError instanceof Error ? pickupError.message : 'Unable to confirm pickup.',
+            code: isPickupError ? pickupError.code : undefined,
+          },
+        };
+      }
+    }
+
+    if (fromStatus === 'ready') {
+      return {
+        status: 422,
+        body: {
+          success: false,
+          error: 'This order is not yet available for pickup.',
+          code: 'PICKUP_RELEASE_REQUIRED',
         },
       };
     }

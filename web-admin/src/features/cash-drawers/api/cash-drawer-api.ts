@@ -237,9 +237,9 @@ export async function fetchCashDrawerSessionCloseSummary(
 }
 
 /**
- * B16 — approve an over-threshold drawer-close variance (deferred maker-
- * checker model). The approver must differ from the session's closer; the
- * server re-enforces this (self-approval is rejected regardless of UI state).
+ * B16 — approve an over-threshold drawer-close variance (deferred approval
+ * model). No maker-checker: holding `cash_drawer:approve_variance` is
+ * sufficient, even when the approver is the user who closed the session.
  *
  * @param input route ids, mandatory reason, and CSRF token
  * @returns the updated session row (raw API shape; re-fetch detail to refresh the DTO)

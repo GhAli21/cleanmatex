@@ -13,7 +13,7 @@ import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt'
 import OrdersReportCharts from '@features/reports/ui/orders-report-charts-rprt';
 import OrdersReportTable from '@features/reports/ui/orders-report-table-rprt';
 
-const ORDER_STATUSES = ['intake', 'pending', 'preparing', 'processing', 'ready', 'delivered', 'completed', 'cancelled'];
+const ORDER_STATUSES = ['intake', 'pending', 'preparing', 'processing', 'ready', 'ready_for_pickup', 'delivered', 'completed', 'cancelled'];
 const BASE_PATH = '/dashboard/reports/orders';
 
 /**

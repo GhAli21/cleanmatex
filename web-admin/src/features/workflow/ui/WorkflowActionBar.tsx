@@ -41,6 +41,8 @@ export interface WorkflowActionBarProps {
   children?: ReactNode;
   /** Optional title override (e.g. hold/resume/stop). */
   title?: string;
+  /** Action codes already represented by a stage-specific completion surface. */
+  hiddenActionCodes?: readonly string[];
 }
 
 function isOnlyRackBlocked(action: WorkflowActionDto): boolean {
@@ -71,6 +73,7 @@ export function WorkflowActionBar({
   emptyBackHref,
   children,
   title,
+  hiddenActionCodes = [],
 }: WorkflowActionBarProps) {
   const t = useTranslations('workflow.engine');
   const tCommon = useTranslations('common');
@@ -85,7 +88,11 @@ export function WorkflowActionBar({
   const [pendingStopAction, setPendingStopAction] = useState<WorkflowActionDto | null>(null);
   const didRedirectRef = useRef(false);
 
-  const visible = actions.filter((a) => a.enabled || a.blockedReasons.length > 0);
+  const visible = actions.filter(
+    (action) =>
+      !hiddenActionCodes.includes(action.actionCode) &&
+      (action.enabled || action.blockedReasons.length > 0),
+  );
   // Wait for first fetch — initial [] must not count as empty (false bounce).
   const isEmpty = enabled && hasLoaded && !loading && visible.length === 0;
   const needsControlNotes = visible.some((a) =>

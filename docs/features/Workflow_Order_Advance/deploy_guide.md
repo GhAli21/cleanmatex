@@ -9,6 +9,8 @@ This guide covers the operator-owned V1.0 engine cutover, public tracking, and R
 1. `0437_sys_wf_public_confirm_actor.sql`
 2. `0441_public_order_tracking_tokens.sql`
 3. `0442_retire_workflow_rpc_grants.sql` (operator confirmed applied locally and remotely on 2026-08-14)
+4. `0447_ready_for_pickup_workflow_status.sql` (operator confirmed applied locally and remotely on 2026-08-15)
+5. `0448_pickup_cutover_integrity.sql` (operator confirmed applied locally and remotely on 2026-08-15)
 
 Do not modify older migrations. Apply them in normal sequence in the environment you are promoting.
 
@@ -23,20 +25,24 @@ Do not modify older migrations. Apply them in normal sequence in the environment
 
 ## Recommended rollout order
 
-1. Confirm `0437` and `0441` are applied. The operator reported both local and remote `0441` apply success on 2026-08-13.
-2. Deploy the engine-only application build before revoking RPC grants.
-3. Run the focused canary smoke from [user_guide.md](user_guide.md), including cancel/hold/resume/stop.
-4. Confirm `0442` appears in migration history for the promoted environment.
-5. Repeat preparation, processing, delivery, public confirm, and cancel/hold smoke after `0442`.
-6. Validate a legacy readable public link still opens during the compatibility window.
+1. Confirm `0437`, `0441`, and `0442` are applied. The operator reported `0441` and `0442` success locally and remotely.
+2. Deploy the web-admin build containing the pickup completion service and route before enabling the `ready_for_pickup` transition.
+3. Pause pickup releases and pickup handovers in the environment. This makes the `0447` and `0448` reconciliation deterministic.
+4. Apply `0447`, then `0448`, in normal migration sequence. Do not edit or re-run an older migration file.
+5. Run `cd web-admin; npm run test:db-integration -- pickup-handover.db.test.ts` against the migrated local database before production promotion.
+6. Resume pickup operations only after the migration assertion and database suite pass.
+7. Run the focused canary smoke from [user_guide.md](user_guide.md), including direct counter handover, staged handover, collection blocking, public tracking, and cancel/hold/resume/stop.
+8. Validate a legacy readable public link still opens during the compatibility window.
 
 ## Post-deploy checks
 
 - Public token lookup works for new and existing orders
 - Receipt QR codes open the opaque route
-- Public confirm-received succeeds from `ready` and `out_for_delivery`
+- Public confirm-received succeeds from `ready_for_pickup` and `out_for_delivery`; public confirmation from unreleased `ready` is rejected
 - Already delivered orders keep the button disabled and return idempotent success
 - Pay-on-collection notice appears only when a remaining amount exists
+- `ready_for_pickup` always has exactly one active pickup release before handover; `ready` has none
+- Browser pickup calls require CSRF; bearer-token integrations require an authenticated tenant user with `orders:transition`
 - Raw status PATCH and bulk status endpoints return authenticated `410 USE_WORKFLOW_ACTIONS`
 - Application logs contain no permission errors for retired `cmx_order_*` / `cmx_ord_*` functions
 

@@ -479,6 +479,48 @@ function buildIdempotencyPayload(params: ExecuteActionParams): Record<string, un
   };
 }
 
+function isReleaseAction(actionCode: string): boolean {
+  return (
+    actionCode === WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP ||
+    actionCode === WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY
+  );
+}
+
+async function findOpenOrderRelease(input: {
+  tenantId: string;
+  orderId: string;
+  transaction?: PrismaTransactionClient;
+}): Promise<{ release_type: string } | null> {
+  const db = input.transaction ?? prisma;
+  const lockClause = input.transaction ? Prisma.sql`FOR UPDATE` : Prisma.empty;
+  const rows = await db.$queryRaw<Array<{ release_type: string }>>(Prisma.sql`
+    SELECT release_type
+    FROM public.org_wf_release_mst
+    WHERE tenant_org_id = ${input.tenantId}::uuid
+      AND order_id = ${input.orderId}::uuid
+      AND release_status = 'released'
+      AND release_type IN ('pickup', 'delivery', 'partial')
+      AND COALESCE(rec_status, 1) = 1
+    ORDER BY released_at DESC NULLS LAST, id DESC
+    LIMIT 1
+    ${lockClause}
+  `);
+  return rows[0] ?? null;
+}
+
+function openReleaseBlockedReason(locale?: string): BlockedReason {
+  const isArabic = locale?.toLowerCase().startsWith('ar');
+  return {
+    code: 'GATE_RELEASE_ALREADY_OPEN',
+    message: isArabic
+      ? 'تم بالفعل إتاحة الطلب للاستلام أو التسليم.'
+      : 'This order has already been made available for fulfilment.',
+    message2: isArabic
+      ? 'This order has already been made available for fulfilment.'
+      : 'تم بالفعل إتاحة الطلب للاستلام أو التسليم.',
+  };
+}
+
 interface CachedExecuteResult {
   payload_hash: string;
   result: ExecuteActionResult;
@@ -508,6 +550,10 @@ export async function listAvailableActions(
   }
 
   const transitions = await loadActionTransitions(screen, currentStatus);
+  const hasReleaseAction = transitions.some((transition) => isReleaseAction(transition.action_code));
+  const openRelease = hasReleaseAction
+    ? await findOpenOrderRelease({ tenantId: params.tenantId, orderId: params.orderId })
+    : null;
   const actions: AvailableAction[] = [];
 
   for (const row of transitions) {
@@ -519,13 +565,16 @@ export async function listAvailableActions(
       transitions.filter((t) => t.action_code === row.action_code).length > 1
         ? `${baseLabel} → ${toStatus}`
         : baseLabel;
+    const blockedReasons = isReleaseAction(row.action_code) && openRelease
+      ? [...gateResult.blockedReasons, openReleaseBlockedReason(params.locale)]
+      : gateResult.blockedReasons;
     actions.push({
       actionCode: row.action_code,
       toStatus,
       label,
       label2: row.name2,
-      enabled: gateResult.allowed,
-      blockedReasons: gateResult.blockedReasons,
+      enabled: blockedReasons.length === 0,
+      blockedReasons,
     });
   }
 
@@ -702,6 +751,21 @@ export async function executeAction(
     });
     if (orderControl !== null && orderControl.ok === false) {
       throw new WorkflowEngineError('ACTION_NOT_ALLOWED', orderControl.message);
+    }
+
+    if (isReleaseAction(params.actionCode)) {
+      const openRelease = await findOpenOrderRelease({
+        tenantId: params.tenantId,
+        orderId: params.orderId,
+        transaction: tx,
+      });
+      if (openRelease) {
+        throw new WorkflowEngineError(
+          'ACTION_NOT_ALLOWED',
+          'This order has already been made available for fulfilment.',
+          [openReleaseBlockedReason()],
+        );
+      }
     }
     if (orderControl !== null && orderControl.ok === true) {
       toStatus = orderControl.toStatus;

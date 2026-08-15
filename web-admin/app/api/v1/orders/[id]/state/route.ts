@@ -9,12 +9,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
 
 const ORDER_STATE_SELECT = `
   id,
   tenant_org_id,
+  branch_id,
+  customer_id,
   order_no,
   current_status,
+  state_version,
   current_stage,
   status,
   service_category_code,
@@ -27,6 +31,8 @@ const ORDER_STATE_SELECT = `
   total_amount,
   total_paid_amount,
   outstanding_amount,
+  payment_type_code,
+  currency_code,
   is_order_quick_drop,
   has_split,
   has_issue,
@@ -111,7 +117,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     type InvoiceRow = { id: string; invoice_no: string | null; total: number; paid_amount: number };
 
-    const [itemsResult, allowedTransitions, invoicesResult] = await Promise.all([
+    const [itemsResult, allowedTransitions, invoicesResult, pickupRelease] = await Promise.all([
       supabase
         .from('org_order_items_dtl')
         .select(ORDER_ITEM_STATE_SELECT)
@@ -131,6 +137,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         .eq('order_id', id)
         .eq('tenant_org_id', tenantId)
         .order('created_at', { ascending: false }),
+      getPickupReleaseSummary({ tenantId, orderId: id }),
     ]);
 
     const { data: items, error: itemsError } = itemsResult;
@@ -174,6 +181,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       paymentSummary,
       primaryInvoiceId,
       invoices: orderInvoices,
+      pickupRelease,
       flags: {
         isQuickDrop: orderRow.is_order_quick_drop,
         hasSplit: orderRow.has_split,

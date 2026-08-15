@@ -38,7 +38,7 @@ import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 
 /** How the operator disposes of real collected payments on cancellation. */
 export const CANCEL_DISPOSITIONS = {
-  /** Route every COMPLETED payment into the (maker-checker) refund flow. */
+  /** Route every COMPLETED payment into the approval-gated refund flow. */
   REFUND: 'REFUND',
   /** Convert the collected total into an active customer credit note. */
   STORE_CREDIT: 'STORE_CREDIT',
@@ -298,7 +298,7 @@ export async function unwindOrderFinancialsOnCancel(
           creditNoteId = note.id;
         }
         // REFUND: rows are created post-tx via initiateRefund (own transaction,
-        // idempotency-keyed) so the maker-checker refund flow stays intact.
+        // idempotency-keyed) so the approval-gated refund flow stays intact.
         // KEEP_ON_ACCOUNT: no financial mutation — approval enforced upstream;
         // the outbox event below is the durable audit record.
       }

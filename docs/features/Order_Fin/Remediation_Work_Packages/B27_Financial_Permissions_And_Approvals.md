@@ -14,7 +14,7 @@ Missing permission codes for: price override, manual-discount thresholds, manual
 | File or symbol | Current behavior | Gap |
 |---|---|---|
 | lib/constants/permissions/*-perm.ts | refund pair, collect, verify, adjustment, voucher-reverse, write-off exist | listed actions ungated or ride broad codes |
-| §43 | no threshold approvals anywhere | maker-checker limited to refunds/write-off |
+| §43 | no threshold approvals anywhere | approval gating limited to refunds/write-off (maker-checker itself removed 2026-08-14 — permission alone gates approval) |
 
 ## Required outcome
 New `resource:action` codes (CRITICAL RULE 13) + seeding migration (RULE 11) for each gap; guards wired via `requirePermission`; threshold-approval pattern (amount-based) for discounts/variance; reason-mandatory on sensitive actions; RBAC role mapping via `/update-rbac-role` flow.

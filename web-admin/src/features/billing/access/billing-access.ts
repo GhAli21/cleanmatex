@@ -825,7 +825,7 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     actions: {
       approveRefund: {
-        label: 'Approve pending refund (maker≠checker enforced server-side)',
+        label: 'Approve pending refund (permission-gated server-side; the requester may approve their own)',
         requirement: {
           permissions: ['orders:approve_refund'],
           requireAllPermissions: true,

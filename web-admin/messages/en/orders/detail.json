@@ -192,8 +192,7 @@
         "REFUND_IDEMPOTENCY_CONFLICT": "This request key was already used with a different refund",
         "REFUND_AND_REBILL_NOT_AVAILABLE": "Refund-and-rebill is not available yet — it requires the dedicated order-reopen permission",
         "REFUND_CONTEXT_INVALID": "The refund context is missing or invalid",
-        "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount",
-        "REFUND_SELF_APPROVAL_BLOCKED": "A refund cannot be approved by the user who requested it"
+        "REFUND_REOPEN_INVALID": "The reopen amount must be between zero and the refund amount"
       },
       "initiate": {
         "openButton": "Refund…",

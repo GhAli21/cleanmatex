@@ -17,25 +17,88 @@
   - customer summary
   - timeline
 - If the order still has a balance and `payment_type_code = PAY_ON_COLLECTION`, the page shows the remaining amount beside the current status context
-- If the customer confirms receipt, or the order is already `Delivered`, the confirm button is disabled
+- A `ready` order changes to `ready_for_pickup` and shows **Ready for collection** only after staff use **Make available for pickup**. Before that release, it is internally Ready but must not be presented as collectable.
+- A customer can confirm a Ready for Pickup order only after this pickup release exists. If a pay-on-collection balance remains, the confirm action is unavailable until staff post the payment.
+- If the customer confirms receipt, or the order is already `Delivered`, the confirm button is disabled.
 
 ## Operator smoke checklist
 
 1. Apply `0437_sys_wf_public_confirm_actor.sql` and `0441_public_order_tracking_tokens.sql`.
-2. Open an order that can legitimately move from `ready` or `out_for_delivery` to `delivered`.
+2. Open an order that can legitimately move from `ready_for_pickup` or `out_for_delivery` to `delivered`.
 3. Copy the public tracking link from dashboard order details or scan the receipt QR code.
 4. Confirm the URL uses `/track/{token}` after `0441` is applied.
-5. If the order is `PAY_ON_COLLECTION` with balance due, confirm the page shows the remaining amount notice.
-6. Click `I have received my clothes`.
-7. Confirm the order becomes `delivered`.
-8. Refresh the page and confirm the button stays disabled and the status remains delivered.
-9. Repeat a negative smoke where the order is not in `ready` or `out_for_delivery`; the API should reject the action.
+5. For a Ready pickup order that has not been released, confirm the page does not show **Ready for collection** or a receipt-confirmation button.
+6. In the Ready dashboard, use **Make available for pickup** and confirm the order status changes from `ready` to `ready_for_pickup`. Refresh the public page and confirm it now shows **Ready for collection**.
+7. If the order is `PAY_ON_COLLECTION` with balance due, confirm the page shows the remaining amount notice and has no receipt-confirmation button.
+8. Click `I have received my clothes` only for an eligible released, paid pickup order.
+9. Confirm the order becomes `delivered`, then refresh the page and confirm the button stays disabled.
+10. Repeat a negative smoke where the order is not released, or is not in `ready` or `out_for_delivery`; the API should reject the action.
 
 ## Workflow canary reminders
 
 - Keep `workflow_engine_v2` disabled outside the test tenant until smoke passes.
 - Public confirm-received uses the V2 action path only when the canary is on.
 - When the canary is off, the public flow still works through the legacy workflow service with the same system actor.
+
+## Customer collection at the branch
+
+Use this flow only when the customer is physically at the branch and staff have
+handed over the items. It is different from making an order available on the
+pickup shelf.
+
+1. Open the Ready order and verify the customer/order number.
+2. Check the **Pickup availability** card. A Ready order has one of two states:
+   - **Not yet available for pickup**: use **Make available for pickup** when the items are staged for collection.
+   - **Available for pickup**: the release timestamp is shown; the release actions are no longer offered.
+3. If a **Collect remaining payment** button is shown, collect the balance using
+   the existing payment screen. Do not confirm the pickup before payment is
+   posted.
+4. If the customer is present now and the order is still **Not yet available for
+   pickup**, choose **Confirm customer pickup now**. This direct counter path
+   moves `ready` to `delivered` and creates one fulfilled pickup audit record in
+   the same transaction. Do not use it merely to stage an order on the shelf.
+5. If the order is already **Available for pickup**, use **Confirm customer
+   pickup**. This staged path moves `ready_for_pickup` to `delivered`.
+6. Optionally add a handover note and confirm the dialog.
+7. Verify the order is `delivered` and disappears from the Ready worklist after
+   refresh.
+
+**Make available for pickup** changes the order to `ready_for_pickup`. It does
+not mean the customer has received the items; only customer handover moves it
+to `delivered`.
+
+### Pickup smoke checks
+
+| Scenario | Expected result |
+|---|---|
+| Ready, not released | Worklist and detail show **Not yet available for pickup**; **Make available for pickup** is offered; public tracking does not claim collection is available. |
+| Ready, pickup released | Order status is `ready_for_pickup`; worklist and detail show **Available for pickup**; release time is visible in detail; duplicate pickup/delivery release actions are not offered and server requests are rejected. |
+| Ready, customer at counter | **Confirm customer pickup now** moves `ready` directly to `delivered` and creates one fulfilled pickup release in the same transaction. |
+| Paid Ready for Pickup order | Pickup confirmation succeeds; status is `delivered`; one pickup release is `fulfilled`; workflow history and outbox contain `CONFIRM_PICKUP`. |
+| Pay-on-collection balance due | Pickup confirmation is unavailable; collection UI opens; API returns `PICKUP_COLLECTION_REQUIRED` if forced. |
+| Public confirmation before release | Public API returns `PICKUP_RELEASE_REQUIRED`; public tracking cannot use the staff-only direct counter path, so no release, fulfilment, history, outbox, or status change is written. |
+| Stale second tab | Second confirmation returns `VERSION_CONFLICT`; no duplicate fulfilment/history/outbox record. |
+| Retry after connection loss | Retrying with the same idempotency key returns the original result without duplicate handover. |
+| Open partial release | API rejects with `PICKUP_PARTIAL_RELEASE_UNSUPPORTED`; no order status change occurs. |
+
+### Pickup migration rollout
+
+Before applying `0447_ready_for_pickup_workflow_status.sql` and
+`0448_pickup_cutover_integrity.sql`, temporarily pause new pickup releases and
+pickup handovers for the target environment. Apply both migrations in sequence,
+then run the local database suite before resuming work:
+
+```powershell
+cd web-admin
+npm run test:db-integration -- pickup-handover.db.test.ts
+```
+
+`0448` reconciles release records created during the `0447` cutover and stops the
+deployment if a Ready order has an open pickup release or a Ready for Pickup order
+has none. Resume pickup work only after the migration and database test succeed.
+Browser staff users keep the normal CSRF-protected flow. Mobile or third-party
+integrations must use a dedicated tenant user JWT with `orders:transition`, not a
+Supabase service-role key, and must retry timeouts with the same idempotency key.
 
 ## Cancel, hold, resume, and stop smoke
 

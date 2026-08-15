@@ -4,6 +4,7 @@
   "preparation": "Preparation",
   "processing": "Processing",
   "ready": "Ready",
+  "readyForPickup": "Ready for Pickup",
   "outForDelivery": "Out for Delivery",
   "delivered": "Delivered",
   "closed": "Closed",

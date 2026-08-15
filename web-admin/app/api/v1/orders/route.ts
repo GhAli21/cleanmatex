@@ -15,6 +15,7 @@ import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
+import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 
 /**
  * POST /api/v1/orders
@@ -467,19 +468,27 @@ export async function GET(request: NextRequest) {
             return { ...orderRow, org_order_items_dtl: items };
           })
         : orders;
+    const pickupReleaseSummaries = await getPickupReleaseSummaries({
+      tenantId,
+      orderIds: (normalizedOrders ?? []).map((order: { id: string }) => order.id),
+    });
+    const ordersWithPickupRelease = (normalizedOrders ?? []).map((order: Record<string, unknown>) => ({
+      ...order,
+      pickup_release: pickupReleaseSummaries.get(String(order.id)),
+    }));
 
     logger.info('List orders success', {
       feature: 'orders',
       action: 'list',
       tenantId,
       durationMs: duration,
-      count: normalizedOrders?.length || 0,
+      count: ordersWithPickupRelease.length,
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        orders: normalizedOrders || [],
+        orders: ordersWithPickupRelease,
         pagination: {
           page,
           limit,

@@ -79,6 +79,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           <option value="preparation">{t('statuses.preparation')}</option>
           <option value="processing">{t('statuses.processing')}</option>
           <option value="ready">{t('statuses.ready')}</option>
+          <option value="ready_for_pickup">{t('statuses.readyForPickup')}</option>
           <option value="out_for_delivery">{t('statuses.outForDelivery')}</option>
           <option value="delivered">{t('statuses.delivered')}</option>
         </select>

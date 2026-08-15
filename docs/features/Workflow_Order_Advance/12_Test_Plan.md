@@ -26,6 +26,9 @@
 | T18 | EN/AR action labels |
 | T19 | Public tracking token route resolves opaque `/track/{token}` links and falls back cleanly while `0441` is unapplied |
 | T20 | Public confirm-received shows pay-on-collection notice and disables once delivered |
+| T21 | Staff `CONFIRM_PICKUP` is idempotent, tenant-scoped, blocks a pay-on-collection balance, fulfils its pickup release, and emits one workflow history/outbox result |
+| T22 | A `ready_for_pickup` order without an active pickup release fails closed with `PICKUP_RELEASE_REQUIRED`; it must never manufacture an audit release during collection. |
+| T23 | Local database integration proves direct and staged pickup handovers, `state_version_at` audit consistency, and the single-open-pickup-release database constraint after `0447` and `0448`. |
 
 ## 2. V1.1 / V1.2 suites (planned, not V1.0 gate)
 
@@ -45,3 +48,7 @@ Unit / integration / e2e / canary parity as in IMPLEMENTATION_PLAN.
 
 - `web-admin/__tests__/lib/utils/public-order-tracking.test.ts`
 - `web-admin/__tests__/services/public-order-tracking.service.test.ts`
+- `web-admin/__tests__/services/pickup-completion.service.test.ts`
+- `web-admin/__tests__/api/v1/pickup-completion.route.test.ts`
+- `web-admin/__tests__/auth/request-permission-auth.test.ts`
+- `web-admin/__tests__/db-integration/pickup-handover.db.test.ts` (requires local `0447` and `0448`)

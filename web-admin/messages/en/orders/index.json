@@ -56,6 +56,7 @@
   "points": "points",
   "pickups": "Pickups",
   "ready": "Ready",
+  "readyForPickup": "Ready for Pickup",
   "cleaning": "Cleaning",
   "manageAndTrack": "Manage and track your orders",
   "loadingOrders": "Loading orders...",

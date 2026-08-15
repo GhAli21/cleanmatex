@@ -212,6 +212,14 @@
     "description": "Orders ready for pickup or delivery",
     "empty": "No orders ready",
     "statusBadge": "Ready",
+    "pickupRelease": {
+      "title": "Pickup availability",
+      "notReleased": "Not yet available for pickup",
+      "available": "Available for pickup",
+      "availableSince": "Made available {date}",
+      "notReleasedHelp": "Make this order available only when it is physically ready for the customer.",
+      "availableHelp": "This order is now Ready for Pickup. Confirm the handover when the items leave the counter."
+    },
     "rack": "Rack",
     "total": "Total",
     "itemsTitle": "Order Items",
@@ -277,6 +285,28 @@
     },
     "rackPlaceholder": "e.g., Rack A-12",
     "rackHelp": "Assign a rack so release for pickup/delivery can proceed."
+  },
+  "pickup": {
+    "title": "Customer pickup",
+    "description": "Confirm only after the items have been physically handed to the customer.",
+    "directTitle": "Customer at the counter?",
+    "directDescription": "Confirm pickup now only when the customer is physically receiving the items. This skips staging and records the handover immediately.",
+    "collectPayment": "Collect remaining payment",
+    "confirmAction": "Confirm customer pickup",
+    "directConfirmAction": "Confirm customer pickup now",
+    "notAvailable": "Customer pickup is not available for this order.",
+    "collectionRequiredTitle": "Payment is required before handover",
+    "collectionRequiredDetail": "Collect the remaining {amount} before confirming customer pickup.",
+    "collectionRequiredMessage": "Collect the remaining {amount} before confirming customer pickup.",
+    "dialogTitle": "Confirm customer pickup",
+    "dialogDescription": "Confirm that {customerName} has received order {orderNo}. This will mark the order as delivered.",
+    "directDialogTitle": "Confirm customer pickup now",
+    "directDialogDescription": "Confirm that {customerName} is receiving order {orderNo} at the counter now. This will record the pickup and mark the order as delivered.",
+    "notesLabel": "Handover notes (optional)",
+    "notesPlaceholder": "For example, collected by the customer at the branch counter",
+    "notesHelp": "This note is saved with the pickup audit record.",
+    "success": "Customer pickup confirmed. The order is now delivered.",
+    "failed": "Unable to confirm customer pickup."
   },
   "packing": {
     "description": "Orders pending packing",

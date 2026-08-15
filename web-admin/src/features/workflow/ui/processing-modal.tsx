@@ -117,6 +117,7 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     piece_status: pieceStatus || null,
     piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
+    issue_id: dbPiece.issue_id ?? null,
     // Preferences from org_order_preferences_dtl (color/brand columns are legacy)
     packingPrefCode: dbPiece.packing_pref_code || null,
     servicePrefs: dbPiece.service_prefs || undefined,

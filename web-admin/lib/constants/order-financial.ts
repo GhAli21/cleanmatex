@@ -235,8 +235,6 @@ export const REFUND_ERROR_CODES = {
   REFUND_CONTEXT_INVALID: 'REFUND_CONTEXT_INVALID',
   /** Operator reopen amount outside 0..refund_amount or supplied on a non-manual context. */
   REFUND_REOPEN_INVALID: 'REFUND_REOPEN_INVALID',
-  /** Maker-checker: the requester attempted to approve their own refund (B34). */
-  REFUND_SELF_APPROVAL_BLOCKED: 'REFUND_SELF_APPROVAL_BLOCKED',
   /** B9: order_fin_refund_execution is ON and method=CASH but no cash-drawer session was supplied at process time. */
   REFUND_CASH_DRAWER_SESSION_REQUIRED: 'REFUND_CASH_DRAWER_SESSION_REQUIRED',
   /** B9: the supplied cash-drawer session does not exist, isn't OPEN, or belongs to another tenant. */

@@ -41,6 +41,8 @@ export const TRANSITION_ACCESS: Record<string, Role[]> = {
   'preparing->processing': [WORKFLOW_ROLES.PREPARATION],
   'processing->ready': [WORKFLOW_ROLES.PROCESSING],
   'qa->ready': [WORKFLOW_ROLES.QA],
+  'ready->ready_for_pickup': [WORKFLOW_ROLES.RECEPTION, WORKFLOW_ROLES.DELIVERY],
+  'ready_for_pickup->delivered': [WORKFLOW_ROLES.RECEPTION, WORKFLOW_ROLES.DELIVERY],
   'ready->delivered': [WORKFLOW_ROLES.RECEPTION, WORKFLOW_ROLES.DELIVERY],
 };
 
@@ -66,4 +68,3 @@ export function hasTransitionAccess(userRole: Role, from: string, to: string): b
   //return allowedRoles.includes(userRole) || allowedRoles.includes(ROLES.ADMIN);
   return allowedRoles.includes(userRole) || userRole.toLowerCase() === WORKFLOW_ROLES.ADMIN.toLowerCase();
 }
-

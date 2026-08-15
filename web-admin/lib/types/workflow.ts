@@ -21,6 +21,7 @@ export type OrderStatus =
   | 'qa'
   | 'packing'
   | 'ready'
+  | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered'
   | 'closed'
@@ -39,6 +40,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'qa',
   'packing',
   'ready',
+  'ready_for_pickup',
   'out_for_delivery',
   'delivered',
   'closed',
@@ -136,6 +138,13 @@ export const STATUS_META: Record<OrderStatus, {
     color: 'green',
     icon: 'CheckCheck',
     description: 'Ready for pickup/delivery',
+  },
+  ready_for_pickup: {
+    label: 'Ready for Pickup',
+    labelAr: 'جاهز للاستلام',
+    color: 'teal',
+    icon: 'PackageCheck',
+    description: 'Released at the branch and awaiting customer collection',
   },
   out_for_delivery: {
     label: 'Out for Delivery',

@@ -73,7 +73,7 @@ Rollback: flag off → read-only hub returns; no data effects
 ## End-to-end operational flow
 
 1. User opens Initiate Refund on an order → picks the source leg → enters amount (cap shown live), destination, context, reason → submits with attempt key.
-2. Refund appears in the approval queue; a different user approves (self-approval blocked visibly and server-side).
+2. Refund appears in the approval queue; anyone holding `orders:approve_refund` approves — **including the requester** (maker-checker removed 2026-08-14 per owner rule; permission is the only gate).
 3. Processor executes → outcome shown (destination result); order Financial tab and refunds hub update; receipt/print reachable (B9 adds the voucher artifact).
 4. Errors are explicit (cap exceeded, lineage mismatch, conflict on retry); every action is audited and replay-safe.
 
@@ -93,7 +93,7 @@ Required verification gates: B1 §14 matrix green; B34 UI/idempotency/access-con
 
 **DONE (2026-07-17/18 overnight):**
 - Flag: `order_fin_refund_ui` added to `lib/types/tenant.ts` (FeatureFlags) + `lib/constants/feature-flags.ts` FLAG_CATALOG (independent, default **false** — key normalized from the spec's `order_fin.refund_ui` to catalog snake_case). **HQ-side seeding into `hq_ff_feature_flags_mst` is a cleanmatexsaas follow-up** (until then resolution returns the false default everywhere).
-- Maker≠checker: `approveRefund` service guard (requester cannot approve own refund → typed 403 `REFUND_SELF_APPROVAL_BLOCKED`, new REFUND_ERROR_CODES entry); approve/process routes map `RefundValidationError` to code+status.
+- ~~Maker≠checker guard~~ **REMOVED 2026-08-14** (owner rule: "if the user has the permission it's OK even if same user"). The `approveRefund` self-approval check, the `REFUND_SELF_APPROVAL_BLOCKED` error code, its EN/AR i18n, and the UI button-disable were all deleted; `orders:approve_refund` (route-level `requirePermission`) is now the only gate. Approve/process routes still map `RefundValidationError` to code+status.
 - Initiate dialog: `src/features/orders/ui/order-financial/refund-initiate-dialog.tsx` (Cmx components; leg picker from COMPLETED real payments + APPLIED credits with live per-leg remaining caps; goodwill option with mandatory reason; CmxMoneyField amount with cap hint + inline errors — no silent money mutation; destination select with record-only labeling for CASH/ORIGINAL_METHOD pre-B09; context selector limited to STANDARD/PRICE_ADJUSTMENT_GOODWILL pre-B27; reason-code select; per-attempt idempotency key; loading/error/success states) + pure model `src/features/orders/model/refund-initiate.ts` (cap math via the B02 aggregation module, validation, attempt key).
 - Financial tab wiring: `order-payments-credits-tables.tsx` — flag+permission-gated "Refund…" button + dialog mount (`useFeature('order_fin_refund_ui')` + `orders:process_refund`).
 - Refunds hub: `refunds-list-client.tsx` rewritten actionable (Approve on PENDING_APPROVAL with self-approval disabled+reason, Process on APPROVED; confirm dialog; double-click-safe; typed error mapping; permission-gated via `orders:approve_refund`/`orders:process_refund`); `app/dashboard/internal_fin/refunds/page.tsx` passes flag state + current user id.
