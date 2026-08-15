@@ -28,7 +28,7 @@ export default function DeliveryStopPage() {
 function DeliveryStopPageContent() {
   const params = useParams<{ id: string; stopId: string }>();
   const t = useTranslations('workflow.delivery');
-  const { data, error, isLoading } = useQuery<ApiResponse>({
+  const { data, error, isLoading, refetch } = useQuery<ApiResponse>({
     queryKey: ['delivery', 'stop', params.stopId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/delivery/stops/${params.stopId}`);
@@ -48,7 +48,7 @@ function DeliveryStopPageContent() {
         <Link href={`/dashboard/delivery/routes/${params.id}`}><ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />{t('stopDetail.backToRoute')}</Link>
       </CmxButton>
       {error instanceof Error ? <Alert variant="error" message={error.message} /> : null}
-      {data?.data ? <DeliveryStopDetail stop={data.data} /> : !error ? <CmxEmptyState title={t('stopDetail.notFound')} /> : null}
+      {data?.data ? <DeliveryStopDetail stop={data.data} onCompleted={() => { void refetch(); }} /> : !error ? <CmxEmptyState title={t('stopDetail.notFound')} /> : null}
     </div>
   );
 }

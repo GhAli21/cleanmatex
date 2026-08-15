@@ -15,8 +15,9 @@ agents:
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
 5. **Routes visible in the system menu MUST go through `/navigation` skill** — any new route, renamed route, moved route, or removed route that appears (or should appear) in the sidebar/system menu requires the **dual-write** workflow: update `web-admin/config/navigation.ts` AND generate a `sys_components_cd` migration. Load `/navigation` BEFORE touching `app/**/page.tsx` for a menu-visible route. See [Routes & Navigation Menu](#routes--navigation-menu) below.
-6. **React lint (mandatory before done)** — Read `docs/dev/rules/react-lint-verification-checklist.md`. Effects/Link: `react-effects-patterns.md`. RHF/TanStack/a11y: `react-rhf-and-table-lint.md`. Run `cd web-admin && npx eslint . --quiet` (must be 0). No `setState` in `useEffect`; no `form.watch()` — use `useWatch`; internal links → `next/link`.
-7. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
+6. **Keep Next.js dynamic slug names consistent within a route family** — for the same path depth, never mix names like `[id]` and `[routeId]` across pages or route handlers. For a new family, prefer `[id]` unless one domain-specific slug is already used consistently.
+7. **React lint (mandatory before done)** — Read `docs/dev/rules/react-lint-verification-checklist.md`. Effects/Link: `react-effects-patterns.md`. RHF/TanStack/a11y: `react-rhf-and-table-lint.md`. Run `cd web-admin && npx eslint . --quiet` (must be 0). No `setState` in `useEffect`; no `form.watch()` — use `useWatch`; internal links → `next/link`.
+8. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
 
 ## Folder Structure
 
@@ -75,6 +76,8 @@ export default async function OrdersPage() {
 }
 ```
 
+When adding or extending App Router paths, keep the dynamic segment name stable for the same URL depth across the whole route family. If `app/api/v1/delivery/routes/[id]` exists, related siblings at that depth must also use `[id]`, not `[routeId]`.
+
 ## Routes & Navigation Menu
 
 **Hard gate — load `/navigation` before writing route code that affects the menu.**
@@ -103,6 +106,12 @@ Load `/navigation` BEFORE writing code in any of these cases:
 - The route is **internal/hidden** (detail pages like `[id]`, modals routed via URL, debug-only pages) AND is not in `sys_components_cd`
 - You are editing the **body** of an existing page that already has its navigation entry wired
 - You are creating a **component** under `src/features/<module>/ui/` without adding a new route
+
+### Dynamic slug naming rule
+
+- Reuse the existing slug name for the same segment depth across related pages and route handlers.
+- Never mix names such as `[id]` and `[routeId]` for the same URL segment family.
+- For a new detail-route family, prefer `[id]` unless one domain-specific slug is already consistently established.
 
 ### Workflow when both skills apply
 

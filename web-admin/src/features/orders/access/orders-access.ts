@@ -1782,7 +1782,7 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
 },
   {
-    routePattern: '/dashboard/delivery/routes/[routeId]',
+    routePattern: '/dashboard/delivery/routes/[id]',
     label: 'Delivery Route Manifest',
     page: {
       permissions: ['drivers:read', 'orders:read'],
@@ -1804,7 +1804,7 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
-    routePattern: '/dashboard/delivery/routes/[routeId]/stops/[stopId]',
+    routePattern: '/dashboard/delivery/routes/[id]/stops/[stopId]',
     label: 'Delivery Stop Detail',
     page: {
       permissions: ['drivers:read', 'orders:read'],
@@ -1820,9 +1820,49 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'List active delivery proof methods',
+        method: 'GET',
+        path: '/api/v1/delivery/pod-methods',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['OTP is excluded until its complete verification capability is released.'],
+      },
+      {
+        label: 'Create private delivery evidence receipt',
+        method: 'POST',
+        path: '/api/v1/delivery/stops/[stopId]/evidence',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Private upload receipt only; no storage URL is returned.'],
+      },
+      {
+        label: 'Complete delivery atomically',
+        method: 'POST',
+        path: '/api/v1/delivery/stops/[stopId]/complete',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Consumes tenant-stop evidence receipts with POD, stop, route, payment, and workflow checks.'],
+      },
     ],
+    actions: {
+      completeDelivery: {
+        label: 'Complete delivery with proof',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Atomic server command with payment and evidence receipt gates.'],
+      },
+    },
     notes: [
-      'Read-only stop detail with payment and proof state. The Completion API remains the sole delivery writer.',
+      'Stop detail owns Delivery completion. All staff writes remain fail-closed until rollout gates are explicitly enabled.',
     ],
   },
   {

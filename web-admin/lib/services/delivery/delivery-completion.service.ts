@@ -25,6 +25,7 @@ export type DeliveryCompletionErrorCode =
   | 'STOP_ALREADY_DELIVERED'
   | 'POD_METHOD_INVALID'
   | 'POD_EVIDENCE_REQUIRED'
+  | 'POD_EVIDENCE_INVALID'
   | 'DELIVERY_COLLECTION_REQUIRED'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
@@ -61,8 +62,10 @@ export interface CompleteDeliveryCommand {
   expectedStateVersion: number;
   idempotencyKey: string;
   podMethodCode: string;
-  signatureUrl?: string;
-  photoUrls?: string[];
+  /** Optional operator context retained with the immutable proof record. */
+  podNotes?: string;
+  signatureEvidenceId?: string;
+  photoEvidenceIds?: string[];
 }
 
 /** Successful result persisted in the delivery idempotency record for safe replay. */
@@ -87,12 +90,17 @@ type LockedPod = {
   id: string;
 };
 
+type LockedEvidenceUpload = {
+  id: string;
+  evidence_type: 'signature' | 'photo';
+  object_key: string;
+};
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function normalisePodMethod(value: string): string {
   return value.trim().toUpperCase();
-}
-
-function hasNonBlankPhoto(photoUrls: readonly string[]): boolean {
-  return photoUrls.some((url) => url.trim().length > 0);
 }
 
 async function loadReplay(
@@ -167,11 +175,45 @@ async function lockPod(
   return rows[0] ?? null;
 }
 
+/**
+ * Locks only unexpired uploads that belong to the authenticated tenant and
+ * target stop, so object keys cannot be replayed across deliveries.
+ */
+async function lockEvidenceUploads(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  stopId: string,
+  evidenceIds: readonly string[],
+  now: Date,
+): Promise<LockedEvidenceUpload[]> {
+  if (evidenceIds.length === 0) return [];
+
+  return tx.$queryRaw<LockedEvidenceUpload[]>`
+    SELECT id, evidence_type, object_key
+    FROM public.org_dlv_ev_uploads_tr
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND stop_id = ${stopId}::uuid
+      AND id = ANY(${evidenceIds}::uuid[])
+      AND upload_status = 'uploaded'
+      AND is_active = true
+      AND rec_status = 1
+      AND expires_at > ${now}
+    FOR UPDATE
+  `;
+}
+
 async function validateEvidence(
   tx: PrismaTransactionClient,
   params: CompleteDeliveryCommand,
-  existingPod: LockedPod | null,
-): Promise<{ methodCode: string; otpVerified: boolean; photoUrls: string[] }> {
+  stopId: string,
+  now: Date,
+): Promise<{
+  methodCode: string;
+  otpVerified: boolean;
+  signatureObjectKey: string | null;
+  photoObjectKeys: string[];
+  uploadIds: string[];
+}> {
   const methodCode = normalisePodMethod(params.podMethodCode);
   // OTP is intentionally unavailable until its durable expiry and retry controls
   // are released; accepting it now would create an unverifiable delivery proof.
@@ -194,15 +236,46 @@ async function validateEvidence(
     throw new DeliveryCompletionError('POD_METHOD_INVALID', 'POD method is not supported.', 422);
   }
 
-  const signatureUrl = params.signatureUrl?.trim() ?? '';
-  const photoUrls = (params.photoUrls ?? []).map((url) => url.trim()).filter(Boolean);
+  const signatureEvidenceId = params.signatureEvidenceId?.trim() || null;
+  const photoEvidenceIds = (params.photoEvidenceIds ?? []).map((evidenceId) => evidenceId.trim());
+  if (
+    (signatureEvidenceId && !UUID_PATTERN.test(signatureEvidenceId)) ||
+    photoEvidenceIds.length > 10 ||
+    photoEvidenceIds.some((evidenceId) => !UUID_PATTERN.test(evidenceId))
+  ) {
+    throw new DeliveryCompletionError(
+      'POD_EVIDENCE_INVALID',
+      'Delivery evidence references are invalid.',
+      422,
+    );
+  }
+  const requestedIds = signatureEvidenceId ? [signatureEvidenceId, ...photoEvidenceIds] : photoEvidenceIds;
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Delivery evidence contains duplicate uploads.', 422);
+  }
+  const uploads = await lockEvidenceUploads(tx, params.tenantId, stopId, requestedIds, now);
+  if (uploads.length !== requestedIds.length) {
+    throw new DeliveryCompletionError(
+      'POD_EVIDENCE_INVALID',
+      'Delivery evidence is missing, expired, or belongs to another stop.',
+      422,
+    );
+  }
+  const signature = uploads.find((upload) => upload.id === signatureEvidenceId);
+  const photos = uploads.filter((upload) => photoEvidenceIds.includes(upload.id));
   const otpVerified = false;
 
-  if (methodCode === 'SIGNATURE' && !signatureUrl) {
+  if (signature && signature.evidence_type !== 'signature') {
+    throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Signature evidence has an invalid type.', 422);
+  }
+  if (photos.some((photo) => photo.evidence_type !== 'photo')) {
+    throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Photo evidence has an invalid type.', 422);
+  }
+  if (methodCode === 'SIGNATURE' && !signature) {
     throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'A signature is required.', 422);
-  } else if (methodCode === 'PHOTO' && !hasNonBlankPhoto(photoUrls)) {
+  } else if (methodCode === 'PHOTO' && photos.length === 0) {
     throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'At least one delivery photo is required.', 422);
-  } else if (methodCode === 'MIXED' && (!signatureUrl || !hasNonBlankPhoto(photoUrls))) {
+  } else if (methodCode === 'MIXED' && (!signature || photos.length === 0)) {
     throw new DeliveryCompletionError(
       'POD_EVIDENCE_REQUIRED',
       'A signature and at least one delivery photo are required.',
@@ -210,7 +283,13 @@ async function validateEvidence(
     );
   }
 
-  return { methodCode, otpVerified, photoUrls };
+  return {
+    methodCode,
+    otpVerified,
+    signatureObjectKey: signature?.object_key ?? null,
+    photoObjectKeys: photos.map((photo) => photo.object_key),
+    uploadIds: uploads.map((upload) => upload.id),
+  };
 }
 
 async function writePod(
@@ -218,14 +297,22 @@ async function writePod(
   params: CompleteDeliveryCommand,
   stop: LockedDeliveryStop,
   existingPod: LockedPod | null,
-  evidence: { methodCode: string; otpVerified: boolean; photoUrls: string[] },
+  evidence: {
+    methodCode: string;
+    otpVerified: boolean;
+    signatureObjectKey: string | null;
+    photoObjectKeys: string[];
+  },
   now: Date,
 ): Promise<string> {
   const podData = {
     pod_method_code: evidence.methodCode,
     otp_verified: evidence.otpVerified,
-    signature_url: params.signatureUrl?.trim() || null,
-    photo_urls: evidence.photoUrls as unknown as Prisma.InputJsonValue,
+    signature_url: null,
+    photo_urls: [] as unknown as Prisma.InputJsonValue,
+    pod_notes: params.podNotes?.trim() || null,
+    signature_object_key: evidence.signatureObjectKey,
+    photo_object_keys: evidence.photoObjectKeys as unknown as Prisma.InputJsonValue,
     verified_at: now,
     verified_by: params.actorUserId,
     updated_at: now,
@@ -258,6 +345,29 @@ async function writePod(
     select: { id: true },
   });
   return pod.id;
+}
+
+/** Marks evidence uploads consumed only after the POD write is part of the same transaction. */
+async function consumeEvidenceUploads(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  uploadIds: readonly string[],
+  actorUserId: string,
+  now: Date,
+): Promise<void> {
+  if (uploadIds.length === 0) return;
+  const consumed = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE public.org_dlv_ev_uploads_tr
+    SET upload_status = 'consumed', consumed_at = ${now}, consumed_by = ${actorUserId}::uuid,
+        updated_at = ${now}, updated_by = ${actorUserId}
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND id = ANY(${uploadIds}::uuid[])
+      AND upload_status = 'uploaded'
+    RETURNING id
+  `;
+  if (consumed.length !== uploadIds.length) {
+    throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Delivery evidence changed concurrently.', 409);
+  }
 }
 
 async function refreshRouteProgress(
@@ -309,7 +419,7 @@ async function refreshRouteProgress(
  * @returns replay-safe POD, stop, and workflow completion result
  * @throws {DeliveryCompletionError} when evidence, payment policy, or retry state blocks completion
  * @example
- * await completeDelivery({ tenantId, stopId, actorUserId, expectedStateVersion: 4, idempotencyKey, podMethodCode: 'OTP', otpCode: '1234' });
+ * await completeDelivery({ tenantId, stopId, actorUserId, expectedStateVersion: 4, idempotencyKey, podMethodCode: 'SIGNATURE', signatureEvidenceId });
  */
 export async function completeDelivery(
   params: CompleteDeliveryCommand,
@@ -318,8 +428,8 @@ export async function completeDelivery(
     stopId: params.stopId,
     expectedStateVersion: params.expectedStateVersion,
     podMethodCode: normalisePodMethod(params.podMethodCode),
-    signatureUrl: params.signatureUrl?.trim(),
-    photoUrls: params.photoUrls ?? [],
+    signatureEvidenceId: params.signatureEvidenceId?.trim(),
+    photoEvidenceIds: params.photoEvidenceIds ?? [],
   });
   const claim = await claimIdempotencyKey(
     params.tenantId,
@@ -373,10 +483,11 @@ export async function completeDelivery(
         );
       }
 
-      const existingPod = await lockPod(tx, params.tenantId, stop.stop_id);
-      const evidence = await validateEvidence(tx, params, existingPod);
       const now = new Date();
+      const existingPod = await lockPod(tx, params.tenantId, stop.stop_id);
+      const evidence = await validateEvidence(tx, params, stop.stop_id, now);
       const podId = await writePod(tx, params, stop, existingPod, evidence, now);
+      await consumeEvidenceUploads(tx, params.tenantId, evidence.uploadIds, params.actorUserId, now);
 
       const stopUpdate = await tx.org_dlv_stops_dtl.updateMany({
         where: {
@@ -407,8 +518,8 @@ export async function completeDelivery(
           podId,
           podMethodCode: evidence.methodCode,
           otpVerified: evidence.otpVerified,
-          signatureUrl: params.signatureUrl?.trim() || null,
-          photoUrls: evidence.photoUrls,
+          signatureObjectKey: evidence.signatureObjectKey,
+          photoObjectKeys: evidence.photoObjectKeys,
         },
         idempotencyKey: `delivery:${params.idempotencyKey}`,
       }, tx);

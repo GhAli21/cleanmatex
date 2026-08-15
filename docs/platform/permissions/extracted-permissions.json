@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-15T05:52:32.081Z",
+  "extractedAt": "2026-08-15T08:11:28.799Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -392,6 +392,14 @@
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
       "line": 102,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/workflow/ui/FastItemizer.tsx",
+      "route": "src/features/workflow/ui/FastItemizer.tsx",
+      "permission": "orders:update",
+      "component": "useHasPermissionCode",
+      "line": 48,
       "surface": "screen"
     },
     {

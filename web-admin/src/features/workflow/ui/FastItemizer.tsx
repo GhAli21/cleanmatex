@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { OrderItem, OrderWithDetails } from '@/types/order';
 import { CmxButton } from '@ui/primitives';
-import { PresetButtons } from './PresetButtons';
 import { ItemList } from './ItemList';
 import { PricePreview } from './PricePreview';
 import { PrintItemLabels } from './PrintItemLabels';
@@ -14,19 +13,11 @@ import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useMessage } from '@ui/feedback';
 
 interface FastItemizerProps {
   order: OrderWithDetails;
-  productCatalog: Array<{
-    id: string;
-    name: string;
-    name2?: string;
-    price: number;
-    expressPrice?: number;
-    serviceCategory: string;
-    unit: string;
-  }>;
 }
 
 const PREPARATION_ELIGIBLE = new Set(['intake', 'preparing', 'preparation']);
@@ -45,35 +36,24 @@ function canCompletePreparation(order: OrderWithDetails): boolean {
 /**
  * Preparation itemizer — quick-add items, edit pieces/prefs, complete to processing.
  */
-export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
+export function FastItemizer({ order }: FastItemizerProps) {
   const router = useRouter();
   const t = useTranslations('workflow');
+  const tOrderActions = useTranslations('orders.actions');
   const { showSuccess, showErrorFrom, showInfo } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
   const { token: csrfToken } = useCSRFToken();
   const { data: wfContext } = useWorkflowContext(order?.id ?? null);
+  const canUpdate = useHasPermissionCode('orders:update');
 
-  // Separate busy flags so quick-add presets do not look like "Completing...".
-  const [isAddingItems, setIsAddingItems] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [items, setItems] = useState<OrderItem[]>(order.items || []);
   const [pricePreviewNonce, setPricePreviewNonce] = useState(0);
 
   const bumpPricePreview = () => setPricePreviewNonce((n) => n + 1);
   const isCompletingBusy = isCompleting || transition.isPending;
-  const busy = isAddingItems || isCompletingBusy;
-
-  const mergeCreatedItems = (created: OrderItem[]) => {
-    setItems((prev) => {
-      const byId = new Map(prev.map((item) => [item.id, item]));
-      for (const item of created) {
-        byId.set(item.id, item);
-      }
-      return Array.from(byId.values());
-    });
-    bumpPricePreview();
-  };
+  const busy = isCompletingBusy;
 
   const handleComplete = async () => {
     if (busy) return;
@@ -157,38 +137,24 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
-        <PresetButtons
-          productCatalog={productCatalog}
-          disabled={busy}
-          onAddPreset={async (presetItems) => {
-            if (busy) return;
-            setIsAddingItems(true);
-            try {
-              const response = await fetch(`/api/v1/preparation/${order.id}/items`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...getCSRFHeader(csrfToken),
-                },
-                body: JSON.stringify({ items: presetItems }),
-              });
-              const res = await response.json();
-              if (!response.ok || !res.success) {
-                throw new Error(res.error || t('preparation.detail.addItemsFailed'));
-              }
-              mergeCreatedItems((res.data?.items ?? []) as OrderItem[]);
-            } catch (error) {
-              showErrorFrom(error, { fallback: t('preparation.detail.addItemsFailed') });
-            } finally {
-              setIsAddingItems(false);
-            }
-          }}
-        />
-
         {items.length === 0 ? (
-          <p className="text-sm text-gray-600 rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-4">
-            {t('preparation.detail.noItemsYet')}
-          </p>
+          <div className="space-y-3 rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-4">
+            <p className="text-sm text-gray-600">
+              {t('preparation.detail.noItemsYet')}
+            </p>
+            {canUpdate ? (
+              <CmxButton
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  router.push(`/dashboard/orders/${order.id}/edit`);
+                }}
+              >
+                {tOrderActions('buttons.editOrder')}
+              </CmxButton>
+            ) : null}
+          </div>
         ) : (
           <ItemList
             orderId={order.id}

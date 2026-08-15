@@ -5454,6 +5454,89 @@ export type Database = {
           },
         ]
       }
+      org_dlv_ev_uploads_tr: {
+        Row: {
+          consumed_at: string | null
+          consumed_by: string | null
+          content_type: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          evidence_type: string
+          expires_at: string
+          file_size_bytes: number
+          id: string
+          is_active: boolean
+          object_key: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          sha256_hex: string
+          stop_id: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          upload_status: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          content_type: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          evidence_type: string
+          expires_at: string
+          file_size_bytes: number
+          id?: string
+          is_active?: boolean
+          object_key: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sha256_hex: string
+          stop_id: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          upload_status?: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          evidence_type?: string
+          expires_at?: string
+          file_size_bytes?: number
+          id?: string
+          is_active?: boolean
+          object_key?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          sha256_hex?: string
+          stop_id?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          upload_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dlv_ev_upload_stop"
+            columns: ["stop_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_dlv_stops_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_dlv_pod_tr: {
         Row: {
           branch_id: string | null
@@ -5465,11 +5548,14 @@ export type Database = {
           metadata: Json | null
           otp_code: string | null
           otp_verified: boolean | null
+          photo_object_keys: Json
           photo_urls: Json | null
           pod_method_code: string
+          pod_notes: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
+          signature_object_key: string | null
           signature_url: string | null
           stop_id: string
           tenant_org_id: string
@@ -5489,11 +5575,14 @@ export type Database = {
           metadata?: Json | null
           otp_code?: string | null
           otp_verified?: boolean | null
+          photo_object_keys?: Json
           photo_urls?: Json | null
           pod_method_code: string
+          pod_notes?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          signature_object_key?: string | null
           signature_url?: string | null
           stop_id: string
           tenant_org_id: string
@@ -5513,11 +5602,14 @@ export type Database = {
           metadata?: Json | null
           otp_code?: string | null
           otp_verified?: boolean | null
+          photo_object_keys?: Json
           photo_urls?: Json | null
           pod_method_code?: string
+          pod_notes?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          signature_object_key?: string | null
           signature_url?: string | null
           stop_id?: string
           tenant_org_id?: string

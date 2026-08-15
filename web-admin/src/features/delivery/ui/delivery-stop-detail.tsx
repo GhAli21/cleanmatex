@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { ExternalLink, FileCheck2, MapPin, ShieldCheck, WalletCards } from 'lucide-react';
-import { Alert, CmxButton } from '@ui/primitives';
+import { ExternalLink, FileCheck2, MapPin, WalletCards } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxStatusBadge } from '@ui/feedback';
 import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
+import { DeliveryCompletionPanel } from './delivery-completion-panel';
 
 interface DeliveryStopDetailProps {
   stop: DeliveryStopView;
+  onCompleted: () => void;
 }
 
 function mapHref(stop: DeliveryStopView): string {
@@ -24,7 +26,7 @@ function mapHref(stop: DeliveryStopView): string {
  * command. The command remains server-controlled and is never a screen-local
  * status write.
  */
-export function DeliveryStopDetail({ stop }: DeliveryStopDetailProps) {
+export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProps) {
   const t = useTranslations('workflow.delivery');
   const hasBalance = stop.order.outstandingAmount > 0.001;
   const isDelivered = stop.statusCode === 'delivered';
@@ -119,20 +121,7 @@ export function DeliveryStopDetail({ stop }: DeliveryStopDetailProps) {
           </CmxCardContent>
         </CmxCard>
 
-        <CmxCard>
-          <CmxCardHeader>
-            <CmxCardTitle className="flex items-center gap-2 text-base">
-              <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-              {t('completion.title')}
-            </CmxCardTitle>
-          </CmxCardHeader>
-          <CmxCardContent className="space-y-3">
-            <Alert variant="info" title={t('completion.holdTitle')} message={t('completion.holdDescription')} />
-            <CmxButton className="w-full" disabled>
-              {isDelivered ? t('completion.delivered') : t('completion.confirm')}
-            </CmxButton>
-          </CmxCardContent>
-        </CmxCard>
+        <DeliveryCompletionPanel stop={stop} onCompleted={onCompleted} />
       </aside>
     </div>
   );

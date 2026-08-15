@@ -29,6 +29,15 @@
 | T21 | Staff `CONFIRM_PICKUP` is idempotent, tenant-scoped, blocks a pay-on-collection balance, fulfils its pickup release, and emits one workflow history/outbox result |
 | T22 | A `ready_for_pickup` order without an active pickup release fails closed with `PICKUP_RELEASE_REQUIRED`; it must never manufacture an audit release during collection. |
 | T23 | Local database integration proves direct and staged pickup handovers, `state_version_at` audit consistency, and the single-open-pickup-release database constraint after `0447` and `0448`. |
+| T24 | Delivery evidence upload accepts only JPEG/PNG/WebP bytes, binds every receipt to one tenant and active stop, and removes the private object if receipt persistence fails. |
+| T25 | Delivery completion rejects malformed, expired, cross-stop, duplicate, or over-limit evidence receipts and consumes valid receipts atomically with POD, stop, route, and workflow writes. |
+| T26 | An order created under a tenant/branch assignment snapshots the exact active PUBLISHED profile/version; later HQ publish or reassignment does not alter that order. |
+| T27 | Invalid, retired, unpublished, or ambiguous profile assignments fail order creation deterministically and write no partial order. |
+| T28 | Server-side worklist, screen-contract, available-actions, and execute-action requests reject a profile-disabled screen/action even when invoked by a forged/deep-link/mobile request. |
+| T29 | Profile capability flags gate initial routing, worklists, and commands; conflicting legacy template toggles cannot broaden a snapshot order's permissions. |
+| T30 | Tenant, branch, and service assignment precedence is deterministic and tenant-isolated; a mixed-service order with conflicting service profiles is rejected or split according to the approved one-order/one-profile policy. |
+| T31 | Historic orders without a profile snapshot retain documented legacy compatibility and are never auto-backfilled or rebound by profile reassignment. |
+| T32 | Profile-context queries are indexed/bounded and preserve optimistic-concurrency, idempotency, audit, and outbox behavior under concurrent commands. |
 
 ## 2. V1.1 / V1.2 suites (planned, not V1.0 gate)
 
@@ -52,3 +61,6 @@ Unit / integration / e2e / canary parity as in IMPLEMENTATION_PLAN.
 - `web-admin/__tests__/api/v1/pickup-completion.route.test.ts`
 - `web-admin/__tests__/auth/request-permission-auth.test.ts`
 - `web-admin/__tests__/db-integration/pickup-handover.db.test.ts` (requires local `0447` and `0448`)
+- `web-admin/__tests__/services/delivery-evidence.service.test.ts`
+- `web-admin/__tests__/services/delivery-completion.service.test.ts`
+- `web-admin/__tests__/api/v1/delivery-safety.route.test.ts`

@@ -15,15 +15,16 @@ import {
 } from '@/lib/services/delivery/delivery-completion.service';
 import {
   DELIVERY_HARDENING_ERROR,
-  STAFF_DELIVERY_WRITES_ENABLED,
+  STAFF_DELIVERY_COMPLETION_ENABLED,
 } from '@/lib/config/delivery-safety';
 
 const completeDeliverySchema = z.object({
   expectedStateVersion: z.number().int().nonnegative(),
   idempotencyKey: z.string().trim().min(1).max(200),
   podMethodCode: z.string().trim().min(1).max(50),
-  signatureUrl: z.string().trim().min(1).max(2048).optional(),
-  photoUrls: z.array(z.string().trim().min(1).max(2048)).max(10).optional(),
+  podNotes: z.string().trim().max(1000).optional(),
+  signatureEvidenceId: z.string().uuid().optional(),
+  photoEvidenceIds: z.array(z.string().uuid()).max(10).optional(),
 });
 
 /**
@@ -45,7 +46,7 @@ export async function POST(
 
   const auth = await requireAllPermissions(['delivery:pod', 'orders:transition'])(request);
   if (auth instanceof NextResponse) return auth;
-  if (!STAFF_DELIVERY_WRITES_ENABLED) {
+  if (!STAFF_DELIVERY_COMPLETION_ENABLED) {
     return NextResponse.json(DELIVERY_HARDENING_ERROR, { status: 503 });
   }
 

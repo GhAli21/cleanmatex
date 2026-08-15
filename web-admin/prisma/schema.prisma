@@ -4910,6 +4910,9 @@ model org_dlv_pod_tr {
   otp_verified      Boolean?          @default(false)
   signature_url     String?
   photo_urls        Json?             @default("[]")
+  pod_notes         String?
+  signature_object_key String?
+  photo_object_keys Json               @default("[]")
   verified_at       DateTime?         @db.Timestamp(6)
   verified_by       String?           @db.Uuid
   metadata          Json?             @default("{}")
@@ -5034,6 +5037,7 @@ model org_dlv_stops_dtl {
   updated_by         String?            @db.VarChar(120)
   updated_info       String?
   org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
+  org_dlv_ev_uploads_tr org_dlv_ev_uploads_tr[]
   org_dlv_pod_tr     org_dlv_pod_tr[]
   org_orders_mst     org_orders_mst     @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
   org_dlv_routes_mst org_dlv_routes_mst @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
@@ -5045,6 +5049,39 @@ model org_dlv_stops_dtl {
   @@index([tenant_org_id, scheduled_time], map: "idx_dlv_stops_scheduled")
   @@index([tenant_org_id, branch_id], map: "idx_dlv_stops_branch")
   @@index([route_id, stop_status_code], map: "idx_dlv_stops_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_dlv_ev_uploads_tr {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String            @db.Uuid
+  stop_id          String            @db.Uuid
+  evidence_type    String
+  object_key       String
+  content_type     String
+  file_size_bytes  Int
+  sha256_hex       String
+  upload_status    String            @default("uploaded")
+  expires_at       DateTime          @db.Timestamp(6)
+  consumed_at      DateTime?         @db.Timestamp(6)
+  consumed_by      String?           @db.Uuid
+  is_active        Boolean           @default(true)
+  rec_status       Int               @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?         @db.Timestamp(6)
+  updated_by       String?
+  updated_info     String?
+  org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_dlv_ev_upload_stop")
+
+  @@unique([tenant_org_id, object_key], map: "uq_dlv_ev_upload_key")
+  @@index([tenant_org_id, stop_id, upload_status], map: "idx_dlv_ev_up_stop")
+  @@index([tenant_org_id, expires_at], map: "idx_dlv_ev_up_expiry")
   @@schema("public")
 }
 

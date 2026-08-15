@@ -41,7 +41,7 @@
       "bagsLabel": "Bags",
       "statusLabel": "Status",
       "fallbackItem": "Item",
-      "noItemsYet": "No items yet. Use quick add or the catalog to add items before completing preparation.",
+      "noItemsYet": "No items yet. Use Edit Order to add items before completing preparation.",
       "cannotPrepareTitle": "This order is not available for preparation",
       "cannotPrepareBody": "Preparation is only available for orders in intake or preparing status. Current status: {status}.",
       "viewProcessing": "Open in Processing",
@@ -52,11 +52,6 @@
       "alreadyPastPreparation": "This order has already left preparation",
       "draftAlreadySaved": "Piece notes, rack locations, and preferences save as you edit. No separate draft is required.",
       "completing": "Completing…"
-    },
-    "presets": {
-      "addShirts": "+{count} Shirts",
-      "addPants": "+{count} Pants",
-      "noCatalog": "No products available for quick add"
     },
     "workflowContextTitle": "Workflow context",
     "workflowFlags": {
@@ -448,7 +443,34 @@
       "holdTitle": "Completion remains safety-controlled",
       "holdDescription": "Delivery confirmation is unavailable until the server-side proof, payment, route, and workflow release gates are approved together.",
       "confirm": "Confirm delivery",
-      "delivered": "Already delivered"
+      "delivered": "Already delivered",
+      "paymentBlockedTitle": "Collect payment before delivery",
+      "paymentBlockedDescription": "The outstanding order balance must be collected through the financial collection screen before this delivery can be completed.",
+      "permissionDenied": "You do not have permission to complete this delivery.",
+      "methodLabel": "Proof method",
+      "methodPlaceholder": "Select a proof method",
+      "methodsLoading": "Loading proof methods...",
+      "methodsEmpty": "No proof methods are available",
+      "signatureLabel": "Customer signature image",
+      "signatureHelp": "Upload a clear image of the signed proof. JPEG, PNG, or WebP only; maximum 10 MB.",
+      "photosLabel": "Delivery photos",
+      "photosHelp": "Select one to {count} clear delivery photos. JPEG, PNG, or WebP only; maximum 10 MB each.",
+      "notesLabel": "Delivery notes (optional)",
+      "notesPlaceholder": "Add any handover context for the delivery audit record",
+      "submitting": "Saving proof and completing delivery...",
+      "messages": {
+        "completed": "Delivery completed and recorded.",
+        "failed": "Unable to complete delivery. Check the required proof and try again."
+      },
+      "errors": {
+        "methodsLoadFailed": "Unable to load proof methods. Refresh and try again.",
+        "methodRequired": "Select a proof method before completing delivery.",
+        "signatureRequired": "A customer signature image is required for this proof method.",
+        "photoRequired": "At least one delivery photo is required for this proof method.",
+        "photoLimit": "You can select up to {count} delivery photos.",
+        "collectionRequired": "Collect the remaining payment before completing this delivery.",
+        "staleVersion": "This delivery changed in another session. The latest stop details have been loaded."
+      }
     }
   },
   "actions": {

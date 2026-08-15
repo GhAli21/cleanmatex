@@ -5,7 +5,7 @@
 | Writing... | Mandatory rule |
 |---|---|
 | SQL / migration / function | Apply **Database Quick Rules** (see below) |
-| Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below). **Use `cmxMessage` / `useMessage()`** for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`) |
+| Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below). **Use `cmxMessage` / `useMessage()`** for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`). Keep Next.js dynamic slug names consistent within the same route family |
 | i18n / translation | Add/update matching keys under `web-admin/messages/en/**` AND `web-admin/messages/ar/**`. Pass resolved strings into `cmxMessage` when showing feedback |
 | API route / service / backend | Use service layer, always filter by `tenant_org_id` |
 | Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
@@ -92,6 +92,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 |---|---|
 | Any SQL, migration, table, index, function | **Database Quick Rules** below |
 | Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only; **`cmxMessage` / `useMessage()`** for applicable feedback |
+| Any Next.js App Router page or route handler | Reuse the existing dynamic slug name for the same path depth. Never mix names like `[id]` and `[routeId]` for the same segment family; for a new family, prefer `[id]` unless the whole family consistently uses a domain-specific slug |
 | Any i18n key, translation, bilingual text | Add/update matching keys under `web-admin/messages/en/**` + `web-admin/messages/ar/**`; pass resolved strings into `cmxMessage` when showing feedback |
 | Any API route, service, backend logic | Service layer, tenant_org_id filter mandatory |
 | Any query touching `org_*` tables | Filter by `tenant_org_id` — NO EXCEPTIONS |
@@ -209,6 +210,7 @@ npm run build                      # Build (run after changes)
 - **Do NOT import from `@/components/ui` or `@ui/compat`** — ESLint will fail the build.
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
 - **Mandatory feedback API:** use `cmxMessage` / `useMessage()` from `@ui/feedback` for all applicable user-facing success/error/warning/info/confirm feedback (`docs/dev/rules/cmx-message.md`). Pass i18n-resolved strings. Do not use legacy `showSuccessToast` / raw `toast()` / `alert()` in new or edited feature code.
+- **Next.js dynamic slug rule:** within one route family, the same path segment depth must keep the same slug name across pages and route handlers. Do not mix `[id]` and `[routeId]` under the same `.../routes/` segment. For new detail-route families, prefer `[id]` unless a domain-specific slug is already consistently established.
 - Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)

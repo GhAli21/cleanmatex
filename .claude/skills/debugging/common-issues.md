@@ -840,7 +840,7 @@ const { id: orderId } = await params;
 ```
 Then delete the now-empty conflicting folder.
 
-**Prevention**: When adding a new dynamic API route under an existing dynamic segment (e.g. `orders/`), always check what slug name the sibling `[...]` folder uses and match it exactly. Never introduce a second `[slug]` folder at the same level with a different name.
+**Prevention**: When adding a new dynamic API route or page under an existing dynamic segment (e.g. `orders/`), always check what slug name the sibling `[...]` folder uses and match it exactly. Never introduce a second `[slug]` folder at the same level with a different name. For a new route family, prefer `[id]` unless one domain-specific slug is already consistently established across that family.
 
 ---
 

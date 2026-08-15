@@ -15,6 +15,12 @@ import {
   stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
 import { resolveOrderControlTransition } from '@/lib/workflow/order-control-transition';
+import {
+  loadPinnedGraphForProfileVersion,
+  isPinnedScreenStatusMember,
+  loadPinnedActionTransitions,
+  type PinnedGraphDefinition,
+} from '@/lib/services/workflow/pinned-workflow-graph.service';
 
 // ─── Error types ───────────────────────────────────────────────────────────
 
@@ -102,6 +108,8 @@ type LockedOrderRow = {
   preparation_status: string | null;
   rack_location: string | null;
   hold_from_status: string | null;
+  wf_profile_id: string | null;
+  wf_version_no: number | null;
 };
 
 type ActionTransitionRow = {
@@ -204,7 +212,9 @@ async function loadOrderForRead(
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
       rack_location,
-      hold_from_status
+      hold_from_status,
+      wf_profile_id::text,
+      wf_version_no
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -231,7 +241,9 @@ async function loadOrderForUpdate(
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
       rack_location,
-      hold_from_status
+      hold_from_status,
+      wf_profile_id::text,
+      wf_version_no
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -242,6 +254,36 @@ async function loadOrderForUpdate(
     throw new WorkflowEngineError('NOT_FOUND', 'Order not found');
   }
   return row;
+}
+
+async function resolvePinnedGraphForOrder(
+  order: LockedOrderRow,
+): Promise<PinnedGraphDefinition | null> {
+  if (!order.wf_profile_id || order.wf_version_no == null) return null;
+  return loadPinnedGraphForProfileVersion(order.wf_profile_id, order.wf_version_no);
+}
+
+async function isScreenStatusMemberForOrder(
+  order: LockedOrderRow,
+  screen: string,
+  statusCode: string,
+  pinned?: PinnedGraphDefinition | null,
+): Promise<boolean> {
+  const graph = pinned ?? (await resolvePinnedGraphForOrder(order));
+  if (graph) return isPinnedScreenStatusMember(graph, screen, statusCode);
+  return isScreenStatusMember(screen, statusCode);
+}
+
+async function loadActionTransitionsForOrder(
+  order: LockedOrderRow,
+  screen: string,
+  fromStatus: string,
+  actionCode?: string,
+  pinned?: PinnedGraphDefinition | null,
+): Promise<ActionTransitionRow[]> {
+  const graph = pinned ?? (await resolvePinnedGraphForOrder(order));
+  if (graph) return loadPinnedActionTransitions(graph, screen, fromStatus, actionCode);
+  return loadActionTransitions(screen, fromStatus, actionCode);
 }
 
 async function isScreenStatusMember(
@@ -544,12 +586,14 @@ export async function listAvailableActions(
     return { stateVersion, currentStatus: '', actions: [] };
   }
 
-  const isMember = await isScreenStatusMember(screen, currentStatus);
+  const pinned = await resolvePinnedGraphForOrder(order);
+
+  const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, pinned);
   if (!isMember) {
     return { stateVersion, currentStatus, actions: [] };
   }
 
-  const transitions = await loadActionTransitions(screen, currentStatus);
+  const transitions = await loadActionTransitionsForOrder(order, screen, currentStatus, undefined, pinned);
   const hasReleaseAction = transitions.some((transition) => isReleaseAction(transition.action_code));
   const openRelease = hasReleaseAction
     ? await findOpenOrderRelease({ tenantId: params.tenantId, orderId: params.orderId })
@@ -652,44 +696,22 @@ export async function executeAction(
       throw new WorkflowEngineError('ACTION_NOT_ALLOWED', 'Order has no current status.');
     }
 
-    const isMember = await tx.$queryRaw<{ ok: number }[]>`
-      SELECT 1 AS ok
-      FROM public.sys_wf_screen_status_cd
-      WHERE screen_key = ${screen}
-        AND status_code = ${currentStatus}
-        AND COALESCE(is_active, true) = true
-      LIMIT 1
-    `;
-    if (isMember.length === 0) {
+    const pinned = await resolvePinnedGraphForOrder(order);
+    const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, pinned);
+    if (!isMember) {
       throw new WorkflowEngineError(
         'ACTION_NOT_ALLOWED',
         `Status "${currentStatus}" is not valid for screen "${screen}".`,
       );
     }
 
-    const transitions = await tx.$queryRaw<ActionTransitionRow[]>`
-      SELECT
-        a.action_code,
-        a.name,
-        a.name2,
-        a.permission_code AS action_permission_code,
-        t.from_status,
-        t.to_status,
-        t.gate_set_code,
-        t.permission_code AS transition_permission_code
-      FROM public.sys_wf_action_trans_cd at
-      INNER JOIN public.sys_wf_actions_cd a
-        ON a.action_code = at.action_code
-      INNER JOIN public.sys_wf_transitions_cd t
-        ON t.id = at.transition_id
-      WHERE at.screen_key = ${screen}
-        AND COALESCE(at.is_active, true) = true
-        AND COALESCE(a.is_active, true) = true
-        AND COALESCE(t.is_active, true) = true
-        AND t.from_status = ${currentStatus}
-        AND a.action_code = ${params.actionCode}
-      ORDER BY t.to_status
-    `;
+    const transitions = await loadActionTransitionsForOrder(
+      order,
+      screen,
+      currentStatus,
+      params.actionCode,
+      pinned,
+    );
 
     const preferredRaw = params.input?.preferredToStatus ?? params.input?.toStatus;
     const preferredToStatus =

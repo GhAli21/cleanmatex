@@ -57,6 +57,10 @@ import {
   isActiveIssueType,
   isActivePriority,
 } from '@/lib/services/lookups';
+import {
+  resolveWorkflowProfileBindingWithPrisma,
+  resolveWorkflowProfileBindingWithSupabase,
+} from '@/lib/services/workflow/workflow-profile-resolution.service';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -335,6 +339,8 @@ export class OrderService {
     physicalIntakeStatus?: CreateOrderParams['physicalIntakeStatus'];
     initialWorkflowScreen?: string;
     sourceRow: OrderSourceCatalogRow;
+    wfProfileId?: string | null;
+    wfVersionNo?: number | null;
   }): Promise<{
     v_initialStatus: string;
     v_transitionFrom: string;
@@ -355,6 +361,11 @@ export class OrderService {
       sourceRow,
     } = args;
 
+    const pinnedProfile = {
+      wfProfileId: args.wfProfileId ?? null,
+      wfVersionNo: args.wfVersionNo ?? null,
+    };
+
     const isRetailOnlyOrder =
       items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
 
@@ -363,6 +374,7 @@ export class OrderService {
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: true,
+        ...pinnedProfile,
       });
       const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
       return {
@@ -392,6 +404,7 @@ export class OrderService {
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: false,
+        ...pinnedProfile,
       });
       const contractStatus = resolved.initialStatus;
       return {
@@ -494,6 +507,11 @@ export class OrderService {
         return { success: false, error: sourceValidated.error };
       }
 
+      const workflowProfileBinding = await resolveWorkflowProfileBindingWithSupabase(supabase, {
+        tenantId,
+        branchId,
+      });
+
       const wf = await this.computeCreateOrderWorkflowState({
         tenantId,
         items,
@@ -503,6 +521,8 @@ export class OrderService {
         physicalIntakeStatus: params.physicalIntakeStatus,
         initialWorkflowScreen: params.initialWorkflowScreen,
         sourceRow: sourceValidated.row,
+        wfProfileId: workflowProfileBinding?.profileId,
+        wfVersionNo: workflowProfileBinding?.versionNo,
       });
 
       const {
@@ -595,7 +615,11 @@ export class OrderService {
         .eq('is_active', true)
         .single();
 
-      const v_workflowTemplateId = templateData?.template_id || null;
+      const workflowProfile = workflowProfileBinding ?? (await resolveWorkflowProfileBindingWithSupabase(supabase, {
+        tenantId,
+        branchId,
+      }));
+      const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? templateData?.template_id ?? null;
 
       const insertPayload: Record<string, unknown> = {
         tenant_org_id: tenantId,
@@ -605,6 +629,8 @@ export class OrderService {
         order_no: orderNo,
         status: v_orderStatus,
         workflow_template_id: v_workflowTemplateId,
+        wf_profile_id: workflowProfile?.profileId ?? null,
+        wf_version_no: workflowProfile?.versionNo ?? null,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',
@@ -1147,6 +1173,11 @@ export class OrderService {
       return { success: false, error: sourceValidated.error };
     }
 
+    const workflowProfileBinding = await resolveWorkflowProfileBindingWithPrisma(tx, {
+      tenantId,
+      branchId,
+    });
+
     const wf = await OrderService.computeCreateOrderWorkflowState({
       tenantId,
       items,
@@ -1156,6 +1187,8 @@ export class OrderService {
       physicalIntakeStatus: params.physicalIntakeStatus,
       initialWorkflowScreen: params.initialWorkflowScreen,
       sourceRow: sourceValidated.row,
+      wfProfileId: workflowProfileBinding?.profileId,
+      wfVersionNo: workflowProfileBinding?.versionNo,
     });
 
     const {
@@ -1199,7 +1232,11 @@ export class OrderService {
       },
       select: { template_id: true },
     });
-    const v_workflowTemplateId = template?.template_id ?? null;
+    const workflowProfile = workflowProfileBinding ?? (await resolveWorkflowProfileBindingWithPrisma(tx, {
+      tenantId,
+      branchId,
+    }));
+    const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? template?.template_id ?? null;
 
     let readyByFields: { ready_by?: Date; ready_by_at_new?: Date } = {};
     if (readyByAt) {
@@ -1222,6 +1259,8 @@ export class OrderService {
         order_no: orderNo,
         status: v_orderStatus,
         workflow_template_id: v_workflowTemplateId,
+        wf_profile_id: workflowProfile?.profileId ?? null,
+        wf_version_no: workflowProfile?.versionNo ?? null,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',

@@ -31,6 +31,7 @@ web-admin/
 - Compose feature screens.
 - Compose route-specific layout wrappers.
 - Handle route-level loading and error boundaries.
+- Keep dynamic segment names consistent for the same path depth across a route family.
 
 ### Must not contain
 
@@ -50,6 +51,12 @@ export default function OrdersPage() {
   return <OrderListScreen />
 }
 ```
+
+Dynamic slug rule:
+
+- Reuse the existing slug name for the same segment depth across related pages and route handlers.
+- Never mix names such as `[id]` and `[routeId]` for the same URL segment family.
+- For a new detail-route family, prefer `[id]` unless one domain-specific slug is already consistently established.
 
 ## 3. `src/ui/` global Cmx Design System
 

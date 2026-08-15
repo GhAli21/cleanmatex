@@ -125,6 +125,24 @@ todos:
   - id: p7r-command-contracts
     content: "P7R foundation: define versioned shared workflow-command contracts, request context, idempotency, concurrency, audit/outbox, and standard errors for every stage"
     status: in_progress
+  - id: p7r-profile-order-snapshot
+    content: "P7R profile cutover: resolve the most-specific active tenant workflow-profile assignment at order creation, validate a pinned or latest PUBLISHED version, and stamp wf_profile_id/wf_version_no (plus compatible template lineage) on every new order; legacy fallback is allowed only when no profile assignment applies"
+    status: completed
+  - id: p7r-profile-runtime-enforcement
+    content: "P0 P7R profile runtime enforcement: make each order's immutable wf_profile_id/wf_version_no authoritative for server-side screen availability. Before resolving a screen contract, listing actions, or executing an action, compose the order snapshot with sys_wf_prof_ver_scr_dtl and global status/action catalogs; reject disabled screens with a stable PROFILE_SCREEN_DISABLED error. Do not treat hidden navigation or client state as authorization, and retain an explicit legacy path only for pre-snapshot orders."
+    status: pending
+  - id: p7r-profile-capability-cutover
+    content: "P0 P7R profile capability cutover: enforce the immutable version capability flags (preparation, assembly, QA, packing, pieces, split orders, and back steps) in initial-status resolution, stage worklists, routing, and stage-command guards. A profile and legacy template must never be silently merged when they conflict; profile data wins for snapshot orders and legacy values are used only for orders without a snapshot."
+    status: pending
+  - id: p7r-profile-assignment-governance
+    content: "P0 P7R profile assignment governance: validate assignment scope precedence and ambiguity across tenant, branch, and service; define a deterministic one-order/one-profile policy for mixed-service orders (reject or require split when service assignments conflict, never select the first item silently); permit only active PUBLISHED versions; retain audit/change history; and publish an HQ-to-tenant contract for assignment and profile-version reads."
+    status: pending
+  - id: p7r-profile-consumer-cutover
+    content: "P0 P7R profile consumer cutover: expose server-derived workflow context (profile/version, enabled screens, capabilities, and available actions) to web, mobile, and integrations. Update stage navigation and action panels for clear availability states, guarded deep links, EN/AR explanations, and accessible empty states, while all enforcement remains in the stage API/service."
+    status: pending
+  - id: p7r-profile-assurance
+    content: "P0 P7R profile assurance: add unit, API, database-integration, tenant-isolation, concurrency, performance, and regression coverage for snapshot immutability, scope precedence, PUBLISHED-version validation, disabled-screen/action rejection under forged requests, capability gates, legacy no-snapshot compatibility, and profile reassignment without changing in-flight orders. Document the no-auto-backfill policy and release/rollback observability."
+    status: pending
   - id: p7r-stage-service-boundaries
     content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
     status: in_progress
@@ -139,12 +157,15 @@ todos:
     status: in_progress
   - id: p7r-delivery-route-stop-ui
     content: "P7R Delivery UI: build the driver/staff route manifest and stop-detail work experience using the delivery stage API, with assigned stops, route progress, customer/contact and order context, navigation-ready address, and no screen-local workflow writes"
-    status: in_progress
+    status: completed
   - id: p7r-delivery-completion-ui
     content: "P7R Delivery UI: build the atomic stop-completion panel with configured signature/photo POD capture, remaining pay-on-collection amount, existing Financial Collection deep link, clear evidence/payment gate explanations, idempotency, and optimistic-concurrency recovery; do not build a duplicate payment-collection screen; OTP remains deferred to VNext"
-    status: pending
+    status: completed
   - id: p7r-delivery-proof-audit-ui
     content: "P7R Delivery UI: add a reusable proof-of-delivery and handover-audit view for Delivery and Order Details, exposing evidence, actor, time, payment state, and workflow outcome without duplicating data access"
+    status: pending
+  - id: p7r-workboard-ui
+    content: "P7R Workboard: build a dedicated supervisor operations page that aggregates configured in-flight statuses and exposes SLA/age, priority, branch, assignee, and blocker filters; rows deep-link to their owning stage screen and may call only that stage's versioned API. Add dedicated workboard RBAC, access contract, and dual-written navigation; never add a raw status changer or screen-local workflow writer. Sequence after Delivery proof/audit and before mobile/integration adapters."
     status: pending
   - id: p7r-mobile-integration-adapters
     content: "P7R consumers: provide mobile and third-party integration adapters that consume the same versioned stage APIs, authenticated tenant context, idempotency, and concurrency contract as web-admin; do not create channel-specific business logic"
@@ -427,7 +448,7 @@ flowchart LR
 | Counter pickup | `pickup_counter` | Hand-off, settle | Fin settle then engine; partial via release records |
 | Driver delivery | `driver_delivery` | Stops, POD | Out / delivered / POD via engine (`capturePOD` must not bypass) |
 | Cancel / return | `canceling` / `returning` | Disposition, refunds | Fin unwind then `CANCEL_ORDER` / `RETURN_ORDER` actions |
-| Workboard | `workboard` | Cross-status board | Read-only; advances from detail via available-actions |
+| Workboard | `workboard` | Cross-status supervisor board | Dedicated Workboard page; rows deep-link to the owner stage and actions use only that stage service/API |
 
 **What does *not* change per screen:** route layout, Cmx UI, item/piece editors, payment drawers, delivery stop CRUD (status flips only via engine).
 

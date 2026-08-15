@@ -13,12 +13,17 @@
 - [ ] Additive schema + seed + graph CI + RLS
 - [x] `state_version` enforced by engine commands
 - [x] Zero production non-engine post-create transition writers in the application
-- [ ] HQ assign + tenant read-only effective profile
+- [x] New orders snapshot the active, valid tenant workflow profile/version when an assignment applies; historic orders intentionally remain unsnapshotted
+- [ ] Profile-version enabled-screen enforcement is server-side for worklists, screen contracts, available actions, and command execution; disabled screens/actions reject forged requests
+- [ ] Profile capability flags are server-side gates for initial routing, stage worklists, and commands; profile/template conflicts cannot silently merge
+- [ ] Assignment precedence/ambiguity, mixed-service one-order/one-profile policy, HQ assignment audit, and published-version validation are covered
+- [ ] Tenant navigation/deep links consume server-derived workflow context with EN/AR unavailable-state guidance
 - [ ] No tenant graph editing
 - [ ] Fin release gate server-side
 - [x] Retail not auto-`closed`
 - [ ] Atomic staff Delivery command implemented but not release-approved: database-backed rollback, tenant-isolation, and concurrency tests still required
-- [ ] POD method-specific evidence validation, OTP retry/expiry controls, and durable signature/photo storage
+- [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
+- [ ] OTP retry/expiry controls intentionally deferred to VNext
 - [ ] Delivery route creation/counters/status changes are atomic, idempotent, and concurrency-safe
 - [ ] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command; live collection composition and acceptance coverage remain required before staff rollout
 - [ ] Delivery mutation RBAC and explicit tenant filtering verified by automated tests
@@ -32,6 +37,7 @@
 - [x] Focused hardening: 49 Jest tests and 2 anonymous Playwright tests passed
 - [ ] Post-`0442` engine smoke passed in production
 - [ ] T01–T18 pass on pilot tenants
+- [ ] Profile runtime enforcement acceptance suite passes before enabling profile-governed operational flows
 
 ## 2026-08-14 release audit verdict
 

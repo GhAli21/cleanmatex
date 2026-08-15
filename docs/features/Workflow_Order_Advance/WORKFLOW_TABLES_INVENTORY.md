@@ -102,7 +102,7 @@ Used by tenant `settings/workflows` when V2 flag is **off**, and still read by t
 
 | Table | Role | Gap |
 |-------|------|-----|
-| `org_wf_profile_assign_cf` | Tenant / branch / service → `wf_profile_id` + optional `wf_version_no` | **Stub** until Gen 3: `wf_profile_id` has no master table |
+| `org_wf_profile_assign_cf` | Tenant / branch / service → `wf_profile_id` + optional `wf_version_no` | Assignment source for new-order snapshot resolution; runtime scope enforcement remains a P0 cutover |
 | `org_wf_release_mst` | Order release header (Ready ≠ release) | Runtime ops — **not** HQ graph config |
 | `org_wf_release_ln` | Release lines | Runtime ops — **not** HQ graph config |
 
@@ -112,7 +112,7 @@ Also on orders (from `0427`, not shown in `wf` search alone):
 - `org_orders_mst.wf_version_no`
 - `org_orders_mst.state_version`
 
-Usually null until assign + order-create stamping are wired.
+New orders with an applicable valid assignment are stamped at creation. Historic orders remain null by design; they use the documented legacy compatibility path and must not be auto-rebound. Runtime screen/capability enforcement from the snapshot remains a P0 cutover.
 
 ### 3.3 Gen 3 — HQ profiles (`0444` applied)
 
@@ -120,7 +120,7 @@ Usually null until assign + order-create stamping are wired.
 |-------|------|
 | `sys_wf_profiles_cd` | HQ profile header |
 | `sys_wf_profile_ver_mst` | Versions `DRAFT` / `PUBLISHED` / `RETIRED` + capability flags |
-| `sys_wf_prof_ver_scr_dtl` | Enabled screens per version |
+| `sys_wf_prof_ver_scr_dtl` | Immutable enabled operational-screen allowlist per PUBLISHED version; P0 runtime enforcement source |
 
 Seed: `WF_V2_STANDARD` v1 **PUBLISHED**. See [ADR_SYS_WF_PROFILES.md](ADR_SYS_WF_PROFILES.md).
 
@@ -144,7 +144,7 @@ Search for `screen` or `contract`, not only `work` / `wf`.
 |------|----------------|
 | V2 engine actions | Global Gen 2 `sys_wf_action_trans_cd` (+ transitions/gates) |
 | Tenant preset / toggles | Gen 1 templates + settings + category |
-| Profile assign | `org_wf_profile_assign_cf` stub (orphan UUID risk) |
+| Profile assign | `org_wf_profile_assign_cf` with snapshot resolution for new orders; no automatic historic-order rebinding |
 | HQ profile publish | **Impossible** — no `sys_wf_profiles_*` |
 
 ### After `0444` (when applied)
@@ -154,7 +154,7 @@ Search for `screen` or `contract`, not only `work` / `wf`.
 | Same Gen 2 engine catalogs | Unchanged (global) |
 | Same Gen 1 until cutover | Still supported |
 | Profile assign | FK → `sys_wf_profiles_cd` (+ optional version) |
-| HQ publish/assign | Gen 3 profile + version + enabled screens + capabilities |
+| HQ publish/assign | Gen 3 profile + version + enabled screens + capabilities; server-side runtime enforcement is P0 pending |
 
 Profile still does **not** own a private copy of transitions/actions in V1.0 (see ADR §3).
 
@@ -216,3 +216,4 @@ Graph integrity (Gen 2): `scripts/workflow/check_sys_wf_graph.sql`
 | Date | Note |
 |------|------|
 | 2026-08-14 | Initial inventory from live Table Editor (`work` + `wf` searches) + code/DB comments |
+| 2026-08-15 | New-order profile/version snapshot implemented; P0 runtime screen/capability enforcement and assignment-governance cutover recorded |

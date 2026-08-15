@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-08-15T05:55:35.572Z
+Generated: 2026-08-15T08:11:32.712Z
 
 ## By surface (counts)
 
@@ -11,7 +11,7 @@ Generated: 2026-08-15T05:55:35.572Z
 | --- | --- |
 | api | 259 |
 | middleware | 4 |
-| screen | 49 |
+| screen | 50 |
 | service | 2 |
 
 ## All permission usages
@@ -266,6 +266,7 @@ Generated: 2026-08-15T05:55:35.572Z
 | orders:transition | api | app/api/v1/orders/[id]/confirm-physical-intake/route.ts | 29 | /api/v1/orders/[id]/confirm-physical-intake |
 | orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 38 | /api/v1/orders/[id]/transition |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
+| orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 48 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/v1/orders/[id]/batch-update/route.ts | 49 | /api/v1/orders/[id]/batch-update |
 | orders:update | api | app/api/v1/orders/[id]/fix-order-data/route.ts | 110 | /api/v1/orders/[id]/fix-order-data |
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]/route.ts | 30 | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] |

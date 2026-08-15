@@ -59,9 +59,10 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 22. Do not hardcode brand colors or hex values in feature UI.
 23. Use design tokens and CSS variables.
 24. Menu-visible routes require the `/navigation` dual-write workflow.
-25. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
-26. Before finishing, run the mandatory frontend verification commands listed in `standards.md`.
-27. No silent money mutation: apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
+25. Within one Next.js route family, keep dynamic slug names identical for the same path depth across pages and route handlers. Never mix names such as `[id]` and `[routeId]` for the same segment family; for a new family, prefer `[id]` unless the family already uses one domain-specific slug consistently.
+26. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
+27. Before finishing, run the mandatory frontend verification commands listed in `standards.md`.
+28. No silent money mutation: apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
 
 ## 3. Canonical folder structure
 
@@ -111,6 +112,8 @@ export default function OrdersPage() {
 ```
 
 Do not put domain logic, reusable components, feature hooks, or design-system primitives in `app/`.
+
+When adding or extending App Router paths, keep the dynamic segment name stable for the same URL depth across the whole route family. Example: if `app/api/v1/delivery/routes/[id]` exists, nested siblings at that depth must also use `[id]`, not `[routeId]`.
 
 ## 5. Naming rules
 

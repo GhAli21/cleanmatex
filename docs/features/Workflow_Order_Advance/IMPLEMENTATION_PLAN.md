@@ -61,6 +61,21 @@ The release audit found that staff Delivery was still a screen-oriented composit
 - Establish one service boundary per operational stage: Preparation, Processing, Quality, Packing, Ready/Release, Pickup, and Delivery.
 - Give each stage explicit versioned endpoints and DTO/schema contracts. Stage-specific gates and side effects live in that service; workflow status changes go through the engine.
 - Inventory and retire direct screen/API writers after their service replacement is live. A disabled endpoint is not considered a completed architecture replacement.
+- Resolve the most-specific active HQ workflow-profile assignment at order creation and snapshot its exact PUBLISHED profile/version into `org_orders_mst`. Preserve `workflow_template_id` only as compatible legacy lineage. Do not permit a configured but unpublished/retired profile to create an order silently.
+
+#### P7R.2a — Profile-version runtime enforcement (P0 release blocker)
+
+`sys_wf_prof_ver_scr_dtl` is the immutable per-version operating-screen allowlist. It is not a page registry and it must not be enforced only by hiding a sidebar item. Profile snapshots are now written for new orders; this package makes those snapshots effective at every operational boundary.
+
+- Resolve the order's immutable `wf_profile_id` / `wf_version_no` before a worklist is queried, a screen contract is resolved, actions are listed, or an action is executed. Compose its enabled screens with the global `sys_wf_screen_status_cd`, `sys_wf_action_trans_cd`, transition, and gate catalogs. Global catalogs remain the graph authority; the profile determines which valid parts of that graph this order may use.
+- Reject forged or stale requests for a disabled screen/action server-side with stable, localized error codes such as `PROFILE_SCREEN_DISABLED`; client navigation and button visibility are UX only, never security.
+- Enforce the immutable version capabilities (`use_preparation_screen`, `use_assembly_screen`, `use_qa_screen`, `use_packing_screen`, piece tracking, split orders, and back steps) in initial-status resolution, routing/worklists, and every stage command. For snapshot orders, profile capability values win; do not merge conflicting Gen 1 template values.
+- Preserve a narrow legacy compatibility resolver for historic orders with no profile snapshot. Do not auto-backfill or silently rebind them. A subsequent HQ assignment or published version affects only newly created orders.
+- Define and enforce assignment precedence for tenant, branch, and service scopes. One order receives one profile. If a multi-service order resolves to conflicting service profiles, fail creation with an actionable split-order message rather than choosing an item arbitrarily.
+- Expose one server-derived workflow-context contract for web, mobile, and integration consumers: resolved profile/version, enabled screens, capabilities, and available actions. Stage navigation must show clear EN/AR unavailable-state guidance, guard deep links, and use accessible empty states, but must not reimplement policy.
+- Add HQ assignment/version validation for active/PUBLISHED status, scope ambiguity, catalog compatibility, and audit history. The HQ Console owns authoring; tenant applications consume the approved runtime contract.
+
+**P0 acceptance criteria:** a profile-disabled screen/action cannot be reached through UI, deep link, mobile client, or forged API request; reassignment/new publishing cannot alter an in-flight order's profile snapshot; invalid or ambiguous assignments fail deterministically; historic unsnapshotted orders retain documented legacy behavior; tests cover tenancy, concurrency, scope precedence, and performance.
 
 #### P7R.3 — Delivery first, atomic completion
 
@@ -68,9 +83,10 @@ The release audit found that staff Delivery was still a screen-oriented composit
 - In the same transaction, persist permitted evidence, settle or explicitly reject required collection, transition through the engine, update route/stop state and counters, write an audit record, and enqueue the integration event.
 - Define idempotent replay behavior and rollback/error semantics. Do not expose a separate delivered-status writer or unauthorised POD writer.
 - Build a driver/staff route manifest and stop-detail work experience on the Delivery API: assigned stops, route progress, customer/contact and order context, and a navigation-ready address. Do not add a screen-local status writer.
-- Delivery route-manifest and stop-detail read contracts are now in progress: the web-admin pages consume tenant-scoped `/api/v1/delivery/routes/{routeId}` and `/api/v1/delivery/stops/{stopId}` APIs, show payment/proof state, and deep-link to Financial Collection. Staff delivery completion remains server-side fail-closed pending the release assurance suite.
-- Build an atomic stop-completion panel with configured signature/photo proof capture, remaining pay-on-collection amount, an existing Financial Collection deep link, gate explanations, idempotency replay, and stale-version recovery. Do not create a duplicate payment-collection screen. OTP remains deferred to VNext.
+- Delivery route-manifest and stop-detail read contracts are implemented: the web-admin pages consume tenant-scoped `/api/v1/delivery/routes/{routeId}` and `/api/v1/delivery/stops/{stopId}` APIs, show payment/proof state, and deep-link to Financial Collection.
+- The atomic stop-completion panel is implemented with configured signature/photo proof capture, remaining pay-on-collection amount, an existing Financial Collection deep link, gate explanations, idempotent retry receipts, and stale-version recovery. It uses the isolated atomic-completion rollout control; legacy Delivery writes remain fail-closed. Do not create a duplicate payment-collection screen. OTP remains deferred to VNext.
 - Add one reusable proof-of-delivery and handover-audit view shared by Delivery and Order Details; it must show evidence, actor, time, payment state, and workflow outcome.
+- Build a dedicated supervisor Workboard after Delivery proof/audit and before mobile/integration adapters. It aggregates configured in-flight stages with branch, assignee, priority, SLA/age, and blocker filters; it deep-links to the owner stage screen and may invoke only that stage's API. Add dedicated Workboard RBAC, an access contract, and dual-written navigation. Never add a raw status change control or another workflow writer.
 
 #### P7R.3a — Pickup action-panel consistency
 

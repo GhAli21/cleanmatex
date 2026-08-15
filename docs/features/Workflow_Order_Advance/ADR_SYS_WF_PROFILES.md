@@ -82,7 +82,8 @@ Hints in `config_json.intended_plans` are **guidance for HQ UI**, not hard plan 
 - HQ Phase D (publish/assign) unblocked after migration apply + type regen
 - cleanmatexsaas must not create these tables
 - Tenant settings remain read-only for profile structure
-- Follow-up (not this migration): wire InitialStatusResolver / order-create to stamp snapshot from effective assign; backfill policy for existing orders (leave null OK)
+- Completed: InitialStatusResolver / order-create stamps the effective profile/version snapshot for new orders; historic orders remain null by design.
+- P0 follow-up: enforce the profile snapshot in worklists, available-actions, and command execution. No automatic historic-order backfill.
 
 ## 7. Approval
 

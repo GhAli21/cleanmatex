@@ -123,11 +123,45 @@ Errors: `400 IDEMPOTENCY_KEY_REQUIRED`, `404 ORDER_NOT_FOUND`, `409 VERSION_CONF
 
 The legacy server action is an authenticated compatibility adapter only. It ignores client-supplied tenant/user arguments and resolves both from the server session before invoking the same command.
 
-## 10. Staff Delivery completion (P7R, server-disabled)
+## 10. Staff Delivery private evidence and completion (P7R, server-disabled)
+
+`POST /api/v1/delivery/stops/{stopId}/evidence`
+
+This authenticated multipart endpoint accepts `file` and `evidenceType` (`signature` or
+`photo`). It requires `delivery:pod` and `orders:transition`, validates CSRF, verifies
+the target stop under the resolved tenant, validates the binary JPEG/PNG/WebP signature,
+and stores the object in the private `delivery-pod-evidence` bucket. It returns a
+short-lived receipt, never an object or signed URL:
+
+```json
+{
+  "success": true,
+  "data": {
+    "evidenceId": "b707421f-9f6b-4fd6-a8ab-dddc683b3b45",
+    "evidenceType": "signature",
+    "contentType": "image/png",
+    "fileSizeBytes": 12345,
+    "expiresAt": "2026-08-15T08:30:00.000Z"
+  }
+}
+```
+
+The receipt is tenant- and stop-bound in `org_dlv_ev_uploads_tr`, expires after 30
+minutes, and is marked `consumed` inside the same transaction as completion. The atomic
+completion capability has its own rollout guard, separate from legacy Delivery writes,
+so enabling it cannot reopen older route or POD mutation endpoints.
+
+`GET /api/v1/delivery/pod-methods`
+
+Returns the active, staff-supported proof methods from `sys_dlv_pod_method_cd` for
+web, mobile, and integration adapters. It requires `delivery:pod` and
+`orders:transition`. `OTP` is deliberately excluded until its expiry, retry, resend,
+and audit controls are released as a complete capability. The completion command
+validates the chosen code again and never trusts a client-side method list.
 
 `POST /api/v1/delivery/stops/{stopId}/complete`
 
-This is the only target staff command for completing a delivery. It is a stage-owned application service, not a UI-specific status writer. The server resolves the authenticated tenant and actor, requires `delivery:pod` and `orders:transition`, validates CSRF, and currently responds with `503 DELIVERY_HARDENING_REQUIRED` until the release gates are complete.
+This is the only target staff command for completing a delivery. It is a stage-owned application service, not a UI-specific status writer. The server resolves the authenticated tenant and actor, requires `delivery:pod` and `orders:transition`, and validates CSRF. Its rollout guard is intentionally independent of legacy Delivery write endpoints.
 
 Headers: authenticated session and standard CSRF protection. Body:
 
@@ -136,24 +170,29 @@ Headers: authenticated session and standard CSRF protection. Body:
   "expectedStateVersion": 12,
   "idempotencyKey": "delivery-complete-9d4d5d06",
   "podMethodCode": "MIXED",
-  "signatureUrl": "private/pod/signature.png",
-  "photoUrls": ["private/pod/photo-1.jpg"]
+  "podNotes": "Customer confirmed all pieces at the front door.",
+  "signatureEvidenceId": "b707421f-9f6b-4fd6-a8ab-dddc683b3b45",
+  "photoEvidenceIds": ["48788923-ec98-4a92-ab9f-c74d29992d2b"]
 }
 ```
 
-The command locks the tenant-scoped stop, route, and order; validates a configured POD method; blocks a remaining `PAY_ON_COLLECTION` balance; writes/upserts POD evidence; marks the stop delivered; executes engine `CONFIRM_DELIVERY`; recomputes route counters/status; writes workflow history and outbox events; and stores a replay response. All of those writes share one transaction.
+The command locks the tenant-scoped stop, route, order, and unexpired evidence receipts;
+blocks a remaining `PAY_ON_COLLECTION` balance; writes/upserts POD object keys; marks
+receipts consumed; marks the stop delivered; executes engine `CONFIRM_DELIVERY`;
+recomputes route counters/status; writes workflow history and outbox events; and stores a
+replay response. All of those writes share one transaction.
 
 Method evidence policy currently enforced by the command:
 
 | POD method | Required evidence |
 |---|---|
-| `SIGNATURE` | Non-empty `signatureUrl` |
-| `PHOTO` | At least one non-empty `photoUrls` entry |
+| `SIGNATURE` | One valid signature evidence receipt |
+| `PHOTO` | At least one valid photo evidence receipt |
 | `MIXED` | Signature and at least one photo |
 
-Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
+Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 POD_EVIDENCE_INVALID`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
 
-The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Signed URL/storage ownership validation and database-backed integration testing are remaining release gates. OTP expiry/retry controls are intentionally deferred to VNext; this release must use configured `SIGNATURE`, `PHOTO`, or `MIXED` proof methods only.
+The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Private storage receipt validation is implemented; database-backed completion rollback, tenant-isolation, and concurrency tests remain release gates. OTP expiry/retry controls are intentionally deferred to VNext; this release must use configured `SIGNATURE`, `PHOTO`, or `MIXED` proof methods only.
 
 ## 11. Staff counter pickup completion (P7R, active)
 

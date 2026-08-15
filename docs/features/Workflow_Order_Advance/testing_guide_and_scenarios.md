@@ -54,6 +54,22 @@ Migration `0442_retire_workflow_rpc_grants.sql` was applied locally and remotely
 2. Confirm migrations through `0442` appear in the target environment migration history.
 3. Sign in as an operator with `orders:transition` and the stage permissions required by the configured actions.
 4. Confirm the pilot tenant has an active published workflow profile and screen/action mappings.
+5. Create a new order, then verify it snapshots the resolved profile/version. Existing orders are intentionally not backfilled:
+
+```sql
+SELECT
+  order_no,
+  wf_profile_id,
+  wf_version_no,
+  workflow_template_id,
+  current_status,
+  state_version
+FROM public.org_orders_mst
+WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111'::uuid
+  AND order_no = 'ORD-REPLACE-WITH-NEW-ORDER';
+```
+
+Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its resolved active PUBLISHED version. An active assignment with no valid PUBLISHED version must reject order creation; legacy template-only creation is allowed only when no assignment applies.
 5. Prepare disposable orders in `preparing`, `processing`, `packing`, `ready`, `out_for_delivery`, and `intake` as required below.
 6. Capture each order's initial `current_status`, `status`, `state_version`, financial summary, and outbox/history count.
 

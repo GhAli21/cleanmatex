@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { getOrderForPrep } from '@/app/actions/orders/get-order';
+import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { FastItemizer } from '@features/workflow/ui/FastItemizer';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
@@ -59,10 +59,10 @@ async function PreparationContent({
     return notFound();
   }
 
-  const result = await getOrderForPrep(tenantId, orderId);
+  const result = await getOrder(tenantId, orderId);
   if (result.success === false || !result.data) return notFound();
 
-  const { order, productCatalog } = result.data;
+  const order = result.data;
   const workflowStatus = resolveWorkflowStatus(order);
   const knownStatuses = ['intake', 'preparing', 'processing', 'assembly', 'qa', 'ready', 'delivered'] as const;
   const statusLabel = (knownStatuses as readonly string[]).includes(workflowStatus)
@@ -165,7 +165,7 @@ async function PreparationContent({
           screen="preparation"
           hideWhenEmpty
         >
-          <FastItemizer order={order} productCatalog={productCatalog} />
+          <FastItemizer order={order} />
         </WorkflowActionBar>
       )}
     </div>

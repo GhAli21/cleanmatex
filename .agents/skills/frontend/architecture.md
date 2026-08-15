@@ -14,6 +14,7 @@ You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS p
 **Responsibilities:**
 - Routing and composition only
 - Compose feature screens and Cmx UI
+- Keep dynamic segment names consistent for the same path depth across a route family
 
 **Naming:**
 - Screens should start with feature name then screen name then end with `-screen`
@@ -145,6 +146,12 @@ export default async function OrdersPage() {
   return <OrderListScreen />
 }
 ```
+
+Dynamic slug rule:
+
+- Reuse the existing slug name for the same segment depth across related pages and route handlers.
+- Never mix names such as `[id]` and `[routeId]` for the same URL segment family.
+- For a new detail-route family, prefer `[id]` unless one domain-specific slug is already consistently established.
 
 ## 4. Theming & Styling Rules
 

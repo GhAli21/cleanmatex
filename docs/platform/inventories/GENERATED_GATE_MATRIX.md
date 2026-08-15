@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-08-15T05:55:35.572Z
-Git SHA: e6b6234f
+Generated: 2026-08-15T08:11:32.712Z
+Git SHA: c398e4e2
 ## Summary
 | Domain | Count |
 | --- | --- |
 | Access contracts | 146 |
-| Permission usages | 314 |
+| Permission usages | 315 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
@@ -42,8 +42,8 @@ Git SHA: e6b6234f
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |
 | /dashboard/customers/stored-value | Stored Value | stored_value:view_balances | — | 0 |
 | /dashboard/delivery | Delivery | drivers:read, orders:read | — | 0 |
-| /dashboard/delivery/routes/[routeId] | Delivery Route Manifest | drivers:read, orders:read | — | 0 |
-| /dashboard/delivery/routes/[routeId]/stops/[stopId] | Delivery Stop Detail | drivers:read, orders:read | — | 0 |
+| /dashboard/delivery/routes/[id] | Delivery Route Manifest | drivers:read, orders:read | — | 0 |
+| /dashboard/delivery/routes/[id]/stops/[stopId] | Delivery Stop Detail | drivers:read, orders:read | — | 0 |
 | /dashboard/drivers | Drivers | drivers:read | driver_app | 0 |
 | /dashboard/drivers/routes | Driver Routes | drivers:read | driver_app | 0 |
 | /dashboard/erp-lite | Finance & Accounting | erp_lite:view | erp_lite_enabled | 0 |
