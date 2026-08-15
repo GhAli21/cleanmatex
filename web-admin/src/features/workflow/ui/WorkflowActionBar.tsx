@@ -146,11 +146,11 @@ export function WorkflowActionBar({
     );
   }
 
-  if (isEmpty) {
-    if (hideWhenEmpty && !hasSupplementalActions) {
+  if (isEmpty && !hasSupplementalActions) {
+    if (hideWhenEmpty) {
       return children ? <>{children}</> : null;
     }
-    if (emptyBackHref && !hasSupplementalActions) {
+    if (emptyBackHref) {
       // Redirect in flight — avoid flashing floor tools for the wrong stage.
       return (
         <p className="text-sm text-muted-foreground" role="status">

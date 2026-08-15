@@ -224,7 +224,7 @@ Pack produced in this folder (README, developer/user guides, testing guide, CHAN
 
 | Item | Why it is open |
 |---|---|
-| **Split tender (5.2) + `PaymentAmountMoneyField`/keypad (3.1)** | Both depend on adopting `usePaymentLegs` (4.2), a substantial refactor with shared-component blast radius. API already accepts N legs — UI-only gap |
+| **Split tender (5.2) + `PaymentAmountMoneyField`/keypad (3.1)** | Deferred at implementation time as depending on adopting `usePaymentLegs` (4.2). **Correction (2026-08-15, design discussion):** the coupling was overstated — `SplitTenderDialog` is a pure view taking plain data plus five typed functions, not an engine object, and `usePaymentLegs` is already a generic tender core. The real work is collect's *container* going multi-leg (per-leg drawer binding, multi-leg pay-extra wiring), not the UI. Now folded into the reusable tender panel discussion: [`../Reusable_Tender_Panel/DESIGN_DISCUSSION.md`](../Reusable_Tender_Panel/DESIGN_DISCUSSION.md). API already accepts N legs — still a UI-only gap |
 | **Modal UI tests** | The modal still has no dedicated test file. Covered indirectly by the full suite (2423 tests) plus tsc/eslint/build; a focused matrix is specified in `testing_guide_and_scenarios.md` |
 | **Manual QA** | Not yet run on any surface — see the QA guide |
 
