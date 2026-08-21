@@ -11,7 +11,12 @@ const mockPinnedMember = jest.fn()
 jest.mock('@prisma/client', () => ({
   Prisma: {
     sql: (strings: TemplateStringsArray | string, ...values: unknown[]) => ({ strings, values }),
-    join: (values: unknown[], separator?: unknown) => ({ values, separator }),
+    join: (values: unknown[], separator = ',') => {
+      if (typeof separator !== 'string') {
+        throw new TypeError('Prisma.join separator must be a SQL string')
+      }
+      return { values, separator }
+    },
   },
 }))
 

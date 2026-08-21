@@ -158,7 +158,7 @@ function buildWhereSql(
     Prisma.sql`o.tenant_org_id = ${tenantId}::uuid`,
     Prisma.sql`COALESCE(o.rec_status, 1) <> 0`,
     Prisma.sql`o.current_status IS NOT NULL`,
-    Prisma.sql`(${Prisma.join(scopes.map(scopePredicate), Prisma.sql` OR `)})`,
+    Prisma.sql`(${Prisma.join(scopes.map(scopePredicate), ' OR ')})`,
   ]
 
   if (input.search) {
@@ -190,7 +190,7 @@ function buildWhereSql(
   }
   if (input.sla === 'not_due') clauses.push(Prisma.sql`(${dueAt} IS NULL OR ${dueAt} >= ${today.end})`)
 
-  return Prisma.join(clauses, Prisma.sql` AND `)
+  return Prisma.join(clauses, ' AND ')
 }
 
 /**
