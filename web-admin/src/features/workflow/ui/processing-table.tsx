@@ -25,6 +25,7 @@ import {
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
@@ -103,6 +104,7 @@ function ProcessingSortableHeader({
 }
 
 interface ProcessingTableProps {
+  tenantOrgId?: string | null;
   orders: ProcessingOrder[];
   sortField: SortField;
   sortDirection: SortDirection;
@@ -125,6 +127,7 @@ interface ProcessingTableProps {
  * @param root0.selectedOrderId
  */
 export function ProcessingTable({
+  tenantOrgId,
   orders,
   sortField,
   onSort,
@@ -214,6 +217,7 @@ export function ProcessingTable({
               markReadySuccess={markReadySuccessId === order.id}
               index={index}
               selectedOrderId={selectedOrderId}
+              tenantOrgId={tenantOrgId}
             />
           ))}
         </div>
@@ -236,6 +240,7 @@ export function ProcessingTable({
         markReadySuccessId={markReadySuccessId}
         formatDate={formatProcessingDate}
         selectedOrderId={selectedOrderId}
+        tenantOrgId={tenantOrgId}
       />
       {sharedMarkReadyDialog}
     </>
@@ -253,6 +258,7 @@ interface OrderRowProps {
   markReadySuccess: boolean;
   index: number;
   selectedOrderId?: string | null;
+  tenantOrgId?: string | null;
 }
 
 const OrderRow = React.memo(function OrderRow({
@@ -266,6 +272,7 @@ const OrderRow = React.memo(function OrderRow({
   markReadySuccess,
   index,
   selectedOrderId,
+  tenantOrgId,
 }: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
@@ -384,12 +391,16 @@ const OrderRow = React.memo(function OrderRow({
                 +{order.items.length - 3} {t('moreItems')}
               </div>
             )}
-            <Link
-              href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
+            <OrderDetailsLink
+              tenantOrgId={tenantOrgId}
+              orderId={order.id}
+              orderNo={order.order_no}
+              returnUrl="/dashboard/processing"
+              returnLabel={tProcessing('backToProcessing') || 'Back to Processing'}
               className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
             >
               {t('details')} →
-            </Link>
+            </OrderDetailsLink>
           </div>
         </td>
 
@@ -713,6 +724,7 @@ function ProcessingOrderCard({
   markReadySuccess,
   index,
   selectedOrderId,
+  tenantOrgId,
 }: {
   order: ProcessingOrder;
   formatDate: (date: string) => string;
@@ -724,6 +736,7 @@ function ProcessingOrderCard({
   markReadySuccess: boolean;
   index: number;
   selectedOrderId?: string | null;
+  tenantOrgId?: string | null;
 }) {
   const router = useRouter();
   const t = useTranslations('processing.table');
@@ -866,12 +879,16 @@ function ProcessingOrderCard({
         >
           {t('viewProcessingDetails')} →
         </Link>
-        <Link
-          href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
+        <OrderDetailsLink
+          tenantOrgId={tenantOrgId}
+          orderId={order.id}
+          orderNo={order.order_no}
+          returnUrl="/dashboard/processing"
+          returnLabel={tProcessing('backToProcessing') || 'Back to Processing'}
           className="text-xs text-blue-600 hover:text-blue-700 text-center py-1"
         >
           {t('details')} →
-        </Link>
+        </OrderDetailsLink>
         <button
           type="button"
           onClick={() => onSimpleProcessClick?.(order.id)}
@@ -942,6 +959,7 @@ function ProcessingTableDesktop({
   markReadySuccessId,
   formatDate,
   selectedOrderId,
+  tenantOrgId,
 }: {
   orders: ProcessingOrder[];
   sortField: SortField;
@@ -954,6 +972,7 @@ function ProcessingTableDesktop({
   markReadySuccessId: string | null;
   formatDate: (date: string) => string;
   selectedOrderId?: string | null;
+  tenantOrgId?: string | null;
 }) {
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
@@ -1007,6 +1026,7 @@ function ProcessingTableDesktop({
                 markReadySuccess={markReadySuccessId === order.id}
                 index={index}
                 selectedOrderId={selectedOrderId}
+                tenantOrgId={tenantOrgId}
               />
             ))}
           </tbody>

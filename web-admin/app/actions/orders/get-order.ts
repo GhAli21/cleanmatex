@@ -6,7 +6,11 @@
 
 'use server';
 
-import { getOrderById, getOrderForPreparation } from '@/lib/db/orders';
+import {
+  getOrderById,
+  getOrderByReference,
+  getOrderForPreparation,
+} from '@/lib/db/orders';
 import type { OrderWithDetails } from '@/types/order';
 
 interface GetOrderResult {
@@ -51,6 +55,40 @@ export async function getOrder(
     };
   } catch (error) {
     console.error('[getOrder] Error:', error);
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch order',
+    };
+  }
+}
+
+/**
+ * Get order by ID or order number.
+ *
+ * This keeps caller screens flexible when only `order_no` is available while
+ * still resolving inside the authenticated tenant boundary.
+ */
+export async function getOrderByRef(
+  tenantOrgId: string,
+  orderReference: string
+): Promise<GetOrderResult> {
+  try {
+    const order = await getOrderByReference(tenantOrgId, orderReference);
+
+    if (!order) {
+      return {
+        success: false,
+        error: 'Order not found',
+      };
+    }
+
+    return {
+      success: true,
+      data: order,
+    };
+  } catch (error) {
+    console.error('[getOrderByRef] Error:', error);
 
     return {
       success: false,

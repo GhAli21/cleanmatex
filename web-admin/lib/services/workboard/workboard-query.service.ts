@@ -317,9 +317,39 @@ export class WorkboardQueryService {
       ? buildWhereSql(tenantId, input, filteredScopes)
       : null
     const offset = (input.page - 1) * input.pageSize
-    const orderBy = input.sort === 'ready_by_asc'
-      ? Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) ASC NULLS LAST, o.last_transition_at ASC NULLS LAST`
-      : Prisma.sql`COALESCE(o.last_transition_at, o.received_at, o.created_at) ASC NULLS LAST`
+    const orderBy = (() => {
+      switch (input.sort) {
+        case 'age_asc':
+          return Prisma.sql`COALESCE(o.last_transition_at, o.received_at, o.created_at) DESC NULLS LAST`
+        case 'ready_by_asc':
+          return Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) ASC NULLS LAST`
+        case 'ready_by_desc':
+          return Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) DESC NULLS LAST`
+        case 'order_no_asc':
+          return Prisma.sql`o.order_no ASC NULLS LAST`
+        case 'order_no_desc':
+          return Prisma.sql`o.order_no DESC NULLS LAST`
+        case 'customer_asc':
+          return Prisma.sql`COALESCE(o.customer_name, c.name, '') ASC NULLS LAST`
+        case 'customer_desc':
+          return Prisma.sql`COALESCE(o.customer_name, c.name, '') DESC NULLS LAST`
+        case 'stage_asc':
+          return Prisma.sql`o.current_status ASC NULLS LAST`
+        case 'stage_desc':
+          return Prisma.sql`o.current_status DESC NULLS LAST`
+        case 'priority_asc':
+          return Prisma.sql`o.priority ASC NULLS LAST`
+        case 'priority_desc':
+          return Prisma.sql`o.priority DESC NULLS LAST`
+        case 'assignee_asc':
+          return Prisma.sql`COALESCE(u.display_name, u.name, '') ASC NULLS LAST`
+        case 'assignee_desc':
+          return Prisma.sql`COALESCE(u.display_name, u.name, '') DESC NULLS LAST`
+        case 'age_desc':
+        default:
+          return Prisma.sql`COALESCE(o.last_transition_at, o.received_at, o.created_at) ASC NULLS LAST`
+      }
+    })()
 
     const [rows, metrics, ownerMetrics, statusLabels, branches, assignees, priorityRows] = await Promise.all([
       whereSql

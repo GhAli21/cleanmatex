@@ -19,6 +19,7 @@ import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardConten
 import { CmxButton } from '@ui/primitives';
 import { LoadingButton } from '@ui/primitives/loading-button';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
+import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
@@ -63,6 +64,7 @@ export default function ProcessingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations('processing');
+  const tTable = useTranslations('processing.table');
   const tModal = useTranslations('processing.modal');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
@@ -80,6 +82,9 @@ export default function ProcessingDetailPage() {
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const orderId = (params as any)?.id as string | undefined;
+  const orderDetailsReturnUrl = orderId
+    ? `/dashboard/processing/${orderId}`
+    : '/dashboard/processing';
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   const loadOrder = useCallback(async () => {
@@ -286,15 +291,26 @@ export default function ProcessingDetailPage() {
       <CmxCard className="border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
-            <LoadingButton
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/dashboard/processing')}
-              leftIcon={<ChevronLeft className="w-4 h-4" />}
-              className="mb-4"
-            >
-              {t('backToProcessing') || 'Back to Processing'}
-            </LoadingButton>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <LoadingButton
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/dashboard/processing')}
+                leftIcon={<ChevronLeft className="w-4 h-4" />}
+              >
+                {t('backToProcessing') || 'Back to Processing'}
+              </LoadingButton>
+              <OrderDetailsLink
+                tenantOrgId={currentTenant?.tenant_id}
+                orderId={order.id}
+                orderNo={order.order_no}
+                returnUrl={orderDetailsReturnUrl}
+                returnLabel={t('backToProcessing') || 'Back to Processing'}
+                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                {tTable('details')} →
+              </OrderDetailsLink>
+            </div>
             
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">

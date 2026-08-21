@@ -11,5 +11,9 @@ export const workboardQuerySchema = z.object({
   ownerScreenKey: z.enum(['preparation', 'processing', 'assembly', 'qa', 'packing', 'ready_release', 'driver_delivery']).optional(),
   blocker: z.enum(['all', 'blocked', 'clear']).default('all'),
   sla: z.enum(['all', 'overdue', 'due_today', 'not_due']).default('all'),
-  sort: z.enum(['age_desc', 'ready_by_asc']).default('age_desc'),
+  sort: z.enum([
+    'age_desc', 'age_asc', 'ready_by_asc', 'ready_by_desc', 'order_no_asc', 'order_no_desc',
+    'customer_asc', 'customer_desc', 'stage_asc', 'stage_desc', 'priority_asc', 'priority_desc',
+    'assignee_asc', 'assignee_desc',
+  ]).default('age_desc'),
 })

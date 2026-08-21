@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
+import type { SortingState } from '@tanstack/react-table'
 import { ClipboardList, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
@@ -14,6 +15,7 @@ import type {
   WorkboardOrderRow,
   WorkboardOwnerScreenKey,
   WorkboardQueryInput,
+  WorkboardSort,
 } from '@features/workboard/model/workboard-types'
 import { WorkboardFilterToolbar } from '@features/workboard/ui/workboard-filter-toolbar'
 import { WorkboardOverviewCards } from '@features/workboard/ui/workboard-overview-cards'
@@ -75,6 +77,40 @@ function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<
   }
 }
 
+/** Keeps table-header interaction aligned with the server's paginated ordering contract. */
+function sortingFromWorkboardSort(sort: WorkboardSort): SortingState {
+  const [column, direction] = sort.split(/_(?=[^_]+$)/) as [string, 'asc' | 'desc']
+  const columnBySort: Record<string, string> = {
+    age: 'age',
+    ready_by: 'readyBy',
+    order_no: 'order',
+    customer: 'customer',
+    stage: 'stage',
+    priority: 'priority',
+    assignee: 'assignee',
+  }
+
+  return [{ id: columnBySort[column] ?? 'age', desc: direction === 'desc' }]
+}
+
+/** Converts a CmxDataTable header choice into an API-owned sort value. */
+function workboardSortFromSorting(sorting: SortingState): WorkboardSort {
+  const next = sorting[0]
+  if (!next) return 'age_desc'
+
+  const prefixByColumn: Record<string, string> = {
+    order: 'order_no',
+    customer: 'customer',
+    stage: 'stage',
+    age: 'age',
+    readyBy: 'ready_by',
+    priority: 'priority',
+    assignee: 'assignee',
+  }
+  const prefix = prefixByColumn[next.id]
+  return prefix ? `${prefix}_${next.desc ? 'desc' : 'asc'}` as WorkboardSort : 'age_desc'
+}
+
 /** Supervisor view that triages work and routes it to the stage that owns actions. */
 export function WorkboardScreen() {
   const t = useTranslations('workboard')
@@ -115,7 +151,6 @@ export function WorkboardScreen() {
     setOwnerScreenKey(undefined)
     setBlocker('all')
     setSla('all')
-    setSort('age_desc')
     setPage(1)
   }
 
@@ -127,7 +162,6 @@ export function WorkboardScreen() {
     || ownerScreenKey
     || blocker !== 'all'
     || sla !== 'all'
-    || sort !== 'age_desc'
   )
 
   const handleRefresh = async () => {
@@ -155,7 +189,7 @@ export function WorkboardScreen() {
     {
       key: 'order',
       header: t('columns.order'),
-      sortable: false,
+      sortable: true,
       render: (row) => (
         <div className="space-y-1">
           <div className="font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{row.orderNo}</div>
@@ -168,7 +202,7 @@ export function WorkboardScreen() {
     {
       key: 'customer',
       header: t('columns.customer'),
-      sortable: false,
+      sortable: true,
       render: (row) => (
         <div className="space-y-1">
           <div className="font-medium">{row.customerName}</div>
@@ -179,9 +213,17 @@ export function WorkboardScreen() {
       ),
     },
     {
+      key: 'branch',
+      header: t('columns.branch'),
+      sortable: false,
+      render: (row) => (
+        <span className="text-sm">{row.branchName ?? t('noBranch')}</span>
+      ),
+    },
+    {
       key: 'stage',
       header: t('columns.stage'),
-      sortable: false,
+      sortable: true,
       render: (row) => (
         <div className="space-y-1">
           <CmxStatusBadge
@@ -197,17 +239,24 @@ export function WorkboardScreen() {
     },
     {
       key: 'age',
-      header: t('columns.ageSla'),
-      sortable: false,
+      header: t('columns.age'),
+      sortable: true,
       render: (row) => (
-        <div className="space-y-1 text-sm">
+        <div className="text-sm">
           <div className={isOverdue(row) ? 'font-semibold text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'font-medium'}>
             {formatAge(row.ageMinutes, t)}
           </div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            {row.readyByAt
-              ? t('dueAt', { value: formatDateTime(row.readyByAt, locale) })
-              : t('noDueDate')}
+        </div>
+      ),
+    },
+    {
+      key: 'readyBy',
+      header: t('columns.readyBy'),
+      sortable: true,
+      render: (row) => (
+        <div className="text-sm">
+          <div className={isOverdue(row) ? 'font-semibold text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'font-medium'}>
+            {row.readyByAt ? formatDateTime(row.readyByAt, locale) : t('noDueDate')}
           </div>
         </div>
       ),
@@ -215,7 +264,7 @@ export function WorkboardScreen() {
     {
       key: 'priority',
       header: t('columns.priority'),
-      sortable: false,
+      sortable: true,
       render: (row) => (
         row.priority
           ? (
@@ -231,7 +280,7 @@ export function WorkboardScreen() {
     {
       key: 'assignee',
       header: t('columns.assignee'),
-      sortable: false,
+      sortable: true,
       render: (row) => (
         <div className="space-y-1 text-sm">
           <div>{row.assigneeName ?? t('unassigned')}</div>
@@ -282,8 +331,8 @@ export function WorkboardScreen() {
   const errorMessage = error instanceof Error ? error.message : null
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="w-full space-y-4 px-4 py-4 md:px-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <ClipboardList className="h-8 w-8 text-[rgb(var(--cmx-primary-rgb,37_99_235))]" aria-hidden />
@@ -296,6 +345,42 @@ export function WorkboardScreen() {
           {t('refresh')}
         </CmxButton>
       </div>
+
+      <WorkboardFilterToolbar
+        search={search}
+        branchId={branchId}
+        assigneeId={assigneeId}
+        priority={priority}
+        blocker={blocker}
+        sla={sla}
+        totalRows={data?.total ?? 0}
+        metadata={metadata}
+        onSearchChange={(value) => {
+          setSearch(value)
+          resetPage()
+        }}
+        onBranchChange={(value) => {
+          setBranchId(value)
+          resetPage()
+        }}
+        onAssigneeChange={(value) => {
+          setAssigneeId(value)
+          resetPage()
+        }}
+        onPriorityChange={(value) => {
+          setPriority(value)
+          resetPage()
+        }}
+        onBlockerChange={(value) => {
+          setBlocker(value)
+          resetPage()
+        }}
+        onSlaChange={(value) => {
+          setSla(value)
+          resetPage()
+        }}
+        onReset={resetFilters}
+      />
 
       <WorkboardOverviewCards
         summary={data?.summary}
@@ -324,47 +409,6 @@ export function WorkboardScreen() {
         />
       ) : null}
 
-      <WorkboardFilterToolbar
-        search={search}
-        branchId={branchId}
-        assigneeId={assigneeId}
-        priority={priority}
-        blocker={blocker}
-        sla={sla}
-        sort={sort}
-        totalRows={data?.total ?? 0}
-        metadata={metadata}
-        onSearchChange={(value) => {
-          setSearch(value)
-          resetPage()
-        }}
-        onBranchChange={(value) => {
-          setBranchId(value)
-          resetPage()
-        }}
-        onAssigneeChange={(value) => {
-          setAssigneeId(value)
-          resetPage()
-        }}
-        onPriorityChange={(value) => {
-          setPriority(value)
-          resetPage()
-        }}
-        onBlockerChange={(value) => {
-          setBlocker(value)
-          resetPage()
-        }}
-        onSlaChange={(value) => {
-          setSla(value)
-          resetPage()
-        }}
-        onSortChange={(value) => {
-          setSort(value)
-          resetPage()
-        }}
-        onReset={resetFilters}
-      />
-
       {errorMessage ? (
         <CmxSummaryMessage
           type="error"
@@ -389,6 +433,11 @@ export function WorkboardScreen() {
           columns={columns}
           data={data?.rows ?? []}
           loading={isLoading}
+          sorting={sortingFromWorkboardSort(sort)}
+          onSortingChange={(nextSorting) => {
+            setSort(workboardSortFromSorting(nextSorting))
+            resetPage()
+          }}
           currentPage={page}
           pageSize={pageSize}
           total={data?.total ?? 0}
@@ -399,6 +448,9 @@ export function WorkboardScreen() {
           }}
           pageSizeOptions={[10, 25, 50, 100]}
           paginationFooter="always"
+          showRowNumbers
+          className="w-full shadow-sm"
+          scrollAreaClassName="min-h-[28rem] max-h-[calc(100vh-21rem)] overflow-auto"
           emptyStateTitle={t('empty.title')}
           emptyStateDescription={hasActiveFilters ? t('empty.filteredDescription') : t('empty.description')}
           emptyStateIcon={<ClipboardList className="h-10 w-10" />}

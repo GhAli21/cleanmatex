@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { Search } from 'lucide-react'
-import { CmxInput, CmxButton } from '@ui/primitives'
+import { CmxInput, CmxButton, Label } from '@ui/primitives'
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -25,7 +25,6 @@ interface WorkboardFilterToolbarProps {
   priority?: string
   blocker: WorkboardQueryInput['blocker']
   sla: WorkboardQueryInput['sla']
-  sort: WorkboardQueryInput['sort']
   totalRows: number
   metadata?: WorkboardMetadata
   onSearchChange: (value: string) => void
@@ -34,7 +33,6 @@ interface WorkboardFilterToolbarProps {
   onPriorityChange: (value?: string) => void
   onBlockerChange: (value: WorkboardQueryInput['blocker']) => void
   onSlaChange: (value: WorkboardQueryInput['sla']) => void
-  onSortChange: (value: WorkboardQueryInput['sort']) => void
   onReset: () => void
 }
 
@@ -46,7 +44,6 @@ export function WorkboardFilterToolbar({
   priority,
   blocker,
   sla,
-  sort,
   totalRows,
   metadata,
   onSearchChange,
@@ -55,11 +52,9 @@ export function WorkboardFilterToolbar({
   onPriorityChange,
   onBlockerChange,
   onSlaChange,
-  onSortChange,
   onReset,
 }: WorkboardFilterToolbarProps) {
   const t = useTranslations('workboard')
-  const locale = useLocale()
 
   const activeFilters = useMemo(() => {
     const items: string[] = []
@@ -100,22 +95,14 @@ export function WorkboardFilterToolbar({
       items.push(t('filters.active.sla', { value: slaLabels[sla] }))
     }
 
-    if (sort !== 'age_desc') {
-      const sortLabels: Record<NonNullable<WorkboardQueryInput['sort']>, string> = {
-        age_desc: t('filters.oldest'),
-        ready_by_asc: t('filters.dueFirst'),
-      }
-      items.push(t('filters.active.sort', { value: sortLabels[sort] }))
-    }
-
     return items
-  }, [assigneeId, blocker, branchId, locale, metadata, priority, search, sla, sort, t])
+  }, [assigneeId, blocker, branchId, metadata, priority, search, sla, t])
 
   const hasActiveFilters = activeFilters.length > 0
 
   return (
-    <CmxCard>
-      <CmxCardHeader className="flex flex-col gap-3 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] pb-4 lg:flex-row lg:items-start lg:justify-between">
+    <CmxCard className="shadow-sm">
+      <CmxCardHeader className="flex flex-col gap-3 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] pb-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CmxCardTitle>{t('filters.title')}</CmxCardTitle>
           <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -151,16 +138,22 @@ export function WorkboardFilterToolbar({
         </div>
       </CmxCardHeader>
 
-      <CmxCardContent className="grid gap-3 pt-4 md:grid-cols-2 xl:grid-cols-4">
-        <CmxInput
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={t('filters.search')}
-          aria-label={t('filters.search')}
-          leftIcon={<Search className="h-4 w-4" />}
-        />
+      <CmxCardContent className="grid gap-x-4 gap-y-3 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(17rem,1.5fr)_repeat(5,minmax(9rem,1fr))]">
+        <div className="space-y-1.5">
+          <Label htmlFor="workboard-search">{t('filters.searchLabel')}</Label>
+          <CmxInput
+            id="workboard-search"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={t('filters.search')}
+            aria-label={t('filters.search')}
+            leftIcon={<Search className="h-4 w-4" />}
+          />
+        </div>
 
-        <CmxSelectDropdown
+        <div className="space-y-1.5">
+          <Label>{t('filters.branch')}</Label>
+          <CmxSelectDropdown
           value={branchId ?? 'all'}
           onValueChange={(value) => onBranchChange(value === 'all' ? undefined : value)}
         >
@@ -176,8 +169,11 @@ export function WorkboardFilterToolbar({
             ))}
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
+        </div>
 
-        <CmxSelectDropdown
+        <div className="space-y-1.5">
+          <Label>{t('filters.assignee')}</Label>
+          <CmxSelectDropdown
           value={assigneeId ?? 'all'}
           onValueChange={(value) => onAssigneeChange(value === 'all' ? undefined : value)}
         >
@@ -193,8 +189,11 @@ export function WorkboardFilterToolbar({
             ))}
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
+        </div>
 
-        <CmxSelectDropdown
+        <div className="space-y-1.5">
+          <Label>{t('filters.priority')}</Label>
+          <CmxSelectDropdown
           value={priority ?? 'all'}
           onValueChange={(value) => onPriorityChange(value === 'all' ? undefined : value)}
         >
@@ -210,8 +209,11 @@ export function WorkboardFilterToolbar({
             ))}
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
+        </div>
 
-        <CmxSelectDropdown
+        <div className="space-y-1.5">
+          <Label>{t('filters.blocker')}</Label>
+          <CmxSelectDropdown
           value={blocker}
           onValueChange={(value) => onBlockerChange(value as WorkboardQueryInput['blocker'])}
         >
@@ -224,8 +226,11 @@ export function WorkboardFilterToolbar({
             <CmxSelectDropdownItem value="clear">{t('filters.clear')}</CmxSelectDropdownItem>
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
+        </div>
 
-        <CmxSelectDropdown
+        <div className="space-y-1.5">
+          <Label>{t('filters.sla')}</Label>
+          <CmxSelectDropdown
           value={sla}
           onValueChange={(value) => onSlaChange(value as WorkboardQueryInput['sla'])}
         >
@@ -239,19 +244,7 @@ export function WorkboardFilterToolbar({
             <CmxSelectDropdownItem value="not_due">{t('filters.notDue')}</CmxSelectDropdownItem>
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
-
-        <CmxSelectDropdown
-          value={sort}
-          onValueChange={(value) => onSortChange(value as WorkboardQueryInput['sort'])}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.sort')}>
-            <CmxSelectDropdownValue />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="age_desc">{t('filters.oldest')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="ready_by_asc">{t('filters.dueFirst')}</CmxSelectDropdownItem>
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+        </div>
       </CmxCardContent>
     </CmxCard>
   )

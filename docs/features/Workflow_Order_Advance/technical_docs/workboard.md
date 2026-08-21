@@ -29,6 +29,8 @@ execute a workflow transition.
 - Server-side filters are bounded and validated with Zod. Supported filters are
   `search`, `branchId`, `assigneeId`, `priority`, `ownerScreenKey`, `blocker`,
   `sla`, `sort`, `page`, and `pageSize`.
+- The `sort` query is server-owned, so header-driven ordering applies to the
+  complete tenant queue rather than only the visible page.
 - Pagination avoids loading an unbounded tenant order list into the browser.
 
 ## UI contract
@@ -41,6 +43,8 @@ execute a workflow transition.
   focus visible even after one owner stage is selected.
 - The filter toolbar shows the current result count, active filter chips, and a
   clear-filters action.
+- Sortable table headers cover order number, customer, stage, age, ready-by,
+  priority, and assignee; sorting is reflected in the API query.
 
 ## Verification
 

@@ -24,8 +24,10 @@
   "columns": {
     "order": "Order #",
     "customer": "Customer",
+    "branch": "Branch",
     "stage": "Stage",
-    "ageSla": "Age / SLA",
+    "age": "Age",
+    "readyBy": "Ready by",
     "priority": "Priority",
     "assignee": "Assignee",
     "attention": "Attention",
@@ -34,6 +36,7 @@
   "owners": { "preparation": "Preparation", "processing": "Processing", "assembly": "Assembly", "qa": "Quality check", "packing": "Packing", "ready_release": "Ready / release", "driver_delivery": "Driver delivery" },
   "filters": {
     "title": "Queue filters",
+    "searchLabel": "Find work",
     "search": "Search order, customer, phone, or email",
     "branch": "Branch",
     "allBranches": "All branches",

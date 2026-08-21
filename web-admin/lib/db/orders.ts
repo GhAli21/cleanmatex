@@ -29,6 +29,8 @@ import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { recalculateOrderFinancialSnapshot } from '@/lib/services/order-financial-write.service';
 import { taxService } from '@/lib/services/tax.service';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function withCanonicalOrderTotalAliases<T extends Record<string, unknown>>(order: T) {
   return {
     ...order,
@@ -526,6 +528,48 @@ export async function getOrderById(
     branch: order.org_branches_mst,
     order_source: order.sys_order_sources_cd,
   } as unknown as OrderWithDetails;
+}
+
+/**
+ * Resolve an order from either its UUID or its human-readable order number.
+ *
+ * We prefer UUID when it matches and exists, then fall back to an exact
+ * case-insensitive order number lookup within the same tenant.
+ */
+export async function getOrderByReference(
+  tenantOrgId: string,
+  orderReference: string,
+): Promise<OrderWithDetails | null> {
+  const normalizedReference = orderReference.trim();
+  if (!normalizedReference) {
+    return null;
+  }
+
+  if (UUID_REGEX.test(normalizedReference)) {
+    const orderById = await getOrderById(tenantOrgId, normalizedReference);
+    if (orderById) {
+      return orderById;
+    }
+  }
+
+  const orderRow = await prisma.org_orders_mst.findFirst({
+    where: {
+      tenant_org_id: tenantOrgId,
+      order_no: {
+        equals: normalizedReference,
+        mode: 'insensitive',
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!orderRow?.id) {
+    return null;
+  }
+
+  return getOrderById(tenantOrgId, orderRow.id);
 }
 
 /**

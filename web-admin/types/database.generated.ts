@@ -17121,7 +17121,12 @@ export type Database = {
           updated_by: string | null
           updated_info: string | null
           vat_rate: number | null
+          wf_profile_artifact_id: string | null
+          wf_profile_checksum: string | null
           wf_profile_id: string | null
+          wf_profile_revision: number | null
+          wf_profile_schema_version: number | null
+          wf_profile_version_id: string | null
           wf_version_no: number | null
           workflow_template_id: string | null
           zero_rated_amount: number
@@ -17282,7 +17287,12 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
           vat_rate?: number | null
+          wf_profile_artifact_id?: string | null
+          wf_profile_checksum?: string | null
           wf_profile_id?: string | null
+          wf_profile_revision?: number | null
+          wf_profile_schema_version?: number | null
+          wf_profile_version_id?: string | null
           wf_version_no?: number | null
           workflow_template_id?: string | null
           zero_rated_amount?: number
@@ -17443,12 +17453,43 @@ export type Database = {
           updated_by?: string | null
           updated_info?: string | null
           vat_rate?: number | null
+          wf_profile_artifact_id?: string | null
+          wf_profile_checksum?: string | null
           wf_profile_id?: string | null
+          wf_profile_revision?: number | null
+          wf_profile_schema_version?: number | null
+          wf_profile_version_id?: string | null
           wf_version_no?: number | null
           workflow_template_id?: string | null
           zero_rated_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ord_wf_prof_artifact"
+            columns: [
+              "wf_profile_artifact_id",
+              "wf_profile_version_id",
+              "wf_profile_revision",
+              "wf_profile_schema_version",
+              "wf_profile_checksum",
+            ]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_artifact_cf"
+            referencedColumns: [
+              "artifact_id",
+              "version_id",
+              "policy_revision",
+              "artifact_schema_version",
+              "artifact_checksum",
+            ]
+          },
+          {
+            foreignKeyName: "fk_ord_wf_prof_ver_scope"
+            columns: ["wf_profile_version_id", "wf_profile_id", "wf_version_no"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id", "profile_id", "version_no"]
+          },
           {
             foreignKeyName: "fk_order_parent_order"
             columns: ["parent_order_id"]
@@ -33560,6 +33601,8 @@ export type Database = {
           name: string
           name2: string | null
           rec_status: number
+          supports_override: boolean
+          supports_soft_warning: boolean
           updated_at: string | null
         }
         Insert: {
@@ -33572,6 +33615,8 @@ export type Database = {
           name: string
           name2?: string | null
           rec_status?: number
+          supports_override?: boolean
+          supports_soft_warning?: boolean
           updated_at?: string | null
         }
         Update: {
@@ -33584,6 +33629,8 @@ export type Database = {
           name?: string
           name2?: string | null
           rec_status?: number
+          supports_override?: boolean
+          supports_soft_warning?: boolean
           updated_at?: string | null
         }
         Relationships: []
@@ -33639,6 +33686,7 @@ export type Database = {
           id: string
           initial_status: string
           is_active: boolean
+          is_quick_drop: boolean | null
           is_retail: boolean | null
           name: string | null
           name2: string | null
@@ -33654,6 +33702,7 @@ export type Database = {
           id?: string
           initial_status: string
           is_active?: boolean
+          is_quick_drop?: boolean | null
           is_retail?: boolean | null
           name?: string | null
           name2?: string | null
@@ -33669,6 +33718,7 @@ export type Database = {
           id?: string
           initial_status?: string
           is_active?: boolean
+          is_quick_drop?: boolean | null
           is_retail?: boolean | null
           name?: string | null
           name2?: string | null
@@ -33686,6 +33736,768 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_wf_statuses_cd"
             referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_artifact_cf: {
+        Row: {
+          artifact_checksum: string
+          artifact_id: string
+          artifact_schema_version: number
+          compile_state: string
+          compiled_artifact: Json
+          compiled_at: string
+          compiled_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          policy_revision: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          validation_report: Json
+          version_id: string
+        }
+        Insert: {
+          artifact_checksum: string
+          artifact_id?: string
+          artifact_schema_version: number
+          compile_state: string
+          compiled_artifact: Json
+          compiled_at?: string
+          compiled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          policy_revision: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          validation_report?: Json
+          version_id: string
+        }
+        Update: {
+          artifact_checksum?: string
+          artifact_id?: string
+          artifact_schema_version?: number
+          compile_state?: string
+          compiled_artifact?: Json
+          compiled_at?: string
+          compiled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          policy_revision?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          validation_report?: Json
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_artifact_cf_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_evidence_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          evidence_method_code: string
+          fulfilment_channel: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          minimum_count: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          evidence_method_code: string
+          fulfilment_channel: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          minimum_count?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          evidence_method_code?: string
+          fulfilment_channel?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          minimum_count?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_evidence_cf_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_exec_cf: {
+        Row: {
+          action_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          exec_id: string
+          from_status: string
+          is_active: boolean
+          min_reason_length: number
+          permission_code: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          requires_evidence: boolean
+          requires_expected_version: boolean
+          requires_idempotency: boolean
+          requires_reason: boolean
+          screen_key: string
+          to_status: string
+          transition_kind: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_id: string
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          exec_id?: string
+          from_status: string
+          is_active?: boolean
+          min_reason_length?: number
+          permission_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_evidence?: boolean
+          requires_expected_version?: boolean
+          requires_idempotency?: boolean
+          requires_reason?: boolean
+          screen_key: string
+          to_status: string
+          transition_kind?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id: string
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          exec_id?: string
+          from_status?: string
+          is_active?: boolean
+          min_reason_length?: number
+          permission_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          requires_evidence?: boolean
+          requires_expected_version?: boolean
+          requires_idempotency?: boolean
+          requires_reason?: boolean
+          screen_key?: string
+          to_status?: string
+          transition_kind?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_prof_exec_module"
+            columns: ["version_id", "screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_module_cf"
+            referencedColumns: ["version_id", "screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_cf_action_code_fkey"
+            columns: ["action_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_actions_cd"
+            referencedColumns: ["action_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_cf_from_status_fkey"
+            columns: ["from_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_cf_to_status_fkey"
+            columns: ["to_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_exec_ch_cf: {
+        Row: {
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          exec_id: string
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          exec_id: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          exec_id?: string
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_ch_cf_exec_id_fkey"
+            columns: ["exec_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_exec_cf"
+            referencedColumns: ["exec_id"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_exec_gate_cf: {
+        Row: {
+          blocking_mode: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          evaluator_version: number
+          exec_id: string
+          gate_code: string
+          id: string
+          is_active: boolean
+          message_key: string | null
+          override_min_reason_length: number
+          override_permission_code: string | null
+          parameters_json: Json
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          blocking_mode?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          evaluator_version?: number
+          exec_id: string
+          gate_code: string
+          id?: string
+          is_active?: boolean
+          message_key?: string | null
+          override_min_reason_length?: number
+          override_permission_code?: string | null
+          parameters_json?: Json
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          blocking_mode?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          evaluator_version?: number
+          exec_id?: string
+          gate_code?: string
+          id?: string
+          is_active?: boolean
+          message_key?: string | null
+          override_min_reason_length?: number
+          override_permission_code?: string | null
+          parameters_json?: Json
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_prof_gate_override_perm"
+            columns: ["override_permission_code"]
+            isOneToOne: false
+            referencedRelation: "sys_auth_permissions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_gate_cf_exec_id_fkey"
+            columns: ["exec_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_exec_cf"
+            referencedColumns: ["exec_id"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_exec_gate_cf_gate_code_fkey"
+            columns: ["gate_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_gate_defs_cd"
+            referencedColumns: ["gate_code"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_init_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          initial_status: string
+          is_active: boolean
+          is_quick_drop: boolean | null
+          is_retail: boolean | null
+          name: string | null
+          name2: string | null
+          order_source_code: string | null
+          order_type_id: string | null
+          priority: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          rule_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          initial_status: string
+          is_active?: boolean
+          is_quick_drop?: boolean | null
+          is_retail?: boolean | null
+          name?: string | null
+          name2?: string | null
+          order_source_code?: string | null
+          order_type_id?: string | null
+          priority?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rule_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          initial_status?: string
+          is_active?: boolean
+          is_quick_drop?: boolean | null
+          is_retail?: boolean | null
+          name?: string | null
+          name2?: string | null
+          order_source_code?: string | null
+          order_type_id?: string | null
+          priority?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          rule_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_init_cf_initial_status_fkey"
+            columns: ["initial_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_init_cf_rule_code_fkey"
+            columns: ["rule_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_initial_rules_cd"
+            referencedColumns: ["rule_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_init_cf_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_mod_st_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          screen_key: string
+          status_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_id: string
+          visibility_mode: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          screen_key: string
+          status_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id: string
+          visibility_mode: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          screen_key?: string
+          status_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id?: string
+          visibility_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wf_prof_mod_st_module"
+            columns: ["version_id", "screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_module_cf"
+            referencedColumns: ["version_id", "screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_mod_st_cf_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_module_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_enabled: boolean
+          module_mode: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          screen_key: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          module_mode: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          screen_key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          module_mode?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          screen_key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_module_cf_screen_key_fkey"
+            columns: ["screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_prof_ver_module_cf_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
+          },
+        ]
+      }
+      sys_wf_prof_ver_policy_cf: {
+        Row: {
+          allow_back_steps: boolean
+          allow_direct_counter_pickup: boolean
+          conditional_routing_enabled: boolean
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          delivery_enabled: boolean
+          financial_release_policy_code: string | null
+          is_active: boolean
+          orders_split_enabled: boolean
+          otp_enabled: boolean
+          partial_delivery_enabled: boolean
+          partial_pickup_enabled: boolean
+          pickup_enabled: boolean
+          pod_policy_code: string | null
+          policy_schema_version: number
+          public_tracking_enabled: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          require_collection_for_delivery: boolean
+          require_collection_for_pickup: boolean
+          require_delivery_stop: boolean
+          require_pickup_release: boolean
+          require_rack_before_release: boolean
+          returns_enabled: boolean
+          stage_sequence: string[]
+          track_individual_piece: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          use_assembly: boolean
+          use_packing: boolean
+          use_preparation: boolean
+          use_qa: boolean
+          version_id: string
+        }
+        Insert: {
+          allow_back_steps?: boolean
+          allow_direct_counter_pickup?: boolean
+          conditional_routing_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          delivery_enabled?: boolean
+          financial_release_policy_code?: string | null
+          is_active?: boolean
+          orders_split_enabled?: boolean
+          otp_enabled?: boolean
+          partial_delivery_enabled?: boolean
+          partial_pickup_enabled?: boolean
+          pickup_enabled?: boolean
+          pod_policy_code?: string | null
+          policy_schema_version?: number
+          public_tracking_enabled?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          require_collection_for_delivery?: boolean
+          require_collection_for_pickup?: boolean
+          require_delivery_stop?: boolean
+          require_pickup_release?: boolean
+          require_rack_before_release?: boolean
+          returns_enabled?: boolean
+          stage_sequence?: string[]
+          track_individual_piece?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          use_assembly?: boolean
+          use_packing?: boolean
+          use_preparation?: boolean
+          use_qa?: boolean
+          version_id: string
+        }
+        Update: {
+          allow_back_steps?: boolean
+          allow_direct_counter_pickup?: boolean
+          conditional_routing_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          delivery_enabled?: boolean
+          financial_release_policy_code?: string | null
+          is_active?: boolean
+          orders_split_enabled?: boolean
+          otp_enabled?: boolean
+          partial_delivery_enabled?: boolean
+          partial_pickup_enabled?: boolean
+          pickup_enabled?: boolean
+          pod_policy_code?: string | null
+          policy_schema_version?: number
+          public_tracking_enabled?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          require_collection_for_delivery?: boolean
+          require_collection_for_pickup?: boolean
+          require_delivery_stop?: boolean
+          require_pickup_release?: boolean
+          require_rack_before_release?: boolean
+          returns_enabled?: boolean
+          stage_sequence?: string[]
+          track_individual_piece?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          use_assembly?: boolean
+          use_packing?: boolean
+          use_preparation?: boolean
+          use_qa?: boolean
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_policy_cf_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: true
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
           },
         ]
       }
@@ -33743,13 +34555,21 @@ export type Database = {
           based_on_template_id: string | null
           change_summary: string | null
           change_summary2: string | null
+          compiled_at: string | null
+          compiled_by: string | null
+          compiled_checksum: string | null
+          compiled_schema_version: number | null
           config_json: Json
           created_at: string
           created_by: string | null
+          current_artifact_id: string | null
           is_active: boolean
           name: string | null
           name2: string | null
           orders_split_enabled: boolean
+          pilot_started_at: string | null
+          pilot_started_by: string | null
+          policy_revision: number
           profile_id: string
           profile_policy_checksum: string | null
           profile_policy_json: Json
@@ -33776,13 +34596,21 @@ export type Database = {
           based_on_template_id?: string | null
           change_summary?: string | null
           change_summary2?: string | null
+          compiled_at?: string | null
+          compiled_by?: string | null
+          compiled_checksum?: string | null
+          compiled_schema_version?: number | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
+          current_artifact_id?: string | null
           is_active?: boolean
           name?: string | null
           name2?: string | null
           orders_split_enabled?: boolean
+          pilot_started_at?: string | null
+          pilot_started_by?: string | null
+          policy_revision?: number
           profile_id: string
           profile_policy_checksum?: string | null
           profile_policy_json?: Json
@@ -33809,13 +34637,21 @@ export type Database = {
           based_on_template_id?: string | null
           change_summary?: string | null
           change_summary2?: string | null
+          compiled_at?: string | null
+          compiled_by?: string | null
+          compiled_checksum?: string | null
+          compiled_schema_version?: number | null
           config_json?: Json
           created_at?: string
           created_by?: string | null
+          current_artifact_id?: string | null
           is_active?: boolean
           name?: string | null
           name2?: string | null
           orders_split_enabled?: boolean
+          pilot_started_at?: string | null
+          pilot_started_by?: string | null
+          policy_revision?: number
           profile_id?: string
           profile_policy_checksum?: string | null
           profile_policy_json?: Json
@@ -33838,6 +34674,13 @@ export type Database = {
           wf_graph_def_version_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_wf_prof_ver_artifact"
+            columns: ["current_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_artifact_cf"
+            referencedColumns: ["artifact_id"]
+          },
           {
             foreignKeyName: "sys_wf_profile_ver_mst_based_on_template_id_fkey"
             columns: ["based_on_template_id"]
@@ -35822,6 +36665,26 @@ export type Database = {
       }
       sys_bill_generate_invoice_number: { Args: never; Returns: string }
       sys_bill_get_default_payment_method: { Args: never; Returns: string }
+      sys_wf_prof_ver_commit_art: {
+        Args: {
+          p_actor_id?: string
+          p_artifact_checksum: string
+          p_artifact_schema_version: number
+          p_compiled_artifact: Json
+          p_expected_revision: number
+          p_profile_id: string
+          p_target_status: string
+          p_validation_report: Json
+          p_version_no: number
+        }
+        Returns: {
+          artifact_checksum: string
+          artifact_id: string
+          policy_revision: number
+          version_id: string
+          version_status: string
+        }[]
+      }
       test_assert: {
         Args: { condition: boolean; message?: string }
         Returns: undefined

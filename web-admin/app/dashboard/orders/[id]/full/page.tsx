@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
-import { getOrder } from '@/app/actions/orders/get-order';
+import { getOrderByRef } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getVouchersForOrder } from '@/lib/services/voucher-service';
@@ -19,16 +19,19 @@ import {
   type OrderPreferenceDtlColumn,
 } from '@/lib/orders/order-preferences-dtl';
 import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
+import {
+  isUuidLike,
+  sanitizeOrderDetailsReturnUrl,
+} from '@/lib/orders/order-details-navigation';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface OrderDetailsFullPageProps {
   params: Promise<{
     id: string;
   }>;
   searchParams: Promise<{
+    tenantOrgId?: string;
     returnUrl?: string;
     returnLabel?: string;
     tab?: string;
@@ -43,6 +46,7 @@ async function OrderDetailsFullContent({
 }: {
   orderId: string;
   searchParams: {
+    tenantOrgId?: string;
     returnUrl?: string;
     returnLabel?: string;
     tab?: string;
@@ -56,19 +60,24 @@ async function OrderDetailsFullContent({
   const tOrders = await getTranslations('orders');
   const tCommon = await getTranslations('common');
   const locale = await getLocale();
+  const safeReturnUrl = sanitizeOrderDetailsReturnUrl(
+    searchParams?.returnUrl,
+    '/dashboard/orders',
+  );
+  const requestedTenantOrgId = searchParams?.tenantOrgId?.trim();
+  const hasTenantMismatch = !!requestedTenantOrgId && requestedTenantOrgId !== tenantId;
 
-  // Validate order ID
-  if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
+  if (!orderId || typeof orderId !== 'string' || !orderId.trim()) {
     return (
       <OrderDetailError
         orderId={orderId || ''}
         title={t('errorInvalidOrderId')}
         description={t('errorInvalidOrderIdDesc')}
         backToOrders={tOrders('allOrders')}
-        returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
+        returnUrl={safeReturnUrl}
         returnLabel={searchParams?.returnLabel}
         debug={{
-          condition: 'Invalid order ID (empty or not a valid UUID format)',
+          condition: 'Invalid order reference (empty identifier)',
           tenantId,
           userId,
         }}
@@ -76,27 +85,25 @@ async function OrderDetailsFullContent({
     );
   }
 
-  const [
-    orderResult,
-    invoicesResult,
-    vouchersResult,
-    stockResult,
-    receiptsResult,
-    editHistoryResult,
-    preferencesResult,
-    discountLines,
-    financialResult,
-  ] = await Promise.all([
-    getOrder(tenantId, orderId),
-    getOrderInvoices(orderId),
-    getVouchersForOrder(orderId),
-    getStockTransactionsForOrder(orderId),
-    ReceiptService.getReceipts({ orderId, tenantId }),
-    getOrderEditHistoryAction(orderId),
-    getOrderPreferencesAction(orderId),
-    getDiscountLinesForOrder(tenantId, orderId).catch(() => [] as OrderDiscountLine[]),
-    getOrderFinancialAction(tenantId, orderId),
-  ]);
+  if (hasTenantMismatch) {
+    return (
+      <OrderDetailError
+        orderId={orderId}
+        title={t('errorOrderNotFound')}
+        description={t('errorOrderNotFoundDesc')}
+        backToOrders={tOrders('allOrders')}
+        returnUrl={safeReturnUrl}
+        returnLabel={searchParams?.returnLabel}
+        debug={{
+          condition: 'Requested tenant_org_id does not match authenticated tenant',
+          tenantId,
+          userId,
+        }}
+      />
+    );
+  }
+
+  const orderResult = await getOrderByRef(tenantId, orderId);
 
   if (!orderResult.success || !orderResult.data) {
     return (
@@ -105,10 +112,12 @@ async function OrderDetailsFullContent({
         title={t('errorOrderNotFound')}
         description={t('errorOrderNotFoundDesc')}
         backToOrders={tOrders('allOrders')}
-        returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
+        returnUrl={safeReturnUrl}
         returnLabel={searchParams?.returnLabel}
         debug={{
-          condition: 'getOrder returned no data (order not in DB for this tenant, or query failed)',
+          condition: isUuidLike(orderId)
+            ? 'getOrderByRef returned no data for UUID reference'
+            : 'getOrderByRef returned no data for order_no reference',
           serverError: orderResult.error,
           tenantId,
           userId,
@@ -125,6 +134,26 @@ async function OrderDetailsFullContent({
     total_credit_applied_amount?: number | string | null;
     promo_discount_amount?: number | string | null;
   };
+  const resolvedOrderId = String(order.id);
+  const [
+    invoicesResult,
+    vouchersResult,
+    stockResult,
+    receiptsResult,
+    editHistoryResult,
+    preferencesResult,
+    discountLines,
+    financialResult,
+  ] = await Promise.all([
+    getOrderInvoices(resolvedOrderId),
+    getVouchersForOrder(resolvedOrderId),
+    getStockTransactionsForOrder(resolvedOrderId),
+    ReceiptService.getReceipts({ orderId: resolvedOrderId, tenantId }),
+    getOrderEditHistoryAction(resolvedOrderId),
+    getOrderPreferencesAction(resolvedOrderId),
+    getDiscountLinesForOrder(tenantId, resolvedOrderId).catch(() => [] as OrderDiscountLine[]),
+    getOrderFinancialAction(tenantId, resolvedOrderId),
+  ]);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
   const vouchers = vouchersResult ?? [];
   const stockTransactions = stockResult ?? [];
@@ -201,7 +230,7 @@ async function OrderDetailsFullContent({
   const tInvoices = await getTranslations('invoices');
   const publicTrackingPath = await getPublicTrackingPathForOrderId({
     tenantId,
-    orderId,
+    orderId: resolvedOrderId,
     fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
   });
 
@@ -228,7 +257,9 @@ async function OrderDetailsFullContent({
       initialTab={searchParams?.tab}
       initialInvoiceId={searchParams?.invoiceId}
       initialVoucherId={searchParams?.voucherId}
-      returnUrl={searchParams?.returnUrl ?? `/dashboard/orders/${orderId}`}
+      returnUrl={searchParams?.returnUrl
+        ? safeReturnUrl
+        : `/dashboard/orders/${resolvedOrderId}`}
       returnLabel={searchParams?.returnLabel}
       translations={{
         ...Object.fromEntries(

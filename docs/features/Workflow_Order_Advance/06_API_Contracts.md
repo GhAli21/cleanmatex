@@ -305,6 +305,9 @@ Exact OpenAPI path freeze happens in P2 when routes are implemented; inventory a
 `page`, `pageSize`, `search`, `branchId`, `assigneeId`, `priority`,
 `ownerScreenKey`, `blocker`, `sla`, and `sort` query parameters.
 
+`sort` supports server-side ordering for order number, customer, stage, age,
+ready-by, priority, and assignee in ascending or descending direction.
+
 The response remains read-only and tenant-scoped. It returns:
 
 - paginated Workboard rows,

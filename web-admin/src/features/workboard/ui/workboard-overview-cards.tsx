@@ -1,6 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import type { ReactNode } from 'react'
+import { AlertCircle, Layers3, TimerReset } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { cn } from '@lib/utils'
 
@@ -20,6 +22,7 @@ const OWNER_CARD_ORDER: WorkboardOwnerScreenKey[] = [
   'driver_delivery',
 ]
 
+/** Inputs for the compact Workboard queue focus strip. */
 interface WorkboardOverviewCardsProps {
   summary?: WorkboardSummary
   ownerScreenKey?: WorkboardOwnerScreenKey
@@ -30,15 +33,18 @@ interface WorkboardOverviewCardsProps {
   onSlaChange: (value: WorkboardQueryInput['sla']) => void
 }
 
+/** A single filterable queue metric that keeps summary data actionable. */
 function WorkboardOverviewCard({
   active,
   label,
   value,
+  icon,
   onClick,
 }: {
   active: boolean
   label: string
   value: number
+  icon: ReactNode
   onClick: () => void
 }) {
   return (
@@ -47,21 +53,24 @@ function WorkboardOverviewCard({
       variant="outline"
       onClick={onClick}
       className={cn(
-        'h-auto min-h-28 w-full flex-col items-start justify-between gap-4 rounded-2xl px-4 py-4 text-start shadow-sm transition-all hover:-translate-y-0.5',
+        'h-auto min-h-20 w-[11rem] shrink-0 items-center justify-start gap-3 rounded-xl px-3 py-3 text-start shadow-sm transition-all hover:-translate-y-0.5',
         active
           ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.45)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.08)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]'
           : 'border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]',
       )}
     >
-      <span className="text-sm font-semibold">{label}</span>
-      <span className="text-4xl font-semibold tracking-tight tabular-nums">
-        {value}
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[rgb(var(--cmx-muted-rgb,241_245_249))]">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</span>
+        <span className="block text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
       </span>
     </CmxButton>
   )
 }
 
-/** Quick-focus cards for stage ownership and risk segments. */
+/** Compact, horizontally scrollable queue focus strip for operational triage. */
 export function WorkboardOverviewCards({
   summary,
   ownerScreenKey,
@@ -84,21 +93,20 @@ export function WorkboardOverviewCards({
   const overdue = summary?.overdue ?? 0
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <section aria-labelledby="workboard-queue-focus" className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">{t('overview.title')}</h2>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            {t('overview.description')}
-          </p>
+          <h2 id="workboard-queue-focus" className="text-sm font-semibold">{t('overview.title')}</h2>
+          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('overview.description')}</p>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
         <WorkboardOverviewCard
           active={!ownerScreenKey && blocker === 'all' && sla === 'all'}
           label={t('overview.all')}
           value={total}
+          icon={<Layers3 className="h-4 w-4" aria-hidden />}
           onClick={resetQuickFocus}
         />
 
@@ -108,6 +116,7 @@ export function WorkboardOverviewCards({
             active={ownerScreenKey === screenKey}
             label={t(`owners.${screenKey}`)}
             value={summary?.byOwner[screenKey] ?? 0}
+            icon={<TimerReset className="h-4 w-4" aria-hidden />}
             onClick={() => {
               onOwnerScreenKeyChange(screenKey)
               onBlockerChange('all')
@@ -120,6 +129,7 @@ export function WorkboardOverviewCards({
           active={!ownerScreenKey && blocker === 'blocked'}
           label={t('overview.blocked')}
           value={blocked}
+          icon={<AlertCircle className="h-4 w-4" aria-hidden />}
           onClick={() => {
             onOwnerScreenKeyChange(undefined)
             onBlockerChange('blocked')
@@ -131,6 +141,7 @@ export function WorkboardOverviewCards({
           active={!ownerScreenKey && blocker === 'all' && sla === 'overdue'}
           label={t('overview.overdue')}
           value={overdue}
+          icon={<TimerReset className="h-4 w-4" aria-hidden />}
           onClick={() => {
             onOwnerScreenKeyChange(undefined)
             onBlockerChange('all')
@@ -138,6 +149,6 @@ export function WorkboardOverviewCards({
           }}
         />
       </div>
-    </div>
+    </section>
   )
 }

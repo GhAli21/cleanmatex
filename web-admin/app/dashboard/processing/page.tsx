@@ -241,6 +241,7 @@ export default function ProcessingPage() {
         </div>
       ) : (
         <ProcessingTable
+          tenantOrgId={currentTenant?.tenant_id ?? null}
           orders={filteredOrders}
           sortField={sortField}
           sortDirection={sortDirection}

@@ -20,6 +20,23 @@ export type WorkboardOwnerScreenKey =
   | 'ready_release'
   | 'driver_delivery'
 
+/** Server-side ordering modes available to the Workboard queue. */
+export type WorkboardSort =
+  | 'age_desc'
+  | 'age_asc'
+  | 'ready_by_asc'
+  | 'ready_by_desc'
+  | 'order_no_asc'
+  | 'order_no_desc'
+  | 'customer_asc'
+  | 'customer_desc'
+  | 'stage_asc'
+  | 'stage_desc'
+  | 'priority_asc'
+  | 'priority_desc'
+  | 'assignee_asc'
+  | 'assignee_desc'
+
 /** Read-only filters accepted by the Workboard API. */
 export interface WorkboardQueryInput {
   page: number
@@ -31,7 +48,7 @@ export interface WorkboardQueryInput {
   ownerScreenKey?: WorkboardOwnerScreenKey
   blocker?: 'all' | 'blocked' | 'clear'
   sla?: 'all' | 'overdue' | 'due_today' | 'not_due'
-  sort?: 'age_desc' | 'ready_by_asc'
+  sort?: WorkboardSort
 }
 
 /** A configured status that could not be routed to a stage-owned screen. */

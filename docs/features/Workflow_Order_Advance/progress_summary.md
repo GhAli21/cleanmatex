@@ -24,7 +24,8 @@ Public Ready confirmation requires an active pickup release and reuses the count
 Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
 Workboard is implemented as a dedicated `workboard:read` supervisor projection with historical P0 pinned-graph routing, tenant filters, and stage-owned deep links; migration `0455` remains operator-owned
 Semantic Profile Runtime governance accepted: ADR-SAAS-MNG-0009 replaces the P0 graph-pin as the future runtime, with DRAFT -> PILOT -> PUBLISHED -> RETIRED, HQ-only Pilot assignment governance, and identical tenant production paths for test/demo execution
-Next: implement semantic profile schema/compiler/runtime before consumer cutover, then complete stage-service boundaries, delivery database-backed assurance/caller cutover, S10, post-0442 smoke, and pilot T01-T18
+Semantic Profile Runtime schema migration `0457` applied locally and remotely by operator; generated database types regenerated and updated
+Next: implement HQ semantic profile compiler/lifecycle APIs, then tenant artifact runtime before consumer cutover; complete stage-service boundaries, delivery database-backed assurance/caller cutover, S10, post-0442 smoke, and pilot T01-T18
 ```
 
 ## Completed

@@ -838,7 +838,7 @@ BEGIN
 
   IF OLD.version_status = 'PILOT' AND NEW.version_status = 'DRAFT' THEN
     RAISE EXCEPTION
-      'sys_wf_profile_ver_mst: PILOT cannot return to DRAFT; continue the candidate or clone a new Draft',
+      'sys_wf_profile_ver_mst: PILOT version % cannot return to DRAFT; continue the candidate or clone a new Draft',
       OLD.version_no;
   END IF;
 

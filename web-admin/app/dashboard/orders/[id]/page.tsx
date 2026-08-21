@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
-import { getOrder } from '@/app/actions/orders/get-order';
+import { getOrderByRef } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
@@ -16,16 +16,19 @@ import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
 } from '@/lib/orders/order-preferences-dtl';
+import {
+  isUuidLike,
+  sanitizeOrderDetailsReturnUrl,
+} from '@/lib/orders/order-details-navigation';
 import { OrderDetailClient } from './order-detail-client';
 import { OrderDetailError } from './order-detail-error';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface OrderDetailPageProps {
   params: Promise<{
     id: string;
   }>;
   searchParams: Promise<{
+    tenantOrgId?: string;
     returnUrl?: string;
     returnLabel?: string;
     tab?: string;
@@ -37,24 +40,32 @@ async function OrderDetailContent({
   searchParams,
 }: {
   orderId: string;
-  searchParams: { returnUrl?: string; returnLabel?: string; tab?: string };
+  searchParams: {
+    tenantOrgId?: string;
+    returnUrl?: string;
+    returnLabel?: string;
+    tab?: string;
+  };
 }) {
   const { tenantId, userId } = await getAuthContext();
   const t = await getTranslations('orders.detail');
   const tFull = await getTranslations('orders.detailFull');
   const locale = await getLocale();
+  const safeReturnUrl = sanitizeOrderDetailsReturnUrl(searchParams?.returnUrl);
+  const requestedTenantOrgId = searchParams?.tenantOrgId?.trim();
+  const hasTenantMismatch = !!requestedTenantOrgId && requestedTenantOrgId !== tenantId;
 
-  if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
+  if (!orderId || typeof orderId !== 'string' || !orderId.trim()) {
     return (
       <OrderDetailError
         orderId={orderId || ''}
         title={t('errorInvalidOrderId')}
         description={t('errorInvalidOrderIdDesc')}
         backToOrders={t('backToOrders')}
-        returnUrl={searchParams?.returnUrl}
+        returnUrl={safeReturnUrl}
         returnLabel={searchParams?.returnLabel}
         debug={{
-          condition: 'Invalid order ID (empty or not a valid UUID format)',
+          condition: 'Invalid order reference (empty identifier)',
           tenantId,
           userId,
         }}
@@ -62,23 +73,25 @@ async function OrderDetailContent({
     );
   }
 
-  const [
-    orderResult,
-    invoicesResult,
-    financialResult,
-    preferencesResult,
-    editHistoryResult,
-    vouchersResult,
-    canViewFinancialDebug,
-  ] = await Promise.all([
-    getOrder(tenantId, orderId),
-    getOrderInvoices(orderId),
-    getOrderFinancialAction(tenantId, orderId),
-    getOrderPreferencesAction(orderId),
-    getOrderEditHistoryAction(orderId),
-    getVouchersForOrder(orderId),
-    hasPermissionServer('orders:view_financial_breakdown'),
-  ]);
+  if (hasTenantMismatch) {
+    return (
+      <OrderDetailError
+        orderId={orderId}
+        title={t('errorOrderNotFound')}
+        description={t('errorOrderNotFoundDesc')}
+        backToOrders={t('backToOrders')}
+        returnUrl={safeReturnUrl}
+        returnLabel={searchParams?.returnLabel}
+        debug={{
+          condition: 'Requested tenant_org_id does not match authenticated tenant',
+          tenantId,
+          userId,
+        }}
+      />
+    );
+  }
+
+  const orderResult = await getOrderByRef(tenantId, orderId);
 
   if (!orderResult.success || !orderResult.data) {
     return (
@@ -87,10 +100,12 @@ async function OrderDetailContent({
         title={t('errorOrderNotFound')}
         description={t('errorOrderNotFoundDesc')}
         backToOrders={t('backToOrders')}
-        returnUrl={searchParams?.returnUrl}
+        returnUrl={safeReturnUrl}
         returnLabel={searchParams?.returnLabel}
         debug={{
-          condition: 'getOrder returned no data (order not in DB for this tenant, or query failed)',
+          condition: isUuidLike(orderId)
+            ? 'getOrderByRef returned no data for UUID reference'
+            : 'getOrderByRef returned no data for order_no reference',
           serverError: orderResult.error,
           tenantId,
           userId,
@@ -108,6 +123,22 @@ async function OrderDetailContent({
     rounding_adjustment_amount?: number | string | null;
     financial_engine_version?: number | null;
   };
+  const resolvedOrderId = String(order.id);
+  const [
+    invoicesResult,
+    financialResult,
+    preferencesResult,
+    editHistoryResult,
+    vouchersResult,
+    canViewFinancialDebug,
+  ] = await Promise.all([
+    getOrderInvoices(resolvedOrderId),
+    getOrderFinancialAction(tenantId, resolvedOrderId),
+    getOrderPreferencesAction(resolvedOrderId),
+    getOrderEditHistoryAction(resolvedOrderId),
+    getVouchersForOrder(resolvedOrderId),
+    hasPermissionServer('orders:view_financial_breakdown'),
+  ]);
   const orderInvoices = invoicesResult.success && invoicesResult.data ? invoicesResult.data : [];
   const financialData = financialResult.success ? financialResult.data : undefined;
   const orderPreferences =
@@ -177,7 +208,7 @@ async function OrderDetailContent({
   const tInvoices = await getTranslations('invoices');
   const publicTrackingPath = await getPublicTrackingPathForOrderId({
     tenantId,
-    orderId,
+    orderId: resolvedOrderId,
     fallbackOrderNo: typeof order.order_no === 'string' ? order.order_no : null,
   });
   const preferenceDtlColumnLabels = Object.fromEntries(
@@ -197,7 +228,7 @@ async function OrderDetailContent({
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       canViewFinancialDebug={canViewFinancialDebug}
-      returnUrl={searchParams?.returnUrl}
+      returnUrl={safeReturnUrl}
       returnLabel={searchParams?.returnLabel}
       translations={{
         backToOrders: t('backToOrders'),

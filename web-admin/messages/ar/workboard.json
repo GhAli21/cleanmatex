@@ -24,8 +24,10 @@
   "columns": {
     "order": "رقم الطلب",
     "customer": "العميل",
+    "branch": "الفرع",
     "stage": "المرحلة",
-    "ageSla": "العمر / الالتزام",
+    "age": "العمر",
+    "readyBy": "جاهز بحلول",
     "priority": "الأولوية",
     "assignee": "المسؤول",
     "attention": "الانتباه",
@@ -34,6 +36,7 @@
   "owners": { "preparation": "التحضير", "processing": "المعالجة", "assembly": "التجميع", "qa": "فحص الجودة", "packing": "التغليف", "ready_release": "الجاهز / الإفراج", "driver_delivery": "توصيل السائق" },
   "filters": {
     "title": "فلاتر قائمة العمل",
+    "searchLabel": "البحث عن عمل",
     "search": "ابحث بالطلب أو العميل أو الهاتف أو البريد",
     "branch": "الفرع",
     "allBranches": "كل الفروع",
