@@ -1,12 +1,14 @@
-# Tenant runtime — pinned workflow graph (P0)
+# Historical tenant runtime — pinned workflow graph (P0)
 
 **Repo:** `cleanmatex` (tenant app)  
-**Date:** 2026-08-15  
-**Related HQ plan:** `cleanmatexsaas/.cursor/plans/p0_profile_version_studio.plan.md`  
+**Date:** 2026-08-15; historical status clarified 2026-08-21
+**Related HQ plan:** `cleanmatexsaas/.cursor/plans/workflow_profile_policy_runtime_20260821.plan.md`
 **Related HQ model:** `cleanmatexsaas/docs/features/SAAS_Platform_Management/Workflow_Engine_HQ/P0_compiled_profile_runtime_model.md`  
 **Schema:** migrations `0453` (graph pin), `0454` (unpublish), `0456` (force full graph rebuild on every publish) — apply in cleanmatex; user-owned
 
 ---
+
+> **Historical P0 canary record:** This document accurately describes the graph-pin runtime currently in the codebase. It is superseded as the future architecture by HQ ADR-SAAS-MNG-0009 and the semantic profile-runtime plan. Before real tenant onboarding, the tenant runtime will load the exact compiled semantic artifact stored on the order snapshot and the active graph-pin/catalog/template fallback paths will be retired. No new work may extend this P0 graph-pin approach.
 
 ## Why
 

@@ -226,5 +226,6 @@ During and after the smoke window:
 2. Confirm **Orders → Workboard** is visible; a role without the permission must not see it and the API must return `403`.
 3. Verify a V2 order appears only when its pinned graph contains both `workboard` and owner-stage membership.
 4. Verify a legacy/unpinned order follows the tenant's live Workboard contract.
-5. Exercise each filter, sorting, and pagination; every row/count must remain tenant-scoped.
-6. Confirm the screen has no status, collection, release, POD, or assignment mutation.
+5. Exercise each filter, sorting, quick-focus card, clear-filters action, and pagination; every row/count must remain tenant-scoped.
+6. Verify the owner-stage quick-focus cards continue to show `summary.byOwner` totals for the current non-stage filters even after selecting one owner stage.
+7. Confirm the screen has no status, collection, release, POD, or assignment mutation.

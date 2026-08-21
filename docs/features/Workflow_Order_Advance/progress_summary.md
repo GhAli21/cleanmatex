@@ -22,8 +22,9 @@ Counter pickup now uses an authenticated atomic stage command/API with release f
 Ready worklists, detail, and public tracking now distinguish not-yet-released from available-for-pickup without exposing internal rack/staff data
 Public Ready confirmation requires an active pickup release and reuses the counter-handover command; duplicate active release actions are blocked server-side
 Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
-Workboard is implemented as a dedicated `workboard:read` supervisor projection with pinned-graph routing, tenant filters, and stage-owned deep links; migration `0455` remains operator-owned
-Next: complete the stage-service boundaries, then delivery database-backed assurance/caller cutover → run S10 → repeat post-0442 smoke → sign pilot T01-T18
+Workboard is implemented as a dedicated `workboard:read` supervisor projection with historical P0 pinned-graph routing, tenant filters, and stage-owned deep links; migration `0455` remains operator-owned
+Semantic Profile Runtime governance accepted: ADR-SAAS-MNG-0009 replaces the P0 graph-pin as the future runtime, with DRAFT -> PILOT -> PUBLISHED -> RETIRED, HQ-only Pilot assignment governance, and identical tenant production paths for test/demo execution
+Next: implement semantic profile schema/compiler/runtime before consumer cutover, then complete stage-service boundaries, delivery database-backed assurance/caller cutover, S10, post-0442 smoke, and pilot T01-T18
 ```
 
 ## Completed

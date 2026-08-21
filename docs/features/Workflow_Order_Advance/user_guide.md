@@ -162,10 +162,11 @@ Do not bypass this containment or use the generic order Actions tab to mark an o
 ## Workboard supervisor queue
 
 1. Open **Orders → Workboard** (requires `workboard:read`).
-2. Filter by branch, assignee, priority, risk, due state, or customer/order search.
-3. Review the in-flight, blocked, and overdue counts for the active filter set.
-4. Select **Open stage** to continue work where that stage owns the action. Workboard cannot change an order status.
-5. If a configuration warning is shown, ask the workflow administrator to configure an owner stage for the listed status. Do not work around it by changing an order directly.
+2. Use the overview cards to focus the queue on **All**, a specific owner stage, **Blocked**, or **Overdue** work.
+3. Refine the list with branch, assignee, priority, risk, due state, or customer/order search. Use **Clear filters** to return to the default queue.
+4. Review the active filter chips and matching-order count before paging through the list.
+5. Select **Open stage** to continue work where that stage owns the action. Workboard cannot change an order status.
+6. If a configuration warning is shown, ask the workflow administrator to configure an owner stage for the listed status. Do not work around it by changing an order directly.
 
 ### Tenant-safe database verification
 

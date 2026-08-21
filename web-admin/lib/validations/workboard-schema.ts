@@ -8,6 +8,7 @@ export const workboardQuerySchema = z.object({
   branchId: z.string().uuid().optional(),
   assigneeId: z.string().uuid().optional(),
   priority: z.string().trim().min(1).max(50).optional(),
+  ownerScreenKey: z.enum(['preparation', 'processing', 'assembly', 'qa', 'packing', 'ready_release', 'driver_delivery']).optional(),
   blocker: z.enum(['all', 'blocked', 'clear']).default('all'),
   sla: z.enum(['all', 'overdue', 'due_today', 'not_due']).default('all'),
   sort: z.enum(['age_desc', 'ready_by_asc']).default('age_desc'),

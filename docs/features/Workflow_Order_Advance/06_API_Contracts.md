@@ -302,10 +302,19 @@ Exact OpenAPI path freeze happens in P2 when routes are implemented; inventory a
 ## 13. Workboard read model
 
 `GET /api/v1/workboard/orders` requires `workboard:read` and accepts bounded
-`page`, `pageSize`, `search`, `branchId`, `assigneeId`, `priority`, `blocker`,
-`sla`, and `sort` query parameters. It returns a tenant-scoped paginated
-supervisor projection, summary counts, filter options, configuration gaps, and
-an owner-stage path for each row. It has no mutation endpoint.
+`page`, `pageSize`, `search`, `branchId`, `assigneeId`, `priority`,
+`ownerScreenKey`, `blocker`, `sla`, and `sort` query parameters.
+
+The response remains read-only and tenant-scoped. It returns:
+
+- paginated Workboard rows,
+- queue summary counts for the active filter set,
+- `summary.byOwner` stage-owner totals for the quick-focus cards,
+- filter options,
+- configuration gaps, and
+- an owner-stage path for each row.
+
+It has no mutation endpoint.
 
 For an order pinned to `wf_profile_id` + `wf_version_no`, the service evaluates
 the pinned graph's `workboard` membership and its stage-owner membership. It

@@ -10,6 +10,16 @@ export interface WorkboardAssigneeOption {
   name: string
 }
 
+/** Stage screens that can own a Workboard order row. */
+export type WorkboardOwnerScreenKey =
+  | 'preparation'
+  | 'processing'
+  | 'assembly'
+  | 'qa'
+  | 'packing'
+  | 'ready_release'
+  | 'driver_delivery'
+
 /** Read-only filters accepted by the Workboard API. */
 export interface WorkboardQueryInput {
   page: number
@@ -18,6 +28,7 @@ export interface WorkboardQueryInput {
   branchId?: string
   assigneeId?: string
   priority?: string
+  ownerScreenKey?: WorkboardOwnerScreenKey
   blocker?: 'all' | 'blocked' | 'clear'
   sla?: 'all' | 'overdue' | 'due_today' | 'not_due'
   sort?: 'age_desc' | 'ready_by_asc'
@@ -39,7 +50,7 @@ export interface WorkboardOrderRow {
   statusCode: string
   statusName: string
   statusName2: string | null
-  ownerScreenKey: string
+  ownerScreenKey: WorkboardOwnerScreenKey
   ownerPath: string
   assigneeName: string | null
   priority: string | null
@@ -55,6 +66,7 @@ export interface WorkboardSummary {
   total: number
   blocked: number
   overdue: number
+  byOwner: Record<WorkboardOwnerScreenKey, number>
 }
 
 /** Filter metadata and policy diagnostics returned with each Workboard page. */

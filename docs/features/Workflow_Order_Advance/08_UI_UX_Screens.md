@@ -58,7 +58,8 @@
 ## 8. Workboard
 
 - `/dashboard/workboard` is a supervisor queue, not a new workflow stage.
-- Cmx KPI cards show in-flight, blocked, and overdue counts for the active filter set.
-- Server-side filters cover branch, assignee, priority, blocker state, SLA, and bounded search; pagination is server-owned.
+- The top overview cards act as quick-focus segments for **All**, each owner stage, **Blocked**, and **Overdue**.
+- Server-side filters cover bounded search, branch, assignee, priority, blocker state, SLA, owner-stage focus, and server-owned pagination.
+- The filter toolbar shows the current result count, active filter chips, and a clear-filters action.
 - **Open stage** links to the current owner screen. The Workboard contains no action buttons, status selector, payment mutation, or evidence mutation.
 - A visible warning lists configured Workboard statuses with no active stage owner so supervisors do not silently lose work due to configuration drift.

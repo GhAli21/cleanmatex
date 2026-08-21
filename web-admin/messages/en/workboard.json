@@ -1,12 +1,94 @@
 {
   "title": "Workboard",
   "description": "Supervise configured in-flight work, identify risk, and open the stage that owns the next action.",
-  "refresh": "Refresh", "unassigned": "Unassigned", "noBranch": "No branch", "blocked": "Blocked", "clear": "Clear", "noDueDate": "No due date", "dueAt": "Due {value}", "openStage": "Open stage",
-  "configurationGap": "Workboard configuration needs attention. These statuses have no active stage owner: {statuses}.",
+  "refresh": "Refresh",
+  "unassigned": "Unassigned",
+  "noBranch": "No branch",
+  "noPhone": "No phone on file",
+  "noPriority": "No priority",
+  "blocked": "Blocked",
+  "clear": "Clear",
+  "noDueDate": "No due date",
+  "dueAt": "Due {value}",
+  "openStage": "Open stage",
+  "configurationGapTitle": "Workboard configuration needs attention.",
+  "configurationGapItem": "Status {status} has no active stage owner.",
+  "overview": {
+    "title": "Queue focus",
+    "description": "Jump between owner stages and priority queue segments without leaving the page.",
+    "all": "All",
+    "blocked": "Blocked",
+    "overdue": "Overdue"
+  },
   "summary": { "total": "In flight", "blocked": "Blocked", "overdue": "Overdue" },
-  "columns": { "order": "Order", "stage": "Stage", "assignment": "Assignment", "timing": "Timing", "risk": "Risk", "open": "Open" },
+  "columns": {
+    "order": "Order #",
+    "customer": "Customer",
+    "stage": "Stage",
+    "ageSla": "Age / SLA",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "attention": "Attention",
+    "open": "Action"
+  },
   "owners": { "preparation": "Preparation", "processing": "Processing", "assembly": "Assembly", "qa": "Quality check", "packing": "Packing", "ready_release": "Ready / release", "driver_delivery": "Driver delivery" },
-  "filters": { "title": "Queue filters", "search": "Search order, customer, phone, or email", "branch": "Branch", "allBranches": "All branches", "assignee": "Assignee", "allAssignees": "All assignees", "priority": "Priority", "allPriorities": "All priorities", "blocker": "Risk", "allRisk": "All risk states", "blocked": "Blocked", "clear": "Clear", "sla": "SLA", "allSla": "All due states", "overdue": "Overdue", "dueToday": "Due today", "notDue": "Not due", "sort": "Sort", "oldest": "Oldest activity", "dueFirst": "Due first" },
+  "filters": {
+    "title": "Queue filters",
+    "search": "Search order, customer, phone, or email",
+    "branch": "Branch",
+    "allBranches": "All branches",
+    "assignee": "Assignee",
+    "allAssignees": "All assignees",
+    "priority": "Priority",
+    "allPriorities": "All priorities",
+    "blocker": "Risk",
+    "allRisk": "All risk states",
+    "blocked": "Blocked",
+    "clear": "Clear",
+    "sla": "SLA",
+    "allSla": "All due states",
+    "overdue": "Overdue",
+    "dueToday": "Due today",
+    "notDue": "Not due",
+    "sort": "Sort",
+    "oldest": "Oldest activity",
+    "dueFirst": "Due first",
+    "reset": "Clear filters",
+    "resultsCount": "{count, plural, =0 {No matching orders} one {# matching order} other {# matching orders}}",
+    "activeLabel": "Active filters",
+    "active": {
+      "search": "Search: {value}",
+      "branch": "Branch: {value}",
+      "assignee": "Assignee: {value}",
+      "priority": "Priority: {value}",
+      "blocked": "Risk: blocked only",
+      "clear": "Risk: clear only",
+      "sla": "SLA: {value}",
+      "sort": "Sort: {value}"
+    }
+  },
   "age": { "minutes": "{count} min", "hours": "{count} hr", "days": "{count} days" },
-  "empty": { "title": "No work matches these filters", "description": "Try changing the filters, or confirm that the workflow profile has Workboard status memberships." }
+  "priority": {
+    "label": "{value}"
+  },
+  "attention": {
+    "blocked": "Blocked",
+    "overdue": "Overdue",
+    "dueToday": "Due today",
+    "clear": "On track"
+  },
+  "messages": {
+    "refreshLoading": "Refreshing Workboard...",
+    "refreshSuccess": "Workboard refreshed.",
+    "refreshError": "Unable to refresh the Workboard.",
+    "loadRetryHint": "Try refreshing the queue or clearing the current filters.",
+    "tableUnavailableTitle": "The Workboard is temporarily unavailable",
+    "tableUnavailableDescription": "We could not load the queue right now. Retry the request to restore the latest supervisor view.",
+    "retry": "Retry"
+  },
+  "empty": {
+    "title": "No work matches these filters",
+    "description": "No tenant orders are currently eligible for Workboard review.",
+    "filteredDescription": "Try clearing one or more filters, or confirm that the workflow profile still maps these statuses into Workboard."
+  }
 }

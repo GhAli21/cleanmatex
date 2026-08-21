@@ -26,8 +26,21 @@ execute a workflow transition.
   by their own page/API access contracts.
 - The projection returns no payment, release, delivery proof, mutation, or
   idempotency command data.
-- Server-side filters are bounded and validated with Zod. Pagination avoids
-  loading an unbounded tenant order list into the browser.
+- Server-side filters are bounded and validated with Zod. Supported filters are
+  `search`, `branchId`, `assigneeId`, `priority`, `ownerScreenKey`, `blocker`,
+  `sla`, `sort`, `page`, and `pageSize`.
+- Pagination avoids loading an unbounded tenant order list into the browser.
+
+## UI contract
+
+- The Workboard remains read-only and deep-links into the owning stage only.
+- Top-level overview cards are supervisor quick-focus controls for **All**, each
+  owner stage, **Blocked**, and **Overdue**.
+- The API summary returns both active-set counts (`total`, `blocked`,
+  `overdue`) and `summary.byOwner` totals so the UI can keep owner-stage quick
+  focus visible even after one owner stage is selected.
+- The filter toolbar shows the current result count, active filter chips, and a
+  clear-filters action.
 
 ## Verification
 

@@ -1,12 +1,94 @@
 {
   "title": "لوحة العمل",
   "description": "راقب الأعمال الجارية المهيأة، وحدد المخاطر، وافتح المرحلة المسؤولة عن الإجراء التالي.",
-  "refresh": "تحديث", "unassigned": "غير معيّن", "noBranch": "لا يوجد فرع", "blocked": "محجوب", "clear": "سليم", "noDueDate": "لا يوجد موعد استحقاق", "dueAt": "الاستحقاق {value}", "openStage": "فتح المرحلة",
-  "configurationGap": "تحتاج تهيئة لوحة العمل إلى مراجعة. لا تملك هذه الحالات مرحلة مسؤولة نشطة: {statuses}.",
+  "refresh": "تحديث",
+  "unassigned": "غير معيّن",
+  "noBranch": "لا يوجد فرع",
+  "noPhone": "لا يوجد هاتف مسجل",
+  "noPriority": "بدون أولوية",
+  "blocked": "محجوب",
+  "clear": "سليم",
+  "noDueDate": "لا يوجد موعد استحقاق",
+  "dueAt": "الاستحقاق {value}",
+  "openStage": "فتح المرحلة",
+  "configurationGapTitle": "تحتاج تهيئة لوحة العمل إلى مراجعة.",
+  "configurationGapItem": "الحالة {status} لا تملك مرحلة مسؤولة نشطة.",
+  "overview": {
+    "title": "تركيز قائمة العمل",
+    "description": "تنقل بين المراحل المالكة ومقاطع القائمة ذات الأولوية من الصفحة نفسها.",
+    "all": "الكل",
+    "blocked": "محجوب",
+    "overdue": "متأخر"
+  },
   "summary": { "total": "قيد التنفيذ", "blocked": "محجوب", "overdue": "متأخر" },
-  "columns": { "order": "الطلب", "stage": "المرحلة", "assignment": "التعيين", "timing": "الوقت", "risk": "المخاطر", "open": "فتح" },
+  "columns": {
+    "order": "رقم الطلب",
+    "customer": "العميل",
+    "stage": "المرحلة",
+    "ageSla": "العمر / الالتزام",
+    "priority": "الأولوية",
+    "assignee": "المسؤول",
+    "attention": "الانتباه",
+    "open": "الإجراء"
+  },
   "owners": { "preparation": "التحضير", "processing": "المعالجة", "assembly": "التجميع", "qa": "فحص الجودة", "packing": "التغليف", "ready_release": "الجاهز / الإفراج", "driver_delivery": "توصيل السائق" },
-  "filters": { "title": "فلاتر قائمة العمل", "search": "ابحث بالطلب أو العميل أو الهاتف أو البريد", "branch": "الفرع", "allBranches": "كل الفروع", "assignee": "المسؤول", "allAssignees": "كل المسؤولين", "priority": "الأولوية", "allPriorities": "كل الأولويات", "blocker": "المخاطر", "allRisk": "كل حالات المخاطر", "blocked": "محجوب", "clear": "سليم", "sla": "اتفاقية مستوى الخدمة", "allSla": "كل حالات الاستحقاق", "overdue": "متأخر", "dueToday": "مستحق اليوم", "notDue": "غير مستحق", "sort": "الترتيب", "oldest": "أقدم نشاط", "dueFirst": "الأقرب استحقاقاً" },
+  "filters": {
+    "title": "فلاتر قائمة العمل",
+    "search": "ابحث بالطلب أو العميل أو الهاتف أو البريد",
+    "branch": "الفرع",
+    "allBranches": "كل الفروع",
+    "assignee": "المسؤول",
+    "allAssignees": "كل المسؤولين",
+    "priority": "الأولوية",
+    "allPriorities": "كل الأولويات",
+    "blocker": "المخاطر",
+    "allRisk": "كل حالات المخاطر",
+    "blocked": "محجوب",
+    "clear": "سليم",
+    "sla": "اتفاقية مستوى الخدمة",
+    "allSla": "كل حالات الاستحقاق",
+    "overdue": "متأخر",
+    "dueToday": "مستحق اليوم",
+    "notDue": "غير مستحق",
+    "sort": "الترتيب",
+    "oldest": "أقدم نشاط",
+    "dueFirst": "الأقرب استحقاقاً",
+    "reset": "مسح الفلاتر",
+    "resultsCount": "{count, plural, =0 {لا توجد طلبات مطابقة} one {طلب واحد مطابق} two {طلبان مطابقان} few {# طلبات مطابقة} many {# طلباً مطابقاً} other {# طلب مطابق}}",
+    "activeLabel": "الفلاتر النشطة",
+    "active": {
+      "search": "البحث: {value}",
+      "branch": "الفرع: {value}",
+      "assignee": "المسؤول: {value}",
+      "priority": "الأولوية: {value}",
+      "blocked": "المخاطر: المحجوب فقط",
+      "clear": "المخاطر: السليم فقط",
+      "sla": "الالتزام: {value}",
+      "sort": "الترتيب: {value}"
+    }
+  },
   "age": { "minutes": "{count} د", "hours": "{count} س", "days": "{count} أيام" },
-  "empty": { "title": "لا توجد أعمال تطابق هذه الفلاتر", "description": "غيّر الفلاتر، أو تحقق من أن ملف سير العمل يضم حالات لوحة العمل." }
+  "priority": {
+    "label": "{value}"
+  },
+  "attention": {
+    "blocked": "محجوب",
+    "overdue": "متأخر",
+    "dueToday": "مستحق اليوم",
+    "clear": "ضمن المسار"
+  },
+  "messages": {
+    "refreshLoading": "جار تحديث لوحة العمل...",
+    "refreshSuccess": "تم تحديث لوحة العمل.",
+    "refreshError": "تعذر تحديث لوحة العمل.",
+    "loadRetryHint": "حاول تحديث القائمة أو مسح الفلاتر الحالية.",
+    "tableUnavailableTitle": "لوحة العمل غير متاحة مؤقتاً",
+    "tableUnavailableDescription": "تعذر تحميل القائمة حالياً. أعد المحاولة لاسترجاع أحدث عرض إشرافي.",
+    "retry": "إعادة المحاولة"
+  },
+  "empty": {
+    "title": "لا توجد أعمال تطابق هذه الفلاتر",
+    "description": "لا توجد طلبات مؤهلة حالياً للمراجعة في لوحة العمل.",
+    "filteredDescription": "جرّب مسح بعض الفلاتر، أو تحقق من أن ملف سير العمل ما زال يربط هذه الحالات بلوحة العمل."
+  }
 }

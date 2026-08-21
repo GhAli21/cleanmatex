@@ -15,6 +15,7 @@ import {
 import type {
   WorkboardConfigurationGap,
   WorkboardListResponse,
+  WorkboardOwnerScreenKey,
   WorkboardOrderRow,
   WorkboardQueryInput,
 } from '@/lib/types/workboard'
@@ -30,7 +31,17 @@ const OWNER_SCREEN_KEYS = [
   'driver_delivery',
 ] as const
 
-type OwnerScreenKey = (typeof OWNER_SCREEN_KEYS)[number]
+type OwnerScreenKey = WorkboardOwnerScreenKey
+
+const EMPTY_OWNER_COUNTS: Record<OwnerScreenKey, number> = {
+  preparation: 0,
+  processing: 0,
+  assembly: 0,
+  qa: 0,
+  packing: 0,
+  ready_release: 0,
+  driver_delivery: 0,
+}
 
 interface ProfilePairRow {
   wf_profile_id: string
@@ -67,6 +78,13 @@ interface WorkboardMetricRow {
   overdue: bigint
 }
 
+interface WorkboardOwnerMetricRow {
+  current_status: string
+  wf_profile_id: string | null
+  wf_version_no: number | null
+  total: bigint
+}
+
 interface StatusScope {
   profileId: string | null
   versionNo: number | null
@@ -75,6 +93,10 @@ interface StatusScope {
 
 function scopeKey(profileId: string | null, versionNo: number | null): string {
   return profileId && versionNo !== null ? `${profileId}:${versionNo}` : 'legacy'
+}
+
+function createEmptyOwnerCounts(): Record<OwnerScreenKey, number> {
+  return { ...EMPTY_OWNER_COUNTS }
 }
 
 function ownerPath(screenKey: OwnerScreenKey, orderId: string): string {
@@ -193,6 +215,45 @@ function buildWhereSql(
   return Prisma.join(clauses, ' AND ')
 }
 
+function filterScopesByOwner(
+  scopes: StatusScope[],
+  ownerScreenKey?: OwnerScreenKey,
+): StatusScope[] {
+  if (!ownerScreenKey) {
+    return scopes
+  }
+
+  return scopes
+    .map((scope) => ({
+      ...scope,
+      ownerByStatus: new Map(
+        [...scope.ownerByStatus.entries()].filter(([, owner]) => owner === ownerScreenKey),
+      ),
+    }))
+    .filter((scope) => scope.ownerByStatus.size > 0)
+}
+
+function buildOwnerSummary(
+  ownerMetrics: WorkboardOwnerMetricRow[],
+  ownerByScope: Map<string, Map<string, OwnerScreenKey>>,
+): Record<OwnerScreenKey, number> {
+  const summary = createEmptyOwnerCounts()
+
+  for (const metric of ownerMetrics) {
+    const owner = ownerByScope
+      .get(scopeKey(metric.wf_profile_id, metric.wf_version_no))
+      ?.get(metric.current_status)
+
+    if (!owner) {
+      continue
+    }
+
+    summary[owner] += Number(metric.total)
+  }
+
+  return summary
+}
+
 /**
  * Tenant-safe supervisor projection for configured operational statuses.
  * It deliberately exposes no action execution capability; the destination
@@ -250,43 +311,62 @@ export class WorkboardQueryService {
     }
     if (scopes.length === 0) return this.emptyResponse(input, gaps)
 
-    const whereSql = buildWhereSql(tenantId, input, scopes)
+    const filteredScopes = filterScopesByOwner(scopes, input.ownerScreenKey)
+    const baseWhereSql = buildWhereSql(tenantId, input, scopes)
+    const whereSql = filteredScopes.length > 0
+      ? buildWhereSql(tenantId, input, filteredScopes)
+      : null
     const offset = (input.page - 1) * input.pageSize
     const orderBy = input.sort === 'ready_by_asc'
       ? Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) ASC NULLS LAST, o.last_transition_at ASC NULLS LAST`
       : Prisma.sql`COALESCE(o.last_transition_at, o.received_at, o.created_at) ASC NULLS LAST`
 
-    const [rows, metrics, statusLabels, branches, assignees, priorityRows] = await Promise.all([
-      prisma.$queryRaw<WorkboardRowSql[]>(Prisma.sql`
-        SELECT o.id::text, o.order_no, COALESCE(o.customer_name, c.name) AS customer_name,
-          COALESCE(o.customer_mobile_number, c.phone) AS customer_phone,
-          COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
-          o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
-          COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.wf_profile_id::text,
-          o.wf_version_no, COALESCE(u.display_name, u.name) AS assignee_name
+    const [rows, metrics, ownerMetrics, statusLabels, branches, assignees, priorityRows] = await Promise.all([
+      whereSql
+        ? prisma.$queryRaw<WorkboardRowSql[]>(Prisma.sql`
+            SELECT o.id::text, o.order_no, COALESCE(o.customer_name, c.name) AS customer_name,
+              COALESCE(o.customer_mobile_number, c.phone) AS customer_phone,
+              COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
+              o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
+              COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.wf_profile_id::text,
+              o.wf_version_no, COALESCE(u.display_name, u.name) AS assignee_name
+            FROM public.org_orders_mst o
+            LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
+            LEFT JOIN public.org_branches_mst b ON b.id = o.branch_id AND b.tenant_org_id = o.tenant_org_id
+            LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id
+              AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
+              AND COALESCE(task.rec_status, 1) <> 0
+            LEFT JOIN public.org_users_mst u ON u.user_id = task.assigned_to
+              AND u.tenant_org_id = o.tenant_org_id AND u.is_active = true
+              AND COALESCE(u.rec_status, 1) <> 0
+            WHERE ${whereSql}
+            ORDER BY ${orderBy}, o.order_no ASC
+            LIMIT ${input.pageSize} OFFSET ${offset}
+          `)
+        : Promise.resolve([] as WorkboardRowSql[]),
+      whereSql
+        ? prisma.$queryRaw<WorkboardMetricRow[]>(Prisma.sql`
+            SELECT COUNT(*)::bigint AS total,
+              COUNT(*) FILTER (WHERE COALESCE(o.has_issue, false) OR COALESCE(o.is_rejected, false))::bigint AS blocked,
+              COUNT(*) FILTER (WHERE COALESCE(o.ready_by_at_new, o.ready_by) < NOW())::bigint AS overdue
+            FROM public.org_orders_mst o
+            LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
+            LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id
+              AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
+              AND COALESCE(task.rec_status, 1) <> 0
+            WHERE ${whereSql}
+          `)
+        : Promise.resolve([{ total: BigInt(0), blocked: BigInt(0), overdue: BigInt(0) }] as WorkboardMetricRow[]),
+      prisma.$queryRaw<WorkboardOwnerMetricRow[]>(Prisma.sql`
+        SELECT o.current_status, o.wf_profile_id::text, o.wf_version_no,
+          COUNT(*)::bigint AS total
         FROM public.org_orders_mst o
         LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
-        LEFT JOIN public.org_branches_mst b ON b.id = o.branch_id AND b.tenant_org_id = o.tenant_org_id
         LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id
           AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
           AND COALESCE(task.rec_status, 1) <> 0
-        LEFT JOIN public.org_users_mst u ON u.user_id = task.assigned_to
-          AND u.tenant_org_id = o.tenant_org_id AND u.is_active = true
-          AND COALESCE(u.rec_status, 1) <> 0
-        WHERE ${whereSql}
-        ORDER BY ${orderBy}, o.order_no ASC
-        LIMIT ${input.pageSize} OFFSET ${offset}
-      `),
-      prisma.$queryRaw<WorkboardMetricRow[]>(Prisma.sql`
-        SELECT COUNT(*)::bigint AS total,
-          COUNT(*) FILTER (WHERE COALESCE(o.has_issue, false) OR COALESCE(o.is_rejected, false))::bigint AS blocked,
-          COUNT(*) FILTER (WHERE COALESCE(o.ready_by_at_new, o.ready_by) < NOW())::bigint AS overdue
-        FROM public.org_orders_mst o
-        LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
-        LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id
-          AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
-          AND COALESCE(task.rec_status, 1) <> 0
-        WHERE ${whereSql}
+        WHERE ${baseWhereSql}
+        GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no
       `),
       prisma.$queryRaw<StatusLabelRow[]>(Prisma.sql`
         SELECT status_code, name, name2 FROM public.sys_wf_statuses_cd
@@ -308,6 +388,7 @@ export class WorkboardQueryService {
     ])
 
     const ownerByScope = new Map(scopes.map((scope) => [scopeKey(scope.profileId, scope.versionNo), scope.ownerByStatus]))
+    const summaryByOwner = buildOwnerSummary(ownerMetrics, ownerByScope)
     const labels = new Map(statusLabels.map((row) => [row.status_code, row]))
     const mappedRows: WorkboardOrderRow[] = rows.flatMap((row) => {
       const owner = ownerByScope.get(scopeKey(row.wf_profile_id, row.wf_version_no))?.get(row.current_status)
@@ -327,7 +408,12 @@ export class WorkboardQueryService {
     const summary = metrics[0]
     return {
       rows: mappedRows, total: Number(summary?.total ?? 0), page: input.page, pageSize: input.pageSize,
-      summary: { total: Number(summary?.total ?? 0), blocked: Number(summary?.blocked ?? 0), overdue: Number(summary?.overdue ?? 0) },
+      summary: {
+        total: Number(summary?.total ?? 0),
+        blocked: Number(summary?.blocked ?? 0),
+        overdue: Number(summary?.overdue ?? 0),
+        byOwner: summaryByOwner,
+      },
       metadata: {
         branches: branches.map((branch) => ({ id: branch.id, name: branch.name ?? branch.branch_name ?? branch.id })),
         assignees: assignees.map((user) => ({ id: user.user_id, name: user.display_name ?? user.name ?? user.user_id })),
@@ -336,10 +422,13 @@ export class WorkboardQueryService {
     }
   }
 
-  private static emptyResponse(input: WorkboardQueryInput, configurationGaps: WorkboardConfigurationGap[]): WorkboardListResponse {
+  private static emptyResponse(
+    input: WorkboardQueryInput,
+    configurationGaps: WorkboardConfigurationGap[],
+  ): WorkboardListResponse {
     return {
       rows: [], total: 0, page: input.page, pageSize: input.pageSize,
-      summary: { total: 0, blocked: 0, overdue: 0 },
+      summary: { total: 0, blocked: 0, overdue: 0, byOwner: createEmptyOwnerCounts() },
       metadata: { branches: [], assignees: [], priorities: [], configurationGaps },
     }
   }
