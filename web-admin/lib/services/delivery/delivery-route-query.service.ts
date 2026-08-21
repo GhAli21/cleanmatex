@@ -2,15 +2,6 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 
-export interface DeliveryProofSummary {
-  podId: string;
-  methodCode: string;
-  verifiedAt: string | null;
-  verifiedBy: string | null;
-  signatureUrl: string | null;
-  photoUrls: string[];
-}
-
 export interface DeliveryStopView {
   id: string;
   routeId: string;
@@ -37,7 +28,6 @@ export interface DeliveryStopView {
     customerName: string | null;
     customerPhone: string | null;
   };
-  proof: DeliveryProofSummary | null;
 }
 
 export interface DeliveryRouteManifest {
@@ -58,12 +48,6 @@ function toNumber(value: { toString(): string } | number | null): number {
 
 function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
-}
-
-function toPhotoUrls(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-    : [];
 }
 
 function mapStop(stop: {
@@ -91,17 +75,7 @@ function mapStop(stop: {
     total_items: number | null;
     org_customers_mst: { name: string | null; phone: string | null };
   };
-  org_dlv_pod_tr: Array<{
-    id: string;
-    pod_method_code: string;
-    verified_at: Date | null;
-    verified_by: string | null;
-    signature_url: string | null;
-    photo_urls: unknown;
-  }>;
 }): DeliveryStopView {
-  const pod = stop.org_dlv_pod_tr[0] ?? null;
-
   return {
     id: stop.id,
     routeId: stop.route_id,
@@ -128,16 +102,6 @@ function mapStop(stop: {
       customerName: stop.org_orders_mst.org_customers_mst.name,
       customerPhone: stop.org_orders_mst.org_customers_mst.phone,
     },
-    proof: pod
-      ? {
-          podId: pod.id,
-          methodCode: pod.pod_method_code,
-          verifiedAt: toIso(pod.verified_at),
-          verifiedBy: pod.verified_by,
-          signatureUrl: pod.signature_url,
-          photoUrls: toPhotoUrls(pod.photo_urls),
-        }
-      : null,
   };
 }
 
@@ -166,19 +130,6 @@ const stopSelect = {
       currency_code: true,
       total_items: true,
       org_customers_mst: { select: { name: true, phone: true } },
-    },
-  },
-  org_dlv_pod_tr: {
-    where: { is_active: true, rec_status: 1 },
-    orderBy: { created_at: 'desc' as const },
-    take: 1,
-    select: {
-      id: true,
-      pod_method_code: true,
-      verified_at: true,
-      verified_by: true,
-      signature_url: true,
-      photo_urls: true,
     },
   },
 } as const;

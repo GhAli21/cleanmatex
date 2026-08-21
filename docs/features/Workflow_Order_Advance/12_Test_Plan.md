@@ -38,6 +38,10 @@
 | T30 | Tenant, branch, and service assignment precedence is deterministic and tenant-isolated; a mixed-service order with conflicting service profiles is rejected or split according to the approved one-order/one-profile policy. |
 | T31 | Historic orders without a profile snapshot retain documented legacy compatibility and are never auto-backfilled or rebound by profile reassignment. |
 | T32 | Profile-context queries are indexed/bounded and preserve optimistic-concurrency, idempotency, audit, and outbox behavior under concurrent commands. |
+| T33 | Delivery proof audit reads only the authenticated tenant's order/stops/POD/operator rows, signs only `{tenantId}/delivery/{stopId}/` private object keys, omits unavailable proof safely, and returns no workflow or money mutation. |
+| T34 | Workboard API requires `workboard:read`, filters every `org_*` read by tenant, returns no transition command, and rejects invalid bounded query values. |
+| T35 | A pinned V2 order appears only when its pinned graph contains active `workboard` membership and an active owning stage; an unpinned order uses the live tenant contract fallback. |
+| T36 | A Workboard row opens the owning stage screen; it cannot change status, money, release, evidence, or assignment from the Workboard. |
 
 ## 2. V1.1 / V1.2 suites (planned, not V1.0 gate)
 
@@ -64,3 +68,6 @@ Unit / integration / e2e / canary parity as in IMPLEMENTATION_PLAN.
 - `web-admin/__tests__/services/delivery-evidence.service.test.ts`
 - `web-admin/__tests__/services/delivery-completion.service.test.ts`
 - `web-admin/__tests__/api/v1/delivery-safety.route.test.ts`
+- `web-admin/__tests__/services/delivery-proof-audit.service.test.ts`
+- `web-admin/__tests__/api/v1/delivery-proof-audit.route.test.ts`
+- `web-admin/__tests__/services/workboard-query.service.test.ts`

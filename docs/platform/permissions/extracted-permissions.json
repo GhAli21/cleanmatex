@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-15T08:11:28.799Z",
+  "extractedAt": "2026-08-20T23:15:13.646Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -1346,6 +1346,14 @@
       "route": "/api/v1/delivery/orders/[orderId]/generate-otp",
       "permission": "delivery:pod",
       "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/delivery/orders/[orderId]/proof/route.ts",
+      "method": "GET",
+      "route": "/api/v1/delivery/orders/[orderId]/proof",
+      "permission": "orders:read",
+      "line": 10,
       "surface": "api"
     },
     {

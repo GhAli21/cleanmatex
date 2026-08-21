@@ -434,6 +434,37 @@
       "photos": "Photos",
       "none": "No proof has been recorded for this stop."
     },
+    "audit": {
+      "title": "Delivery proof & handover audit",
+      "description": "Authorized staff can review the recorded handover and open time-limited evidence.",
+      "loadFailed": "Delivery proof audit could not be loaded.",
+      "emptyTitle": "No completed delivery proof yet",
+      "emptyPending": "A delivery stop exists, but its proof will appear after handover is completed.",
+      "emptyNoDelivery": "This order has not been assigned to a delivery stop.",
+      "workflowOutcome": "Workflow outcome",
+      "unknown": "Not recorded",
+      "handoverCount": "Recorded handovers",
+      "handover": "Handover for stop {sequence}",
+      "method": "Proof method",
+      "deliveredAt": "Delivered at",
+      "deliveredBy": "Delivered by",
+      "notRecorded": "Not recorded",
+      "notes": "Handover notes",
+      "openSignature": "Open signature",
+      "openPhoto": "Open photo {count}",
+      "refreshEvidence": "Refresh links",
+      "noEvidenceLink": "No viewable evidence file is available for this record.",
+      "payment": {
+        "settled": "Payment settled",
+        "balance_due": "Balance due",
+        "balance": "Outstanding balance"
+      },
+      "stopStatus": {
+        "pending": "Pending",
+        "in_transit": "In transit",
+        "delivered": "Delivered"
+      }
+    },
     "completion": {
       "title": "Delivery completion",
       "paymentGate": "Payment gate",

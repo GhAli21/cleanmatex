@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
-**Updated:** 2026-08-15
-**Overall:** Engine cutover and public tracking deployed; staff delivery/POD and P7 hardening reopened after release audit
+**Updated:** 2026-08-21
+**Overall:** Engine cutover, public tracking, counter pickup, and read-only delivery proof/audit are implemented; staff delivery completion and P7R assurance remain release-blocking
 
 ## Accurate status
 
@@ -21,7 +21,9 @@ Preparation completion now uses an authenticated atomic stage command/API with r
 Counter pickup now uses an authenticated atomic stage command/API with release fulfilment, collection gate, idempotency, and workflow concurrency checks
 Ready worklists, detail, and public tracking now distinguish not-yet-released from available-for-pickup without exposing internal rack/staff data
 Public Ready confirmation requires an active pickup release and reuses the counter-handover command; duplicate active release actions are blocked server-side
-Next: complete P7R Delivery database-backed assurance and caller cutover → run S10 → implement the remaining stage services → repeat post-0442 smoke → sign pilot T01-T18
+Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
+Workboard is implemented as a dedicated `workboard:read` supervisor projection with pinned-graph routing, tenant filters, and stage-owned deep links; migration `0455` remains operator-owned
+Next: complete the stage-service boundaries, then delivery database-backed assurance/caller cutover → run S10 → repeat post-0442 smoke → sign pilot T01-T18
 ```
 
 ## Completed
@@ -41,6 +43,8 @@ Next: complete P7R Delivery database-backed assurance and caller cutover → run
 - [x] P7R Preparation: atomic stage-owned completion command/API; legacy server action derives tenant/actor from server authentication
 - [x] P7R Pickup: atomic counter-handover command/API; `CONFIRM_PICKUP` fulfils release audit and transitions ready → delivered
 - [x] P7R Pickup availability: tenant-safe release-state read model, staff/public visibility, public-release prerequisite, and duplicate-release fail-closed guard
+- [x] P7R Delivery proof/audit: reusable authenticated tenant-scoped API/card on Delivery Stop Detail and Order Details, with signed private evidence links and focused service/API coverage
+- [x] P7R Workboard: tenant-safe, profile-pinned read model/API, RBAC/access contract, EN/AR Cmx screen, supervisor filters, and owner-stage routing
 - [x] P5 reader exit: screen contracts/available transitions use catalogs and app engine
 - [x] P5 grant contraction migration `0442` applied locally and remotely
 - [x] Documentation pack refresh: guide files + token rollout notes
@@ -56,7 +60,9 @@ Next: complete P7R Delivery database-backed assurance and caller cutover → run
 - [x] Implement server-disabled atomic staff POD + stop/route + `CONFIRM_DELIVERY` transaction as the first P7R service
 - [ ] Compose approved payment collection into the staff flow or retain the enforced collect-first operational contract with complete UI/mobile support
 - [ ] Enforce method-specific POD evidence, idempotency/concurrency, deferred-payment collection policy, and route-counter consistency
-- [ ] Add delivery RBAC/tenant-isolation/rollback/route-counter/payment regression coverage, then cut callers to the versioned API
+- [ ] Complete Delivery database-backed rollback, tenant-isolation, concurrency, route-counter, payment, and RBAC regression coverage, then make the explicit staff-rollout decision and cut callers to the versioned API
 - [ ] Repeat production cancel/hold/resume/stop smoke after `0442`; keep delivery S10 blocked until hardening lands
 - [ ] Sign pilot T01-T18 and rollback rehearsal
+- [x] Build the supervisor Workboard
+- [ ] Migrate remaining stage callers to stage-owned service/API boundaries
 - [ ] V1.1 return sub-order

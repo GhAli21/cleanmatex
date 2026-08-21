@@ -6,13 +6,23 @@ Run from `web-admin`:
 
 ```bash
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
+npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
 npx playwright test e2e/public-order-tracking.spec.ts --project=public-chromium --reporter=line
 npx eslint . --quiet
 npx tsc --noEmit
 npm run build
 ```
 
-2026-08-14 implementation evidence: Preparation command API tests and Delivery fail-closed API tests pass. Earlier evidence: 8 Jest suites / 49 tests passed; anonymous Playwright 2/2 passed; full ESLint passed; production build passed across 271 pages/routes. Standalone TypeScript diagnostics outside this cutover must still be tracked separately.
+2026-08-21 implementation evidence: focused Delivery proof/audit service and API tests pass, in addition to the existing Preparation and Delivery fail-closed API coverage. Earlier evidence: 8 Jest suites / 49 tests passed; anonymous Playwright 2/2 passed; full ESLint passed; production build passed across 271 pages/routes. Standalone TypeScript diagnostics outside this cutover must still be tracked separately.
+
+## Delivery proof/audit focused scenarios
+
+1. Sign in with `orders:read` and open a delivered order from the same tenant through Delivery Stop Detail and through the **Delivery Proof** order tab.
+2. Confirm both surfaces show the same workflow outcome, payment state, delivery time, operator, notes, and evidence count.
+3. Confirm the API returns `404 ORDER_NOT_FOUND` for an order outside the authenticated tenant and does not reveal that tenant's proof, actor, stop, or evidence data.
+4. Confirm a private evidence key is never returned. Evidence links must be signed only for the matching `{tenantId}/delivery/{stopId}/` scope and expire after five minutes.
+5. Wait for or simulate link expiry, select **Refresh links**, and confirm new authorized links load without any workflow, payment, POD, release, stop, route, history, or outbox mutation.
+6. Confirm the audit card alone offers no delivery-completion control while staff delivery remains a release blocker.
 
 ## Public tracking focused scenarios
 
@@ -209,3 +219,12 @@ During and after the smoke window:
 
 - Pilot-tenant e2e for release, pickup, delivery, finance gates, and outbox consumers
 - Full T01-T18 acceptance and rollback rehearsal
+
+## Workboard smoke
+
+1. Apply `0455_workboard_permission_navigation.sql`, deploy the Workboard build, and sign in as a role with `workboard:read`.
+2. Confirm **Orders → Workboard** is visible; a role without the permission must not see it and the API must return `403`.
+3. Verify a V2 order appears only when its pinned graph contains both `workboard` and owner-stage membership.
+4. Verify a legacy/unpinned order follows the tenant's live Workboard contract.
+5. Exercise each filter, sorting, and pagination; every row/count must remain tenant-scoped.
+6. Confirm the screen has no status, collection, release, POD, or assignment mutation.

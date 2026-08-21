@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { ExternalLink, FileCheck2, MapPin, WalletCards } from 'lucide-react';
+import { ExternalLink, MapPin, WalletCards } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxStatusBadge } from '@ui/feedback';
 import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
 import { DeliveryCompletionPanel } from './delivery-completion-panel';
+import { DeliveryProofAuditCard } from './delivery-proof-audit-card';
 
 interface DeliveryStopDetailProps {
   stop: DeliveryStopView;
@@ -28,8 +30,14 @@ function mapHref(stop: DeliveryStopView): string {
  */
 export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProps) {
   const t = useTranslations('workflow.delivery');
+  const queryClient = useQueryClient();
   const hasBalance = stop.order.outstandingAmount > 0.001;
   const isDelivered = stop.statusCode === 'delivered';
+
+  const handleCompleted = () => {
+    void queryClient.invalidateQueries({ queryKey: ['delivery', 'proof-audit', stop.order.id] });
+    onCompleted();
+  };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -76,25 +84,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
           </CmxCardContent>
         </CmxCard>
 
-        <CmxCard>
-          <CmxCardHeader>
-            <CmxCardTitle className="flex items-center gap-2 text-base">
-              <FileCheck2 className="h-5 w-5 text-primary" aria-hidden="true" />
-              {t('proof.title')}
-            </CmxCardTitle>
-          </CmxCardHeader>
-          <CmxCardContent>
-            {stop.proof ? (
-              <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">{t('proof.method')}:</span> {stop.proof.methodCode}</p>
-                <p><span className="text-muted-foreground">{t('proof.verifiedAt')}:</span> {stop.proof.verifiedAt ? new Date(stop.proof.verifiedAt).toLocaleString() : t('proof.notVerified')}</p>
-                <p><span className="text-muted-foreground">{t('proof.photos')}:</span> {stop.proof.photoUrls.length}</p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t('proof.none')}</p>
-            )}
-          </CmxCardContent>
-        </CmxCard>
+        <DeliveryProofAuditCard orderId={stop.order.id} />
       </div>
 
       <aside className="space-y-5">
@@ -121,7 +111,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
           </CmxCardContent>
         </CmxCard>
 
-        <DeliveryCompletionPanel stop={stop} onCompleted={onCompleted} />
+        <DeliveryCompletionPanel stop={stop} onCompleted={handleCompleted} />
       </aside>
     </div>
   );

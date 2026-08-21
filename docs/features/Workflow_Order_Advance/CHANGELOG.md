@@ -1,5 +1,13 @@
 # Changelog — Workflow Order Advance
 
+## 0.4.9-p7r-delivery-proof-audit — 2026-08-21
+
+- Added the reusable Delivery proof and handover audit card to both Delivery Stop Detail and the Order Details **Delivery Proof** tab.
+- Added `GET /api/v1/delivery/orders/{orderId}/proof`, backed by a tenant-scoped service that resolves handover actor, time, notes, payment state, workflow outcome, and completed POD records.
+- Removed legacy proof URLs from the ordinary delivery-stop read payload. Private evidence keys remain server-only and are converted to five-minute signed links only for the authorized audit response.
+- Added focused service/API tests for tenant isolation, exact tenant-stop key signing, actor resolution, legacy-read compatibility, and stable order-not-found handling.
+- Refreshed the README, user/developer/test/deploy/RBAC/API/risk/current-status documentation so proof/audit availability is not confused with the still-blocked staff delivery-completion rollout.
+
 ## 0.4.8-pickup-cutover-hardening — 2026-08-15
 
 - Migrations `0447_ready_for_pickup_workflow_status.sql` and `0448_pickup_cutover_integrity.sql` applied successfully to local and remote databases (operator confirmed 2026-08-15). `0448` reconciles the `0447` cutover window, backfills missing fulfilled-release version audit values, and enforces one open pickup release per tenant order.

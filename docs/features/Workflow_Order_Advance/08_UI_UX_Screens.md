@@ -42,7 +42,23 @@
 - Lives in Platform HQ (cleanmatexsaas): draft → validate → publish → assign
 - Tenant app consumes published assignments via HQ API
 
-## 6. Related
+## 6. Delivery proof and handover audit
+
+- The Delivery stop detail and Order Details **Delivery Proof** tab use one reusable audit card and one API contract.
+- The card shows workflow outcome, payment state, completed handover time, authenticated staff member, proof method, notes, and available signature/photo links.
+- Private links are deliberately time-limited. The card provides **Refresh links** rather than persisting a storage URL in browser or database state.
+- No evidence file is displayed to unauthorised users; the Order Details API requires `orders:read`, while the Delivery stop screen also requires `drivers:read`.
+- A completed Delivery command invalidates the shared audit query so the committed POD appears without a manual page reload.
+
+## 7. Related
 
 - [01_PRD.md](01_PRD.md)
 - [07_Permissions_RBAC_Nav.md](07_Permissions_RBAC_Nav.md)
+
+## 8. Workboard
+
+- `/dashboard/workboard` is a supervisor queue, not a new workflow stage.
+- Cmx KPI cards show in-flight, blocked, and overdue counts for the active filter set.
+- Server-side filters cover branch, assignee, priority, blocker state, SLA, and bounded search; pagination is server-owned.
+- **Open stage** links to the current owner screen. The Workboard contains no action buttons, status selector, payment mutation, or evidence mutation.
+- A visible warning lists configured Workboard statuses with no active stage owner so supervisors do not silently lose work due to configuration drift.

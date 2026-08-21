@@ -644,6 +644,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,},
     apiDependencies: [
       {
+        label: 'Delivery proof and handover audit',
+        method: 'GET',
+        path: '/api/v1/delivery/orders/[orderId]/proof',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['Returns tenant-scoped proof records and time-limited private evidence links.'],
+      },
+      {
         label: 'Ar *',
         method: 'GET',
         path: '/api/v1/ar/*',
@@ -1811,6 +1821,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      {
+        label: 'Delivery proof and handover audit',
+        method: 'GET',
+        path: '/api/v1/delivery/orders/[orderId]/proof',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['The reusable audit card uses the order permission; the page retains its stricter driver gate.'],
+      },
       {
         label: 'Get delivery stop',
         method: 'GET',

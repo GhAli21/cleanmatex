@@ -163,22 +163,40 @@ todos:
     status: completed
   - id: p7r-delivery-proof-audit-ui
     content: "P7R Delivery UI: add a reusable proof-of-delivery and handover-audit view for Delivery and Order Details, exposing evidence, actor, time, payment state, and workflow outcome without duplicating data access"
-    status: pending
+    status: completed
+  - id: p7r-proof-audit-documentation
+    content: "P7R proof/audit close-out: update this plan, progress_summary, current_status, changelog, README, user_guide, developer_guide, testing_guide_and_scenarios, 06_API_Contracts, 07_Permissions_RBAC_Nav, deploy_guide, 10_Edge_Cases_and_Risks, and risks_and_rollout so the released audit surface, security boundaries, tests, rollout prerequisites, and remaining work match implementation"
+    status: completed
+  - id: p7r-progress-documentation-governance
+    content: "P7R cross-cutting completion gate: after every implementation task, update its plan status and progress_summary/current_status, then refresh each affected canonical document before the next task starts. Do not mark a task complete until its code, validation evidence, risks, APIs, permissions, i18n, migration/rollout impact, and operator behavior are documented."
+    status: in_progress
   - id: p7r-workboard-ui
     content: "P7R Workboard: build a dedicated supervisor operations page that aggregates configured in-flight statuses and exposes SLA/age, priority, branch, assignee, and blocker filters; rows deep-link to their owning stage screen and may call only that stage's versioned API. Add dedicated workboard RBAC, access contract, and dual-written navigation; never add a raw status changer or screen-local workflow writer. Sequence after Delivery proof/audit and before mobile/integration adapters."
-    status: pending
+    status: completed
+  - id: p7r-workboard-status-docs
+    content: "P7R Workboard close-out: after implementation and validation, update plan/progress/current status and refresh README, user/developer/test/deploy guides, permissions/navigation, APIs, risks_and_rollout, and technical documentation with the workboard's RBAC, route, filters, ownership boundaries, and operating procedure"
+    status: completed
   - id: p7r-mobile-integration-adapters
     content: "P7R consumers: provide mobile and third-party integration adapters that consume the same versioned stage APIs, authenticated tenant context, idempotency, and concurrency contract as web-admin; do not create channel-specific business logic"
+    status: pending
+  - id: p7r-mobile-integration-status-docs
+    content: "P7R consumer-adapter close-out: after implementation and validation, update plan/progress/current status and refresh README, developer/test/deploy guides, APIs, security/RBAC, risks_and_rollout, and technical documentation with the channel contract, authentication, idempotency, versioning, and deprecation policy"
     status: pending
   - id: p7r-caller-cutover
     content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; convert the existing Processing, Quality, Packing, and Ready/Release screens to their stage services rather than creating duplicate pages; remove or fail-close all bypass writers"
     status: pending
+  - id: p7r-caller-cutover-status-docs
+    content: "P7R caller-cutover close-out: after implementation and validation, update plan/progress/current status and refresh user/developer/test/deploy guides, API inventory, permissions, risks_and_rollout, and technical documentation with each retired writer, replacement endpoint, compatibility behavior, and rollback decision"
+    status: pending
   - id: p7r-assurance-rollout
     content: "P7R assurance: add unit, API, integration, concurrency, RBAC, tenant-isolation, and pilot/rollback tests before re-enabling staff delivery"
     status: pending
+  - id: p7r-assurance-status-docs
+    content: "P7R assurance close-out: after validation and rollout decision, update plan/progress/current status and refresh README, user/developer/test/deploy guides, APIs, permissions, risks_and_rollout, and technical documentation with test evidence, release criteria, pilot scope, monitoring, rollback ownership, and known residual risks"
+    status: pending
   - id: final-documentation-skill
-    content: "FINAL: load /documentation skill and generate/complete full Workflow_Order_Advance pack (README, guides, progress, changelog, technical_docs, etc.)"
-    status: completed
+    content: "FINAL DOCUMENTATION GATE: load the canonical /documentation skill and generate/repair the complete Workflow_Order_Advance pack from repository truth. Refresh README, development_plan, progress_summary, current_status, developer_guide, developer_guide_mermaid, user_guide, user_guide_mermaid, deploy_guide, testing_guide_and_scenarios, CHANGELOG, version.txt, 06_API_Contracts, 07_Permissions_RBAC_Nav, 10_Edge_Cases_and_Risks, risks_and_rollout, and technical_docs. Verify all links and ensure permissions, navigation, settings/flags, APIs, migrations/RLS, types/validation, i18n, external dependencies, test evidence, rollout and residual risks have no undocumented gaps."
+    status: pending
   - id: final-plan-status
     content: "FINAL: mark all plan todos complete; write final progress_summary + current_status + version.txt"
     status: pending

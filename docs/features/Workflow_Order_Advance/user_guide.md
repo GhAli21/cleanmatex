@@ -142,11 +142,30 @@ For hold, resume, and stop, browser developer tools should show successful calls
 
 Cancellation loads available actions with `screen=canceling` and executes through the same `POST /api/v1/orders/{id}/actions` endpoint. Each successful action should return HTTP `200`, increment `stateVersion`, write order history, and enqueue an `ORDER_WORKFLOW_TRANSITIONED` outbox event.
 
+## Delivery proof and handover review
+
+Authorized operations staff can review a completed delivery without changing the order:
+
+1. Open **Delivery**, choose the route stop, and open its detail page; or open **Order Details** and select **Delivery Proof**.
+2. Review the workflow outcome, payment state, delivery time, operator, notes, proof method, and available evidence.
+3. If an evidence link has expired, select **Refresh links**. The new link is short-lived and is shown only to authorized staff.
+4. Treat missing evidence as an exception for investigation. Do not use the audit view, the generic Order Actions tab, or a direct URL to mark an order delivered.
+
+The audit view is read-only. It does not create a delivery stop, collect payment, release an order, or complete staff delivery.
+
 ## Staff delivery containment
 
-The Delivery dashboard is currently read-only. Route creation, driver assignment, OTP generation/verification, POD capture, and direct staff **Mark delivered** actions are disabled while atomic delivery hardening is open. Direct calls to staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write route, stop, POD, order, history, or outbox data.
+The Delivery dashboard permits the read-only proof/audit review above, but route creation, driver assignment, OTP generation/verification, POD capture, and direct staff **Mark delivered** actions remain disabled while atomic delivery hardening is open. Direct calls to staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write route, stop, POD, order, history, or outbox data.
 
 Do not bypass this containment or use the generic order Actions tab to mark an order delivered. Continue using the opaque public `/track/{token}` confirm-received flow only for its approved customer contract. Staff delivery S10 can resume after the production checklist confirms atomic POD, route counters, financial gates, idempotency, concurrency, RBAC, tenant isolation, and rollback coverage.
+
+## Workboard supervisor queue
+
+1. Open **Orders → Workboard** (requires `workboard:read`).
+2. Filter by branch, assignee, priority, risk, due state, or customer/order search.
+3. Review the in-flight, blocked, and overdue counts for the active filter set.
+4. Select **Open stage** to continue work where that stage owns the action. Workboard cannot change an order status.
+5. If a configuration warning is shown, ask the workflow administrator to configure an owner stage for the listed status. Do not work around it by changing an order directly.
 
 ### Tenant-safe database verification
 

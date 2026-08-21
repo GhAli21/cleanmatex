@@ -33588,6 +33588,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_wf_graph_def_ver_mst: {
+        Row: {
+          catalog_fingerprint: string
+          created_at: string
+          created_by: string | null
+          definition_checksum: string
+          graph_def_version_id: string
+          graph_definition: Json
+          published_at: string
+          published_by: string | null
+          rec_notes: string | null
+          rec_status: number
+          version_no: number
+          version_status: string
+        }
+        Insert: {
+          catalog_fingerprint: string
+          created_at?: string
+          created_by?: string | null
+          definition_checksum: string
+          graph_def_version_id?: string
+          graph_definition: Json
+          published_at?: string
+          published_by?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          version_no: number
+          version_status?: string
+        }
+        Update: {
+          catalog_fingerprint?: string
+          created_at?: string
+          created_by?: string | null
+          definition_checksum?: string
+          graph_def_version_id?: string
+          graph_definition?: Json
+          published_at?: string
+          published_by?: string | null
+          rec_notes?: string | null
+          rec_status?: number
+          version_no?: number
+          version_status?: string
+        }
+        Relationships: []
+      }
       sys_wf_initial_rules_cd: {
         Row: {
           created_at: string
@@ -33706,8 +33751,11 @@ export type Database = {
           name2: string | null
           orders_split_enabled: boolean
           profile_id: string
+          profile_policy_checksum: string | null
+          profile_policy_json: Json
           published_at: string | null
           published_by: string | null
+          published_policy_at: string | null
           rec_status: number
           retired_at: string | null
           retired_by: string | null
@@ -33721,6 +33769,7 @@ export type Database = {
           version_id: string
           version_no: number
           version_status: string
+          wf_graph_def_version_id: string | null
         }
         Insert: {
           allow_back_steps?: boolean
@@ -33735,8 +33784,11 @@ export type Database = {
           name2?: string | null
           orders_split_enabled?: boolean
           profile_id: string
+          profile_policy_checksum?: string | null
+          profile_policy_json?: Json
           published_at?: string | null
           published_by?: string | null
+          published_policy_at?: string | null
           rec_status?: number
           retired_at?: string | null
           retired_by?: string | null
@@ -33750,6 +33802,7 @@ export type Database = {
           version_id?: string
           version_no: number
           version_status?: string
+          wf_graph_def_version_id?: string | null
         }
         Update: {
           allow_back_steps?: boolean
@@ -33764,8 +33817,11 @@ export type Database = {
           name2?: string | null
           orders_split_enabled?: boolean
           profile_id?: string
+          profile_policy_checksum?: string | null
+          profile_policy_json?: Json
           published_at?: string | null
           published_by?: string | null
+          published_policy_at?: string | null
           rec_status?: number
           retired_at?: string | null
           retired_by?: string | null
@@ -33779,6 +33835,7 @@ export type Database = {
           version_id?: string
           version_no?: number
           version_status?: string
+          wf_graph_def_version_id?: string | null
         }
         Relationships: [
           {
@@ -33794,6 +33851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_wf_profiles_cd"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "sys_wf_profile_ver_mst_wf_graph_def_version_id_fkey"
+            columns: ["wf_graph_def_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_graph_def_ver_mst"
+            referencedColumns: ["graph_def_version_id"]
           },
         ]
       }

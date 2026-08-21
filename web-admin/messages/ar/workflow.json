@@ -434,6 +434,37 @@
       "photos": "الصور",
       "none": "لم يتم تسجيل إثبات لهذه المحطة."
     },
+    "audit": {
+      "title": "إثبات التسليم وسجل الاستلام",
+      "description": "يمكن للموظفين المخولين مراجعة الاستلام المسجل وفتح الأدلة المؤقتة.",
+      "loadFailed": "تعذر تحميل سجل إثبات التسليم.",
+      "emptyTitle": "لا يوجد إثبات تسليم مكتمل بعد",
+      "emptyPending": "توجد محطة توصيل، وسيظهر إثباتها بعد اكتمال التسليم.",
+      "emptyNoDelivery": "لم يتم تعيين هذا الطلب إلى محطة توصيل.",
+      "workflowOutcome": "نتيجة سير العمل",
+      "unknown": "غير مسجل",
+      "handoverCount": "عمليات التسليم المسجلة",
+      "handover": "تسليم المحطة {sequence}",
+      "method": "طريقة الإثبات",
+      "deliveredAt": "وقت التسليم",
+      "deliveredBy": "تم التسليم بواسطة",
+      "notRecorded": "غير مسجل",
+      "notes": "ملاحظات التسليم",
+      "openSignature": "فتح التوقيع",
+      "openPhoto": "فتح الصورة {count}",
+      "refreshEvidence": "تحديث الروابط",
+      "noEvidenceLink": "لا يوجد ملف إثبات قابل للعرض لهذا السجل.",
+      "payment": {
+        "settled": "تمت تسوية الدفع",
+        "balance_due": "رصيد مستحق",
+        "balance": "الرصيد المستحق"
+      },
+      "stopStatus": {
+        "pending": "قيد الانتظار",
+        "in_transit": "في الطريق",
+        "delivered": "تم التسليم"
+      }
+    },
     "completion": {
       "title": "إتمام التسليم",
       "paymentGate": "بوابة الدفع",

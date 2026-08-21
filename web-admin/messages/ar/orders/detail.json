@@ -264,6 +264,7 @@
       "invoices": "الفواتير / الضريبة",
       "vouchers": "سندات القبض",
       "history": "سجل الطلب",
+      "deliveryProof": "إثبات التسليم",
       "editHistory": "سجل التعديل",
       "debug": "تصحيح",
       "actions": "الإجراءات"

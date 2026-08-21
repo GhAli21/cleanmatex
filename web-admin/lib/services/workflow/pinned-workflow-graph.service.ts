@@ -68,7 +68,7 @@ type GraphDefRow = {
   catalog_fingerprint: string;
 };
 
-/** Loads immutable graph snapshot for a published profile version. */
+/** Loads graph snapshot pinned on a profile version (any status — keeps orders working after unpublish). */
 export async function loadPinnedGraphForProfileVersion(
   profileId: string,
   versionNo: number,
@@ -78,7 +78,7 @@ export async function loadPinnedGraphForProfileVersion(
     FROM public.sys_wf_profile_ver_mst
     WHERE profile_id = ${profileId}::uuid
       AND version_no = ${versionNo}
-      AND version_status = 'PUBLISHED'
+      AND version_status IN ('PUBLISHED', 'DRAFT', 'RETIRED')
     LIMIT 1
   `;
   const graphDefId = versions[0]?.wf_graph_def_version_id;

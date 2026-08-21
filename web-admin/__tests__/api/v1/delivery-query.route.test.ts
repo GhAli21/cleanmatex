@@ -18,7 +18,7 @@ jest.mock('@/lib/services/delivery/delivery-route-query.service', () => ({
   },
 }));
 
-import { GET as getRoute } from '@/app/api/v1/delivery/routes/[routeId]/route';
+import { GET as getRoute } from '@/app/api/v1/delivery/routes/[id]/route';
 import { GET as getStop } from '@/app/api/v1/delivery/stops/[stopId]/route';
 
 const AUTH_CONTEXT = {
@@ -38,7 +38,7 @@ describe('delivery route and stop read contracts', () => {
     getRouteManifestMock.mockResolvedValue({ id: 'route-1', routeNumber: 'RT-001', stops: [] });
 
     const response = await getRoute({} as NextRequest, {
-      params: Promise.resolve({ routeId: 'route-1' }),
+      params: Promise.resolve({ id: 'route-1' }),
     });
 
     expect(requireAllPermissionsFactory).toHaveBeenCalledWith(['drivers:read', 'orders:read']);
@@ -50,7 +50,7 @@ describe('delivery route and stop read contracts', () => {
     getRouteManifestMock.mockResolvedValue(null);
 
     const response = await getRoute({} as NextRequest, {
-      params: Promise.resolve({ routeId: 'route-1' }),
+      params: Promise.resolve({ id: 'route-1' }),
     });
 
     expect(response.status).toBe(404);

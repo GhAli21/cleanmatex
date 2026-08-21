@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-08-15T08:11:32.712Z
+Generated: 2026-08-20T23:15:18.538Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 259 |
+| api | 260 |
 | middleware | 4 |
 | screen | 50 |
 | service | 2 |
@@ -237,6 +237,7 @@ Generated: 2026-08-15T08:11:32.712Z
 | orders:read | api | app/api/v1/catalog/preference-bundles/route.ts | 22 | /api/v1/catalog/preference-bundles |
 | orders:read | api | app/api/v1/catalog/preference-kinds/route.ts | 21 | /api/v1/catalog/preference-kinds |
 | orders:read | api | app/api/v1/catalog/service-preferences/route.ts | 22 | /api/v1/catalog/service-preferences |
+| orders:read | api | app/api/v1/delivery/orders/[orderId]/proof/route.ts | 10 | /api/v1/delivery/orders/[orderId]/proof |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
 | orders:read | api | app/api/v1/orders/route.ts | 193 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/items/[itemId]/pieces/route.ts | 27 | /api/v1/orders/[id]/items/[itemId]/pieces |

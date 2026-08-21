@@ -20,6 +20,7 @@ import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
+import { DeliveryProofAuditCard } from '@features/delivery/ui/delivery-proof-audit-card';
 import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
@@ -49,6 +50,7 @@ const TAB_IDS = [
   'invoices',
   'vouchers',
   'history',
+  'delivery_proof',
   'edit_history',
   'debug',
   'actions',
@@ -437,6 +439,11 @@ export function OrderDetailClient({
           </CmxCardContent>
         </CmxCard>
       ),
+    },
+    {
+      id: 'delivery_proof',
+      label: tFin('tabs.deliveryProof'),
+      content: <DeliveryProofAuditCard orderId={String(order.id)} />,
     },
     {
       id: 'edit_history',

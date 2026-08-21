@@ -194,6 +194,29 @@ Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `40
 
 The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Private storage receipt validation is implemented; database-backed completion rollback, tenant-isolation, and concurrency tests remain release gates. OTP expiry/retry controls are intentionally deferred to VNext; this release must use configured `SIGNATURE`, `PHOTO`, or `MIXED` proof methods only.
 
+### 10.1 Delivery proof and handover audit (P7R)
+
+`GET /api/v1/delivery/orders/{orderId}/proof`
+
+This read-only, tenant-scoped contract is the single delivery-proof source for both
+the Delivery stop workspace and Order Details. It requires `orders:read`; the Delivery
+workspace retains its additional `drivers:read` page gate. It returns the order
+workflow outcome, payment state, completed delivery stops, verified operator, handover
+time/notes, and evidence links.
+
+Private evidence object keys never leave the server. For an object in the exact
+`{tenantId}/delivery/{stopId}/` scope, the service issues a five-minute signed URL at
+read time. Invalid/missing private evidence does not fail the audit response; it is
+omitted and logged. Legacy HTTP(S) proof URLs remain readable only as a compatibility
+fallback. The UI can refresh links after expiry; no URL is written back to the database.
+
+This read contract is available independently of the staff delivery-completion rollout.
+It does not enable `POST /api/v1/delivery/stops/{stopId}/complete`, create evidence,
+or mutate an order. Completion remains subject to its separate P7R assurance gates.
+
+Errors: `403 FORBIDDEN`, `404 ORDER_NOT_FOUND`. The contract does not mutate the
+workflow, payment, POD, release, or delivery-stop state.
+
 ## 11. Staff counter pickup completion (P7R, active)
 
 `POST /api/v1/pickup/orders/{orderId}/complete`
@@ -275,3 +298,17 @@ Exact OpenAPI path freeze happens in P2 when routes are implemented; inventory a
 ## 10. Related
 
 - [05_Business_Rules_and_Gates.md](05_Business_Rules_and_Gates.md)
+
+## 13. Workboard read model
+
+`GET /api/v1/workboard/orders` requires `workboard:read` and accepts bounded
+`page`, `pageSize`, `search`, `branchId`, `assigneeId`, `priority`, `blocker`,
+`sla`, and `sort` query parameters. It returns a tenant-scoped paginated
+supervisor projection, summary counts, filter options, configuration gaps, and
+an owner-stage path for each row. It has no mutation endpoint.
+
+For an order pinned to `wf_profile_id` + `wf_version_no`, the service evaluates
+the pinned graph's `workboard` membership and its stage-owner membership. It
+uses the tenant screen contract only for legacy/unpinned orders or documented
+missing-pin fallback. A status without an active owner is excluded and returned
+as a configuration gap rather than guessed or mutated.

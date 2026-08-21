@@ -264,6 +264,7 @@
       "invoices": "Invoices / Tax",
       "vouchers": "Receipt Vouchers",
       "history": "Order History",
+      "deliveryProof": "Delivery Proof",
       "editHistory": "Edit History",
       "debug": "Debug",
       "actions": "Actions"

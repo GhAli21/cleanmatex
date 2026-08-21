@@ -108,6 +108,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/orders',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
+      {
+        key: 'orders_workboard',
+        label: 'Workboard',
+        label2: 'لوحة العمل',
+        path: '/dashboard/workboard',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'supervisor'],
+        permissions: ['workboard:read'],
+      },
       /*
       TESTING:
       do this if I decide to add three new screens in the navigation tree using the command:

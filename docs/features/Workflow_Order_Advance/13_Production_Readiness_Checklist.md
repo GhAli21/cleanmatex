@@ -23,6 +23,7 @@
 - [x] Retail not auto-`closed`
 - [ ] Atomic staff Delivery command implemented but not release-approved: database-backed rollback, tenant-isolation, and concurrency tests still required
 - [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
+- [x] Read-only delivery proof/audit is tenant-scoped, access-contract protected, and returns only time-limited authorized evidence links; it does not approve staff completion
 - [ ] OTP retry/expiry controls intentionally deferred to VNext
 - [ ] Delivery route creation/counters/status changes are atomic, idempotent, and concurrency-safe
 - [ ] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command; live collection composition and acceptance coverage remain required before staff rollout
@@ -41,7 +42,7 @@
 
 ## 2026-08-14 release audit verdict
 
-Staff delivery is not production-ready. Direct **Mark delivered** controls are disabled as containment. The P7R atomic completion command now composes POD, stop/route, engine, history, and outbox writes, but its server rollout remains disabled until database-backed rollback, payment, evidence-storage, RBAC, tenancy, and concurrency acceptance tests pass. Public anonymous confirm-received remains governed by its separately approved contract and completed smoke.
+Staff delivery is not production-ready. Direct **Mark delivered** controls are disabled as containment. The P7R atomic completion command now composes POD, stop/route, engine, history, and outbox writes, but its server rollout remains disabled until database-backed rollback, payment, evidence-storage, RBAC, tenancy, and concurrency acceptance tests pass. The separate proof/audit read surface may be used to review completed handovers but cannot be treated as staff-delivery approval. Public anonymous confirm-received remains governed by its separately approved contract and completed smoke.
 
 ## Explicitly not required for V1.0 go-live
 

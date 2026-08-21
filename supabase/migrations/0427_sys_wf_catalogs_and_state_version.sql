@@ -500,12 +500,13 @@ ON CONFLICT (action_code, transition_id, screen_key) DO NOTHING;
 -- 18) Seeds — initial status rules (priority: lower wins)
 -- ------------------------------------------------------------------
 INSERT INTO public.sys_wf_initial_rules_cd (
-  rule_code, order_source_code, order_type_id, is_retail, initial_status, priority, name, name2
+  rule_code, order_source_code, order_type_id, is_retail, initial_status, priority, name, name2, is_active
 ) VALUES
-  ('INIT_DEFAULT',           NULL,   NULL, NULL,  'intake',  900, 'Default intake', 'الاستلام الافتراضي'),
-  ('INIT_RETAIL_READY',      NULL,   NULL, true,  'ready',   100, 'Retail → ready (not closed)', 'تجزئة → جاهز (ليس مغلق)'),
-  ('INIT_ONLINE_DRAFT',      'ONLINE', NULL, NULL, 'draft',   200, 'Online → draft', 'أونلاين → مسودة'),
-  ('INIT_PHONE_INTAKE',      'PHONE',  NULL, NULL, 'intake',  200, 'Phone → intake', 'هاتف → استلام')
+  ('INIT_DEFAULT',           NULL,   NULL, NULL,  'intake',  900, 'Default intake', 'الاستلام الافتراضي', true),
+  ('INIT_RETAIL_DELIVERED',      NULL,   NULL, true,  'delivered',   100, 'Retail → delivered (closed)', 'تجزئة →(مغلق)', true),
+  ('INIT_RETAIL_READY',      NULL,   NULL, true,  'ready',   100, 'Retail → ready (not closed)', 'تجزئة → جاهز (ليس مغلق)', false),
+  ('INIT_ONLINE_DRAFT',      'ONLINE', NULL, NULL, 'draft',   200, 'Online → draft', 'أونلاين → مسودة', true),
+  ('INIT_PHONE_INTAKE',      'PHONE',  NULL, NULL, 'intake',  200, 'Phone → intake', 'هاتف → استلام', true)
 ON CONFLICT (rule_code) DO UPDATE SET
   order_source_code = EXCLUDED.order_source_code,
   order_type_id = EXCLUDED.order_type_id,
@@ -514,8 +515,10 @@ ON CONFLICT (rule_code) DO UPDATE SET
   priority = EXCLUDED.priority,
   name = EXCLUDED.name,
   name2 = EXCLUDED.name2,
-  is_active = true,
-  updated_at = CURRENT_TIMESTAMP;
+  is_active = EXCLUDED.is_active,
+  created_at = CURRENT_TIMESTAMP
+  --,updated_at = CURRENT_TIMESTAMP
+  ;
 
 -- ------------------------------------------------------------------
 -- 19) Backfill state_version for existing rows (idempotent)
