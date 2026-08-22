@@ -37,6 +37,7 @@ export type WorkboardSort =
   | 'assignee_asc'
   | 'assignee_desc'
 
+/** Server-owned SLA classification evaluated in the tenant business time zone. */
 /** Read-only filters accepted by the Workboard API. */
 export interface WorkboardQueryInput {
   page: number

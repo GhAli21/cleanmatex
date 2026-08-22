@@ -1,6 +1,6 @@
 # Progress summary — Workflow Order Advance
 
-**Updated:** 2026-08-21
+**Updated:** 2026-08-22
 **Overall:** Engine cutover, public tracking, counter pickup, and read-only delivery proof/audit are implemented; staff delivery completion and P7R assurance remain release-blocking
 
 ## Accurate status
@@ -22,10 +22,13 @@ Counter pickup now uses an authenticated atomic stage command/API with release f
 Ready worklists, detail, and public tracking now distinguish not-yet-released from available-for-pickup without exposing internal rack/staff data
 Public Ready confirmation requires an active pickup release and reuses the counter-handover command; duplicate active release actions are blocked server-side
 Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
-Workboard is implemented as a dedicated `workboard:read` supervisor projection with historical P0 pinned-graph routing, tenant filters, and stage-owned deep links; migration `0455` remains operator-owned
+Workboard is implemented as a dedicated `workboard:read` supervisor projection with tenant filters and stage-owned deep links; semantic orders resolve their queue membership/owner from the artifact ID while legacy orders retain the temporary P0 compatibility path; migration `0455` remains operator-owned
 Semantic Profile Runtime governance accepted: ADR-SAAS-MNG-0009 replaces the P0 graph-pin as the future runtime, with DRAFT -> PILOT -> PUBLISHED -> RETIRED, HQ-only Pilot assignment governance, and identical tenant production paths for test/demo execution
 Semantic Profile Runtime schema migration `0457` applied locally and remotely by operator; generated database types regenerated and updated
-Next: implement HQ semantic profile compiler/lifecycle APIs, then tenant artifact runtime before consumer cutover; complete stage-service boundaries, delivery database-backed assurance/caller cutover, S10, post-0442 smoke, and pilot T01-T18
+Semantic Profile Runtime action cutover: semantic-order action listing/execution reads only the order-pinned immutable artifact; it enforces screen visibility, channel bindings, action edges, reason requirements, evidence fail-closed behavior, and typed profile-integrity failures without mutable catalog fallback
+Semantic financial gate runtime: semantic action discovery and execution share transaction-locked rack, preparation, payment-type, and outstanding-balance facts; positive balances block `fin_release_eligible`, unknown gates fail closed, and `CREDIT_INVOICE` remains blocked until durable invoice/reservation revalidation is implemented
+Semantic context cutover: V2 Processing, QA, Assembly, and Packing no longer derive destinations from mutable template flags; their actions resolve the immutable artifact edge server-side. The compatibility workflow-context endpoint now projects semantic modules from the order artifact and returns a typed profile error instead of consulting template configuration.
+Next: implement durable B2B/fulfilment/piece/QA/evidence gate evaluators, then cut over remaining stage-service consumers; complete delivery database-backed assurance/caller cutover, S10, post-0442 smoke, and pilot T01-T18
 ```
 
 ## Completed
@@ -46,7 +49,11 @@ Next: implement HQ semantic profile compiler/lifecycle APIs, then tenant artifac
 - [x] P7R Pickup: atomic counter-handover command/API; `CONFIRM_PICKUP` fulfils release audit and transitions ready → delivered
 - [x] P7R Pickup availability: tenant-safe release-state read model, staff/public visibility, public-release prerequisite, and duplicate-release fail-closed guard
 - [x] P7R Delivery proof/audit: reusable authenticated tenant-scoped API/card on Delivery Stop Detail and Order Details, with signed private evidence links and focused service/API coverage
-- [x] P7R Workboard: tenant-safe, profile-pinned read model/API, RBAC/access contract, EN/AR Cmx screen, supervisor filters, and owner-stage routing
+- [x] P7R Workboard: tenant-safe read model/API, RBAC/access contract, EN/AR Cmx screen, supervisor filters, and owner-stage routing from immutable semantic artifacts (legacy compatibility retained temporarily)
+- [x] P0 semantic profile snapshot: new orders persist exact artifact identity, revision, checksum, and schema version; loader validates snapshots fail closed
+- [x] P0 semantic gate runtime: shared rack/preparation/financial evaluator uses transaction-locked order facts for action list and execution; unpaid release blocks consistently and B2B credit is explicitly fail-closed pending its dedicated validator
+- [x] P0 semantic context: V2 floor-page actions no longer guess destinations from template flags; artifact-backed workflow context remains display-only and legacy template context is isolated to legacy orders
+- [~] P0 semantic runtime enforcement: action list/execution and Workboard use immutable artifacts for semantic orders; remaining stage consumers still require cutover
 - [x] P5 reader exit: screen contracts/available transitions use catalogs and app engine
 - [x] P5 grant contraction migration `0442` applied locally and remotely
 - [x] Documentation pack refresh: guide files + token rollout notes

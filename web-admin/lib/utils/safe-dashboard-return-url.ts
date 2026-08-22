@@ -9,9 +9,21 @@
  * resolveSafeDashboardReturnUrl('/dashboard/workboard?page=2', '/dashboard/processing')
  */
 export function resolveSafeDashboardReturnUrl(candidate: string | null | undefined, fallback: string): string {
-  if (!candidate || !candidate.startsWith('/dashboard/') || candidate.startsWith('//')) {
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) {
     return fallback
   }
 
-  return candidate
+  try {
+    // URL normalizes dot segments and backslashes before the dashboard boundary
+    // check, so a syntactically internal path cannot escape to another surface.
+    const applicationOrigin = 'https://cleanmatex.internal'
+    const target = new URL(candidate, applicationOrigin)
+    if (target.origin !== applicationOrigin || !target.pathname.startsWith('/dashboard/')) {
+      return fallback
+    }
+
+    return `${target.pathname}${target.search}${target.hash}`
+  } catch {
+    return fallback
+  }
 }

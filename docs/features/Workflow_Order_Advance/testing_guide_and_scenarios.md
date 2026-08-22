@@ -7,6 +7,7 @@ Run from `web-admin`:
 ```bash
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
 npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
+npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-profile-resolution.service.test.ts --runInBand --forceExit
 npx playwright test e2e/public-order-tracking.spec.ts --project=public-chromium --reporter=line
 npx eslint . --quiet
 npx tsc --noEmit
@@ -14,6 +15,10 @@ npm run build
 ```
 
 2026-08-21 implementation evidence: focused Delivery proof/audit service and API tests pass, in addition to the existing Preparation and Delivery fail-closed API coverage. Earlier evidence: 8 Jest suites / 49 tests passed; anonymous Playwright 2/2 passed; full ESLint passed; production build passed across 271 pages/routes. Standalone TypeScript diagnostics outside this cutover must still be tracked separately.
+
+2026-08-22 semantic-runtime evidence: the immutable artifact loader, semantic runtime adapter, and profile-resolution tests pass (10 tests). They cover exact artifact identity, partial/mismatched snapshots, enabled owner/observer visibility, server channel filtering, and unsupported gate-mode projection. The Jest process currently needs `--forceExit`; investigate its existing open-handle warning before release sign-off.
+
+2026-08-22 shared-gate/context evidence: TypeScript typecheck and targeted ESLint pass; Next.js production build completed. Seven focused Jest suites / 28 tests pass, including the reusable gate evaluator and immutable context projection. It proves an unpaid `PAY_ON_COLLECTION` order blocks semantic `fin_release_eligible`, settlement at the shared money tolerance passes, all gate blockers are returned together, unknown semantic gates fail closed, B2B `CREDIT_INVOICE` release remains explicitly blocked until its durable invoice/reservation validator exists, and the compatibility context uses enabled artifact modules rather than template stage flags.
 
 ## Delivery proof/audit focused scenarios
 

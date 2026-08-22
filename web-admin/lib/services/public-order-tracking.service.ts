@@ -630,6 +630,8 @@ export async function confirmPublicOrderReceivedResponse(
         tenantId,
         orderId: order.id,
         screen: PUBLIC_TRACKING_SCREEN,
+        // The tracking token authorizes a public web command, never a staff channel.
+        channel: 'public_web',
       });
       const result = await executeAction({
         tenantId,
@@ -644,6 +646,7 @@ export async function confirmPublicOrderReceivedResponse(
           preferredToStatus: toStatus,
           metadata,
         },
+        channel: 'public_web',
         idempotencyKey:
           request.headers.get('Idempotency-Key')?.trim() ||
           `public-confirm-received:${tenantId}:${order.id}`,

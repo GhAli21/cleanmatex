@@ -493,7 +493,9 @@ export function WorkboardScreen() {
           headerSize="emphasized"
           headerClassName="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]"
           className="w-full shadow-sm"
-          scrollAreaClassName="min-h-[30rem] max-h-[calc(100vh-18rem)] overflow-auto"
+          tableClassName="min-w-[78rem]"
+          stickyEndColumnIds={['open']}
+          scrollAreaClassName="min-h-[24rem] max-h-[calc(100vh-15rem)] overflow-auto"
           emptyStateTitle={t('empty.title')}
           emptyStateDescription={hasActiveFilters ? t('empty.filteredDescription') : t('empty.description')}
           emptyStateIcon={<ClipboardList className="h-10 w-10" />}

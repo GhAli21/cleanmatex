@@ -141,6 +141,10 @@ export interface CmxDataTableProps<TData> {
   headerSize?: 'default' | 'emphasized'
   /** Optional final header styling for a feature-specific visual hierarchy. */
   headerClassName?: string
+  /** Optional classes for the table element, for example a purposeful minimum width. */
+  tableClassName?: string
+  /** Keeps named end-side columns visible while comparison-heavy tables scroll horizontally. */
+  stickyEndColumnIds?: string[]
   enableZebraStriping?: boolean
   /** Legacy empty message (deprecated, use emptyState* props) */
   emptyMessage?: ReactNode
@@ -338,9 +342,6 @@ function withSortableColumnHeader<TData>(
           variant="ghost"
           size="sm"
           className="h-auto min-h-8 w-full justify-start gap-1 p-0 font-medium hover:bg-transparent rtl:justify-end"
-          aria-sort={
-            sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
-          }
           onClick={() => column.toggleSorting()}
         >
           <span className="inline-flex items-center gap-1">
@@ -422,6 +423,8 @@ export function CmxDataTable<TData>({
   showColumnBorders = false,
   headerSize = 'default',
   headerClassName,
+  tableClassName,
+  stickyEndColumnIds = [],
   enableZebraStriping = false,
   emptyMessage,
   scrollable = true,
@@ -589,9 +592,6 @@ export function CmxDataTable<TData>({
                 variant="ghost"
                 size="sm"
                 className="h-auto min-h-8 w-full justify-start gap-1 p-0 font-medium hover:bg-transparent rtl:justify-end"
-                aria-sort={
-                  sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
-                }
                 onClick={() => column.toggleSorting()}
               >
                 <span className="inline-flex items-center gap-1">
@@ -606,6 +606,9 @@ export function CmxDataTable<TData>({
             )
           },
           cell: ({ row }) => col.render(row.original),
+          // Server-owned simple columns have no data accessor, but TanStack
+          // requires one before it exposes sorting state to the header.
+          accessorFn: sortable ? () => undefined : undefined,
           enableSorting: sortable,
         } as ColumnDef<TData, unknown>
       }
@@ -737,7 +740,7 @@ export function CmxDataTable<TData>({
       <CmxCard className={className}>
         <CmxCardContent className="p-0">
           <div className={scrollWrapperClass}>
-            <table className={cn('min-w-full text-sm', showColumnBorders && 'border-separate border-spacing-0')}>
+            <table className={cn('min-w-full text-sm', showColumnBorders && 'border-separate border-spacing-0', tableClassName)}>
               <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
@@ -752,7 +755,13 @@ export function CmxDataTable<TData>({
                           headerClassName,
                           header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
                           header.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                          stickyEndColumnIds.includes(header.column.id) && 'sticky end-0 z-[3] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)]',
                         )}
+                        aria-sort={
+                          header.column.getCanSort() && header.column.getIsSorted()
+                            ? header.column.getIsSorted() === 'asc' ? 'ascending' : 'descending'
+                            : undefined
+                        }
                       >
                         {header.isPlaceholder
                           ? null
@@ -778,6 +787,7 @@ export function CmxDataTable<TData>({
                           className={cn(
                             'px-4 py-4',
                             showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
+                            stickyEndColumnIds.includes(tanstackColumns[cellIndex]?.id ?? '') && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                           )}
                         >
                           <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
@@ -790,7 +800,7 @@ export function CmxDataTable<TData>({
                     <tr
                       key={row.id}
                       className={cn(
-                        'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                        'group border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                         onRowClick && 'cursor-pointer',
                         enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
                         getRowClassName?.(row.original, index),
@@ -811,6 +821,7 @@ export function CmxDataTable<TData>({
                               alignClass,
                               cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
                               cell.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                              stickyEndColumnIds.includes(cell.column.id) && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] transition-colors group-hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                             )}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}

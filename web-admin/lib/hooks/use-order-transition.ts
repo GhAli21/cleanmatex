@@ -15,6 +15,8 @@ export interface TransitionInput {
   useOldWfCodeOrNew?: boolean;
   /** Explicit engine action; otherwise derived from screen (+ reject heuristics). */
   actionCode?: string;
+  /** Only set after the server-provided action list presents multiple valid edges. */
+  preferredToStatus?: string;
   [key: string]: any;
 }
 
@@ -104,7 +106,9 @@ export function useOrderTransition() {
             actionCode,
             expectedStateVersion: stateVersion,
             input: {
-              preferredToStatus: input.to_status,
+              // A legacy page's guessed destination must never override an
+              // immutable semantic policy. Explicit edge selection is opt-in.
+              preferredToStatus: input.preferredToStatus,
               notes: input.notes,
               rackLocation: input.rackLocation ?? input.rack_location,
               metadata: input.metadata,

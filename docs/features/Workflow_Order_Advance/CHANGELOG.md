@@ -1,5 +1,16 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-08-22
+
+- Added the tenant semantic workflow artifact loader and runtime adapter. Semantic orders now resolve action visibility and command edges from their exact immutable profile artifact rather than mutable profile assignments, graph pins, screens, transitions, or action maps.
+- Extended the shared workflow engine to load the order artifact for action list and execute commands, enforce module status visibility, explicit channel bindings, reason requirements, and fail-closed evidence/non-hard-gate behavior. Incomplete or invalid artifact snapshots return typed `PROFILE_*` errors rather than falling back.
+- Marked `public_tracking` as the `public_web` command channel. Internal web adapters remain `staff_web` by default; channel ownership is assigned server-side.
+- Cut Workboard semantic orders over to artifact-derived Workboard membership and primary-owner routing. Its scopes are keyed by immutable artifact ID, preventing two policy revisions from sharing a supervisor queue; legacy orders retain the controlled compatibility path.
+- Added a semantic order-control consistency check: fixed hold/stop behavior must match the artifact destination, and dynamic resume may restore only a status declared by the artifact. Misconfigured policy is rejected with `PROFILE_EXECUTION_INVALID` rather than silently rewritten by legacy control logic.
+- Added `workflow-gate-evaluator.service.ts`, shared by semantic action discovery and execution. It evaluates rack/preparation/financial hard-block gates from the transaction-locked order facts, blocks positive outstanding balances with `GATE_FIN_RELEASE`, and keeps unknown semantic gates fail closed. B2B `CREDIT_INVOICE` release now returns `GATE_B2B_CREDIT_VALIDATION_UNAVAILABLE` until durable AR invoice and credit-reservation validation is implemented.
+- Removed V2 destination guessing from Processing, QA, Assembly, and Packing action callers. The workflow-context compatibility read now projects enabled modules from the order-pinned artifact for semantic orders and fails closed for a bad snapshot; live template-stage configuration remains legacy-order-only.
+- Added focused artifact/runtime tests and updated the API, developer, testing, plan, and current-status documentation. Legacy orders and Workboard remain on the temporary pinned-graph compatibility path pending consumer cutover and integration assurance.
+
 ## 0.4.9-p7r-delivery-proof-audit — 2026-08-21
 
 - Added the reusable Delivery proof and handover audit card to both Delivery Stop Detail and the Order Details **Delivery Proof** tab.

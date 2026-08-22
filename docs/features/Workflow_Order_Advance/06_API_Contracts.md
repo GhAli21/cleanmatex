@@ -51,7 +51,15 @@ Headers: `Idempotency-Key` (required)
 }
 ```
 
-**Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `403 FORBIDDEN`, `404 NOT_FOUND`.
+**Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `400 REASON_REQUIRED`, `400 UNSUPPORTED_GATE_MODE`, `400 EVIDENCE_RUNTIME_UNAVAILABLE`, `400 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `403 FORBIDDEN`, `404 NOT_FOUND`.
+
+For an order with a semantic profile snapshot, the service reads only the exact immutable artifact identified by the order. It checks the artifact's screen membership, action edge, and server-assigned command channel. It does not re-resolve the tenant assignment or read mutable profile, graph-pin, screen, transition, or action-catalog configuration. `public_tracking` calls the same command with `channel=public_web`; authenticated internal adapters use `staff_web` until mobile, POS, API, and integration adapters are introduced.
+
+Semantic hard-block gates are evaluated from the tenant-scoped order row read under the command transaction lock. `rack_required`, preparation gates, and `fin_release_eligible` therefore return identical `GATE_FAILED` reasons during action discovery and command execution. A positive outstanding balance returns `GATE_FIN_RELEASE`. `CREDIT_INVOICE` returns `GATE_B2B_CREDIT_VALIDATION_UNAVAILABLE` until the future B2B fulfilment service atomically revalidates the approved AR invoice and credit reservation; clients must guide the operator to the appropriate account workflow and must not bypass this result.
+
+### 2.1 Workflow context compatibility read
+
+`GET /api/v1/orders/{id}/workflow-context` remains a read-only compatibility endpoint for existing floor-page context displays. For a semantic order it returns only the pinned artifact profile/version/revision and enabled module keys. Its `assembly_enabled`, `qa_enabled`, and `packing_enabled` booleans are display hints, never a destination-selection contract. A partial or invalid semantic snapshot returns the typed `PROFILE_*` code with HTTP `409`; it never falls back to mutable templates. Template-stage resolution remains only for legacy orders without a semantic snapshot.
 
 ## 3. Worklist
 

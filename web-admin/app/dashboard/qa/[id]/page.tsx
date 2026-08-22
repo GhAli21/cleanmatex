@@ -16,12 +16,12 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 interface QAItem {
   id: string;
@@ -130,7 +130,6 @@ export default function QADetailPage() {
 
   const orderId = (params as any)?.id as string | undefined;
   const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/qa');
-  const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   useEffect(() => {
     loadOrder();
@@ -141,13 +140,10 @@ export default function QADetailPage() {
     if (!orderId) return;
     setSubmitting(true);
     try {
-      // next status depends on packing flag
-      const nextStatus = wfContext?.flags?.packing_enabled ? 'packing' : 'ready';
       const result = await transition.mutateAsync({
         orderId,
         input: {
           screen: 'qa',
-          to_status: nextStatus,
           notes: 'QA passed',
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },
@@ -195,7 +191,7 @@ export default function QADetailPage() {
         orderId,
         input: {
           screen: 'qa',
-          to_status: 'processing',
+          actionCode: WORKFLOW_ACTIONS.FAIL_QA,
           notes: 'QA rejected - returning to processing',
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },

@@ -9,6 +9,12 @@ import {
   type PinnedGraphDefinition,
 } from '@/lib/services/workflow/pinned-workflow-graph.service'
 import {
+  loadSemanticWorkflowArtifactForOrder,
+  type SemanticWorkflowArtifact,
+  type SemanticWorkflowOrderSnapshot,
+} from '@/lib/services/workflow/semantic-workflow-artifact.service'
+import { isSemanticScreenStatusMember } from '@/lib/services/workflow/semantic-workflow-runtime.service'
+import {
   getWorkflowScreenContract,
   listWorkflowScreenKeysForStatus,
 } from '@/lib/services/workflow-profile.service'
@@ -44,8 +50,13 @@ const EMPTY_OWNER_COUNTS: Record<OwnerScreenKey, number> = {
 }
 
 interface ProfilePairRow {
-  wf_profile_id: string
-  wf_version_no: number
+  wf_profile_id: string | null
+  wf_version_no: number | null
+  wf_profile_version_id: string | null
+  wf_profile_artifact_id: string | null
+  wf_profile_revision: number | null
+  wf_profile_checksum: string | null
+  wf_profile_schema_version: number | null
 }
 
 interface StatusLabelRow {
@@ -69,6 +80,7 @@ interface WorkboardRowSql {
   ready_by_at: Date | null
   wf_profile_id: string | null
   wf_version_no: number | null
+  wf_profile_artifact_id: string | null
   assignee_name: string | null
 }
 
@@ -82,16 +94,23 @@ interface WorkboardOwnerMetricRow {
   current_status: string
   wf_profile_id: string | null
   wf_version_no: number | null
+  wf_profile_artifact_id: string | null
   total: bigint
 }
 
 interface StatusScope {
   profileId: string | null
   versionNo: number | null
+  artifactId: string | null
   ownerByStatus: Map<string, OwnerScreenKey>
 }
 
-function scopeKey(profileId: string | null, versionNo: number | null): string {
+function scopeKey(
+  profileId: string | null,
+  versionNo: number | null,
+  artifactId: string | null,
+): string {
+  if (artifactId) return `semantic:${artifactId}`
   return profileId && versionNo !== null ? `${profileId}:${versionNo}` : 'legacy'
 }
 
@@ -132,6 +151,53 @@ function ownerForPinnedStatus(
   ) ?? null
 }
 
+/**
+ * Uses the artifact's primary-owner membership to route a semantic queue item.
+ * Workboard itself is an observer: it may expose a queue row but never execute
+ * an action or infer an owner from mutable screen memberships.
+ */
+function ownerForSemanticStatus(
+  artifact: SemanticWorkflowArtifact,
+  statusCode: string,
+): OwnerScreenKey | null {
+  if (!isSemanticScreenStatusMember(artifact, WORKBOARD_SCREEN_KEY, statusCode)) {
+    return null
+  }
+
+  const moduleByScreen = new Map(
+    artifact.modules.map((module) => [module.screen_key.trim().toLowerCase(), module]),
+  )
+  const ownerMembership = artifact.module_statuses.find((membership) => {
+    const moduleConfig = moduleByScreen.get(membership.screen_key.trim().toLowerCase())
+    return membership.status_code.trim().toLowerCase() === statusCode.trim().toLowerCase()
+      && membership.visibility_mode === 'owner'
+      && moduleConfig?.module_mode === 'primary_owner'
+      && moduleConfig.is_enabled
+      && OWNER_SCREEN_KEYS.includes(membership.screen_key as OwnerScreenKey)
+  })
+
+  return (ownerMembership?.screen_key as OwnerScreenKey | undefined) ?? null
+}
+
+function scopeFromSemanticArtifact(
+  snapshot: ProfilePairRow,
+  artifact: SemanticWorkflowArtifact,
+): StatusScope {
+  const ownerByStatus = new Map<string, OwnerScreenKey>()
+  for (const membership of artifact.module_statuses) {
+    const statusCode = membership.status_code.trim().toLowerCase()
+    const owner = ownerForSemanticStatus(artifact, statusCode)
+    if (owner) ownerByStatus.set(statusCode, owner)
+  }
+
+  return {
+    profileId: snapshot.wf_profile_id,
+    versionNo: snapshot.wf_version_no,
+    artifactId: snapshot.wf_profile_artifact_id,
+    ownerByStatus,
+  }
+}
+
 async function loadLiveOwners(
   tenantId: string,
   statusCodes: string[],
@@ -152,6 +218,12 @@ async function loadLiveOwners(
 function scopePredicate(scope: StatusScope): Prisma.Sql {
   const statuses = [...scope.ownerByStatus.keys()]
   const statusClause = Prisma.sql`o.current_status IN (${Prisma.join(statuses)})`
+  if (scope.artifactId) {
+    return Prisma.sql`(
+      o.wf_profile_artifact_id = ${scope.artifactId}::uuid
+      AND ${statusClause}
+    )`
+  }
   if (!scope.profileId || scope.versionNo === null) {
     return Prisma.sql`((o.wf_profile_id IS NULL OR o.wf_version_no IS NULL) AND ${statusClause})`
   }
@@ -241,7 +313,7 @@ function buildOwnerSummary(
 
   for (const metric of ownerMetrics) {
     const owner = ownerByScope
-      .get(scopeKey(metric.wf_profile_id, metric.wf_version_no))
+      .get(scopeKey(metric.wf_profile_id, metric.wf_version_no, metric.wf_profile_artifact_id))
       ?.get(metric.current_status)
 
     if (!owner) {
@@ -274,22 +346,42 @@ export class WorkboardQueryService {
     const configuredStatuses = [...new Set(contract.statuses.map((status) => status.trim()).filter(Boolean))]
     const gaps: WorkboardConfigurationGap[] = []
 
-    if (configuredStatuses.length === 0) return this.emptyResponse(input, gaps)
-
     const profilePairs = await prisma.$queryRaw<ProfilePairRow[]>(Prisma.sql`
-      SELECT DISTINCT wf_profile_id::text, wf_version_no
+      SELECT DISTINCT
+        wf_profile_id::text,
+        wf_version_no,
+        wf_profile_version_id::text,
+        wf_profile_artifact_id::text,
+        wf_profile_revision,
+        wf_profile_checksum,
+        wf_profile_schema_version
       FROM public.org_orders_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND COALESCE(rec_status, 1) <> 0
-        AND wf_profile_id IS NOT NULL
-        AND wf_version_no IS NOT NULL
+        AND (
+          (wf_profile_id IS NOT NULL AND wf_version_no IS NOT NULL)
+          OR wf_profile_artifact_id IS NOT NULL
+          OR wf_profile_version_id IS NOT NULL
+          OR wf_profile_revision IS NOT NULL
+          OR wf_profile_checksum IS NOT NULL
+          OR wf_profile_schema_version IS NOT NULL
+        )
     `)
     const liveOwners = await loadLiveOwners(tenantId, configuredStatuses)
     const scopes: StatusScope[] = liveOwners.size > 0
-      ? [{ profileId: null, versionNo: null, ownerByStatus: liveOwners }]
+      ? [{ profileId: null, versionNo: null, artifactId: null, ownerByStatus: liveOwners }]
       : []
 
     for (const pair of profilePairs) {
+      if (pair.wf_profile_artifact_id) {
+        const artifact = await loadSemanticWorkflowArtifactForOrder(pair satisfies SemanticWorkflowOrderSnapshot)
+        if (!artifact) continue
+        const scope = scopeFromSemanticArtifact(pair, artifact)
+        if (scope.ownerByStatus.size > 0) scopes.push(scope)
+        continue
+      }
+      if (!pair.wf_profile_id || pair.wf_version_no === null) continue
+
       const graph = await loadPinnedGraphForProfileVersion(pair.wf_profile_id, pair.wf_version_no)
       const ownerByStatus = new Map<string, OwnerScreenKey>()
       for (const statusCode of configuredStatuses) {
@@ -300,7 +392,7 @@ export class WorkboardQueryService {
         if (owner) ownerByStatus.set(statusCode, owner)
       }
       if (ownerByStatus.size > 0) {
-        scopes.push({ profileId: pair.wf_profile_id, versionNo: pair.wf_version_no, ownerByStatus })
+        scopes.push({ profileId: pair.wf_profile_id, versionNo: pair.wf_version_no, artifactId: null, ownerByStatus })
       }
     }
 
@@ -351,6 +443,9 @@ export class WorkboardQueryService {
       }
     })()
 
+    const scopedStatuses = [...new Set(
+      scopes.flatMap((scope) => [...scope.ownerByStatus.keys()]),
+    )]
     const [rows, metrics, ownerMetrics, statusLabels, branches, assignees, priorityRows] = await Promise.all([
       whereSql
         ? prisma.$queryRaw<WorkboardRowSql[]>(Prisma.sql`
@@ -359,7 +454,8 @@ export class WorkboardQueryService {
               COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
               o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
               COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.wf_profile_id::text,
-              o.wf_version_no, COALESCE(u.display_name, u.name) AS assignee_name
+              o.wf_version_no, o.wf_profile_artifact_id::text,
+              COALESCE(u.display_name, u.name) AS assignee_name
             FROM public.org_orders_mst o
             LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
             LEFT JOIN public.org_branches_mst b ON b.id = o.branch_id AND b.tenant_org_id = o.tenant_org_id
@@ -389,6 +485,7 @@ export class WorkboardQueryService {
         : Promise.resolve([{ total: BigInt(0), blocked: BigInt(0), overdue: BigInt(0) }] as WorkboardMetricRow[]),
       prisma.$queryRaw<WorkboardOwnerMetricRow[]>(Prisma.sql`
         SELECT o.current_status, o.wf_profile_id::text, o.wf_version_no,
+          o.wf_profile_artifact_id::text,
           COUNT(*)::bigint AS total
         FROM public.org_orders_mst o
         LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
@@ -400,7 +497,7 @@ export class WorkboardQueryService {
       `),
       prisma.$queryRaw<StatusLabelRow[]>(Prisma.sql`
         SELECT status_code, name, name2 FROM public.sys_wf_statuses_cd
-        WHERE status_code IN (${Prisma.join(configuredStatuses)})
+        WHERE status_code IN (${Prisma.join(scopedStatuses)})
       `),
       prisma.org_branches_mst.findMany({
         where: { tenant_org_id: tenantId, is_active: { not: false }, rec_status: { not: 0 } },
@@ -417,11 +514,16 @@ export class WorkboardQueryService {
       `),
     ])
 
-    const ownerByScope = new Map(scopes.map((scope) => [scopeKey(scope.profileId, scope.versionNo), scope.ownerByStatus]))
+    const ownerByScope = new Map(scopes.map((scope) => [
+      scopeKey(scope.profileId, scope.versionNo, scope.artifactId),
+      scope.ownerByStatus,
+    ]))
     const summaryByOwner = buildOwnerSummary(ownerMetrics, ownerByScope)
     const labels = new Map(statusLabels.map((row) => [row.status_code, row]))
     const mappedRows: WorkboardOrderRow[] = rows.flatMap((row) => {
-      const owner = ownerByScope.get(scopeKey(row.wf_profile_id, row.wf_version_no))?.get(row.current_status)
+      const owner = ownerByScope
+        .get(scopeKey(row.wf_profile_id, row.wf_version_no, row.wf_profile_artifact_id))
+        ?.get(row.current_status)
       if (!owner) return []
       return [{
         id: row.id, orderNo: row.order_no, customerName: row.customer_name ?? 'Unknown customer',

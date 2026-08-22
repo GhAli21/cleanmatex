@@ -21,7 +21,6 @@ import { LoadingButton } from '@ui/primitives/loading-button';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
@@ -88,7 +87,6 @@ export default function ProcessingDetailPage() {
   const orderDetailsReturnUrl = orderId
     ? `/dashboard/processing/${orderId}`
     : '/dashboard/processing';
-  const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   const loadOrder = useCallback(async () => {
     if (!currentTenant || !orderId) return;
@@ -167,21 +165,6 @@ export default function ProcessingDetailPage() {
 
     if (!orderId) return;
 
-    // Resolve next status based on workflow flags
-    const nextStatus =
-      wfContext?.flags?.assembly_enabled
-        ? 'assembly'
-        : wfContext?.flags?.qa_enabled
-        ? 'qa'
-        : wfContext?.flags?.packing_enabled
-        ? 'packing'
-        : 'ready';
-
-    if (nextStatus === 'ready' && !rackLocation.trim()) {
-      setRackLocationError(t('validation.rackLocationRequired') || 'Rack location is required');
-      return;
-    }
-
     setSubmitting(true);
     setError('');
     try {
@@ -189,7 +172,6 @@ export default function ProcessingDetailPage() {
         orderId,
         input: {
           screen: 'processing',
-          to_status: nextStatus,
           notes: 'Processing complete',
           useOldWfCodeOrNew: useNewWorkflowSystem,
           rackLocation: rackLocation.trim() || undefined,

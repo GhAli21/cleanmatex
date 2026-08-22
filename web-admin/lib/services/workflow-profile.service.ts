@@ -214,6 +214,12 @@ export async function listWorkflowScreenKeysForStatus(
   return rows.map((row) => row.screen_key)
 }
 
+/**
+ * Resolves stage ownership for a complete Workboard status set in one query.
+ * This preserves the single-status contract while avoiding queue-size-dependent
+ * configuration queries for supervisor screens.
+ */
+
 async function listWorkflowAssignments(
   tenantId: string,
 ): Promise<WorkflowProfileAssignmentView[]> {

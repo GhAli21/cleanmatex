@@ -130,7 +130,13 @@ todos:
     status: completed
   - id: p7r-profile-runtime-enforcement
     content: "P0 P7R semantic-profile runtime enforcement: consume the immutable compiled profile artifact identified by each order snapshot, not sys_wf_prof_ver_scr_dtl, live global catalogs, graph pins, or template values. Enforce module ownership/observer visibility, screen/channel exposure, action bindings, gates, and typed PROFILE_* errors in listAvailableActions and executeAction. Hidden navigation/client state is never authorization."
-    status: pending
+    status: in_progress
+  - id: p7r-shared-gate-runtime
+    content: "P0 P7R shared gate runtime: evaluate semantic hard-block gates from transaction-locked tenant order facts for rack, preparation, and finance. Enforce PAY_ON_COLLECTION and other positive balances consistently across action discovery and execution; unknown semantic gates fail closed. CREDIT_INVOICE remains blocked until the planned durable B2B invoice and credit-reservation validator owns that decision."
+    status: completed
+  - id: p7r-semantic-context-cutover
+    content: "P0 P7R semantic context cutover: stop V2 floor screens from deriving destinations from mutable template flags. Submit configured action codes and let the immutable artifact select the edge. The compatibility workflow-context API projects semantic modules only from the order artifact and fails closed for an invalid snapshot; template reads remain legacy-order-only."
+    status: completed
   - id: p7r-profile-capability-cutover
     content: "P0 P7R semantic-policy capability cutover: enforce compiled modules, deterministic stage sequence, QA/rework, packing, pieces, split, hold/stop/cancel, fulfilment, evidence, and payment-release policy in initial-status resolution, stage worklists, routing, and stage-command guards. Never silently merge profile, template, live-catalog, or graph-pin data. Unsupported partial fulfilment, returns, OTP, and generic conditional routing remain fail closed."
     status: pending
@@ -139,10 +145,10 @@ todos:
     status: pending
   - id: p7r-profile-semantic-snapshot
     content: "P0 P7R semantic-profile snapshot extension: extend the existing order profile snapshot to persist compiled artifact revision, checksum, and schema version with wf_profile_id/wf_version_no. Validate artifact integrity at creation/load, retain immutable in-flight behavior after reassignment, and expose only server-derived workflow context to consumers."
-    status: pending
+    status: completed
   - id: p7r-profile-consumer-cutover
     content: "P0 P7R semantic-profile consumer cutover: expose server-derived compiled workflow context (profile/version/revision/checksum, owner/observer modules, capabilities, gates, and available actions) to web, mobile, and integrations. Update stage navigation/action panels for clear availability states, guarded deep links, EN/AR explanations, and accessible empty states, while enforcement remains only in stage APIs/services."
-    status: pending
+    status: in_progress
   - id: p7r-profile-assurance
     content: "P0 P7R semantic-profile assurance: add unit, API, database-integration, tenant-isolation, concurrency, performance, accessibility, i18n/RTL, and regression coverage for compiler-artifact integrity, snapshot immutability, scope precedence, Pilot/PUBLISHED validation, forged screen/channel/action rejection, gate/evidence/fulfilment policy, unsupported capability fail-closed behavior, and reassignment without changing in-flight orders. Document development-order recreation, cutover, observability, and rollback decision."
     status: pending

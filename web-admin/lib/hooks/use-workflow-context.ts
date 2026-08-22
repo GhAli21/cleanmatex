@@ -13,6 +13,14 @@ export interface WorkflowContextFlags {
   assembly_enabled?: boolean;
   qa_enabled?: boolean;
   packing_enabled?: boolean;
+  /** Immutable profile metadata when the order has a semantic snapshot. */
+  semantic_profile?: {
+    profile_id: string;
+    profile_version_no: number;
+    policy_revision: number;
+    enabled_screen_keys: string[];
+    primary_owner_screen_keys: string[];
+  };
 }
 
 /**
@@ -36,9 +44,9 @@ export function workflowContextQueryKey(orderId: string) {
 }
 
 /**
- * Workflow template flags for an order detail screen.
- *
- * Fetch once; refresh only via invalidation after mutations. No polling.
+ * Read-only workflow capability context for an order detail screen. Semantic
+ * orders receive artifact-derived module hints; no client may use them to
+ * select a transition destination.
  */
 export function useWorkflowContext(orderId: string | null) {
   return useQuery<WorkflowContext>({

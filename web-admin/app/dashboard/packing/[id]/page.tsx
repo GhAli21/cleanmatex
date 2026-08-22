@@ -14,7 +14,6 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
@@ -55,7 +54,6 @@ export default function PackingDetailPage() {
 
   const orderId = (params as any)?.id as string | undefined;
   const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/packing');
-  const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   const [order, setOrder] = useState<PackingOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,22 +229,6 @@ export default function PackingDetailPage() {
           {order.customer.name} • {order.customer.phone}
         </p>
       </div>
-
-      {wfContext && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 text-sm">
-          <div className="font-medium mb-2">{t('packing.workflowContextTitle')}</div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-gray-500">{t('packing.metrics.itemsCount')}:</span>{' '}
-              <span className="font-medium">{order.items.length}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">{t('packing.metrics.piecesTotal')}:</span>{' '}
-              <span className="font-medium">{totalQty}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>

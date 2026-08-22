@@ -15,4 +15,11 @@ describe('resolveSafeDashboardReturnUrl', () => {
     expect(resolveSafeDashboardReturnUrl('https://example.com', fallback)).toBe(fallback)
     expect(resolveSafeDashboardReturnUrl('//example.com', fallback)).toBe(fallback)
   })
+
+  it('rejects paths that normalize outside the Dashboard boundary', () => {
+    const fallback = '/dashboard/processing'
+
+    expect(resolveSafeDashboardReturnUrl('/dashboard/../settings', fallback)).toBe(fallback)
+    expect(resolveSafeDashboardReturnUrl('/dashboard%2f..%2fsettings', fallback)).toBe(fallback)
+  })
 })

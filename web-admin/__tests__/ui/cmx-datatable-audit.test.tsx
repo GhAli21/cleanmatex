@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import * as React from 'react'
+import type { SortingState } from '@tanstack/react-table'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 
 jest.mock('next-intl', () => ({
@@ -144,6 +145,31 @@ describe('CmxDataTable audit action', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Audit' })).not.toBeInTheDocument()
+  })
+
+  it('announces the active sort on the column header rather than its button', () => {
+    function SortableTable() {
+      const [sorting, setSorting] = React.useState<SortingState>([{ id: 'name', desc: false }])
+      return (
+        <CmxDataTable<AuditRow>
+          columns={[
+            {
+              key: 'name',
+              header: 'Name',
+              render: (row) => row.name,
+            },
+          ]}
+          data={[{ id: 'row_5', name: 'Sorted queue item' }]}
+          sorting={sorting}
+          onSortingChange={setSorting}
+        />
+      )
+    }
+
+    render(<SortableTable />)
+    const header = screen.getByRole('columnheader', { name: 'Name' })
+    expect(header).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getByRole('button', { name: 'Name' })).not.toHaveAttribute('aria-sort')
   })
 
   it('shows the missing actor fallback when both user lookups return no data', async () => {

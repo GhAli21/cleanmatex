@@ -46,8 +46,11 @@ execute a workflow transition.
 - Sortable table headers cover order number, customer, stage, age, ready-by,
   priority, and assignee; sorting is reflected in the API query.
 - Workboard opts into the reusable `CmxDataTable` operational-grid treatment:
-  emphasized title-case headers, vertical column dividers, and horizontal row
-  rules for faster cross-column scanning.
+  emphasized title-case headers, vertical column dividers, horizontal row
+  rules, a deliberate minimum table width, and a sticky end-side action column
+  for faster cross-column scanning on desktop and narrow viewports.
+- Sort state is announced from the semantic column header, while the button
+  remains the keyboard-operable sort control.
 - Queue-focus cards use semantic stage and risk accents while remaining
   keyboard-accessible filter controls.
 - Opening a stage carries the current Workboard query as an internal-only

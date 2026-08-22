@@ -21,6 +21,21 @@ import {
   loadPinnedActionTransitions,
   type PinnedGraphDefinition,
 } from '@/lib/services/workflow/pinned-workflow-graph.service';
+import {
+  loadSemanticWorkflowArtifactForOrder,
+  SemanticWorkflowArtifactError,
+  type SemanticWorkflowArtifact,
+  type SemanticWorkflowCommandChannel,
+} from '@/lib/services/workflow/semantic-workflow-artifact.service';
+import {
+  isSemanticScreenStatusMember,
+  loadSemanticActionTransitions,
+} from '@/lib/services/workflow/semantic-workflow-runtime.service';
+import {
+  evaluateWorkflowGateSet,
+  type WorkflowGateBlockedReason,
+  type WorkflowGateOrderFacts,
+} from '@/lib/services/workflow/workflow-gate-evaluator.service';
 
 // ─── Error types ───────────────────────────────────────────────────────────
 
@@ -29,13 +44,17 @@ export type WorkflowEngineErrorCode =
   | 'GATE_FAILED'
   | 'ACTION_NOT_ALLOWED'
   | 'NOT_FOUND'
-  | 'IDEMPOTENCY_CONFLICT';
+  | 'IDEMPOTENCY_CONFLICT'
+  | 'PROFILE_SNAPSHOT_INCOMPLETE'
+  | 'PROFILE_ARTIFACT_UNAVAILABLE'
+  | 'PROFILE_ARTIFACT_INVALID'
+  | 'PROFILE_EXECUTION_INVALID'
+  | 'UNSUPPORTED_GATE_MODE'
+  | 'REASON_REQUIRED'
+  | 'EVIDENCE_RUNTIME_UNAVAILABLE';
 
-export interface BlockedReason {
-  code: string;
-  message: string;
-  message2?: string;
-}
+/** Local alias keeps the public command contract stable while gate ownership is shared. */
+export type BlockedReason = WorkflowGateBlockedReason;
 
 export class WorkflowEngineError extends Error {
   readonly code: WorkflowEngineErrorCode;
@@ -63,6 +82,9 @@ export interface AvailableAction {
   label2: string | null;
   enabled: boolean;
   blockedReasons: BlockedReason[];
+  /** Lets channel clients render the mandated reason field before command submission. */
+  requiresReason?: boolean;
+  minReasonLength?: number;
 }
 
 export interface ListAvailableActionsResult {
@@ -83,6 +105,8 @@ export interface ListAvailableActionsParams {
   orderId: string;
   screen: string;
   locale?: string;
+  /** Caller channel is a server-owned capability, not an end-user-selected field. */
+  channel?: SemanticWorkflowCommandChannel;
 }
 
 export interface ExecuteActionParams {
@@ -95,6 +119,8 @@ export interface ExecuteActionParams {
   actorName?: string;
   input?: Record<string, unknown>;
   idempotencyKey: string;
+  /** Caller channel is supplied by the adapter that authenticated the request. */
+  channel?: SemanticWorkflowCommandChannel;
 }
 
 // ─── Internal row types (raw SQL — tables may not be in Prisma yet) ──────────
@@ -107,9 +133,16 @@ type LockedOrderRow = {
   state_version: bigint | number | null;
   preparation_status: string | null;
   rack_location: string | null;
+  payment_type_code: string | null;
+  outstanding_amount: number | string | null;
   hold_from_status: string | null;
   wf_profile_id: string | null;
   wf_version_no: number | null;
+  wf_profile_version_id: string | null;
+  wf_profile_artifact_id: string | null;
+  wf_profile_revision: number | null;
+  wf_profile_checksum: string | null;
+  wf_profile_schema_version: number | null;
 };
 
 type ActionTransitionRow = {
@@ -121,7 +154,17 @@ type ActionTransitionRow = {
   to_status: string;
   gate_set_code: string | null;
   transition_permission_code: string | null;
+  transition_kind: 'fixed' | 'resume_from_hold';
+  requires_reason: boolean;
+  min_reason_length: number;
+  requires_evidence: boolean;
+  has_unsupported_gate_mode: boolean;
+  is_semantic: boolean;
 };
+
+type ResolvedWorkflowRuntime =
+  | { kind: 'semantic'; artifact: SemanticWorkflowArtifact }
+  | { kind: 'legacy'; pinned: PinnedGraphDefinition | null };
 
 /**
  * Prisma transaction scope accepted by workflow commands that must be composed
@@ -129,6 +172,7 @@ type ActionTransitionRow = {
  */
 export type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+// The engine still owns the atomic preparation completion side effect.
 const PREPARATION_COMPLETED = 'completed';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -163,42 +207,6 @@ function pickLabel(row: { name: string; name2: string | null }, locale?: string)
   return row.name;
 }
 
-function gateBlockedReason(gateCode: string, locale?: string): BlockedReason {
-  const messages: Record<string, { en: string; ar: string; code: string }> = {
-    rack_required: {
-      code: 'GATE_RACK_REQUIRED',
-      en: 'Rack location is required before this action.',
-      ar: 'موقع الرف مطلوب قبل هذا الإجراء.',
-    },
-    prep_stage_complete: {
-      code: 'GATE_PREP_INCOMPLETE',
-      en: 'Preparation must be completed before this action.',
-      ar: 'يجب إكمال التحضير قبل هذا الإجراء.',
-    },
-    prep_not_completed: {
-      code: 'GATE_PREP_ALREADY_COMPLETED',
-      en: 'Cancel is only allowed before preparation is completed. Use hold or stop instead.',
-      ar: 'الإلغاء مسموح فقط قبل إكمال التحضير. استخدم التعليق أو الإيقاف بدلاً من ذلك.',
-    },
-    fin_release_eligible: {
-      code: 'GATE_FIN_RELEASE',
-      en: 'Order is not eligible for release (financial check pending).',
-      ar: 'الطلب غير مؤهل للتسليم (التحقق المالي قيد الانتظار).',
-    },
-  };
-  const entry = messages[gateCode] ?? {
-    code: `GATE_${gateCode.toUpperCase()}`,
-    en: `Gate "${gateCode}" blocked this action.`,
-    ar: `البوابة "${gateCode}" منعت هذا الإجراء.`,
-  };
-  const useAr = locale?.toLowerCase().startsWith('ar');
-  return {
-    code: entry.code,
-    message: useAr ? entry.ar : entry.en,
-    message2: useAr ? entry.en : entry.ar,
-  };
-}
-
 async function loadOrderForRead(
   tenantId: string,
   orderId: string,
@@ -212,9 +220,16 @@ async function loadOrderForRead(
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
       rack_location,
+      payment_type_code,
+      outstanding_amount,
       hold_from_status,
       wf_profile_id::text,
-      wf_version_no
+      wf_version_no,
+      wf_profile_version_id::text,
+      wf_profile_artifact_id::text,
+      wf_profile_revision,
+      wf_profile_checksum,
+      wf_profile_schema_version
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -241,9 +256,16 @@ async function loadOrderForUpdate(
       COALESCE(state_version, 0)::bigint AS state_version,
       preparation_status,
       rack_location,
+      payment_type_code,
+      outstanding_amount,
       hold_from_status,
       wf_profile_id::text,
-      wf_version_no
+      wf_version_no,
+      wf_profile_version_id::text,
+      wf_profile_artifact_id::text,
+      wf_profile_revision,
+      wf_profile_checksum,
+      wf_profile_schema_version
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -263,26 +285,128 @@ async function resolvePinnedGraphForOrder(
   return loadPinnedGraphForProfileVersion(order.wf_profile_id, order.wf_version_no);
 }
 
+function toWorkflowGateFacts(order: LockedOrderRow): WorkflowGateOrderFacts {
+  return {
+    preparationStatus: order.preparation_status,
+    rackLocation: order.rack_location,
+    paymentTypeCode: order.payment_type_code,
+    outstandingAmount: order.outstanding_amount,
+  };
+}
+
+/**
+ * Resolves the runtime policy named by the order itself. A partial semantic
+ * snapshot is an integrity failure, never a reason to consult legacy config.
+ */
+async function resolveWorkflowRuntimeForOrder(
+  order: LockedOrderRow,
+): Promise<ResolvedWorkflowRuntime> {
+  try {
+    const artifact = await loadSemanticWorkflowArtifactForOrder(order);
+    if (artifact) return { kind: 'semantic', artifact };
+  } catch (error) {
+    if (error instanceof SemanticWorkflowArtifactError) {
+      throw new WorkflowEngineError(error.code, error.message);
+    }
+    throw error;
+  }
+
+  return {
+    kind: 'legacy',
+    pinned: await resolvePinnedGraphForOrder(order),
+  };
+}
 async function isScreenStatusMemberForOrder(
   order: LockedOrderRow,
   screen: string,
   statusCode: string,
-  pinned?: PinnedGraphDefinition | null,
+  runtime?: ResolvedWorkflowRuntime,
 ): Promise<boolean> {
-  const graph = pinned ?? (await resolvePinnedGraphForOrder(order));
+  const resolved = runtime ?? (await resolveWorkflowRuntimeForOrder(order));
+  if (resolved.kind === 'semantic') {
+    return isSemanticScreenStatusMember(resolved.artifact, screen, statusCode);
+  }
+  const graph = resolved.pinned;
   if (graph) return isPinnedScreenStatusMember(graph, screen, statusCode);
   return isScreenStatusMember(screen, statusCode);
 }
 
+function semanticActionLabels(actionCode: string): { name: string; name2: string } {
+  const labels: Record<string, { name: string; name2: string }> = {
+    CONFIRM_PHYSICAL_INTAKE: { name: 'Confirm physical intake', name2: 'تأكيد الاستلام الفعلي' },
+    SEND_TO_PREPARATION: { name: 'Send to preparation', name2: 'إرسال إلى التحضير' },
+    COMPLETE_PREPARATION: { name: 'Complete preparation', name2: 'إكمال التحضير' },
+    COMPLETE_PROCESSING: { name: 'Complete processing', name2: 'إكمال المعالجة' },
+    COMPLETE_ASSEMBLY: { name: 'Complete assembly', name2: 'إكمال التجميع' },
+    PASS_QA: { name: 'Pass quality check', name2: 'اجتياز فحص الجودة' },
+    FAIL_QA: { name: 'Fail quality check', name2: 'فشل فحص الجودة' },
+    COMPLETE_PACKING: { name: 'Complete packing', name2: 'إكمال التغليف' },
+    MARK_READY: { name: 'Mark as ready', name2: 'تحديد كجاهز' },
+    RELEASE_FOR_PICKUP: { name: 'Make available for pickup', name2: 'إتاحة للاستلام' },
+    CONFIRM_PICKUP: { name: 'Confirm customer pickup', name2: 'تأكيد استلام العميل' },
+    RELEASE_FOR_DELIVERY: { name: 'Release for delivery', name2: 'إتاحة للتوصيل' },
+    CONFIRM_DELIVERY: { name: 'Confirm delivery', name2: 'تأكيد التسليم' },
+    CANCEL_ORDER: { name: 'Cancel order', name2: 'إلغاء الطلب' },
+    RETURN_ORDER: { name: 'Return order', name2: 'إرجاع الطلب' },
+    HOLD_ORDER_WORK: { name: 'Hold order work', name2: 'تعليق عمل الطلب' },
+    RESUME_ORDER_WORK: { name: 'Resume order work', name2: 'استئناف عمل الطلب' },
+    STOP_ORDER_WORK: { name: 'Stop order work', name2: 'إيقاف عمل الطلب' },
+  };
+  return labels[actionCode] ?? {
+    name: actionCode.replaceAll('_', ' ').toLowerCase(),
+    name2: actionCode,
+  };
+}
 async function loadActionTransitionsForOrder(
   order: LockedOrderRow,
   screen: string,
   fromStatus: string,
   actionCode?: string,
-  pinned?: PinnedGraphDefinition | null,
+  runtime?: ResolvedWorkflowRuntime,
+  channel: SemanticWorkflowCommandChannel = 'staff_web',
 ): Promise<ActionTransitionRow[]> {
-  const graph = pinned ?? (await resolvePinnedGraphForOrder(order));
-  if (graph) return loadPinnedActionTransitions(graph, screen, fromStatus, actionCode);
+  const resolved = runtime ?? (await resolveWorkflowRuntimeForOrder(order));
+  if (resolved.kind === 'semantic') {
+    return loadSemanticActionTransitions(resolved.artifact, {
+      screen,
+      fromStatus,
+      actionCode,
+      channel,
+    }).map((transition) => {
+      const labels = semanticActionLabels(transition.actionCode);
+      return {
+        action_code: transition.actionCode,
+        name: labels.name,
+        name2: labels.name2,
+        action_permission_code: null,
+        from_status: transition.fromStatus,
+        to_status: transition.toStatus,
+        gate_set_code: transition.gateCodes.join(','),
+        transition_permission_code: null,
+        transition_kind: transition.transitionKind,
+        requires_reason: transition.requiresReason,
+        min_reason_length: transition.minReasonLength,
+        requires_evidence: transition.requiresEvidence,
+        has_unsupported_gate_mode: transition.hasUnsupportedGateMode,
+        is_semantic: true,
+      };
+    });
+  }
+
+  const graph = resolved.pinned;
+  if (graph) {
+    return loadPinnedActionTransitions(graph, screen, fromStatus, actionCode).map(
+      (transition) => ({
+        ...transition,
+        transition_kind: 'fixed' as const,
+        requires_reason: false,
+        min_reason_length: 0,
+        requires_evidence: false,
+        has_unsupported_gate_mode: false,
+        is_semantic: false,
+      }),
+    );
+  }
   return loadActionTransitions(screen, fromStatus, actionCode);
 }
 
@@ -316,7 +440,13 @@ async function loadActionTransitions(
         t.from_status,
         t.to_status,
         t.gate_set_code,
-        t.permission_code AS transition_permission_code
+        t.permission_code AS transition_permission_code,
+        'fixed'::text AS transition_kind,
+        false AS requires_reason,
+        0 AS min_reason_length,
+        false AS requires_evidence,
+        false AS has_unsupported_gate_mode,
+        false AS is_semantic
       FROM public.sys_wf_action_trans_cd at
       INNER JOIN public.sys_wf_actions_cd a
         ON a.action_code = at.action_code
@@ -340,7 +470,13 @@ async function loadActionTransitions(
       t.from_status,
       t.to_status,
       t.gate_set_code,
-      t.permission_code AS transition_permission_code
+      t.permission_code AS transition_permission_code,
+      'fixed'::text AS transition_kind,
+      false AS requires_reason,
+      0 AS min_reason_length,
+      false AS requires_evidence,
+      false AS has_unsupported_gate_mode,
+      false AS is_semantic
     FROM public.sys_wf_action_trans_cd at
     INNER JOIN public.sys_wf_actions_cd a
       ON a.action_code = at.action_code
@@ -355,87 +491,43 @@ async function loadActionTransitions(
   `;
 }
 
-interface GateEvaluation {
-  allowed: boolean;
-  blockedReasons: BlockedReason[];
-}
-
-async function evaluateGate(
-  gateCode: string,
-  order: LockedOrderRow,
-  locale?: string,
-  input?: Record<string, unknown>,
-): Promise<GateEvaluation> {
-  const normalized = gateCode.trim().toLowerCase();
-
-  switch (normalized) {
-    case 'rack_required': {
-      const inputRack =
-        typeof input?.rackLocation === 'string'
-          ? input.rackLocation.trim()
-          : typeof input?.rack_location === 'string'
-            ? input.rack_location.trim()
-            : '';
-      const hasRack = Boolean(order.rack_location?.trim() || inputRack);
-      if (hasRack) return { allowed: true, blockedReasons: [] };
-      return {
-        allowed: false,
-        blockedReasons: [gateBlockedReason('rack_required', locale)],
-      };
-    }
-    case 'prep_stage_complete':
-    case 'prep_complete': {
-      const prepDone =
-        normalizeStatus(order.preparation_status) === PREPARATION_COMPLETED;
-      if (prepDone) return { allowed: true, blockedReasons: [] };
-      return {
-        allowed: false,
-        blockedReasons: [gateBlockedReason('prep_stage_complete', locale)],
-      };
-    }
-    case 'prep_not_completed': {
-      const prepDone =
-        normalizeStatus(order.preparation_status) === PREPARATION_COMPLETED;
-      if (!prepDone) return { allowed: true, blockedReasons: [] };
-      return {
-        allowed: false,
-        blockedReasons: [gateBlockedReason('prep_not_completed', locale)],
-      };
-    }
-    case 'fin_release_eligible': {
-      // TODO(Order Fin): replace stub with real Fin release eligibility check
-      // (outstanding balance, hold flags, release policy). Must not invent logic here.
-      return { allowed: true, blockedReasons: [] };
-    }
-    default:
-      // Unknown gates default to allowed until catalog + evaluators are seeded.
-      return { allowed: true, blockedReasons: [] };
-  }
-}
-
-async function evaluateGateSet(
-  gateSetCode: string | null,
-  order: LockedOrderRow,
-  locale?: string,
-  input?: Record<string, unknown>,
-): Promise<GateEvaluation> {
-  const gates = parseGateSet(gateSetCode);
-  if (gates.length === 0) {
-    return { allowed: true, blockedReasons: [] };
-  }
-
-  const blockedReasons: BlockedReason[] = [];
-  for (const gate of gates) {
-    const result = await evaluateGate(gate, order, locale, input);
-    if (!result.allowed) {
-      blockedReasons.push(...result.blockedReasons);
-    }
-  }
-
+function unsupportedGateModeBlockedReason(locale?: string): BlockedReason {
+  const isArabic = locale?.toLowerCase().startsWith('ar');
   return {
-    allowed: blockedReasons.length === 0,
-    blockedReasons,
+    code: 'GATE_DECISION_MODE_UNAVAILABLE',
+    message: isArabic
+      ? 'يتطلب هذا الإجراء وضع قرار بوابة غير مدعوم بعد.'
+      : 'This action requires a gate decision mode that is not available yet.',
+    message2: isArabic
+      ? 'This action requires a gate decision mode that is not available yet.'
+      : 'يتطلب هذا الإجراء وضع قرار بوابة غير مدعوم بعد.',
   };
+}
+
+function evidenceRuntimeBlockedReason(locale?: string): BlockedReason {
+  const isArabic = locale?.toLowerCase().startsWith('ar');
+  return {
+    code: 'EVIDENCE_RUNTIME_UNAVAILABLE',
+    message: isArabic
+      ? 'يتطلب هذا الإجراء دليلاً لم يتم تفعيل وقت تشغيله بعد.'
+      : 'This action requires evidence, but the evidence runtime is not available yet.',
+    message2: isArabic
+      ? 'This action requires evidence, but the evidence runtime is not available yet.'
+      : 'يتطلب هذا الإجراء دليلاً لم يتم تفعيل وقت تشغيله بعد.',
+  };
+}
+
+function hasRequiredReason(
+  input: Record<string, unknown> | undefined,
+  minimumLength: number,
+): boolean {
+  const candidate =
+    (typeof input?.reason === 'string' && input.reason)
+    || (typeof input?.notes === 'string' && input.notes)
+    || (typeof input?.hold_note === 'string' && input.hold_note)
+    || (typeof input?.stop_note === 'string' && input.stop_note)
+    || '';
+  return candidate.trim().length >= minimumLength;
 }
 
 async function writeOrderHistory(
@@ -517,6 +609,7 @@ function buildIdempotencyPayload(params: ExecuteActionParams): Record<string, un
     screen: normalizeScreen(params.screen),
     actionCode: params.actionCode,
     expectedStateVersion: params.expectedStateVersion,
+    channel: params.channel ?? 'staff_web',
     input: params.input ?? {},
   };
 }
@@ -578,6 +671,7 @@ export async function listAvailableActions(
   params: ListAvailableActionsParams,
 ): Promise<ListAvailableActionsResult> {
   const screen = normalizeScreen(params.screen);
+  const channel = params.channel ?? 'staff_web';
   const order = await loadOrderForRead(params.tenantId, params.orderId);
   const currentStatus = normalizeStatus(order.current_status ?? order.status);
   const stateVersion = readStateVersion(order);
@@ -586,14 +680,21 @@ export async function listAvailableActions(
     return { stateVersion, currentStatus: '', actions: [] };
   }
 
-  const pinned = await resolvePinnedGraphForOrder(order);
+  const runtime = await resolveWorkflowRuntimeForOrder(order);
 
-  const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, pinned);
+  const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, runtime);
   if (!isMember) {
     return { stateVersion, currentStatus, actions: [] };
   }
 
-  const transitions = await loadActionTransitionsForOrder(order, screen, currentStatus, undefined, pinned);
+  const transitions = await loadActionTransitionsForOrder(
+    order,
+    screen,
+    currentStatus,
+    undefined,
+    runtime,
+    channel,
+  );
   const hasReleaseAction = transitions.some((transition) => isReleaseAction(transition.action_code));
   const openRelease = hasReleaseAction
     ? await findOpenOrderRelease({ tenantId: params.tenantId, orderId: params.orderId })
@@ -601,7 +702,12 @@ export async function listAvailableActions(
   const actions: AvailableAction[] = [];
 
   for (const row of transitions) {
-    const gateResult = await evaluateGateSet(row.gate_set_code, order, params.locale);
+    const gateResult = evaluateWorkflowGateSet(
+      parseGateSet(row.gate_set_code),
+      toWorkflowGateFacts(order),
+      row.is_semantic ? 'semantic' : 'legacy',
+      params.locale,
+    );
     const toStatus = normalizeStatus(row.to_status);
     const baseLabel = pickLabel(row, params.locale);
     // Disambiguate skip-path duplicates (same action, different to_status)
@@ -609,9 +715,13 @@ export async function listAvailableActions(
       transitions.filter((t) => t.action_code === row.action_code).length > 1
         ? `${baseLabel} → ${toStatus}`
         : baseLabel;
+    const semanticBlockedReasons = [
+      ...(row.has_unsupported_gate_mode ? [unsupportedGateModeBlockedReason(params.locale)] : []),
+      ...(row.requires_evidence ? [evidenceRuntimeBlockedReason(params.locale)] : []),
+    ];
     const blockedReasons = isReleaseAction(row.action_code) && openRelease
-      ? [...gateResult.blockedReasons, openReleaseBlockedReason(params.locale)]
-      : gateResult.blockedReasons;
+      ? [...gateResult.blockedReasons, ...semanticBlockedReasons, openReleaseBlockedReason(params.locale)]
+      : [...gateResult.blockedReasons, ...semanticBlockedReasons];
     actions.push({
       actionCode: row.action_code,
       toStatus,
@@ -619,6 +729,8 @@ export async function listAvailableActions(
       label2: row.name2,
       enabled: blockedReasons.length === 0,
       blockedReasons,
+      requiresReason: row.requires_reason,
+      minReasonLength: row.min_reason_length,
     });
   }
 
@@ -634,6 +746,7 @@ export async function executeAction(
   transaction?: PrismaTransactionClient,
 ): Promise<ExecuteActionResult> {
   const screen = normalizeScreen(params.screen);
+  const channel = params.channel ?? 'staff_web';
   const idempotencyPayload = buildIdempotencyPayload(params);
   const payloadHash = hashPayload(idempotencyPayload);
 
@@ -696,8 +809,8 @@ export async function executeAction(
       throw new WorkflowEngineError('ACTION_NOT_ALLOWED', 'Order has no current status.');
     }
 
-    const pinned = await resolvePinnedGraphForOrder(order);
-    const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, pinned);
+    const runtime = await resolveWorkflowRuntimeForOrder(order);
+    const isMember = await isScreenStatusMemberForOrder(order, screen, currentStatus, runtime);
     if (!isMember) {
       throw new WorkflowEngineError(
         'ACTION_NOT_ALLOWED',
@@ -710,7 +823,8 @@ export async function executeAction(
       screen,
       currentStatus,
       params.actionCode,
-      pinned,
+      runtime,
+      channel,
     );
 
     const preferredRaw = params.input?.preferredToStatus ?? params.input?.toStatus;
@@ -738,9 +852,34 @@ export async function executeAction(
       );
     }
 
-    const gateResult = await evaluateGateSet(
-      transition.gate_set_code,
-      order,
+    if (transition.has_unsupported_gate_mode) {
+      throw new WorkflowEngineError(
+        'UNSUPPORTED_GATE_MODE',
+        'This action requires a gate decision mode that is not available yet.',
+        [unsupportedGateModeBlockedReason()],
+      );
+    }
+    if (transition.requires_evidence) {
+      throw new WorkflowEngineError(
+        'EVIDENCE_RUNTIME_UNAVAILABLE',
+        'This action requires evidence, but the evidence runtime is not available yet.',
+        [evidenceRuntimeBlockedReason()],
+      );
+    }
+    if (
+      transition.requires_reason
+      && !hasRequiredReason(params.input, transition.min_reason_length)
+    ) {
+      throw new WorkflowEngineError(
+        'REASON_REQUIRED',
+        `This action requires a reason of at least ${transition.min_reason_length} characters.`,
+      );
+    }
+
+    const gateResult = evaluateWorkflowGateSet(
+      parseGateSet(transition.gate_set_code),
+      toWorkflowGateFacts(order),
+      transition.is_semantic ? 'semantic' : 'legacy',
       undefined,
       params.input,
     );
@@ -790,6 +929,28 @@ export async function executeAction(
       }
     }
     if (orderControl !== null && orderControl.ok === true) {
+      if (transition.is_semantic) {
+        const configuredToStatus = normalizeStatus(transition.to_status);
+        const controlToStatus = normalizeStatus(orderControl.toStatus);
+        const isDynamicResume = transition.transition_kind === 'resume_from_hold';
+        const resumeTargetIsDeclared = runtime.kind === 'semantic'
+          && runtime.artifact.module_statuses.some(
+            (membership) => normalizeStatus(membership.status_code) === controlToStatus,
+          );
+
+        // Order-control fields are operational state, but profile policy remains
+        // the source of truth for fixed destinations. Resume is intentionally
+        // dynamic and may restore only a declared workflow status.
+        if (
+          (!isDynamicResume && configuredToStatus !== controlToStatus)
+          || (isDynamicResume && !resumeTargetIsDeclared)
+        ) {
+          throw new WorkflowEngineError(
+            'PROFILE_EXECUTION_INVALID',
+            'The semantic profile execution is incompatible with the order-control state.',
+          );
+        }
+      }
       toStatus = orderControl.toStatus;
       nextHoldFrom = orderControl.nextHoldFromStatus;
       clearHoldFrom = orderControl.clearHoldFromStatus;

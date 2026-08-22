@@ -68,6 +68,7 @@ type GraphDefRow = {
   catalog_fingerprint: string;
 };
 
+
 /** Loads graph snapshot pinned on a profile version (any status — keeps orders working after unpublish). */
 export async function loadPinnedGraphForProfileVersion(
   profileId: string,
@@ -94,6 +95,7 @@ export async function loadPinnedGraphForProfileVersion(
   if (!row?.graph_definition) return null;
   return row.graph_definition;
 }
+
 
 export function isPinnedScreenStatusMember(
   graph: PinnedGraphDefinition,

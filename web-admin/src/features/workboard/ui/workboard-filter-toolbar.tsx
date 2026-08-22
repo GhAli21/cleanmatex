@@ -105,12 +105,12 @@ export function WorkboardFilterToolbar({
       <CmxCardHeader className="flex flex-col gap-2 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 pb-2 md:p-3 md:pb-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CmxCardTitle>{t('filters.title')}</CmxCardTitle>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-live="polite">
             {t('filters.resultsCount', { count: totalRows })}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {hasActiveFilters ? (
             <span className="text-xs font-medium uppercase tracking-[0.08em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {t('filters.activeLabel')}

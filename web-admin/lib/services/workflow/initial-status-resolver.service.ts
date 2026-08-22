@@ -2,14 +2,18 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { loadPinnedGraphForProfileVersion, type PinnedInitialRule } from './pinned-workflow-graph.service';
+import type { ResolvedWorkflowInitialRule } from './workflow-profile-resolution.service';
 
 export interface ResolveInitialStatusParams {
   orderSourceCode?: string | null;
   orderTypeId?: string | null;
   isRetail?: boolean | null;
+  isQuickDrop?: boolean | null;
   /** When set, initial rules are read from the pinned graph def (V2 orders). */
   wfProfileId?: string | null;
   wfVersionNo?: number | null;
+  /** Immutable semantic artifact rules resolved with the order's profile snapshot. */
+  semanticInitialRules?: ResolvedWorkflowInitialRule[] | null;
 }
 
 export interface ResolveInitialStatusResult {
@@ -57,6 +61,29 @@ export function resolveInitialStatusFromPinnedRules(
   return { initialStatus: FALLBACK_STATUS, ruleCode: null };
 }
 
+/** Resolves an initial status from the already-validated immutable semantic artifact. */
+export function resolveInitialStatusFromSemanticRules(
+  rules: ResolvedWorkflowInitialRule[],
+  params: Omit<ResolveInitialStatusParams, 'wfProfileId' | 'wfVersionNo' | 'semanticInitialRules'>,
+): ResolveInitialStatusResult {
+  const source = params.orderSourceCode?.trim() || null;
+  const typeId = params.orderTypeId?.trim() || null;
+  const isRetail = params.isRetail ?? null;
+  const isQuickDrop = params.isQuickDrop ?? null;
+
+  for (const rule of [...rules].sort((left, right) => left.priority - right.priority || left.rule_code.localeCompare(right.rule_code))) {
+    if (rule.order_source_code != null && rule.order_source_code !== source) continue;
+    if (rule.order_type_id != null && rule.order_type_id !== typeId) continue;
+    if (rule.is_retail != null && rule.is_retail !== isRetail) continue;
+    if (rule.is_quick_drop != null && rule.is_quick_drop !== isQuickDrop) continue;
+
+    const status = rule.initial_status.trim().toLowerCase();
+    if (status && status !== 'closed') return { initialStatus: status, ruleCode: rule.rule_code };
+  }
+
+  return { initialStatus: FALLBACK_STATUS, ruleCode: null };
+}
+
 /**
  * Resolve create-time operational status from `sys_wf_initial_rules_cd`.
  * Lower priority wins. Null matchers are wildcards.
@@ -66,6 +93,9 @@ export function resolveInitialStatusFromPinnedRules(
 export async function resolveInitialStatus(
   params: ResolveInitialStatusParams,
 ): Promise<ResolveInitialStatusResult> {
+  if (params.semanticInitialRules) {
+    return resolveInitialStatusFromSemanticRules(params.semanticInitialRules, params);
+  }
   if (params.wfProfileId && params.wfVersionNo != null) {
     const graph = await loadPinnedGraphForProfileVersion(params.wfProfileId, params.wfVersionNo);
     if (graph?.initial_rules?.length) {

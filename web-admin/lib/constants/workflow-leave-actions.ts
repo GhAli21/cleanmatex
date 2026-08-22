@@ -2,7 +2,8 @@ import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 /**
  * Default leave action for a floor screen when completing work.
- * Destination is chosen by template flags (preferredToStatus), not by this map.
+ * Semantic profile artifacts own the destination. A caller may request an
+ * explicit configured edge only when the UI intentionally presents a choice.
  */
 export const WORKFLOW_SCREEN_LEAVE_ACTION: Record<string, string> = {
   preparation: WORKFLOW_ACTIONS.COMPLETE_PREPARATION,

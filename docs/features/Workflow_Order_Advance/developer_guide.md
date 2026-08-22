@@ -7,6 +7,7 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 ## Where the current implementation lives
 
 - Workflow engine core: `web-admin/lib/services/workflow/workflow-engine.service.ts`
+- Semantic gate and context projections: `web-admin/lib/services/workflow/workflow-gate-evaluator.service.ts`, `web-admin/lib/services/workflow/semantic-workflow-context.service.ts`
 - Public tracking resolver/service: `web-admin/lib/services/public-order-tracking.service.ts`
 - Public tracking URL helpers: `web-admin/lib/utils/public-order-tracking.ts`
 - Public customer page: `web-admin/src/features/orders/public/order-tracking-page.tsx`
@@ -47,14 +48,20 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Public order reads and confirm actions must remain tenant-safe and must not bypass the workflow engine when `workflow_engine_v2` is enabled.
 - Keep proof/audit assembly in `DeliveryProofAuditService`; UI code may only consume the API model and must not query POD, route, or storage tables directly.
 - Keep Workboard assembly in `WorkboardQueryService`. It resolves profile-pinned memberships per order, returns an owning stage path, and must never add workflow or money mutations to this route.
+- Semantic order actions load `semantic-workflow-artifact.service.ts` and project it through `semantic-workflow-runtime.service.ts`. Do not add a fallback from a semantic snapshot to a current tenant assignment, graph pin, or mutable workflow catalog: a missing, partial, or invalid snapshot is a typed command failure.
+- The workflow engine receives a server-assigned channel (`staff_web` by default, `public_web` for the opaque public confirmation service). Browser input must never select a more privileged channel. Unsupported warning/override modes, evidence requirements, and unimplemented semantic gates remain fail closed.
+- `workflow-gate-evaluator.service.ts` is the shared semantic hard-block evaluator. It receives only facts selected under the enclosing order transaction lock, so available-action previews and command execution use the same payment, rack, and preparation state. Do not re-query an order inside a gate or place a money decision in a screen adapter.
+- `fin_release_eligible` blocks any positive outstanding balance using `SETTLEMENT_MONEY_EPSILON`. `CREDIT_INVOICE` must remain blocked with `GATE_B2B_CREDIT_VALIDATION_UNAVAILABLE` until the B2B fulfilment service validates the order's approved AR invoice and credit reservation atomically. This is intentional; do not replace it with a balance-only shortcut.
+- V2 stage pages must submit an action code, not infer `to_status` from `workflow-context` template flags. `GET /api/v1/orders/{id}/workflow-context` is now a display-only compatibility projection: semantic orders receive artifact modules and an invalid semantic snapshot returns a typed `PROFILE_*` error; only legacy orders may use template-stage reads.
 - Do not infer a stage owner from a hard-coded status map. If a Workboard status has no owner, return the configuration gap and keep the order out of the queue until configuration is repaired.
 - Never return private storage object keys. Only sign keys inside the exact `{tenantId}/delivery/{stopId}/` scope, use the configured five-minute TTL, and omit an unavailable proof item rather than failing the complete audit response.
 - The proof read does not authorize delivery completion. Keep staff completion behind its separate payment, evidence, idempotency, concurrency, RBAC, route-counter, and rollback release gates.
 
 ## Suggested next engineering steps
 
-1. Complete Delivery database-backed rollback, tenant-isolation, concurrency, payment, RBAC, and route-counter acceptance coverage before enabling staff completion.
-2. Cut remaining Processing, Quality, Packing, and Ready/Release callers to versioned stage services, then build mobile/integration adapters from the same contracts.
+1. Extend the shared semantic gate evaluator with durable B2B finance, fulfilment, piece, QA, and evidence facts before enabling profile bindings that require those gates.
+2. Cut the remaining Ready/Release, Pickup, Delivery, and non-V2 stage consumers to the semantic artifact path, then remove the temporary pinned-graph compatibility executor after integration assurance.
+3. Complete Delivery database-backed rollback, tenant-isolation, concurrency, payment, RBAC, and route-counter acceptance coverage before enabling staff completion.
 
 ## Key references
 

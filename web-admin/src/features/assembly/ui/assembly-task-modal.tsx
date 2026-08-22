@@ -17,7 +17,6 @@ import {
   useStartAssemblyTask,
   useCompleteAssemblyTask,
 } from '../hooks/use-assembly';
-import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback/useMessage';
@@ -54,7 +53,6 @@ export function AssemblyTaskModal({
     useCompleteAssemblyTask();
   const transition = useOrderTransition();
   const useNewWorkflowSystem = useWorkflowSystemMode();
-  const { data: wfContext } = useWorkflowContext(orderId);
   const startAttemptedRef = useRef<string | null>(null);
 
   const {
@@ -115,17 +113,10 @@ export function AssemblyTaskModal({
     try {
       await completeTask(taskId);
 
-      const nextStatus = wfContext?.flags?.qa_enabled
-        ? 'qa'
-        : wfContext?.flags?.packing_enabled
-          ? 'packing'
-          : 'ready';
-
       const result = await transition.mutateAsync({
         orderId,
         input: {
           screen: 'assembly',
-          to_status: nextStatus,
           notes: 'Assembly complete',
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },

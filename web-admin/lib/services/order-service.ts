@@ -341,6 +341,7 @@ export class OrderService {
     sourceRow: OrderSourceCatalogRow;
     wfProfileId?: string | null;
     wfVersionNo?: number | null;
+    semanticInitialRules?: Parameters<typeof resolveInitialStatus>[0]['semanticInitialRules'];
   }): Promise<{
     v_initialStatus: string;
     v_transitionFrom: string;
@@ -364,6 +365,7 @@ export class OrderService {
     const pinnedProfile = {
       wfProfileId: args.wfProfileId ?? null,
       wfVersionNo: args.wfVersionNo ?? null,
+      semanticInitialRules: args.semanticInitialRules ?? null,
     };
 
     const isRetailOnlyOrder =
@@ -374,6 +376,7 @@ export class OrderService {
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: true,
+        isQuickDrop,
         ...pinnedProfile,
       });
       const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
@@ -404,6 +407,7 @@ export class OrderService {
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: false,
+        isQuickDrop,
         ...pinnedProfile,
       });
       const contractStatus = resolved.initialStatus;
@@ -523,6 +527,7 @@ export class OrderService {
         sourceRow: sourceValidated.row,
         wfProfileId: workflowProfileBinding?.profileId,
         wfVersionNo: workflowProfileBinding?.versionNo,
+        semanticInitialRules: workflowProfileBinding?.initialRules,
       });
 
       const {
@@ -631,6 +636,11 @@ export class OrderService {
         workflow_template_id: v_workflowTemplateId,
         wf_profile_id: workflowProfile?.profileId ?? null,
         wf_version_no: workflowProfile?.versionNo ?? null,
+        wf_profile_version_id: workflowProfile?.versionId ?? null,
+        wf_profile_artifact_id: workflowProfile?.artifactId ?? null,
+        wf_profile_revision: workflowProfile?.policyRevision ?? null,
+        wf_profile_checksum: workflowProfile?.artifactChecksum ?? null,
+        wf_profile_schema_version: workflowProfile?.artifactSchemaVersion ?? null,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',
@@ -1189,6 +1199,7 @@ export class OrderService {
       sourceRow: sourceValidated.row,
       wfProfileId: workflowProfileBinding?.profileId,
       wfVersionNo: workflowProfileBinding?.versionNo,
+      semanticInitialRules: workflowProfileBinding?.initialRules,
     });
 
     const {
@@ -1261,6 +1272,11 @@ export class OrderService {
         workflow_template_id: v_workflowTemplateId,
         wf_profile_id: workflowProfile?.profileId ?? null,
         wf_version_no: workflowProfile?.versionNo ?? null,
+        wf_profile_version_id: workflowProfile?.versionId ?? null,
+        wf_profile_artifact_id: workflowProfile?.artifactId ?? null,
+        wf_profile_revision: workflowProfile?.policyRevision ?? null,
+        wf_profile_checksum: workflowProfile?.artifactChecksum ?? null,
+        wf_profile_schema_version: workflowProfile?.artifactSchemaVersion ?? null,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',
