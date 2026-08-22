@@ -47,6 +47,8 @@ import { POST as createRoute } from '@/app/api/v1/delivery/routes/route';
 import { POST as capturePOD } from '@/app/api/v1/delivery/stops/[stopId]/pod/route';
 import { POST as completeDelivery } from '@/app/api/v1/delivery/stops/[stopId]/complete/route';
 import { POST as createEvidence } from '@/app/api/v1/delivery/stops/[stopId]/evidence/route';
+import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
+import { NextResponse } from 'next/server';
 
 const AUTH_CONTEXT = {
   tenantId: '11111111-1111-1111-1111-111111111111',
@@ -124,6 +126,30 @@ describe('delivery write safety boundary', () => {
     }));
   });
 
+  it('maps workflow version conflicts so the client can refresh and retry', async () => {
+    completeDeliveryMock.mockRejectedValue(
+      new WorkflowEngineError('VERSION_CONFLICT', 'The order changed.', []),
+    );
+    const response = await completeDelivery(new Request('http://localhost/api/v1/delivery/stops/44444444-4444-4444-8444-444444444444/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expectedStateVersion: 1,
+        idempotencyKey: 'delivery-complete-conflict',
+        podMethodCode: 'SIGNATURE',
+        signatureEvidenceId: '77777777-7777-4777-8777-777777777777',
+      }),
+    }) as NextRequest, {
+      params: Promise.resolve({ stopId: '44444444-4444-4444-8444-444444444444' }),
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      code: 'VERSION_CONFLICT',
+    });
+  });
+
   it('allows private evidence receipts only through the atomic completion path', async () => {
     createDeliveryEvidenceUploadMock.mockResolvedValue({
       id: '77777777-7777-4777-8777-777777777777',
@@ -152,5 +178,30 @@ describe('delivery write safety boundary', () => {
       tenantId: AUTH_CONTEXT.tenantId,
       evidenceType: 'photo',
     }));
+  });
+
+  it('rejects staff completion when delivery:pod and orders:transition are missing', async () => {
+    const denied = NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    allPermissionsHandler.mockResolvedValue(denied);
+
+    const response = await completeDelivery(new Request('http://localhost/api/v1/delivery/stops/44444444-4444-4444-8444-444444444444/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expectedStateVersion: 1,
+        idempotencyKey: 'delivery-complete-rbac',
+        podMethodCode: 'SIGNATURE',
+        signatureEvidenceId: '77777777-7777-4777-8777-777777777777',
+      }),
+    }) as NextRequest, {
+      params: Promise.resolve({ stopId: '44444444-4444-4444-4444-444444444444' }),
+    });
+
+    expect(requireAllPermissionsFactory).toHaveBeenCalledWith([
+      'delivery:pod',
+      'orders:transition',
+    ]);
+    expect(response.status).toBe(403);
+    expect(completeDeliveryMock).not.toHaveBeenCalled();
   });
 });

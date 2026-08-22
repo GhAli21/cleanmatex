@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import {
   WorkflowEngineError,
   executeAction,
@@ -10,6 +11,10 @@ import {
   executeCancelOrReturnAction,
   isCancelOrReturnAction,
 } from '@/lib/services/workflow/cancel-return-orchestrator.service';
+import {
+  STAFF_DELIVERY_STAGE_COMMAND_ERROR,
+  isStaffDeliveryBypassAction,
+} from '@/lib/services/delivery/staff-delivery-command-guard';
 import { resolveEngineActionCode } from '@/lib/services/workflow/resolve-engine-action-code';
 import { prisma } from '@/lib/db/prisma';
 
@@ -65,6 +70,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
         { status: 400 },
       );
+    }
+
+    if (isStaffDeliveryBypassAction(actionCode)) {
+      return NextResponse.json(STAFF_DELIVERY_STAGE_COMMAND_ERROR, { status: 403 });
     }
 
     const idempotencyKey =
@@ -160,16 +169,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         );
       }
       if (error instanceof WorkflowEngineError) {
-        const status =
-          error.code === 'NOT_FOUND'
-            ? 404
-            : error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_CONFLICT'
-              ? 409
-              : error.code === 'GATE_FAILED'
-                ? 422
-                : error.code === 'ACTION_NOT_ALLOWED'
-                  ? 403
-                  : 400;
+        const status = httpStatusForWorkflowEngineError(error.code);
         return NextResponse.json(
           {
             success: false,

@@ -1,4 +1,5 @@
 import {
+  resolveInitialStatus,
   resolveInitialStatusFromSemanticRules,
   SemanticInitialStatusResolutionError,
 } from '@/lib/services/workflow/initial-status-resolver.service';
@@ -39,5 +40,14 @@ describe('semantic initial-status resolver', () => {
       isRetail: false,
       isQuickDrop: false,
     })).toThrow(SemanticInitialStatusResolutionError);
+  });
+
+  it('rejects a profile-stamped create that has no compiled semantic rules', async () => {
+    await expect(resolveInitialStatus({
+      wfProfileId: 'a1000000-0000-4000-8000-000000000001',
+      wfVersionNo: 1,
+      orderSourceCode: 'web_admin',
+      isRetail: false,
+    })).rejects.toBeInstanceOf(SemanticInitialStatusResolutionError);
   });
 });

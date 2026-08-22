@@ -15,6 +15,14 @@ import {
 } from '@/lib/services/workflow/workflow-engine.service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
+import {
+  loadSemanticWorkflowArtifactForOrder,
+  SemanticWorkflowArtifactError,
+} from '@/lib/services/workflow/semantic-workflow-artifact.service';
+import {
+  assertCompiledPickupEvidence,
+  CompiledDeliveryEvidenceError,
+} from '@/lib/services/delivery/compiled-delivery-evidence';
 
 const PICKUP_COMPLETE_IDEMPOTENCY_RESOURCE = 'pickup_complete';
 const PICKUP_HANDOVER_SCREEN = 'pickup_handover';
@@ -26,6 +34,8 @@ export type PickupCompletionErrorCode =
   | 'PICKUP_RELEASE_REQUIRED'
   | 'PICKUP_COLLECTION_REQUIRED'
   | 'PICKUP_PARTIAL_RELEASE_UNSUPPORTED'
+  | 'PICKUP_NOTES_REQUIRED'
+  | 'PICKUP_POLICY_UNAVAILABLE'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
 
@@ -79,6 +89,13 @@ interface LockedPickupOrder {
   current_status: string | null;
   payment_type_code: string | null;
   outstanding_amount: number | string | null;
+  wf_profile_id: string | null;
+  wf_version_no: number | null;
+  wf_profile_version_id: string | null;
+  wf_profile_artifact_id: string | null;
+  wf_profile_revision: number | null;
+  wf_profile_checksum: string | null;
+  wf_profile_schema_version: number | null;
 }
 
 interface LockedRelease {
@@ -120,7 +137,18 @@ async function lockPickupOrder(
   orderId: string,
 ): Promise<LockedPickupOrder> {
   const rows = await tx.$queryRaw<LockedPickupOrder[]>`
-    SELECT id, current_status, payment_type_code, outstanding_amount
+    SELECT
+      id,
+      current_status,
+      payment_type_code,
+      outstanding_amount,
+      wf_profile_id::text,
+      wf_version_no,
+      wf_profile_version_id::text,
+      wf_profile_artifact_id::text,
+      wf_profile_revision,
+      wf_profile_checksum,
+      wf_profile_schema_version
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -247,6 +275,44 @@ async function fulfilPickupReleases(
   return pickupIds;
 }
 
+async function loadPickupArtifact(order: LockedPickupOrder) {
+  try {
+    return await loadSemanticWorkflowArtifactForOrder({
+      wf_profile_id: order.wf_profile_id,
+      wf_version_no: order.wf_version_no,
+      wf_profile_version_id: order.wf_profile_version_id,
+      wf_profile_artifact_id: order.wf_profile_artifact_id,
+      wf_profile_revision: order.wf_profile_revision,
+      wf_profile_checksum: order.wf_profile_checksum,
+      wf_profile_schema_version: order.wf_profile_schema_version,
+    });
+  } catch (error) {
+    if (error instanceof SemanticWorkflowArtifactError) {
+      throw new PickupCompletionError(
+        'PICKUP_POLICY_UNAVAILABLE',
+        'The compiled pickup policy could not be loaded.',
+        422,
+      );
+    }
+    throw error;
+  }
+}
+
+async function assertPickupEvidence(order: LockedPickupOrder, handoverNotes?: string): Promise<void> {
+  const artifact = await loadPickupArtifact(order);
+  try {
+    assertCompiledPickupEvidence({
+      evidence: artifact?.evidence ?? [],
+      hasNotes: Boolean(handoverNotes?.trim()),
+    });
+  } catch (error) {
+    if (error instanceof CompiledDeliveryEvidenceError) {
+      throw new PickupCompletionError('PICKUP_NOTES_REQUIRED', error.message, 422);
+    }
+    throw error;
+  }
+}
+
 /**
  * Confirm a customer counter pickup atomically.
  *
@@ -324,6 +390,8 @@ export async function completePickup(
           422,
         );
       }
+
+      await assertPickupEvidence(order, params.handoverNotes);
 
       const openReleases = await lockReleasedPickupRecords(tx, params.tenantId, params.orderId);
       const now = new Date();

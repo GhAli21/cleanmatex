@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
   const auth = await requireAllPermissions(['delivery:pod', 'orders:transition'])(request);
   if (auth instanceof NextResponse) return auth;
 
-  const methods = await listDeliveryPodMethods();
+  const stopId = request.nextUrl.searchParams.get('stopId') ?? undefined;
+  const methods = await listDeliveryPodMethods({
+    tenantId: auth.tenantId,
+    stopId: stopId || undefined,
+  });
   return NextResponse.json({ success: true, data: methods });
 }

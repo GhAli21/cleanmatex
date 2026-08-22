@@ -5,12 +5,15 @@ Track every path that mutates order operational status. Exit criterion: all prod
 | Writer | Path | V1.0 status |
 |--------|------|------------------|
 | Prep complete | `POST /api/v1/preparation/[id]/complete` | Engine-only `COMPLETE_PREPARATION` |
-| Transition hook | `useOrderTransition` | Engine via `/actions`; compatibility fields are ignored by the server authority |
-| Transition API | `POST /api/v1/orders/[id]/transition` | Engine-only compatibility adapter; raw status without a mappable action is rejected |
-| Actions API | `POST /api/v1/orders/[id]/actions` | ✅ Engine |
-| Stage screens | processing / assembly / qa / packing Complete buttons | ✅ Via `useOrderTransition` + `WorkflowActionBar` |
-| Ready | `/dashboard/ready/[id]` | ✅ Action bar RELEASE_* |
-| POD capture | `DeliveryService.capturePOD` | Engine-only `CONFIRM_DELIVERY` |
+| Transition hook | `useOrderTransition` | V2 posts mapped stage APIs; unmapped actions use `/actions`; V2-off remains `/transition` |
+| Actions API | `POST /api/v1/orders/[id]/actions` | ✅ Engine for unmapped control/cancel/return; staff `CONFIRM_DELIVERY` is `403 USE_DELIVERY_COMPLETE_COMMAND` |
+| Transition API | `POST /api/v1/orders/[id]/transition` | Engine-only compatibility adapter; staff `CONFIRM_DELIVERY` is `403 USE_DELIVERY_COMPLETE_COMMAND` |
+| Stage command APIs | `POST /api/v1/{processing,assembly,qa,packing,ready}/[id]/…` | ✅ Thin adapters around `executeWorkflowStageCommand` |
+| Stage screens | processing / assembly / qa / packing Complete buttons | ✅ Via stage APIs through `postStaffWorkflowCommand` |
+| Ready | `/dashboard/ready/[id]` | ✅ Fulfilment panel + ActionBar; `RELEASE_FOR_PICKUP` / `CONFIRM_PICKUP` are stage-owned |
+| Pickup complete | `POST /api/v1/pickup/orders/[orderId]/complete` | ✅ Atomic `CONFIRM_PICKUP` |
+| Delivery complete | `POST /api/v1/delivery/stops/[stopId]/complete` | ✅ Atomic POD + stop + route + `CONFIRM_DELIVERY` |
+| POD capture | `POST …/stops/{stopId}/pod` and `DeliveryService.capturePOD` | Legacy path **503** `DELIVERY_HARDENING_REQUIRED`; not a production writer |
 | Physical intake | `POST …/confirm-physical-intake` | Engine-only `CONFIRM_PHYSICAL_INTAKE` |
 | Batch auto-ready | `POST …/batch-update` | Engine `COMPLETE_PACKING` when enabled; otherwise safely skips |
 | Public confirm-received | `POST /api/v1/public/…/confirm-received` | Engine-only `CONFIRM_DELIVERY` + system actor; delivered is idempotent |

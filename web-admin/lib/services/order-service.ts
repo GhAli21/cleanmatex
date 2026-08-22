@@ -427,10 +427,9 @@ export class OrderService {
     const isIncompleteQuickDrop =
       isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length);
 
-    if (args.semanticInitialRules) {
+    if (args.semanticInitialRules || (args.wfProfileId && args.wfVersionNo != null)) {
       // Semantic orders never inherit the old direct-create status shortcuts.
-      // The artifact has already been resolved and must decide this order's
-      // first operational status for normal and Quick Drop intake alike.
+      // A profile assignment without compiled rules must fail closed here too.
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: false,

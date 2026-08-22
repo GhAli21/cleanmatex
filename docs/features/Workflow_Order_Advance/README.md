@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Engine cutover, public tracking, counter pickup, and the P7R delivery proof/audit read surface are implemented; **V1.0 staff delivery completion remains NO-GO** pending the P7R assurance and rollout gates
+**Status:** Automated delivery assurance is complete. Graph-pin execution is retired for profile-stamped orders. Automated semantic-profile assurance is in place. **Staff POD delivery smoke S10 remains unsigned** pending operator/e2e canary (`p7-harden`).
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -55,7 +55,8 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 |-----|--------|
 | [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) | Scope lock vs Full Pack |
 | [ADR_SYS_WF_PROFILES.md](ADR_SYS_WF_PROFILES.md) | HQ `sys_wf_profiles_*` shape (migration `0444`) |
-| [tenant_workflow_runtime.md](tenant_workflow_runtime.md) | P0 pinned graph runtime — engine + initial-status + order create |
+| [tenant_workflow_runtime.md](tenant_workflow_runtime.md) | Historical P0 graph-pin runtime (execution retired 2026-08-22) |
+| [technical_docs/semantic_profile_assurance.md](technical_docs/semantic_profile_assurance.md) | Automated semantic-profile assurance, recreation, residual |
 | [WORKFLOW_TABLES_INVENTORY.md](WORKFLOW_TABLES_INVENTORY.md) | All `work` / `wf` tables: Gen 0–3, live vs deprecated |
 | [01_PRD.md](01_PRD.md) … [13_Production_Readiness_Checklist.md](13_Production_Readiness_Checklist.md) | Design pack |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Work packages |

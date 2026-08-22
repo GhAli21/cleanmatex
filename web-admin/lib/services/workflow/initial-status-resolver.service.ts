@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
-import { loadPinnedGraphForProfileVersion, type PinnedInitialRule } from './pinned-workflow-graph.service';
+import type { PinnedInitialRule } from './pinned-workflow-graph.service';
 import type { ResolvedWorkflowInitialRule } from './workflow-profile-resolution.service';
 
 /** Inputs used to match a creation context against immutable or legacy rules. */
@@ -10,7 +10,7 @@ export interface ResolveInitialStatusParams {
   orderTypeId?: string | null;
   isRetail?: boolean | null;
   isQuickDrop?: boolean | null;
-  /** When set, initial rules are read from the pinned graph def (V2 orders). */
+  /** When set without semantic rules, create fails closed rather than reading a graph pin. */
   wfProfileId?: string | null;
   wfVersionNo?: number | null;
   /** Immutable semantic artifact rules resolved with the order's profile snapshot. */
@@ -52,6 +52,7 @@ type InitialRuleRow = {
 
 /**
  * Resolve create-time operational status from pinned initial rules (immutable graph def).
+ * Historical V2 helper retained for audit. New-order paths must not call this.
  *
  * @param rules - Initial-rule snapshot pinned to a legacy V2 profile version.
  * @param params - New-order facts used to select the most specific rule.
@@ -117,7 +118,7 @@ export function resolveInitialStatusFromSemanticRules(
  * Resolve create-time operational status from `sys_wf_initial_rules_cd`.
  * Lower priority wins. Null matchers are wildcards.
  * Retail must never resolve to `closed` (V1.0 ADR).
- * V2: when wfProfileId + wfVersionNo are set, uses pinned initial rules from graph def.
+ * A profile/version assignment without compiled semantic rules fails closed.
  *
  * @param params - New-order facts and optional immutable profile-rule snapshot.
  */
@@ -128,10 +129,7 @@ export async function resolveInitialStatus(
     return resolveInitialStatusFromSemanticRules(params.semanticInitialRules, params);
   }
   if (params.wfProfileId && params.wfVersionNo != null) {
-    const graph = await loadPinnedGraphForProfileVersion(params.wfProfileId, params.wfVersionNo);
-    if (graph?.initial_rules?.length) {
-      return resolveInitialStatusFromPinnedRules(graph.initial_rules, params);
-    }
+    throw new SemanticInitialStatusResolutionError();
   }
 
   let rules: InitialRuleRow[] = [];

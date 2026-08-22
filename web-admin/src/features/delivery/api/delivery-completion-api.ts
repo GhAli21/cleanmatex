@@ -56,8 +56,9 @@ async function readEnvelope<T>(response: Response): Promise<T> {
 }
 
 /** Lists methods that the server permits for staff delivery completion. */
-export async function listDeliveryPodMethods(): Promise<DeliveryPodMethod[]> {
-  const response = await fetch('/api/v1/delivery/pod-methods', {
+export async function listDeliveryPodMethods(stopId?: string): Promise<DeliveryPodMethod[]> {
+  const query = stopId ? `?stopId=${encodeURIComponent(stopId)}` : '';
+  const response = await fetch(`/api/v1/delivery/pod-methods${query}`, {
     method: 'GET',
     credentials: 'include',
   });

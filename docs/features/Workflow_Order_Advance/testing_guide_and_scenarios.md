@@ -7,8 +7,10 @@ Run from `web-admin`:
 ```bash
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
 npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
-npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-profile-resolution.service.test.ts --runInBand --forceExit
-npx jest __tests__/services/workboard-query.service.test.ts --runInBand
+npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-profile-resolution.service.test.ts __tests__/services/initial-status-resolver.service.test.ts --runInBand --forceExit
+npx jest __tests__/services/workboard-query.service.test.ts __tests__/services/stage-worklist-query.service.test.ts --runInBand
+npx jest __tests__/api/workflow-engine-http.test.ts __tests__/api/v1/workflow-stage-command.route.test.ts __tests__/api/v1/workflow-actions-delivery-bypass.route.test.ts --runInBand
+npm run test:db-integration -- delivery-completion.db.test.ts
 npx playwright test e2e/public-order-tracking.spec.ts --project=public-chromium --reporter=line
 npx eslint . --quiet
 npx tsc --noEmit
@@ -31,7 +33,15 @@ npm run build
 
 2026-08-22 pickup-policy UX evidence: EN/AR catalog parity, targeted pickup-card lint, and TypeScript typecheck pass. A semantic profile that omits the counter-handover command now receives a clear read-only configuration explanation; it never enables a local status change.
 
-2026-08-22 Workboard aggregate evidence: the focused Workboard service test proves a semantic order remains routed by its immutable artifact and asserts the owner aggregate groups by `wf_profile_artifact_id`, preventing distinct policy revisions from being merged in supervisor totals.
+2026-08-22 extended-gate evidence: focused evaluator tests cover piece/QA/collection/release/stop/POD facts, missing-fact fail-closed behavior, discovery-vs-execute POD, and unsupported partial/return/OTP. Catalog seed `0463_sys_wf_gate_ops_fulfilment.sql` applied locally and remotely by the operator.
+
+2026-08-22 delivery-assurance evidence: focused Jest plus local DB integration (9/9) pass. DB coverage includes pay-on-collection blocking, cross-tenant isolation, OTP reject, already-delivered, engine-failure rollback, happy path with route counters, stale-version rollback, idempotent replay, and serialized dual-complete. Complete route RBAC requires `delivery:pod` and `orders:transition`. Staff `CONFIRM_DELIVERY` through `/actions` remains 403.
+
+2026-08-22 floor-worklist evidence: stage-worklist unit tests prove unknown screens fail closed, semantic processing membership appears without a live contract, and a semantic order whose artifact does not own the screen is excluded from that queue.
+
+2026-08-22 no-legacy cutover evidence: focused Jest coverage proves a profile/version pin without compiled artifact identity fails closed, create does not read a pinned graph, and Workboard/floor lists exclude those orders instead of using graph-pin membership. Unsnapshotted historic orders still use live catalogs. Production callers of `loadPinnedGraphForProfileVersion` are removed.
+
+2026-08-22 semantic-profile assurance evidence: 32 focused tests pass. Coverage includes Pilot-only-on-demo, production Pilot reject, latest-assignment ignoring Pilot, missing artifact fail-closed, forged staff channel and forged screen rejection, and `PROFILE_SNAPSHOT_INCOMPLETE` mapped to HTTP 409 on the stage command adapter. Recreation/rollback notes: `technical_docs/semantic_profile_assurance.md`. Residual: S10 canary, performance soak, visual a11y/RTL.
 
 ## Delivery proof/audit focused scenarios
 
@@ -114,7 +124,7 @@ Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its res
 | S07 | Hold | Hold a `processing` order with a valid reason. | `processing → on_hold`; `hold_from_status=processing`; version/history/outbox advance once. |
 | S08 | Resume | Resume the held order. | `on_hold → processing`; `hold_from_status` is cleared; version/history/outbox advance once. |
 | S09 | Stop | Hold again, then permanently stop with a valid reason. | `on_hold → stopped`; hold marker clears; stopped is terminal and actions no longer appear after refresh. |
-| S10 | POD delivery | Capture POD for an `out_for_delivery` order. | `CONFIRM_DELIVERY` moves it to `delivered`; POD and workflow mutation succeed together; `delivered_at` is populated. |
+| S10 | Staff POD delivery | On Delivery Stop Detail, complete an `out_for_delivery` stop with required POD evidence (not the generic Actions tab). | Stop, POD, route counters, and `CONFIRM_DELIVERY` commit together; order becomes `delivered`; `delivered_at` is populated. Unsigned until operator/e2e canary. |
 | S11 | Public ready confirmation | Open opaque `/track/{token}` for a `ready` order and confirm receipt anonymously. | `ready → delivered`; confirmation becomes disabled; refresh remains delivered. |
 | S12 | Public OFD confirmation | Repeat public confirmation for `out_for_delivery`. | `out_for_delivery → delivered` through the same engine action. |
 | S13 | Public idempotency | Confirm an already delivered order again through the API. | Idempotent success; no second state-version increment, history row, or outbox event. |
@@ -135,17 +145,33 @@ Use a disposable `preparing` order and an operator with both `orders:update` and
 5. Send a request without `Idempotency-Key`. Verify HTTP `400 IDEMPOTENCY_KEY_REQUIRED` and no mutation.
 6. Attempt the same order ID from another tenant. Verify HTTP `404 ORDER_NOT_FOUND` and no mutation.
 
-Staff POD delivery is not signed production-ready yet. The unsafe direct **Mark delivered** shortcut and route-creation UI are disabled until POD evidence, payment checks, stop/route mutation, and `CONFIRM_DELIVERY` can commit atomically through a completed bilingual Cmx flow. Staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write data while this containment is active. S10 must remain failed/blocked until that hardening lands; public S11-S15 confirmation follows its separately approved customer contract.
+Staff delivery completion uses `POST /api/v1/delivery/stops/{stopId}/complete` with POD evidence and the pay-on-collection gate. Legacy `capturePOD`, route create/assign, and OTP generate/verify remain HTTP `503 DELIVERY_HARDENING_REQUIRED`. Staff `CONFIRM_DELIVERY` through `/actions` or `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`. S10 canary still needs an explicit rollout decision; public S11-S15 confirmation follows its separately approved customer contract.
+
+Local database assurance: `npm run test:db-integration -- delivery-completion.db.test.ts` covers collection blocking, cross-tenant isolation, OTP reject, already-delivered, engine-failure rollback, happy-path route counters, stale-version rollback, idempotent replay, and serialized dual-complete. That is automated coverage for the S10 command path; it is not the signed operator/e2e canary.
 
 ### API evidence
 
 Normal stage and control actions should use:
 
 - `GET /api/v1/orders/{id}/available-actions?screen={screen_key}`
-- `POST /api/v1/orders/{id}/actions`
-- `POST /api/v1/orders/{id}/transition` only as the engine-backed compatibility adapter
+- Stage-owned commands, not a guessed destination:
+  - `POST /api/v1/processing/{id}/complete`
+  - `POST /api/v1/assembly/{id}/complete`
+  - `POST /api/v1/qa/{id}/pass` and `POST /api/v1/qa/{id}/fail`
+  - `POST /api/v1/packing/{id}/complete`
+  - `POST /api/v1/ready/{id}/release-pickup` and `POST /api/v1/ready/{id}/release-delivery`
+  - `POST /api/v1/pickup/orders/{orderId}/complete`
+- `POST /api/v1/orders/{id}/actions` only for unmapped control/cancel/return commands
+- `POST /api/v1/orders/{id}/transition` only as the legacy V2-off compatibility adapter
 
 Expected successful commands return HTTP `200`, the resulting status, and incremented `stateVersion`. Version conflicts should return HTTP `409`, not overwrite another operator's change.
+
+### Ready fulfilment panel smoke
+
+1. Open a `ready` order whose profile includes pickup. Confirm **Make available for pickup**, **Collect remaining payment** (when pay-on-collection remains), and **Confirm customer pickup** appear in one **Pickup and collection** panel.
+2. Make the order available and confirm the status becomes `ready_for_pickup` without a local status write.
+3. For a remaining pay-on-collection balance, collect through the existing payment modal, then confirm pickup.
+4. Confirm Processing list **Mark Ready** posts `/api/v1/processing/{id}/complete` and does not send `toStatus: ready`.
 
 ### Tenant-safe database verification
 
@@ -242,8 +268,8 @@ During and after the smoke window:
 
 1. Apply `0455_workboard_permission_navigation.sql`, deploy the Workboard build, and sign in as a role with `workboard:read`.
 2. Confirm **Orders → Workboard** is visible; a role without the permission must not see it and the API must return `403`.
-3. Verify a V2 order appears only when its pinned graph contains both `workboard` and owner-stage membership.
-4. Verify a legacy/unpinned order follows the tenant's live Workboard contract.
+3. Verify a semantic order appears only when its compiled artifact contains both `workboard` and owner-stage membership.
+4. Verify a historic unsnapshotted order follows the tenant's live Workboard contract.
 5. Exercise each filter, sorting, quick-focus card, clear-filters action, and pagination; every row/count must remain tenant-scoped.
 6. Verify the owner-stage quick-focus cards continue to show `summary.byOwner` totals for the current non-stage filters even after selecting one owner stage.
 7. Confirm the screen has no status, collection, release, POD, or assignment mutation.

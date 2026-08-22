@@ -16,13 +16,17 @@ const VERSION_ID = 'b1000000-0000-4000-8000-000000000001';
 const ARTIFACT_ID = 'c1000000-0000-4000-8000-000000000001';
 const CHECKSUM = 'a'.repeat(64);
 
-function executableVersion(versionNo: number, basedOnTemplateId: string | null) {
+function executableVersion(
+  versionNo: number,
+  basedOnTemplateId: string | null,
+  versionStatus: 'PUBLISHED' | 'PILOT' = 'PUBLISHED',
+) {
   return {
     version_id: VERSION_ID,
     profile_id: PROFILE_ID,
     version_no: versionNo,
     based_on_template_id: basedOnTemplateId,
-    version_status: 'PUBLISHED',
+    version_status: versionStatus,
     policy_revision: 3,
     compiled_schema_version: 1,
     compiled_checksum: CHECKSUM,
@@ -197,6 +201,69 @@ describe('workflow profile resolution', () => {
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toBeInstanceOf(
       WorkflowProfileResolutionError,
     );
+  });
+
+  it('permits a pinned Pilot version only on an HQ-validated test/demo tenant', async () => {
+    const tx = transactionWithRows(
+      [{
+        wf_profile_id: PROFILE_ID,
+        wf_version_no: 1,
+        branch_id: null,
+        service_code: null,
+        is_default: true,
+        created_at: '2026-08-15T00:00:00.000Z',
+      }],
+      [{ is_hq_test_demo: true }],
+      [executableVersion(1, null, 'PILOT')],
+      [validArtifact()],
+    );
+
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toMatchObject({
+      versionNo: 1,
+      artifactId: ARTIFACT_ID,
+    });
+  });
+
+  it('rejects a pinned Pilot version on a production tenant', async () => {
+    const tx = transactionWithRows(
+      [{
+        wf_profile_id: PROFILE_ID,
+        wf_version_no: 1,
+        branch_id: null,
+        service_code: null,
+        is_default: true,
+        created_at: '2026-08-15T00:00:00.000Z',
+      }],
+      [{ is_hq_test_demo: false }],
+      [executableVersion(1, null, 'PILOT')],
+    );
+
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toBeInstanceOf(
+      WorkflowProfileResolutionError,
+    );
+  });
+
+  it('ignores Pilot candidates when the assignment asks for the latest published version', async () => {
+    const tx = transactionWithRows(
+      [{
+        wf_profile_id: PROFILE_ID,
+        wf_version_no: null,
+        branch_id: null,
+        service_code: null,
+        is_default: true,
+        created_at: '2026-08-15T00:00:00.000Z',
+      }],
+      [{ is_hq_test_demo: true }],
+      [
+        { ...executableVersion(2, null, 'PILOT'), version_id: 'b1000000-0000-4000-8000-000000000002' },
+        executableVersion(1, null, 'PUBLISHED'),
+      ],
+      [validArtifact()],
+    );
+
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toMatchObject({
+      versionNo: 1,
+    });
   });
 
   it('keeps legacy compatibility only when the tenant has no applicable profile assignment', async () => {

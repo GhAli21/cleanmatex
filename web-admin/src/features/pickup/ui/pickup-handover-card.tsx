@@ -29,6 +29,11 @@ export interface PickupHandoverCardProps {
   onCompleted: () => void;
   /** Removes the outer card when rendered in a shared stage action panel. */
   embedded?: boolean;
+  /**
+   * When false, the parent panel owns Collect remaining payment so this card
+   * only confirms the physical handover.
+   */
+  showCollectAction?: boolean;
 }
 
 /**
@@ -50,6 +55,7 @@ export function PickupHandoverCard({
   onCollectPayment,
   onCompleted,
   embedded = false,
+  showCollectAction = true,
 }: PickupHandoverCardProps) {
   const t = useTranslations('workflow.pickup');
   const tCommon = useTranslations('common');
@@ -127,7 +133,7 @@ export function PickupHandoverCard({
         </p>
       </div>
 
-      {collectionRequired ? (
+      {collectionRequired && showCollectAction ? (
         <CmxSummaryMessage
           type="warning"
           title={t('collectionRequiredTitle')}
@@ -143,7 +149,7 @@ export function PickupHandoverCard({
           collect branch may be gated on `orders:collect_payment` — routing the
           handover confirm through the same permission-aware button would lock
           handover behind a payment permission it has never required. */}
-      {collectionRequired ? (
+      {collectionRequired && showCollectAction ? (
         <CollectPaymentButton
           className="w-full"
           label={t('collectPayment')}
@@ -156,7 +162,7 @@ export function PickupHandoverCard({
           type="button"
           className="w-full"
           loading={loading || submitting}
-          disabled={loading || submitting || !action?.enabled}
+          disabled={loading || submitting || !action?.enabled || collectionRequired}
           onClick={handlePrimaryAction}
         >
           {isDirectCounterPickup ? t('directConfirmAction') : t('confirmAction')}

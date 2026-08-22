@@ -6,7 +6,6 @@ const mockUsersFindMany = jest.fn()
 const mockContract = jest.fn()
 const mockLiveScreens = jest.fn()
 const mockLoadPinnedGraph = jest.fn()
-const mockPinnedMember = jest.fn()
 const mockLoadSemanticArtifact = jest.fn()
 
 jest.mock('@prisma/client', () => ({
@@ -35,7 +34,6 @@ jest.mock('@/lib/services/workflow-profile.service', () => ({
 }))
 jest.mock('@/lib/services/workflow/pinned-workflow-graph.service', () => ({
   loadPinnedGraphForProfileVersion: (...args: unknown[]) => mockLoadPinnedGraph(...args),
-  isPinnedScreenStatusMember: (...args: unknown[]) => mockPinnedMember(...args),
 }))
 jest.mock('@/lib/services/workflow/semantic-workflow-artifact.service', () => ({
   loadSemanticWorkflowArtifactForOrder: (...args: unknown[]) => mockLoadSemanticArtifact(...args),
@@ -73,26 +71,22 @@ describe('WorkboardQueryService', () => {
     expect(result.summary.byOwner.processing).toBe(1)
   })
 
-  it('uses a V2 order pinned graph instead of live stage ownership', async () => {
+  it('does not list a profile-stamped order through a pinned graph', async () => {
     mockContract.mockResolvedValue({ statuses: ['qa_pending'], additional_filters: {}, required_permissions: [] })
     mockLiveScreens.mockResolvedValue([])
-    mockLoadPinnedGraph.mockResolvedValue({ screen_status_memberships: [] })
-    mockPinnedMember.mockImplementation((_graph: unknown, screen: string) => screen === 'workboard' || screen === 'qa')
-    mockQueryRaw
-      .mockResolvedValueOnce([{ wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3 }])
-      .mockResolvedValueOnce([{ id: 'order-2', order_no: 'ORD-2', customer_name: 'Customer', customer_phone: null, branch_name: null, current_status: 'qa_pending', priority: 'normal', has_issue: false, is_rejected: false, received_at: new Date('2026-08-20T10:00:00Z'), last_transition_at: null, ready_by_at: null, wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3, assignee_name: null }])
-      .mockResolvedValueOnce([{ total: BigInt(1), blocked: BigInt(0), overdue: BigInt(0) }])
-      .mockResolvedValueOnce([{ current_status: 'qa_pending', wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3, total: BigInt(1) }])
-      .mockResolvedValueOnce([{ status_code: 'qa_pending', name: 'QA pending' }])
-      .mockResolvedValueOnce([{ priority: 'normal' }])
+    mockLoadSemanticArtifact.mockResolvedValue(null)
+    mockQueryRaw.mockResolvedValueOnce([{ wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3 }])
     mockBranchesFindMany.mockResolvedValue([])
     mockUsersFindMany.mockResolvedValue([])
 
     const result = await WorkboardQueryService.list('11111111-1111-1111-1111-111111111111', { page: 1, pageSize: 25 })
 
-    expect(mockLoadPinnedGraph).toHaveBeenCalledWith('22222222-2222-2222-2222-222222222222', 3)
-    expect(result.rows).toEqual(expect.arrayContaining([expect.objectContaining({ ownerScreenKey: 'qa', ownerPath: '/dashboard/qa/order-2' })]))
-    expect(result.summary.byOwner.qa).toBe(1)
+    expect(mockLoadPinnedGraph).not.toHaveBeenCalled()
+    expect(mockLoadSemanticArtifact).toHaveBeenCalledWith({
+      wf_profile_id: '22222222-2222-2222-2222-222222222222',
+      wf_version_no: 3,
+    })
+    expect(result).toMatchObject({ total: 0, rows: [] })
   })
 
   it('uses a semantic order artifact even when the legacy Workboard contract is empty', async () => {

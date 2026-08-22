@@ -3,6 +3,7 @@ import { workflowContextQueryKey } from '@/lib/hooks/use-workflow-context';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { leaveActionForScreen } from '@/lib/constants/workflow-leave-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
 
 /**
  *
@@ -90,52 +91,41 @@ export function useOrderTransition() {
         const payload = availJson.data ?? availJson;
         const stateVersion = Number(payload.stateVersion ?? 0);
 
-        const idempotencyKey =
-          typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? crypto.randomUUID()
-            : `${orderId}:${actionCode}:${Date.now()}`;
-
-        const actionRes = await fetch(`/api/v1/orders/${orderId}/actions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Idempotency-Key': idempotencyKey,
+        const actionResult = await postStaffWorkflowCommand({
+          orderId,
+          screen: input.screen,
+          actionCode,
+          expectedStateVersion: stateVersion,
+          input: {
+            // Stage APIs ignore destination guesses; keep explicit edge
+            // selection only for unmapped engine-adapter commands.
+            preferredToStatus: input.preferredToStatus,
+            notes: input.notes,
+            reason: input.notes,
+            rackLocation: input.rackLocation ?? input.rack_location,
+            metadata: input.metadata,
+            cancelled_note: input.cancelled_note,
+            cancellation_disposition: input.cancellation_disposition,
+            cancellation_reason_code: input.cancellation_reason_code,
+            return_reason: input.return_reason,
+            return_reason_code: input.return_reason_code,
           },
-          body: JSON.stringify({
-            screen: input.screen,
-            actionCode,
-            expectedStateVersion: stateVersion,
-            input: {
-              // A legacy page's guessed destination must never override an
-              // immutable semantic policy. Explicit edge selection is opt-in.
-              preferredToStatus: input.preferredToStatus,
-              notes: input.notes,
-              rackLocation: input.rackLocation ?? input.rack_location,
-              metadata: input.metadata,
-              cancelled_note: input.cancelled_note,
-              cancellation_disposition: input.cancellation_disposition,
-              cancellation_reason_code: input.cancellation_reason_code,
-              return_reason: input.return_reason,
-              return_reason_code: input.return_reason_code,
-            },
-          }),
         });
-        const actionJson = await actionRes.json();
-        if (!actionRes.ok || !actionJson.success) {
+        if (!actionResult.ok || !actionResult.success) {
           return {
             success: false,
             ok: false,
-            error: actionJson.error || 'Action failed',
-            code: actionJson.code,
-            blockers: actionJson.blockedReasons?.map(
-              (b: { message?: string }) => b.message || '',
+            error: actionResult.error || 'Action failed',
+            code: actionResult.code,
+            blockers: actionResult.blockedReasons?.map(
+              (b) => b.message || '',
             ),
-            details: actionJson.blockedReasons,
+            details: actionResult.blockedReasons,
             engine: 'workflow_v2',
           };
         }
 
-        const status = actionJson.currentStatus as string;
+        const status = actionResult.currentStatus as string;
         return {
           success: true,
           ok: true,
@@ -145,7 +135,7 @@ export function useOrderTransition() {
               id: orderId,
               status,
               currentStatus: status,
-              stateVersion: actionJson.stateVersion,
+              stateVersion: actionResult.stateVersion,
             },
           },
         };

@@ -26,8 +26,8 @@ import {
   type ReadyOrderStateResponse,
 } from '@features/orders/model/ready-order-types';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import { PickupHandoverCard } from '@features/pickup/ui/pickup-handover-card';
 import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
+import { ReadyFulfilmentPanel } from '@features/pickup/ui/ready-fulfilment-panel';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
@@ -302,44 +302,45 @@ export default function ReadyDetailPage() {
             </p>
           </section>
           {orderId ? (
-            <WorkflowActionBar
-              key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
-              orderId={orderId}
-              screen="ready_release"
-              hideWhenEmpty
-              hiddenActionCodes={
-                isReadyForPickup
-                  ? [
-                      WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP,
-                      WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY,
-                    ]
-                  : []
-              }
-              supplementalActions={
-                order.currentStatus === 'ready' || isReadyForPickup ? (
-                  <PickupHandoverCard
-                    embedded
-                    orderId={orderId}
-                    orderNo={order.orderNo}
-                    customerName={order.customer.name}
-                    paymentTypeCode={order.paymentTypeCode}
-                    outstandingAmount={order.paymentSummary?.remaining ?? 0}
-                    formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
-                    onCollectPayment={() => {
-                      setCollectIntent('handover');
-                      setCollectOpen(true);
-                    }}
-                    onCompleted={() => {
-                      setActionBarKey((key) => key + 1);
-                      router.replace(returnUrl);
-                    }}
-                  />
-                ) : null
-              }
-              onActionSuccess={() => {
-                void loadOrder();
-              }}
-            />
+            <>
+              {(order.currentStatus === 'ready' || isReadyForPickup) ? (
+                <ReadyFulfilmentPanel
+                  key={`ready-fulfilment-${actionBarKey}`}
+                  orderId={orderId}
+                  orderNo={order.orderNo}
+                  customerName={order.customer.name}
+                  paymentTypeCode={order.paymentTypeCode}
+                  outstandingAmount={order.paymentSummary?.remaining ?? 0}
+                  formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
+                  rackLocation={order.rackLocation}
+                  onCollectPayment={() => {
+                    setCollectIntent('handover');
+                    setCollectOpen(true);
+                  }}
+                  onCompleted={() => {
+                    setActionBarKey((key) => key + 1);
+                    router.replace(returnUrl);
+                  }}
+                  onReleaseSuccess={() => {
+                    void loadOrder();
+                    setActionBarKey((key) => key + 1);
+                  }}
+                />
+              ) : null}
+              <WorkflowActionBar
+                key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
+                orderId={orderId}
+                screen="ready_release"
+                hideWhenEmpty
+                hiddenActionCodes={[
+                  WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP,
+                  ...(isReadyForPickup ? [WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY] : []),
+                ]}
+                onActionSuccess={() => {
+                  void loadOrder();
+                }}
+              />
+            </>
           ) : null}
           {/* Payment section */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -523,7 +524,10 @@ export default function ReadyDetailPage() {
           // hardcoded 'OMR' silently mislabels money for every other GCC tenant
           // (no-default rule for currency_code / locale fields).
           currencyCode={order.currencyCode ?? tenantCurrencyCode}
-          onCollected={() => loadOrder()}
+          onCollected={() => {
+            void loadOrder();
+            setActionBarKey((key) => key + 1);
+          }}
           // Ready is the only surface with print infrastructure, so it is the
           // only one that passes this. Closes B04's deferred receipt gap.
           onPrintReceipt={() => openPrintPreview('receipt', 'thermal')}

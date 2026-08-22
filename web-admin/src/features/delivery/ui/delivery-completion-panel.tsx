@@ -65,8 +65,8 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
   const hasBalance = stop.order.outstandingAmount > 0.001;
   const { needsSignature, needsPhotos } = evidenceRequirements(methodCode);
   const methodsQuery = useQuery({
-    queryKey: ['delivery', 'pod-methods'],
-    queryFn: listDeliveryPodMethods,
+    queryKey: ['delivery', 'pod-methods', stop.id],
+    queryFn: () => listDeliveryPodMethods(stop.id),
     enabled: STAFF_DELIVERY_COMPLETION_ENABLED && canComplete && !isDelivered && !hasBalance,
   });
   const selectedMethod = methodsQuery.data?.find((method) => method.code === methodCode);

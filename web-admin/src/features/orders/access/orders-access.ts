@@ -1190,6 +1190,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/preparation',
     label: 'Preparation',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {
@@ -1362,6 +1374,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
+      {
         label: 'Order state (Simple Processing)',
         method: 'GET',
         path: '/api/v1/orders/[id]/state',
@@ -1396,6 +1418,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: '/api/v1/orders/[id]/issue',
         notes: ['Auth-only local route; Report Issue from Simple Processing header.'],
+      },
+      {
+        label: 'Complete processing (list Mark Ready)',
+        method: 'POST',
+        path: '/api/v1/processing/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Processing table Mark Ready uses the stage-owned command; no toStatus guess.'],
       },
       {
         label: 'Piece preferences list/add (Simple Processing)',
@@ -1497,6 +1529,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Complete processing',
+        method: 'POST',
+        path: '/api/v1/processing/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned COMPLETE_PROCESSING; Idempotency-Key required. Destination is owned by the compiled artifact.'],
+      },
     ],
     notes: ORDER_NOTES,
   },
@@ -1505,6 +1547,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Assembly',
     page: {},
     apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
       {
         label: 'Assembly dashboard',
         method: 'GET',
@@ -1589,6 +1641,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/assembly/dashboard',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
+      {
+        label: 'Complete assembly',
+        method: 'POST',
+        path: '/api/v1/assembly/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned COMPLETE_ASSEMBLY; Idempotency-Key required.'],
+      },
     ],
     notes: ORDER_NOTES,
   },
@@ -1596,6 +1658,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/qa',
     label: 'Quality Check',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {
@@ -1615,6 +1689,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/orders/[id]/issue',
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
+      {
+        label: 'Pass quality check',
+        method: 'POST',
+        path: '/api/v1/qa/[id]/pass',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned PASS_QA; Idempotency-Key required.'],
+      },
+      {
+        label: 'Fail quality check',
+        method: 'POST',
+        path: '/api/v1/qa/[id]/fail',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned FAIL_QA; reason required; Idempotency-Key required.'],
+      },
     ],
     notes: ORDER_NOTES,
   },
@@ -1622,6 +1716,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/ready',
     label: 'Ready',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {
@@ -1644,6 +1750,14 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
         notes: ['Atomic pickup handover command; payment collection remains a separate Order Fin action.'],
+      },
+      makeAvailableForPickup: {
+        label: 'Make available for pickup',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned RELEASE_FOR_PICKUP; Ready fulfilment panel owns this CTA.'],
       },
     },
     apiDependencies: [
@@ -1672,6 +1786,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
         notes: ['Atomic tenant-scoped counter handover command.'],
+      },
+      {
+        label: 'Make available for pickup',
+        method: 'POST',
+        path: '/api/v1/ready/[id]/release-pickup',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned RELEASE_FOR_PICKUP; Idempotency-Key required.'],
+      },
+      {
+        label: 'Release for delivery',
+        method: 'POST',
+        path: '/api/v1/ready/[id]/release-delivery',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned RELEASE_FOR_DELIVERY; Idempotency-Key required.'],
       },
     ],
     notes: ORDER_NOTES,
@@ -1712,6 +1846,18 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/packing',
     label: 'Packing',
     page: {},
+    apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+      },
+    ],
     notes: ORDER_NOTES,
   },
   {
@@ -1734,6 +1880,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
+      {
+        label: 'Complete packing',
+        method: 'POST',
+        path: '/api/v1/packing/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned COMPLETE_PACKING; Idempotency-Key required.'],
+      },
     ],
     notes: ORDER_NOTES,
   },
@@ -1746,13 +1902,16 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
-        label: 'List delivery orders',
+        label: 'Floor worklist',
         method: 'GET',
         path: '/api/v1/orders',
         requirement: {
           permissions: ['orders:read'],
           requireAllPermissions: true,
         },
+        notes: [
+          'workflow_screen selects artifact, pinned-graph, or live catalog membership.',
+        ],
       },
       {
         label: 'List delivery routes',

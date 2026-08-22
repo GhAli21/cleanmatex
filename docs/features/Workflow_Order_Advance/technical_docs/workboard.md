@@ -10,11 +10,11 @@ execute a workflow transition.
 ## Runtime policy resolution
 
 1. Read the tenant's `workboard` screen contract for the legacy/default status set.
-2. For each V2 profile/version represented by tenant orders, load the immutable
-   graph through `wf_profile_id` + `wf_version_no`.
-3. Include a V2 order only when the pinned graph has both active `workboard`
-   membership and active membership for one ordered stage owner.
-4. For historic/unpinned orders, use the live tenant contract and live owner
+2. For each compiled artifact represented by tenant orders, load that exact
+   immutable artifact. A profile/version pin without artifact identity is excluded.
+3. Include a semantic order only when the artifact has both active `workboard`
+   membership and an enabled primary-owner stage for that status.
+4. For historic/unsnapshotted orders, use the live tenant contract and live owner
    lookup. Do not backfill or rebind historical orders.
 5. If no stage owner exists, omit the row and return a `configurationGaps` item.
 

@@ -2,6 +2,8 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 
+/** Historical V2 graph-pin loader retained for audit. Production execution, lists, and create no longer call it. */
+
 export interface PinnedInitialRule {
   rule_code: string;
   order_source_code: string | null;

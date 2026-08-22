@@ -279,7 +279,12 @@
       "rackSaveFailed": "Failed to save rack location"
     },
     "rackPlaceholder": "e.g., Rack A-12",
-    "rackHelp": "Assign a rack so release for pickup/delivery can proceed."
+    "rackHelp": "Assign a rack so release for pickup/delivery can proceed.",
+    "fulfilment": {
+      "title": "Pickup and collection",
+      "description": "Make the order available, collect remaining payment, then confirm handover when the customer receives the items.",
+      "makeAvailable": "Make available for pickup"
+    }
   },
   "pickup": {
     "title": "Customer pickup",
@@ -579,6 +584,18 @@
     "stopConfirmTitle": "Permanently stop this order?",
     "stopConfirmDescription": "This is a terminal workflow action. The order cannot resume after it is stopped.",
     "stopConfirmAction": "Stop order permanently",
-    "orderControlTitle": "Hold / resume / stop"
+    "orderControlTitle": "Hold / resume / stop",
+    "gateWarningHint": "Requires acknowledgement. Facts are checked again on confirm.",
+    "gateOverrideHint": "Requires an authorized override reason.",
+    "gateWarningTitle": "Review warning before continuing",
+    "gateWarningDescription": "This action will be checked again when you confirm. Acknowledging a warning is not a bypass.",
+    "gateOverrideTitle": "Authorized override required",
+    "gateOverrideDescription": "Provide a reason. The server will re-check live facts and your override permission.",
+    "gateOverrideReasonLabel": "Override reason",
+    "gateOverrideReasonPlaceholder": "Explain why this gate is being overridden…",
+    "gateOverrideReasonRequired": "Enter a reason (at least {min} characters)",
+    "gateOverridePermissionHint": "Requires permission: {permission}",
+    "gateConfirmAction": "Confirm and continue",
+    "gateAckHint": "Acknowledgement is recorded for audit and expires if the order changes."
   }
 }

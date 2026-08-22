@@ -4,12 +4,8 @@ import { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/db/prisma'
 import {
-  isPinnedScreenStatusMember,
-  loadPinnedGraphForProfileVersion,
-  type PinnedGraphDefinition,
-} from '@/lib/services/workflow/pinned-workflow-graph.service'
-import {
   loadSemanticWorkflowArtifactForOrder,
+  SemanticWorkflowArtifactError,
   type SemanticWorkflowArtifact,
   type SemanticWorkflowOrderSnapshot,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service'
@@ -140,15 +136,6 @@ function asIso(value: Date | null): string | null {
 function ageMinutes(receivedAt: Date | null, lastTransitionAt: Date | null): number {
   const origin = lastTransitionAt ?? receivedAt
   return origin ? Math.max(0, Math.floor((Date.now() - origin.getTime()) / 60_000)) : 0
-}
-
-function ownerForPinnedStatus(
-  graph: PinnedGraphDefinition,
-  statusCode: string,
-): OwnerScreenKey | null {
-  return OWNER_SCREEN_KEYS.find((screenKey) =>
-    isPinnedScreenStatusMember(graph, screenKey, statusCode),
-  ) ?? null
 }
 
 /**
@@ -333,7 +320,8 @@ function buildOwnerSummary(
  */
 export class WorkboardQueryService {
   /**
-   * Lists the operational queue using each order's pinned profile graph when present.
+   * Lists the operational queue using each order's compiled artifact when present.
+   * Profile-stamped orders without an artifact are excluded rather than reading a graph pin.
    *
    * @example
    * await WorkboardQueryService.list(tenantId, { page: 1, pageSize: 25 })
@@ -373,27 +361,16 @@ export class WorkboardQueryService {
       : []
 
     for (const pair of profilePairs) {
-      if (pair.wf_profile_artifact_id) {
-        const artifact = await loadSemanticWorkflowArtifactForOrder(pair satisfies SemanticWorkflowOrderSnapshot)
-        if (!artifact) continue
-        const scope = scopeFromSemanticArtifact(pair, artifact)
-        if (scope.ownerByStatus.size > 0) scopes.push(scope)
-        continue
+      let artifact: SemanticWorkflowArtifact | null = null
+      try {
+        artifact = await loadSemanticWorkflowArtifactForOrder(pair satisfies SemanticWorkflowOrderSnapshot)
+      } catch (error) {
+        if (error instanceof SemanticWorkflowArtifactError) continue
+        throw error
       }
-      if (!pair.wf_profile_id || pair.wf_version_no === null) continue
-
-      const graph = await loadPinnedGraphForProfileVersion(pair.wf_profile_id, pair.wf_version_no)
-      const ownerByStatus = new Map<string, OwnerScreenKey>()
-      for (const statusCode of configuredStatuses) {
-        // A V2 profile owns its own queue policy; the live contract must not
-        // broaden a pinned order into Workboard after a later catalog edit.
-        if (graph && !isPinnedScreenStatusMember(graph, WORKBOARD_SCREEN_KEY, statusCode)) continue
-        const owner = graph ? ownerForPinnedStatus(graph, statusCode) : liveOwners.get(statusCode)
-        if (owner) ownerByStatus.set(statusCode, owner)
-      }
-      if (ownerByStatus.size > 0) {
-        scopes.push({ profileId: pair.wf_profile_id, versionNo: pair.wf_version_no, artifactId: null, ownerByStatus })
-      }
+      if (!artifact) continue
+      const scope = scopeFromSemanticArtifact(pair, artifact)
+      if (scope.ownerByStatus.size > 0) scopes.push(scope)
     }
 
     for (const statusCode of configuredStatuses) {

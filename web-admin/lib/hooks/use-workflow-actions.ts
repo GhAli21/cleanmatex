@@ -4,6 +4,36 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
+import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
+
+export interface WorkflowGateDecisionDto {
+  gateCode: string;
+  result: 'WARNING' | 'OVERRIDABLE';
+  messageKey?: string | null;
+  acknowledgementChallenge?: string;
+  overrideMinReasonLength?: number;
+  overridePermissionCode?: string | null;
+}
+
+export function toSubmittedGateDecisions(
+  decisions: WorkflowGateDecisionDto[] | undefined,
+  overrideReason?: string,
+): Array<{
+  gateCode: string;
+  acknowledgementChallenge?: string;
+  overrideReason?: string;
+}> | undefined {
+  if (!decisions?.length) return undefined;
+  return decisions.map((decision) => ({
+    gateCode: decision.gateCode,
+    ...(decision.result === 'WARNING' && decision.acknowledgementChallenge
+      ? { acknowledgementChallenge: decision.acknowledgementChallenge }
+      : {}),
+    ...(decision.result === 'OVERRIDABLE' && overrideReason
+      ? { overrideReason }
+      : {}),
+  }));
+}
 
 export interface WorkflowActionDto {
   actionCode: string;
@@ -12,6 +42,7 @@ export interface WorkflowActionDto {
   label2: string | null;
   enabled: boolean;
   blockedReasons: Array<{ code: string; message: string; message2?: string }>;
+  gateDecisions?: WorkflowGateDecisionDto[];
 }
 
 export interface UseWorkflowActionsResult {
@@ -27,6 +58,11 @@ export interface UseWorkflowActionsResult {
     actionCode: string,
     input?: Record<string, unknown>,
     preferredToStatus?: string,
+    gateDecisions?: Array<{
+      gateCode: string;
+      acknowledgementChallenge?: string;
+      overrideReason?: string;
+    }>,
   ) => Promise<boolean>;
 }
 
@@ -86,35 +122,30 @@ export function useWorkflowActions(
       actionCode: string,
       input?: Record<string, unknown>,
       preferredToStatus?: string,
+      gateDecisions?: Array<{
+        gateCode: string;
+        acknowledgementChallenge?: string;
+        overrideReason?: string;
+      }>,
     ) => {
       if (!enabled || !orderId || stateVersion == null) {
         return false;
       }
       setLoading(true);
       try {
-        const idempotencyKey =
-          typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? crypto.randomUUID()
-            : `${orderId}:${actionCode}:${Date.now()}`;
-        const res = await fetch(`/api/v1/orders/${orderId}/actions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Idempotency-Key': idempotencyKey,
+        const result = await postStaffWorkflowCommand({
+          orderId,
+          screen,
+          actionCode,
+          expectedStateVersion: stateVersion,
+          input: {
+            ...input,
+            ...(preferredToStatus ? { preferredToStatus } : {}),
           },
-          body: JSON.stringify({
-            screen,
-            actionCode,
-            expectedStateVersion: stateVersion,
-            input: {
-              ...input,
-              ...(preferredToStatus ? { preferredToStatus } : {}),
-            },
-          }),
+          gateDecisions,
         });
-        const json = await res.json();
-        if (!res.ok || !json.success) {
-          throw new Error(json.error || t('actionFailed'));
+        if (!result.ok || !result.success) {
+          throw new Error(result.error || t('actionFailed'));
         }
         cmxMessage.success(t('actionSuccess'));
         await refresh();

@@ -5,6 +5,7 @@ import type {
   SemanticWorkflowCommandChannel,
   SemanticWorkflowExecution,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service';
+import type { SemanticGateBinding } from '@/lib/services/workflow/workflow-gate-decision.service';
 
 /** Runtime action projection used by the common workflow command engine. */
 export interface SemanticWorkflowActionTransition {
@@ -16,6 +17,7 @@ export interface SemanticWorkflowActionTransition {
   minReasonLength: number;
   requiresEvidence: boolean;
   gateCodes: string[];
+  gates: SemanticGateBinding[];
   hasUnsupportedGateMode: boolean;
   displayOrder: number;
 }
@@ -140,10 +142,24 @@ export function loadSemanticActionTransitions(
       minReasonLength: execution.min_reason_length,
       requiresEvidence: execution.requires_evidence,
       gateCodes: execution.gates.map((gate) => normalise(gate.gate_code)),
-      // The command runtime deliberately supports hard blocks only. Any future
-      // acknowledgement or override mode must be implemented atomically first.
+      gates: execution.gates.map((gate) => ({
+        gate_code: normalise(gate.gate_code),
+        blocking_mode: gate.blocking_mode,
+        evaluator_version: gate.evaluator_version,
+        input_schema_version: gate.input_schema_version,
+        override_permission_code: 'override_permission_code' in gate
+          ? (gate.override_permission_code as string | null | undefined) ?? null
+          : null,
+        override_min_reason_length: 'override_min_reason_length' in gate
+          ? Number(gate.override_min_reason_length ?? 0)
+          : 0,
+        message_key: 'message_key' in gate ? (gate.message_key as string | null | undefined) ?? null : null,
+      })),
       hasUnsupportedGateMode: execution.gates.some(
-        (gate) => gate.blocking_mode !== 'hard_block',
+        (gate) =>
+          gate.blocking_mode !== 'hard_block'
+          && gate.blocking_mode !== 'soft_warning'
+          && gate.blocking_mode !== 'override_allowed',
       ),
       displayOrder: execution.display_order,
     }))

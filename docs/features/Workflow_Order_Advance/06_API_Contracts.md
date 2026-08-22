@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** P7R stage-command contracts started for Preparation and Delivery; staff delivery rollout remains disabled · **Date:** 2026-08-14
+**Status:** P7R stage-command contracts are active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and atomic Delivery complete; warning/override gate decisions and compiled POD method lists are live for semantic snapshot orders; floor lists use `workflow_screen` membership; staff S10 canary remains unsigned · **Date:** 2026-08-22
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions
@@ -18,6 +18,14 @@ Routes below are **target contracts** for V1.0; align to existing `/api/v1/order
       "enabled": false,
       "blockedReasons": [
         { "code": "GATE_PREP_INCOMPLETE", "message": "…", "message2": "…" }
+      ],
+      "gateDecisions": [
+        {
+          "gateCode": "rack_required",
+          "result": "WARNING",
+          "messageKey": "workflow.gates.rack.warning",
+          "acknowledgementChallenge": "short-lived-hmac-token"
+        }
       ]
     }
   ]
@@ -32,15 +40,28 @@ Headers: `Idempotency-Key` (required)
 
 ```json
 {
-  "screen": "driver_delivery",
-  "actionCode": "CONFIRM_DELIVERY",
+  "screen": "ready_release",
+  "actionCode": "RELEASE_FOR_PICKUP",
   "expectedStateVersion": 12,
   "input": {
-    "pod": { "photoIds": [], "signatureId": null, "notes": null },
-    "releaseId": null
-  }
+    "rackLocation": "R-12"
+  },
+  "gateDecisions": [
+    {
+      "gateCode": "rack_required",
+      "acknowledgementChallenge": "short-lived-hmac-token"
+    },
+    {
+      "gateCode": "fin_release_eligible",
+      "overrideReason": "Supervisor approved a documented exception."
+    }
+  ]
 }
 ```
+
+Staff ActionBar submits `gateDecisions` after the server returned `WARNING` or `OVERRIDABLE` on available-actions. The execute command re-evaluates live facts, verifies the HMAC challenge or override permission/reason, inserts `org_wf_gate_decision_mst`, and emits `WORKFLOW_GATE_DECISION_ACCEPTED`. Stable errors: `WF_GATE_HARD_BLOCKED` (422), `WF_GATE_ACK_REQUIRED` (422), `WF_GATE_ACK_INVALID` (422), `WF_GATE_OVERRIDE_FORBIDDEN` (403), `WF_GATE_OVERRIDE_REASON_INVALID` (422), `WF_GATE_EVALUATION_STALE` (409). Public tracking never accepts warning or override.
+
+Staff delivery `GET /api/v1/delivery/pod-methods?stopId=` returns catalog methods for historic orders, or the compiled `SIGNATURE` / `PHOTO` / `MIXED` / `POD` / `NOTES` subset for semantic snapshot stops. OTP is never listed.
 
 ```json
 {
@@ -51,11 +72,11 @@ Headers: `Idempotency-Key` (required)
 }
 ```
 
-**Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `400 REASON_REQUIRED`, `400 UNSUPPORTED_GATE_MODE`, `400 EVIDENCE_RUNTIME_UNAVAILABLE`, `400 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `403 FORBIDDEN`, `404 NOT_FOUND`.
+**Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `400 REASON_REQUIRED`, `400 UNSUPPORTED_GATE_MODE`, `400 EVIDENCE_RUNTIME_UNAVAILABLE`, `409 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `403 FORBIDDEN`, `404 NOT_FOUND`.
 
 For an order with a semantic profile snapshot, the service reads only the exact immutable artifact identified by the order. It checks the artifact's screen membership, action edge, and server-assigned command channel. An ordinary command requires an enabled `primary_owner` module and an `owner` status membership; observer visibility is read-only even if malformed artifact input contains an execution. An enabled `cross_cutting_command` module is the deliberate exception for a separately declared command surface such as `public_tracking`; it still requires a declared membership, execution edge, and permitted server-assigned channel. The service does not re-resolve the tenant assignment or read mutable profile, graph-pin, screen, transition, or action-catalog configuration. `public_tracking` calls the same command with `channel=public_web`; authenticated internal adapters use `staff_web` until mobile, POS, API, and integration adapters are introduced.
 
-Semantic hard-block gates are evaluated from the tenant-scoped order row read under the command transaction lock. `rack_required`, preparation gates, and `fin_release_eligible` therefore return identical `GATE_FAILED` reasons during action discovery and command execution. A positive outstanding balance returns `GATE_FIN_RELEASE`. `CREDIT_INVOICE` invokes the B2B fulfilment payment-hold seam; its current result is non-blocking because order creation owns the existing B2B credit decision. Clients must not implement B2B finance policy: the future B2B feature will replace the seam with its own durable policy without changing this workflow contract.
+Semantic hard-block gates are evaluated from tenant-scoped facts read under the command transaction lock. `rack_required`, preparation gates, `fin_release_eligible`, piece/QA gates, pickup/delivery collection, pickup-release, delivery-stop, and POD-evidence therefore return identical `GATE_FAILED` reasons during action discovery and command execution, except `pod_evidence_valid` which is discovery-allowed and execute-enforced from command input. A positive outstanding balance returns `GATE_FIN_RELEASE`. Missing piece/QA/fulfilment facts return `GATE_FACTS_UNAVAILABLE` in semantic mode. `CREDIT_INVOICE` invokes the B2B fulfilment payment-hold seam; its current result is non-blocking because order creation owns the existing B2B credit decision. Clients must not implement B2B finance policy: the future B2B feature will replace the seam with its own durable policy without changing this workflow contract. Partial fulfilment, returns, and OTP proof remain fail closed.
 
 ### 2.1 Workflow context compatibility read
 
@@ -63,7 +84,15 @@ Semantic hard-block gates are evaluated from the tenant-scoped order row read un
 
 ## 3. Worklist
 
-Existing orders list filtered by screen membership (`current_status IN …`).
+`GET /api/v1/orders?workflow_screen={screenKey}`
+
+Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) send `workflow_screen` instead of a client-computed `status_filter`. The server includes an order when that screen is a member of the order's runtime policy:
+
+- semantic snapshot → immutable artifact module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`)
+- profile/version pin without a compiled artifact → excluded (fail closed)
+- legacy unsnapshotted order → live screen contract, or `sys_wf_screen_status_cd` when the contract is empty
+
+Unknown screen keys return an empty page. `status_filter` remains for non-floor lists and as an optional extra narrowing filter. Staff S10 completion remains a separate command.
 
 ## 4. Create
 
@@ -199,10 +228,14 @@ Method evidence policy currently enforced by the command:
 | `SIGNATURE` | One valid signature evidence receipt |
 | `PHOTO` | At least one valid photo evidence receipt |
 | `MIXED` | Signature and at least one photo |
+| `POD` | Compiled POD confirmation; no photo or signature unless those methods are also required |
+| `NOTES` | Compiled notes overlay; non-empty `podNotes` when notes is required |
 
-Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 POD_EVIDENCE_INVALID`, `422 DELIVERY_COLLECTION_REQUIRED`, `503 DELIVERY_HARDENING_REQUIRED`.
+A semantic snapshot that names delivery evidence permits only those compiled methods. Independent optional methods may be combined; mixed is derived when both signature and photo are compiled. Required notes apply regardless of the selected method. OTP remains rejected until a durable verifier exists. Legacy orders and artifacts without delivery evidence still use the POD catalog.
 
-The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Private storage receipt validation is implemented; database-backed completion rollback, tenant-isolation, and concurrency tests remain release gates. OTP expiry/retry controls are intentionally deferred to VNext; this release must use configured `SIGNATURE`, `PHOTO`, or `MIXED` proof methods only.
+Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `409 STOP_ALREADY_DELIVERED`, `409 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `422 POD_METHOD_INVALID`, `422 POD_EVIDENCE_REQUIRED`, `422 POD_EVIDENCE_INVALID`, `422 DELIVERY_COLLECTION_REQUIRED`, `403 ACTION_NOT_ALLOWED`, `503 DELIVERY_HARDENING_REQUIRED`.
+
+The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Local database-backed tests now cover pay-on-collection blocking, cross-tenant stop isolation, OTP reject, already-delivered, engine-failure rollback, happy-path route counters, stale-version rollback, idempotent replay, and serialized dual-complete. Complete requires `delivery:pod` and `orders:transition`. Workflow `VERSION_CONFLICT` maps to HTTP 409. Staff `CONFIRM_DELIVERY` on `POST /api/v1/orders/{id}/actions` and `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`. OTP expiry/retry controls remain deferred to VNext; compiled profiles may list OTP as optional authoring only. Staff S10 canary still requires an explicit rollout decision.
 
 ### 10.1 Delivery proof and handover audit (P7R)
 
@@ -251,7 +284,8 @@ The command locks the tenant-scoped order and open pickup releases, accepts
 `ready_for_pickup` for the staged route or `ready` for the authenticated direct
 counter route, blocks a remaining `PAY_ON_COLLECTION` balance, rejects unresolved
 partial-release records, and requires an existing active pickup release for the
-staged route. It fulfils that release, or creates and fulfils one audit record for a
+staged route. When the compiled pickup evidence names required notes, empty
+`handoverNotes` is rejected. It fulfils that release, or creates and fulfils one audit record for a
 direct handover, then calls `CONFIRM_PICKUP` on `pickup_handover` in the same
 transaction. The staged route is `ready_for_pickup` → `delivered`; the direct
 counter route is `ready` → `delivered`. It writes workflow history/outbox through
@@ -260,7 +294,7 @@ the engine and stores a replay-safe response under the endpoint idempotency reso
 Errors: `400 INVALID_REQUEST|IDEMPOTENCY_KEY_REQUIRED`, `401 UNAUTHORIZED`,
 `403 ACTION_NOT_ALLOWED`, `404 ORDER_NOT_FOUND`, `409
 VERSION_CONFLICT|IDEMPOTENCY_CONFLICT|IDEMPOTENCY_IN_FLIGHT`, `422
-ORDER_NOT_READY|PICKUP_RELEASE_REQUIRED|PICKUP_COLLECTION_REQUIRED|PICKUP_PARTIAL_RELEASE_UNSUPPORTED`,
+ORDER_NOT_READY|PICKUP_RELEASE_REQUIRED|PICKUP_COLLECTION_REQUIRED|PICKUP_PARTIAL_RELEASE_UNSUPPORTED|PICKUP_NOTES_REQUIRED|PICKUP_POLICY_UNAVAILABLE`,
 and `503 AUTHORIZATION_CHECK_UNAVAILABLE`.
 
 `GET /api/v1/orders` and `GET /api/v1/orders/{id}/state` return a
@@ -282,6 +316,43 @@ Integration credentials must be a dedicated, least-privilege tenant user with
 caller must retain and retry the same idempotency key after a timeout. Invalid order
 IDs and unexpected request fields return `400 INVALID_REQUEST` before any command,
 workflow, or audit write is attempted.
+
+## 11.1 Stage-owned floor commands (P7R, active)
+
+These adapters own the screen and action code. Web, mobile, and integrations post
+`expectedStateVersion` plus optional `rackLocation` / `reason`; they must not send a
+guessed `toStatus`. Cookie sessions require CSRF. Bearer JWTs skip CSRF and use the
+same `orders:transition` check. `Idempotency-Key` is required.
+
+| Command | Method / path |
+|---|---|
+| Complete processing | `POST /api/v1/processing/{orderId}/complete` |
+| Complete assembly | `POST /api/v1/assembly/{orderId}/complete` |
+| Pass QA | `POST /api/v1/qa/{orderId}/pass` |
+| Fail QA | `POST /api/v1/qa/{orderId}/fail` |
+| Complete packing | `POST /api/v1/packing/{orderId}/complete` |
+| Make available for pickup | `POST /api/v1/ready/{orderId}/release-pickup` |
+| Release for delivery | `POST /api/v1/ready/{orderId}/release-delivery` |
+
+```json
+{
+  "expectedStateVersion": 12,
+  "rackLocation": "RACK-A1",
+  "reason": "Stain remained after finishing."
+}
+```
+
+`FAIL_QA` requires a reason of at least 10 characters. Unexpected fields, including
+client-supplied `tenantId` or actor IDs, return `400 INVALID_REQUEST`. The shared
+engine remains the only workflow-status writer. Floor hooks resolve these paths
+automatically; unmapped actions continue to `POST /api/v1/orders/{id}/actions`.
+
+Errors: `400 INVALID_REQUEST|IDEMPOTENCY_KEY_REQUIRED|REASON_REQUIRED`,
+`401 UNAUTHORIZED`, `403 ACTION_NOT_ALLOWED`, `404 NOT_FOUND`,
+`409 VERSION_CONFLICT|IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED`.
+
+Staff delivery completion remains the separate server-disabled
+`POST /api/v1/delivery/stops/{stopId}/complete` contract.
 
 ## 12. P0 sign-off gaps
 
@@ -332,7 +403,8 @@ It has no mutation endpoint.
 For a semantic order pinned to `wf_profile_artifact_id`, the service evaluates
 the exact immutable artifact's `workboard` membership and primary-owner stage
 membership. Its owner metrics group by that artifact identity, preventing
-separate compiled revisions from being conflated. Legacy pinned-graph and
-unprofiled orders use the documented compatibility path only. A status without
+separate compiled revisions from being conflated. Profile-stamped orders
+without a compiled artifact are excluded. Unsnapshotted historic orders use
+the live tenant contract. A status without
 an active owner is excluded and returned as a configuration gap rather than
 guessed or mutated.

@@ -29,9 +29,13 @@ describe('GET /api/v1/delivery/pod-methods', () => {
   it('requires the same completion permissions and returns server-configured methods', async () => {
     listDeliveryPodMethodsMock.mockResolvedValue([{ code: 'SIGNATURE', name: 'Signature' }]);
 
-    const response = await GET({} as NextRequest);
+    const response = await GET({ nextUrl: { searchParams: new URLSearchParams() } } as NextRequest);
 
     expect(requireAllPermissionsFactory).toHaveBeenCalledWith(['delivery:pod', 'orders:transition']);
+    expect(listDeliveryPodMethodsMock).toHaveBeenCalledWith({
+      tenantId: '11111111-1111-1111-1111-111111111111',
+      stopId: undefined,
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       success: true,

@@ -14,6 +14,7 @@ This guide covers the operator-owned V1.0 engine cutover, public tracking, count
 6. `0451_delivery_pod_private_evidence.sql` (private `delivery-pod-evidence` storage prerequisite)
 7. `0452_delivery_evidence_upload_receipts.sql` (durable tenant-stop evidence receipt prerequisite)
 8. `0455_workboard_permission_navigation.sql` (Workboard permission + Orders child navigation)
+9. `0463_sys_wf_gate_ops_fulfilment.sql` (piece/QA/fulfilment/evidence gate catalog seed; operator confirmed applied locally and remotely on 2026-08-22)
 
 Do not modify older migrations. Apply them in normal sequence in the environment you are promoting.
 
@@ -27,6 +28,7 @@ Do not modify older migrations. Apply them in normal sequence in the environment
   - `DeliveryProofAuditService` and `GET /api/v1/delivery/orders/{orderId}/proof`
   - Delivery Stop Detail and Order Details **Delivery Proof** card, including signed-link refresh
   - Workboard API and Cmx supervisor screen, including the profile-pinned membership read model
+  - Stage-owned Processing, Assembly, QA, Packing, and Ready/Release command adapters, plus the Ready fulfilment panel
 - Server workflow writes are engine-only. Keep UI/visibility flags scoped to the intended rollout until pilot acceptance is complete.
 
 ## Recommended rollout order
@@ -42,7 +44,7 @@ Do not modify older migrations. Apply them in normal sequence in the environment
 9. For one delivered pilot order, verify proof/audit from both Delivery Stop Detail and Order Details. Confirm the same tenant-scoped result appears, a private evidence link can be refreshed after expiry, and no private object key is present in the API response.
 10. After applying `0455`, verify a permitted supervisor can open Workboard, filter tenant work, and deep-link to the owner stage; verify a user without `workboard:read` cannot access the page or API.
 
-Do not enable staff delivery completion merely because proof/audit is visible. The Delivery completion command has separate database-backed assurance, payment, evidence, route-counter, RBAC, tenant-isolation, concurrency, pilot, and rollback gates.
+Do not treat staff S10 as accepted merely because proof/audit is visible or because the atomic complete API is enabled. Legacy capturePOD/route writers stay 503. Sign S10 only after the explicit rollout decision.
 
 ## Post-deploy checks
 
@@ -52,7 +54,8 @@ Do not enable staff delivery completion merely because proof/audit is visible. T
 - Already delivered orders keep the button disabled and return idempotent success
 - Pay-on-collection notice appears only when a remaining amount exists
 - `ready_for_pickup` always has exactly one active pickup release before handover; `ready` has none
-- Browser pickup calls require CSRF; bearer-token integrations require an authenticated tenant user with `orders:transition`
+- Browser pickup and stage-command calls require CSRF; bearer-token integrations require an authenticated tenant user with `orders:transition` and an `Idempotency-Key`
+- Staff `CONFIRM_DELIVERY` through `/actions` or `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`
 - Raw status PATCH and bulk status endpoints return authenticated `410 USE_WORKFLOW_ACTIONS`
 - Application logs contain no permission errors for retired `cmx_order_*` / `cmx_ord_*` functions
 - Proof/audit requests require `orders:read`; Delivery Stop Detail also retains `drivers:read`

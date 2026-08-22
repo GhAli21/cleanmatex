@@ -7,6 +7,7 @@ const mockIdempotencyUpdateMany = jest.fn();
 const mockClaimIdempotencyKey = jest.fn();
 const mockDeleteIdempotencyHash = jest.fn();
 const mockExecuteAction = jest.fn();
+const mockLoadArtifact = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -25,6 +26,16 @@ jest.mock('@/lib/utils/idempotency', () => ({
 
 jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
   executeAction: (...args: unknown[]) => mockExecuteAction(...args),
+}));
+
+jest.mock('@/lib/services/workflow/semantic-workflow-artifact.service', () => ({
+  loadSemanticWorkflowArtifactForOrder: (...args: unknown[]) => mockLoadArtifact(...args),
+  SemanticWorkflowArtifactError: class SemanticWorkflowArtifactError extends Error {
+    constructor(readonly code: string, message: string) {
+      super(message);
+      this.name = 'SemanticWorkflowArtifactError';
+    }
+  },
 }));
 
 jest.mock('@/lib/utils/logger', () => ({
@@ -58,6 +69,7 @@ describe('completePickup', () => {
     mockExecuteRaw.mockResolvedValue(1);
     mockIdempotencyUpdateMany.mockResolvedValue({ count: 1 });
     mockExecuteAction.mockResolvedValue({ ok: true, currentStatus: 'delivered', stateVersion: 8 });
+    mockLoadArtifact.mockResolvedValue(null);
   });
 
   it('blocks pay-on-collection pickup before a release or workflow write', async () => {
@@ -176,5 +188,33 @@ describe('completePickup', () => {
     );
     const directReleaseInsert = mockQueryRaw.mock.calls[mockQueryRaw.mock.calls.length - 1];
     expect(directReleaseInsert).toContain(COMMAND.expectedStateVersion + 1);
+  });
+
+  it('rejects compiled required pickup notes before a release or workflow write', async () => {
+    mockLoadArtifact.mockResolvedValue({
+      evidence: [{
+        fulfilment_channel: 'pickup',
+        evidence_method_code: 'notes',
+        is_required: true,
+        minimum_count: 0,
+        display_order: 1,
+      }],
+    });
+    mockQueryRaw.mockResolvedValueOnce([
+      {
+        id: COMMAND.orderId,
+        current_status: 'ready_for_pickup',
+        payment_type_code: 'PAY_IN_ADVANCE',
+        outstanding_amount: '0.0000',
+      },
+    ]);
+
+    await expect(completePickup(COMMAND)).rejects.toMatchObject<PickupCompletionError>({
+      code: 'PICKUP_NOTES_REQUIRED',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
   });
 });

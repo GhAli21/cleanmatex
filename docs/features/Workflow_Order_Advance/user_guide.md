@@ -50,17 +50,20 @@ pickup shelf.
 2. Check the **Pickup availability** card. A Ready order has one of two states:
    - **Not yet available for pickup**: use **Make available for pickup** when the items are staged for collection.
    - **Available for pickup**: the release timestamp is shown; the release actions are no longer offered.
-3. If a **Collect remaining payment** button is shown, collect the balance using
+3. Use the **Pickup and collection** panel for the three first-class actions:
+   **Make available for pickup**, **Collect remaining payment**, and **Confirm customer pickup**.
+   Do not look for a second workflow bar to confirm handover.
+4. If a **Collect remaining payment** button is shown, collect the balance using
    the existing payment screen. Do not confirm the pickup before payment is
    posted.
-4. If the customer is present now and the order is still **Not yet available for
+5. If the customer is present now and the order is still **Not yet available for
    pickup**, choose **Confirm customer pickup now**. This direct counter path
    moves `ready` to `delivered` and creates one fulfilled pickup audit record in
    the same transaction. Do not use it merely to stage an order on the shelf.
-5. If the order is already **Available for pickup**, use **Confirm customer
+6. If the order is already **Available for pickup**, use **Confirm customer
    pickup**. This staged path moves `ready_for_pickup` to `delivered`.
-6. Optionally add a handover note and confirm the dialog.
-7. Verify the order is `delivered` and disappears from the Ready worklist after
+7. Optionally add a handover note and confirm the dialog.
+8. Verify the order is `delivered` and disappears from the Ready worklist after
    refresh.
 
 **Make available for pickup** changes the order to `ready_for_pickup`. It does
@@ -157,7 +160,9 @@ The audit view is read-only. It does not create a delivery stop, collect payment
 
 The Delivery dashboard permits the read-only proof/audit review above, but route creation, driver assignment, OTP generation/verification, POD capture, and direct staff **Mark delivered** actions remain disabled while atomic delivery hardening is open. Direct calls to staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write route, stop, POD, order, history, or outbox data.
 
-Do not bypass this containment or use the generic order Actions tab to mark an order delivered. Continue using the opaque public `/track/{token}` confirm-received flow only for its approved customer contract. Staff delivery S10 can resume after the production checklist confirms atomic POD, route counters, financial gates, idempotency, concurrency, RBAC, tenant isolation, and rollback coverage.
+Do not bypass this containment or use the generic order Actions tab to mark an order delivered. Continue using the opaque public `/track/{token}` confirm-received flow only for its approved customer contract.
+
+**S10** is the production smoke for staff proof-of-delivery: capture POD on an `out_for_delivery` order and confirm POD, stop, route counters, and `CONFIRM_DELIVERY` succeed together. The atomic complete API is implemented; S10 is still unsigned until the operator/e2e canary is recorded.
 
 ## Workboard supervisor queue
 

@@ -5,6 +5,7 @@
 ## 1. Permission model
 
 - Floor: `orders:transition` + optional per-action codes (valid `resource:action`)
+- Stage-owned Processing, Assembly, QA, Packing, Ready/Release, and Pickup adapters reuse `orders:transition`; they do not introduce a new permission code.
 - Tenant profile view / approved-list pick: limited settings permission (e.g. `settings:workflow` read)
 - HQ author/publish/assign: HQ Platform permissions (saas) — not tenant cashier roles
 - Remap invalid multi-segment codes in one migration

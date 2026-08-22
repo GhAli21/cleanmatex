@@ -21,10 +21,34 @@
 --
 -- Coverage:
 --   - order rows, item/detail rows, invoice/payment/voucher rows
+--   - tax documents, workflow gate decisions and releases, order costing lines
+--   - AR sub-ledger rows (ledger, allocations, disputes, dunning runs)
+--   - stored-value funding tenders, voucher audit log, B2B statement payments
 --   - optional stored-value and loyalty ledgers
 --   - optional repair of affected wallet / advance / gift-card /
 --     credit-note / loyalty master balances
 --   - optional deletion of orphan stored-value masters after cleanup
+--
+-- Schema alignment (last verified 2026-08-22):
+--   - org_payments_dtl_tr and org_payment_audit_log were dropped when the legacy
+--     payment ledger was retired. All references to them are removed, together
+--     with the include_legacy_payment_rows option.
+--   - Tables that hold an ON DELETE RESTRICT foreign key into the target set are
+--     deleted explicitly and in dependency order, so the transaction cannot abort
+--     on a foreign-key violation:
+--       org_ar_credit_allocs_dtl   -> org_customer_ar_ledger_dtl, org_invoice_mst
+--       org_ar_disputes_mst        -> org_invoice_mst
+--       org_dlv_ev_uploads_tr      -> org_dlv_stops_dtl
+--       org_fin_overpay_disp_dtl   -> org_orders_mst
+--       org_sv_funding_tenders_dtl -> org_fin_vouchers_mst, org_fin_voucher_trx_lines_dtl
+--       org_tax_doc_lines_dtl      -> org_tax_documents_mst
+--       org_tax_documents_mst      -> org_orders_mst (and itself, via supersedes_id)
+--       org_wf_gate_decision_mst   -> org_orders_mst
+--   - Tables that would otherwise be silently SET NULL or cascaded are deleted
+--     explicitly instead: org_ar_dunning_runs_mst, org_b2b_statement_payments_dtl,
+--     org_fin_voucher_audit_log, org_asm_exceptions_tr, org_dlv_pod_tr.
+--   - Known residue left on purpose: sys_gw_webhook_events_tr.payment_id is SET NULL
+--     by its own foreign key. It is a gateway webhook log, not order data.
 --
 -- Workflow:
 --   1. Keep cleanup_all_tenants = true for all tenants, or set false and provide tenant_org_id.
@@ -59,7 +83,6 @@ CREATE TEMP TABLE cleanup_config (
   auto_created_to                    TIMESTAMP WITHOUT TIME ZONE,
 
   include_invoice_rows               BOOLEAN NOT NULL DEFAULT true,
-  include_legacy_payment_rows        BOOLEAN NOT NULL DEFAULT true,
   include_order_payment_rows         BOOLEAN NOT NULL DEFAULT true,
   include_voucher_rows               BOOLEAN NOT NULL DEFAULT true,
 
@@ -94,7 +117,6 @@ INSERT INTO cleanup_config (
   auto_created_from,
   auto_created_to,
   include_invoice_rows,
-  include_legacy_payment_rows,
   include_order_payment_rows,
   include_voucher_rows,
   include_wallet_rows,
@@ -114,35 +136,34 @@ INSERT INTO cleanup_config (
   delete_orphan_gift_card_masters
 )
 VALUES (
-  true,  -- do_execute: true = delete, false = dry-run
-  true,  -- cleanup_all_tenants: true = all tenants; false = only tenant_org_id
-  NULL,  -- tenant_org_id: required only when cleanup_all_tenants = false
-  1000000,
-  true,
-  true,
-  'ALL_TENANT_ORDERS',
-  NULL,
-  NULL,
-  NULL,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  false,
-  false,
-  false,
-  false,
-  false
+  true,                 -- do_execute: true = delete, false = dry-run
+  true,                 -- cleanup_all_tenants: true = all tenants; false = only tenant_org_id
+  NULL,                 -- tenant_org_id: required only when cleanup_all_tenants = false
+  1000000,              -- max_target_orders
+  true,                 -- fail_on_uncovered_refs
+  true,                 -- auto_target_orders
+  'ALL_TENANT_ORDERS',  -- auto_target_mode
+  NULL,                 -- auto_order_no_like
+  NULL,                 -- auto_created_from
+  NULL,                 -- auto_created_to
+  true,                 -- include_invoice_rows: invoices + AR ledger, allocations, disputes, dunning
+  true,                 -- include_order_payment_rows
+  true,                 -- include_voucher_rows: vouchers + funding tenders, audit log, B2B statement payments
+  true,                 -- include_wallet_rows
+  true,                 -- include_advance_rows
+  true,                 -- include_gift_card_rows
+  true,                 -- include_credit_note_rows
+  true,                 -- include_loyalty_rows
+  true,                 -- update_wallet_masters
+  true,                 -- update_advance_masters
+  true,                 -- update_gift_card_masters
+  true,                 -- update_credit_note_masters
+  true,                 -- update_loyalty_masters
+  false,                -- delete_empty_wallet_accounts
+  false,                -- delete_empty_advance_accounts
+  false,                -- delete_empty_loyalty_accounts
+  false,                -- delete_orphan_credit_note_headers
+  false                 -- delete_orphan_gift_card_masters
 );
 
 DO $$
@@ -262,18 +283,9 @@ WHERE (cfg.cleanup_all_tenants OR link.tenant_org_id = cfg.tenant_org_id)
 
 CREATE UNIQUE INDEX idx_tmp_target_invoices ON tmp_target_invoices (invoice_id);
 
-CREATE TEMP TABLE tmp_target_legacy_payments ON COMMIT DROP AS
-SELECT DISTINCT p.id AS payment_id
-FROM public.org_payments_dtl_tr AS p
-CROSS JOIN cleanup_config AS cfg
-WHERE (cfg.cleanup_all_tenants OR p.tenant_org_id = cfg.tenant_org_id)
-  AND (
-    p.order_id IN (SELECT order_id FROM tmp_target_orders)
-    OR p.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
-  );
-
-CREATE UNIQUE INDEX idx_tmp_target_legacy_payments ON tmp_target_legacy_payments (payment_id);
-
+-- NOTE: the legacy payment ledger (org_payments_dtl_tr) and its audit log
+-- (org_payment_audit_log) were dropped from the schema, so there is no legacy
+-- payment target set any more.
 CREATE TEMP TABLE tmp_target_order_payments ON COMMIT DROP AS
 SELECT DISTINCT p.id AS order_payment_id
 FROM public.org_order_payments_dtl AS p
@@ -322,15 +334,6 @@ WHERE (cfg.cleanup_all_tenants OR v.tenant_org_id = cfg.tenant_org_id)
     v.order_id IN (SELECT order_id FROM tmp_target_orders)
     OR v.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
   )
-
-UNION
-
-SELECT DISTINCT p.voucher_id
-FROM public.org_payments_dtl_tr AS p
-CROSS JOIN cleanup_config AS cfg
-WHERE (cfg.cleanup_all_tenants OR p.tenant_org_id = cfg.tenant_org_id)
-  AND p.id IN (SELECT payment_id FROM tmp_target_legacy_payments)
-  AND p.voucher_id IS NOT NULL
 
 UNION
 
@@ -431,9 +434,90 @@ FROM public.org_order_history AS h
 CROSS JOIN cleanup_config AS cfg
 WHERE (cfg.cleanup_all_tenants OR h.tenant_org_id = cfg.tenant_org_id)
   AND h.order_id IN (SELECT order_id FROM tmp_target_orders)
-  AND h.outbox_event_id IS NOT NULL;
+  AND h.outbox_event_id IS NOT NULL
+
+UNION
+
+-- Most outbox rows are never linked back from org_order_history, so match the
+-- aggregate id directly against every targeted entity instead of hard-coding the
+-- aggregate_type values, which drift as new outbox handlers are added.
+SELECT DISTINCT e.id
+FROM public.org_domain_events_outbox AS e
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR e.tenant_org_id = cfg.tenant_org_id)
+  AND e.aggregate_id IS NOT NULL
+  AND (
+    e.aggregate_id IN (SELECT order_id FROM tmp_target_orders)
+    OR e.aggregate_id IN (SELECT invoice_id FROM tmp_target_invoices)
+    OR e.aggregate_id IN (SELECT order_payment_id FROM tmp_target_order_payments)
+    OR e.aggregate_id IN (SELECT refund_id FROM tmp_target_order_refunds)
+    OR e.aggregate_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+  );
 
 CREATE UNIQUE INDEX idx_tmp_target_outbox_events ON tmp_target_outbox_events (outbox_event_id);
+
+-- -----------------------------------------------------------------------------
+-- Target sets for tables added to the schema after this script was first written
+-- -----------------------------------------------------------------------------
+-- org_tax_documents_mst RESTRICTs org_orders_mst, and org_tax_doc_lines_dtl
+-- RESTRICTs org_tax_documents_mst.
+CREATE TEMP TABLE tmp_target_tax_documents ON COMMIT DROP AS
+SELECT DISTINCT d.id AS tax_document_id
+FROM public.org_tax_documents_mst AS d
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR d.tenant_org_id = cfg.tenant_org_id)
+  AND d.order_id IN (SELECT order_id FROM tmp_target_orders);
+
+CREATE UNIQUE INDEX idx_tmp_target_tax_documents ON tmp_target_tax_documents (tax_document_id);
+
+-- Workflow Engine releases: org_wf_release_ln has a NO ACTION link to the header.
+CREATE TEMP TABLE tmp_target_wf_releases ON COMMIT DROP AS
+SELECT DISTINCT r.id AS release_id
+FROM public.org_wf_release_mst AS r
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR r.tenant_org_id = cfg.tenant_org_id)
+  AND r.order_id IN (SELECT order_id FROM tmp_target_orders);
+
+CREATE UNIQUE INDEX idx_tmp_target_wf_releases ON tmp_target_wf_releases (release_id);
+
+-- Stored-value funding tenders RESTRICT both the voucher and the voucher line.
+CREATE TEMP TABLE tmp_target_sv_funding_tenders ON COMMIT DROP AS
+SELECT DISTINCT t.id AS funding_tender_id
+FROM public.org_sv_funding_tenders_dtl AS t
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR t.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    t.fin_voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+    OR t.fin_voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
+  );
+
+CREATE UNIQUE INDEX idx_tmp_target_sv_funding_tenders ON tmp_target_sv_funding_tenders (funding_tender_id);
+
+-- AR ledger rows in scope. Resolved once here because org_ar_credit_allocs_dtl
+-- RESTRICTs them and has to be deleted against exactly the same set.
+CREATE TEMP TABLE tmp_target_ar_ledger_rows ON COMMIT DROP AS
+SELECT DISTINCT l.id AS ar_ledger_id
+FROM public.org_customer_ar_ledger_dtl AS l
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR l.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    l.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
+    OR l.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+    OR l.payment_alloc_id IN (
+      SELECT p.id
+      FROM public.org_invoice_payments_dtl AS p
+      WHERE (cfg.cleanup_all_tenants OR p.tenant_org_id = cfg.tenant_org_id)
+        AND p.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
+    )
+    OR l.adjustment_id IN (
+      SELECT a.id
+      FROM public.org_invoice_adjustments_dtl AS a
+      WHERE (cfg.cleanup_all_tenants OR a.tenant_org_id = cfg.tenant_org_id)
+        AND a.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
+    )
+  );
+
+CREATE UNIQUE INDEX idx_tmp_target_ar_ledger_rows ON tmp_target_ar_ledger_rows (ar_ledger_id);
 
 -- -----------------------------------------------------------------------------
 -- Stored-value / loyalty target sets
@@ -580,19 +664,14 @@ WHERE gift_card_id IS NOT NULL
 
 UNION
 
-SELECT DISTINCT gift_card_id
-FROM public.org_invoice_mst
-WHERE tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)
-  AND id IN (SELECT invoice_id FROM tmp_target_invoices)
-  AND gift_card_id IS NOT NULL
-
-UNION
-
-SELECT DISTINCT gift_card_id
-FROM public.org_payments_dtl_tr
-WHERE tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)
-  AND id IN (SELECT payment_id FROM tmp_target_legacy_payments)
-  AND gift_card_id IS NOT NULL
+-- Uses the cleanup_all_tenants guard: a bare tenant_org_id = <NULL> comparison
+-- silently returned zero rows in the default all-tenants mode.
+SELECT DISTINCT inv.gift_card_id
+FROM public.org_invoice_mst AS inv
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR inv.tenant_org_id = cfg.tenant_org_id)
+  AND inv.id IN (SELECT invoice_id FROM tmp_target_invoices)
+  AND inv.gift_card_id IS NOT NULL
 
 UNION
 
@@ -691,13 +770,14 @@ CREATE TEMP TABLE tmp_uncovered_related_refs (
 
 DO $$
 DECLARE
+  v_all_tenants   BOOLEAN;
   v_tenant_org_id UUID;
   r RECORD;
   v_count BIGINT;
   v_predicate TEXT;
 BEGIN
-  SELECT tenant_org_id
-  INTO v_tenant_org_id
+  SELECT cleanup_all_tenants, tenant_org_id
+  INTO v_all_tenants, v_tenant_org_id
   FROM cleanup_config
   LIMIT 1;
 
@@ -710,7 +790,6 @@ BEGIN
         WHEN 'source_order_id'         THEN 'ORDER'
         WHEN 'related_order_id'        THEN 'ORDER'
         WHEN 'invoice_id'              THEN 'INVOICE'
-        WHEN 'payment_id'              THEN 'LEGACY_PAYMENT'
         WHEN 'order_payment_id'        THEN 'ORDER_PAYMENT'
         WHEN 'voucher_id'              THEN 'VOUCHER'
         WHEN 'fin_voucher_id'          THEN 'VOUCHER'
@@ -724,6 +803,10 @@ BEGIN
         ELSE 'OTHER'
       END AS reference_scope
     FROM information_schema.columns AS c
+    JOIN information_schema.tables AS t
+      ON t.table_schema = c.table_schema
+     AND t.table_name = c.table_name
+     AND t.table_type = 'BASE TABLE'
     WHERE c.table_schema = 'public'
       AND c.table_name LIKE 'org\_%' ESCAPE '\'
       AND c.column_name IN (
@@ -731,7 +814,6 @@ BEGIN
         'source_order_id',
         'related_order_id',
         'invoice_id',
-        'payment_id',
         'order_payment_id',
         'voucher_id',
         'fin_voucher_id',
@@ -743,14 +825,31 @@ BEGIN
         'advance_id',
         'account_id'
       )
+      -- account_id only means a loyalty account on the loyalty tables. Elsewhere
+      -- (org_fin_bank_acct_mst, org_fin_cashbox_mst, org_fin_journal_dtl,
+      -- org_fin_usage_map_mst) it is a GL / bank / cashbox account and matching
+      -- it here produced false positives that blocked execution.
+      AND (
+        c.column_name <> 'account_id'
+        OR c.table_name LIKE 'org\_loyalty\_%' ESCAPE '\'
+      )
+      -- the probe filters by tenant, so a table without tenant_org_id cannot be
+      -- probed and would raise inside the EXECUTE below.
+      AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns AS tc
+        WHERE tc.table_schema = c.table_schema
+          AND tc.table_name = c.table_name
+          AND tc.column_name = 'tenant_org_id'
+      )
       AND c.table_name NOT IN (
         'org_orders_mst',
         'org_order_items_dtl',
         'org_order_preferences_dtl',
         'org_order_discounts_dtl',
         'org_order_status_history',
+        'org_order_status_history_legacy',
         'org_order_edit_locks',
-        'org_payments_dtl_tr',
         'org_fin_vouchers_mst',
         'org_order_history',
         'org_order_issues',
@@ -787,7 +886,21 @@ BEGIN
         'org_invoice_adjustments_dtl',
         'org_invoice_status_history_dtl',
         'org_fin_voucher_trx_lines_dtl',
-        'org_payment_audit_log'
+        -- covered as of 2026-08-22
+        'org_ar_credit_allocs_dtl',
+        'org_ar_disputes_mst',
+        'org_ar_dunning_runs_mst',
+        'org_b2b_statement_payments_dtl',
+        'org_fin_cost_run_dtl',
+        'org_fin_overpay_disp_dtl',
+        'org_fin_rcpt_alloc_preview_tr',
+        'org_fin_voucher_audit_log',
+        'org_sv_funding_tenders_dtl',
+        'org_tax_documents_mst',
+        'org_tax_doc_lines_dtl',
+        'org_wf_gate_decision_mst',
+        'org_wf_release_mst',
+        'org_wf_release_ln'
       )
   LOOP
     v_predicate := CASE r.column_name
@@ -795,7 +908,6 @@ BEGIN
       WHEN 'source_order_id'         THEN 't.source_order_id IN (SELECT order_id FROM tmp_target_orders)'
       WHEN 'related_order_id'        THEN 't.related_order_id IN (SELECT order_id FROM tmp_target_orders)'
       WHEN 'invoice_id'              THEN 't.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)'
-      WHEN 'payment_id'              THEN 't.payment_id IN (SELECT payment_id FROM tmp_target_legacy_payments)'
       WHEN 'order_payment_id'        THEN 't.order_payment_id IN (SELECT order_payment_id FROM tmp_target_order_payments)'
       WHEN 'voucher_id'              THEN 't.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)'
       WHEN 'fin_voucher_id'          THEN 't.fin_voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)'
@@ -813,15 +925,18 @@ BEGIN
       CONTINUE;
     END IF;
 
+    -- The tenant predicate has to honour cleanup_all_tenants. The previous
+    -- version compared tenant_org_id against a NULL, so in the default
+    -- all-tenants mode every probe returned 0 and the guard never fired.
     EXECUTE format(
       'SELECT count(*) FROM public.%I t
-       WHERE t.tenant_org_id = $1
+       WHERE ($1 OR t.tenant_org_id = $2)
          AND %s',
       r.table_name,
       v_predicate
     )
     INTO v_count
-    USING v_tenant_org_id;
+    USING v_all_tenants, v_tenant_org_id;
 
     IF v_count > 0 THEN
       INSERT INTO tmp_uncovered_related_refs (reference_scope, table_name, link_column, row_count)
@@ -992,7 +1107,6 @@ FROM (
     ('org_order_items_dtl',           (SELECT count(*)::bigint FROM tmp_target_order_items)),
     ('org_asm_tasks_mst',             (SELECT count(*)::bigint FROM tmp_target_asm_tasks)),
     ('org_invoice_mst',               (SELECT count(*)::bigint FROM tmp_target_invoices)),
-    ('org_payments_dtl_tr',           (SELECT count(*)::bigint FROM tmp_target_legacy_payments)),
     ('org_order_payments_dtl',        (SELECT count(*)::bigint FROM tmp_target_order_payments)),
     ('org_order_refunds_dtl',         (SELECT count(*)::bigint FROM tmp_target_order_refunds)),
     ('org_order_credit_apps_dtl',     (SELECT count(*)::bigint FROM tmp_target_credit_apps)),
@@ -1005,7 +1119,11 @@ FROM (
     ('org_gift_card_txn_dtl',         (SELECT count(*)::bigint FROM tmp_target_gift_card_txns)),
     ('org_credit_note_txn_dtl',       (SELECT count(*)::bigint FROM tmp_target_credit_note_txns)),
     ('org_loyalty_txn_dtl',           (SELECT count(*)::bigint FROM tmp_target_loyalty_txns)),
-    ('org_domain_events_outbox',      (SELECT count(*)::bigint FROM tmp_target_outbox_events))
+    ('org_domain_events_outbox',      (SELECT count(*)::bigint FROM tmp_target_outbox_events)),
+    ('org_customer_ar_ledger_dtl',    (SELECT count(*)::bigint FROM tmp_target_ar_ledger_rows)),
+    ('org_sv_funding_tenders_dtl',    (SELECT count(*)::bigint FROM tmp_target_sv_funding_tenders)),
+    ('org_tax_documents_mst',         (SELECT count(*)::bigint FROM tmp_target_tax_documents)),
+    ('org_wf_release_mst',            (SELECT count(*)::bigint FROM tmp_target_wf_releases))
 ) AS preview(table_name, row_count)
 WHERE row_count > 0
 ORDER BY table_name;
@@ -1038,27 +1156,41 @@ ORDER BY reference_scope, table_name, link_column;
 -- -----------------------------------------------------------------------------
 -- Delete dependent rows first
 -- -----------------------------------------------------------------------------
-DELETE FROM public.org_customer_ar_ledger_dtl AS x
+-- org_ar_credit_allocs_dtl RESTRICTs both org_customer_ar_ledger_dtl and
+-- org_invoice_mst, so it has to go first.
+DELETE FROM public.org_ar_credit_allocs_dtl AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
   AND cfg.include_invoice_rows
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND (
     x.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
-    OR x.payment_alloc_id IN (
-      SELECT id
-      FROM public.org_invoice_payments_dtl
-      WHERE (cfg.cleanup_all_tenants OR tenant_org_id = cfg.tenant_org_id)
-        AND invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
-    )
-    OR x.adjustment_id IN (
-      SELECT id
-      FROM public.org_invoice_adjustments_dtl
-      WHERE (cfg.cleanup_all_tenants OR tenant_org_id = cfg.tenant_org_id)
-        AND invoice_id IN (SELECT invoice_id FROM tmp_target_invoices)
-    )
-    OR x.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+    OR x.source_ledger_id IN (SELECT ar_ledger_id FROM tmp_target_ar_ledger_rows)
   );
+
+-- org_ar_disputes_mst RESTRICTs org_invoice_mst.
+DELETE FROM public.org_ar_disputes_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_invoice_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices);
+
+-- org_ar_dunning_runs_mst would otherwise be silently SET NULL against a
+-- deleted invoice.
+DELETE FROM public.org_ar_dunning_runs_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_invoice_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.invoice_id IN (SELECT invoice_id FROM tmp_target_invoices);
+
+DELETE FROM public.org_customer_ar_ledger_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_invoice_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT ar_ledger_id FROM tmp_target_ar_ledger_rows);
 
 DELETE FROM public.org_invoice_payments_dtl AS x
 USING cleanup_config AS cfg
@@ -1101,12 +1233,16 @@ WHERE cfg.do_execute
     OR x.order_id IN (SELECT order_id FROM tmp_target_orders)
   );
 
-DELETE FROM public.org_payment_audit_log AS x
+-- org_fin_overpay_disp_dtl RESTRICTs org_orders_mst.
+DELETE FROM public.org_fin_overpay_disp_dtl AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
-  AND cfg.include_legacy_payment_rows
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
-  AND x.payment_id IN (SELECT payment_id FROM tmp_target_legacy_payments);
+  AND (
+    x.order_id IN (SELECT order_id FROM tmp_target_orders)
+    OR x.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+    OR x.voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
+  );
 
 DELETE FROM public.org_cash_drawer_movements_dtl AS x
 USING cleanup_config AS cfg
@@ -1118,6 +1254,7 @@ WHERE cfg.do_execute
     OR x.order_payment_id IN (SELECT order_payment_id FROM tmp_target_order_payments)
     OR x.fin_voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
     OR x.fin_voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
+    OR x.funding_tender_id IN (SELECT funding_tender_id FROM tmp_target_sv_funding_tenders)
   );
 
 DELETE FROM public.org_rcpt_receipts_mst AS x
@@ -1199,12 +1336,32 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.id IN (SELECT order_payment_id FROM tmp_target_order_payments);
 
-DELETE FROM public.org_payments_dtl_tr AS x
+-- Voucher-linked children. org_sv_funding_tenders_dtl RESTRICTs both the
+-- voucher and the voucher line; the other two would otherwise be silently
+-- SET NULL / cascaded.
+DELETE FROM public.org_sv_funding_tenders_dtl AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
-  AND cfg.include_legacy_payment_rows
+  AND cfg.include_voucher_rows
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
-  AND x.id IN (SELECT payment_id FROM tmp_target_legacy_payments);
+  AND x.id IN (SELECT funding_tender_id FROM tmp_target_sv_funding_tenders);
+
+DELETE FROM public.org_b2b_statement_payments_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_voucher_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    x.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers)
+    OR x.voucher_trx_line_id IN (SELECT voucher_line_id FROM tmp_target_voucher_lines)
+  );
+
+DELETE FROM public.org_fin_voucher_audit_log AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_voucher_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.voucher_id IN (SELECT voucher_id FROM tmp_target_vouchers);
 
 DELETE FROM public.org_fin_voucher_trx_lines_dtl AS x
 USING cleanup_config AS cfg
@@ -1465,11 +1622,41 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
 
+DELETE FROM public.org_asm_exceptions_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.task_id IN (SELECT task_id FROM tmp_target_asm_tasks);
+
 DELETE FROM public.org_asm_tasks_mst AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.id IN (SELECT task_id FROM tmp_target_asm_tasks);
+
+-- org_dlv_ev_uploads_tr RESTRICTs org_dlv_stops_dtl; org_dlv_pod_tr cascades
+-- but is removed explicitly for the same reason as the assembly exceptions.
+DELETE FROM public.org_dlv_ev_uploads_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.stop_id IN (
+    SELECT sub.id
+    FROM public.org_dlv_stops_dtl AS sub
+    WHERE (cfg.cleanup_all_tenants OR sub.tenant_org_id = cfg.tenant_org_id)
+      AND sub.order_id IN (SELECT order_id FROM tmp_target_orders)
+  );
+
+DELETE FROM public.org_dlv_pod_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.stop_id IN (
+    SELECT sub.id
+    FROM public.org_dlv_stops_dtl AS sub
+    WHERE (cfg.cleanup_all_tenants OR sub.tenant_org_id = cfg.tenant_org_id)
+      AND sub.order_id IN (SELECT order_id FROM tmp_target_orders)
+  );
 
 DELETE FROM public.org_dlv_stops_dtl AS x
 USING cleanup_config AS cfg
@@ -1543,6 +1730,30 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
 
+-- Tax documents: org_tax_doc_lines_dtl RESTRICTs the header, the header
+-- RESTRICTs org_orders_mst, and the header RESTRICTs itself through
+-- supersedes_id. Unlink the supersede chain first. A document belonging to an
+-- order that is NOT being deleted but superseding one that is loses only that
+-- link; no amount is touched.
+UPDATE public.org_tax_documents_mst AS x
+SET supersedes_id = NULL
+FROM cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.supersedes_id IN (SELECT tax_document_id FROM tmp_target_tax_documents);
+
+DELETE FROM public.org_tax_doc_lines_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.tax_document_id IN (SELECT tax_document_id FROM tmp_target_tax_documents);
+
+DELETE FROM public.org_tax_documents_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT tax_document_id FROM tmp_target_tax_documents);
+
 DELETE FROM public.org_order_taxes_dtl AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
@@ -1567,6 +1778,49 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.id IN (SELECT outbox_event_id FROM tmp_target_outbox_events);
 
+-- Workflow Engine rows. org_wf_gate_decision_mst RESTRICTs org_orders_mst and
+-- org_wf_release_ln has a NO ACTION link to its header.
+DELETE FROM public.org_wf_release_ln AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.release_id IN (SELECT release_id FROM tmp_target_wf_releases);
+
+DELETE FROM public.org_wf_release_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT release_id FROM tmp_target_wf_releases);
+
+DELETE FROM public.org_wf_gate_decision_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
+
+-- Order-linked rows with no foreign key, which would otherwise be left behind
+-- pointing at deleted orders.
+DELETE FROM public.org_order_status_history_legacy AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.order_id IN (SELECT order_id FROM tmp_target_orders);
+
+DELETE FROM public.org_fin_cost_run_dtl AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    x.order_id IN (SELECT order_id FROM tmp_target_orders)
+    OR x.order_item_id IN (SELECT order_item_id FROM tmp_target_order_items)
+  );
+
+DELETE FROM public.org_fin_rcpt_alloc_preview_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.source_order_id IN (SELECT order_id FROM tmp_target_orders);
+
 DELETE FROM public.org_orders_mst AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
@@ -1582,7 +1836,10 @@ SELECT
   (SELECT count(*) FROM public.org_orders_mst         WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT order_id FROM tmp_target_orders)) AS remaining_orders,
   (SELECT count(*) FROM public.org_invoice_mst        WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT invoice_id FROM tmp_target_invoices)) AS remaining_invoices,
   (SELECT count(*) FROM public.org_order_payments_dtl WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT order_payment_id FROM tmp_target_order_payments)) AS remaining_order_payments,
-  (SELECT count(*) FROM public.org_payments_dtl_tr    WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT payment_id FROM tmp_target_legacy_payments)) AS remaining_legacy_payments,
+  (SELECT count(*) FROM public.org_tax_documents_mst  WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT tax_document_id FROM tmp_target_tax_documents)) AS remaining_tax_documents,
+  (SELECT count(*) FROM public.org_wf_release_mst     WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT release_id FROM tmp_target_wf_releases)) AS remaining_wf_releases,
+  (SELECT count(*) FROM public.org_sv_funding_tenders_dtl WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT funding_tender_id FROM tmp_target_sv_funding_tenders)) AS remaining_funding_tenders,
+  (SELECT count(*) FROM public.org_customer_ar_ledger_dtl WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT ar_ledger_id FROM tmp_target_ar_ledger_rows)) AS remaining_ar_ledger_rows,
   (SELECT count(*) FROM public.org_fin_vouchers_mst   WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT voucher_id FROM tmp_target_vouchers)) AS remaining_vouchers,
   (SELECT count(*) FROM public.org_wallet_txn_dtl     WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT id FROM tmp_target_wallet_txns)) AS remaining_wallet_txns,
   (SELECT count(*) FROM public.org_advance_txn_dtl    WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT id FROM tmp_target_advance_txns)) AS remaining_advance_txns,

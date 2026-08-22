@@ -95,10 +95,12 @@ export interface UseScreenOrdersOptions {
 }
 
 /**
- * Hook to get orders filtered by screen contract pre-conditions.
- * It fetches the screen contract and then uses its status list to query `/api/v1/orders`.
- * @param screen
- * @param options
+ * Loads the authenticated tenant's floor-screen queue.
+ * New workflow lists resolve membership on the server from each order's
+ * artifact or live catalog rather than a client status list.
+ *
+ * @param screen Floor screen key, including historical aliases such as `ready`.
+ * @param options Tenant-scoped paging, search, and compatibility flags.
  */
 export function useScreenOrders<TOrder = any>(
   screen: string,
@@ -120,43 +122,35 @@ export function useScreenOrders<TOrder = any>(
     error: contractError,
   } = useScreenContract(screen);
 
+  const useNewWorkflow = options.useOldWfCodeOrNew !== false;
+
   const statusFilter = useMemo(() => {
-    const useNewWorkflow = options.useOldWfCodeOrNew !== false;
+    if (useNewWorkflow) return '';
 
-    // Old workflow: ignore screen contracts and use legacy/hardcoded statuses.
-    if (!useNewWorkflow) {
-      const legacyByScreen: Record<string, string[]> = {
-        preparation: ['intake', 'preparing'],
-        processing: ['processing'],
-        assembly: ['ready', 'assembly'],
-        qa: ['ready', 'qa'],
-        packing: ['packing'],
-        ready: ['ready', 'ready_for_pickup'],
-        delivery: ['out_for_delivery'],
-      };
+    const legacyByScreen: Record<string, string[]> = {
+      preparation: ['intake', 'preparing'],
+      processing: ['processing'],
+      assembly: ['ready', 'assembly'],
+      qa: ['ready', 'qa'],
+      packing: ['packing'],
+      ready: ['ready', 'ready_for_pickup'],
+      delivery: ['out_for_delivery'],
+      driver_delivery: ['out_for_delivery'],
+    };
 
-      const legacy = legacyByScreen[screen];
-      if (legacy && legacy.length > 0) return legacy.join(',');
-
-      const fallback = options.fallbackStatuses;
-      if (fallback && fallback.length > 0) return fallback.join(',');
-
-      return '';
-    }
-
-    // New workflow: use screen contract pre-conditions; fallback if missing.
-    const statuses = contract?.preConditions?.statuses;
-    if (statuses && statuses.length > 0) return statuses.join(',');
+    const legacy = legacyByScreen[screen];
+    if (legacy && legacy.length > 0) return legacy.join(',');
 
     const fallback = options.fallbackStatuses;
     if (fallback && fallback.length > 0) return fallback.join(',');
 
     return '';
-  }, [contract, options.fallbackStatuses, options.useOldWfCodeOrNew, screen]);
+  }, [options.fallbackStatuses, screen, useNewWorkflow]);
 
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const enabled = (options.enabled ?? true) && !contractLoading;
+  const enabled = (options.enabled ?? true)
+    && (useNewWorkflow || (!contractLoading && statusFilter.length > 0));
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<OrdersListResponse<TOrder>>({
     queryKey: [
@@ -164,6 +158,7 @@ export function useScreenOrders<TOrder = any>(
       'screen',
       screen,
       {
+        useNewWorkflow,
         statusFilter,
         page,
         limit,
@@ -177,10 +172,14 @@ export function useScreenOrders<TOrder = any>(
         ...options.additionalFilters,
       },
     ],
-    enabled: enabled && statusFilter.length > 0,
+    enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.set('status_filter', statusFilter);
+      if (useNewWorkflow) {
+        params.set('workflow_screen', screen);
+      } else {
+        params.set('status_filter', statusFilter);
+      }
       params.set('page', String(page));
       params.set('limit', String(limit));
 
@@ -238,15 +237,15 @@ export function useScreenOrders<TOrder = any>(
   };
 
   const mergedError =
-    (contractError instanceof Error ? contractError.message : null) ??
-    (error instanceof Error ? error.message : null);
+    (!useNewWorkflow && contractError instanceof Error ? contractError.message : null)
+    ?? (error instanceof Error ? error.message : null);
 
   return {
     contract,
     contractLoading,
     statusFilter,
     orders,
-    isLoading: contractLoading || isLoading,
+    isLoading: (!useNewWorkflow && contractLoading) || isLoading,
     isFetching,
     error: mergedError,
     pagination,

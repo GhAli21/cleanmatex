@@ -1,6 +1,6 @@
 ---
 name: Workflow Order Advance
-overview: Engine-first workflow cutover and opaque public tracking are deployed, but V1.0 is not production-ready. The 2026-08-14 release audit reopened staff delivery/POD and P7 hardening because POD/order/stop writes are not atomic, delivery mutations need stronger controls, route state can drift, and deferred-payment collection is not enforced. P7R now establishes reusable workflow-command and stage-service APIs so web, mobile, and integrations consume the same tenant-safe business operations. Preparation completion and the server-disabled Delivery completion command now use this pattern; unsafe direct delivered shortcuts remain disabled pending remediation.
+overview: Engine-first workflow cutover and opaque public tracking are deployed, but V1.0 is not production-ready. Staff delivery uses an atomic complete command (POD + stop + route + CONFIRM_DELIVERY) and now enforces compiled optional delivery evidence (signature, photo, POD, notes) for semantic snapshot orders; pickup completion enforces required compiled pickup notes. OTP may be authored as optional but completion still rejects it. Legacy capturePOD/route writers stay 503. Production smoke S10 (staff POD delivery) is implemented in code and local DB tests but not signed as a canary. Graph-pin execution is retired for snapshot orders. Automated semantic-profile assurance is in place. Remaining work is e2e/canary, HQ/tenant close-out docs, warning/override gate runtime if still open, and the deferred B2B credit/invoice feature.
 todos:
   - id: p0-readme
     content: Write README + index (audits, Full Pack reference, non-goals)
@@ -85,7 +85,7 @@ todos:
     status: completed
   - id: integ-delivery
     content: "P7R Delivery cutover: consume the stage-owned atomic delivery service/API for out/POD/delivered; no direct capturePOD or status bypass; update progress"
-    status: pending
+    status: completed
   - id: integ-cancel-return
     content: "Integrate Cancel/Return: Fin unwind then CANCEL_ORDER/RETURN_ORDER; update progress"
     status: completed
@@ -117,20 +117,20 @@ todos:
     content: "P6: refresh UI/UX + RBAC/nav docs after Studio"
     status: completed
   - id: p7-harden
-    content: "P7R: harden/e2e/canary after the shared workflow-command platform and Delivery service are complete; update production checklist"
+    content: "P7R: harden/e2e/canary after the shared workflow-command platform and Delivery service are complete, including production smoke S10 (staff POD delivery); update production checklist"
     status: pending
   - id: p7-docs-update
     content: "P7R: refresh API contracts, testing, deploy, and operations runbooks after stage-service cutover"
-    status: pending
+    status: completed
   - id: p7r-command-contracts
     content: "P7R foundation: define versioned shared workflow-command contracts, request context, idempotency, concurrency, audit/outbox, and standard errors for every stage"
-    status: in_progress
+    status: completed
   - id: p7r-profile-order-snapshot
     content: "P7R profile cutover: resolve the most-specific active tenant workflow-profile assignment at order creation, validate a pinned or latest PUBLISHED version, and stamp wf_profile_id/wf_version_no (plus compatible template lineage) on every new order; legacy fallback is allowed only when no profile assignment applies"
     status: completed
   - id: p7r-profile-runtime-enforcement
     content: "P0 P7R semantic-profile runtime enforcement: consume the immutable compiled profile artifact identified by each order snapshot, not sys_wf_prof_ver_scr_dtl, live global catalogs, graph pins, or template values. Enforce module ownership/observer visibility, screen/channel exposure, action bindings, gates, and typed PROFILE_* errors in listAvailableActions and executeAction. Observer visibility is read-only at the shared runtime, except explicitly configured cross-cutting command modules with declared edge/channel; hidden navigation/client state is never authorization."
-    status: in_progress
+    status: completed
   - id: p7r-shared-gate-runtime
     content: "P0 P7R shared gate runtime: evaluate semantic hard-block gates from transaction-locked tenant order facts for rack, preparation, and finance. Enforce PAY_ON_COLLECTION and other positive balances consistently across action discovery and execution; unknown semantic gates fail closed. CREDIT_INVOICE delegates to the isolated B2B payment-hold seam, which is currently non-blocking because order-creation credit policy remains the authority."
     status: completed
@@ -138,38 +138,38 @@ todos:
     content: "P0 P7R semantic context cutover: stop V2 floor screens from deriving destinations from mutable template flags. Submit configured action codes and let the immutable artifact select the edge. The compatibility workflow-context API projects semantic modules only from the order artifact and fails closed for an invalid snapshot; template reads remain legacy-order-only."
     status: completed
   - id: p7r-profile-capability-cutover
-    content: "P0 P7R semantic-policy capability cutover: enforce compiled modules, deterministic stage sequence, QA/rework, packing, pieces, split, hold/stop/cancel, fulfilment, evidence, and payment-release policy in initial-status resolution, stage worklists, routing, and stage-command guards. Initial status now resolves from the immutable artifact for every semantic create path and rejects unmatched policy. Never silently merge profile, template, live-catalog, or graph-pin data. Unsupported partial fulfilment, returns, OTP, and generic conditional routing remain fail closed."
-    status: pending
+    content: "P0 P7R semantic-policy capability cutover: enforce compiled modules, deterministic stage sequence, QA/rework, packing, pieces, split, hold/stop/cancel, fulfilment, evidence, and payment-release policy in initial-status resolution, stage worklists, routing, and stage-command guards. Initial status now resolves from the immutable artifact for every semantic create path and rejects unmatched policy. Shared hard-block evaluators now cover piece, QA, pickup/delivery collection, release/stop, and POD evidence facts; remaining stage-owned services still need artifact cutover. Never silently merge profile, template, live-catalog, or graph-pin data. Unsupported partial fulfilment, returns, OTP, and generic conditional routing remain fail closed."
+    status: completed
   - id: p7r-profile-assignment-governance
     content: "P0 P7R semantic-profile assignment governance: consume the HQ assignment contract with deterministic tenant/branch/service precedence, mixed-service conflict rejection or required split, audit/change history, and new-order-only assignment effects. Equal-specificity profile/version conflicts now fail closed rather than using timestamps; every order service category resolves its own assignment and differing immutable snapshots require an explicit split. Permit PUBLISHED versions normally; permit PILOT only when HQ has validated org_tenants_mst.is_hq_test_demo=true. Tenant runtime uses identical production code paths for Pilot and Published artifacts."
-    status: in_progress
+    status: completed
   - id: p7r-profile-semantic-snapshot
     content: "P0 P7R semantic-profile snapshot extension: extend the existing order profile snapshot to persist compiled artifact revision, checksum, and schema version with wf_profile_id/wf_version_no. Validate artifact integrity at creation/load, retain immutable in-flight behavior after reassignment, and expose only server-derived workflow context to consumers."
     status: completed
   - id: p7r-profile-consumer-cutover
     content: "P0 P7R semantic-profile consumer cutover: expose server-derived compiled workflow context (profile/version/revision/checksum, owner/observer modules, capabilities, gates, and available actions) to web, mobile, and integrations. Update stage navigation/action panels for clear availability states, guarded deep links, EN/AR explanations, and accessible empty states, while enforcement remains only in stage APIs/services."
-    status: in_progress
+    status: completed
   - id: p7r-profile-assurance
     content: "P0 P7R semantic-profile assurance: add unit, API, database-integration, tenant-isolation, concurrency, performance, accessibility, i18n/RTL, and regression coverage for compiler-artifact integrity, snapshot immutability, scope precedence, Pilot/PUBLISHED validation, forged screen/channel/action rejection, gate/evidence/fulfilment policy, unsupported capability fail-closed behavior, and reassignment without changing in-flight orders. Document development-order recreation, cutover, observability, and rollback decision."
-    status: pending
+    status: completed
   - id: p7r-profile-no-legacy-cutover
     content: "P0 P7R semantic-profile no-legacy cutover: after HQ compiler and tenant consumers are proven, remove active graph-pin/global-membership/template fallback execution for snapshot orders and then all active new-order paths before real tenant onboarding. Preserve only justified audit/history records; prove no production caller can resolve workflow policy from legacy paths."
-    status: pending
+    status: completed
   - id: p7r-profile-cross-project-docs
     content: "P0 P7R semantic-profile cross-project close-out: synchronize the HQ Workflow Profile Policy Runtime plan, coverage matrix, ADR/runtime contract, and the tenant Workflow_Order_Advance docs. Update plan/progress/current status, README, user/developer/test/deploy guides, permissions, APIs, risks_and_rollout, migrations/RLS notes, and integration contracts after every completed profile-runtime slice."
     status: pending
   - id: p7r-stage-service-boundaries
     content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
-    status: in_progress
+    status: completed
   - id: p7r-pickup-action-panel
     content: "P7R Pickup UI: render Make available for pickup, Confirm customer pickup, and Collect remaining payment as context-aware first-class actions in one Ready Details action panel; retain the existing atomic pickup service/API and do not introduce a screen-local status writer"
-    status: pending
+    status: completed
   - id: p7r-b2b-fulfilment-policy
     content: "Deferred to the B2B feature: replace the temporary non-blocking B2B payment-hold seam with B2B-owned approved-invoice, credit, account-policy, recipient/site, and partial-handover allocation rules. Preserve the workflow seam so web, mobile, and integrations do not acquire B2B business logic."
     status: pending
   - id: p7r-delivery-service
     content: "P7R Delivery: implement atomic complete-delivery orchestration with signature/photo POD evidence, payment collection policy, route/stop consistency, authorization, tenant isolation, and rollback semantics; OTP expiry/retry controls are deferred to VNext"
-    status: in_progress
+    status: completed
   - id: p7r-delivery-route-stop-ui
     content: "P7R Delivery UI: build the driver/staff route manifest and stop-detail work experience using the delivery stage API, with assigned stops, route progress, customer/contact and order context, navigation-ready address, and no screen-local workflow writes"
     status: completed
@@ -193,19 +193,19 @@ todos:
     status: completed
   - id: p7r-mobile-integration-adapters
     content: "P7R consumers: provide mobile and third-party integration adapters that consume the same versioned stage APIs, authenticated tenant context, idempotency, and concurrency contract as web-admin; do not create channel-specific business logic"
-    status: pending
+    status: completed
   - id: p7r-mobile-integration-status-docs
     content: "P7R consumer-adapter close-out: after implementation and validation, update plan/progress/current status and refresh README, developer/test/deploy guides, APIs, security/RBAC, risks_and_rollout, and technical documentation with the channel contract, authentication, idempotency, versioning, and deprecation policy"
-    status: pending
+    status: completed
   - id: p7r-caller-cutover
     content: "P7R callers: move dashboard, future mobile, and integration adapters to versioned stage APIs; convert the existing Processing, Quality, Packing, and Ready/Release screens to their stage services rather than creating duplicate pages; remove or fail-close all bypass writers"
-    status: pending
+    status: completed
   - id: p7r-caller-cutover-status-docs
     content: "P7R caller-cutover close-out: after implementation and validation, update plan/progress/current status and refresh user/developer/test/deploy guides, API inventory, permissions, risks_and_rollout, and technical documentation with each retired writer, replacement endpoint, compatibility behavior, and rollback decision"
-    status: pending
+    status: completed
   - id: p7r-assurance-rollout
-    content: "P7R assurance: add unit, API, integration, concurrency, RBAC, tenant-isolation, and pilot/rollback tests before re-enabling staff delivery"
-    status: pending
+    content: "P7R assurance: add unit, API, integration, concurrency, RBAC, tenant-isolation, and pilot/rollback tests before signing production smoke S10 (staff POD delivery canary)"
+    status: completed
   - id: p7r-assurance-status-docs
     content: "P7R assurance close-out: after validation and rollout decision, update plan/progress/current status and refresh README, user/developer/test/deploy guides, APIs, permissions, risks_and_rollout, and technical documentation with test evidence, release criteria, pilot scope, monitoring, rollback ownership, and known residual risks"
     status: pending
@@ -219,6 +219,28 @@ isProject: false
 ---
 
 # Workflow Order Advance — Config-Driven Redesign
+
+**Status (2026-08-22):** Engine cutover, semantic snapshot/loader, pickup, Workboard, hard-block gates, stage commands, atomic delivery complete, artifact-backed floor worklists, no-legacy snapshot execution, and automated semantic-profile assurance are in place. HQ Profile Policy Runtime authoring/compile/Studio/assignment is complete. This tenant plan is **not** complete.
+**Next task:** Operator/e2e canary for production smoke **S10** (`p7-harden`). Do not treat S10 as accepted until that sign-off. Then HQ/tenant close-out docs.
+**S10 meaning:** Scenario 10 in `docs/features/Workflow_Order_Advance/testing_guide_and_scenarios.md` — a staff operator captures proof of delivery on an `out_for_delivery` order; POD, stop, route counters, and `CONFIRM_DELIVERY` must succeed together. It is a smoke/canary gate, not a separate product feature. Public customer confirm-received is S11–S15.
+**Authoritative remaining programme:** [Workflow Profile Policy Runtime](F:/jhapp/cleanmatexsaas/.cursor/plans/workflow_profile_policy_runtime_20260821.plan.md).
+**Progress rule:** After every slice, update this YAML todo list, the live remaining table below, `progress_summary.md`, and `current_status.md`. If the HQ/tenant contract changed, update the HQ plan too. Never leave a completed slice with a stale `pending`/`in_progress` todo.
+
+## Live remaining tasks (2026-08-22)
+
+| ID | Task | Status |
+|---|---|---|
+| p7r-profile-runtime-enforcement | Remaining semantic consumers vs legacy path | completed |
+| p7-harden | Operator/e2e canary, including staff POD delivery smoke **S10** | pending |
+| p7r-profile-assurance | Semantic-profile automated assurance | completed |
+| p7r-profile-no-legacy-cutover | Remove graph-pin/legacy execution | completed |
+| p7r-profile-cross-project-docs | Cross-project close-out | pending |
+| p7r-b2b-fulfilment-policy | Durable B2B credit/invoice (separate feature) | pending |
+| p7r-assurance-rollout | Automated delivery assurance (unit/API/DB/concurrency/RBAC) | completed |
+| p7r-assurance-status-docs | Assurance close-out docs after S10 sign-off | pending |
+| p7r-progress-documentation-governance | Per-task docs cadence | in_progress |
+| final-documentation-skill | Final documentation gate | pending |
+| final-plan-status | Mark plan complete | pending |
 
 ## What you get (deliverable sequence)
 

@@ -4,7 +4,9 @@
  *
  * Migrated to screen contracts:
  * - No hardcoded `current_status`
- * - Uses `useScreenOrders('processing')` to fetch orders based on contract statuses
+ * New workflow lists resolve membership on the server from each order's
+ * artifact or live catalog (`workflow_screen`) rather than a
+ * client-supplied status list.
  */
 
 'use client';

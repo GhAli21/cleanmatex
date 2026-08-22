@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { AvailableActionsQuerySchema } from '@/lib/validations/workflow-schema';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import {
   WorkflowEngineError,
   listAvailableActions,
@@ -45,6 +46,7 @@ export async function GET(
       orderId,
       screen: queryParsed.data.screen,
       locale: queryParsed.data.locale,
+      actorUserId: authCheck.userId,
     });
 
     return NextResponse.json({
@@ -53,12 +55,7 @@ export async function GET(
     });
   } catch (error) {
     if (error instanceof WorkflowEngineError) {
-      const status =
-        error.code === 'NOT_FOUND'
-          ? 404
-          : error.code === 'ACTION_NOT_ALLOWED'
-            ? 403
-            : 400;
+      const status = httpStatusForWorkflowEngineError(error.code);
       return NextResponse.json(
         {
           success: false,

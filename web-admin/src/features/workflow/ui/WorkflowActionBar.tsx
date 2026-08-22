@@ -6,7 +6,12 @@ import { Alert, AlertDescription, CmxButton, CmxInput, Label } from '@ui/primiti
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
 import { useTranslations, useLocale } from 'next-intl';
-import { useWorkflowActions, type WorkflowActionDto } from '@/lib/hooks/use-workflow-actions';
+import {
+  toSubmittedGateDecisions,
+  useWorkflowActions,
+  type WorkflowActionDto,
+  type WorkflowGateDecisionDto,
+} from '@/lib/hooks/use-workflow-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 
 const GATE_RACK_REQUIRED = 'GATE_RACK_REQUIRED';
@@ -15,6 +20,7 @@ const MIN_CONTROL_NOTES = 10;
 const CONTROL_ACTIONS_NEEDING_NOTES = new Set<string>([
   WORKFLOW_ACTIONS.HOLD_ORDER_WORK,
   WORKFLOW_ACTIONS.STOP_ORDER_WORK,
+  WORKFLOW_ACTIONS.FAIL_QA,
 ]);
 
 export interface WorkflowActionBarProps {
@@ -62,6 +68,19 @@ function needsRackPrompt(actions: WorkflowActionDto[]): boolean {
   return actions.some((a) => a.blockedReasons.some((r) => r.code === GATE_RACK_REQUIRED));
 }
 
+function gateDecisionsFor(action: WorkflowActionDto): WorkflowGateDecisionDto[] {
+  return action.gateDecisions ?? [];
+}
+
+function overrideMinReasonLength(decisions: WorkflowGateDecisionDto[]): number {
+  return Math.max(
+    MIN_CONTROL_NOTES,
+    ...decisions
+      .filter((decision) => decision.result === 'OVERRIDABLE')
+      .map((decision) => decision.overrideMinReasonLength ?? MIN_CONTROL_NOTES),
+  );
+}
+
 /**
  * Floor action CTA bar driven by listAvailableActions / executeAction.
  * Shows enabled actions as primary buttons; disabled actions with blocked reasons.
@@ -94,6 +113,9 @@ export function WorkflowActionBar({
   const [controlNotes, setControlNotes] = useState('');
   const [controlNotesError, setControlNotesError] = useState<string | null>(null);
   const [pendingStopAction, setPendingStopAction] = useState<WorkflowActionDto | null>(null);
+  const [pendingGateAction, setPendingGateAction] = useState<WorkflowActionDto | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideReasonError, setOverrideReasonError] = useState<string | null>(null);
   const didRedirectRef = useRef(false);
 
   const visible = actions.filter(
@@ -178,25 +200,51 @@ export function WorkflowActionBar({
   const rackTrimmed = rackLocation.trim();
   const notesTrimmed = controlNotes.trim();
 
-  const executeWorkflowAction = async (action: WorkflowActionDto) => {
+  const executeWorkflowAction = async (
+    action: WorkflowActionDto,
+    submittedGateDecisions?: ReturnType<typeof toSubmittedGateDecisions>,
+  ) => {
     const input: Record<string, unknown> = {};
     if (rackTrimmed) input.rackLocation = rackTrimmed;
     if (CONTROL_ACTIONS_NEEDING_NOTES.has(action.actionCode)) {
       input.notes = notesTrimmed;
+      input.reason = notesTrimmed;
     }
     const ok = await execute(
       action.actionCode,
       Object.keys(input).length > 0 ? input : undefined,
       action.toStatus,
+      submittedGateDecisions,
     );
     if (ok) {
       setRackLocation('');
       setRackError(null);
       setControlNotes('');
       setControlNotesError(null);
+      setPendingGateAction(null);
+      setOverrideReason('');
+      setOverrideReasonError(null);
       onActionSuccess?.();
     }
   };
+
+  const requestWorkflowAction = async (action: WorkflowActionDto) => {
+    if (gateDecisionsFor(action).length > 0) {
+      setPendingGateAction(action);
+      setOverrideReason('');
+      setOverrideReasonError(null);
+      return;
+    }
+    await executeWorkflowAction(action);
+  };
+
+  const pendingGateDecisions = pendingGateAction ? gateDecisionsFor(pendingGateAction) : [];
+  const pendingNeedsOverride = pendingGateDecisions.some((decision) => decision.result === 'OVERRIDABLE');
+  const pendingNeedsWarning = pendingGateDecisions.some((decision) => decision.result === 'WARNING');
+  const pendingOverrideMin = overrideMinReasonLength(pendingGateDecisions);
+  const pendingOverridePermission = pendingGateDecisions.find(
+    (decision) => decision.result === 'OVERRIDABLE' && decision.overridePermissionCode,
+  )?.overridePermissionCode;
 
   return (
     <>
@@ -311,12 +359,19 @@ export function WorkflowActionBar({
                         setPendingStopAction(action);
                         return;
                       }
-                      await executeWorkflowAction(action);
+                      await requestWorkflowAction(action);
                     })();
                   }}
                 >
                   {label}
                 </CmxButton>
+                {canClick && gateDecisionsFor(action).length > 0 ? (
+                  <p className="text-xs text-muted-foreground" role="status">
+                    {gateDecisionsFor(action).some((decision) => decision.result === 'OVERRIDABLE')
+                      ? t('gateOverrideHint')
+                      : t('gateWarningHint')}
+                  </p>
+                ) : null}
                 {!canClick && blockedHint ? (
                   <p className="text-xs text-muted-foreground" role="status">
                     {blockedHint}
@@ -338,11 +393,81 @@ export function WorkflowActionBar({
         cancelLabel={tCommon('cancel')}
         onConfirm={async () => {
           if (pendingStopAction) {
-            await executeWorkflowAction(pendingStopAction);
+            await requestWorkflowAction(pendingStopAction);
           }
         }}
         onCancel={() => setPendingStopAction(null)}
       />
+      <CmxConfirmDialog
+        open={pendingGateAction !== null}
+        title={pendingNeedsOverride ? t('gateOverrideTitle') : t('gateWarningTitle')}
+        description={
+          pendingNeedsOverride
+            ? t('gateOverrideDescription')
+            : t('gateWarningDescription')
+        }
+        confirmLabel={t('gateConfirmAction')}
+        cancelLabel={tCommon('cancel')}
+        confirmDisabled={pendingNeedsOverride && overrideReason.trim().length < pendingOverrideMin}
+        onConfirm={async () => {
+          if (!pendingGateAction) return;
+          if (pendingNeedsOverride && overrideReason.trim().length < pendingOverrideMin) {
+            setOverrideReasonError(t('gateOverrideReasonRequired', { min: pendingOverrideMin }));
+            return;
+          }
+          await executeWorkflowAction(
+            pendingGateAction,
+            toSubmittedGateDecisions(pendingGateDecisions, overrideReason.trim()),
+          );
+        }}
+        onCancel={() => {
+          setPendingGateAction(null);
+          setOverrideReason('');
+          setOverrideReasonError(null);
+        }}
+      >
+        {pendingNeedsWarning ? (
+          <p className="text-xs text-muted-foreground">{t('gateAckHint')}</p>
+        ) : null}
+        {pendingGateDecisions.map((decision) => (
+          <p key={decision.gateCode} className="text-xs text-foreground">
+            {decision.messageKey?.trim() || decision.gateCode}
+          </p>
+        ))}
+        {pendingNeedsOverride ? (
+          <div className="space-y-1.5">
+            <Label htmlFor={`wf-override-reason-${orderId}`}>{t('gateOverrideReasonLabel')}</Label>
+            <CmxInput
+              id={`wf-override-reason-${orderId}`}
+              value={overrideReason}
+              onChange={(event) => {
+                setOverrideReason(event.target.value);
+                setOverrideReasonError(null);
+              }}
+              placeholder={t('gateOverrideReasonPlaceholder')}
+              autoComplete="off"
+              aria-invalid={Boolean(overrideReasonError)}
+              aria-describedby={
+                overrideReasonError ? `wf-override-reason-err-${orderId}` : undefined
+              }
+            />
+            {pendingOverridePermission ? (
+              <p className="text-xs text-muted-foreground">
+                {t('gateOverridePermissionHint', { permission: pendingOverridePermission })}
+              </p>
+            ) : null}
+            {overrideReasonError ? (
+              <p
+                id={`wf-override-reason-err-${orderId}`}
+                className="text-xs text-destructive"
+                role="alert"
+              >
+                {overrideReasonError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </CmxConfirmDialog>
       {children}
     </>
   );

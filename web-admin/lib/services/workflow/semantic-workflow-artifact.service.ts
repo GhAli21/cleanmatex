@@ -59,6 +59,14 @@ const semanticExecutionSchema = z.object({
   gates: z.array(semanticExecutionGateSchema),
 }).passthrough();
 
+const semanticEvidenceSchema = z.object({
+  fulfilment_channel: z.enum(['pickup', 'delivery']),
+  evidence_method_code: z.string().min(1),
+  is_required: z.boolean(),
+  minimum_count: z.number().int().nonnegative(),
+  display_order: z.number().int(),
+}).passthrough();
+
 const semanticArtifactSchema = z.object({
   artifact_schema_version: z.number().int().positive(),
   profile_id: z.string().uuid(),
@@ -70,7 +78,7 @@ const semanticArtifactSchema = z.object({
   modules: z.array(semanticModuleSchema),
   module_statuses: z.array(semanticModuleStatusSchema),
   executions: z.array(semanticExecutionSchema),
-  evidence: z.array(z.unknown()),
+  evidence: z.array(semanticEvidenceSchema),
 }).passthrough();
 
 /** Immutable compiler output shape that tenant runtime services are allowed to execute. */
@@ -116,7 +124,9 @@ const artifactCache = new Map<string, SemanticWorkflowArtifact>();
 
 function hasAnySemanticSnapshotValue(snapshot: SemanticWorkflowOrderSnapshot): boolean {
   return Boolean(
-    snapshot.wf_profile_version_id
+    snapshot.wf_profile_id
+    || snapshot.wf_version_no != null
+    || snapshot.wf_profile_version_id
     || snapshot.wf_profile_artifact_id
     || snapshot.wf_profile_revision != null
     || snapshot.wf_profile_checksum

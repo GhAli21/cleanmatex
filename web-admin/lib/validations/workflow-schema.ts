@@ -362,6 +362,11 @@ export const ExecuteWorkflowActionRequestSchema = z.object({
   actionCode: z.string().min(1).max(64),
   expectedStateVersion: z.number().int().nonnegative(),
   input: z.record(z.string(), z.unknown()).optional(),
+  gateDecisions: z.array(z.object({
+    gateCode: z.string().trim().min(1).max(100),
+    acknowledgementChallenge: z.string().trim().min(1).max(8000).optional(),
+    overrideReason: z.string().trim().min(1).max(2000).optional(),
+  })).max(20).optional(),
 });
 
 export const AvailableActionsQuerySchema = z.object({

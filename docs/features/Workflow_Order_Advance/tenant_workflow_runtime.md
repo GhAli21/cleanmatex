@@ -8,7 +8,7 @@
 
 ---
 
-> **Historical P0 canary record:** This document accurately describes the graph-pin runtime currently in the codebase. It is superseded as the future architecture by HQ ADR-SAAS-MNG-0009 and the semantic profile-runtime plan. Before real tenant onboarding, the tenant runtime will load the exact compiled semantic artifact stored on the order snapshot and the active graph-pin/catalog/template fallback paths will be retired. No new work may extend this P0 graph-pin approach.
+> **Historical P0 canary record:** Graph-pin execution was retired on 2026-08-22. Profile-stamped orders now require a compiled semantic artifact; the engine, floor lists, Workboard, and new-order paths no longer load `sys_wf_graph_def_ver_mst` at runtime. This file remains the audit record of the P0 pin. Unsnapshotted legacy orders still use live catalogs. No new work may extend this graph-pin approach.
 
 ## Why
 

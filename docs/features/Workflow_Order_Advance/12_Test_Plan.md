@@ -40,7 +40,7 @@
 | T32 | Profile-context queries are indexed/bounded and preserve optimistic-concurrency, idempotency, audit, and outbox behavior under concurrent commands. |
 | T33 | Delivery proof audit reads only the authenticated tenant's order/stops/POD/operator rows, signs only `{tenantId}/delivery/{stopId}/` private object keys, omits unavailable proof safely, and returns no workflow or money mutation. |
 | T34 | Workboard API requires `workboard:read`, filters every `org_*` read by tenant, returns no transition command, and rejects invalid bounded query values including `ownerScreenKey`. |
-| T35 | A pinned V2 order appears only when its pinned graph contains active `workboard` membership and an active owning stage; an unpinned order uses the live tenant contract fallback. |
+| T35 | A semantic order appears only when its compiled artifact contains active `workboard` membership and an enabled primary-owner stage; an unsnapshotted order uses the live tenant contract fallback. A profile/version pin without an artifact is excluded. |
 | T36 | A Workboard row opens the owning stage screen; it cannot change status, money, release, evidence, or assignment from the Workboard. |
 | T37 | Workboard summary-by-owner counts stay tenant-scoped, follow the active non-stage filters, and still show cross-stage queue totals after selecting one owner stage. |
 

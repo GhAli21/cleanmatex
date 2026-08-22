@@ -132,7 +132,8 @@ describe('semantic workflow runtime adapter', () => {
       actionCode: 'RELEASE_FOR_DELIVERY',
     })).toEqual([expect.objectContaining({
       actionCode: 'RELEASE_FOR_DELIVERY',
-      hasUnsupportedGateMode: true,
+      hasUnsupportedGateMode: false,
+      gates: [expect.objectContaining({ blocking_mode: 'soft_warning' })],
     })]);
   });
 
@@ -155,6 +156,24 @@ describe('semantic workflow runtime adapter', () => {
     })).toEqual([expect.objectContaining({ actionCode: 'CONFIRM_DELIVERY' })]);
   });
 
+  it('rejects a forged staff channel for a public-only command', () => {
+    expect(loadSemanticActionTransitions(artifact, {
+      screen: 'public_tracking',
+      fromStatus: 'ready',
+      channel: 'staff_web',
+      actionCode: 'CONFIRM_DELIVERY',
+    })).toEqual([]);
+  });
+
+  it('rejects a forged screen that is not the compiled owner of the action', () => {
+    expect(loadSemanticActionTransitions(artifact, {
+      screen: 'processing',
+      fromStatus: 'ready',
+      channel: 'staff_web',
+      actionCode: 'RELEASE_FOR_PICKUP',
+    })).toEqual([]);
+  });
+
   it('projects command requirements and hard-block gates without reading catalog configuration', () => {
     const [transition] = loadSemanticActionTransitions(artifact, {
       screen: 'ready_release',
@@ -168,6 +187,7 @@ describe('semantic workflow runtime adapter', () => {
       minReasonLength: 10,
       gateCodes: ['rack_required'],
       hasUnsupportedGateMode: false,
+      gates: [expect.objectContaining({ gate_code: 'rack_required', blocking_mode: 'hard_block' })],
     });
   });
 });

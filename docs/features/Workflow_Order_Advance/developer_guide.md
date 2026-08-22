@@ -8,6 +8,9 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 
 - Workflow engine core: `web-admin/lib/services/workflow/workflow-engine.service.ts`
 - Semantic gate and context projections: `web-admin/lib/services/workflow/workflow-gate-evaluator.service.ts`, `web-admin/lib/services/workflow/semantic-workflow-context.service.ts`
+- Stage-owned command adapters: `web-admin/lib/services/workflow/workflow-stage-command.service.ts`, `web-admin/lib/api/workflow-stage-command-route.ts`, `web-admin/lib/workflow/post-staff-workflow-command.ts`
+- Floor worklist membership: `web-admin/lib/services/workflow/stage-worklist-query.service.ts` (`GET /api/v1/orders?workflow_screen=`)
+- Ready fulfilment panel: `web-admin/src/features/pickup/ui/ready-fulfilment-panel.tsx`
 - Public tracking resolver/service: `web-admin/lib/services/public-order-tracking.service.ts`
 - Public tracking URL helpers: `web-admin/lib/utils/public-order-tracking.ts`
 - Public customer page: `web-admin/src/features/orders/public/order-tracking-page.tsx`
@@ -47,25 +50,28 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Do not add alternate customer-facing tracking URL formats outside these helpers.
 - Public order reads and confirm actions must remain tenant-safe and must not bypass the workflow engine when `workflow_engine_v2` is enabled.
 - Keep proof/audit assembly in `DeliveryProofAuditService`; UI code may only consume the API model and must not query POD, route, or storage tables directly.
-- Keep Workboard assembly in `WorkboardQueryService`. It resolves profile-pinned memberships per order, returns an owning stage path, and must never add workflow or money mutations to this route.
+- Keep Workboard assembly in `WorkboardQueryService`. It resolves compiled-artifact memberships per order, returns an owning stage path, and must never add workflow or money mutations to this route.
+- Floor Processing, Assembly, QA, Packing, and Ready/Release commands must use the versioned stage adapters. Do not post a guessed `toStatus` from a floor table or ActionBar.
+- Ready Details owns make-available, remaining collection, and confirm-pickup in one fulfilment panel. Collection remains the existing Order Fin modal; never add a screen-local money or status writer.
+- Ready embeds `PickupHandoverCard` inside `ReadyFulfilmentPanel`. A semantic profile must explicitly compile the `pickup_handover` command surface, its `ready_for_pickup` membership, `CONFIRM_PICKUP` execution, and permitted channel. If any are absent, the UI explains the policy gap and never substitutes a screen-local delivery writer.
 - Semantic order actions load `semantic-workflow-artifact.service.ts` and project it through `semantic-workflow-runtime.service.ts`. Do not add a fallback from a semantic snapshot to a current tenant assignment, graph pin, or mutable workflow catalog: a missing, partial, or invalid snapshot is a typed command failure.
 - The workflow engine receives a server-assigned channel (`staff_web` by default, `public_web` for the opaque public confirmation service). Browser input must never select a more privileged channel. Unsupported warning/override modes, evidence requirements, and unimplemented semantic gates remain fail closed.
 - Semantic observer membership is display-only. `loadSemanticActionTransitions` requires an enabled `primary_owner` module and `owner` status membership, so a malformed compiled artifact cannot make Workboard or another observer screen a workflow writer. The explicit `cross_cutting_command` module mode remains available for declared non-owner commands such as `public_tracking`; it still needs a status membership, execution edge, and permitted server-assigned channel.
 - New semantic orders resolve their first status from the order-pinned artifact for normal intake, remote intake, retail, and Quick Drop. `SemanticInitialStatusResolutionError` rejects an unmatched rule with `PROFILE_INITIAL_RULE_UNMATCHED`; do not restore the legacy `intake`/`preparing` fallback for a profiled order.
 - Profile resolution rejects different equally specific active profile/version assignments. Do not use creation time as a hidden policy tie-breaker; HQ must resolve the conflict before a new order can be pinned to the wrong workflow policy.
-- `workflow-gate-evaluator.service.ts` is the shared semantic hard-block evaluator. It receives only facts selected under the enclosing order transaction lock, so available-action previews and command execution use the same payment, rack, and preparation state. Do not re-query an order inside a gate or place a money decision in a screen adapter.
-- `fin_release_eligible` blocks any positive outstanding balance using `SETTLEMENT_MONEY_EPSILON`. `CREDIT_INVOICE` calls `evaluateB2BFulfilmentPaymentHold`; its current default is non-blocking because order creation is the current authority for B2B credit eligibility. Do not add B2B invoice, reservation, or account-policy logic to workflow. The future B2B feature replaces this seam's implementation without changing workflow callers.
+- `workflow-gate-evaluator.service.ts` is the shared semantic hard-block evaluator. It receives only facts selected under the enclosing order transaction lock, so available-action previews and command execution use the same payment, rack, preparation, piece, QA, release, stop, and POD state. Do not re-query an order inside a gate or place a money decision in a screen adapter. `workflow-gate-facts.service.ts` loads those extra facts when a bound gate needs them.
+- `fin_release_eligible` blocks any positive outstanding balance using `SETTLEMENT_MONEY_EPSILON`. Piece/QA/fulfilment gates fail closed when their facts are missing. `pod_evidence_valid` is allowed during action discovery and enforced at execute from command input; OTP remains unsupported. `CREDIT_INVOICE` calls `evaluateB2BFulfilmentPaymentHold`; its current default is non-blocking because order creation is the current authority for B2B credit eligibility. Do not add B2B invoice, reservation, or account-policy logic to workflow. The future B2B feature replaces this seam's implementation without changing workflow callers.
 - V2 stage pages must submit an action code, not infer `to_status` from `workflow-context` template flags. `GET /api/v1/orders/{id}/workflow-context` is now a display-only compatibility projection: semantic orders receive artifact modules and an invalid semantic snapshot returns a typed `PROFILE_*` error; only legacy orders may use template-stage reads.
-- Ready embeds `PickupHandoverCard` as a stage-owned supplemental command. A semantic profile must explicitly compile the `pickup_handover` command surface, its `ready_for_pickup` membership, `CONFIRM_PICKUP` execution, and permitted channel. If any are absent, the UI explains the policy gap and never substitutes a screen-local delivery writer.
 - Do not infer a stage owner from a hard-coded status map. If a Workboard status has no owner, return the configuration gap and keep the order out of the queue until configuration is repaired.
 - Never return private storage object keys. Only sign keys inside the exact `{tenantId}/delivery/{stopId}/` scope, use the configured five-minute TTL, and omit an unavailable proof item rather than failing the complete audit response.
+- Floor queues must send `workflow_screen`. Do not rebuild membership from a client status list; semantic orders can use statuses the live contract does not mention, and a live-contract status must not pull a semantic order onto a screen its artifact does not own.
 - The proof read does not authorize delivery completion. Keep staff completion behind its separate payment, evidence, idempotency, concurrency, RBAC, route-counter, and rollback release gates.
 
 ## Suggested next engineering steps
 
-1. Extend the shared semantic gate evaluator with fulfilment, piece, QA, and evidence facts before enabling profile bindings that require those gates. Implement durable B2B finance only in the B2B bounded context through the existing payment-hold seam.
-2. Cut the remaining Ready/Release, Pickup, Delivery, and non-V2 stage consumers to the semantic artifact path, then remove the temporary pinned-graph compatibility executor after integration assurance.
-3. Complete Delivery database-backed rollback, tenant-isolation, concurrency, payment, RBAC, and route-counter acceptance coverage before enabling staff completion.
+1. Make the explicit staff S10 rollout decision after canary/e2e. Legacy capturePOD/route writers must stay closed.
+2. Synchronize HQ/tenant close-out docs (`p7r-profile-cross-project-docs`). Residual assurance (performance soak, visual a11y/RTL) stays with that close-out and S10.
+3. Implement durable B2B finance only in the B2B bounded context through the existing payment-hold seam. HQ can bind the piece/QA/fulfilment/evidence gates now that `0463_sys_wf_gate_ops_fulfilment.sql` is applied locally and remotely.
 
 ## Key references
 
@@ -75,3 +81,4 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - [12_Test_Plan.md](12_Test_Plan.md)
 - [technical_docs/public_tracking_token_rollout.md](technical_docs/public_tracking_token_rollout.md)
 - [technical_docs/delivery_proof_audit.md](technical_docs/delivery_proof_audit.md)
+- [technical_docs/semantic_profile_assurance.md](technical_docs/semantic_profile_assurance.md)

@@ -7,11 +7,16 @@
 | Gate | Reads |
 |------|--------|
 | `rack_required` | order rack |
-| `all_pieces_scanned` / `all_items_ready` / `all_pieces_ready` | items/pieces |
-| `qa_passed` | QA / issues |
+| `all_pieces_scanned` / `all_items_ready` / `all_pieces_ready` | items/pieces (piece gates apply only when tracking is enabled) |
+| `qa_passed` | assembly QA task + open issues |
 | `prep_stage_complete` | preparation stage execution **or** bridge `preparation_status` |
-| `fin_release_eligible` | Order Fin |
-| `unpaid_cancel_disposition` | Fin disposition |
+| `fin_release_eligible` | Order Fin outstanding balance; B2B credit uses the payment-hold seam |
+| `pickup_collection_settled` / `delivery_collection_settled` | pay-on-collection outstanding amount |
+| `pickup_release_valid` | open pickup release for staged `ready_for_pickup` |
+| `delivery_stop_active` | pending/in-transit delivery stop |
+| `pod_evidence_valid` | command POD method + signature/photo evidence at execute; OTP unsupported |
+| `unpaid_cancel_disposition` | outstanding balance (disposition service not yet wired; unpaid cancel fails closed) |
+| `partial_fulfilment_supported` / `return_service_available` | always fail closed until owning services exist |
 
 ## 2. Preparation
 

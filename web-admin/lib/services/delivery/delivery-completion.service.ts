@@ -14,6 +14,15 @@ import {
   type PrismaTransactionClient,
 } from '@/lib/services/workflow/workflow-engine.service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import {
+  loadSemanticWorkflowArtifactForOrder,
+  SemanticWorkflowArtifactError,
+} from '@/lib/services/workflow/semantic-workflow-artifact.service';
+import {
+  assertCompiledDeliveryEvidence,
+  CompiledDeliveryEvidenceError,
+  hasCompiledDeliveryEvidence,
+} from '@/lib/services/delivery/compiled-delivery-evidence';
 
 const DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_complete';
 const DELIVERY_SCREEN = 'driver_delivery';
@@ -27,6 +36,7 @@ export type DeliveryCompletionErrorCode =
   | 'POD_EVIDENCE_REQUIRED'
   | 'POD_EVIDENCE_INVALID'
   | 'DELIVERY_COLLECTION_REQUIRED'
+  | 'DELIVERY_POLICY_UNAVAILABLE'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
 
@@ -84,6 +94,13 @@ type LockedDeliveryStop = {
   branch_id: string | null;
   payment_type_code: string | null;
   outstanding_amount: number | string | null;
+  wf_profile_id: string | null;
+  wf_version_no: number | null;
+  wf_profile_version_id: string | null;
+  wf_profile_artifact_id: string | null;
+  wf_profile_revision: number | null;
+  wf_profile_checksum: string | null;
+  wf_profile_schema_version: number | null;
 };
 
 type LockedPod = {
@@ -132,7 +149,14 @@ async function lockDeliveryStop(
       s.order_id,
       s.branch_id,
       o.payment_type_code,
-      o.outstanding_amount
+      o.outstanding_amount,
+      o.wf_profile_id::text,
+      o.wf_version_no,
+      o.wf_profile_version_id::text,
+      o.wf_profile_artifact_id::text,
+      o.wf_profile_revision,
+      o.wf_profile_checksum,
+      o.wf_profile_schema_version
     FROM public.org_dlv_stops_dtl s
     INNER JOIN public.org_orders_mst o
       ON o.id = s.order_id
@@ -202,10 +226,33 @@ async function lockEvidenceUploads(
   `;
 }
 
+async function loadOrderArtifact(stop: LockedDeliveryStop) {
+  try {
+    return await loadSemanticWorkflowArtifactForOrder({
+      wf_profile_id: stop.wf_profile_id,
+      wf_version_no: stop.wf_version_no,
+      wf_profile_version_id: stop.wf_profile_version_id,
+      wf_profile_artifact_id: stop.wf_profile_artifact_id,
+      wf_profile_revision: stop.wf_profile_revision,
+      wf_profile_checksum: stop.wf_profile_checksum,
+      wf_profile_schema_version: stop.wf_profile_schema_version,
+    });
+  } catch (error) {
+    if (error instanceof SemanticWorkflowArtifactError) {
+      throw new DeliveryCompletionError(
+        'DELIVERY_POLICY_UNAVAILABLE',
+        'The compiled delivery policy could not be loaded.',
+        422,
+      );
+    }
+    throw error;
+  }
+}
+
 async function validateEvidence(
   tx: PrismaTransactionClient,
   params: CompleteDeliveryCommand,
-  stopId: string,
+  stop: LockedDeliveryStop,
   now: Date,
 ): Promise<{
   methodCode: string;
@@ -224,16 +271,21 @@ async function validateEvidence(
       422,
     );
   }
-  const methodRows = await tx.$queryRaw<Array<{ code: string }>>`
-    SELECT code
-    FROM public.sys_dlv_pod_method_cd
-    WHERE code = ${methodCode}
-      AND is_active = true
-      AND COALESCE(rec_status, 1) = 1
-    LIMIT 1
-  `;
-  if (!methodRows[0]) {
-    throw new DeliveryCompletionError('POD_METHOD_INVALID', 'POD method is not supported.', 422);
+
+  const artifact = await loadOrderArtifact(stop);
+  const compiledEvidence = artifact?.evidence ?? [];
+  if (!hasCompiledDeliveryEvidence(compiledEvidence)) {
+    const methodRows = await tx.$queryRaw<Array<{ code: string }>>`
+      SELECT code
+      FROM public.sys_dlv_pod_method_cd
+      WHERE code = ${methodCode}
+        AND is_active = true
+        AND COALESCE(rec_status, 1) = 1
+      LIMIT 1
+    `;
+    if (!methodRows[0]) {
+      throw new DeliveryCompletionError('POD_METHOD_INVALID', 'POD method is not supported.', 422);
+    }
   }
 
   const signatureEvidenceId = params.signatureEvidenceId?.trim() || null;
@@ -253,7 +305,7 @@ async function validateEvidence(
   if (new Set(requestedIds).size !== requestedIds.length) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Delivery evidence contains duplicate uploads.', 422);
   }
-  const uploads = await lockEvidenceUploads(tx, params.tenantId, stopId, requestedIds, now);
+  const uploads = await lockEvidenceUploads(tx, params.tenantId, stop.stop_id, requestedIds, now);
   if (uploads.length !== requestedIds.length) {
     throw new DeliveryCompletionError(
       'POD_EVIDENCE_INVALID',
@@ -271,16 +323,34 @@ async function validateEvidence(
   if (photos.some((photo) => photo.evidence_type !== 'photo')) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Photo evidence has an invalid type.', 422);
   }
-  if (methodCode === 'SIGNATURE' && !signature) {
-    throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'A signature is required.', 422);
-  } else if (methodCode === 'PHOTO' && photos.length === 0) {
-    throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'At least one delivery photo is required.', 422);
-  } else if (methodCode === 'MIXED' && (!signature || photos.length === 0)) {
-    throw new DeliveryCompletionError(
-      'POD_EVIDENCE_REQUIRED',
-      'A signature and at least one delivery photo are required.',
-      422,
-    );
+  const notesOnlyMethod = methodCode === 'POD' || methodCode === 'NOTES';
+  if (!notesOnlyMethod) {
+    if (methodCode === 'SIGNATURE' && !signature) {
+      throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'A signature is required.', 422);
+    } else if (methodCode === 'PHOTO' && photos.length === 0) {
+      throw new DeliveryCompletionError('POD_EVIDENCE_REQUIRED', 'At least one delivery photo is required.', 422);
+    } else if (methodCode === 'MIXED' && (!signature || photos.length === 0)) {
+      throw new DeliveryCompletionError(
+        'POD_EVIDENCE_REQUIRED',
+        'A signature and at least one delivery photo are required.',
+        422,
+      );
+    }
+  }
+
+  try {
+    assertCompiledDeliveryEvidence({
+      evidence: compiledEvidence,
+      podMethodCode: methodCode,
+      hasSignature: Boolean(signature),
+      photoCount: photos.length,
+      hasNotes: Boolean(params.podNotes?.trim()),
+    });
+  } catch (error) {
+    if (error instanceof CompiledDeliveryEvidenceError) {
+      throw new DeliveryCompletionError(error.code, error.message, 422);
+    }
+    throw error;
   }
 
   return {
@@ -485,7 +555,7 @@ export async function completeDelivery(
 
       const now = new Date();
       const existingPod = await lockPod(tx, params.tenantId, stop.stop_id);
-      const evidence = await validateEvidence(tx, params, stop.stop_id, now);
+      const evidence = await validateEvidence(tx, params, stop, now);
       const podId = await writePod(tx, params, stop, existingPod, evidence, now);
       await consumeEvidenceUploads(tx, params.tenantId, evidence.uploadIds, params.actorUserId, now);
 

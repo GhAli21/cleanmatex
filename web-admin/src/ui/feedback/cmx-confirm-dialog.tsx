@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { CmxButton } from '../primitives/cmx-button'
 
 /**
@@ -23,6 +23,10 @@ export interface CmxConfirmDialogProps {
   open?: boolean
   /** Called when the user clicks Cancel in controlled mode */
   onCancel?: () => void
+  /** Optional body content such as an override-reason field. */
+  children?: ReactNode
+  /** Disables confirm while required input is incomplete. */
+  confirmDisabled?: boolean
 }
 
 /**
@@ -46,6 +50,8 @@ export function CmxConfirmDialog({
   trigger,
   open: openProp,
   onCancel,
+  children,
+  confirmDisabled = false,
 }: CmxConfirmDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -55,6 +61,7 @@ export function CmxConfirmDialog({
   const handleClose = () => isControlled ? onCancel?.() : setInternalOpen(false)
 
   const handleConfirm = async () => {
+    if (confirmDisabled) return
     try {
       setLoading(true)
       await onConfirm()
@@ -70,19 +77,28 @@ export function CmxConfirmDialog({
         <span onClick={() => setInternalOpen(true)}>{trigger}</span>
       )}
       {open && (
-        <div className="fixed inset-0 z-[var(--cmx-z-modal,1050)] flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-sm rounded-xl bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] p-4 shadow-xl">
-            <h2 className="text-sm font-semibold">{title}</h2>
+        <div
+          className="fixed inset-0 z-[var(--cmx-z-modal,1050)] flex items-center justify-center bg-black/40"
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] p-4 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cmx-confirm-title"
+          >
+            <h2 id="cmx-confirm-title" className="text-sm font-semibold">{title}</h2>
             {description && (
               <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
                 {description}
               </p>
             )}
+            {children ? <div className="mt-3 space-y-2">{children}</div> : null}
             <div className="mt-4 flex justify-end gap-2">
               <CmxButton variant="ghost" onClick={handleClose}>
                 {cancelLabel}
               </CmxButton>
-              <CmxButton loading={loading} onClick={handleConfirm}>
+              <CmxButton loading={loading} disabled={confirmDisabled} onClick={handleConfirm}>
                 {confirmLabel}
               </CmxButton>
             </div>

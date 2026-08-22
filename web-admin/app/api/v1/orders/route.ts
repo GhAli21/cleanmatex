@@ -16,6 +16,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
+import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
 
 /**
  * POST /api/v1/orders
@@ -176,14 +177,14 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/v1/orders
- * List orders with filters
- * Requires: orders:read permission
+ * List tenant orders. `workflow_screen` selects floor-queue membership from each
+ * order's artifact or live catalog instead of a client status list.
+ * Requires: orders:read permission. Tenant is resolved from the session.
  */
 export const maxDuration = 10; // Vercel timeout limit
 
 /**
- *
- * @param request
+ * @param request Authenticated list request; tenant comes from the session.
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -227,6 +228,7 @@ export async function GET(request: NextRequest) {
     const isRetail = searchParams.get('is_retail');
     const orderSourceCode = searchParams.get('order_source_code')?.trim() || '';
     const physicalIntakeStatus = searchParams.get('physical_intake_status')?.trim() || '';
+    const workflowScreen = searchParams.get('workflow_screen')?.trim() || '';
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -366,10 +368,51 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let stageWorklistTotal: number | null = null;
+    let stageWorklistOrderIds: string[] | null = null;
+    if (workflowScreen) {
+      const statusNarrow = (statusFilter || currentStatus || currentStage)
+        ?.split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const worklist = await listStageWorklistOrderPage(tenantId, {
+        screen: workflowScreen,
+        page,
+        pageSize: limit,
+        search: search || undefined,
+        statusNarrow,
+        receivedFrom: receivedFrom || undefined,
+        receivedTo: receivedTo || undefined,
+        readyByFrom: readyByFrom || undefined,
+        readyByTo: readyByTo || undefined,
+        sortBy,
+        sortAscending: sortOrder,
+      });
+      stageWorklistTotal = worklist.total;
+      stageWorklistOrderIds = worklist.orderIds;
+      if (worklist.orderIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orders: [],
+            pagination: {
+              page,
+              limit,
+              total: worklist.total,
+              totalPages: Math.ceil(worklist.total / limit),
+            },
+          },
+        });
+      }
+      query = query.in('id', worklist.orderIds);
+    }
+
     // Apply status filter - support multiple statuses (comma-separated)
     // Priority: status_filter > current_status > current_stage
+    // Floor queues with workflow_screen already applied membership; do not
+    // also flatten a live catalog status list from the client.
     const statusToFilter = statusFilter || currentStatus || currentStage;
-    if (statusToFilter) {
+    if (!workflowScreen && statusToFilter) {
       const statuses = statusToFilter.split(',').map(s => s.trim()).filter(Boolean);
       if (statuses.length === 1) {
         // Single status - use .eq() for better performance
@@ -381,7 +424,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Search - order_no, customer name, phone, email
-    if (search.length > 0) {
+    if (!workflowScreen && search.length > 0) {
       const escaped = search.replace(/[%_\\]/g, '\\$&').replace(/,/g, '');
       const pattern = `%${escaped}%`;
       query = query.or(
@@ -394,17 +437,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Date filters
-    if (receivedFrom) {
-      query = query.gte('received_at', receivedFrom);
-    }
-    if (receivedTo) {
-      query = query.lte('received_at', receivedTo);
-    }
-    if (readyByFrom) {
-      query = query.gte('ready_by_at_new', readyByFrom);
-    }
-    if (readyByTo) {
-      query = query.lte('ready_by_at_new', readyByTo);
+    if (!workflowScreen) {
+      if (receivedFrom) {
+        query = query.gte('received_at', receivedFrom);
+      }
+      if (receivedTo) {
+        query = query.lte('received_at', receivedTo);
+      }
+      if (readyByFrom) {
+        query = query.gte('ready_by_at_new', readyByFrom);
+      }
+      if (readyByTo) {
+        query = query.lte('ready_by_at_new', readyByTo);
+      }
     }
 
     // Sorting
@@ -420,10 +465,11 @@ export async function GET(request: NextRequest) {
     const sortColumn = validSortColumns[sortBy] || 'received_at';
     query = query.order(sortColumn, { ascending: sortOrder });
 
-    // Apply pagination
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to);
+    if (!workflowScreen) {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
 
     // Optional time filters (ISO timestamps)
     if (createdAfter) {
@@ -472,10 +518,16 @@ export async function GET(request: NextRequest) {
       tenantId,
       orderIds: (normalizedOrders ?? []).map((order: { id: string }) => order.id),
     });
-    const ordersWithPickupRelease = (normalizedOrders ?? []).map((order: Record<string, unknown>) => ({
+    const unorderedOrders = (normalizedOrders ?? []).map((order: Record<string, unknown>) => ({
       ...order,
       pickup_release: pickupReleaseSummaries.get(String(order.id)),
     }));
+    const ordersWithPickupRelease = stageWorklistOrderIds
+      ? stageWorklistOrderIds.flatMap((orderId) => {
+          const match = unorderedOrders.find((order) => String(order.id) === orderId);
+          return match ? [match] : [];
+        })
+      : unorderedOrders;
 
     logger.info('List orders success', {
       feature: 'orders',
@@ -485,6 +537,7 @@ export async function GET(request: NextRequest) {
       count: ordersWithPickupRelease.length,
     });
 
+    const total = stageWorklistTotal ?? (count || 0);
     return NextResponse.json({
       success: true,
       data: {
@@ -492,8 +545,8 @@ export async function GET(request: NextRequest) {
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit),
+          total,
+          totalPages: Math.ceil(total / limit),
         },
       },
     });

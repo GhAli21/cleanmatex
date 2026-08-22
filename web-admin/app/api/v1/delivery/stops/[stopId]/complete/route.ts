@@ -2,7 +2,7 @@
  * POST /api/v1/delivery/stops/:stopId/complete
  *
  * Versioned staff Delivery command. It composes POD, stop, route, and workflow
- * writes in one transaction and remains behind the server-side rollout guard.
+ * writes in one transaction. Legacy capturePOD/route writers stay closed.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +13,8 @@ import {
   completeDelivery,
   DeliveryCompletionError,
 } from '@/lib/services/delivery/delivery-completion.service';
+import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import {
   DELIVERY_HARDENING_ERROR,
   STAFF_DELIVERY_COMPLETION_ENABLED,
@@ -74,6 +76,18 @@ export async function POST(
       return NextResponse.json(
         { success: false, code: error.code, error: error.message },
         { status: error.httpStatus },
+      );
+    }
+    if (error instanceof WorkflowEngineError) {
+      const status = httpStatusForWorkflowEngineError(error.code);
+      return NextResponse.json(
+        {
+          success: false,
+          code: error.code,
+          error: error.message,
+          blockedReasons: error.blockedReasons,
+        },
+        { status },
       );
     }
     return NextResponse.json(

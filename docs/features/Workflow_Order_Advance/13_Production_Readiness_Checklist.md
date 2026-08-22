@@ -14,20 +14,20 @@
 - [x] `state_version` enforced by engine commands
 - [x] Zero production non-engine post-create transition writers in the application
 - [x] New orders snapshot the active, valid tenant workflow profile/version when an assignment applies; historic orders intentionally remain unsnapshotted
-- [ ] Profile-version enabled-screen enforcement is server-side for worklists, screen contracts, available actions, and command execution; disabled screens/actions reject forged requests
+- [x] Profile-version enabled-screen enforcement is server-side for worklists, screen contracts, available actions, and command execution; disabled screens/actions reject forged requests; profile-stamped orders without a compiled artifact fail closed instead of using a graph pin
 - [ ] Profile capability flags are server-side gates for initial routing, stage worklists, and commands; profile/template conflicts cannot silently merge
-- [ ] Assignment precedence/ambiguity, mixed-service one-order/one-profile policy, HQ assignment audit, and published-version validation are covered
+- [x] Assignment precedence/ambiguity, mixed-service one-order/one-profile policy, HQ assignment audit, and published-version validation are covered
 - [ ] Tenant navigation/deep links consume server-derived workflow context with EN/AR unavailable-state guidance
 - [ ] No tenant graph editing
 - [ ] Fin release gate server-side
 - [x] Retail not auto-`closed`
-- [ ] Atomic staff Delivery command implemented but not release-approved: database-backed rollback, tenant-isolation, and concurrency tests still required
+- [x] Atomic staff Delivery command implemented; automated rollback, tenant-isolation, concurrency, RBAC, and replay tests pass. Not release-approved until S10 operator/e2e canary.
 - [x] Private POD evidence bucket, durable object keys, tenant-stop upload receipts, and method-specific receipt validation implemented (`0451`, `0452`)
 - [x] Read-only delivery proof/audit is tenant-scoped, access-contract protected, and returns only time-limited authorized evidence links; it does not approve staff completion
 - [ ] OTP retry/expiry controls intentionally deferred to VNext
 - [ ] Delivery route creation/counters/status changes are atomic, idempotent, and concurrency-safe
 - [ ] `PAY_ON_COLLECTION` remaining-balance gate implemented in the P7R command; live collection composition and acceptance coverage remain required before staff rollout
-- [ ] Delivery mutation RBAC and explicit tenant filtering verified by automated tests
+- [x] Delivery mutation RBAC (`delivery:pod` + `orders:transition`) and explicit tenant filtering verified by automated tests
 - [ ] Central outbox; no duplicate notify
 - [ ] Canary + rollback rehearsed
 - [ ] Post-`0442` UI cannot hide engine actions through a client-only canary with no supported writer fallback

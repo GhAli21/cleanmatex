@@ -29,6 +29,7 @@ import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
@@ -585,47 +586,34 @@ function SharedMarkReadyDialog({
     onClose();
 
     try {
-      const res = await fetch(`/api/v1/orders/${orderId}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          screen: 'processing',
-          actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
-          toStatus: 'ready',
-          notes: 'Processing completed via quick action',
-          input: {
-            rackLocation: rack,
-          },
-          metadata: {
-            rack_location: rack,
-          },
-        }),
+      const availRes = await fetch(
+        `/api/v1/orders/${orderId}/available-actions?screen=processing`,
+      );
+      const availJson = await availRes.json().catch(() => ({}));
+      if (!availRes.ok || !availJson.success) {
+        throw new Error(availJson.error || t('markReadyError') || 'Failed to update order status');
+      }
+      const payload = availJson.data ?? availJson;
+      const expectedStateVersion = Number(payload.stateVersion ?? 0);
+      const result = await postStaffWorkflowCommand({
+        orderId,
+        screen: 'processing',
+        actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
+        expectedStateVersion,
+        input: { rackLocation: rack },
       });
 
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          resetForm();
-          onSuccess(orderId);
-          return;
-        }
-        onBusy(null);
-        setIsLoading(false);
-        cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
-          description: json.error,
-          duration: 5000,
-        });
-      } else {
-        onBusy(null);
-        setIsLoading(false);
-        const error = await res
-          .json()
-          .catch(() => ({ error: t('markReadyError') || 'Failed to update order status' }));
-        cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
-          description: error.error,
-          duration: 5000,
-        });
+      if (result.ok && result.success) {
+        resetForm();
+        onSuccess(orderId);
+        return;
       }
+      onBusy(null);
+      setIsLoading(false);
+      cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+        description: result.error,
+        duration: 5000,
+      });
     } catch (error) {
       onBusy(null);
       setIsLoading(false);

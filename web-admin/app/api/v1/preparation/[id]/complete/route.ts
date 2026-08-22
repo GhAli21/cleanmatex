@@ -15,6 +15,7 @@ import {
   listAvailableActions,
   WorkflowEngineError,
 } from '@/lib/services/workflow/workflow-engine.service';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import {
   completePreparationCommand,
   PreparationCompletionError,
@@ -27,16 +28,7 @@ const completePreparationRequestSchema = z.object({
 });
 
 function workflowErrorResponse(error: WorkflowEngineError) {
-  const status =
-    error.code === 'NOT_FOUND'
-      ? 404
-      : error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_CONFLICT'
-        ? 409
-        : error.code === 'GATE_FAILED'
-          ? 422
-          : error.code === 'ACTION_NOT_ALLOWED'
-            ? 403
-            : 400;
+  const status = httpStatusForWorkflowEngineError(error.code);
 
   return NextResponse.json(
     {

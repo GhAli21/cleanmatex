@@ -16,12 +16,6 @@ import {
 } from '@/lib/utils/idempotency';
 import { resolveOrderControlTransition } from '@/lib/workflow/order-control-transition';
 import {
-  loadPinnedGraphForProfileVersion,
-  isPinnedScreenStatusMember,
-  loadPinnedActionTransitions,
-  type PinnedGraphDefinition,
-} from '@/lib/services/workflow/pinned-workflow-graph.service';
-import {
   loadSemanticWorkflowArtifactForOrder,
   SemanticWorkflowArtifactError,
   type SemanticWorkflowArtifact,
@@ -34,8 +28,18 @@ import {
 import {
   evaluateWorkflowGateSet,
   type WorkflowGateBlockedReason,
-  type WorkflowGateOrderFacts,
 } from '@/lib/services/workflow/workflow-gate-evaluator.service';
+import { loadWorkflowGateFacts } from '@/lib/services/workflow/workflow-gate-facts.service';
+import {
+  assertAndRecordSemanticGateDecisions,
+  buildAvailableGateDecisions,
+  classifySemanticGateFailures,
+  WorkflowGateDecisionError,
+  type AvailableGateDecision,
+  type SemanticGateBinding,
+  type SubmittedGateDecision,
+} from '@/lib/services/workflow/workflow-gate-decision.service';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 
 // ─── Error types ───────────────────────────────────────────────────────────
 
@@ -51,7 +55,14 @@ export type WorkflowEngineErrorCode =
   | 'PROFILE_EXECUTION_INVALID'
   | 'UNSUPPORTED_GATE_MODE'
   | 'REASON_REQUIRED'
-  | 'EVIDENCE_RUNTIME_UNAVAILABLE';
+  | 'EVIDENCE_RUNTIME_UNAVAILABLE'
+  | 'WF_GATE_HARD_BLOCKED'
+  | 'WF_GATE_ACK_REQUIRED'
+  | 'WF_GATE_ACK_INVALID'
+  | 'WF_GATE_OVERRIDE_FORBIDDEN'
+  | 'WF_GATE_OVERRIDE_REASON_INVALID'
+  | 'WF_GATE_EVALUATOR_UNAVAILABLE'
+  | 'WF_GATE_EVALUATION_STALE';
 
 /** Local alias keeps the public command contract stable while gate ownership is shared. */
 export type BlockedReason = WorkflowGateBlockedReason;
@@ -85,6 +96,7 @@ export interface AvailableAction {
   /** Lets channel clients render the mandated reason field before command submission. */
   requiresReason?: boolean;
   minReasonLength?: number;
+  gateDecisions?: AvailableGateDecision[];
 }
 
 export interface ListAvailableActionsResult {
@@ -107,6 +119,7 @@ export interface ListAvailableActionsParams {
   locale?: string;
   /** Caller channel is a server-owned capability, not an end-user-selected field. */
   channel?: SemanticWorkflowCommandChannel;
+  actorUserId?: string;
 }
 
 export interface ExecuteActionParams {
@@ -121,6 +134,9 @@ export interface ExecuteActionParams {
   idempotencyKey: string;
   /** Caller channel is supplied by the adapter that authenticated the request. */
   channel?: SemanticWorkflowCommandChannel;
+  gateDecisions?: SubmittedGateDecision[];
+  requestCorrelationId?: string;
+  canOverridePermission?: (permissionCode: string) => Promise<boolean>;
 }
 
 // ─── Internal row types (raw SQL — tables may not be in Prisma yet) ──────────
@@ -160,11 +176,12 @@ type ActionTransitionRow = {
   requires_evidence: boolean;
   has_unsupported_gate_mode: boolean;
   is_semantic: boolean;
+  semantic_gates: SemanticGateBinding[];
 };
 
 type ResolvedWorkflowRuntime =
   | { kind: 'semantic'; artifact: SemanticWorkflowArtifact }
-  | { kind: 'legacy'; pinned: PinnedGraphDefinition | null };
+  | { kind: 'legacy' };
 
 /**
  * Prisma transaction scope accepted by workflow commands that must be composed
@@ -278,25 +295,16 @@ async function loadOrderForUpdate(
   return row;
 }
 
-async function resolvePinnedGraphForOrder(
-  order: LockedOrderRow,
-): Promise<PinnedGraphDefinition | null> {
-  if (!order.wf_profile_id || order.wf_version_no == null) return null;
-  return loadPinnedGraphForProfileVersion(order.wf_profile_id, order.wf_version_no);
-}
-
-function toWorkflowGateFacts(order: LockedOrderRow): WorkflowGateOrderFacts {
-  return {
-    preparationStatus: order.preparation_status,
-    rackLocation: order.rack_location,
-    paymentTypeCode: order.payment_type_code,
-    outstandingAmount: order.outstanding_amount,
-  };
+function runtimeArtifact(
+  runtime: ResolvedWorkflowRuntime,
+): SemanticWorkflowArtifact | null {
+  return runtime.kind === 'semantic' ? runtime.artifact : null;
 }
 
 /**
- * Resolves the runtime policy named by the order itself. A partial semantic
- * snapshot is an integrity failure, never a reason to consult legacy config.
+ * Resolves the runtime policy named by the order itself. A profile/version
+ * pin without a compiled artifact is an integrity failure, never a reason to
+ * consult a graph pin or live catalog.
  */
 async function resolveWorkflowRuntimeForOrder(
   order: LockedOrderRow,
@@ -311,10 +319,7 @@ async function resolveWorkflowRuntimeForOrder(
     throw error;
   }
 
-  return {
-    kind: 'legacy',
-    pinned: await resolvePinnedGraphForOrder(order),
-  };
+  return { kind: 'legacy' };
 }
 async function isScreenStatusMemberForOrder(
   order: LockedOrderRow,
@@ -326,8 +331,6 @@ async function isScreenStatusMemberForOrder(
   if (resolved.kind === 'semantic') {
     return isSemanticScreenStatusMember(resolved.artifact, screen, statusCode);
   }
-  const graph = resolved.pinned;
-  if (graph) return isPinnedScreenStatusMember(graph, screen, statusCode);
   return isScreenStatusMember(screen, statusCode);
 }
 
@@ -389,25 +392,15 @@ async function loadActionTransitionsForOrder(
         requires_evidence: transition.requiresEvidence,
         has_unsupported_gate_mode: transition.hasUnsupportedGateMode,
         is_semantic: true,
+        semantic_gates: transition.gates,
       };
     });
   }
 
-  const graph = resolved.pinned;
-  if (graph) {
-    return loadPinnedActionTransitions(graph, screen, fromStatus, actionCode).map(
-      (transition) => ({
-        ...transition,
-        transition_kind: 'fixed' as const,
-        requires_reason: false,
-        min_reason_length: 0,
-        requires_evidence: false,
-        has_unsupported_gate_mode: false,
-        is_semantic: false,
-      }),
-    );
-  }
-  return loadActionTransitions(screen, fromStatus, actionCode);
+  return (await loadActionTransitions(screen, fromStatus, actionCode)).map((row) => ({
+    ...row,
+    semantic_gates: [],
+  }));
 }
 
 async function isScreenStatusMember(
@@ -611,6 +604,7 @@ function buildIdempotencyPayload(params: ExecuteActionParams): Record<string, un
     expectedStateVersion: params.expectedStateVersion,
     channel: params.channel ?? 'staff_web',
     input: params.input ?? {},
+    gateDecisions: params.gateDecisions ?? [],
   };
 }
 
@@ -699,18 +693,19 @@ export async function listAvailableActions(
   const openRelease = hasReleaseAction
     ? await findOpenOrderRelease({ tenantId: params.tenantId, orderId: params.orderId })
     : null;
+  const discoveryGateCodes = transitions.flatMap((row) => parseGateSet(row.gate_set_code));
+  const gateFacts = await loadWorkflowGateFacts({
+    tenantId: params.tenantId,
+    order,
+    gateCodes: discoveryGateCodes,
+    phase: 'discover',
+    artifact: runtimeArtifact(runtime),
+  });
   const actions: AvailableAction[] = [];
 
   for (const row of transitions) {
-    const gateResult = evaluateWorkflowGateSet(
-      parseGateSet(row.gate_set_code),
-      toWorkflowGateFacts(order),
-      row.is_semantic ? 'semantic' : 'legacy',
-      params.locale,
-    );
     const toStatus = normalizeStatus(row.to_status);
     const baseLabel = pickLabel(row, params.locale);
-    // Disambiguate skip-path duplicates (same action, different to_status)
     const label =
       transitions.filter((t) => t.action_code === row.action_code).length > 1
         ? `${baseLabel} → ${toStatus}`
@@ -719,9 +714,48 @@ export async function listAvailableActions(
       ...(row.has_unsupported_gate_mode ? [unsupportedGateModeBlockedReason(params.locale)] : []),
       ...(row.requires_evidence ? [evidenceRuntimeBlockedReason(params.locale)] : []),
     ];
+    let gateBlockedReasons: WorkflowGateBlockedReason[] = [];
+    let gateDecisions: AvailableGateDecision[] = [];
+    if (row.is_semantic && (row.semantic_gates?.length ?? 0) > 0) {
+      const classified = classifySemanticGateFailures({
+        bindings: row.semantic_gates ?? [],
+        facts: gateFacts,
+        runtimeMode: 'semantic',
+        channel,
+        locale: params.locale,
+      });
+      gateBlockedReasons = classified.hardReasons;
+      if (classified.hardReasons.length === 0 && params.actorUserId && order.wf_profile_artifact_id) {
+        gateDecisions = buildAvailableGateDecisions({
+          tenantId: params.tenantId,
+          orderId: params.orderId,
+          artifactId: order.wf_profile_artifact_id,
+          actionCode: row.action_code,
+          screen,
+          channel,
+          actorUserId: params.actorUserId,
+          stateVersion,
+          facts: gateFacts,
+          failedBindings: classified.failedBindings,
+        });
+      } else if (classified.failedBindings.length > 0 && classified.hardReasons.length === 0) {
+        gateBlockedReasons = classified.failedBindings.flatMap((binding) => [{
+          code: 'WF_GATE_ACK_REQUIRED',
+          message: 'This action requires a current warning acknowledgement or authorized override.',
+        }]);
+      }
+    } else {
+      const gateResult = evaluateWorkflowGateSet(
+        parseGateSet(row.gate_set_code),
+        gateFacts,
+        row.is_semantic ? 'semantic' : 'legacy',
+        params.locale,
+      );
+      gateBlockedReasons = gateResult.blockedReasons;
+    }
     const blockedReasons = isReleaseAction(row.action_code) && openRelease
-      ? [...gateResult.blockedReasons, ...semanticBlockedReasons, openReleaseBlockedReason(params.locale)]
-      : [...gateResult.blockedReasons, ...semanticBlockedReasons];
+      ? [...gateBlockedReasons, ...semanticBlockedReasons, openReleaseBlockedReason(params.locale)]
+      : [...gateBlockedReasons, ...semanticBlockedReasons];
     actions.push({
       actionCode: row.action_code,
       toStatus,
@@ -731,6 +765,7 @@ export async function listAvailableActions(
       blockedReasons,
       requiresReason: row.requires_reason,
       minReasonLength: row.min_reason_length,
+      gateDecisions,
     });
   }
 
@@ -876,19 +911,67 @@ export async function executeAction(
       );
     }
 
-    const gateResult = evaluateWorkflowGateSet(
-      parseGateSet(transition.gate_set_code),
-      toWorkflowGateFacts(order),
-      transition.is_semantic ? 'semantic' : 'legacy',
-      undefined,
-      params.input,
-    );
-    if (!gateResult.allowed) {
-      throw new WorkflowEngineError(
-        'GATE_FAILED',
-        'One or more workflow gates blocked this action.',
-        gateResult.blockedReasons,
+    const executeFacts = await loadWorkflowGateFacts({
+      tenantId: params.tenantId,
+      order,
+      gateCodes: parseGateSet(transition.gate_set_code),
+      phase: 'execute',
+      artifact: runtimeArtifact(runtime),
+      transaction: tx,
+    });
+    if (transition.is_semantic && (transition.semantic_gates?.length ?? 0) > 0) {
+      if (!order.wf_profile_artifact_id) {
+        throw new WorkflowEngineError(
+          'PROFILE_SNAPSHOT_INCOMPLETE',
+          'This order is missing its compiled workflow artifact.',
+        );
+      }
+      try {
+        await assertAndRecordSemanticGateDecisions({
+          tx,
+          tenantId: params.tenantId,
+          orderId: params.orderId,
+          artifactId: order.wf_profile_artifact_id ?? '',
+          actionCode: params.actionCode,
+          screen,
+          channel,
+          actorUserId: params.actorUserId,
+          actorName: params.actorName,
+          idempotencyKey: params.idempotencyKey,
+          requestCorrelationId: params.requestCorrelationId,
+          stateVersion: currentVersion,
+          facts: executeFacts,
+          runtimeMode: 'semantic',
+          bindings: transition.semantic_gates ?? [],
+          submitted: params.gateDecisions ?? [],
+          commandInput: params.input,
+          canOverridePermission: params.canOverridePermission
+            ?? ((permissionCode) => hasPermissionServer(permissionCode, {
+              userId: params.actorUserId,
+              tenantId: params.tenantId,
+            })),
+        });
+      } catch (error) {
+        if (error instanceof WorkflowGateDecisionError) {
+          throw new WorkflowEngineError(error.code, error.message, error.blockedReasons);
+        }
+        throw error;
+      }
+    } else {
+      const gateResult = evaluateWorkflowGateSet(
+        parseGateSet(transition.gate_set_code),
+        executeFacts,
+        transition.is_semantic ? 'semantic' : 'legacy',
+        undefined,
+        params.input,
       );
+      if (!gateResult.allowed) {
+        throw new WorkflowEngineError(
+          'GATE_FAILED',
+          'One or more workflow gates blocked this action.',
+          gateResult.blockedReasons,
+        );
+      }
     }
 
     const controlNote =

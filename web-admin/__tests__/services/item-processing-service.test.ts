@@ -27,15 +27,18 @@ jest.mock('@/lib/services/processing-steps-service', () => ({
 }));
 
 jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
-  executeAction: jest.fn().mockResolvedValue({
-    ok: true,
-    currentStatus: 'ready',
-    stateVersion: 4,
-  }),
   listAvailableActions: jest.fn().mockResolvedValue({
     stateVersion: 3,
     currentStatus: 'processing',
     actions: [],
+  }),
+}));
+
+jest.mock('@/lib/services/workflow/workflow-stage-command.service', () => ({
+  executeWorkflowStageCommand: jest.fn().mockResolvedValue({
+    ok: true,
+    currentStatus: 'ready',
+    stateVersion: 4,
   }),
 }));
 
@@ -51,10 +54,8 @@ jest.mock('@/lib/services/order-service', () => ({
   },
 }));
 
-import {
-  executeAction,
-  listAvailableActions,
-} from '@/lib/services/workflow/workflow-engine.service';
+import { listAvailableActions } from '@/lib/services/workflow/workflow-engine.service';
+import { executeWorkflowStageCommand } from '@/lib/services/workflow/workflow-stage-command.service';
 
 // ---------------------------------------------------------------------------
 // Helper: build a self-referencing chainable mock
@@ -289,7 +290,7 @@ describe('ItemProcessingService', () => {
         orderId: 'order-1',
         screen: 'processing',
       });
-      expect(executeAction).toHaveBeenCalledWith({
+      expect(executeWorkflowStageCommand).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
         orderId: 'order-1',
         screen: 'processing',
@@ -299,7 +300,6 @@ describe('ItemProcessingService', () => {
         actorName: 'Test User',
         input: {
           notes: 'All items processed',
-          preferredToStatus: 'ready',
           rackLocation: 'RACK-A1',
         },
         idempotencyKey: 'item-auto-ready:tenant-1:order-1',

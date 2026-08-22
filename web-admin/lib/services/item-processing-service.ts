@@ -8,10 +8,8 @@ import { createClient } from '@/lib/supabase/server';
 import { OrderService } from './order-service';
 import { ProcessingStepsService } from './processing-steps-service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
-import {
-  executeAction,
-  listAvailableActions,
-} from '@/lib/services/workflow/workflow-engine.service';
+import { listAvailableActions } from '@/lib/services/workflow/workflow-engine.service';
+import { executeWorkflowStageCommand } from '@/lib/services/workflow/workflow-stage-command.service';
 
 /**
  *
@@ -262,7 +260,7 @@ export class ItemProcessingService {
             orderId,
             screen: 'processing',
           });
-          await executeAction({
+          await executeWorkflowStageCommand({
             tenantId,
             orderId,
             screen: 'processing',
@@ -272,7 +270,6 @@ export class ItemProcessingService {
             actorName: userName,
             input: {
               notes: 'All items processed',
-              preferredToStatus: 'ready',
               rackLocation: rackLocation.rack_location,
             },
             idempotencyKey: `item-auto-ready:${tenantId}:${orderId}`,

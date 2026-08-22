@@ -107,6 +107,34 @@ describe('semantic workflow artifact loader', () => {
     expect(queryRaw).not.toHaveBeenCalled();
   });
 
+  it('rejects a profile/version pin that is missing the compiled artifact identity', async () => {
+    await expect(loadSemanticWorkflowArtifactForOrder({
+      wf_profile_id: snapshot.wf_profile_id,
+      wf_version_no: 1,
+      wf_profile_version_id: null,
+      wf_profile_artifact_id: null,
+      wf_profile_revision: null,
+      wf_profile_checksum: null,
+      wf_profile_schema_version: null,
+    })).rejects.toMatchObject<Partial<SemanticWorkflowArtifactError>>({
+      code: 'PROFILE_SNAPSHOT_INCOMPLETE',
+    });
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('returns null for an unsnapshotted legacy order', async () => {
+    await expect(loadSemanticWorkflowArtifactForOrder({
+      wf_profile_id: null,
+      wf_version_no: null,
+      wf_profile_version_id: null,
+      wf_profile_artifact_id: null,
+      wf_profile_revision: null,
+      wf_profile_checksum: null,
+      wf_profile_schema_version: null,
+    })).resolves.toBeNull();
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
   it('rejects an artifact whose embedded version does not match the order snapshot', async () => {
     const row = artifactRow();
     row.compiled_artifact.profile_version_no = 2;
@@ -114,6 +142,14 @@ describe('semantic workflow artifact loader', () => {
 
     await expect(loadSemanticWorkflowArtifactForOrder(snapshot)).rejects.toMatchObject<Partial<SemanticWorkflowArtifactError>>({
       code: 'PROFILE_ARTIFACT_INVALID',
+    });
+  });
+
+  it('rejects a missing artifact row instead of loading a later compiled revision', async () => {
+    queryRaw.mockResolvedValue([]);
+
+    await expect(loadSemanticWorkflowArtifactForOrder(snapshot)).rejects.toMatchObject<Partial<SemanticWorkflowArtifactError>>({
+      code: 'PROFILE_ARTIFACT_UNAVAILABLE',
     });
   });
 });
