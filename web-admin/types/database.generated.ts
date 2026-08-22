@@ -36665,6 +36665,19 @@ export type Database = {
       }
       sys_bill_generate_invoice_number: { Args: never; Returns: string }
       sys_bill_get_default_payment_method: { Args: never; Returns: string }
+      sys_wf_prof_ver_clone_sem: {
+        Args: {
+          p_actor_id?: string
+          p_change_summary?: string
+          p_change_summary2?: string
+          p_profile_id: string
+          p_source_version_no: number
+        }
+        Returns: {
+          version_id: string
+          version_no: number
+        }[]
+      }
       sys_wf_prof_ver_commit_art: {
         Args: {
           p_actor_id?: string
@@ -36681,6 +36694,18 @@ export type Database = {
           artifact_checksum: string
           artifact_id: string
           policy_revision: number
+          version_id: string
+          version_status: string
+        }[]
+      }
+      sys_wf_prof_ver_retire_sem: {
+        Args: {
+          p_actor_id?: string
+          p_profile_id: string
+          p_version_no: number
+        }
+        Returns: {
+          retired_at: string
           version_id: string
           version_status: string
         }[]

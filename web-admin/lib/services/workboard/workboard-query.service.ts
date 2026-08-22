@@ -203,7 +203,7 @@ function buildWhereSql(
     clauses.push(Prisma.sql`NOT (COALESCE(o.has_issue, false) OR COALESCE(o.is_rejected, false))`)
   }
 
-  const dueAt = Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by)`
+  const dueAt = Prisma.sql`COALESCE(o.ready_by, o.ready_by_at_new)`
   const now = new Date()
   const today = dateRangeForToday(now)
   if (input.sla === 'overdue') clauses.push(Prisma.sql`${dueAt} < ${now}`)
