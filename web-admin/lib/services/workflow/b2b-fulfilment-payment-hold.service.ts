@@ -21,6 +21,8 @@ export interface B2BFulfilmentPaymentHoldDecision {
  * the dedicated B2B bounded context owns invoice/reservation revalidation,
  * this seam deliberately permits fulfilment. Replacing this implementation
  * later preserves the workflow gate contract for web, mobile, and partners.
+ *
+ * @param _input - Reserved B2B payment facts for the future policy implementation.
  */
 export function evaluateB2BFulfilmentPaymentHold(
   _input: B2BFulfilmentPaymentHoldInput,

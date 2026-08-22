@@ -27,9 +27,30 @@ export interface ResolvedWorkflowInitialRule {
   priority: number;
 }
 
+/** Assignment context supplied by a single service-category order item. */
+export interface WorkflowProfileResolutionInput {
+  tenantId: string;
+  branchId?: string;
+  serviceCode?: string;
+}
+
+/** Assignment context for an order that may contain several service categories. */
+export interface WorkflowProfileOrderResolutionInput {
+  tenantId: string;
+  branchId?: string;
+  serviceCodes?: readonly string[];
+}
+
 /** Safe configuration failure exposed by order creation adapters. */
 export class WorkflowProfileResolutionError extends Error {
-  constructor(message: string) {
+  /**
+   * @param message - Safe configuration guidance for the order-creation adapter.
+   * @param code - Stable machine-readable response for web and integration callers.
+   */
+  constructor(
+    message: string,
+    readonly code: 'PROFILE_ASSIGNMENT_CONFLICT' | 'PROFILE_SERVICE_SCOPE_CONFLICT' | 'PROFILE_RESOLUTION_FAILED' = 'PROFILE_RESOLUTION_FAILED',
+  ) {
     super(message);
     this.name = 'WorkflowProfileResolutionError';
   }
@@ -86,20 +107,46 @@ function assignmentRank(
 /**
  * Chooses the most-specific active assignment. An assignment with a service
  * scope is never applied when the caller cannot identify that service.
+ *
+ * @param assignments - Active tenant assignment rows eligible for evaluation.
+ * @param branchId - Optional branch scope supplied by the new-order command.
+ * @param serviceCode - Optional service scope supplied by the new-order command.
  */
 function chooseAssignment(
   assignments: AssignmentRow[],
   branchId: string | undefined,
   serviceCode: string | undefined,
 ): AssignmentRow | null {
-  return assignments
+  const ranked = assignments
     .filter((assignment) => assignmentMatches(assignment, branchId, serviceCode))
     .sort((left, right) => {
       const rankDifference = assignmentRank(right, branchId, serviceCode) - assignmentRank(left, branchId, serviceCode);
       if (rankDifference !== 0) return rankDifference;
       if (left.is_default !== right.is_default) return left.is_default ? -1 : 1;
       return left.created_at.localeCompare(right.created_at);
-    })[0] ?? null;
+    });
+  const winner = ranked[0];
+  if (!winner) return null;
+
+  // Timestamp is suitable only to make identical duplicate rows deterministic.
+  // Different equally specific bindings would make the selected runtime policy
+  // unknowable to operators, so require HQ configuration to resolve it first.
+  const competingBindings = new Set(
+    ranked
+      .filter((candidate) =>
+        assignmentRank(candidate, branchId, serviceCode) === assignmentRank(winner, branchId, serviceCode)
+        && candidate.is_default === winner.is_default,
+      )
+      .map((candidate) => `${candidate.wf_profile_id}:${candidate.wf_version_no ?? 'latest'}`),
+  );
+  if (competingBindings.size > 1) {
+    throw new WorkflowProfileResolutionError(
+      'Multiple equally specific workflow profile assignments apply to this order. Resolve the assignment conflict in HQ before creating orders.',
+      'PROFILE_ASSIGNMENT_CONFLICT',
+    );
+  }
+
+  return winner;
 }
 
 function chooseExecutableVersion(
@@ -184,10 +231,61 @@ function buildBinding(version: VersionRow, artifact: ArtifactRow): ResolvedWorkf
   };
 }
 
-/** Resolves a workflow profile snapshot through the tenant-scoped Supabase path. */
+function normalizeServiceCodes(serviceCodes?: readonly string[]): string[] {
+  return [...new Set(
+    (serviceCodes ?? [])
+      .map((serviceCode) => serviceCode.trim())
+      .filter(Boolean),
+  )].sort();
+}
+
+function bindingIdentity(binding: ResolvedWorkflowProfileBinding | null): string {
+  if (!binding) return 'legacy';
+  return [
+    binding.profileId,
+    binding.versionNo,
+    binding.artifactId,
+    binding.policyRevision,
+    binding.artifactSchemaVersion,
+    binding.artifactChecksum,
+  ].join(':');
+}
+
+async function resolveOrderServiceBindings(
+  input: WorkflowProfileOrderResolutionInput,
+  resolveForService: (serviceCode?: string) => Promise<ResolvedWorkflowProfileBinding | null>,
+): Promise<ResolvedWorkflowProfileBinding | null> {
+  const serviceCodes = normalizeServiceCodes(input.serviceCodes);
+  if (serviceCodes.length === 0) return resolveForService();
+
+  const bindings: Array<ResolvedWorkflowProfileBinding | null> = [];
+  for (const serviceCode of serviceCodes) {
+    bindings.push(await resolveForService(serviceCode));
+  }
+
+  const identities = new Set(bindings.map(bindingIdentity));
+  if (identities.size > 1) {
+    throw new WorkflowProfileResolutionError(
+      'This order contains service categories governed by different workflow profiles. Split the order before creation.',
+      'PROFILE_SERVICE_SCOPE_CONFLICT',
+    );
+  }
+
+  return bindings[0] ?? null;
+}
+
+/**
+ * Resolves a workflow profile snapshot through the tenant-scoped Supabase path.
+ *
+ * @param supabase - Tenant-context Supabase client for the current request.
+ * @param input - Tenant and optional branch/service assignment context.
+ * @param input.tenantId - Required tenant boundary for every assignment lookup.
+ * @param input.branchId - Optional branch scope for assignment precedence.
+ * @param input.serviceCode - Optional service scope for assignment precedence.
+ */
 export async function resolveWorkflowProfileBindingWithSupabase(
   supabase: SupabaseClient,
-  input: { tenantId: string; branchId?: string; serviceCode?: string },
+  input: WorkflowProfileResolutionInput,
 ): Promise<ResolvedWorkflowProfileBinding | null> {
   const { data: assignmentData, error: assignmentError } = await supabase
     .from('org_wf_profile_assign_cf')
@@ -249,10 +347,18 @@ export async function resolveWorkflowProfileBindingWithSupabase(
   return buildBinding(version, artifactData as ArtifactRow);
 }
 
-/** Resolves the same immutable profile snapshot inside a Prisma order transaction. */
+/**
+ * Resolves the same immutable profile snapshot inside a Prisma order transaction.
+ *
+ * @param tx - Existing transaction that will persist the resolved order snapshot.
+ * @param input - Tenant and optional branch/service assignment context.
+ * @param input.tenantId - Required tenant boundary for every assignment lookup.
+ * @param input.branchId - Optional branch scope for assignment precedence.
+ * @param input.serviceCode - Optional service scope for assignment precedence.
+ */
 export async function resolveWorkflowProfileBindingWithPrisma(
   tx: Prisma.TransactionClient,
-  input: { tenantId: string; branchId?: string; serviceCode?: string },
+  input: WorkflowProfileResolutionInput,
 ): Promise<ResolvedWorkflowProfileBinding | null> {
   const assignments = await tx.$queryRaw<AssignmentRow[]>(Prisma.sql`
     SELECT
@@ -323,4 +429,44 @@ export async function resolveWorkflowProfileBindingWithPrisma(
     throw new WorkflowProfileResolutionError('The assigned workflow profile artifact is unavailable.');
   }
   return buildBinding(version, artifactRows[0]);
+}
+
+/**
+ * Resolves one policy for every service category in a new order.
+ *
+ * A single order header can only persist one immutable workflow snapshot. If
+ * category-scoped assignments would choose different snapshots, silently
+ * picking the first item would make the remaining items follow the wrong
+ * operational policy. The caller must split that order first.
+ */
+export async function resolveWorkflowProfileBindingForOrderWithSupabase(
+  supabase: SupabaseClient,
+  input: WorkflowProfileOrderResolutionInput,
+): Promise<ResolvedWorkflowProfileBinding | null> {
+  return resolveOrderServiceBindings(input, (serviceCode) =>
+    resolveWorkflowProfileBindingWithSupabase(supabase, {
+      tenantId: input.tenantId,
+      branchId: input.branchId,
+      serviceCode,
+    }),
+  );
+}
+
+/**
+ * Transactional equivalent of the order-level resolver used by order creation.
+ * It shares exactly the same service-scope and split-required behavior as the
+ * Supabase path, so browser and integration commands cannot pin different
+ * policy snapshots for the same payload.
+ */
+export async function resolveWorkflowProfileBindingForOrderWithPrisma(
+  tx: Prisma.TransactionClient,
+  input: WorkflowProfileOrderResolutionInput,
+): Promise<ResolvedWorkflowProfileBinding | null> {
+  return resolveOrderServiceBindings(input, (serviceCode) =>
+    resolveWorkflowProfileBindingWithPrisma(tx, {
+      tenantId: input.tenantId,
+      branchId: input.branchId,
+      serviceCode,
+    }),
+  );
 }

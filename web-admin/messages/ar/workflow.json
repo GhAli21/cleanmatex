@@ -290,6 +290,7 @@
     "confirmAction": "تأكيد استلام العميل",
     "directConfirmAction": "تأكيد استلام العميل الآن",
     "notAvailable": "تأكيد استلام العميل غير متاح لهذا الطلب.",
+    "notConfigured": "لم يتم إعداد الاستلام من المنضدة في ملف سير العمل هذا. فعّل إجراء تسليم الاستلام قبل تسجيل التسليم.",
     "collectionRequiredTitle": "الدفع مطلوب قبل التسليم",
     "collectionRequiredDetail": "حصّل المبلغ المتبقي {amount} قبل تأكيد استلام العميل.",
     "collectionRequiredMessage": "حصّل المبلغ المتبقي {amount} قبل تأكيد استلام العميل.",

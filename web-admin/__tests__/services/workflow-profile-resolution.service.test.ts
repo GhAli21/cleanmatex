@@ -5,6 +5,7 @@ jest.mock('@prisma/client', () => ({
 }));
 
 import {
+  resolveWorkflowProfileBindingForOrderWithPrisma,
   resolveWorkflowProfileBindingWithPrisma,
   WorkflowProfileResolutionError,
 } from '@/lib/services/workflow/workflow-profile-resolution.service';
@@ -113,6 +114,69 @@ describe('workflow profile resolution', () => {
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID, branchId })).resolves.toMatchObject({
       versionNo: 3,
+    });
+  });
+
+  it('rejects different equally specific active assignments instead of choosing by timestamp', async () => {
+    const tx = transactionWithRows(
+      [
+        {
+          wf_profile_id: PROFILE_ID,
+          wf_version_no: 1,
+          branch_id: null,
+          service_code: null,
+          is_default: true,
+          created_at: '2026-08-15T00:00:00.000Z',
+        },
+        {
+          wf_profile_id: 'a1000000-0000-4000-8000-000000000002',
+          wf_version_no: 1,
+          branch_id: null,
+          service_code: null,
+          is_default: true,
+          created_at: '2026-08-16T00:00:00.000Z',
+        },
+      ],
+    );
+
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toMatchObject({
+      name: 'WorkflowProfileResolutionError',
+      message: expect.stringContaining('Multiple equally specific'),
+    });
+  });
+
+  it('requires a split when service-scoped assignments resolve different policy snapshots', async () => {
+    const tx = transactionWithRows(
+      [{
+        wf_profile_id: PROFILE_ID,
+        wf_version_no: 1,
+        branch_id: null,
+        service_code: 'DRY_CLEAN',
+        is_default: false,
+        created_at: '2026-08-15T00:00:00.000Z',
+      }],
+      [{ is_hq_test_demo: false }],
+      [executableVersion(1, null)],
+      [validArtifact()],
+      [{
+        wf_profile_id: PROFILE_ID,
+        wf_version_no: 2,
+        branch_id: null,
+        service_code: 'WASH_FOLD',
+        is_default: false,
+        created_at: '2026-08-15T00:00:00.000Z',
+      }],
+      [{ is_hq_test_demo: false }],
+      [executableVersion(2, null)],
+      [validArtifact()],
+    );
+
+    await expect(resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
+      tenantId: TENANT_ID,
+      serviceCodes: ['WASH_FOLD', 'DRY_CLEAN'],
+    })).rejects.toMatchObject({
+      name: 'WorkflowProfileResolutionError',
+      message: expect.stringContaining('Split the order'),
     });
   });
 

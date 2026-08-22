@@ -53,9 +53,9 @@ Headers: `Idempotency-Key` (required)
 
 **Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `400 REASON_REQUIRED`, `400 UNSUPPORTED_GATE_MODE`, `400 EVIDENCE_RUNTIME_UNAVAILABLE`, `400 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `403 FORBIDDEN`, `404 NOT_FOUND`.
 
-For an order with a semantic profile snapshot, the service reads only the exact immutable artifact identified by the order. It checks the artifact's screen membership, action edge, and server-assigned command channel. It does not re-resolve the tenant assignment or read mutable profile, graph-pin, screen, transition, or action-catalog configuration. `public_tracking` calls the same command with `channel=public_web`; authenticated internal adapters use `staff_web` until mobile, POS, API, and integration adapters are introduced.
+For an order with a semantic profile snapshot, the service reads only the exact immutable artifact identified by the order. It checks the artifact's screen membership, action edge, and server-assigned command channel. An ordinary command requires an enabled `primary_owner` module and an `owner` status membership; observer visibility is read-only even if malformed artifact input contains an execution. An enabled `cross_cutting_command` module is the deliberate exception for a separately declared command surface such as `public_tracking`; it still requires a declared membership, execution edge, and permitted server-assigned channel. The service does not re-resolve the tenant assignment or read mutable profile, graph-pin, screen, transition, or action-catalog configuration. `public_tracking` calls the same command with `channel=public_web`; authenticated internal adapters use `staff_web` until mobile, POS, API, and integration adapters are introduced.
 
-Semantic hard-block gates are evaluated from the tenant-scoped order row read under the command transaction lock. `rack_required`, preparation gates, and `fin_release_eligible` therefore return identical `GATE_FAILED` reasons during action discovery and command execution. A positive outstanding balance returns `GATE_FIN_RELEASE`. `CREDIT_INVOICE` returns `GATE_B2B_CREDIT_VALIDATION_UNAVAILABLE` until the future B2B fulfilment service atomically revalidates the approved AR invoice and credit reservation; clients must guide the operator to the appropriate account workflow and must not bypass this result.
+Semantic hard-block gates are evaluated from the tenant-scoped order row read under the command transaction lock. `rack_required`, preparation gates, and `fin_release_eligible` therefore return identical `GATE_FAILED` reasons during action discovery and command execution. A positive outstanding balance returns `GATE_FIN_RELEASE`. `CREDIT_INVOICE` invokes the B2B fulfilment payment-hold seam; its current result is non-blocking because order creation owns the existing B2B credit decision. Clients must not implement B2B finance policy: the future B2B feature will replace the seam with its own durable policy without changing this workflow contract.
 
 ### 2.1 Workflow context compatibility read
 
@@ -67,7 +67,9 @@ Existing orders list filtered by screen membership (`current_status IN …`).
 
 ## 4. Create
 
-Existing create; must call `InitialStatusResolver`; persist source/type/snapshot/`state_version=1`. No retail→`closed` shortcut.
+Existing create must call `InitialStatusResolver`; persist source/type/snapshot/`state_version=1`. No retail→`closed` shortcut. For a semantic profile snapshot, every create path (normal intake, remote intake, retail, and Quick Drop) resolves only the immutable artifact initial rules. An unmatched semantic rule returns `422 PROFILE_INITIAL_RULE_UNMATCHED`; it never falls back to legacy `intake` or `preparing` shortcuts.
+
+When multiple active assignments match the same tenant/branch/service specificity, only exact duplicate bindings may be timestamp-ordered. Different profile/version bindings are rejected as a configuration conflict before an order is created; clients must direct the operator to HQ policy administration. Order creation resolves each distinct item `serviceCategoryCode` as the existing assignment `service_code` context. If service scopes select different immutable snapshots, it returns `422 PROFILE_SERVICE_SCOPE_CONFLICT`; the client must split the order rather than silently pinning the first item policy.
 
 ## 5. Release (V1.0)
 
@@ -327,8 +329,10 @@ The response remains read-only and tenant-scoped. It returns:
 
 It has no mutation endpoint.
 
-For an order pinned to `wf_profile_id` + `wf_version_no`, the service evaluates
-the pinned graph's `workboard` membership and its stage-owner membership. It
-uses the tenant screen contract only for legacy/unpinned orders or documented
-missing-pin fallback. A status without an active owner is excluded and returned
-as a configuration gap rather than guessed or mutated.
+For a semantic order pinned to `wf_profile_artifact_id`, the service evaluates
+the exact immutable artifact's `workboard` membership and primary-owner stage
+membership. Its owner metrics group by that artifact identity, preventing
+separate compiled revisions from being conflated. Legacy pinned-graph and
+unprofiled orders use the documented compatibility path only. A status without
+an active owner is excluded and returned as a configuration gap rather than
+guessed or mutated.

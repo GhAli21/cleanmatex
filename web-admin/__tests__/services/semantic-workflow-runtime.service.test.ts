@@ -1,4 +1,5 @@
 import {
+  isSemanticScreenStatusCommandEnabled,
   isSemanticScreenStatusMember,
   loadSemanticActionTransitions,
 } from '@/lib/services/workflow/semantic-workflow-runtime.service';
@@ -16,11 +17,13 @@ const artifact: SemanticWorkflowArtifact = {
     { screen_key: 'ready_release', module_mode: 'primary_owner', is_enabled: true, display_order: 10 },
     { screen_key: 'workboard', module_mode: 'observer', is_enabled: true, display_order: 20 },
     { screen_key: 'disabled_screen', module_mode: 'primary_owner', is_enabled: false, display_order: 30 },
+    { screen_key: 'public_tracking', module_mode: 'cross_cutting_command', is_enabled: true, display_order: 40 },
   ],
   module_statuses: [
     { screen_key: 'ready_release', status_code: 'ready', visibility_mode: 'owner', display_order: 10 },
     { screen_key: 'workboard', status_code: 'ready', visibility_mode: 'observer', display_order: 20 },
     { screen_key: 'disabled_screen', status_code: 'ready', visibility_mode: 'owner', display_order: 30 },
+    { screen_key: 'public_tracking', status_code: 'ready', visibility_mode: 'observer', display_order: 40 },
   ],
   executions: [
     {
@@ -69,6 +72,40 @@ const artifact: SemanticWorkflowArtifact = {
         display_order: 1,
       }],
     },
+    {
+      // Deliberately malformed policy input: an observer must remain read-only
+      // even if an upstream compiler or migration accidentally emits an edge.
+      exec_id: 'd1000000-0000-4000-8000-000000000003',
+      screen_key: 'workboard',
+      action_code: 'RELEASE_FOR_PICKUP',
+      from_status: 'ready',
+      to_status: 'ready_for_pickup',
+      transition_kind: 'fixed',
+      requires_expected_version: true,
+      requires_idempotency: true,
+      requires_reason: false,
+      min_reason_length: 0,
+      requires_evidence: false,
+      display_order: 30,
+      channels: [{ channel_code: 'staff_web' }],
+      gates: [],
+    },
+    {
+      exec_id: 'd1000000-0000-4000-8000-000000000004',
+      screen_key: 'public_tracking',
+      action_code: 'CONFIRM_DELIVERY',
+      from_status: 'ready',
+      to_status: 'delivered',
+      transition_kind: 'fixed',
+      requires_expected_version: true,
+      requires_idempotency: true,
+      requires_reason: false,
+      min_reason_length: 0,
+      requires_evidence: false,
+      display_order: 40,
+      channels: [{ channel_code: 'public_web' }],
+      gates: [],
+    },
   ],
   initial_rules: [],
   evidence: [],
@@ -97,6 +134,25 @@ describe('semantic workflow runtime adapter', () => {
       actionCode: 'RELEASE_FOR_DELIVERY',
       hasUnsupportedGateMode: true,
     })]);
+  });
+
+  it('keeps observer-only screen membership read-only even when an artifact contains an execution', () => {
+    expect(isSemanticScreenStatusMember(artifact, 'workboard', 'ready')).toBe(true);
+    expect(isSemanticScreenStatusCommandEnabled(artifact, 'workboard', 'ready')).toBe(false);
+    expect(loadSemanticActionTransitions(artifact, {
+      screen: 'workboard',
+      fromStatus: 'ready',
+      channel: 'staff_web',
+    })).toEqual([]);
+  });
+
+  it('allows an explicitly configured cross-cutting command without granting ordinary observer authority', () => {
+    expect(isSemanticScreenStatusCommandEnabled(artifact, 'public_tracking', 'ready')).toBe(true);
+    expect(loadSemanticActionTransitions(artifact, {
+      screen: 'public_tracking',
+      fromStatus: 'ready',
+      channel: 'public_web',
+    })).toEqual([expect.objectContaining({ actionCode: 'CONFIRM_DELIVERY' })]);
   });
 
   it('projects command requirements and hard-block gates without reading catalog configuration', () => {

@@ -34,6 +34,10 @@ function executionAllowsChannel(
 /**
  * Checks profile-owned and observer visibility without consulting mutable
  * screen catalog rows. Observers may see a status but cannot expose commands.
+ *
+ * @param artifact - Immutable compiled profile artifact named by the order.
+ * @param screen - Requested workflow screen key.
+ * @param statusCode - Order status being rendered on that screen.
  */
 export function isSemanticScreenStatusMember(
   artifact: SemanticWorkflowArtifact,
@@ -56,9 +60,49 @@ export function isSemanticScreenStatusMember(
 }
 
 /**
+ * Determines whether a screen has an explicit command authority for a status.
+ * Ordinary observer screens are read-only. A `cross_cutting_command` module is
+ * the explicit exception used for non-owner command surfaces such as public
+ * tracking; it still needs a declared status membership and execution edge.
+ *
+ * @param artifact - Immutable compiled profile artifact named by the order.
+ * @param screen - Requested workflow screen key.
+ * @param statusCode - Order status being acted upon.
+ */
+export function isSemanticScreenStatusCommandEnabled(
+  artifact: SemanticWorkflowArtifact,
+  screen: string,
+  statusCode: string,
+): boolean {
+  const targetScreen = normalise(screen);
+  const targetStatus = normalise(statusCode);
+  const screenModule = artifact.modules.find(
+    (candidate) => candidate.is_enabled && normalise(candidate.screen_key) === targetScreen,
+  );
+  if (!screenModule || screenModule.module_mode === 'observer') return false;
+
+  const membership = artifact.module_statuses.find(
+    (candidate) =>
+      normalise(candidate.screen_key) === targetScreen
+      && normalise(candidate.status_code) === targetStatus,
+  );
+  if (!membership) return false;
+
+  return screenModule.module_mode === 'cross_cutting_command'
+    || membership.visibility_mode === 'owner';
+}
+
+/**
  * Resolves only command bindings that are explicitly present in an immutable
  * artifact. This prevents a later HQ catalog change from changing in-flight
  * order behavior or exposing an action on an unauthorized channel.
+ *
+ * @param artifact - Immutable compiled profile artifact named by the order.
+ * @param input - Server-derived screen, status, channel, and optional action filter.
+ * @param input.screen - Requested workflow screen key.
+ * @param input.fromStatus - Current order status.
+ * @param input.channel - Server-assigned command channel.
+ * @param input.actionCode - Optional exact configured action code.
  */
 export function loadSemanticActionTransitions(
   artifact: SemanticWorkflowArtifact,
@@ -72,6 +116,13 @@ export function loadSemanticActionTransitions(
   const screen = normalise(input.screen);
   const fromStatus = normalise(input.fromStatus);
   const actionCode = input.actionCode?.trim();
+
+  // A malformed or over-permissive compiler artifact must not turn an observer
+  // surface into a command surface. This guard is shared by action listing and
+  // execution, so no client channel can bypass stage ownership.
+  if (!isSemanticScreenStatusCommandEnabled(artifact, screen, fromStatus)) {
+    return [];
+  }
 
   return artifact.executions
     .filter((execution) =>

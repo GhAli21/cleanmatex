@@ -133,6 +133,11 @@ describe('WorkboardQueryService', () => {
     expect(result.rows).toEqual(expect.arrayContaining([
       expect.objectContaining({ ownerScreenKey: 'processing', ownerPath: '/dashboard/processing/order-semantic' }),
     ]))
+
+    const ownerMetricsQuery = mockQueryRaw.mock.calls[3]?.[0] as { strings?: TemplateStringsArray }
+    expect(ownerMetricsQuery.strings?.join('')).toContain(
+      'GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_artifact_id',
+    )
   })
 
   it('filters rows by owner screen while preserving cross-stage summary counts', async () => {

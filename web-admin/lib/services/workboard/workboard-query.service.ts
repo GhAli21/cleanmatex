@@ -493,7 +493,9 @@ export class WorkboardQueryService {
           AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
           AND COALESCE(task.rec_status, 1) <> 0
         WHERE ${baseWhereSql}
-        GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no
+        -- Artifact identity is part of the immutable policy snapshot. Grouping by it
+        -- keeps two revisions of the same profile from being merged in supervisor counts.
+        GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_artifact_id
       `),
       prisma.$queryRaw<StatusLabelRow[]>(Prisma.sql`
         SELECT status_code, name, name2 FROM public.sys_wf_statuses_cd

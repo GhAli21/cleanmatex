@@ -123,6 +123,12 @@ function runtimeUnavailableReason(gateCode: string, locale?: string): WorkflowGa
  *   preparationStatus: 'completed', rackLocation: 'A-12',
  *   paymentTypeCode: 'PAY_ON_COLLECTION', outstandingAmount: '4.5000',
  * }, 'semantic')
+ *
+ * @param gateCode - Semantic gate code selected by the compiled action binding.
+ * @param order - Facts from the tenant-scoped order locked by the command.
+ * @param mode - Semantic enforcement or controlled legacy-compatibility mode.
+ * @param locale - Optional response locale used for blocked-reason text.
+ * @param input - Optional command input that can satisfy an input-aware gate.
  */
 export function evaluateWorkflowGate(
   gateCode: string,
@@ -186,6 +192,12 @@ export function evaluateWorkflowGate(
  *
  * @example
  * evaluateWorkflowGateSet(['rack_required', 'fin_release_eligible'], order, 'semantic')
+ *
+ * @param gateCodes - All gates configured for the candidate action.
+ * @param order - Facts from the tenant-scoped order locked by the command.
+ * @param mode - Semantic enforcement or controlled legacy-compatibility mode.
+ * @param locale - Optional response locale used for blocked-reason text.
+ * @param input - Optional command input that can satisfy an input-aware gate.
  */
 export function evaluateWorkflowGateSet(
   gateCodes: readonly string[],

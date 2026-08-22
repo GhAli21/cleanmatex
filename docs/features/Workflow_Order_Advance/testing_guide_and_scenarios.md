@@ -8,6 +8,7 @@ Run from `web-admin`:
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
 npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
 npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-profile-resolution.service.test.ts --runInBand --forceExit
+npx jest __tests__/services/workboard-query.service.test.ts --runInBand
 npx playwright test e2e/public-order-tracking.spec.ts --project=public-chromium --reporter=line
 npx eslint . --quiet
 npx tsc --noEmit
@@ -18,7 +19,19 @@ npm run build
 
 2026-08-22 semantic-runtime evidence: the immutable artifact loader, semantic runtime adapter, and profile-resolution tests pass (10 tests). They cover exact artifact identity, partial/mismatched snapshots, enabled owner/observer visibility, server channel filtering, and unsupported gate-mode projection. The Jest process currently needs `--forceExit`; investigate its existing open-handle warning before release sign-off.
 
-2026-08-22 shared-gate/context evidence: TypeScript typecheck and targeted ESLint pass; Next.js production build completed. Seven focused Jest suites / 28 tests pass, including the reusable gate evaluator and immutable context projection. It proves an unpaid `PAY_ON_COLLECTION` order blocks semantic `fin_release_eligible`, settlement at the shared money tolerance passes, all gate blockers are returned together, unknown semantic gates fail closed, B2B `CREDIT_INVOICE` release remains explicitly blocked until its durable invoice/reservation validator exists, and the compatibility context uses enabled artifact modules rather than template stage flags.
+2026-08-22 shared-gate/context evidence: TypeScript typecheck and targeted ESLint pass; Next.js production build completed. Focused Jest coverage includes the reusable gate evaluator, B2B payment-hold seam, and immutable context projection. It proves an unpaid `PAY_ON_COLLECTION` order blocks semantic `fin_release_eligible`, settlement at the shared money tolerance passes, all gate blockers are returned together, unknown semantic gates fail closed, B2B `CREDIT_INVOICE` delegates to its explicitly non-blocking seam, and the compatibility context uses enabled artifact modules rather than template stage flags.
+
+2026-08-22 observer-ownership evidence: focused semantic runtime, artifact-loader, and workflow-gate tests pass. A malformed artifact execution on an enabled observer screen is excluded from both action discovery and execution. Explicit `cross_cutting_command` policy remains executable only with its declared membership, execution edge, and `public_web` channel.
+
+2026-08-22 semantic-create evidence: initial-status resolver tests prove Quick Drop selects its artifact rule and an unmatched semantic order is rejected rather than receiving the legacy intake fallback.
+
+2026-08-22 assignment-resolution evidence: profile-resolution tests prove branch precedence and reject different equally specific active bindings before an order can select an arbitrary workflow policy.
+
+2026-08-22 service-scope assignment evidence: profile-resolution tests resolve every distinct item service category and reject a mixed order whose category scopes select different immutable profile snapshots. The public submission contract reports `422 PROFILE_SERVICE_SCOPE_CONFLICT` only after its rollback/idempotency cleanup path.
+
+2026-08-22 pickup-policy UX evidence: EN/AR catalog parity, targeted pickup-card lint, and TypeScript typecheck pass. A semantic profile that omits the counter-handover command now receives a clear read-only configuration explanation; it never enables a local status change.
+
+2026-08-22 Workboard aggregate evidence: the focused Workboard service test proves a semantic order remains routed by its immutable artifact and asserts the owner aggregate groups by `wf_profile_artifact_id`, preventing distinct policy revisions from being merged in supervisor totals.
 
 ## Delivery proof/audit focused scenarios
 

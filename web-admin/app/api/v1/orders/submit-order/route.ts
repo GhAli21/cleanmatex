@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { WorkflowProfileResolutionError } from '@/lib/services/workflow/workflow-profile-resolution.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { submitOrderRequestSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -309,6 +310,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
+    const profileResolutionCode = error instanceof WorkflowProfileResolutionError ? error.code : null;
     const message = error instanceof Error ? error.message : String(error);
     const committedOrder = await prisma.org_orders_mst.findFirst({
       where: {
@@ -350,6 +352,28 @@ export async function POST(request: NextRequest) {
           errorCode, error: err instanceof Error ? err.message : String(err),
         });
       });
+
+    if (profileResolutionCode === 'PROFILE_SERVICE_SCOPE_CONFLICT') {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: profileResolutionCode,
+          error: 'This order contains services governed by different workflows. Split the order before creating it.',
+        },
+        { status: 422 },
+      );
+    }
+
+    if (profileResolutionCode === 'PROFILE_ASSIGNMENT_CONFLICT') {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: profileResolutionCode,
+          error: 'The tenant workflow profile assignments conflict. Contact your platform administrator.',
+        },
+        { status: 422 },
+      );
+    }
 
     if (message === 'AMOUNT_MISMATCH') {
       return NextResponse.json(
@@ -401,6 +425,17 @@ export async function POST(request: NextRequest) {
           error: 'Choose how the remaining balance should be handled.',
         },
         { status: 400 }
+      );
+    }
+
+    if (message.includes('assigned workflow profile has no initial rule matching this order')) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'PROFILE_INITIAL_RULE_UNMATCHED',
+          error: 'The assigned workflow profile is not configured for this order. Contact your platform administrator.',
+        },
+        { status: 422 },
       );
     }
 

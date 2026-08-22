@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { loadPinnedGraphForProfileVersion, type PinnedInitialRule } from './pinned-workflow-graph.service';
 import type { ResolvedWorkflowInitialRule } from './workflow-profile-resolution.service';
 
+/** Inputs used to match a creation context against immutable or legacy rules. */
 export interface ResolveInitialStatusParams {
   orderSourceCode?: string | null;
   orderTypeId?: string | null;
@@ -16,6 +17,7 @@ export interface ResolveInitialStatusParams {
   semanticInitialRules?: ResolvedWorkflowInitialRule[] | null;
 }
 
+/** Deterministic initial workflow status and the rule that selected it. */
 export interface ResolveInitialStatusResult {
   initialStatus: string;
   ruleCode: string | null;
@@ -23,6 +25,22 @@ export interface ResolveInitialStatusResult {
 
 const FALLBACK_STATUS = 'intake';
 
+/**
+ * Signals a profile-policy configuration problem before any order is written.
+ * Legacy orders retain their documented intake fallback; semantic orders must
+ * never silently borrow it because their artifact is the runtime authority.
+ */
+export class SemanticInitialStatusResolutionError extends Error {
+  readonly code = 'PROFILE_INITIAL_RULE_UNMATCHED';
+
+  /** Creates the stable semantic configuration error used by order adapters. */
+  constructor() {
+    super('The assigned workflow profile has no initial rule matching this order. Contact your platform administrator.');
+    this.name = 'SemanticInitialStatusResolutionError';
+  }
+}
+
+/** Legacy catalog row shape kept separate from immutable semantic rule input. */
 type InitialRuleRow = {
   rule_code: string;
   order_source_code: string | null;
@@ -34,6 +52,9 @@ type InitialRuleRow = {
 
 /**
  * Resolve create-time operational status from pinned initial rules (immutable graph def).
+ *
+ * @param rules - Initial-rule snapshot pinned to a legacy V2 profile version.
+ * @param params - New-order facts used to select the most specific rule.
  */
 export function resolveInitialStatusFromPinnedRules(
   rules: PinnedInitialRule[],
@@ -61,7 +82,15 @@ export function resolveInitialStatusFromPinnedRules(
   return { initialStatus: FALLBACK_STATUS, ruleCode: null };
 }
 
-/** Resolves an initial status from the already-validated immutable semantic artifact. */
+/**
+ * Resolves an initial status from the already-validated immutable semantic
+ * artifact. A semantic profile without a matching rule is invalid for the
+ * order context, so this intentionally fails rather than falling back to the
+ * legacy intake status.
+ *
+ * @param rules - Initial rules emitted by the immutable semantic artifact.
+ * @param params - New-order facts used to select the most specific rule.
+ */
 export function resolveInitialStatusFromSemanticRules(
   rules: ResolvedWorkflowInitialRule[],
   params: Omit<ResolveInitialStatusParams, 'wfProfileId' | 'wfVersionNo' | 'semanticInitialRules'>,
@@ -81,7 +110,7 @@ export function resolveInitialStatusFromSemanticRules(
     if (status && status !== 'closed') return { initialStatus: status, ruleCode: rule.rule_code };
   }
 
-  return { initialStatus: FALLBACK_STATUS, ruleCode: null };
+  throw new SemanticInitialStatusResolutionError();
 }
 
 /**
@@ -89,6 +118,8 @@ export function resolveInitialStatusFromSemanticRules(
  * Lower priority wins. Null matchers are wildcards.
  * Retail must never resolve to `closed` (V1.0 ADR).
  * V2: when wfProfileId + wfVersionNo are set, uses pinned initial rules from graph def.
+ *
+ * @param params - New-order facts and optional immutable profile-rule snapshot.
  */
 export async function resolveInitialStatus(
   params: ResolveInitialStatusParams,

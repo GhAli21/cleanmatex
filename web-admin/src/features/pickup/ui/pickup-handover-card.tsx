@@ -67,8 +67,18 @@ export function PickupHandoverCard({
     .join(' · ');
 
   const isDirectCounterPickup = currentStatus === 'ready';
+  // The Ready page deliberately embeds this stage-owned command surface. A
+  // missing action is a profile-policy condition, not permission to create a
+  // local status writer, so explain it instead of leaving an empty panel.
   if (!action) {
-    return null;
+    if (loading) return null;
+    return (
+      <CmxSummaryMessage
+        type="info"
+        title={t('title')}
+        items={[t('notConfigured')]}
+      />
+    );
   }
 
   /**

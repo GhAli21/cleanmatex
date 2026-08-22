@@ -58,8 +58,8 @@ import {
   isActivePriority,
 } from '@/lib/services/lookups';
 import {
-  resolveWorkflowProfileBindingWithPrisma,
-  resolveWorkflowProfileBindingWithSupabase,
+  resolveWorkflowProfileBindingForOrderWithPrisma,
+  resolveWorkflowProfileBindingForOrderWithSupabase,
 } from '@/lib/services/workflow/workflow-profile-resolution.service';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
@@ -427,6 +427,30 @@ export class OrderService {
     const isIncompleteQuickDrop =
       isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length);
 
+    if (args.semanticInitialRules) {
+      // Semantic orders never inherit the old direct-create status shortcuts.
+      // The artifact has already been resolved and must decide this order's
+      // first operational status for normal and Quick Drop intake alike.
+      const resolved = await resolveInitialStatus({
+        orderSourceCode: sourceRow.order_source_code,
+        isRetail: false,
+        isQuickDrop,
+        ...pinnedProfile,
+      });
+      const initialStatus = resolved.initialStatus;
+      return {
+        v_initialStatus: initialStatus,
+        v_transitionFrom: initialStatus,
+        v_orderStatus: initialStatus,
+        v_current_status: initialStatus,
+        v_current_stage: initialStatus,
+        physicalIntakeStatus: 'received',
+        receivedAt: new Date(),
+        contractScreen: initialWorkflowScreen ?? 'new_order',
+        isRetailOnlyOrder: false,
+      };
+    }
+
     let v_initialStatus: string;
     let v_transitionFrom: string;
     let v_orderStatus: string;
@@ -511,9 +535,10 @@ export class OrderService {
         return { success: false, error: sourceValidated.error };
       }
 
-      const workflowProfileBinding = await resolveWorkflowProfileBindingWithSupabase(supabase, {
+      const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithSupabase(supabase, {
         tenantId,
         branchId,
+        serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
       });
 
       const wf = await this.computeCreateOrderWorkflowState({
@@ -620,10 +645,7 @@ export class OrderService {
         .eq('is_active', true)
         .single();
 
-      const workflowProfile = workflowProfileBinding ?? (await resolveWorkflowProfileBindingWithSupabase(supabase, {
-        tenantId,
-        branchId,
-      }));
+      const workflowProfile = workflowProfileBinding;
       const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? templateData?.template_id ?? null;
 
       const insertPayload: Record<string, unknown> = {
@@ -1183,9 +1205,10 @@ export class OrderService {
       return { success: false, error: sourceValidated.error };
     }
 
-    const workflowProfileBinding = await resolveWorkflowProfileBindingWithPrisma(tx, {
+    const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
       tenantId,
       branchId,
+      serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
     });
 
     const wf = await OrderService.computeCreateOrderWorkflowState({
@@ -1243,10 +1266,7 @@ export class OrderService {
       },
       select: { template_id: true },
     });
-    const workflowProfile = workflowProfileBinding ?? (await resolveWorkflowProfileBindingWithPrisma(tx, {
-      tenantId,
-      branchId,
-    }));
+    const workflowProfile = workflowProfileBinding;
     const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? template?.template_id ?? null;
 
     let readyByFields: { ready_by?: Date; ready_by_at_new?: Date } = {};

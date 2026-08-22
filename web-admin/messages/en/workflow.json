@@ -290,6 +290,7 @@
     "confirmAction": "Confirm customer pickup",
     "directConfirmAction": "Confirm customer pickup now",
     "notAvailable": "Customer pickup is not available for this order.",
+    "notConfigured": "Counter pickup is not configured for this workflow profile. Enable its pickup handover action before recording the handover.",
     "collectionRequiredTitle": "Payment is required before handover",
     "collectionRequiredDetail": "Collect the remaining {amount} before confirming customer pickup.",
     "collectionRequiredMessage": "Collect the remaining {amount} before confirming customer pickup.",
