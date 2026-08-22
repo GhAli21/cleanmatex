@@ -6,7 +6,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -20,6 +20,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 interface PackingItem {
   id: string;
@@ -43,6 +44,7 @@ interface PackingOrder {
 export default function PackingDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const t = useTranslations('workflow');
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
@@ -52,6 +54,7 @@ export default function PackingDetailPage() {
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   const orderId = (params as any)?.id as string | undefined;
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/packing');
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   const [order, setOrder] = useState<PackingOrder | null>(null);
@@ -177,7 +180,7 @@ export default function PackingDetailPage() {
       if (result.success) {
         showSuccess(t('packing.messages.completeSuccess'));
         // Stay on packing worklist — do not auto-advance to ready.
-        router.replace('/dashboard/packing');
+        router.replace(returnUrl);
       } else {
         setError(result.error || t('packing.messages.completeFailed'));
         if (result.blockers?.length) setBlockers(result.blockers);
@@ -211,14 +214,14 @@ export default function PackingDetailPage() {
         <WorkflowActionBar
           orderId={orderId}
           screen="packing"
-          emptyBackHref="/dashboard/packing"
+          emptyBackHref={returnUrl}
           onActionSuccess={() => {
             void loadOrder();
           }}
         />
       ) : null}
       <div>
-        <Link href="/dashboard/packing" className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('packing.actions.back')}
         </Link>
         <h1 className="text-3xl font-bold">

@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -21,6 +21,7 @@ import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { useCreateAssemblyTask } from '@features/assembly/hooks/use-assembly';
 import { AssemblyTaskModal } from '@features/assembly/ui/assembly-task-modal';
 import { CmxButton } from '@ui/primitives';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 interface AssemblyItem {
   id: string;
@@ -46,6 +47,7 @@ interface AssemblyOrder {
 export default function AssemblyDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const t = useTranslations('workflow');
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
@@ -107,6 +109,7 @@ export default function AssemblyDetailPage() {
   };
 
   const orderId = (params as any)?.id as string | undefined;
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/assembly');
 
   useEffect(() => {
     loadOrder();
@@ -148,7 +151,7 @@ export default function AssemblyDetailPage() {
           <WorkflowActionBar
             orderId={orderId}
             screen="assembly"
-            emptyBackHref="/dashboard/assembly"
+            emptyBackHref={returnUrl}
             onActionSuccess={() => {
               void loadOrder();
             }}
@@ -156,7 +159,7 @@ export default function AssemblyDetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href="/dashboard/assembly" className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('assembly.backToAssembly')}
         </Link>
         <h1 className="text-3xl font-bold">{t('screens.assembly')} - {order.order_no}</h1>
@@ -261,11 +264,10 @@ export default function AssemblyDetailPage() {
           onComplete={() => {
             setTaskId(null);
             // Stay on assembly worklist — do not auto-advance to QA/packing/ready.
-            router.replace('/dashboard/assembly');
+            router.replace(returnUrl);
           }}
         />
       ) : null}
     </div>
   );
 }
-

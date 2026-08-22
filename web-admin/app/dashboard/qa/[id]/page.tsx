@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -21,6 +21,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 interface QAItem {
   id: string;
@@ -46,6 +47,7 @@ interface QAOrder {
 export default function QADetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const t = useTranslations('workflow');
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
@@ -127,6 +129,7 @@ export default function QADetailPage() {
   };
 
   const orderId = (params as any)?.id as string | undefined;
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/qa');
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   useEffect(() => {
@@ -152,7 +155,7 @@ export default function QADetailPage() {
       if (result.success) {
         showSuccess(t('qa.messages.acceptSuccess'));
         // Stay on QA worklist — do not auto-advance to packing/ready.
-        router.replace('/dashboard/qa');
+        router.replace(returnUrl);
       } else {
         setError(result.error || t('qa.messages.acceptFailed'));
       }
@@ -201,7 +204,7 @@ export default function QADetailPage() {
       if (result.success) {
         showSuccess(t('qa.messages.rejectSuccess'));
         // Stay on QA worklist after reject (order returns to processing elsewhere).
-        router.replace('/dashboard/qa');
+        router.replace(returnUrl);
       } else {
         setError(result.error || t('qa.messages.rejectFailed'));
       }
@@ -235,7 +238,7 @@ export default function QADetailPage() {
           <WorkflowActionBar
             orderId={orderId}
             screen="qa"
-            emptyBackHref="/dashboard/qa"
+            emptyBackHref={returnUrl}
             onActionSuccess={() => {
               void loadOrder();
             }}
@@ -243,7 +246,7 @@ export default function QADetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href="/dashboard/qa" className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
           ← {t('qa.actions.backToQa')}
         </Link>
         <h1 className="text-3xl font-bold">{t('screens.qa')} - {order.order_no}</h1>
@@ -347,4 +350,3 @@ export default function QADetailPage() {
     </div>
   );
 }
-

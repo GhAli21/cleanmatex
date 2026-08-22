@@ -102,7 +102,7 @@ export function WorkboardFilterToolbar({
 
   return (
     <CmxCard className="shadow-sm">
-      <CmxCardHeader className="flex flex-col gap-3 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] pb-3 lg:flex-row lg:items-center lg:justify-between">
+      <CmxCardHeader className="flex flex-col gap-2 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 pb-2 md:p-3 md:pb-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CmxCardTitle>{t('filters.title')}</CmxCardTitle>
           <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -138,7 +138,7 @@ export function WorkboardFilterToolbar({
         </div>
       </CmxCardHeader>
 
-      <CmxCardContent className="grid gap-x-4 gap-y-3 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(17rem,1.5fr)_repeat(5,minmax(9rem,1fr))]">
+      <CmxCardContent className="grid gap-x-4 gap-y-2 p-3 pt-2 md:grid-cols-2 md:p-3 md:pt-2 xl:grid-cols-[minmax(17rem,1.5fr)_repeat(5,minmax(9rem,1fr))]">
         <div className="space-y-1.5">
           <Label htmlFor="workboard-search">{t('filters.searchLabel')}</Label>
           <CmxInput

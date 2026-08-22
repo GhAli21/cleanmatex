@@ -135,6 +135,12 @@ export interface CmxDataTableProps<TData> {
   skeletonRows?: number
   /** Table styling */
   className?: string
+  /** Adds vertical column dividers for dense, comparison-heavy operational tables. */
+  showColumnBorders?: boolean
+  /** Enlarges and de-emphasizes header casing for tables that need stronger scan anchors. */
+  headerSize?: 'default' | 'emphasized'
+  /** Optional final header styling for a feature-specific visual hierarchy. */
+  headerClassName?: string
   enableZebraStriping?: boolean
   /** Legacy empty message (deprecated, use emptyState* props) */
   emptyMessage?: ReactNode
@@ -376,6 +382,9 @@ function withSortableColumnHeader<TData>(
  * @param root0.emptyStateAction
  * @param root0.skeletonRows
  * @param root0.className
+ * @param root0.showColumnBorders
+ * @param root0.headerSize
+ * @param root0.headerClassName
  * @param root0.enableZebraStriping
  * @param root0.emptyMessage
  * @param root0.scrollable
@@ -410,6 +419,9 @@ export function CmxDataTable<TData>({
   emptyStateAction,
   skeletonRows = 5,
   className,
+  showColumnBorders = false,
+  headerSize = 'default',
+  headerClassName,
   enableZebraStriping = false,
   emptyMessage,
   scrollable = true,
@@ -725,7 +737,7 @@ export function CmxDataTable<TData>({
       <CmxCard className={className}>
         <CmxCardContent className="p-0">
           <div className={scrollWrapperClass}>
-            <table className="min-w-full text-sm">
+            <table className={cn('min-w-full text-sm', showColumnBorders && 'border-separate border-spacing-0')}>
               <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
@@ -735,6 +747,9 @@ export function CmxDataTable<TData>({
                         scope="col"
                         className={cn(
                           'px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right',
+                          headerSize === 'emphasized' && 'py-5 text-sm font-bold normal-case tracking-normal text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+                          showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
+                          headerClassName,
                           header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
                           header.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
                         )}
@@ -758,7 +773,13 @@ export function CmxDataTable<TData>({
                       className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
                     >
                       {tanstackColumns.map((_, cellIndex) => (
-                        <td key={cellIndex} className="px-4 py-4">
+                        <td
+                          key={cellIndex}
+                          className={cn(
+                            'px-4 py-4',
+                            showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
+                          )}
+                        >
                           <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
                         </td>
                       ))}
@@ -786,6 +807,7 @@ export function CmxDataTable<TData>({
                             key={cell.id}
                             className={cn(
                               'px-4 py-4 align-middle',
+                              showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                               alignClass,
                               cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
                               cell.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',

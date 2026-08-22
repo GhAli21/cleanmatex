@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import type { SortingState } from '@tanstack/react-table'
 import { ClipboardList, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
@@ -111,21 +112,59 @@ function workboardSortFromSorting(sorting: SortingState): WorkboardSort {
   return prefix ? `${prefix}_${next.desc ? 'desc' : 'asc'}` as WorkboardSort : 'age_desc'
 }
 
+/** Preserves the supervisor's current queue context when a stage opens from Workboard. */
+function buildWorkboardReturnUrl(input: WorkboardQueryInput): string {
+  const params = new URLSearchParams()
+  params.set('page', String(input.page))
+  params.set('pageSize', String(input.pageSize))
+  params.set('sort', input.sort ?? 'age_desc')
+
+  if (input.search) params.set('search', input.search)
+  if (input.branchId) params.set('branchId', input.branchId)
+  if (input.assigneeId) params.set('assigneeId', input.assigneeId)
+  if (input.priority) params.set('priority', input.priority)
+  if (input.ownerScreenKey) params.set('ownerScreenKey', input.ownerScreenKey)
+  if (input.blocker && input.blocker !== 'all') params.set('blocker', input.blocker)
+  if (input.sla && input.sla !== 'all') params.set('sla', input.sla)
+
+  return `/dashboard/workboard?${params.toString()}`
+}
+
 /** Supervisor view that triages work and routes it to the stage that owns actions. */
 export function WorkboardScreen() {
   const t = useTranslations('workboard')
   const locale = useLocale()
+  const searchParams = useSearchParams()
   const message = useMessage()
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
-  const [search, setSearch] = useState('')
-  const [branchId, setBranchId] = useState<string>()
-  const [assigneeId, setAssigneeId] = useState<string>()
-  const [priority, setPriority] = useState<string>()
-  const [ownerScreenKey, setOwnerScreenKey] = useState<WorkboardOwnerScreenKey>()
-  const [blocker, setBlocker] = useState<WorkboardQueryInput['blocker']>('all')
-  const [sla, setSla] = useState<WorkboardQueryInput['sla']>('all')
-  const [sort, setSort] = useState<WorkboardQueryInput['sort']>('age_desc')
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
+  const [pageSize, setPageSize] = useState(() => {
+    const value = Number(searchParams.get('pageSize')) || 25
+    return [10, 25, 50, 100].includes(value) ? value : 25
+  })
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
+  const [branchId, setBranchId] = useState<string | undefined>(() => searchParams.get('branchId') ?? undefined)
+  const [assigneeId, setAssigneeId] = useState<string | undefined>(() => searchParams.get('assigneeId') ?? undefined)
+  const [priority, setPriority] = useState<string | undefined>(() => searchParams.get('priority') ?? undefined)
+  const [ownerScreenKey, setOwnerScreenKey] = useState<WorkboardOwnerScreenKey | undefined>(() => {
+    const value = searchParams.get('ownerScreenKey')
+    return value === 'preparation' || value === 'processing' || value === 'assembly' || value === 'qa'
+      || value === 'packing' || value === 'ready_release' || value === 'driver_delivery'
+      ? value
+      : undefined
+  })
+  const [blocker, setBlocker] = useState<WorkboardQueryInput['blocker']>(() => {
+    const value = searchParams.get('blocker')
+    return value === 'blocked' || value === 'clear' ? value : 'all'
+  })
+  const [sla, setSla] = useState<WorkboardQueryInput['sla']>(() => {
+    const value = searchParams.get('sla')
+    return value === 'overdue' || value === 'due_today' || value === 'not_due' ? value : 'all'
+  })
+  const [sort, setSort] = useState<WorkboardSort>(() => {
+    const value = searchParams.get('sort')
+    const supported: WorkboardSort[] = ['age_desc', 'age_asc', 'ready_by_asc', 'ready_by_desc', 'order_no_asc', 'order_no_desc', 'customer_asc', 'customer_desc', 'stage_asc', 'stage_desc', 'priority_asc', 'priority_desc', 'assignee_asc', 'assignee_desc']
+    return supported.includes(value as WorkboardSort) ? value as WorkboardSort : 'age_desc'
+  })
   const deferredSearch = useDeferredValue(search.trim())
 
   const query = useMemo<WorkboardQueryInput>(() => ({
@@ -141,6 +180,7 @@ export function WorkboardScreen() {
     sort,
   }), [assigneeId, blocker, branchId, deferredSearch, ownerScreenKey, page, pageSize, priority, sla, sort])
   const { data, error, isLoading, isFetching, refetch } = useWorkboard(query)
+  const workboardReturnUrl = useMemo(() => buildWorkboardReturnUrl(query), [query])
 
   const resetPage = () => setPage(1)
   const resetFilters = () => {
@@ -317,34 +357,53 @@ export function WorkboardScreen() {
       align: 'right',
       render: (row) => (
         <CmxButton size="sm" variant="outline" className="whitespace-nowrap" asChild>
-          <Link href={row.ownerPath}>
+          <Link href={`${row.ownerPath}?returnUrl=${encodeURIComponent(workboardReturnUrl)}`}>
             {t('openStage')}
             <ExternalLink className="ms-1 h-4 w-4" aria-hidden />
           </Link>
         </CmxButton>
       ),
     },
-  ], [locale, t])
+  ], [locale, t, workboardReturnUrl])
 
   const metadata = data?.metadata
   const hasRows = (data?.rows.length ?? 0) > 0
   const errorMessage = error instanceof Error ? error.message : null
 
   return (
-    <div className="w-full space-y-4 px-4 py-4 md:px-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div className="w-full space-y-3 px-4 py-2 md:px-6">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <ClipboardList className="h-8 w-8 text-[rgb(var(--cmx-primary-rgb,37_99_235))]" aria-hidden />
-            <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
           </div>
-          <p className="mt-2 max-w-3xl text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
         </div>
         <CmxButton type="button" variant="outline" loading={isFetching} onClick={() => void handleRefresh()}>
           <RefreshCw className="me-2 h-4 w-4" aria-hidden />
           {t('refresh')}
         </CmxButton>
       </div>
+
+      <WorkboardOverviewCards
+        summary={data?.summary}
+        ownerScreenKey={ownerScreenKey}
+        blocker={blocker}
+        sla={sla}
+        onOwnerScreenKeyChange={(value) => {
+          setOwnerScreenKey(value)
+          resetPage()
+        }}
+        onBlockerChange={(value) => {
+          setBlocker(value)
+          resetPage()
+        }}
+        onSlaChange={(value) => {
+          setSla(value)
+          resetPage()
+        }}
+      />
 
       <WorkboardFilterToolbar
         search={search}
@@ -380,25 +439,6 @@ export function WorkboardScreen() {
           resetPage()
         }}
         onReset={resetFilters}
-      />
-
-      <WorkboardOverviewCards
-        summary={data?.summary}
-        ownerScreenKey={ownerScreenKey}
-        blocker={blocker}
-        sla={sla}
-        onOwnerScreenKeyChange={(value) => {
-          setOwnerScreenKey(value)
-          resetPage()
-        }}
-        onBlockerChange={(value) => {
-          setBlocker(value)
-          resetPage()
-        }}
-        onSlaChange={(value) => {
-          setSla(value)
-          resetPage()
-        }}
       />
 
       {metadata?.configurationGaps.length ? (
@@ -449,8 +489,11 @@ export function WorkboardScreen() {
           pageSizeOptions={[10, 25, 50, 100]}
           paginationFooter="always"
           showRowNumbers
+          showColumnBorders
+          headerSize="emphasized"
+          headerClassName="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]"
           className="w-full shadow-sm"
-          scrollAreaClassName="min-h-[28rem] max-h-[calc(100vh-21rem)] overflow-auto"
+          scrollAreaClassName="min-h-[30rem] max-h-[calc(100vh-18rem)] overflow-auto"
           emptyStateTitle={t('empty.title')}
           emptyStateDescription={hasActiveFilters ? t('empty.filteredDescription') : t('empty.description')}
           emptyStateIcon={<ClipboardList className="h-10 w-10" />}

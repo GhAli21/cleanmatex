@@ -22224,6 +22224,132 @@ export type Database = {
           },
         ]
       }
+      org_wf_gate_decision_mst: {
+        Row: {
+          ack_challenge_hash: string | null
+          actor_subject: string
+          actor_user_id: string | null
+          channel_code: string
+          created_at: string
+          decision_id: string
+          decision_mode: string
+          evaluation_fingerprint: string
+          evaluator_version: number
+          gate_code: string
+          idempotency_key: string
+          input_schema_version: number
+          order_id: string
+          override_reason: string | null
+          override_reason_min_length: number
+          profile_artifact_id: string
+          request_correlation_id: string
+          tenant_org_id: string
+          workflow_action_code: string
+          workflow_screen_key: string
+        }
+        Insert: {
+          ack_challenge_hash?: string | null
+          actor_subject: string
+          actor_user_id?: string | null
+          channel_code: string
+          created_at?: string
+          decision_id?: string
+          decision_mode: string
+          evaluation_fingerprint: string
+          evaluator_version: number
+          gate_code: string
+          idempotency_key: string
+          input_schema_version: number
+          order_id: string
+          override_reason?: string | null
+          override_reason_min_length?: number
+          profile_artifact_id: string
+          request_correlation_id: string
+          tenant_org_id: string
+          workflow_action_code: string
+          workflow_screen_key: string
+        }
+        Update: {
+          ack_challenge_hash?: string | null
+          actor_subject?: string
+          actor_user_id?: string | null
+          channel_code?: string
+          created_at?: string
+          decision_id?: string
+          decision_mode?: string
+          evaluation_fingerprint?: string
+          evaluator_version?: number
+          gate_code?: string
+          idempotency_key?: string
+          input_schema_version?: number
+          order_id?: string
+          override_reason?: string | null
+          override_reason_min_length?: number
+          profile_artifact_id?: string
+          request_correlation_id?: string
+          tenant_org_id?: string
+          workflow_action_code?: string
+          workflow_screen_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wfgd_action"
+            columns: ["workflow_action_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_actions_cd"
+            referencedColumns: ["action_code"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_artifact"
+            columns: ["profile_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_prof_ver_artifact_cf"
+            referencedColumns: ["artifact_id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_gate"
+            columns: ["gate_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_gate_defs_cd"
+            referencedColumns: ["gate_code"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_order_tenant"
+            columns: ["order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_screen"
+            columns: ["workflow_screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_wf_profile_assign_cf: {
         Row: {
           branch_id: string | null
@@ -33596,6 +33722,7 @@ export type Database = {
           description: string | null
           description2: string | null
           gate_code: string
+          input_schema_version: number
           is_active: boolean
           is_system: boolean
           name: string
@@ -33610,6 +33737,7 @@ export type Database = {
           description?: string | null
           description2?: string | null
           gate_code: string
+          input_schema_version?: number
           is_active?: boolean
           is_system?: boolean
           name: string
@@ -33624,6 +33752,7 @@ export type Database = {
           description?: string | null
           description2?: string | null
           gate_code?: string
+          input_schema_version?: number
           is_active?: boolean
           is_system?: boolean
           name?: string
@@ -34058,6 +34187,7 @@ export type Database = {
           exec_id: string
           gate_code: string
           id: string
+          input_schema_version: number
           is_active: boolean
           message_key: string | null
           override_min_reason_length: number
@@ -34080,6 +34210,7 @@ export type Database = {
           exec_id: string
           gate_code: string
           id?: string
+          input_schema_version?: number
           is_active?: boolean
           message_key?: string | null
           override_min_reason_length?: number
@@ -34102,6 +34233,7 @@ export type Database = {
           exec_id?: string
           gate_code?: string
           id?: string
+          input_schema_version?: number
           is_active?: boolean
           message_key?: string | null
           override_min_reason_length?: number
@@ -36707,6 +36839,26 @@ export type Database = {
         Returns: {
           retired_at: string
           version_id: string
+          version_status: string
+        }[]
+      }
+      sys_wf_prof_ver_save_policy: {
+        Args: {
+          p_actor_id?: string
+          p_evidence: Json
+          p_executions: Json
+          p_expected_revision: number
+          p_initial_rules: Json
+          p_modules: Json
+          p_policy: Json
+          p_profile_id: string
+          p_version_no: number
+        }
+        Returns: {
+          policy_revision: number
+          updated_at: string
+          version_id: string
+          version_no: number
           version_status: string
         }[]
       }

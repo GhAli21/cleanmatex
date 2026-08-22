@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -29,12 +29,15 @@ import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { PickupHandoverCard } from '@features/pickup/ui/pickup-handover-card';
 import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 /**
  *
  */
 export default function ReadyDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('workflow');
   const tOrders = useTranslations('orders');
   const tInvoices = useTranslations('invoices');
@@ -62,6 +65,7 @@ export default function ReadyDetailPage() {
   const [actionBarKey, setActionBarKey] = useState(0);
 
   const orderId = (params as any)?.id as string | undefined;
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/ready');
 
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItemIds(prev => {
@@ -161,7 +165,7 @@ export default function ReadyDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
-        <Link href="/dashboard/ready" className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
           &laquo; {t('ready.actions.backToReady')}
         </Link>
         <h1 className="text-3xl font-bold">
@@ -327,7 +331,7 @@ export default function ReadyDetailPage() {
                     }}
                     onCompleted={() => {
                       setActionBarKey((key) => key + 1);
-                      void loadOrder();
+                      router.replace(returnUrl);
                     }}
                   />
                 ) : null

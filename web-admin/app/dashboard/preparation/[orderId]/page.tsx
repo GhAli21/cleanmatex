@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 import { FastItemizer } from '@features/workflow/ui/FastItemizer';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { Alert, AlertDescription, CmxButton } from '@ui/primitives';
@@ -69,7 +70,7 @@ async function PreparationContent({
     ? tWorkflow(`statuses.${workflowStatus}`)
     : workflowStatus || '—';
   const canPrepare = canPrepareOrder(order);
-  const backHref = returnUrl || '/dashboard/preparation';
+  const backHref = resolveSafeDashboardReturnUrl(returnUrl, '/dashboard/preparation');
 
   return (
     <div className="space-y-6">
@@ -165,7 +166,7 @@ async function PreparationContent({
           screen="preparation"
           hideWhenEmpty
         >
-          <FastItemizer order={order} />
+          <FastItemizer order={order} returnUrl={backHref} />
         </WorkflowActionBar>
       )}
     </div>

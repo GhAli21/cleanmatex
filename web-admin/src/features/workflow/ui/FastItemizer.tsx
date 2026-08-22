@@ -18,6 +18,8 @@ import { useMessage } from '@ui/feedback';
 
 interface FastItemizerProps {
   order: OrderWithDetails;
+  /** Preserves the source queue after the stage-owned completion succeeds. */
+  returnUrl?: string;
 }
 
 const PREPARATION_ELIGIBLE = new Set(['intake', 'preparing', 'preparation']);
@@ -36,7 +38,7 @@ function canCompletePreparation(order: OrderWithDetails): boolean {
 /**
  * Preparation itemizer — quick-add items, edit pieces/prefs, complete to processing.
  */
-export function FastItemizer({ order }: FastItemizerProps) {
+export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: FastItemizerProps) {
   const router = useRouter();
   const t = useTranslations('workflow');
   const tOrderActions = useTranslations('orders.actions');
@@ -65,7 +67,7 @@ export function FastItemizer({ order }: FastItemizerProps) {
 
     if (!canCompletePreparation(order)) {
       showInfo(t('preparation.detail.alreadyPastPreparation'));
-      router.replace('/dashboard/preparation');
+      router.replace(returnUrl);
       return;
     }
 
@@ -95,7 +97,7 @@ export function FastItemizer({ order }: FastItemizerProps) {
         }
         showSuccess(t('preparation.actions.preparationCompleteSuccess'));
         // Stay on preparation worklist — do not auto-advance to the next stage.
-        router.replace('/dashboard/preparation');
+        router.replace(returnUrl);
         return;
       }
 
@@ -111,7 +113,7 @@ export function FastItemizer({ order }: FastItemizerProps) {
 
       if (result.success) {
         showSuccess(t('preparation.actions.preparationCompleteSuccess'));
-        router.replace('/dashboard/preparation');
+        router.replace(returnUrl);
         return;
       }
 
@@ -122,7 +124,7 @@ export function FastItemizer({ order }: FastItemizerProps) {
         result.code === 'TRANSITION_NOT_ALLOWED'
       ) {
         showInfo(t('preparation.detail.alreadyPastPreparation'));
-        router.replace('/dashboard/preparation');
+        router.replace(returnUrl);
         return;
       }
 

@@ -22,6 +22,56 @@ const OWNER_CARD_ORDER: WorkboardOwnerScreenKey[] = [
   'driver_delivery',
 ]
 
+type WorkboardOverviewTone = 'primary' | 'info' | 'success' | 'warning' | 'danger'
+
+const OVERVIEW_TONE_CLASSES: Record<WorkboardOverviewTone, { idle: string; active: string; icon: string }> = {
+  primary: {
+    idle: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.28)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.05)]',
+    active: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.7)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+    icon: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+  },
+  info: {
+    idle: 'border-[rgb(var(--cmx-info-rgb,59_130_246)/0.28)] bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.05)]',
+    active: 'border-[rgb(var(--cmx-info-rgb,59_130_246)/0.7)] bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.12)] text-[rgb(var(--cmx-info-rgb,37_99_235))]',
+    icon: 'bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.12)] text-[rgb(var(--cmx-info-rgb,37_99_235))]',
+  },
+  success: {
+    idle: 'border-[rgb(var(--cmx-success-rgb,22_163_74)/0.28)] bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.05)]',
+    active: 'border-[rgb(var(--cmx-success-rgb,22_163_74)/0.7)] bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.12)] text-[rgb(var(--cmx-success-rgb,22_163_74))]',
+    icon: 'bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.12)] text-[rgb(var(--cmx-success-rgb,22_163_74))]',
+  },
+  warning: {
+    idle: 'border-[rgb(var(--cmx-warning-rgb,217_119_6)/0.28)] bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.05)]',
+    active: 'border-[rgb(var(--cmx-warning-rgb,217_119_6)/0.7)] bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.12)] text-[rgb(var(--cmx-warning-rgb,180_83_9))]',
+    icon: 'bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.12)] text-[rgb(var(--cmx-warning-rgb,180_83_9))]',
+  },
+  danger: {
+    idle: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.28)] bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.05)]',
+    active: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.7)] bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.12)] text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+    icon: 'bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.12)] text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+  },
+}
+
+/** Chooses a stable semantic accent so supervisor focus cards scan quickly. */
+function ownerTone(ownerScreenKey: WorkboardOwnerScreenKey): WorkboardOverviewTone {
+  switch (ownerScreenKey) {
+    case 'preparation':
+      return 'info'
+    case 'processing':
+      return 'success'
+    case 'assembly':
+      return 'warning'
+    case 'qa':
+      return 'primary'
+    case 'packing':
+      return 'info'
+    case 'ready_release':
+      return 'success'
+    case 'driver_delivery':
+      return 'warning'
+  }
+}
+
 /** Inputs for the compact Workboard queue focus strip. */
 interface WorkboardOverviewCardsProps {
   summary?: WorkboardSummary
@@ -39,12 +89,14 @@ function WorkboardOverviewCard({
   label,
   value,
   icon,
+  tone,
   onClick,
 }: {
   active: boolean
   label: string
   value: number
   icon: ReactNode
+  tone: WorkboardOverviewTone
   onClick: () => void
 }) {
   return (
@@ -53,13 +105,11 @@ function WorkboardOverviewCard({
       variant="outline"
       onClick={onClick}
       className={cn(
-        'h-auto min-h-20 w-[11rem] shrink-0 items-center justify-start gap-3 rounded-xl px-3 py-3 text-start shadow-sm transition-all hover:-translate-y-0.5',
-        active
-          ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.45)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.08)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]'
-          : 'border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]',
+        'h-auto min-h-[4.5rem] w-[10.5rem] shrink-0 items-center justify-start gap-3 rounded-xl px-3 py-2.5 text-start shadow-sm transition-all hover:-translate-y-0.5',
+        active ? OVERVIEW_TONE_CLASSES[tone].active : OVERVIEW_TONE_CLASSES[tone].idle,
       )}
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[rgb(var(--cmx-muted-rgb,241_245_249))]">
+      <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-lg', OVERVIEW_TONE_CLASSES[tone].icon)}>
         {icon}
       </span>
       <span className="min-w-0 flex-1">
@@ -93,12 +143,10 @@ export function WorkboardOverviewCards({
   const overdue = summary?.overdue ?? 0
 
   return (
-    <section aria-labelledby="workboard-queue-focus" className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <h2 id="workboard-queue-focus" className="text-sm font-semibold">{t('overview.title')}</h2>
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('overview.description')}</p>
-        </div>
+    <section aria-labelledby="workboard-queue-focus" className="space-y-1.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <h2 id="workboard-queue-focus" className="text-sm font-semibold">{t('overview.title')}</h2>
+        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('overview.description')}</p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
@@ -107,6 +155,7 @@ export function WorkboardOverviewCards({
           label={t('overview.all')}
           value={total}
           icon={<Layers3 className="h-4 w-4" aria-hidden />}
+          tone="primary"
           onClick={resetQuickFocus}
         />
 
@@ -117,6 +166,7 @@ export function WorkboardOverviewCards({
             label={t(`owners.${screenKey}`)}
             value={summary?.byOwner[screenKey] ?? 0}
             icon={<TimerReset className="h-4 w-4" aria-hidden />}
+            tone={ownerTone(screenKey)}
             onClick={() => {
               onOwnerScreenKeyChange(screenKey)
               onBlockerChange('all')
@@ -130,6 +180,7 @@ export function WorkboardOverviewCards({
           label={t('overview.blocked')}
           value={blocked}
           icon={<AlertCircle className="h-4 w-4" aria-hidden />}
+          tone="warning"
           onClick={() => {
             onOwnerScreenKeyChange(undefined)
             onBlockerChange('blocked')
@@ -142,6 +193,7 @@ export function WorkboardOverviewCards({
           label={t('overview.overdue')}
           value={overdue}
           icon={<TimerReset className="h-4 w-4" aria-hidden />}
+          tone="danger"
           onClick={() => {
             onOwnerScreenKeyChange(undefined)
             onBlockerChange('all')

@@ -8,7 +8,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -27,6 +27,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 interface ProcessingItem {
   id: string;
@@ -63,6 +64,7 @@ const PROCESSING_STEPS = [
 export default function ProcessingDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const t = useTranslations('processing');
   const tTable = useTranslations('processing.table');
   const tModal = useTranslations('processing.modal');
@@ -82,6 +84,7 @@ export default function ProcessingDetailPage() {
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const orderId = (params as any)?.id as string | undefined;
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/processing');
   const orderDetailsReturnUrl = orderId
     ? `/dashboard/processing/${orderId}`
     : '/dashboard/processing';
@@ -196,7 +199,7 @@ export default function ProcessingDetailPage() {
       if (result.success) {
         showSuccess(t('success.transitioned') || 'Transitioned');
         // Stay on processing worklist — next stage is opened by the user when ready.
-        router.replace('/dashboard/processing');
+        router.replace(returnUrl);
       } else {
         setError(result.error || t('error.transitionFailed') || 'Transition failed');
       }
@@ -263,7 +266,7 @@ export default function ProcessingDetailPage() {
               </p>
               <LoadingButton
                 variant="secondary"
-                onClick={() => router.push('/dashboard/processing')}
+                onClick={() => router.push(returnUrl)}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
                 {t('backToProcessing') || 'Back to Processing'}
@@ -281,7 +284,7 @@ export default function ProcessingDetailPage() {
         <WorkflowActionBar
           orderId={orderId}
           screen="processing"
-          emptyBackHref="/dashboard/processing"
+          emptyBackHref={returnUrl}
           onActionSuccess={() => {
             void loadOrder();
           }}
@@ -295,7 +298,7 @@ export default function ProcessingDetailPage() {
               <LoadingButton
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('/dashboard/processing')}
+                onClick={() => router.push(returnUrl)}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
                 {t('backToProcessing') || 'Back to Processing'}
