@@ -1,8 +1,6 @@
 /** @jest-environment node */
 
 const mockQueryRaw = jest.fn()
-const mockContract = jest.fn()
-const mockLoadPinnedGraph = jest.fn()
 const mockLoadSemanticArtifact = jest.fn()
 
 jest.mock('@prisma/client', () => ({
@@ -22,12 +20,6 @@ jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
   },
-}))
-jest.mock('@/lib/services/workflow-profile.service', () => ({
-  getWorkflowScreenContract: (...args: unknown[]) => mockContract(...args),
-}))
-jest.mock('@/lib/services/workflow/pinned-workflow-graph.service', () => ({
-  loadPinnedGraphForProfileVersion: (...args: unknown[]) => mockLoadPinnedGraph(...args),
 }))
 jest.mock('@/lib/services/workflow/semantic-workflow-artifact.service', () => ({
   loadSemanticWorkflowArtifactForOrder: (...args: unknown[]) => mockLoadSemanticArtifact(...args),
@@ -56,7 +48,7 @@ describe('stage worklist membership', () => {
     expect(mockQueryRaw).not.toHaveBeenCalled()
   })
 
-  it('lists a semantic processing order even when the live contract is empty', async () => {
+  it('lists a semantic processing order through its immutable artifact', async () => {
     const snapshot = {
       wf_profile_id: '33333333-3333-3333-3333-333333333333',
       wf_version_no: 1,
@@ -66,9 +58,7 @@ describe('stage worklist membership', () => {
       wf_profile_checksum: 'a'.repeat(64),
       wf_profile_schema_version: 1,
     }
-    mockContract.mockResolvedValue({ statuses: [], additional_filters: {}, required_permissions: [] })
     mockQueryRaw
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([snapshot])
       .mockResolvedValueOnce([{ id: 'order-semantic' }])
       .mockResolvedValueOnce([{ total: BigInt(1) }])
@@ -84,7 +74,6 @@ describe('stage worklist membership', () => {
     })
 
     expect(mockLoadSemanticArtifact).toHaveBeenCalledWith(snapshot)
-    expect(mockLoadPinnedGraph).not.toHaveBeenCalled()
     expect(result).toEqual({ orderIds: ['order-semantic'], total: 1 })
   })
 
@@ -98,11 +87,7 @@ describe('stage worklist membership', () => {
       wf_profile_checksum: 'a'.repeat(64),
       wf_profile_schema_version: 1,
     }
-    mockContract.mockResolvedValue({ statuses: ['processing'], additional_filters: {}, required_permissions: [] })
-    mockQueryRaw
-      .mockResolvedValueOnce([snapshot])
-      .mockResolvedValueOnce([{ id: 'legacy-only' }])
-      .mockResolvedValueOnce([{ total: BigInt(1) }])
+    mockQueryRaw.mockResolvedValueOnce([snapshot])
     mockLoadSemanticArtifact.mockResolvedValue({
       modules: [{ screen_key: 'qa', module_mode: 'primary_owner', is_enabled: true }],
       module_statuses: [{ screen_key: 'qa', status_code: 'processing', visibility_mode: 'owner' }],
@@ -114,18 +99,14 @@ describe('stage worklist membership', () => {
       pageSize: 20,
     })
 
-    expect(result.orderIds).toEqual(['legacy-only'])
-    const listQuery = mockQueryRaw.mock.calls[1]?.[0]
-    expect(JSON.stringify(listQuery)).not.toContain('55555555-5555-5555-5555-555555555555')
-    expect(result.total).toBe(1)
+    expect(result).toEqual({ orderIds: [], total: 0 })
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })
 
   it('does not list a profile-stamped order through a pinned graph', async () => {
-    mockContract.mockResolvedValue({ statuses: ['processing'], additional_filters: {}, required_permissions: [] })
-    mockQueryRaw
-      .mockResolvedValueOnce([{ wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3 }])
-      .mockResolvedValueOnce([{ id: 'legacy-only' }])
-      .mockResolvedValueOnce([{ total: BigInt(1) }])
+    mockQueryRaw.mockResolvedValueOnce([
+      { wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3 },
+    ])
     mockLoadSemanticArtifact.mockResolvedValue(null)
 
     const result = await listStageWorklistOrderPage('11111111-1111-1111-1111-111111111111', {
@@ -134,11 +115,11 @@ describe('stage worklist membership', () => {
       pageSize: 20,
     })
 
-    expect(mockLoadPinnedGraph).not.toHaveBeenCalled()
     expect(mockLoadSemanticArtifact).toHaveBeenCalledWith({
       wf_profile_id: '22222222-2222-2222-2222-222222222222',
       wf_version_no: 3,
     })
-    expect(result.orderIds).toEqual(['legacy-only'])
+    expect(result).toEqual({ orderIds: [], total: 0 })
+    expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })
 })

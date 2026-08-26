@@ -1925,6 +1925,7 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
     notes: [
       'Staff delivery writes are fail-closed pending atomic POD, payment, route, and workflow hardening.',
+      'Floor complete uses the profile CONFIRM_DELIVERY action and a stage-owned command, matching Ready pickup.',
     ],
     actions: {
       create: {
@@ -1950,6 +1951,101 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
 },
+  {
+    routePattern: '/dashboard/delivery/[id]',
+    label: 'Delivery Details',
+    page: {
+      permissions: ['orders:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Order state',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Get active delivery stop',
+        method: 'GET',
+        path: '/api/v1/delivery/orders/[orderId]/active-stop',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Complete delivery from floor',
+        method: 'POST',
+        path: '/api/v1/delivery/orders/[orderId]/complete',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Stage-owned CONFIRM_DELIVERY when the profile does not require an active stop.'],
+      },
+      {
+        label: 'Collect payment on order',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/payments',
+        requirement: {
+          permissions: ['orders:collect_payment'],
+          requireAllPermissions: true,
+        },
+        notes: ['OrderCollectPaymentModal submit.'],
+      },
+      {
+        label: 'List active delivery proof methods',
+        method: 'GET',
+        path: '/api/v1/delivery/pod-methods',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Used when an active stop is present and the existing proof panel is shown.'],
+      },
+      {
+        label: 'Create private delivery evidence receipt',
+        method: 'POST',
+        path: '/api/v1/delivery/stops/[stopId]/evidence',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Complete delivery atomically',
+        method: 'POST',
+        path: '/api/v1/delivery/stops/[stopId]/complete',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Used when this order already has a planned stop; the floor does not invent a dummy route.'],
+      },
+    ],
+    actions: {
+      completeDelivery: {
+        label: 'Confirm delivery',
+        requirement: {
+          permissions: ['delivery:pod', 'orders:transition'],
+          requireAllPermissions: true,
+        },
+        notes: ['Hidden generic action; floor uses the stage-owned handover command.'],
+      },
+      collectPayment: {
+        label: 'Collect remaining payment',
+        requirement: {
+          permissions: ['orders:collect_payment'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    notes: [
+      ...ORDER_NOTES,
+      'Matches packing/ready: WorkflowActionBar plus a stage-owned complete command.',
+    ],
+  },
   {
     routePattern: '/dashboard/delivery/routes/[id]',
     label: 'Delivery Route Manifest',

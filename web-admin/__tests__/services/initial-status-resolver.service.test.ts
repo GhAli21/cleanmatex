@@ -42,12 +42,11 @@ describe('semantic initial-status resolver', () => {
     })).toThrow(SemanticInitialStatusResolutionError);
   });
 
-  it('rejects a profile-stamped create that has no compiled semantic rules', async () => {
+  it('rejects an order create whose compiled policy has no matching rule', async () => {
     await expect(resolveInitialStatus({
-      wfProfileId: 'a1000000-0000-4000-8000-000000000001',
-      wfVersionNo: 1,
       orderSourceCode: 'web_admin',
       isRetail: false,
+      semanticInitialRules: [],
     })).rejects.toBeInstanceOf(SemanticInitialStatusResolutionError);
   });
 });

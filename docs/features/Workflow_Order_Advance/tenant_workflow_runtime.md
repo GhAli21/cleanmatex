@@ -1,14 +1,18 @@
 # Historical tenant runtime — pinned workflow graph (P0)
 
 **Repo:** `cleanmatex` (tenant app)  
-**Date:** 2026-08-15; historical status clarified 2026-08-21
+**Date:** 2026-08-15; retired runtime record updated 2026-08-26
 **Related HQ plan:** `cleanmatexsaas/.cursor/plans/workflow_profile_policy_runtime_20260821.plan.md`
 **Related HQ model:** `cleanmatexsaas/docs/features/SAAS_Platform_Management/Workflow_Engine_HQ/P0_compiled_profile_runtime_model.md`  
 **Schema:** migrations `0453` (graph pin), `0454` (unpublish), `0456` (force full graph rebuild on every publish) — apply in cleanmatex; user-owned
 
 ---
 
-> **Historical P0 canary record:** Graph-pin execution was retired on 2026-08-22. Profile-stamped orders now require a compiled semantic artifact; the engine, floor lists, Workboard, and new-order paths no longer load `sys_wf_graph_def_ver_mst` at runtime. This file remains the audit record of the P0 pin. Unsnapshotted legacy orders still use live catalogs. No new work may extend this graph-pin approach.
+> **Superseded runtime record:** This document preserves the retired graph-pin design only for audit history. The current contract is the immutable semantic artifact model in `P0_compiled_profile_runtime_model.md` and `06_API_Contracts.md`. New orders require a complete semantic artifact snapshot. Profile-stamped orders, floor lists, Workboard, and stage commands do not load graph pins, templates, or live workflow catalogs. Orders without a complete snapshot are operationally fail-closed and remain readable only for audit/history. No new work may extend this graph-pin approach.
+
+## Historical context only
+
+The sections below describe the former P0 graph-pin canary. They are not an implementation or operations guide. Use the current semantic artifact contracts linked above for all runtime, test, rollout, and incident decisions.
 
 ## Why
 

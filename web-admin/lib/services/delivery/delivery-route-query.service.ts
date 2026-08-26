@@ -184,4 +184,27 @@ export class DeliveryRouteQueryService {
     });
     return stop ? mapStop(stop) : null;
   }
+
+  /**
+   * Returns the current pending/in-transit stop for an order, if the profile
+   * is using a planned route. Floor completion uses this to choose the writer.
+   */
+  static async getActiveStopForOrder(
+    tenantId: string,
+    orderId: string,
+  ): Promise<DeliveryStopView | null> {
+    const stop = await prisma.org_dlv_stops_dtl.findFirst({
+      where: {
+        order_id: orderId,
+        tenant_org_id: tenantId,
+        is_active: true,
+        rec_status: 1,
+        stop_status_code: { in: ['pending', 'in_transit'] },
+        org_dlv_routes_mst: { is_active: true, rec_status: 1 },
+      },
+      orderBy: { updated_at: 'desc' },
+      select: stopSelect,
+    });
+    return stop ? mapStop(stop) : null;
+  }
 }

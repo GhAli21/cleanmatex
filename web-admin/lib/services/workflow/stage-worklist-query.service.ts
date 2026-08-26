@@ -11,7 +11,6 @@ import {
   type SemanticWorkflowOrderSnapshot,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service'
 import { isSemanticScreenStatusMember } from '@/lib/services/workflow/semantic-workflow-runtime.service'
-import { getWorkflowScreenContract } from '@/lib/services/workflow-profile.service'
 
 const FLOOR_SCREEN_ALIASES: Record<string, string[]> = {
   ready: ['ready', 'ready_release'],
@@ -31,9 +30,7 @@ interface ProfilePairRow {
 }
 
 interface StatusScope {
-  profileId: string | null
-  versionNo: number | null
-  artifactId: string | null
+  artifactId: string
   statuses: string[]
 }
 
@@ -88,19 +85,8 @@ function uniqueStatuses(values: Iterable<string>): string[] {
 
 function scopePredicate(scope: StatusScope): Prisma.Sql {
   const statusClause = Prisma.sql`o.current_status IN (${Prisma.join(scope.statuses)})`
-  if (scope.artifactId) {
-    return Prisma.sql`(
-      o.wf_profile_artifact_id = ${scope.artifactId}::uuid
-      AND ${statusClause}
-    )`
-  }
-  if (!scope.profileId || scope.versionNo === null) {
-    return Prisma.sql`((o.wf_profile_id IS NULL OR o.wf_version_no IS NULL) AND ${statusClause})`
-  }
-
   return Prisma.sql`(
-    o.wf_profile_id = ${scope.profileId}::uuid
-    AND o.wf_version_no = ${scope.versionNo}
+    o.wf_profile_artifact_id = ${scope.artifactId}::uuid
     AND ${statusClause}
   )`
 }
@@ -164,23 +150,6 @@ function orderBySql(input: StageWorklistQueryInput): Prisma.Sql {
   }
 }
 
-async function loadLiveStatuses(tenantId: string, screens: string[]): Promise<string[]> {
-  const fromContract = new Set<string>()
-  for (const screen of screens) {
-    const contract = await getWorkflowScreenContract(tenantId, screen)
-    for (const status of contract.statuses) fromContract.add(normalise(status))
-  }
-  if (fromContract.size > 0) return [...fromContract]
-
-  const rows = await prisma.$queryRaw<Array<{ status_code: string }>>`
-    SELECT DISTINCT status_code
-    FROM public.sys_wf_screen_status_cd
-    WHERE screen_key IN (${Prisma.join(screens)})
-      AND COALESCE(is_active, true) = true
-  `
-  return uniqueStatuses(rows.map((row) => row.status_code))
-}
-
 function statusesForSemanticScreen(
   screens: string[],
   artifact: SemanticWorkflowArtifact,
@@ -214,7 +183,6 @@ async function resolveScopes(
   tenantId: string,
   screens: string[],
 ): Promise<StatusScope[]> {
-  const liveStatuses = await loadLiveStatuses(tenantId, screens)
   const profilePairs = await prisma.$queryRaw<ProfilePairRow[]>`
     SELECT DISTINCT
       wf_profile_id::text,
@@ -237,18 +205,14 @@ async function resolveScopes(
       )
   `
 
-  const scopes: StatusScope[] = liveStatuses.length > 0
-    ? [{ profileId: null, versionNo: null, artifactId: null, statuses: liveStatuses }]
-    : []
+  const scopes: StatusScope[] = []
 
   for (const pair of profilePairs) {
     const artifact = await loadSemanticArtifactForScope(pair)
-    if (!artifact) continue
+    if (!artifact || !pair.wf_profile_artifact_id) continue
     const statuses = statusesForSemanticScreen(screens, artifact)
     if (statuses.length > 0) {
       scopes.push({
-        profileId: pair.wf_profile_id,
-        versionNo: pair.wf_version_no,
         artifactId: pair.wf_profile_artifact_id,
         statuses,
       })
@@ -260,9 +224,7 @@ async function resolveScopes(
 
 /**
  * Lists the current page of floor-screen order IDs using each order's runtime
- * policy. Semantic snapshots use the immutable artifact; profile-stamped orders
- * without a compiled artifact are excluded; legacy orders use the live screen
- * contract or catalog.
+ * policy. Orders without a complete valid compiled artifact are excluded.
  *
  * @param tenantId Authenticated tenant resolved by the API adapter.
  * @param input Floor screen, paging, and optional operator filters.

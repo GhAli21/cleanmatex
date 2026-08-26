@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
-**Updated:** 2026-08-22
-**Overall:** Engine cutover, public tracking, counter pickup, stage-owned floor commands, artifact-backed floor worklists, atomic staff delivery, warning/override gate decisions, compiled POD method lists, no-legacy snapshot execution, and automated semantic-profile unit assurance are implemented; staff S10 canary, historic catalog retirement, and P7 hardening remain unsigned
+**Updated:** 2026-08-26
+**Overall:** Engine cutover, public tracking, counter pickup, stage-owned floor commands, artifact-backed floor worklists, atomic staff delivery, warning/override gate decisions, compiled POD method lists, and automated semantic-profile unit assurance are implemented. `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, preventing new incomplete active snapshots. HQ effective preview and tenant-context simulation now use the same immutable artifact as the tenant runtime. S10 and P7 hardening remain unsigned until pre-cutover test orders are recreated and canary evidence is complete.
 
 ## Accurate status
 
@@ -22,7 +22,7 @@ Counter pickup now uses an authenticated atomic stage command/API with release f
 Ready worklists, detail, and public tracking now distinguish not-yet-released from available-for-pickup without exposing internal rack/staff data
 Public Ready confirmation requires an active pickup release and reuses the counter-handover command; duplicate active release actions are blocked server-side
 Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
-Workboard is implemented as a dedicated `workboard:read` supervisor projection with tenant filters and stage-owned deep links; semantic orders resolve their queue membership/owner from the artifact ID while legacy orders retain the temporary P0 compatibility path; migration `0455` remains operator-owned
+Workboard is implemented as a dedicated `workboard:read` supervisor projection with tenant filters and stage-owned deep links; queue membership and ownership resolve only from the order artifact ID, and orders without valid snapshots are excluded from operational visibility
 Workboard owner metrics now group by the complete profile snapshot identity, including `wf_profile_artifact_id`, so supervisor totals never merge separate compiled policy artifacts
 Semantic Profile Runtime governance accepted: ADR-SAAS-MNG-0009 replaces the P0 graph-pin as the future runtime, with DRAFT -> PILOT -> PUBLISHED -> RETIRED, HQ-only Pilot assignment governance, and identical tenant production paths for test/demo execution
 Semantic Profile Runtime schema migration `0457` applied locally and remotely by operator; generated database types regenerated and updated
@@ -40,9 +40,10 @@ Stage-owned command adapters are live for Processing, Assembly, QA pass/fail, Pa
 Staff delivery complete is the atomic stop command; legacy capturePOD/route writers remain 503; generic `/actions` and `/transition` reject CONFIRM_DELIVERY. Semantic snapshot orders with compiled delivery evidence permit independent optional signature/photo/POD/notes methods and required counts/notes. The POD method list is filtered by that compiled evidence (`GET /api/v1/delivery/pod-methods?stopId=`). Pickup completion enforces required compiled pickup notes. OTP may be authored as optional but completion still rejects it. Local DB tests cover collection blocking, tenant isolation, OTP reject, already-delivered, engine-failure rollback, and the happy path with route counters. Complete requires delivery:pod and orders:transition.
 Warning/override gate decisions are live for semantic snapshot orders: available-actions issues HMAC acknowledgement challenges; execute re-evaluates live facts, records org_wf_gate_decision_mst plus WORKFLOW_GATE_DECISION_ACCEPTED, and ActionBar collects acknowledgement or a minimum-length override reason. Public channels remain hard-block only. Processing-list Mark Ready still fail-closes with WF_GATE_ACK_REQUIRED if that action is compiled with a warning.
 Floor worklists send `workflow_screen`; semantic orders use artifact membership rather than a live contract status list.
-Graph-pin execution is retired: profile-stamped orders require a compiled artifact; engine, Workboard, floor lists, and new-order initial status no longer load pinned graphs. Unsnapshotted historic orders still use live catalogs.
+Absolute semantic-only cutover: engine, workflow context, Workboard, floor lists, client transition adapter, and new-order initial status no longer read graph pins, templates, live catalogs, status filters, or fallback statuses. Unsnapshotted historic/test orders fail closed operationally and must be recreated; migration `0464` is applied locally and remotely and prevents future incomplete active order snapshots. HQ effective preview/tenant simulation are artifact-backed and legacy HQ authoring writes are retired with `LEGACY_WORKFLOW_RETIRED`.
 Automated semantic-profile assurance: Pilot only on HQ test/demo tenants; latest assignment stays PUBLISHED; forged screen/channel rejected; PROFILE_* integrity maps to HTTP 409. Residual: S10 canary, performance soak, visual a11y/RTL, HQ/tenant close-out.
-Next: operator/e2e canary for staff POD delivery smoke S10 (`p7-harden`), then HQ/tenant close-out docs. Durable B2B policy remains a separate B2B feature.
+Cross-project validation (2026-08-26): HQ workflow service tests passed 33/33; HQ semantic-policy mapper tests passed 6/6; HQ API/web builds, scoped ESLint, and EN/AR parity passed. Tenant semantic runtime tests passed 24/24 and `web-admin` typecheck passed.
+Next: recreate affected test orders, run cross-project validation, then run the operator/e2e canary for staff POD delivery smoke S10 (`p7-harden`). Durable B2B policy remains a separate B2B feature.
 ```
 
 ## Completed

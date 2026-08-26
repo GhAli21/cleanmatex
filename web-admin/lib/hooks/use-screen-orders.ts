@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useScreenContract, type ScreenContract } from './use-screen-contract';
 
 /**
  *
@@ -81,33 +80,28 @@ export interface UseScreenOrdersOptions {
   readyByTo?: string;
   enabled?: boolean;
   /**
-   * Gradual migration flag.
-   * Semantics (per migration plan):
-   * - `false` => force OLD workflow behavior
-   * - `true` or `undefined` => use NEW workflow behavior (screen contract)
+   * @deprecated Workflow queues are semantic-only. Retained temporarily so
+   * callers can be migrated without changing their request contracts at once.
    */
   useOldWfCodeOrNew?: boolean;
   /**
-   * Fallback statuses used when the screen contract is missing/unavailable.
-   * This keeps screens usable even before DB contract entries are added.
+   * @deprecated Runtime status fallbacks are intentionally ignored. An order
+   * must be listed through its immutable workflow artifact.
    */
   fallbackStatuses?: string[];
 }
 
 /**
  * Loads the authenticated tenant's floor-screen queue.
- * New workflow lists resolve membership on the server from each order's
- * artifact or live catalog rather than a client status list.
+ * Lists resolve membership on the server from each order's immutable artifact.
  *
  * @param screen Floor screen key, including historical aliases such as `ready`.
- * @param options Tenant-scoped paging, search, and compatibility flags.
+ * @param options Tenant-scoped paging and search options.
  */
 export function useScreenOrders<TOrder = any>(
   screen: string,
   options: UseScreenOrdersOptions = {}
 ): {
-  contract?: ScreenContract;
-  contractLoading: boolean;
   statusFilter: string;
   orders: (TOrder & { customer?: NormalizedCustomer })[];
   pagination: OrdersPagination;
@@ -116,41 +110,12 @@ export function useScreenOrders<TOrder = any>(
   error: string | null;
   refetch: () => Promise<void>;
 } {
-  const {
-    data: contract,
-    isLoading: contractLoading,
-    error: contractError,
-  } = useScreenContract(screen);
-
-  const useNewWorkflow = options.useOldWfCodeOrNew !== false;
-
-  const statusFilter = useMemo(() => {
-    if (useNewWorkflow) return '';
-
-    const legacyByScreen: Record<string, string[]> = {
-      preparation: ['intake', 'preparing'],
-      processing: ['processing'],
-      assembly: ['ready', 'assembly'],
-      qa: ['ready', 'qa'],
-      packing: ['packing'],
-      ready: ['ready', 'ready_for_pickup'],
-      delivery: ['out_for_delivery'],
-      driver_delivery: ['out_for_delivery'],
-    };
-
-    const legacy = legacyByScreen[screen];
-    if (legacy && legacy.length > 0) return legacy.join(',');
-
-    const fallback = options.fallbackStatuses;
-    if (fallback && fallback.length > 0) return fallback.join(',');
-
-    return '';
-  }, [options.fallbackStatuses, screen, useNewWorkflow]);
+  // Status membership belongs to the order artifact, never a client list.
+  const statusFilter = '';
 
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
-  const enabled = (options.enabled ?? true)
-    && (useNewWorkflow || (!contractLoading && statusFilter.length > 0));
+  const enabled = options.enabled ?? true;
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<OrdersListResponse<TOrder>>({
     queryKey: [
@@ -158,8 +123,6 @@ export function useScreenOrders<TOrder = any>(
       'screen',
       screen,
       {
-        useNewWorkflow,
-        statusFilter,
         page,
         limit,
         search: options.search,
@@ -175,11 +138,7 @@ export function useScreenOrders<TOrder = any>(
     enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (useNewWorkflow) {
-        params.set('workflow_screen', screen);
-      } else {
-        params.set('status_filter', statusFilter);
-      }
+      params.set('workflow_screen', screen);
       params.set('page', String(page));
       params.set('limit', String(limit));
 
@@ -236,16 +195,12 @@ export function useScreenOrders<TOrder = any>(
     totalPages: 0,
   };
 
-  const mergedError =
-    (!useNewWorkflow && contractError instanceof Error ? contractError.message : null)
-    ?? (error instanceof Error ? error.message : null);
+  const mergedError = error instanceof Error ? error.message : null;
 
   return {
-    contract,
-    contractLoading,
     statusFilter,
     orders,
-    isLoading: (!useNewWorkflow && contractLoading) || isLoading,
+    isLoading,
     isFetching,
     error: mergedError,
     pagination,

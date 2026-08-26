@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Automated delivery assurance is complete. Graph-pin execution is retired for profile-stamped orders. Automated semantic-profile assurance is in place. **Staff POD delivery smoke S10 remains unsigned** pending operator/e2e canary (`p7-harden`).
+**Status:** Automated delivery assurance is complete. Migration `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, and semantic-only runtime cutover is active. **Staff POD delivery smoke S10 remains unsigned** until pre-cutover unsnapshotted test orders are recreated and the operator/e2e canary (`p7-harden`) is complete.
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -38,7 +38,7 @@ The staff delivery principle above is an unmet release gate, not a completed cla
 
 The implemented P7R proof/audit surface is read-only. Authorized staff can review delivery outcome, payment state, handover actor/time/notes, and time-limited evidence links on Delivery Stop Detail and Order Details. It does not enable staff delivery completion or expose private storage keys.
 
-The P7R Workboard is also read-only. It resolves each V2 order through its pinned profile graph, falls back to the tenant's live screen contract only for legacy/unpinned orders, and routes staff to the owning stage screen. It never offers a raw status mutation or a second transition writer.
+The P7R Workboard is read-only. It resolves queue membership and owner routing only through each order's immutable compiled profile artifact. Orders without a valid snapshot are excluded from operational queues; the Workboard never offers a raw status mutation or a second transition writer.
 
 ## Activate canary (after you apply `0427`/`0428` and the current rollout migrations)
 

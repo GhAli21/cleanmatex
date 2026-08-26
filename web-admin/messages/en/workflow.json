@@ -358,12 +358,31 @@
     "collection": {
       "remaining": "Balance due: {amount}"
     },
+    "handover": {
+      "title": "Confirm delivery",
+      "description": "Confirm only after the items have been physically handed to the customer.",
+      "collectPayment": "Collect remaining payment",
+      "confirmAction": "Confirm delivery",
+      "notConfigured": "Delivery confirmation is not configured for this workflow profile. Enable the Confirm Delivery action on the delivery screen.",
+      "collectionRequiredTitle": "Payment is required before handover",
+      "collectionRequiredDetail": "Collect the remaining {amount} before confirming delivery.",
+      "collectionRequiredMessage": "Collect the remaining {amount} before confirming delivery.",
+      "dialogTitle": "Confirm delivery",
+      "dialogDescription": "Confirm that {customerName} has received order {orderNo}. This will mark the order as delivered.",
+      "notesLabel": "Handover notes (optional)",
+      "notesPlaceholder": "For example, handed to the customer at the door",
+      "notesHelp": "This note is saved with the delivery audit record.",
+      "success": "Delivery confirmed. The order is now delivered.",
+      "failed": "Unable to confirm delivery.",
+      "permissionDenied": "You do not have permission to complete this delivery."
+    },
     "stats": {
       "outForDelivery": "Out for delivery",
       "completedToday": "Completed today"
     },
     "actions": {
       "view": "View",
+      "open": "Open Delivery",
       "markDelivered": "Mark delivered",
       "backToDelivery": "Back to Delivery"
     },
@@ -395,7 +414,9 @@
     },
     "messages": {
       "deliveredSuccess": "Order marked as delivered",
-      "deliveredFailed": "Failed to mark order as delivered"
+      "deliveredFailed": "Failed to mark order as delivered",
+      "loadFailed": "Failed to load order",
+      "notFound": "Order not found"
     },
     "routeStatus": {
       "planned": "Planned",

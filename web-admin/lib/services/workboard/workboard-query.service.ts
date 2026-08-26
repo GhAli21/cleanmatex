@@ -10,10 +10,6 @@ import {
   type SemanticWorkflowOrderSnapshot,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service'
 import { isSemanticScreenStatusMember } from '@/lib/services/workflow/semantic-workflow-runtime.service'
-import {
-  getWorkflowScreenContract,
-  listWorkflowScreenKeysForStatus,
-} from '@/lib/services/workflow-profile.service'
 import type {
   WorkboardConfigurationGap,
   WorkboardListResponse,
@@ -95,19 +91,13 @@ interface WorkboardOwnerMetricRow {
 }
 
 interface StatusScope {
-  profileId: string | null
-  versionNo: number | null
-  artifactId: string | null
+  artifactId: string
   ownerByStatus: Map<string, OwnerScreenKey>
 }
 
-function scopeKey(
-  profileId: string | null,
-  versionNo: number | null,
-  artifactId: string | null,
-): string {
-  if (artifactId) return `semantic:${artifactId}`
-  return profileId && versionNo !== null ? `${profileId}:${versionNo}` : 'legacy'
+function scopeKey(artifactId: string | null): string {
+  // The sentinel cannot match an operational scope because those require an artifact.
+  return artifactId ? `semantic:${artifactId}` : 'semantic:missing'
 }
 
 function createEmptyOwnerCounts(): Record<OwnerScreenKey, number> {
@@ -178,46 +168,16 @@ function scopeFromSemanticArtifact(
   }
 
   return {
-    profileId: snapshot.wf_profile_id,
-    versionNo: snapshot.wf_version_no,
-    artifactId: snapshot.wf_profile_artifact_id,
+    artifactId: snapshot.wf_profile_artifact_id!,
     ownerByStatus,
   }
-}
-
-async function loadLiveOwners(
-  tenantId: string,
-  statusCodes: string[],
-): Promise<Map<string, OwnerScreenKey>> {
-  const ownerPairs = await Promise.all(
-    statusCodes.map(async (statusCode) => {
-      const screens = await listWorkflowScreenKeysForStatus(tenantId, statusCode)
-      const owner = OWNER_SCREEN_KEYS.find((screenKey) => screens.includes(screenKey))
-      return owner ? ([statusCode, owner] as const) : null
-    }),
-  )
-
-  return new Map(
-    ownerPairs.filter((pair): pair is readonly [string, OwnerScreenKey] => pair !== null),
-  )
 }
 
 function scopePredicate(scope: StatusScope): Prisma.Sql {
   const statuses = [...scope.ownerByStatus.keys()]
   const statusClause = Prisma.sql`o.current_status IN (${Prisma.join(statuses)})`
-  if (scope.artifactId) {
-    return Prisma.sql`(
-      o.wf_profile_artifact_id = ${scope.artifactId}::uuid
-      AND ${statusClause}
-    )`
-  }
-  if (!scope.profileId || scope.versionNo === null) {
-    return Prisma.sql`((o.wf_profile_id IS NULL OR o.wf_version_no IS NULL) AND ${statusClause})`
-  }
-
   return Prisma.sql`(
-    o.wf_profile_id = ${scope.profileId}::uuid
-    AND o.wf_version_no = ${scope.versionNo}
+    o.wf_profile_artifact_id = ${scope.artifactId}::uuid
     AND ${statusClause}
   )`
 }
@@ -300,7 +260,7 @@ function buildOwnerSummary(
 
   for (const metric of ownerMetrics) {
     const owner = ownerByScope
-      .get(scopeKey(metric.wf_profile_id, metric.wf_version_no, metric.wf_profile_artifact_id))
+      .get(scopeKey(metric.wf_profile_artifact_id))
       ?.get(metric.current_status)
 
     if (!owner) {
@@ -320,8 +280,8 @@ function buildOwnerSummary(
  */
 export class WorkboardQueryService {
   /**
-   * Lists the operational queue using each order's compiled artifact when present.
-   * Profile-stamped orders without an artifact are excluded rather than reading a graph pin.
+   * Lists the operational queue using each order's compiled immutable artifact.
+   * Orders without a valid snapshot are excluded from operational visibility.
    *
    * @example
    * await WorkboardQueryService.list(tenantId, { page: 1, pageSize: 25 })
@@ -330,8 +290,6 @@ export class WorkboardQueryService {
     tenantId: string,
     input: WorkboardQueryInput,
   ): Promise<WorkboardListResponse> {
-    const contract = await getWorkflowScreenContract(tenantId, WORKBOARD_SCREEN_KEY)
-    const configuredStatuses = [...new Set(contract.statuses.map((status) => status.trim()).filter(Boolean))]
     const gaps: WorkboardConfigurationGap[] = []
 
     const profilePairs = await prisma.$queryRaw<ProfilePairRow[]>(Prisma.sql`
@@ -355,10 +313,7 @@ export class WorkboardQueryService {
           OR wf_profile_schema_version IS NOT NULL
         )
     `)
-    const liveOwners = await loadLiveOwners(tenantId, configuredStatuses)
-    const scopes: StatusScope[] = liveOwners.size > 0
-      ? [{ profileId: null, versionNo: null, artifactId: null, ownerByStatus: liveOwners }]
-      : []
+    const scopes: StatusScope[] = []
 
     for (const pair of profilePairs) {
       let artifact: SemanticWorkflowArtifact | null = null
@@ -368,15 +323,9 @@ export class WorkboardQueryService {
         if (error instanceof SemanticWorkflowArtifactError) continue
         throw error
       }
-      if (!artifact) continue
+      if (!artifact || !pair.wf_profile_artifact_id) continue
       const scope = scopeFromSemanticArtifact(pair, artifact)
       if (scope.ownerByStatus.size > 0) scopes.push(scope)
-    }
-
-    for (const statusCode of configuredStatuses) {
-      if (!scopes.some((scope) => scope.ownerByStatus.has(statusCode))) {
-        gaps.push({ statusCode, reason: 'no_stage_owner' })
-      }
     }
     if (scopes.length === 0) return this.emptyResponse(input, gaps)
 
@@ -493,15 +442,12 @@ export class WorkboardQueryService {
       `),
     ])
 
-    const ownerByScope = new Map(scopes.map((scope) => [
-      scopeKey(scope.profileId, scope.versionNo, scope.artifactId),
-      scope.ownerByStatus,
-    ]))
+    const ownerByScope = new Map(scopes.map((scope) => [scopeKey(scope.artifactId), scope.ownerByStatus]))
     const summaryByOwner = buildOwnerSummary(ownerMetrics, ownerByScope)
     const labels = new Map(statusLabels.map((row) => [row.status_code, row]))
     const mappedRows: WorkboardOrderRow[] = rows.flatMap((row) => {
       const owner = ownerByScope
-        .get(scopeKey(row.wf_profile_id, row.wf_version_no, row.wf_profile_artifact_id))
+        .get(scopeKey(row.wf_profile_artifact_id))
         ?.get(row.current_status)
       if (!owner) return []
       return [{

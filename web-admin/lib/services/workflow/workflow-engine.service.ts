@@ -179,9 +179,9 @@ type ActionTransitionRow = {
   semantic_gates: SemanticGateBinding[];
 };
 
-type ResolvedWorkflowRuntime =
-  | { kind: 'semantic'; artifact: SemanticWorkflowArtifact }
-  | { kind: 'legacy' };
+type ResolvedWorkflowRuntime = {
+  artifact: SemanticWorkflowArtifact;
+};
 
 /**
  * Prisma transaction scope accepted by workflow commands that must be composed
@@ -297,21 +297,21 @@ async function loadOrderForUpdate(
 
 function runtimeArtifact(
   runtime: ResolvedWorkflowRuntime,
-): SemanticWorkflowArtifact | null {
-  return runtime.kind === 'semantic' ? runtime.artifact : null;
+): SemanticWorkflowArtifact {
+  return runtime.artifact;
 }
 
 /**
- * Resolves the runtime policy named by the order itself. A profile/version
- * pin without a compiled artifact is an integrity failure, never a reason to
- * consult a graph pin or live catalog.
+ * Resolves the immutable runtime policy named by the order itself. Orders
+ * without a complete artifact snapshot are intentionally non-operational so
+ * a mutable catalog can never redefine their workflow after creation.
  */
 async function resolveWorkflowRuntimeForOrder(
   order: LockedOrderRow,
 ): Promise<ResolvedWorkflowRuntime> {
   try {
     const artifact = await loadSemanticWorkflowArtifactForOrder(order);
-    if (artifact) return { kind: 'semantic', artifact };
+    if (artifact) return { artifact };
   } catch (error) {
     if (error instanceof SemanticWorkflowArtifactError) {
       throw new WorkflowEngineError(error.code, error.message);
@@ -319,7 +319,10 @@ async function resolveWorkflowRuntimeForOrder(
     throw error;
   }
 
-  return { kind: 'legacy' };
+  throw new WorkflowEngineError(
+    'PROFILE_SNAPSHOT_INCOMPLETE',
+    'This order has no compiled workflow profile snapshot and cannot be operated. Recreate the order under an assigned workflow profile.',
+  );
 }
 async function isScreenStatusMemberForOrder(
   order: LockedOrderRow,
@@ -328,10 +331,7 @@ async function isScreenStatusMemberForOrder(
   runtime?: ResolvedWorkflowRuntime,
 ): Promise<boolean> {
   const resolved = runtime ?? (await resolveWorkflowRuntimeForOrder(order));
-  if (resolved.kind === 'semantic') {
-    return isSemanticScreenStatusMember(resolved.artifact, screen, statusCode);
-  }
-  return isScreenStatusMember(screen, statusCode);
+  return isSemanticScreenStatusMember(resolved.artifact, screen, statusCode);
 }
 
 function semanticActionLabels(actionCode: string): { name: string; name2: string } {
@@ -369,119 +369,31 @@ async function loadActionTransitionsForOrder(
   channel: SemanticWorkflowCommandChannel = 'staff_web',
 ): Promise<ActionTransitionRow[]> {
   const resolved = runtime ?? (await resolveWorkflowRuntimeForOrder(order));
-  if (resolved.kind === 'semantic') {
-    return loadSemanticActionTransitions(resolved.artifact, {
-      screen,
-      fromStatus,
-      actionCode,
-      channel,
-    }).map((transition) => {
-      const labels = semanticActionLabels(transition.actionCode);
-      return {
-        action_code: transition.actionCode,
-        name: labels.name,
-        name2: labels.name2,
-        action_permission_code: null,
-        from_status: transition.fromStatus,
-        to_status: transition.toStatus,
-        gate_set_code: transition.gateCodes.join(','),
-        transition_permission_code: null,
-        transition_kind: transition.transitionKind,
-        requires_reason: transition.requiresReason,
-        min_reason_length: transition.minReasonLength,
-        requires_evidence: transition.requiresEvidence,
-        has_unsupported_gate_mode: transition.hasUnsupportedGateMode,
-        is_semantic: true,
-        semantic_gates: transition.gates,
-      };
-    });
-  }
-
-  return (await loadActionTransitions(screen, fromStatus, actionCode)).map((row) => ({
-    ...row,
-    semantic_gates: [],
-  }));
-}
-
-async function isScreenStatusMember(
-  screen: string,
-  statusCode: string,
-): Promise<boolean> {
-  const rows = await prisma.$queryRaw<{ ok: number }[]>`
-    SELECT 1 AS ok
-    FROM public.sys_wf_screen_status_cd
-    WHERE screen_key = ${screen}
-      AND status_code = ${statusCode}
-      AND COALESCE(is_active, true) = true
-    LIMIT 1
-  `;
-  return rows.length > 0;
-}
-
-async function loadActionTransitions(
-  screen: string,
-  fromStatus: string,
-  actionCode?: string,
-): Promise<ActionTransitionRow[]> {
-  if (actionCode) {
-    return prisma.$queryRaw<ActionTransitionRow[]>`
-      SELECT
-        a.action_code,
-        a.name,
-        a.name2,
-        a.permission_code AS action_permission_code,
-        t.from_status,
-        t.to_status,
-        t.gate_set_code,
-        t.permission_code AS transition_permission_code,
-        'fixed'::text AS transition_kind,
-        false AS requires_reason,
-        0 AS min_reason_length,
-        false AS requires_evidence,
-        false AS has_unsupported_gate_mode,
-        false AS is_semantic
-      FROM public.sys_wf_action_trans_cd at
-      INNER JOIN public.sys_wf_actions_cd a
-        ON a.action_code = at.action_code
-      INNER JOIN public.sys_wf_transitions_cd t
-        ON t.id = at.transition_id
-      WHERE at.screen_key = ${screen}
-        AND COALESCE(at.is_active, true) = true
-        AND COALESCE(a.is_active, true) = true
-        AND COALESCE(t.is_active, true) = true
-        AND t.from_status = ${fromStatus}
-        AND a.action_code = ${actionCode}
-    `;
-  }
-
-  return prisma.$queryRaw<ActionTransitionRow[]>`
-    SELECT
-      a.action_code,
-      a.name,
-      a.name2,
-      a.permission_code AS action_permission_code,
-      t.from_status,
-      t.to_status,
-      t.gate_set_code,
-      t.permission_code AS transition_permission_code,
-      'fixed'::text AS transition_kind,
-      false AS requires_reason,
-      0 AS min_reason_length,
-      false AS requires_evidence,
-      false AS has_unsupported_gate_mode,
-      false AS is_semantic
-    FROM public.sys_wf_action_trans_cd at
-    INNER JOIN public.sys_wf_actions_cd a
-      ON a.action_code = at.action_code
-    INNER JOIN public.sys_wf_transitions_cd t
-      ON t.id = at.transition_id
-    WHERE at.screen_key = ${screen}
-      AND COALESCE(at.is_active, true) = true
-      AND COALESCE(a.is_active, true) = true
-      AND COALESCE(t.is_active, true) = true
-      AND t.from_status = ${fromStatus}
-    ORDER BY a.action_code
-  `;
+  return loadSemanticActionTransitions(resolved.artifact, {
+    screen,
+    fromStatus,
+    actionCode,
+    channel,
+  }).map((transition) => {
+    const labels = semanticActionLabels(transition.actionCode);
+    return {
+      action_code: transition.actionCode,
+      name: labels.name,
+      name2: labels.name2,
+      action_permission_code: null,
+      from_status: transition.fromStatus,
+      to_status: transition.toStatus,
+      gate_set_code: transition.gateCodes.join(','),
+      transition_permission_code: null,
+      transition_kind: transition.transitionKind,
+      requires_reason: transition.requiresReason,
+      min_reason_length: transition.minReasonLength,
+      requires_evidence: transition.requiresEvidence,
+      has_unsupported_gate_mode: transition.hasUnsupportedGateMode,
+      is_semantic: true,
+      semantic_gates: transition.gates,
+    };
+  });
 }
 
 function unsupportedGateModeBlockedReason(locale?: string): BlockedReason {
@@ -748,7 +660,7 @@ export async function listAvailableActions(
       const gateResult = evaluateWorkflowGateSet(
         parseGateSet(row.gate_set_code),
         gateFacts,
-        row.is_semantic ? 'semantic' : 'legacy',
+        'semantic',
         params.locale,
       );
       gateBlockedReasons = gateResult.blockedReasons;
@@ -961,7 +873,7 @@ export async function executeAction(
       const gateResult = evaluateWorkflowGateSet(
         parseGateSet(transition.gate_set_code),
         executeFacts,
-        transition.is_semantic ? 'semantic' : 'legacy',
+        'semantic',
         undefined,
         params.input,
       );
@@ -1016,10 +928,9 @@ export async function executeAction(
         const configuredToStatus = normalizeStatus(transition.to_status);
         const controlToStatus = normalizeStatus(orderControl.toStatus);
         const isDynamicResume = transition.transition_kind === 'resume_from_hold';
-        const resumeTargetIsDeclared = runtime.kind === 'semantic'
-          && runtime.artifact.module_statuses.some(
-            (membership) => normalizeStatus(membership.status_code) === controlToStatus,
-          );
+        const resumeTargetIsDeclared = runtime.artifact.module_statuses.some(
+          (membership) => normalizeStatus(membership.status_code) === controlToStatus,
+        );
 
         // Order-control fields are operational state, but profile policy remains
         // the source of truth for fixed destinations. Resume is intentionally

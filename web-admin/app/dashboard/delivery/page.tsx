@@ -192,7 +192,7 @@ function DeliveryReadOnlyScreen() {
                   <div>
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}&returnLabel=${encodeURIComponent(
+                        href={`/dashboard/delivery/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}&returnLabel=${encodeURIComponent(
                           t('delivery.actions.backToDelivery')
                         )}`}
                         className="text-lg font-bold text-blue-600 hover:underline"
@@ -223,7 +223,9 @@ function DeliveryReadOnlyScreen() {
                       </div>
                     ) : null}
                     <CmxButton variant="outline" asChild>
-                      <Link href={`/dashboard/orders/${order.id}`}>{t('delivery.actions.view')}</Link>
+                      <Link href={`/dashboard/delivery/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}`}>
+                        {t('delivery.actions.open')}
+                      </Link>
                     </CmxButton>
                   </div>
                 </div>

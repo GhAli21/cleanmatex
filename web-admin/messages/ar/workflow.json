@@ -358,12 +358,31 @@
     "collection": {
       "remaining": "المبلغ المتبقي: {amount}"
     },
+    "handover": {
+      "title": "تأكيد التسليم",
+      "description": "أكد فقط بعد تسليم الأصناف فعلياً إلى العميل.",
+      "collectPayment": "تحصيل الدفعة المتبقية",
+      "confirmAction": "تأكيد التسليم",
+      "notConfigured": "تأكيد التسليم غير مُعدّ في ملف سير العمل هذا. فعّل إجراء تأكيد التسليم على شاشة التوصيل.",
+      "collectionRequiredTitle": "الدفع مطلوب قبل التسليم",
+      "collectionRequiredDetail": "حصّل المبلغ المتبقي {amount} قبل تأكيد التسليم.",
+      "collectionRequiredMessage": "حصّل المبلغ المتبقي {amount} قبل تأكيد التسليم.",
+      "dialogTitle": "تأكيد التسليم",
+      "dialogDescription": "أكد أن {customerName} استلم الطلب {orderNo}. سيُعلَّم الطلب كمُسلَّم.",
+      "notesLabel": "ملاحظات التسليم (اختياري)",
+      "notesPlaceholder": "مثلاً، سُلِّم إلى العميل عند الباب",
+      "notesHelp": "تُحفظ هذه الملاحظة مع سجل تدقيق التسليم.",
+      "success": "تم تأكيد التسليم. الطلب الآن مُسلَّم.",
+      "failed": "تعذر تأكيد التسليم.",
+      "permissionDenied": "ليست لديك صلاحية إتمام هذا التسليم."
+    },
     "stats": {
       "outForDelivery": "قيد التوصيل",
       "completedToday": "مكتمل اليوم"
     },
     "actions": {
       "view": "عرض",
+      "open": "فتح التوصيل",
       "markDelivered": "تمييز كتم التسليم",
       "backToDelivery": "العودة إلى التوصيل"
     },
@@ -395,7 +414,9 @@
     },
     "messages": {
       "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
-      "deliveredFailed": "فشل تمييز الطلب كتم التسليم"
+      "deliveredFailed": "فشل تمييز الطلب كتم التسليم",
+      "loadFailed": "فشل تحميل الطلب",
+      "notFound": "لم يتم العثور على الطلب"
     },
     "routeStatus": {
       "planned": "مخطط",

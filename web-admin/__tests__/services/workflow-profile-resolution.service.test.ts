@@ -62,6 +62,16 @@ function transactionWithRows(...rows: unknown[][]) {
 }
 
 describe('workflow profile resolution', () => {
+  it('requires an active tenant assignment before an order can be created', async () => {
+    const tx = transactionWithRows([]);
+
+    await expect(resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
+      tenantId: TENANT_ID,
+    })).rejects.toMatchObject({
+      code: 'PROFILE_ASSIGNMENT_REQUIRED',
+    });
+  });
+
   it('stamps the latest published version from an active tenant default assignment', async () => {
     const tx = transactionWithRows(
       [{
@@ -266,9 +276,11 @@ describe('workflow profile resolution', () => {
     });
   });
 
-  it('keeps legacy compatibility only when the tenant has no applicable profile assignment', async () => {
+  it('fails closed when no active profile assignment applies', async () => {
     const tx = transactionWithRows([]);
 
-    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toBeNull();
+    await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).rejects.toMatchObject({
+      code: 'PROFILE_ASSIGNMENT_REQUIRED',
+    });
   });
 });

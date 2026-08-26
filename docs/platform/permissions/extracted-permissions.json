@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-08-20T23:15:13.646Z",
+  "extractedAt": "2026-08-26T18:35:31.235Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -192,6 +192,14 @@
       "permission": "customers:receipt_allocate",
       "component": "useHasPermissionCode",
       "line": 59,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
+      "route": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
+      "permission": "orders:collect_payment",
+      "component": "useHasPermissionCode",
+      "line": 40,
       "surface": "screen"
     },
     {
@@ -399,7 +407,7 @@
       "route": "src/features/workflow/ui/FastItemizer.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 48,
+      "line": 50,
       "surface": "screen"
     },
     {
@@ -1341,6 +1349,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/delivery/orders/[orderId]/active-stop/route.ts",
+      "method": "GET",
+      "route": "/api/v1/delivery/orders/[orderId]/active-stop",
+      "permission": "orders:read",
+      "line": 24,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/delivery/orders/[orderId]/generate-otp/route.ts",
       "method": "POST",
       "route": "/api/v1/delivery/orders/[orderId]/generate-otp",
@@ -1929,7 +1945,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:create",
-      "line": 35,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -1937,7 +1953,7 @@
       "method": "POST",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 193,
+      "line": 194,
       "surface": "api"
     },
     {
@@ -1945,7 +1961,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 72,
+      "line": 73,
       "surface": "api"
     },
     {
@@ -1953,7 +1969,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/actions",
       "permission": "orders:transition",
-      "line": 26,
+      "line": 31,
       "surface": "api"
     },
     {
@@ -1969,7 +1985,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/available-actions",
       "permission": "orders:transition",
-      "line": 20,
+      "line": 21,
       "surface": "api"
     },
     {
@@ -2297,7 +2313,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/transition",
       "permission": "orders:transition",
-      "line": 38,
+      "line": 43,
       "surface": "api"
     },
     {

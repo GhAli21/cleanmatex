@@ -1,20 +1,15 @@
 import 'server-only';
 
-import { prisma } from '@/lib/db/prisma';
-import type { PinnedInitialRule } from './pinned-workflow-graph.service';
 import type { ResolvedWorkflowInitialRule } from './workflow-profile-resolution.service';
 
-/** Inputs used to match a creation context against immutable or legacy rules. */
+/** Inputs used to match a creation context against immutable profile rules. */
 export interface ResolveInitialStatusParams {
   orderSourceCode?: string | null;
   orderTypeId?: string | null;
   isRetail?: boolean | null;
   isQuickDrop?: boolean | null;
-  /** When set without semantic rules, create fails closed rather than reading a graph pin. */
-  wfProfileId?: string | null;
-  wfVersionNo?: number | null;
   /** Immutable semantic artifact rules resolved with the order's profile snapshot. */
-  semanticInitialRules?: ResolvedWorkflowInitialRule[] | null;
+  semanticInitialRules: ResolvedWorkflowInitialRule[];
 }
 
 /** Deterministic initial workflow status and the rule that selected it. */
@@ -23,12 +18,10 @@ export interface ResolveInitialStatusResult {
   ruleCode: string | null;
 }
 
-const FALLBACK_STATUS = 'intake';
-
 /**
  * Signals a profile-policy configuration problem before any order is written.
- * Legacy orders retain their documented intake fallback; semantic orders must
- * never silently borrow it because their artifact is the runtime authority.
+ * An order must never silently borrow a mutable catalog default because its
+ * compiled artifact is its creation-time and runtime authority.
  */
 export class SemanticInitialStatusResolutionError extends Error {
   readonly code = 'PROFILE_INITIAL_RULE_UNMATCHED';
@@ -40,61 +33,18 @@ export class SemanticInitialStatusResolutionError extends Error {
   }
 }
 
-/** Legacy catalog row shape kept separate from immutable semantic rule input. */
-type InitialRuleRow = {
-  rule_code: string;
-  order_source_code: string | null;
-  order_type_id: string | null;
-  is_retail: boolean | null;
-  initial_status: string;
-  priority: number;
-};
-
-/**
- * Resolve create-time operational status from pinned initial rules (immutable graph def).
- * Historical V2 helper retained for audit. New-order paths must not call this.
- *
- * @param rules - Initial-rule snapshot pinned to a legacy V2 profile version.
- * @param params - New-order facts used to select the most specific rule.
- */
-export function resolveInitialStatusFromPinnedRules(
-  rules: PinnedInitialRule[],
-  params: Omit<ResolveInitialStatusParams, 'wfProfileId' | 'wfVersionNo'>,
-): ResolveInitialStatusResult {
-  const source = params.orderSourceCode?.trim() || null;
-  const typeId = params.orderTypeId?.trim() || null;
-  const isRetail = params.isRetail ?? null;
-
-  const activeRules = rules
-    .filter((r) => r.is_active ?? true)
-    .sort((a, b) => a.priority - b.priority || a.rule_code.localeCompare(b.rule_code));
-
-  for (const rule of activeRules) {
-    if (rule.order_source_code != null && rule.order_source_code !== source) continue;
-    if (rule.order_type_id != null && rule.order_type_id !== typeId) continue;
-    if (rule.is_retail != null && rule.is_retail !== isRetail) continue;
-
-    const status = (rule.initial_status ?? '').trim().toLowerCase();
-    if (!status || status === 'closed') continue;
-
-    return { initialStatus: status, ruleCode: rule.rule_code };
-  }
-
-  return { initialStatus: FALLBACK_STATUS, ruleCode: null };
-}
-
 /**
  * Resolves an initial status from the already-validated immutable semantic
  * artifact. A semantic profile without a matching rule is invalid for the
- * order context, so this intentionally fails rather than falling back to the
- * legacy intake status.
+ * order context, so this intentionally fails rather than falling back to a
+ * mutable intake default.
  *
  * @param rules - Initial rules emitted by the immutable semantic artifact.
  * @param params - New-order facts used to select the most specific rule.
  */
 export function resolveInitialStatusFromSemanticRules(
   rules: ResolvedWorkflowInitialRule[],
-  params: Omit<ResolveInitialStatusParams, 'wfProfileId' | 'wfVersionNo' | 'semanticInitialRules'>,
+  params: Omit<ResolveInitialStatusParams, 'semanticInitialRules'>,
 ): ResolveInitialStatusResult {
   const source = params.orderSourceCode?.trim() || null;
   const typeId = params.orderTypeId?.trim() || null;
@@ -115,63 +65,14 @@ export function resolveInitialStatusFromSemanticRules(
 }
 
 /**
- * Resolve create-time operational status from `sys_wf_initial_rules_cd`.
- * Lower priority wins. Null matchers are wildcards.
- * Retail must never resolve to `closed` (V1.0 ADR).
- * A profile/version assignment without compiled semantic rules fails closed.
+ * Resolves create-time operational status from the compiled order profile.
+ * Lower priority wins. Null matchers are wildcards. Retail must never resolve
+ * to `closed` (V1.0 ADR).
  *
  * @param params - New-order facts and optional immutable profile-rule snapshot.
  */
 export async function resolveInitialStatus(
   params: ResolveInitialStatusParams,
 ): Promise<ResolveInitialStatusResult> {
-  if (params.semanticInitialRules) {
-    return resolveInitialStatusFromSemanticRules(params.semanticInitialRules, params);
-  }
-  if (params.wfProfileId && params.wfVersionNo != null) {
-    throw new SemanticInitialStatusResolutionError();
-  }
-
-  let rules: InitialRuleRow[] = [];
-  try {
-    rules = await prisma.$queryRaw<InitialRuleRow[]>`
-      SELECT
-        rule_code,
-        order_source_code,
-        order_type_id,
-        is_retail,
-        initial_status,
-        priority
-      FROM public.sys_wf_initial_rules_cd
-      WHERE COALESCE(is_active, true) = true
-      ORDER BY priority ASC, rule_code ASC
-    `;
-  } catch {
-    return { initialStatus: FALLBACK_STATUS, ruleCode: null };
-  }
-
-  const source = params.orderSourceCode?.trim() || null;
-  const typeId = params.orderTypeId?.trim() || null;
-  const isRetail = params.isRetail ?? null;
-
-  for (const rule of rules) {
-    if (rule.order_source_code != null && rule.order_source_code !== source) {
-      continue;
-    }
-    if (rule.order_type_id != null && rule.order_type_id !== typeId) {
-      continue;
-    }
-    if (rule.is_retail != null && rule.is_retail !== isRetail) {
-      continue;
-    }
-
-    const status = (rule.initial_status ?? '').trim().toLowerCase();
-    if (!status || status === 'closed') {
-      continue;
-    }
-
-    return { initialStatus: status, ruleCode: rule.rule_code };
-  }
-
-  return { initialStatus: FALLBACK_STATUS, ruleCode: null };
+  return resolveInitialStatusFromSemanticRules(params.semanticInitialRules, params);
 }

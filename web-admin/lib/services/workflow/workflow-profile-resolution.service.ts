@@ -49,7 +49,7 @@ export class WorkflowProfileResolutionError extends Error {
    */
   constructor(
     message: string,
-    readonly code: 'PROFILE_ASSIGNMENT_CONFLICT' | 'PROFILE_SERVICE_SCOPE_CONFLICT' | 'PROFILE_RESOLUTION_FAILED' = 'PROFILE_RESOLUTION_FAILED',
+    readonly code: 'PROFILE_ASSIGNMENT_REQUIRED' | 'PROFILE_ASSIGNMENT_CONFLICT' | 'PROFILE_SERVICE_SCOPE_CONFLICT' | 'PROFILE_RESOLUTION_FAILED' = 'PROFILE_RESOLUTION_FAILED',
   ) {
     super(message);
     this.name = 'WorkflowProfileResolutionError';
@@ -239,8 +239,7 @@ function normalizeServiceCodes(serviceCodes?: readonly string[]): string[] {
   )].sort();
 }
 
-function bindingIdentity(binding: ResolvedWorkflowProfileBinding | null): string {
-  if (!binding) return 'legacy';
+function bindingIdentity(binding: ResolvedWorkflowProfileBinding): string {
   return [
     binding.profileId,
     binding.versionNo,
@@ -253,12 +252,14 @@ function bindingIdentity(binding: ResolvedWorkflowProfileBinding | null): string
 
 async function resolveOrderServiceBindings(
   input: WorkflowProfileOrderResolutionInput,
-  resolveForService: (serviceCode?: string) => Promise<ResolvedWorkflowProfileBinding | null>,
-): Promise<ResolvedWorkflowProfileBinding | null> {
+  resolveForService: (serviceCode?: string) => Promise<ResolvedWorkflowProfileBinding>,
+): Promise<ResolvedWorkflowProfileBinding> {
   const serviceCodes = normalizeServiceCodes(input.serviceCodes);
-  if (serviceCodes.length === 0) return resolveForService();
+  if (serviceCodes.length === 0) {
+    return resolveForService();
+  }
 
-  const bindings: Array<ResolvedWorkflowProfileBinding | null> = [];
+  const bindings: ResolvedWorkflowProfileBinding[] = [];
   for (const serviceCode of serviceCodes) {
     bindings.push(await resolveForService(serviceCode));
   }
@@ -271,7 +272,7 @@ async function resolveOrderServiceBindings(
     );
   }
 
-  return bindings[0] ?? null;
+  return bindings[0];
 }
 
 /**
@@ -286,7 +287,7 @@ async function resolveOrderServiceBindings(
 export async function resolveWorkflowProfileBindingWithSupabase(
   supabase: SupabaseClient,
   input: WorkflowProfileResolutionInput,
-): Promise<ResolvedWorkflowProfileBinding | null> {
+): Promise<ResolvedWorkflowProfileBinding> {
   const { data: assignmentData, error: assignmentError } = await supabase
     .from('org_wf_profile_assign_cf')
     .select('wf_profile_id, wf_version_no, branch_id, service_code, is_default, created_at')
@@ -296,7 +297,13 @@ export async function resolveWorkflowProfileBindingWithSupabase(
   if (assignmentError) throw assignmentError;
 
   const assignment = chooseAssignment((assignmentData ?? []) as AssignmentRow[], input.branchId, input.serviceCode);
-  if (!assignment) return null;
+  if (!assignment) {
+    const scope = input.serviceCode ? `service category "${input.serviceCode}"` : 'this order';
+    throw new WorkflowProfileResolutionError(
+      `No active workflow profile assignment applies to ${scope}. Assign and publish a workflow profile before creating orders.`,
+      'PROFILE_ASSIGNMENT_REQUIRED',
+    );
+  }
 
   const { data: tenantData, error: tenantError } = await supabase
     .from('org_tenants_mst')
@@ -359,7 +366,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
 export async function resolveWorkflowProfileBindingWithPrisma(
   tx: Prisma.TransactionClient,
   input: WorkflowProfileResolutionInput,
-): Promise<ResolvedWorkflowProfileBinding | null> {
+): Promise<ResolvedWorkflowProfileBinding> {
   const assignments = await tx.$queryRaw<AssignmentRow[]>(Prisma.sql`
     SELECT
       wf_profile_id::text,
@@ -374,7 +381,13 @@ export async function resolveWorkflowProfileBindingWithPrisma(
       AND rec_status = 1
   `);
   const assignment = chooseAssignment(assignments, input.branchId, input.serviceCode);
-  if (!assignment) return null;
+  if (!assignment) {
+    const scope = input.serviceCode ? `service category "${input.serviceCode}"` : 'this order';
+    throw new WorkflowProfileResolutionError(
+      `No active workflow profile assignment applies to ${scope}. Assign and publish a workflow profile before creating orders.`,
+      'PROFILE_ASSIGNMENT_REQUIRED',
+    );
+  }
 
   const tenantRows = await tx.$queryRaw<Array<{ is_hq_test_demo: boolean }>>(Prisma.sql`
     SELECT is_hq_test_demo
@@ -442,7 +455,7 @@ export async function resolveWorkflowProfileBindingWithPrisma(
 export async function resolveWorkflowProfileBindingForOrderWithSupabase(
   supabase: SupabaseClient,
   input: WorkflowProfileOrderResolutionInput,
-): Promise<ResolvedWorkflowProfileBinding | null> {
+): Promise<ResolvedWorkflowProfileBinding> {
   return resolveOrderServiceBindings(input, (serviceCode) =>
     resolveWorkflowProfileBindingWithSupabase(supabase, {
       tenantId: input.tenantId,
@@ -461,7 +474,7 @@ export async function resolveWorkflowProfileBindingForOrderWithSupabase(
 export async function resolveWorkflowProfileBindingForOrderWithPrisma(
   tx: Prisma.TransactionClient,
   input: WorkflowProfileOrderResolutionInput,
-): Promise<ResolvedWorkflowProfileBinding | null> {
+): Promise<ResolvedWorkflowProfileBinding> {
   return resolveOrderServiceBindings(input, (serviceCode) =>
     resolveWorkflowProfileBindingWithPrisma(tx, {
       tenantId: input.tenantId,

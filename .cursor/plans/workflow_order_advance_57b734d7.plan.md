@@ -153,11 +153,11 @@ todos:
     content: "P0 P7R semantic-profile assurance: add unit, API, database-integration, tenant-isolation, concurrency, performance, accessibility, i18n/RTL, and regression coverage for compiler-artifact integrity, snapshot immutability, scope precedence, Pilot/PUBLISHED validation, forged screen/channel/action rejection, gate/evidence/fulfilment policy, unsupported capability fail-closed behavior, and reassignment without changing in-flight orders. Document development-order recreation, cutover, observability, and rollback decision."
     status: completed
   - id: p7r-profile-no-legacy-cutover
-    content: "P0 P7R semantic-profile no-legacy cutover: after HQ compiler and tenant consumers are proven, remove active graph-pin/global-membership/template fallback execution for snapshot orders and then all active new-order paths before real tenant onboarding. Preserve only justified audit/history records; prove no production caller can resolve workflow policy from legacy paths."
-    status: completed
+    content: "P0 P7R absolute semantic-only runtime cutover: code and focused regression coverage remove active graph-pin, global-membership, template, live-catalog, status-filter, and fallback-status workflow policy resolution for operational order paths. Migration 0464_require_semantic_order_snapshots.sql is applied locally and remotely. Recreate pre-cutover test orders with complete snapshots, then record the cross-project validation and S10 canary before completion. Unsnapshotted historic/test orders fail closed for operational workflow actions and remain read-only audit/history records."
+    status: in_progress
   - id: p7r-profile-cross-project-docs
     content: "P0 P7R semantic-profile cross-project close-out: synchronize the HQ Workflow Profile Policy Runtime plan, coverage matrix, ADR/runtime contract, and the tenant Workflow_Order_Advance docs. Update plan/progress/current status, README, user/developer/test/deploy guides, permissions, APIs, risks_and_rollout, migrations/RLS notes, and integration contracts after every completed profile-runtime slice."
-    status: pending
+    status: in_progress
   - id: p7r-stage-service-boundaries
     content: "P7R architecture: establish stage-owned application services and API endpoints consumable by web, mobile, and third-party integrations without duplicating business rules"
     status: completed
@@ -220,8 +220,8 @@ isProject: false
 
 # Workflow Order Advance — Config-Driven Redesign
 
-**Status (2026-08-22):** Engine cutover, semantic snapshot/loader, pickup, Workboard, hard-block gates, stage commands, atomic delivery complete, artifact-backed floor worklists, no-legacy snapshot execution, and automated semantic-profile assurance are in place. HQ Profile Policy Runtime authoring/compile/Studio/assignment is complete. This tenant plan is **not** complete.
-**Next task:** Operator/e2e canary for production smoke **S10** (`p7-harden`). Do not treat S10 as accepted until that sign-off. Then HQ/tenant close-out docs.
+**Status (2026-08-26):** Engine cutover, semantic snapshot/loader, pickup, Workboard, hard-block gates, stage commands, atomic delivery complete, artifact-backed floor worklists, and automated semantic-profile assurance are in place. Migration `0464` is applied locally and remotely; unsnapshotted orders now fail closed operationally. HQ preview and tenant-context simulation use the exact compiled artifact, and HQ legacy authoring writes are retired. This tenant plan is **not** complete.
+**Next task:** Recreate pre-cutover test orders with semantic snapshots, record the cross-project validation, then run the operator/e2e canary for production smoke **S10** (`p7-harden`). Do not treat S10 as accepted until both are signed.
 **S10 meaning:** Scenario 10 in `docs/features/Workflow_Order_Advance/testing_guide_and_scenarios.md` — a staff operator captures proof of delivery on an `out_for_delivery` order; POD, stop, route counters, and `CONFIRM_DELIVERY` must succeed together. It is a smoke/canary gate, not a separate product feature. Public customer confirm-received is S11–S15.
 **Authoritative remaining programme:** [Workflow Profile Policy Runtime](F:/jhapp/cleanmatexsaas/.cursor/plans/workflow_profile_policy_runtime_20260821.plan.md).
 **Progress rule:** After every slice, update this YAML todo list, the live remaining table below, `progress_summary.md`, and `current_status.md`. If the HQ/tenant contract changed, update the HQ plan too. Never leave a completed slice with a stale `pending`/`in_progress` todo.
@@ -233,8 +233,8 @@ isProject: false
 | p7r-profile-runtime-enforcement | Remaining semantic consumers vs legacy path | completed |
 | p7-harden | Operator/e2e canary, including staff POD delivery smoke **S10** | pending |
 | p7r-profile-assurance | Semantic-profile automated assurance | completed |
-| p7r-profile-no-legacy-cutover | Remove graph-pin/legacy execution | completed |
-| p7r-profile-cross-project-docs | Cross-project close-out | pending |
+| p7r-profile-no-legacy-cutover | Absolute semantic-only runtime cutover | in progress |
+| p7r-profile-cross-project-docs | Cross-project close-out | in progress |
 | p7r-b2b-fulfilment-policy | Durable B2B credit/invoice (separate feature) | pending |
 | p7r-assurance-rollout | Automated delivery assurance (unit/API/DB/concurrency/RBAC) | completed |
 | p7r-assurance-status-docs | Assurance close-out docs after S10 sign-off | pending |

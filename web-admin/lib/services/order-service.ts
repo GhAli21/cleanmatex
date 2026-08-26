@@ -326,22 +326,18 @@ export interface UpdateOrderResult {
 export class OrderService {
   /**
    * Shared workflow + physical-intake resolution for createOrder / createOrderInTransaction.
-   * - Remote channels (requires_remote_intake_confirm): screen new_order → draft, null received_at
-   * - Normal New Order (received): screen new_order → contract statuses[0] (fallback draft)
-   * - Incomplete Quick Drop: screen preparation → contract statuses[0] (fallback preparing)
+   * The assigned compiled workflow profile is the only source of the initial
+   * order status. This keeps creation and later runtime execution on one policy.
    */
   private static async computeCreateOrderWorkflowState(args: {
     tenantId: string;
     items: CreateOrderParams['items'];
     isQuickDrop?: boolean;
     quickDropQuantity?: number;
-    useOldWfCodeOrNew?: boolean;
     physicalIntakeStatus?: CreateOrderParams['physicalIntakeStatus'];
     initialWorkflowScreen?: string;
     sourceRow: OrderSourceCatalogRow;
-    wfProfileId?: string | null;
-    wfVersionNo?: number | null;
-    semanticInitialRules?: Parameters<typeof resolveInitialStatus>[0]['semanticInitialRules'];
+    semanticInitialRules: Parameters<typeof resolveInitialStatus>[0]['semanticInitialRules'];
   }): Promise<{
     v_initialStatus: string;
     v_transitionFrom: string;
@@ -362,22 +358,16 @@ export class OrderService {
       sourceRow,
     } = args;
 
-    const pinnedProfile = {
-      wfProfileId: args.wfProfileId ?? null,
-      wfVersionNo: args.wfVersionNo ?? null,
-      semanticInitialRules: args.semanticInitialRules ?? null,
-    };
-
     const isRetailOnlyOrder =
       items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
 
     if (isRetailOnlyOrder) {
-      // V1.0 ADR: retail must not auto-close. Prefer sys_wf_initial_rules (ready).
+      // V1.0 ADR: retail must not auto-close; the profile rule decides its initial stage.
       const resolved = await resolveInitialStatus({
         orderSourceCode: sourceRow.order_source_code,
         isRetail: true,
         isQuickDrop,
-        ...pinnedProfile,
+        semanticInitialRules: args.semanticInitialRules,
       });
       const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
       return {
@@ -408,7 +398,7 @@ export class OrderService {
         orderSourceCode: sourceRow.order_source_code,
         isRetail: false,
         isQuickDrop,
-        ...pinnedProfile,
+        semanticInitialRules: args.semanticInitialRules,
       });
       const contractStatus = resolved.initialStatus;
       return {
@@ -424,63 +414,22 @@ export class OrderService {
       };
     }
 
-    const isIncompleteQuickDrop =
-      isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length);
-
-    if (args.semanticInitialRules || (args.wfProfileId && args.wfVersionNo != null)) {
-      // Semantic orders never inherit the old direct-create status shortcuts.
-      // A profile assignment without compiled rules must fail closed here too.
-      const resolved = await resolveInitialStatus({
-        orderSourceCode: sourceRow.order_source_code,
-        isRetail: false,
-        isQuickDrop,
-        ...pinnedProfile,
-      });
-      const initialStatus = resolved.initialStatus;
-      return {
-        v_initialStatus: initialStatus,
-        v_transitionFrom: initialStatus,
-        v_orderStatus: initialStatus,
-        v_current_status: initialStatus,
-        v_current_stage: initialStatus,
-        physicalIntakeStatus: 'received',
-        receivedAt: new Date(),
-        contractScreen: initialWorkflowScreen ?? 'new_order',
-        isRetailOnlyOrder: false,
-      };
-    }
-
-    let v_initialStatus: string;
-    let v_transitionFrom: string;
-    let v_orderStatus: string;
-    let v_current_status: string;
-    let v_current_stage: string;
-
-    if (isIncompleteQuickDrop) {
-      v_initialStatus = 'preparing';
-      v_transitionFrom = 'intake';
-      v_orderStatus = 'preparing';
-      v_current_status = 'preparing';
-      v_current_stage = 'intake';
-    } else {
-      // Normal New Order — initial status comes from new_order screen contract
-      v_initialStatus = 'draft';
-      v_transitionFrom = 'intake';
-      v_orderStatus = 'intake';
-      v_current_status = 'intake';
-      v_current_stage = 'intake';
-    }
-
-    let contractScreen = isIncompleteQuickDrop ? 'preparation' : 'new_order';
+    const resolved = await resolveInitialStatus({
+      orderSourceCode: sourceRow.order_source_code,
+      isRetail: false,
+      isQuickDrop,
+      semanticInitialRules: args.semanticInitialRules,
+    });
+    const initialStatus = resolved.initialStatus;
     return {
-      v_initialStatus,
-      v_transitionFrom,
-      v_orderStatus,
-      v_current_status,
-      v_current_stage,
+      v_initialStatus: initialStatus,
+      v_transitionFrom: initialStatus,
+      v_orderStatus: initialStatus,
+      v_current_status: initialStatus,
+      v_current_stage: initialStatus,
       physicalIntakeStatus: 'received',
       receivedAt: new Date(),
-      contractScreen,
+      contractScreen: initialWorkflowScreen ?? 'new_order',
       isRetailOnlyOrder: false,
     };
   }
@@ -507,7 +456,6 @@ export class OrderService {
         readyByAt: providedReadyByAt,
         userId,
         userName,
-        useOldWfCodeOrNew,
         totals,
         discountRate,
         discountType,
@@ -545,13 +493,10 @@ export class OrderService {
         items,
         isQuickDrop,
         quickDropQuantity,
-        useOldWfCodeOrNew,
         physicalIntakeStatus: params.physicalIntakeStatus,
         initialWorkflowScreen: params.initialWorkflowScreen,
         sourceRow: sourceValidated.row,
-        wfProfileId: workflowProfileBinding?.profileId,
-        wfVersionNo: workflowProfileBinding?.versionNo,
-        semanticInitialRules: workflowProfileBinding?.initialRules,
+        semanticInitialRules: workflowProfileBinding.initialRules,
       });
 
       const {
@@ -635,17 +580,8 @@ export class OrderService {
       // Get primary service category from first item
       const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
 
-      // Get default workflow template
-      const { data: templateData } = await supabase
-        .from('org_tenant_workflow_templates_cf')
-        .select('template_id')
-        .eq('tenant_org_id', tenantId)
-        .eq('is_default', true)
-        .eq('is_active', true)
-        .single();
-
       const workflowProfile = workflowProfileBinding;
-      const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? templateData?.template_id ?? null;
+      const v_workflowTemplateId = workflowProfile.basedOnTemplateId;
 
       const insertPayload: Record<string, unknown> = {
         tenant_org_id: tenantId,
@@ -655,13 +591,13 @@ export class OrderService {
         order_no: orderNo,
         status: v_orderStatus,
         workflow_template_id: v_workflowTemplateId,
-        wf_profile_id: workflowProfile?.profileId ?? null,
-        wf_version_no: workflowProfile?.versionNo ?? null,
-        wf_profile_version_id: workflowProfile?.versionId ?? null,
-        wf_profile_artifact_id: workflowProfile?.artifactId ?? null,
-        wf_profile_revision: workflowProfile?.policyRevision ?? null,
-        wf_profile_checksum: workflowProfile?.artifactChecksum ?? null,
-        wf_profile_schema_version: workflowProfile?.artifactSchemaVersion ?? null,
+        wf_profile_id: workflowProfile.profileId,
+        wf_version_no: workflowProfile.versionNo,
+        wf_profile_version_id: workflowProfile.versionId,
+        wf_profile_artifact_id: workflowProfile.artifactId,
+        wf_profile_revision: workflowProfile.policyRevision,
+        wf_profile_checksum: workflowProfile.artifactChecksum,
+        wf_profile_schema_version: workflowProfile.artifactSchemaVersion,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',
@@ -1195,7 +1131,6 @@ export class OrderService {
       customerEmail,
       customerName,
       customerDetails,
-      useOldWfCodeOrNew,
     } = params;
 
     const orderSourceCode = (params.orderSourceCode ?? DEFAULT_ORDER_SOURCE_CODE).trim();
@@ -1215,13 +1150,10 @@ export class OrderService {
       items,
       isQuickDrop,
       quickDropQuantity,
-      useOldWfCodeOrNew,
       physicalIntakeStatus: params.physicalIntakeStatus,
       initialWorkflowScreen: params.initialWorkflowScreen,
       sourceRow: sourceValidated.row,
-      wfProfileId: workflowProfileBinding?.profileId,
-      wfVersionNo: workflowProfileBinding?.versionNo,
-      semanticInitialRules: workflowProfileBinding?.initialRules,
+      semanticInitialRules: workflowProfileBinding.initialRules,
     });
 
     const {
@@ -1257,16 +1189,8 @@ export class OrderService {
     const currencyExRate = passedCurrencyExRate ?? 1;
     const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
 
-    const template = await tx.org_tenant_workflow_templates_cf.findFirst({
-      where: {
-        tenant_org_id: tenantId,
-        is_default: true,
-        is_active: true,
-      },
-      select: { template_id: true },
-    });
     const workflowProfile = workflowProfileBinding;
-    const v_workflowTemplateId = workflowProfile?.basedOnTemplateId ?? template?.template_id ?? null;
+    const v_workflowTemplateId = workflowProfile.basedOnTemplateId;
 
     let readyByFields: { ready_by?: Date; ready_by_at_new?: Date } = {};
     if (readyByAt) {
@@ -1289,13 +1213,13 @@ export class OrderService {
         order_no: orderNo,
         status: v_orderStatus,
         workflow_template_id: v_workflowTemplateId,
-        wf_profile_id: workflowProfile?.profileId ?? null,
-        wf_version_no: workflowProfile?.versionNo ?? null,
-        wf_profile_version_id: workflowProfile?.versionId ?? null,
-        wf_profile_artifact_id: workflowProfile?.artifactId ?? null,
-        wf_profile_revision: workflowProfile?.policyRevision ?? null,
-        wf_profile_checksum: workflowProfile?.artifactChecksum ?? null,
-        wf_profile_schema_version: workflowProfile?.artifactSchemaVersion ?? null,
+        wf_profile_id: workflowProfile.profileId,
+        wf_version_no: workflowProfile.versionNo,
+        wf_profile_version_id: workflowProfile.versionId,
+        wf_profile_artifact_id: workflowProfile.artifactId,
+        wf_profile_revision: workflowProfile.policyRevision,
+        wf_profile_checksum: workflowProfile.artifactChecksum,
+        wf_profile_schema_version: workflowProfile.artifactSchemaVersion,
         current_status: v_current_status,
         current_stage: v_current_stage,
         priority: priority || 'normal',

@@ -1,5 +1,6 @@
 import { getCSRFToken, getCSRFTokenHeaderName } from '@/lib/utils/csrf-token';
 import type { DeliveryPodMethod } from '@/lib/services/delivery/delivery-pod-method.service';
+import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -22,6 +23,21 @@ export interface CompleteDeliveryInput {
   podNotes?: string;
   signatureEvidenceId?: string;
   photoEvidenceIds?: string[];
+}
+
+export interface CompleteOrderDeliveryInput {
+  orderId: string;
+  expectedStateVersion: number;
+  idempotencyKey: string;
+  podNotes?: string;
+}
+
+export interface CompleteOrderDeliveryResponse {
+  orderId: string;
+  workflow: {
+    currentStatus: string;
+    stateVersion: number;
+  };
 }
 
 /** Stable client error that preserves safe command error codes for the UI. */
@@ -103,4 +119,34 @@ export async function completeDelivery(input: CompleteDeliveryInput): Promise<vo
     }),
   });
   await readEnvelope<Record<string, never>>(response);
+}
+
+/** Completes delivery from the floor screen when no planned stop exists. */
+export async function completeOrderDelivery(
+  input: CompleteOrderDeliveryInput,
+): Promise<CompleteOrderDeliveryResponse> {
+  const response = await fetch(`/api/v1/delivery/orders/${input.orderId}/complete`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      ...(await csrfHeaders()),
+      'Content-Type': 'application/json',
+      'Idempotency-Key': input.idempotencyKey,
+    },
+    body: JSON.stringify({
+      expectedStateVersion: input.expectedStateVersion,
+      podNotes: input.podNotes,
+    }),
+  });
+  return readEnvelope<CompleteOrderDeliveryResponse>(response);
+}
+
+/** Loads the planned stop for an order, if the profile is using routed delivery. */
+export async function getActiveDeliveryStop(orderId: string): Promise<DeliveryStopView | null> {
+  const response = await fetch(`/api/v1/delivery/orders/${orderId}/active-stop`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  const data = await readEnvelope<{ stop: DeliveryStopView | null }>(response);
+  return data.stop;
 }

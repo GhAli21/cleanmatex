@@ -90,7 +90,7 @@ Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) s
 
 - semantic snapshot → immutable artifact module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`)
 - profile/version pin without a compiled artifact → excluded (fail closed)
-- legacy unsnapshotted order → live screen contract, or `sys_wf_screen_status_cd` when the contract is empty
+- incomplete or unsnapshotted historic order → excluded from operational floor lists (fail closed; audit/history remains readable)
 
 Unknown screen keys return an empty page. `status_filter` remains for non-floor lists and as an optional extra narrowing filter. Staff S10 completion remains a separate command.
 

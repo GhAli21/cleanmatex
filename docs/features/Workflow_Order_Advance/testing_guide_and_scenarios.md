@@ -39,7 +39,7 @@ npm run build
 
 2026-08-22 floor-worklist evidence: stage-worklist unit tests prove unknown screens fail closed, semantic processing membership appears without a live contract, and a semantic order whose artifact does not own the screen is excluded from that queue.
 
-2026-08-22 no-legacy cutover evidence: focused Jest coverage proves a profile/version pin without compiled artifact identity fails closed, create does not read a pinned graph, and Workboard/floor lists exclude those orders instead of using graph-pin membership. Unsnapshotted historic orders still use live catalogs. Production callers of `loadPinnedGraphForProfileVersion` are removed.
+2026-08-26 no-legacy cutover evidence: focused Jest coverage proves a profile/version pin without compiled artifact identity fails closed, create does not read a pinned graph, and Workboard/floor lists exclude those orders instead of using graph-pin membership. Migration `0464` is applied locally and remotely. Unsnapshotted historic orders are audit-readable but operationally fail closed; production callers of `loadPinnedGraphForProfileVersion` are removed.
 
 2026-08-22 semantic-profile assurance evidence: 32 focused tests pass. Coverage includes Pilot-only-on-demo, production Pilot reject, latest-assignment ignoring Pilot, missing artifact fail-closed, forged staff channel and forged screen rejection, and `PROFILE_SNAPSHOT_INCOMPLETE` mapped to HTTP 409 on the stage command adapter. Recreation/rollback notes: `technical_docs/semantic_profile_assurance.md`. Residual: S10 canary, performance soak, visual a11y/RTL.
 
@@ -107,7 +107,7 @@ WHERE tenant_org_id = '11111111-1111-1111-1111-111111111111'::uuid
   AND order_no = 'ORD-REPLACE-WITH-NEW-ORDER';
 ```
 
-Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its resolved active PUBLISHED version. An active assignment with no valid PUBLISHED version must reject order creation; legacy template-only creation is allowed only when no assignment applies.
+Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its resolved active PUBLISHED version, with exact artifact identity/revision/checksum/schema persisted. A missing assignment or current valid artifact must reject order creation; there is no legacy template-only create path.
 5. Prepare disposable orders in `preparing`, `processing`, `packing`, `ready`, `out_for_delivery`, and `intake` as required below.
 6. Capture each order's initial `current_status`, `status`, `state_version`, financial summary, and outbox/history count.
 
@@ -269,7 +269,7 @@ During and after the smoke window:
 1. Apply `0455_workboard_permission_navigation.sql`, deploy the Workboard build, and sign in as a role with `workboard:read`.
 2. Confirm **Orders → Workboard** is visible; a role without the permission must not see it and the API must return `403`.
 3. Verify a semantic order appears only when its compiled artifact contains both `workboard` and owner-stage membership.
-4. Verify a historic unsnapshotted order follows the tenant's live Workboard contract.
+4. Verify a historic unsnapshotted order is excluded from the operational Workboard and remains readable only through audit/history views.
 5. Exercise each filter, sorting, quick-focus card, clear-filters action, and pagination; every row/count must remain tenant-scoped.
 6. Verify the owner-stage quick-focus cards continue to show `summary.byOwner` totals for the current non-stage filters even after selecting one owner stage.
 7. Confirm the screen has no status, collection, release, POD, or assignment mutation.

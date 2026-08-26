@@ -6,12 +6,27 @@
 --   - cleanup_all_tenants = true deletes order-related data for all tenants.
 --   - Set cleanup_all_tenants = false and tenant_org_id = '<uuid>' to clean one tenant only.
 --
+-- TARGETING MODES (cleanup_config.auto_target_mode):
+--   - ALL_TENANT_ORDERS (default) targets every order in scope (all tenants, or the one
+--     tenant named by tenant_org_id when cleanup_all_tenants = false).
+--   - ORDER_NO_PATTERN targets orders whose order_no matches auto_order_no_like (ILIKE).
+--   - CREATED_RANGE targets orders created within [auto_created_from, auto_created_to).
+--   - SPECIFIC_ORDERS targets exactly the orders listed in auto_order_ids (uuid[]) and/or
+--     auto_order_nos (text[]) -- no manual temp-table inserts needed. Still respects
+--     cleanup_all_tenants / tenant_org_id, so set cleanup_all_tenants = false and
+--     tenant_org_id to scope a single order safely. Example:
+--       auto_target_mode = 'SPECIFIC_ORDERS',
+--       auto_order_ids   = ARRAY['5d2ab480-5adf-40cc-a4f1-cdca66883797']::uuid[],
+--       auto_order_nos   = ARRAY['ORD-20260820-0001']::text[]   -- optional, in addition to ids
+--
 -- Behavior:
 --   - Automatically targets every order under all tenants or the selected tenant.
 --   - Deletes related order details, operational rows, payments, invoices, vouchers,
 --     stored-value ledger rows, loyalty rows, and related audit/outbox rows included
 --     in this script.
---   - No manual order IDs or order numbers are required.
+--   - No manual order IDs or order numbers are required for the default
+--     ALL_TENANT_ORDERS mode. SPECIFIC_ORDERS mode accepts them explicitly
+--     via auto_order_ids / auto_order_nos -- see HOW TO USE below.
 --   - No TRUNCATE / no CASCADE.
 --   - Never deletes sys_* configuration tables.
 --
@@ -49,11 +64,103 @@
 --     org_fin_voucher_audit_log, org_asm_exceptions_tr, org_dlv_pod_tr.
 --   - Known residue left on purpose: sys_gw_webhook_events_tr.payment_id is SET NULL
 --     by its own foreign key. It is a gateway webhook log, not order data.
+--   - Self-referencing SET NULL side effects (no error, but mutates a row OUTSIDE
+--     the target set when only part of a tenant's orders/vouchers is targeted --
+--     matters most for ORDER_NO_PATTERN / CREATED_RANGE / SPECIFIC_ORDERS modes,
+--     since ALL_TENANT_ORDERS always deletes both sides together):
+--       org_orders_mst.parent_order_id            -> nulled if the parent order is
+--         deleted but a split/amendment child order is not also targeted.
+--       org_fin_vouchers_mst.reversed_by_voucher_id -> nulled if the reversing
+--         voucher is deleted but the original (reversed) voucher is not targeted.
+--       org_fin_voucher_trx_lines_dtl.reversed_line_id -> same, at the line level.
+--     Currently unused in production data (0 rows on any of these columns as of
+--     2026-08-26), so no live impact today.
+--   - GL posting/audit rows (opt-in via include_fin_audit_rows, default false):
+--     org_fin_journal_mst, org_fin_post_log_tr, org_fin_post_exc_tr, and
+--     org_fin_post_snapshot_tr reference orders/invoices/vouchers/payments/gift
+--     cards through a plain source_doc_type_code + source_doc_id UUID column
+--     with NO foreign key (see erp-lite-auto-post.service.ts /
+--     erp-lite-posting-engine.service.ts), so the uncovered_related_refs
+--     self-discovery scan can't see them (the column name isn't in its fixed
+--     list) and deleting an order/invoice/voucher/gift-card can leave a
+--     dangling pointer here with no warning. When include_fin_audit_rows =
+--     true, these four tables are matched by the confirmed order-related
+--     source_doc_type_code values (INVOICE, PAYMENT, PAYMENT_REFUND,
+--     SV_FUNDING_VOUCHER, GIFT_CARD, GIFT_CARD_TXN) and deleted. Off by
+--     default because whether a GL/audit trail should survive deletion of its
+--     source document is a compliance decision, not a mechanical one.
+--   - Confirmed NOT order data, never touched by this script regardless of
+--     include_fin_audit_rows: org_fin_doc_appr_tr (expense/petty-cash approval
+--     trail, keyed off 'EXPENSE'/'CASH_TXN' source docs -- erp-lite-expenses
+--     .service.ts) and org_fin_bank_match_tr (bank-statement-to-AP-payment
+--     reconciliation matches, keyed off 'AP_PAYMENT' -- erp-lite-v2.service.ts).
+--   - Deferred, NOT covered: org_fin_recon_issues_dtl also references order
+--     data via affected_entity_type/affected_entity_id, but the vocabulary is
+--     inconsistent in the source itself -- it mixes semantic names ('order',
+--     'order_payment', 'voucher_trx_line', ...) and literal table names
+--     ('org_order_payments_dtl', 'org_order_refunds_dtl', ...) for what look
+--     like the same concepts, across web-admin/lib/services/reconciliation/*.
+--     Wiring this up requires the reconciliation module owner to confirm the
+--     real mapping first; guessing at it risks silently deleting the wrong
+--     rows in a reconciliation-issues table. 2 rows exist today, matched
+--     against nothing in the current target set.
 --
--- Workflow:
---   1. Keep cleanup_all_tenants = true for all tenants, or set false and provide tenant_org_id.
---   2. Run the script in pgAdmin.
---   3. Review the final verification result set.
+-- HOW TO USE
+-- -----------------------------------------------------------------------------
+--   1. Open this file in pgAdmin (or psql) against the target database.
+--   2. Edit the cleanup_config VALUES(...) tuple below to choose a targeting
+--      mode (see TARGETING MODES above) and a scope (cleanup_all_tenants /
+--      tenant_org_id).
+--   3. First run with do_execute = false. The real target sets are still built
+--      and every preview result set prints (cleanup_config, target_orders_preview,
+--      target_summary, master_repair_preview, uncovered_related_refs), but every
+--      DELETE/UPDATE matches zero rows, so nothing changes. Review the preview.
+--   4. Set do_execute = true and run again to actually delete. The final
+--      verification result set at the end should show remaining_* = 0.
+--
+-- EXAMPLES (edit the matching lines inside the cleanup_config VALUES(...) tuple)
+--
+--   A) Wipe every order for every tenant (the shipped default):
+--        do_execute           = true
+--        cleanup_all_tenants  = true
+--        tenant_org_id        = NULL
+--        auto_target_mode     = 'ALL_TENANT_ORDERS'
+--
+--   B) Wipe every order for ONE tenant only:
+--        cleanup_all_tenants  = false
+--        tenant_org_id        = '11111111-1111-1111-1111-111111111111'
+--        auto_target_mode     = 'ALL_TENANT_ORDERS'
+--
+--   C) Wipe orders whose order_no matches a pattern, for one tenant:
+--        cleanup_all_tenants  = false
+--        tenant_org_id        = '11111111-1111-1111-1111-111111111111'
+--        auto_target_mode     = 'ORDER_NO_PATTERN'
+--        auto_order_no_like   = 'TEST-%'
+--
+--   D) Wipe orders created in a date range, for one tenant:
+--        cleanup_all_tenants  = false
+--        tenant_org_id        = '11111111-1111-1111-1111-111111111111'
+--        auto_target_mode     = 'CREATED_RANGE'
+--        auto_created_from    = '2026-01-01 00:00:00'
+--        auto_created_to      = '2026-02-01 00:00:00'
+--
+--   E) Wipe one or more SPECIFIC orders by id and/or order_no -- the right
+--      choice for deleting a single bad test order. Always pair with
+--      tenant_org_id as a safety scope so a typo'd/foreign id can't match:
+--        cleanup_all_tenants  = false
+--        tenant_org_id        = '11111111-1111-1111-1111-111111111111'
+--        auto_target_mode     = 'SPECIFIC_ORDERS'
+--        auto_order_ids       = ARRAY['5d2ab480-5adf-40cc-a4f1-cdca66883797']::uuid[]
+--        auto_order_nos       = ARRAY['ORD-20260820-0001', 'ORD-20260815-0001']::text[]
+--        -- auto_order_ids and auto_order_nos are both optional; set either one,
+--        -- or both to target the union of the two lists.
+--
+--   F) Dry run only, to preview what example B would delete without deleting:
+--        do_execute           = false   -- keep every other line as in example B
+--
+--   G) Also delete GL posting/audit rows tied to the targeted orders (see the
+--      GL posting/audit rows note above for exactly what this touches):
+--        include_fin_audit_rows = true   -- add to any of the examples above
 -- =============================================================================
 
 BEGIN;
@@ -74,11 +181,14 @@ CREATE TEMP TABLE cleanup_config (
   max_target_orders                  INTEGER NOT NULL DEFAULT 25,
   fail_on_uncovered_refs             BOOLEAN NOT NULL DEFAULT true,
 
-  -- Auto-target is fixed to ALL_TENANT_ORDERS.
-  -- Do not add manual order IDs or order numbers.
+  -- auto_target_mode picks which orders are targeted -- ALL_TENANT_ORDERS,
+  -- ORDER_NO_PATTERN, CREATED_RANGE, or SPECIFIC_ORDERS. See TARGETING MODES
+  -- and the HOW TO USE examples in the file header above.
   auto_target_orders                 BOOLEAN NOT NULL DEFAULT true,
   auto_target_mode                   TEXT    NOT NULL DEFAULT 'ALL_TENANT_ORDERS',
   auto_order_no_like                 TEXT,
+  auto_order_ids                     UUID[],
+  auto_order_nos                     TEXT[],
   auto_created_from                  TIMESTAMP WITHOUT TIME ZONE,
   auto_created_to                    TIMESTAMP WITHOUT TIME ZONE,
 
@@ -102,7 +212,19 @@ CREATE TEMP TABLE cleanup_config (
   delete_empty_advance_accounts      BOOLEAN NOT NULL DEFAULT false,
   delete_empty_loyalty_accounts      BOOLEAN NOT NULL DEFAULT false,
   delete_orphan_credit_note_headers  BOOLEAN NOT NULL DEFAULT false,
-  delete_orphan_gift_card_masters    BOOLEAN NOT NULL DEFAULT false
+  delete_orphan_gift_card_masters    BOOLEAN NOT NULL DEFAULT false,
+
+  -- Opt-in: also deletes GL posting audit rows (org_fin_journal_mst,
+  -- org_fin_post_log_tr, org_fin_post_exc_tr, org_fin_post_snapshot_tr) whose
+  -- source_doc_type_code/source_doc_id points at a targeted invoice / order
+  -- payment / order refund / voucher / gift card / gift-card txn. Off by
+  -- default: whether a GL/audit trail should survive deletion of its source
+  -- document is a compliance decision, not a mechanical one. See the
+  -- "NOT covered" note in the file header for what this does and does not
+  -- reach (org_fin_doc_appr_tr and org_fin_bank_match_tr are expense/AP
+  -- reconciliation tables, not order data, and are never touched;
+  -- org_fin_recon_issues_dtl is deferred -- see the header note).
+  include_fin_audit_rows             BOOLEAN NOT NULL DEFAULT false
 ) ON COMMIT DROP;
 
 INSERT INTO cleanup_config (
@@ -114,6 +236,8 @@ INSERT INTO cleanup_config (
   auto_target_orders,
   auto_target_mode,
   auto_order_no_like,
+  auto_order_ids,
+  auto_order_nos,
   auto_created_from,
   auto_created_to,
   include_invoice_rows,
@@ -133,7 +257,8 @@ INSERT INTO cleanup_config (
   delete_empty_advance_accounts,
   delete_empty_loyalty_accounts,
   delete_orphan_credit_note_headers,
-  delete_orphan_gift_card_masters
+  delete_orphan_gift_card_masters,
+  include_fin_audit_rows
 )
 VALUES (
   true,                 -- do_execute: true = delete, false = dry-run
@@ -144,6 +269,8 @@ VALUES (
   true,                 -- auto_target_orders
   'ALL_TENANT_ORDERS',  -- auto_target_mode
   NULL,                 -- auto_order_no_like
+  NULL,                 -- auto_order_ids: uuid[] for SPECIFIC_ORDERS mode, e.g. ARRAY['<uuid>']::uuid[]
+  NULL,                 -- auto_order_nos: text[] for SPECIFIC_ORDERS mode, e.g. ARRAY['ORD-...']::text[]
   NULL,                 -- auto_created_from
   NULL,                 -- auto_created_to
   true,                 -- include_invoice_rows: invoices + AR ledger, allocations, disputes, dunning
@@ -163,16 +290,9 @@ VALUES (
   false,                -- delete_empty_advance_accounts
   false,                -- delete_empty_loyalty_accounts
   false,                -- delete_orphan_credit_note_headers
-  false                 -- delete_orphan_gift_card_masters
+  false,                -- delete_orphan_gift_card_masters
+  false                 -- include_fin_audit_rows: opt-in GL posting-audit cleanup, see DDL comment above
 );
-
-DO $$
-DECLARE
-  v_tenant uuid;
-BEGIN
-  SELECT tenant_org_id INTO v_tenant FROM cleanup_config LIMIT 1;
-  -- tenant_org_id may be NULL when cleanup_all_tenants = true.
-END $$;
 
 CREATE TEMP TABLE cleanup_order_ids (
   order_id UUID PRIMARY KEY
@@ -208,6 +328,13 @@ WHERE cfg.auto_target_orders
       cfg.auto_target_mode = 'CREATED_RANGE'
       AND (cfg.auto_created_from IS NULL OR o.created_at >= cfg.auto_created_from)
       AND (cfg.auto_created_to IS NULL OR o.created_at < cfg.auto_created_to)
+    )
+    OR (
+      cfg.auto_target_mode = 'SPECIFIC_ORDERS'
+      AND (
+        o.id = ANY(cfg.auto_order_ids)
+        OR o.order_no = ANY(cfg.auto_order_nos)
+      )
     )
   )
 ON CONFLICT (order_id) DO NOTHING;
@@ -423,7 +550,11 @@ UNION
 
 SELECT DISTINCT c.credit_source_id
 FROM tmp_target_credit_apps AS c
-WHERE c.credit_type = 'CUSTOMER_CREDIT'
+-- Persisted value is 'CREDIT_NOTE' (see CREDIT_TYPES in
+-- web-admin/lib/constants/payment.ts -- 'CUSTOMER_CREDIT' is only a legacy TS
+-- alias key that resolves to the same 'CREDIT_NOTE' string, never a distinct
+-- stored value).
+WHERE c.credit_type = 'CREDIT_NOTE'
   AND c.credit_source_id IS NOT NULL;
 
 CREATE UNIQUE INDEX idx_tmp_target_credit_notes ON tmp_target_credit_notes (credit_note_id);
@@ -647,7 +778,8 @@ UNION
 
 SELECT DISTINCT credit_source_id
 FROM tmp_target_credit_apps
-WHERE credit_type = 'CUSTOMER_ADVANCE'
+-- Persisted value is 'ADVANCE' (see CREDIT_TYPES in payment.ts).
+WHERE credit_type = 'ADVANCE'
   AND credit_source_id IS NOT NULL;
 
 CREATE UNIQUE INDEX idx_tmp_target_advances ON tmp_target_advances (advance_id);
@@ -690,10 +822,54 @@ UNION
 
 SELECT DISTINCT credit_source_id
 FROM tmp_target_credit_apps
-WHERE credit_type = 'LOYALTY_CREDIT'
+-- Persisted value is 'LOYALTY_POINTS' (see CREDIT_TYPES in payment.ts).
+WHERE credit_type = 'LOYALTY_POINTS'
   AND credit_source_id IS NOT NULL;
 
 CREATE UNIQUE INDEX idx_tmp_target_loyalty_accounts ON tmp_target_loyalty_accounts (account_id);
+
+-- -----------------------------------------------------------------------------
+-- Finance posting/audit target sets (only used when include_fin_audit_rows)
+-- -----------------------------------------------------------------------------
+-- org_fin_journal_mst / org_fin_post_log_tr / org_fin_post_exc_tr /
+-- org_fin_post_snapshot_tr reference orders/invoices/vouchers/etc. through a
+-- plain source_doc_type_code + source_doc_id pair with NO foreign key (see
+-- erp-lite-auto-post.service.ts / erp-lite-posting-engine.service.ts). The
+-- doc-type vocabulary below is the confirmed subset that maps to order data;
+-- 'EXPENSE' and 'PETTY_CASH_TXN' also occur in this column but are unrelated
+-- ERP-lite expense/cash entries and are deliberately excluded.
+CREATE TEMP TABLE tmp_target_fin_audit_docs ON COMMIT DROP AS
+SELECT 'INVOICE'::text AS source_doc_type_code, invoice_id AS source_doc_id FROM tmp_target_invoices
+UNION
+SELECT 'PAYMENT', order_payment_id FROM tmp_target_order_payments
+UNION
+SELECT 'PAYMENT_REFUND', refund_id FROM tmp_target_order_refunds
+UNION
+SELECT 'SV_FUNDING_VOUCHER', voucher_id FROM tmp_target_vouchers
+UNION
+SELECT 'GIFT_CARD', gift_card_id FROM tmp_target_gift_cards
+UNION
+SELECT 'GIFT_CARD_TXN', id FROM tmp_target_gift_card_txns;
+
+CREATE UNIQUE INDEX idx_tmp_target_fin_audit_docs ON tmp_target_fin_audit_docs (source_doc_type_code, source_doc_id);
+
+CREATE TEMP TABLE tmp_target_fin_journals ON COMMIT DROP AS
+SELECT DISTINCT j.id AS journal_id
+FROM public.org_fin_journal_mst AS j
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR j.tenant_org_id = cfg.tenant_org_id)
+  AND (j.source_doc_type_code, j.source_doc_id) IN (SELECT source_doc_type_code, source_doc_id FROM tmp_target_fin_audit_docs);
+
+CREATE UNIQUE INDEX idx_tmp_target_fin_journals ON tmp_target_fin_journals (journal_id);
+
+CREATE TEMP TABLE tmp_target_fin_post_logs ON COMMIT DROP AS
+SELECT DISTINCT p.id AS post_log_id
+FROM public.org_fin_post_log_tr AS p
+CROSS JOIN cleanup_config AS cfg
+WHERE (cfg.cleanup_all_tenants OR p.tenant_org_id = cfg.tenant_org_id)
+  AND (p.source_doc_type_code, p.source_doc_id) IN (SELECT source_doc_type_code, source_doc_id FROM tmp_target_fin_audit_docs);
+
+CREATE UNIQUE INDEX idx_tmp_target_fin_post_logs ON tmp_target_fin_post_logs (post_log_id);
 
 -- -----------------------------------------------------------------------------
 -- Delta tables used to repair master balances after ledger-row deletes
@@ -970,9 +1146,9 @@ BEGIN
     RAISE EXCEPTION 'Set cleanup_config.tenant_org_id when cleanup_all_tenants = false.';
   END IF;
 
-  IF v_cfg.auto_target_mode NOT IN ('ALL_TENANT_ORDERS', 'ORDER_NO_PATTERN', 'CREATED_RANGE') THEN
+  IF v_cfg.auto_target_mode NOT IN ('ALL_TENANT_ORDERS', 'ORDER_NO_PATTERN', 'CREATED_RANGE', 'SPECIFIC_ORDERS') THEN
     RAISE EXCEPTION
-      'Invalid cleanup_config.auto_target_mode: %. Allowed: ALL_TENANT_ORDERS, ORDER_NO_PATTERN, CREATED_RANGE.',
+      'Invalid cleanup_config.auto_target_mode: %. Allowed: ALL_TENANT_ORDERS, ORDER_NO_PATTERN, CREATED_RANGE, SPECIFIC_ORDERS.',
       v_cfg.auto_target_mode;
   END IF;
 
@@ -980,6 +1156,13 @@ BEGIN
      AND v_cfg.auto_order_no_like IS NULL
      AND NOT EXISTS (SELECT 1 FROM cleanup_order_ids) THEN
     RAISE EXCEPTION 'auto_target_mode = ORDER_NO_PATTERN requires auto_order_no_like or manual cleanup_order_ids.';
+  END IF;
+
+  IF v_cfg.auto_target_mode = 'SPECIFIC_ORDERS'
+     AND (v_cfg.auto_order_ids IS NULL OR array_length(v_cfg.auto_order_ids, 1) IS NULL)
+     AND (v_cfg.auto_order_nos IS NULL OR array_length(v_cfg.auto_order_nos, 1) IS NULL)
+     AND NOT EXISTS (SELECT 1 FROM cleanup_order_ids) THEN
+    RAISE EXCEPTION 'auto_target_mode = SPECIFIC_ORDERS requires a non-empty auto_order_ids or auto_order_nos array.';
   END IF;
 
   IF NOT v_cfg.auto_target_orders
@@ -1079,6 +1262,8 @@ SELECT
   auto_target_orders,
   auto_target_mode,
   auto_order_no_like,
+  auto_order_ids,
+  auto_order_nos,
   auto_created_from,
   auto_created_to,
   max_target_orders
@@ -1123,7 +1308,9 @@ FROM (
     ('org_customer_ar_ledger_dtl',    (SELECT count(*)::bigint FROM tmp_target_ar_ledger_rows)),
     ('org_sv_funding_tenders_dtl',    (SELECT count(*)::bigint FROM tmp_target_sv_funding_tenders)),
     ('org_tax_documents_mst',         (SELECT count(*)::bigint FROM tmp_target_tax_documents)),
-    ('org_wf_release_mst',            (SELECT count(*)::bigint FROM tmp_target_wf_releases))
+    ('org_wf_release_mst',            (SELECT count(*)::bigint FROM tmp_target_wf_releases)),
+    ('org_fin_journal_mst',           (SELECT count(*)::bigint FROM tmp_target_fin_journals)),
+    ('org_fin_post_log_tr',           (SELECT count(*)::bigint FROM tmp_target_fin_post_logs))
 ) AS preview(table_name, row_count)
 WHERE row_count > 0
 ORDER BY table_name;
@@ -1821,6 +2008,54 @@ WHERE cfg.do_execute
   AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
   AND x.source_order_id IN (SELECT order_id FROM tmp_target_orders);
 
+-- GL posting/audit rows -- opt-in via include_fin_audit_rows (default false).
+-- org_fin_post_exc_tr / org_fin_post_snapshot_tr CASCADE from org_fin_post_log_tr,
+-- but are also matched by their own source_doc_id so nothing depends on the
+-- cascade. org_fin_journal_mst.reversal_of_journal_id RESTRICTs itself, so
+-- that link is unlinked before the journal rows are deleted.
+DELETE FROM public.org_fin_post_exc_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_fin_audit_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    (x.source_doc_type_code, x.source_doc_id) IN (SELECT source_doc_type_code, source_doc_id FROM tmp_target_fin_audit_docs)
+    OR x.posting_log_id IN (SELECT post_log_id FROM tmp_target_fin_post_logs)
+  );
+
+DELETE FROM public.org_fin_post_snapshot_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_fin_audit_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND (
+    (x.source_doc_type_code, x.source_doc_id) IN (SELECT source_doc_type_code, source_doc_id FROM tmp_target_fin_audit_docs)
+    OR x.posting_log_id IN (SELECT post_log_id FROM tmp_target_fin_post_logs)
+  );
+
+UPDATE public.org_fin_journal_mst AS x
+SET reversal_of_journal_id = NULL
+FROM cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_fin_audit_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.reversal_of_journal_id IN (SELECT journal_id FROM tmp_target_fin_journals);
+
+DELETE FROM public.org_fin_post_log_tr AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_fin_audit_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT post_log_id FROM tmp_target_fin_post_logs);
+
+-- org_fin_journal_dtl CASCADEs from org_fin_journal_mst.
+DELETE FROM public.org_fin_journal_mst AS x
+USING cleanup_config AS cfg
+WHERE cfg.do_execute
+  AND cfg.include_fin_audit_rows
+  AND (cfg.cleanup_all_tenants OR x.tenant_org_id = cfg.tenant_org_id)
+  AND x.id IN (SELECT journal_id FROM tmp_target_fin_journals);
+
 DELETE FROM public.org_orders_mst AS x
 USING cleanup_config AS cfg
 WHERE cfg.do_execute
@@ -1840,6 +2075,8 @@ SELECT
   (SELECT count(*) FROM public.org_wf_release_mst     WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT release_id FROM tmp_target_wf_releases)) AS remaining_wf_releases,
   (SELECT count(*) FROM public.org_sv_funding_tenders_dtl WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT funding_tender_id FROM tmp_target_sv_funding_tenders)) AS remaining_funding_tenders,
   (SELECT count(*) FROM public.org_customer_ar_ledger_dtl WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT ar_ledger_id FROM tmp_target_ar_ledger_rows)) AS remaining_ar_ledger_rows,
+  (SELECT count(*) FROM public.org_fin_journal_mst    WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT journal_id FROM tmp_target_fin_journals)) AS remaining_fin_journals,
+  (SELECT count(*) FROM public.org_fin_post_log_tr    WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT post_log_id FROM tmp_target_fin_post_logs)) AS remaining_fin_post_logs,
   (SELECT count(*) FROM public.org_fin_vouchers_mst   WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT voucher_id FROM tmp_target_vouchers)) AS remaining_vouchers,
   (SELECT count(*) FROM public.org_wallet_txn_dtl     WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT id FROM tmp_target_wallet_txns)) AS remaining_wallet_txns,
   (SELECT count(*) FROM public.org_advance_txn_dtl    WHERE ((SELECT cleanup_all_tenants FROM cleanup_config LIMIT 1) OR tenant_org_id = (SELECT tenant_org_id FROM cleanup_config LIMIT 1)) AND id IN (SELECT id FROM tmp_target_advance_txns)) AS remaining_advance_txns,

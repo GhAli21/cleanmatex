@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowContextQueryKey } from '@/lib/hooks/use-workflow-context';
-import { isWorkflowEngineV2Enabled } from '@/lib/config/features';
 import { leaveActionForScreen } from '@/lib/constants/workflow-leave-actions';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
@@ -56,118 +55,89 @@ function resolveActionCode(input: TransitionInput): string | null {
 
 /**
  * Hook to execute order transitions.
- * Under Workflow Engine V2 canary: uses available-actions + executeAction
- * (preferredToStatus = to_status). Otherwise Legacy/Enhanced transition API.
+ * Uses the semantic available-actions and execute-action contracts. The client
+ * never selects a legacy writer because the order artifact is the sole runtime
+ * policy authority.
  */
 export function useOrderTransition() {
   const queryClient = useQueryClient();
 
   return useMutation<TransitionResult, Error, { orderId: string; input: TransitionInput }>({
     mutationFn: async ({ orderId, input }) => {
-      if (isWorkflowEngineV2Enabled()) {
-        const actionCode = resolveActionCode(input);
-        if (!actionCode) {
-          return {
-            success: false,
-            ok: false,
-            error: `No workflow action mapped for screen "${input.screen}"`,
-            code: 'ACTION_NOT_MAPPED',
-          };
-        }
-
-        const qs = new URLSearchParams({ screen: input.screen });
-        const availRes = await fetch(
-          `/api/v1/orders/${orderId}/available-actions?${qs.toString()}`,
-        );
-        const availJson = await availRes.json();
-        if (!availRes.ok || !availJson.success) {
-          return {
-            success: false,
-            ok: false,
-            error: availJson.error || 'Failed to load available actions',
-            code: availJson.code,
-          };
-        }
-        const payload = availJson.data ?? availJson;
-        const stateVersion = Number(payload.stateVersion ?? 0);
-
-        const actionResult = await postStaffWorkflowCommand({
-          orderId,
-          screen: input.screen,
-          actionCode,
-          expectedStateVersion: stateVersion,
-          input: {
-            // Stage APIs ignore destination guesses; keep explicit edge
-            // selection only for unmapped engine-adapter commands.
-            preferredToStatus: input.preferredToStatus,
-            notes: input.notes,
-            reason: input.notes,
-            rackLocation: input.rackLocation ?? input.rack_location,
-            metadata: input.metadata,
-            cancelled_note: input.cancelled_note,
-            cancellation_disposition: input.cancellation_disposition,
-            cancellation_reason_code: input.cancellation_reason_code,
-            return_reason: input.return_reason,
-            return_reason_code: input.return_reason_code,
-          },
-        });
-        if (!actionResult.ok || !actionResult.success) {
-          return {
-            success: false,
-            ok: false,
-            error: actionResult.error || 'Action failed',
-            code: actionResult.code,
-            blockers: actionResult.blockedReasons?.map(
-              (b) => b.message || '',
-            ),
-            details: actionResult.blockedReasons,
-            engine: 'workflow_v2',
-          };
-        }
-
-        const status = actionResult.currentStatus as string;
-        return {
-          success: true,
-          ok: true,
-          engine: 'workflow_v2',
-          data: {
-            order: {
-              id: orderId,
-              status,
-              currentStatus: status,
-              stateVersion: actionResult.stateVersion,
-            },
-          },
-        };
-      }
-
-      const response = await fetch(`/api/v1/orders/${orderId}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          screen: input.screen,
-          toStatus: input.to_status,
-          notes: input.notes,
-          metadata: input.metadata,
-          useOldWfCodeOrNew: input.useOldWfCodeOrNew,
-          input: input,
-        }),
-      });
-
-      const json = (await response.json()) as TransitionResult;
-
-      if (!response.ok) {
+      const actionCode = resolveActionCode(input);
+      if (!actionCode) {
         return {
           success: false,
           ok: false,
-          error: json.error || 'Transition failed',
-          code: json.code,
-          blockers: json.blockers,
-          details: json.details,
+          error: `No workflow action mapped for screen "${input.screen}"`,
+          code: 'ACTION_NOT_MAPPED',
         };
       }
 
-      return json;
+      const qs = new URLSearchParams({ screen: input.screen });
+      const availRes = await fetch(
+        `/api/v1/orders/${orderId}/available-actions?${qs.toString()}`,
+      );
+      const availJson = await availRes.json();
+      if (!availRes.ok || !availJson.success) {
+        return {
+          success: false,
+          ok: false,
+          error: availJson.error || 'Failed to load available actions',
+          code: availJson.code,
+        };
+      }
+      const payload = availJson.data ?? availJson;
+      const stateVersion = Number(payload.stateVersion ?? 0);
+
+      const actionResult = await postStaffWorkflowCommand({
+        orderId,
+        screen: input.screen,
+        actionCode,
+        expectedStateVersion: stateVersion,
+        input: {
+          // Stage APIs ignore destination guesses; keep explicit edge
+          // selection only for unmapped engine-adapter commands.
+          preferredToStatus: input.preferredToStatus,
+          notes: input.notes,
+          reason: input.notes,
+          rackLocation: input.rackLocation ?? input.rack_location,
+          metadata: input.metadata,
+          cancelled_note: input.cancelled_note,
+          cancellation_disposition: input.cancellation_disposition,
+          cancellation_reason_code: input.cancellation_reason_code,
+          return_reason: input.return_reason,
+          return_reason_code: input.return_reason_code,
+        },
+      });
+      if (!actionResult.ok || !actionResult.success) {
+        return {
+          success: false,
+          ok: false,
+          error: actionResult.error || 'Action failed',
+          code: actionResult.code,
+          blockers: actionResult.blockedReasons?.map(
+            (b) => b.message || '',
+          ),
+          details: actionResult.blockedReasons,
+          engine: 'semantic_profile',
+        };
+      }
+
+      const status = actionResult.currentStatus as string;
+      return {
+        success: true,
+        ok: true,
+        engine: 'semantic_profile',
+        data: {
+          order: {
+            id: orderId,
+            status,
+            currentStatus: status,
+            stateVersion: actionResult.stateVersion,
+          },
+        },
+      };
     },
     onSuccess: (data, variables) => {
       if (data?.success) {

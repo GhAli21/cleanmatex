@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -36532,6 +36532,21 @@ export type Database = {
       hq_ff_validate_value: {
         Args: { p_flag_key: string; p_value: Json }
         Returns: boolean
+      }
+      hq_mntnc_cleanup_tenant_orders: {
+        Args: {
+          p_created_from?: string
+          p_created_to?: string
+          p_dry_run?: boolean
+          p_include_fin_audit_rows?: boolean
+          p_max_target_orders?: number
+          p_order_ids?: string[]
+          p_order_no_like?: string
+          p_order_nos?: string[]
+          p_target_mode?: string
+          p_tenant_org_id: string
+        }
+        Returns: Json
       }
       hq_user_has_permission: {
         Args: { p_permission: string; p_user_id: string }

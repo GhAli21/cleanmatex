@@ -23,8 +23,10 @@ import {
   CompiledDeliveryEvidenceError,
   hasCompiledDeliveryEvidence,
 } from '@/lib/services/delivery/compiled-delivery-evidence';
+import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 
 const DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_complete';
+const DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_order_complete';
 const DELIVERY_SCREEN = 'driver_delivery';
 
 /** Error codes returned by the stage-owned Delivery completion command. */
@@ -32,6 +34,9 @@ export type DeliveryCompletionErrorCode =
   | 'STOP_NOT_FOUND'
   | 'STOP_NOT_ACTIVE'
   | 'STOP_ALREADY_DELIVERED'
+  | 'USE_STOP_COMPLETE_COMMAND'
+  | 'ORDER_NOT_FOUND'
+  | 'ORDER_NOT_OUT_FOR_DELIVERY'
   | 'POD_METHOD_INVALID'
   | 'POD_EVIDENCE_REQUIRED'
   | 'POD_EVIDENCE_INVALID'
@@ -86,6 +91,37 @@ export interface CompleteDeliveryResult {
   workflow: ExecuteActionResult;
 }
 
+/** Order-keyed completion used when the profile does not require an active stop. */
+export interface CompleteOrderDeliveryCommand {
+  tenantId: string;
+  orderId: string;
+  actorUserId: string;
+  actorName?: string;
+  expectedStateVersion: number;
+  idempotencyKey: string;
+  podNotes?: string;
+}
+
+/** Replay-safe outcome for a floor-screen delivery handover without a planned route. */
+export interface CompleteOrderDeliveryResult {
+  orderId: string;
+  workflow: ExecuteActionResult;
+}
+
+type LockedDeliveryOrder = {
+  id: string;
+  current_status: string | null;
+  payment_type_code: string | null;
+  outstanding_amount: number | string | null;
+  wf_profile_id: string | null;
+  wf_version_no: number | null;
+  wf_profile_version_id: string | null;
+  wf_profile_artifact_id: string | null;
+  wf_profile_revision: number | null;
+  wf_profile_checksum: string | null;
+  wf_profile_schema_version: number | null;
+};
+
 type LockedDeliveryStop = {
   stop_id: string;
   stop_status_code: string | null;
@@ -123,16 +159,19 @@ function normalisePodMethod(value: string): string {
 async function loadReplay(
   tenantId: string,
   idempotencyKey: string,
-): Promise<CompleteDeliveryResult | null> {
+  resourceType: string,
+): Promise<CompleteDeliveryResult | CompleteOrderDeliveryResult | null> {
   const row = await prisma.org_idempotency_keys.findFirst({
     where: {
       tenant_org_id: tenantId,
       key: idempotencyKey,
-      resource_type: DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE,
+      resource_type: resourceType,
     },
     select: { response_cache: true },
   });
-  const cached = row?.response_cache as { result?: CompleteDeliveryResult } | null;
+  const cached = row?.response_cache as {
+    result?: CompleteDeliveryResult | CompleteOrderDeliveryResult;
+  } | null;
   return cached?.result ?? null;
 }
 
@@ -523,8 +562,12 @@ export async function completeDelivery(
     );
   }
   if (claim.status === 'COMPLETED') {
-    const replay = await loadReplay(params.tenantId, params.idempotencyKey);
-    if (replay) return replay;
+    const replay = await loadReplay(
+      params.tenantId,
+      params.idempotencyKey,
+      DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE,
+    );
+    if (replay && 'stopId' in replay) return replay;
     throw new DeliveryCompletionError(
       'IDEMPOTENCY_IN_FLIGHT',
       'Delivery completion is still finalizing. Retry shortly with the same key.',
@@ -635,6 +678,243 @@ export async function completeDelivery(
       params.tenantId,
       params.idempotencyKey,
       DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE,
+    );
+    throw error;
+  }
+}
+
+async function lockDeliveryOrder(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+): Promise<LockedDeliveryOrder> {
+  const rows = await tx.$queryRaw<LockedDeliveryOrder[]>`
+    SELECT
+      id,
+      current_status,
+      payment_type_code,
+      outstanding_amount,
+      wf_profile_id::text,
+      wf_version_no,
+      wf_profile_version_id::text,
+      wf_profile_artifact_id::text,
+      wf_profile_revision,
+      wf_profile_checksum,
+      wf_profile_schema_version
+    FROM public.org_orders_mst
+    WHERE id = ${orderId}::uuid
+      AND tenant_org_id = ${tenantId}::uuid
+    FOR UPDATE
+  `;
+  const order = rows[0];
+  if (!order) {
+    throw new DeliveryCompletionError('ORDER_NOT_FOUND', 'Order was not found.', 404);
+  }
+  return order;
+}
+
+async function lockActiveDeliveryStopId(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+): Promise<string | null> {
+  const rows = await tx.$queryRaw<Array<{ stop_id: string }>>`
+    SELECT s.id AS stop_id
+    FROM public.org_dlv_stops_dtl s
+    INNER JOIN public.org_dlv_routes_mst r
+      ON r.id = s.route_id
+      AND r.tenant_org_id = s.tenant_org_id
+    WHERE s.order_id = ${orderId}::uuid
+      AND s.tenant_org_id = ${tenantId}::uuid
+      AND s.is_active = true
+      AND COALESCE(s.rec_status, 1) = 1
+      AND r.is_active = true
+      AND COALESCE(r.rec_status, 1) = 1
+      AND s.stop_status_code IN ('pending', 'in_transit')
+    ORDER BY s.updated_at DESC
+    LIMIT 1
+    FOR UPDATE OF s
+  `;
+  return rows[0]?.stop_id ?? null;
+}
+
+async function assertOrderKeyedDeliveryEvidence(
+  order: LockedDeliveryOrder,
+  podNotes?: string,
+): Promise<void> {
+  let artifact;
+  try {
+    artifact = await loadSemanticWorkflowArtifactForOrder({
+      wf_profile_id: order.wf_profile_id,
+      wf_version_no: order.wf_version_no,
+      wf_profile_version_id: order.wf_profile_version_id,
+      wf_profile_artifact_id: order.wf_profile_artifact_id,
+      wf_profile_revision: order.wf_profile_revision,
+      wf_profile_checksum: order.wf_profile_checksum,
+      wf_profile_schema_version: order.wf_profile_schema_version,
+    });
+  } catch (error) {
+    if (error instanceof SemanticWorkflowArtifactError) {
+      throw new DeliveryCompletionError(
+        'DELIVERY_POLICY_UNAVAILABLE',
+        'The compiled delivery policy could not be loaded.',
+        422,
+      );
+    }
+    throw error;
+  }
+
+  const evidence = artifact?.evidence ?? [];
+  if (!hasCompiledDeliveryEvidence(evidence)) return;
+
+  try {
+    assertCompiledDeliveryEvidence({
+      evidence,
+      podMethodCode: 'NOTES',
+      hasSignature: false,
+      photoCount: 0,
+      hasNotes: Boolean(podNotes?.trim()),
+    });
+  } catch (error) {
+    if (error instanceof CompiledDeliveryEvidenceError) {
+      throw new DeliveryCompletionError(error.code, error.message, 422);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Completes delivery from the floor screen when the profile does not require
+ * a planned route stop. An active stop is never auto-created; that order must
+ * use the stop-owned completion command instead.
+ *
+ * @param params authenticated tenant-scoped order handover command
+ * @returns replay-safe workflow completion for the order
+ */
+export async function completeDeliveryByOrder(
+  params: CompleteOrderDeliveryCommand,
+): Promise<CompleteOrderDeliveryResult> {
+  const payloadHash = hashPayload({
+    orderId: params.orderId,
+    expectedStateVersion: params.expectedStateVersion,
+    podNotes: params.podNotes?.trim(),
+  });
+  const claim = await claimIdempotencyKey(
+    params.tenantId,
+    params.idempotencyKey,
+    DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE,
+    payloadHash,
+  );
+
+  if (claim.status === 'CONFLICT') {
+    throw new DeliveryCompletionError(
+      'IDEMPOTENCY_CONFLICT',
+      'This idempotency key belongs to a different delivery request.',
+      409,
+    );
+  }
+  if (claim.status === 'IN_FLIGHT') {
+    throw new DeliveryCompletionError(
+      'IDEMPOTENCY_IN_FLIGHT',
+      'Delivery completion is already being processed. Retry shortly with the same key.',
+      409,
+    );
+  }
+  if (claim.status === 'COMPLETED') {
+    const replay = await loadReplay(
+      params.tenantId,
+      params.idempotencyKey,
+      DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE,
+    );
+    if (replay && !('stopId' in replay)) return replay;
+    throw new DeliveryCompletionError(
+      'IDEMPOTENCY_IN_FLIGHT',
+      'Delivery completion is still finalizing. Retry shortly with the same key.',
+      409,
+    );
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await lockDeliveryOrder(tx, params.tenantId, params.orderId);
+      const currentStatus = order.current_status?.trim().toLowerCase() ?? '';
+      if (currentStatus !== 'out_for_delivery') {
+        throw new DeliveryCompletionError(
+          'ORDER_NOT_OUT_FOR_DELIVERY',
+          'Only out-for-delivery orders can be confirmed from the delivery floor.',
+          422,
+        );
+      }
+      if (await lockActiveDeliveryStopId(tx, params.tenantId, params.orderId)) {
+        throw new DeliveryCompletionError(
+          'USE_STOP_COMPLETE_COMMAND',
+          'This order has an active delivery stop. Complete it from the stop command.',
+          409,
+        );
+      }
+      if (
+        order.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION
+        && Number(order.outstanding_amount ?? 0) > 0
+      ) {
+        throw new DeliveryCompletionError(
+          'DELIVERY_COLLECTION_REQUIRED',
+          'Collect the remaining pay-on-collection balance before confirming delivery.',
+          422,
+        );
+      }
+
+      await assertOrderKeyedDeliveryEvidence(order, params.podNotes);
+
+      const workflow = await executeAction({
+        tenantId: params.tenantId,
+        orderId: params.orderId,
+        screen: DELIVERY_SCREEN,
+        actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+        expectedStateVersion: params.expectedStateVersion,
+        actorUserId: params.actorUserId,
+        actorName: params.actorName ?? 'Delivery Service',
+        input: {
+          fulfilmentChannel: 'delivery',
+          handoverMode: 'ad_hoc',
+          podMethodCode: 'NOTES',
+          handoverNotes: params.podNotes?.trim() || null,
+        },
+        idempotencyKey: `delivery-order:${params.idempotencyKey}`,
+      }, tx);
+
+      const commandResult: CompleteOrderDeliveryResult = {
+        orderId: params.orderId,
+        workflow,
+      };
+      await tx.org_idempotency_keys.updateMany({
+        where: {
+          tenant_org_id: params.tenantId,
+          key: params.idempotencyKey,
+          resource_type: DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE,
+        },
+        data: {
+          resource_id: params.orderId,
+          response_cache: {
+            payload_hash: payloadHash,
+            result: commandResult,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+      return commandResult;
+    });
+
+    logger.info('Order-keyed delivery completion committed', {
+      tenantId: params.tenantId,
+      orderId: result.orderId,
+      feature: 'delivery',
+      action: 'complete_delivery_by_order',
+    });
+    return result;
+  } catch (error) {
+    await deleteIdempotencyHash(
+      params.tenantId,
+      params.idempotencyKey,
+      DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE,
     );
     throw error;
   }
