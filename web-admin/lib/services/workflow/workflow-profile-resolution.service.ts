@@ -338,13 +338,13 @@ export async function resolveWorkflowProfileBindingWithSupabase(
     throw new WorkflowProfileResolutionError('The assigned workflow profile has no current compiled artifact.');
   }
 
+  // Artifacts are immutable compiler output: they have rec_status, not is_active.
   const { data: artifactData, error: artifactError } = await supabase
     .from('sys_wf_prof_ver_artifact_cf')
     .select('artifact_id, version_id, policy_revision, artifact_schema_version, artifact_checksum, compiled_artifact')
     .eq('artifact_id', version.current_artifact_id)
     .eq('version_id', version.version_id)
     .eq('compile_state', 'VALID')
-    .eq('is_active', true)
     .eq('rec_status', 1)
     .maybeSingle();
   if (artifactError) throw artifactError;
@@ -422,6 +422,7 @@ export async function resolveWorkflowProfileBindingWithPrisma(
   if (!version.current_artifact_id) {
     throw new WorkflowProfileResolutionError('The assigned workflow profile has no current compiled artifact.');
   }
+  // Artifacts are immutable compiler output: they have rec_status, not is_active.
   const artifactRows = await tx.$queryRaw<ArtifactRow[]>(Prisma.sql`
     SELECT
       artifact_id::text,
@@ -434,7 +435,6 @@ export async function resolveWorkflowProfileBindingWithPrisma(
     WHERE artifact_id = ${version.current_artifact_id}::uuid
       AND version_id = ${version.version_id}::uuid
       AND compile_state = 'VALID'
-      AND is_active = true
       AND rec_status = 1
     LIMIT 1
   `);

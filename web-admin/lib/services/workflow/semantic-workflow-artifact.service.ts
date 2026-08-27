@@ -171,6 +171,7 @@ export async function loadSemanticWorkflowArtifactForOrder(
   const cached = artifactCache.get(cacheKey);
   if (cached) return cached;
 
+  // Artifacts are immutable compiler output: they have rec_status, not is_active.
   const rows = await prisma.$queryRaw<ArtifactRow[]>`
     SELECT
       artifact_id::text,
@@ -186,7 +187,6 @@ export async function loadSemanticWorkflowArtifactForOrder(
       AND artifact_schema_version = ${snapshot.wf_profile_schema_version}
       AND artifact_checksum = ${snapshot.wf_profile_checksum}
       AND compile_state = 'VALID'
-      AND is_active = true
       AND rec_status = 1
     LIMIT 1
   `;

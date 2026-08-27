@@ -61,6 +61,17 @@ function transactionWithRows(...rows: unknown[][]) {
   return { $queryRaw: query } as never;
 }
 
+function sqlTextFromQueryRawCall(call: unknown[]): string {
+  const first = call[0];
+  if (first && typeof first === 'object' && 'strings' in (first as object)) {
+    return (first as { strings: readonly string[] }).strings.join(' ');
+  }
+  if (Array.isArray(first)) {
+    return first.map(String).join(' ');
+  }
+  return String(first ?? '');
+}
+
 describe('workflow profile resolution', () => {
   it('requires an active tenant assignment before an order can be created', async () => {
     const tx = transactionWithRows([]);
@@ -98,6 +109,12 @@ describe('workflow profile resolution', () => {
       artifactChecksum: CHECKSUM,
       initialRules: [expect.objectContaining({ rule_code: 'DEFAULT', initial_status: 'intake' })],
     });
+
+    const artifactSql = sqlTextFromQueryRawCall(
+      (tx as { $queryRaw: jest.Mock }).$queryRaw.mock.calls[3] as unknown[],
+    );
+    expect(artifactSql).toContain('sys_wf_prof_ver_artifact_cf');
+    expect(artifactSql).not.toMatch(/\bis_active\b/);
   });
 
   it('uses a branch assignment ahead of the tenant default', async () => {

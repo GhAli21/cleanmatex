@@ -95,6 +95,11 @@ describe('semantic workflow artifact loader', () => {
       policy_revision: 3,
     });
     expect(queryRaw).toHaveBeenCalledTimes(1);
+    const artifactSql = Array.isArray(queryRaw.mock.calls[0]?.[0])
+      ? (queryRaw.mock.calls[0][0] as string[]).join(' ')
+      : String(queryRaw.mock.calls[0]?.[0] ?? '');
+    expect(artifactSql).toContain('sys_wf_prof_ver_artifact_cf');
+    expect(artifactSql).not.toMatch(/\bis_active\b/);
   });
 
   it('rejects a partially populated semantic order snapshot', async () => {
