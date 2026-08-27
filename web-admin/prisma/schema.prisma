@@ -928,6 +928,13 @@ model org_orders_mst {
   state_version                      Int                               @default(1)
   wf_profile_id                      String?                           @db.Uuid
   wf_version_no                      Int?
+  // Semantic workflow snapshot (migration 0457). Prisma must know these
+  // columns or order create fails at runtime even when the DB already has them.
+  wf_profile_version_id              String?                           @db.Uuid
+  wf_profile_artifact_id             String?                           @db.Uuid
+  wf_profile_revision                Int?
+  wf_profile_checksum                String?
+  wf_profile_schema_version          Int?
   parent_order_id                    String?                           @db.Uuid
   order_subtype                      String?
   has_split                          Boolean?                          @default(false)
@@ -1099,6 +1106,7 @@ model org_orders_mst {
   @@index([tenant_org_id, parent_order_id], map: "idx_orders_parent_order")
   @@index([tenant_org_id, current_status, last_transition_at(sort: Desc)], map: "idx_orders_status_transition")
   @@index([tenant_org_id, workflow_template_id], map: "idx_orders_workflow_template")
+  @@index([tenant_org_id, wf_profile_version_id, wf_profile_artifact_id], map: "idx_ord_wf_prof_art")
   @@index([tenant_org_id, payment_status], map: "idx_orders_payment_status")
   @@schema("public")
 }
