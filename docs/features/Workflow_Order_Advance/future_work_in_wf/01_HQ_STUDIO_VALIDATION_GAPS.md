@@ -1,19 +1,31 @@
 # 01 — HQ Studio validation gaps (all profile-setup situations)
 
-**Date:** 2026-08-27  
-**For:** cleanmatexsaas Workflow Studio — Validation, Check policy, Compile, Pilot, Publish, Assign  
-**Companion:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)  
-**Plan:** [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md)
+**Date:** 2026-08-27
+**For:** cleanmatexsaas Workflow Studio — live-policy validation, Pilot, Publish, Assign
+**Companion:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)
+**Implementation plans:**
+`F:\jhapp\cleanmatex\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md`
+and
+`F:\jhapp\cleanmatexsaas\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md`
+
+> **Architecture authority (2026-08-28):** Retain the operational situations in
+> this document, but apply them to the direct normalized profile-version model in
+> ADR-SAAS-MNG-0010. Runtime loads live relational policy rows; it does not
+> compile or read an artifact, checksum, graph snapshot, template, action map,
+> or screen contract as policy authority. Legacy maps/contracts remain optional,
+> explicit starter-template sources only.
 
 ## 1. How to use this document
 
 Every row is a **situation an operator can create in Studio**. For each:
 
-- **Block** = fail Check policy / Compile / Pilot / Publish (or Assign, if labelled).
+- **Block** = fail Check policy / Pilot / Publish (or Assign, if labelled).
 - **Warn** = allow publish; show bilingual explanation and a fix hint.
-- **Assign-time** = compile may pass; Assign must still fail or warn.
+- **Assign-time** = Check policy may pass; Assign must still fail or warn.
 
-Soft Studio graph dashed arrows and readiness badges are **not** sufficient. Pilot and Publish must stay disabled until Check policy is clean.
+Soft Studio reachability hints and readiness badges are **not** sufficient. Pilot
+and Publish must stay disabled until Check policy is clean. Reachability is
+derived from normalized execution rows; it is not a stored graph artifact.
 
 **Glossary:** full definitions and examples — [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md). Short form (do not collapse these):
 
@@ -26,20 +38,23 @@ Soft Studio graph dashed arrows and readiness badges are **not** sufficient. Pil
 
 Sources:
 
-- Live HQ compiler: `WfSemanticProfileCompilerService` (hard errors only; no warning severity today).
-- DB helper: `sys_wf_prof_ver_validate_live` (policy row, initial rules, one primary owner, exec channel, from-status owner visibility).
-- Tenant runtime: profile resolution, artifact/exec/channel/gates, Ready pickup panel, delivery complete, public tracking.
+- HQ policy validator: `WorkflowPolicyValidator` (the detailed issue-code authority).
+- DB helper: `sys_wf_prof_ver_validate_live` (minimum relational guard only; it
+  must not duplicate or replace the HQ validator).
+- Tenant runtime: direct profile resolution, normalized executions/channels/gates,
+  Ready pickup panel, delivery completion, and public tracking.
 - Coverage matrix §9 and ADR-SAAS-MNG-0009 / 0010.
 
 ## 2. Already hard-validated (keep; wire to fields)
 
-Do not re-invent these. Map them to the offending Studio field instead of a compile dump only.
+Do not re-invent these. Map them to the offending Studio field instead of a
+technical validation dump only.
 
 | Today’s code | Situation |
 |--------------|-----------|
 | `profile_policy_missing` | No active policy row |
 | `profile_no_enabled_modules` | No enabled module |
-| `unsupported_capability_enabled` | Partial pickup/delivery, returns, required OTP, conditional routing |
+| `unsupported_capability_enabled` | Returns, required OTP, or unsupported conditional routing |
 | `stage_sequence_blank_status` / `stage_sequence_duplicate_status` | Blank or duplicate stage codes |
 | `module_status_without_enabled_module` | Status membership on a disabled module |
 | `status_owner_not_primary_module` | `visibility_mode=owner` on a non-`primary_owner` module |
@@ -58,7 +73,7 @@ Do not re-invent these. Map them to the offending Studio field instead of a comp
 | `initial_rule_status_not_in_stage_sequence` | Initial status not in sequence |
 | `initial_rule_status_without_owner` | Initial status has no owner |
 | `initial_rule_ambiguous` | Same priority + overlapping matchers |
-| `graph_missing_fulfilment_end` | No fulfilment / plant-end in sequence |
+| `graph_missing_fulfilment_end` | Retained compatibility code: no fulfilment / plant-end is reachable in the configured execution set |
 | `initial_status_unreachable_fulfilment` | BFS from that initial never reaches fulfilment |
 | `pickup_module_missing` | `pickup_enabled` without `pickup_handover` |
 | `delivery_release_module_missing` / `delivery_module_missing` | Delivery flags without Ready / `driver_delivery` |
@@ -67,7 +82,11 @@ Do not re-invent these. Map them to the offending Studio field instead of a comp
 | `pickup_policy_without_pickup` / `delivery_policy_without_delivery` | Policy flags without owning mode |
 | Evidence family | Duplicate method, OTP required/standalone, evidence without pickup/delivery, invalid counts, CONFIRM_DELIVERY evidence mismatch |
 
-**Known hole in uniqueness:** uniqueness is `screen:from:action:to`. Channels are nested. A floor owner can publish with only `mobile` / `api` and **no** `staff_web`. Tenant ActionBar is then empty.
+**Execution/channel invariant:** one execution is unique by
+`screen:from:action:to`; its child channels are unique by
+`execution_id:channel`. One execution may deliberately support several
+channels. A floor owner can still publish with only `mobile` / `api` and no
+`staff_web`, so channel coverage remains a separate validation rule.
 
 **Known hole in `validate_live`:** it does not check fulfilment coupling, `staff_web`, known gate evaluators, evidence consistency, skip-edge determinism, or create-path exhaustiveness.
 
@@ -95,7 +114,7 @@ Tenant pages for Off modules **already exist**. Off means “this profile must n
 |-----------|-------------------|----------------|
 | Floor owner exec without `staff_web` | Plant/Ready ActionBar empty, **or** pickup/delivery card `notConfigured`. Same channel rule; different UI. | `staff_web_channel_missing` |
 | Public confirm without `public_web` | `/track` page still loads; confirm fails closed. | `public_web_channel_missing` |
-| Duplicate binding including channel | Same action twice on `staff_web`. | Tighten uniqueness to `screen:from:action:to:channel` |
+| Duplicate child channel | Same action declares `staff_web` twice. | Enforce unique `execution_id:channel`; retain one parent execution for multiple legitimate channels. |
 | Exec `permission_code` missing / unknown / inactive | Button never appears or 403. | `execution_permission_invalid` |
 | Bind `MARK_READY` | Retired. Plant uses stage complete. Ready module uses release. Pickup module uses `CONFIRM_PICKUP`. | `legacy_mark_ready_forbidden` |
 | Bind return exec while returns unsupported | Runtime fail-closed. | `return_action_not_supported` |
@@ -113,7 +132,13 @@ Tenant pages for Off modules **already exist**. Off means “this profile must n
 
 The tenant pickup card always lists and executes `CONFIRM_PICKUP` with `screen = pickup_handover`. The pickup server always calls `executeAction({ screen: 'pickup_handover', actionCode: 'CONFIRM_PICKUP' })`. Binding that action onto `ready_release` in Studio does **not** make the card work; it hides the card (`notConfigured`) and can surface a generic Ready ActionBar button that **skips** pickup completion.
 
-**Existing compiler conflict:** `execution_not_from_status_owner` fires when `pickup_handover` (primary owner of `ready_for_pickup`) executes `CONFIRM_PICKUP` from `ready` (owned by `ready_release`). That **is** the legal direct-counter path if pickup **observes** `ready`. HQ presets currently bind that direct action onto `ready_release` to dodge the compiler — that matches the tenant runtime **incorrectly**. Exception: a fulfilment command module may execute from an observed `from_status`; do not “fix” by changing `screen_key` to the status owner.
+**Direct-policy fulfilment exception:** `pickup_handover` (primary owner of
+`ready_for_pickup`) may execute `CONFIRM_PICKUP` from `ready` (owned by
+`ready_release`) only for the legal direct-counter path, when pickup explicitly
+**observes** `ready`. Starter templates must keep that action on
+`pickup_handover`; moving it to `ready_release` makes the tenant card/service
+incorrect. This is a narrow fulfilment exception, not general observer
+execution authority.
 
 Same split for delivery:
 
@@ -133,9 +158,9 @@ Public **released pickup** (`ready_for_pickup`) does **not** bind `CONFIRM_PICKU
 | `delivery_stop_active` on simple (no-stop) profiles | Floor confirm always `GATE_DELIVERY_STOP`. | `delivery_stop_gate_on_simple_profile` |
 | Simple delivery without `driver_delivery` + `CONFIRM_DELIVERY` + `staff_web` | Delivery **card** `notConfigured` (not “missing Delivery page”). | `staff_delivery_execution_missing` |
 | Routed delivery without POD evidence / `pod_evidence_valid` | Weak or empty proof. | `routed_delivery_evidence_incomplete` |
-| Exec `requires_evidence=true` (generic flag) | Engine `EVIDENCE_RUNTIME_UNAVAILABLE`. Use compiled evidence rows + POD gate. | `generic_requires_evidence_forbidden` |
+| Exec `requires_evidence=true` (generic flag) | Engine `EVIDENCE_RUNTIME_UNAVAILABLE`. Use normalized evidence rows + POD gate. | `generic_requires_evidence_forbidden` |
 | OTP required or OTP-only | Runtime rejects OTP. Keep existing `evidence_otp_*`. Warn if OTP listed optional. | `evidence_otp_optional_dead` (Warn) |
-| `pickup_handover` On without `CONFIRM_PICKUP` from `ready` and/or `ready_for_pickup` | Pickup card `notConfigured`. Direct from `ready` also needs observer membership (next row) plus the compiler exception above. | `pickup_execution_missing` |
+| `pickup_handover` On without `CONFIRM_PICKUP` from `ready` and/or `ready_for_pickup` | Pickup card `notConfigured`. Direct from `ready` also needs observer membership and the narrow fulfilment exception above. | `pickup_execution_missing` |
 | Direct pickup from `ready` not declared as pickup observing `ready` | Matrix: observe `ready` only for explicit direct counter. | `direct_pickup_from_ready_not_declared` |
 | Public tracking + counter pickup without `RELEASE_FOR_PICKUP` | `/track` cannot confirm from `ready`; needs staged `ready_for_pickup`. This is **not** “put CONFIRM_PICKUP on public_tracking”. | `public_pickup_requires_release_path` |
 | Bind `CONFIRM_PICKUP` on `public_tracking` from `ready` / `ready_for_pickup` | Public adapter must not become a second pickup owner. Released pickup still executes `pickup_handover`. | `public_cannot_own_pickup_action` |
@@ -159,7 +184,7 @@ Required simulated contexts (at least):
 - Quick Drop
 - Each `order_source_code` the tenant assignment will actually use
 
-### E. Skip graph and reachability
+### E. Transition reachability and optional-stage routing
 
 Current BFS is **initial → fulfilment**. Orphan enabled stages can still publish.
 
@@ -184,7 +209,7 @@ Current BFS is **initial → fulfilment**. Orphan enabled stages can still publi
 | `parameters_json` fails catalog JSON Schema | `gate_parameters_invalid` |
 | Override permission not on any role of the assigned tenant | `override_permission_not_in_tenant_roles` (Assign-time Warn) |
 
-### G. Assignment (compile may pass)
+### G. Assignment (Check policy may pass)
 
 | Situation | Runtime | When |
 |-----------|---------|------|
@@ -194,20 +219,22 @@ Current BFS is **initial → fulfilment**. Orphan enabled stages can still publi
 | Different profiles per service category | Mixed cart → `PROFILE_SERVICE_SCOPE_CONFLICT` | Assign Warn |
 | PILOT on tenant with `is_hq_test_demo=false` | DB + runtime reject | Assign Error |
 | Unpinned version, no PUBLISHED | Create fails | Assign Error |
-| `current_artifact_id` null (until ADR-0010 cutover) | `The assigned workflow profile has no current compiled artifact` | Publish/Assign Error |
+| Policy invalid at the current live revision | Tenant order creation would fail closed | Assign Error |
 | Operator expects reassignment to move in-flight QA orders | Pins are immutable; only new orders change | Assign Warn with open-order count |
 
-### H. Compiler / live-normalized drift
-
-Until Check policy replaces Compile on **both** repos:
+### H. Policy validation and runtime-contract consistency
 
 | Situation | Risk |
 |-----------|------|
-| Policy saved after last compile | Stale artifact vs live rows |
-| `validate_live` green, compiler never run | Tenant create still needs `current_artifact_id` |
-| HQ flags (`pickup_enabled`, …) On while tenant TS reads only modules/execs/gates | Flags look like runtime but are not |
+| Policy saved after a displayed check result | The result describes an older `policy_revision` |
+| HQ validator and DB guard disagree | Studio appears valid but a lifecycle or assignment write fails |
+| HQ capability switch On while its required modules/edges/gates are absent | A flag looks like a second runtime authority |
 
-Publish must require a successful compile commit **or** both sides must already be on live normalized rows with no artifact requirement.
+Pilot, Publish, assignment, and starter-template import must run the detailed
+validator against the same saved `policy_revision` in their transaction. The
+DB guard protects relational integrity; it is not a substitute for policy
+validation. Capability switches are declarative requirements validated against
+the normalized rows, never a tenant runtime fallback.
 
 ## 4. Warn only (do not block publish)
 
@@ -220,17 +247,23 @@ Publish must require a successful compile commit **or** both sides must already 
 | OTP listed optional | Shown; never executable |
 | `workboard` Off | No supervisor queue; floor pages still work |
 | Service-scoped profiles | Mixed POS carts will require split |
-| Unsaved Studio draft vs last compile | Keep existing Stay / Discard / Save prompt |
+| Unsaved Studio draft vs last policy check | Keep existing Stay / Discard / Save prompt |
 
 ## 5. Must stay impossible until a later version
 
 Keep hard-off (`unsupported_capability_enabled` and related):
 
-- Partial pickup / partial delivery (V1.3)
 - Returns / executable `returning` (V1.1)
 - OTP required or OTP-only (V1.3)
 - Generic conditional routing DSL (V2)
 - B2B fulfilment bypass of credit/collection (never)
+
+Partial pickup/delivery is not permanently hard-off. It is valid only when the
+profile enables it **and** the applicable stage-owned service can atomically
+validate the selected pieces, collection/evidence gates, fulfilment record,
+status change, and audit. Until that service contract is available, emit
+`partial_pickup_runtime_unavailable` or `partial_delivery_runtime_unavailable`
+as an error; never silently ignore the switch.
 
 ## 6. Shop archetypes (named Check policy scenarios)
 
@@ -258,7 +291,7 @@ Must be true:
 ### Routed POD
 
 - Ready + `driver_delivery` + `delivery_stop_active` + POD evidence methods
-- Tenant S10 canary remains a tenant gate, not an HQ compile substitute
+- Tenant S10 canary remains a tenant gate, not an HQ policy-validation substitute
 
 ### Full floor
 
@@ -280,25 +313,25 @@ Must be true:
 
 ## 7. Suggested Studio UX
 
-1. **Check policy** on live normalized rows (ADR-0010). Same issue codes as compile until artifacts are retired.
+1. **Check policy** on live normalized rows (ADR-0010), using this issue-code contract directly.
 2. Each issue: `code`, field path (module / exec / rule id), EN + AR, **fix hint**.
 3. **Archetype simulator:** Lean / Simple delivery / Routed POD / Full floor / Counter-only / Retail.
 4. **Create-path matrix:** source × retail × quick drop × remote → winning initial rule or fail.
 5. **Channel coverage table** per enabled owner: `staff_web` / `public_web` / `mobile` / `api`.
-6. Pilot / Publish remain blocked until Check policy is clean. Graph recommendations stay advisory.
+6. Pilot / Publish remain blocked until Check policy is clean. Reachability recommendations stay advisory.
 
 ## 8. Tenant symptoms cheat sheet (for HQ support)
 
 | Operator sees in tenant | Likely HQ gap |
 |-------------------------|---------------|
-| `The assigned workflow profile has no current compiled artifact` | Never compiled / commit did not set `current_artifact_id` |
+| `PROFILE_POLICY_INCOMPLETE` / version unavailable | Assignment points to a version that fails live-policy validation or lifecycle eligibility |
 | `PROFILE_ASSIGNMENT_REQUIRED` | No matching assign for tenant/branch/service |
 | `PROFILE_ASSIGNMENT_CONFLICT` | Two equal-specificity assigns |
 | `PROFILE_SERVICE_SCOPE_CONFLICT` | Mixed services, different profiles |
 | `PROFILE_INITIAL_RULE_UNMATCHED` | Create-path not covered |
 | Empty ActionBar on plant / Ready | Missing exec, missing `staff_web`, observer module, or Off owner — **not** the pickup card |
 | Ready pickup card “not configured” | `CONFIRM_PICKUP` missing on `pickup_handover`, or bound on `ready_release` instead, or no `staff_web` |
-| Compile error `execution_not_from_status_owner` on `CONFIRM_PICKUP:pickup_handover:ready:ready_release` | Direct pickup is legal; add observer `ready` on pickup. **Do not** move the action to Ready |
+| Check-policy `execution_not_from_status_owner` for direct pickup | Direct pickup is legal only when `pickup_handover` observes `ready`; keep the action on pickup_handover. **Do not** move it to Ready |
 | Pickup On but nobody can confirm | Ready module Off (no page to host the card) |
 | Delivery card “not configured” | Missing `driver_delivery` + `CONFIRM_DELIVERY` + `staff_web` |
 | Delivery confirm always stop-gated | `delivery_stop_active` on a simple profile |
@@ -309,7 +342,7 @@ Must be true:
 ## 9. Related code (tenant)
 
 - `web-admin/lib/services/workflow/workflow-profile-resolution.service.ts`
-- `web-admin/lib/services/workflow/semantic-workflow-artifact.service.ts`
+- `web-admin/lib/services/workflow/workflow-policy-resolver.service.ts`
 - `web-admin/src/features/pickup/ui/ready-fulfilment-panel.tsx`
 - `web-admin/lib/services/workflow/stage-worklist-query.service.ts`
 - `supabase/migrations/0470_live_normalized_workflow_profile_runtime.sql` (`sys_wf_prof_ver_validate_live`)

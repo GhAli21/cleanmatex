@@ -46,7 +46,7 @@ Use this flow only when the customer is physically at the branch and staff have
 handed over the items. It is different from making an order available on the
 pickup shelf.
 
-1. Open **Ready**. Use the desk chips (or `/dashboard/ready?focus=counter` for Pickup desk) so the list matches the job: all Ready-area, waiting at counter, not yet available, collection due, or no rack.
+1. Open **Ready**. Use the desk toggles (or `/dashboard/ready?focus=counter` for Pickup desk). Pickup desk includes both staged counter orders and direct handover. You can add **Collection due** or **No rack** on top of that. Confirm pickup still opens Ready Details.
 2. Open the Ready order and verify the customer/order number.
 3. Check the **Pickup availability** card. A Ready order has one of two states:
    - **Not yet available for pickup**: use **Make available for pickup** when the items are staged for collection.

@@ -18,8 +18,9 @@ import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
 import {
-  parseReadyListFocus,
-  readyListFocusToWorklist,
+  isReadyFloorScreen,
+  parseReadyListQueryFromApi,
+  readyListQueryToWorklist,
 } from '@/lib/constants/ready-list-focus';
 
 /**
@@ -233,7 +234,9 @@ export async function GET(request: NextRequest) {
     const orderSourceCode = searchParams.get('order_source_code')?.trim() || '';
     const physicalIntakeStatus = searchParams.get('physical_intake_status')?.trim() || '';
     const workflowScreen = searchParams.get('workflow_screen')?.trim() || '';
-    const readyFocus = parseReadyListFocus(searchParams.get('ready_focus'));
+    const readyListQuery = isReadyFloorScreen(workflowScreen)
+      ? parseReadyListQueryFromApi(searchParams)
+      : null;
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -376,7 +379,7 @@ export async function GET(request: NextRequest) {
     let stageWorklistTotal: number | null = null;
     let stageWorklistOrderIds: string[] | null = null;
     if (workflowScreen) {
-      const focusNarrow = readyListFocusToWorklist(readyFocus);
+      const focusNarrow = readyListQuery ? readyListQueryToWorklist(readyListQuery) : {};
       const statusNarrow = (
         focusNarrow.statusNarrow?.join(',')
         || statusFilter

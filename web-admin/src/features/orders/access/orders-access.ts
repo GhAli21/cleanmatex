@@ -1727,7 +1727,7 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: [
           'workflow_screen=ready selects artifact membership, including pickup_handover ready-area statuses.',
-          'ready_focus=counter is the Pickup-desk alias of this same route (?focus=counter), not a second page.',
+          'Pickup-desk alias is ?focus=counter on this same route. Stacked API flags ready_staged|ready_unreleased|ready_due|ready_norack apply only on the Ready floor.',
         ],
       },
     ],

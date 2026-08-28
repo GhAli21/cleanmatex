@@ -1,11 +1,17 @@
 # 00 — Workflow entity glossary
 
-**Date:** 2026-08-28  
-**Audience:** HQ Studio authors, tenant floor engineers, support  
-**Status:** Canonical vocabulary for “what is this thing?”  
+**Date:** 2026-08-28
+**Audience:** HQ Studio authors, tenant floor engineers, support
+**Status:** Canonical vocabulary for the direct normalized runtime
 **Does not replace:** [04_Status_and_Vocabulary.md](../04_Status_and_Vocabulary.md) (status/action/transition codes), [05_Business_Rules_and_Gates.md](../05_Business_Rules_and_Gates.md) (gates), HQ coverage matrix
 
 Read this **before** [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md) and [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md). Most Studio/runtime mix-ups happen when two of the words below are treated as synonyms.
+
+> **Architecture authority (2026-08-28):** Profile versions are live normalized
+> policy rows under ADR-SAAS-MNG-0010. Artifacts, checksums, graph snapshots,
+> action maps, screen contracts, templates, and catalog transitions are not
+> runtime policy authority. Action maps/screen contracts may be explicitly
+> imported as starter-template data into a Draft/Pilot version.
 
 ---
 
@@ -29,7 +35,7 @@ HQ Studio "Module coverage" toggle
             (or only as an embedded card / public adapter)
 ```
 
-**Wrong:** “Pickup is On, so there must be `/dashboard/pickup`, and Confirm pickup belongs to the Ready module because the button is on Ready.”  
+**Wrong:** “Pickup is On, so there must be `/dashboard/pickup`, and Confirm pickup belongs to the Ready module because the button is on Ready.”
 **Right:** Pickup **module** `pickup_handover` is On. Its **card** is mounted on the Ready **page**. The executable `CONFIRM_PICKUP` must keep `screen_key = pickup_handover`.
 
 ### 1.1 Example — can one page include many screens, modules, and actions?
@@ -48,9 +54,9 @@ A page does **not** “contain screens” the way a folder contains files. The p
 
 #### Usual case: one page ↔ one module
 
-`/dashboard/processing` hosts module `processing`.  
-The ActionBar calls `useWorkflowActions(orderId, 'processing')`.  
-Staff see `COMPLETE_PROCESSING` (and whatever else is bound on that module).  
+`/dashboard/processing` hosts module `processing`.
+The ActionBar calls `useWorkflowActions(orderId, 'processing')`.
+Staff see `COMPLETE_PROCESSING` (and whatever else is bound on that module).
 That page does **not** run pickup or delivery commands.
 
 Most plant floors work this way: preparation, processing, assembly, QA, packing, delivery list/details.
@@ -85,12 +91,14 @@ Do **not** add `/dashboard/pickup`. The Pickup desk is the Ready list with a que
 | URL | Meaning |
 |-----|---------|
 | `/dashboard/ready` | All Ready-area orders (`ready` + `ready_for_pickup`) |
-| `/dashboard/ready?focus=counter` | Waiting at counter (`ready_for_pickup`). Later nav label “Pickup desk” points here. |
-| `/dashboard/ready?focus=shelf` | Not yet available (`ready`) |
-| `/dashboard/ready?focus=collection` | Remaining balance due |
-| `/dashboard/ready?focus=no_rack` | Missing rack |
+| `/dashboard/ready?focus=counter` | **Pickup desk alias.** Same page, both handover paths (staged `ready_for_pickup` and direct `ready`). Confirm still opens Ready Details. |
+| `/dashboard/ready?focus=counter&due=1` | Pickup desk plus remaining balance. Filters stack; they are not exclusive chips. |
+| `/dashboard/ready?staged=1` | Waiting at counter only (`ready_for_pickup`) |
+| `/dashboard/ready?unreleased=1` | Not yet available (`ready`). Legacy `?focus=shelf` still maps here. |
+| `/dashboard/ready?due=1` | Remaining balance due. Legacy `?focus=collection`. |
+| `/dashboard/ready?norack=1` | Missing rack. Legacy `?focus=no_rack`. |
 
-Confirm pickup still opens **Ready Details** and still executes `pickup_handover`. `focus=pickup` is accepted as a synonym for `counter`.
+Confirm pickup still opens **Ready Details** and still executes `pickup_handover`. `focus=pickup` / `focus=desk` are synonyms for the Pickup-desk alias. Status and due/rack flags combine with `focus=counter`; they do not replace it.
 
 #### What is not true
 
@@ -138,7 +146,7 @@ Confirm pickup still opens **Ready Details** and still executes `pickup_handover
 | | |
 |--|--|
 | **What** | One catalog `screen_key` **turned On or Off** on a profile version, with a `module_mode`. HQ Studio “Module coverage”. |
-| **Stored** | `sys_wf_prof_ver_module_cf` (live rows) and compiled artifact `modules[]`. |
+| **Stored** | `sys_wf_prof_ver_module_cf` live rows. |
 | **Modes** | `primary_owner` — may own statuses and execute commands. `observer` — may show work; **cannot** execute. `cross_cutting_command` — execute without owning the plant status (cancel, order control, public tracking). |
 | **On/Off** | Off means “this profile must not use that stage/command surface”. It does **not** delete the tenant page and does **not** hide static RBAC nav (nav is not profile-filtered in V1.0). |
 
@@ -176,8 +184,8 @@ The **same** `action_code` can exist on **two modules** when callers differ. Can
 
 | | |
 |--|--|
-| **What** | Catalog graph edge (`TR_*`, legacy `REL_*`) in `sys_wf_transitions_cd`. |
-| **Relation** | An action is bound to a transition **and** to a `screen_key` via `sys_wf_action_trans_cd` / profile executions. |
+| **What** | Catalog reference edge (`TR_*`, legacy `REL_*`) in `sys_wf_transitions_cd`, useful for starter-template mapping and history. |
+| **Relation** | A live executable is defined directly by its profile version, `screen_key`, action, source status, destination status, channels, and gates. Catalog transition/action maps do not decide runtime behavior. |
 | **Example** | `RELEASE_FOR_PICKUP` → `TR_READY_PICKUP` (`ready` → `ready_for_pickup`). `CONFIRM_PICKUP` staged → `TR_PICKUP_DELIV` (`ready_for_pickup` → `delivered`). |
 
 See [04 §4](../04_Status_and_Vocabulary.md).
@@ -187,8 +195,8 @@ See [04 §4](../04_Status_and_Vocabulary.md).
 | | |
 |--|--|
 | **What** | Profile row: “on this **module**, from this **status**, this **action** goes to that **status**, with these **channels** and **gates**.” |
-| **Stored** | Artifact `executions[]` / `sys_wf_prof_ver_exec_cf`. |
-| **Identity (today)** | `screen_key + from_status + action_code + to_status`. Channel is nested — a known hole; uniqueness should include `channel_code`. |
+| **Stored** | `sys_wf_prof_ver_exec_cf` with child channel rows in `sys_wf_prof_ver_exec_ch_cf`. |
+| **Identity** | Parent execution: `version_id + screen_key + from_status + action_code + to_status`. Child channel: `execution_id + channel_code`. One execution may support multiple channels. |
 | **Runtime** | Tenant `listAvailableActions` / `executeAction` require this `screen` to match. The wrong `screen_key` is not “close enough”. |
 
 ### 2.8 Channel (`channel_code`)
@@ -223,12 +231,12 @@ Matcher that chooses the order’s **first** `current_status` at create (source,
 
 | Entity | Meaning |
 |--------|---------|
-| **Profile** | Named HQ policy product (`sys_wf_profiles_mst`). |
-| **Profile version** | Immutable-when-published revision (`sys_wf_profile_ver_mst`). |
-| **Policy / live rows** | Modules, memberships, executions, initial rules, evidence (ADR-0010 target). |
-| **Compiled artifact** | Immutable JSON snapshot of that policy. Tenant create still requires `current_artifact_id` until both repos cut over. |
+| **Profile** | Named HQ policy product (`sys_wf_profiles_cd`). |
+| **Profile version** | Draft/Pilot/Published revision (`sys_wf_profile_ver_mst`). Pilot is editable only for test/demo tenants; Published is immutable. |
+| **Policy / live rows** | Modules, memberships, executions/channels/gates, initial rules, evidence, and switches used directly by runtime. |
+| **Validation** | `WorkflowPolicyValidator` plus the DB relational guard; neither creates a runtime artifact. |
 | **Assignment** | Which tenant / branch / service uses which version. Affects **new** orders only. |
-| **Order snapshot** | `wf_profile_id`, `wf_version_no`, artifact ids on `org_orders_mst`. In-flight orders keep this pin. |
+| **Order binding** | `wf_profile_id`, `wf_profile_version_id`, and `wf_version_no` on `org_orders_mst`. Existing orders retain this direct binding when assignment changes. |
 
 ### 2.13 UI chrome (not policy)
 
@@ -255,7 +263,7 @@ Ready Details **hides** `RELEASE_FOR_PICKUP` from the ActionBar because `ReadyFu
 | `qa` | `/dashboard/qa` | `qa` | `PASS_QA`, `FAIL_QA` | Optional |
 | `packing` | `/dashboard/packing` | `packing` | `COMPLETE_PACKING` | Optional |
 | `ready_release` | `/dashboard/ready` | `ready` | `RELEASE_FOR_PICKUP`, `RELEASE_FOR_DELIVERY` | **Does not** confirm handover |
-| `pickup_handover` | **No URL.** Card on Ready Details. List filter: `/dashboard/ready?focus=counter` | `ready_for_pickup` (owner); `ready` (observe, direct only) | `CONFIRM_PICKUP` | Embedded by design |
+| `pickup_handover` | **No URL.** Card on Ready Details. List alias: `/dashboard/ready?focus=counter` (both Ready-area handover statuses unless `staged` / `unreleased` narrows) | `ready_for_pickup` (owner); `ready` (observe, direct only) | `CONFIRM_PICKUP` | Embedded by design |
 | `driver_delivery` | `/dashboard/delivery` | `out_for_delivery` | Staff `CONFIRM_DELIVERY` | Card + complete API |
 | `workboard` | `/dashboard/workboard` | Observes plant/ready | **None** | Must stay `observer` |
 | `public_tracking` | `/track/{token}` | Observes fulfilment statuses | Public `CONFIRM_DELIVERY` (`public_web`); pickup adapter may call pickup **service** | Not a staff floor |
@@ -268,7 +276,7 @@ Ready Details **hides** `RELEASE_FOR_PICKUP` from the ActionBar because `ReadyFu
 ## 4. How the pieces attach at runtime
 
 ```text
-Order (current_status, state_version, wf_profile_* snapshot)
+Order (current_status, state_version, wf_profile_id, wf_profile_version_id, wf_version_no)
         │
         ▼
 Caller picks a SCREEN_KEY + CHANNEL
@@ -308,7 +316,11 @@ If HQ binds `CONFIRM_PICKUP` on `ready_release`, the pickup card still queries `
 | Ready page, release | Execution: `ready_release` + `RELEASE_FOR_PICKUP` |
 | Ready page, confirm card | Execution: `pickup_handover` + `CONFIRM_PICKUP` |
 
-**Direct counter** (customer already at the desk, no shelf wait): `CONFIRM_PICKUP` from `ready` → `delivered`, still on `pickup_handover`, with pickup **observing** `ready`. Do **not** move that execution onto `ready_release` to satisfy `execution_not_from_status_owner`. That compiler rule needs an exception; the tenant runtime does not.
+**Direct counter** (customer already at the desk, no shelf wait): `CONFIRM_PICKUP`
+from `ready` → `delivered`, still on `pickup_handover`, with pickup **observing**
+`ready`. Do **not** move that execution onto `ready_release`. The direct-policy
+validator has a narrow fulfilment exception for this declared observation; the
+tenant runtime does not grant general observer execution.
 
 **Illegal Studio combo:** `pickup_handover` On, `ready_release` Off. There is no host page for the card and no release owner.
 
@@ -384,14 +396,14 @@ Same customer button, two different owners depending on status.
 | Catalog screen keys (floor list) | `web-admin/lib/constants/workflow-screens.ts` |
 | Action codes | `web-admin/lib/constants/workflow-actions.ts` |
 | Leave-action defaults | `web-admin/lib/constants/workflow-leave-actions.ts` |
-| Artifact module / exec shape | `web-admin/lib/services/workflow/semantic-workflow-artifact.service.ts` |
+| Direct policy resolver | `web-admin/lib/services/workflow/workflow-policy-resolver.service.ts` |
 | Pickup card screen | `web-admin/src/features/pickup/hooks/use-pickup-handover.ts` (`pickup_handover`) |
 | Ready release actions | `web-admin/src/features/pickup/ui/ready-fulfilment-panel.tsx` (`ready_release`) |
 | Pickup execute | `web-admin/lib/services/pickup/pickup-completion.service.ts` |
 | Public confirm | `web-admin/lib/services/public-order-tracking.service.ts` |
 | Catalog seed | `supabase/migrations/0427_sys_wf_catalogs_and_state_version.sql` (+ `0436` `order_control`, `0437` `public_tracking`, `0446` `pickup_handover`) |
 
-HQ Studio: `cleanmatexsaas` `WfSemanticProfileCompilerService` and Module coverage UI. Do not implement Studio in this repo.
+HQ Studio: `cleanmatexsaas` `WorkflowPolicyValidator` and Module coverage UI. Do not implement Studio in this repo.
 
 ---
 

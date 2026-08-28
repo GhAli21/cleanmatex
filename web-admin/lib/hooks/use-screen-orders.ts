@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 /**
  *
@@ -89,6 +89,8 @@ export interface UseScreenOrdersOptions {
    * must be listed through its immutable workflow artifact.
    */
   fallbackStatuses?: string[];
+  /** Keep the last page visible while the next filter/page request is in flight. */
+  keepPreviousData?: boolean;
 }
 
 /**
@@ -136,6 +138,7 @@ export function useScreenOrders<TOrder = any>(
       },
     ],
     enabled,
+    placeholderData: options.keepPreviousData ? keepPreviousData : undefined,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('workflow_screen', screen);

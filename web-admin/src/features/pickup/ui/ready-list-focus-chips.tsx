@@ -4,31 +4,67 @@ import { useTranslations } from 'next-intl'
 import { CmxButton } from '@ui/primitives'
 import { cn } from '@lib/utils'
 import {
-  READY_LIST_FOCUS,
-  type ReadyListFocus,
+  EMPTY_READY_LIST_QUERY,
+  readyListHasFilters,
+  type ReadyListQuery,
 } from '@/lib/constants/ready-list-focus'
 
-const FOCUS_ORDER: ReadyListFocus[] = [
-  READY_LIST_FOCUS.ALL,
-  READY_LIST_FOCUS.COUNTER,
-  READY_LIST_FOCUS.SHELF,
-  READY_LIST_FOCUS.COLLECTION,
-  READY_LIST_FOCUS.NO_RACK,
-]
-
 interface ReadyListFocusChipsProps {
-  value: ReadyListFocus
-  onChange: (focus: ReadyListFocus) => void
+  /** Current stacked Ready-list query from the URL. */
+  query: ReadyListQuery
+  /** Replace the URL query; callers reset `page` to 1. */
+  onChange: (next: ReadyListQuery) => void
 }
 
+interface ReadyListToggle {
+  key: keyof Pick<ReadyListQuery, 'desk' | 'staged' | 'unreleased' | 'collectionDue' | 'missingRack'>
+  labelKey: 'desk' | 'counter' | 'shelf' | 'collection' | 'no_rack'
+}
+
+const MODE_TOGGLES: ReadyListToggle[] = [{ key: 'desk', labelKey: 'desk' }]
+
+const STATUS_TOGGLES: ReadyListToggle[] = [
+  { key: 'staged', labelKey: 'counter' },
+  { key: 'unreleased', labelKey: 'shelf' },
+]
+
+const EXTRA_TOGGLES: ReadyListToggle[] = [
+  { key: 'collectionDue', labelKey: 'collection' },
+  { key: 'missingRack', labelKey: 'no_rack' },
+]
+
 /**
- * Ready-area desk presets. `counter` is the Pickup-desk alias (`?focus=counter`).
+ * Combinable Ready-desk filters. Pickup desk is chrome plus both handover statuses
+ * unless a status toggle narrows the list.
  */
-export function ReadyListFocusChips({ value, onChange }: ReadyListFocusChipsProps) {
+export function ReadyListFocusChips({ query, onChange }: ReadyListFocusChipsProps) {
   const t = useTranslations('workflow.ready.focus')
+  const tCommon = useTranslations('common')
+
+  const toggle = (key: ReadyListToggle['key']) => {
+    onChange({ ...query, [key]: !query[key], page: 1 })
+  }
+
+  const renderToggles = (toggles: ReadyListToggle[]) =>
+    toggles.map((item) => {
+      const active = query[item.key]
+      return (
+        <CmxButton
+          key={item.key}
+          type="button"
+          aria-pressed={active}
+          variant={active ? 'primary' : 'outline'}
+          size="sm"
+          className={cn('shrink-0 whitespace-nowrap')}
+          onClick={() => toggle(item.key)}
+        >
+          {t(item.labelKey)}
+        </CmxButton>
+      )
+    })
 
   return (
-    <section aria-labelledby="ready-list-focus" className="space-y-1.5">
+    <section aria-labelledby="ready-list-focus" className="space-y-2">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
         <h2 id="ready-list-focus" className="text-sm font-semibold">
           {t('title')}
@@ -37,27 +73,27 @@ export function ReadyListFocusChips({ value, onChange }: ReadyListFocusChipsProp
           {t('description')}
         </p>
       </div>
-      <div
-        role="group"
-        aria-label={t('title')}
-        className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]"
-      >
-        {FOCUS_ORDER.map((focus) => {
-          const active = value === focus
-          return (
+      <div className="space-y-2">
+        <div role="group" aria-label={t('desk')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+          {renderToggles(MODE_TOGGLES)}
+        </div>
+        <div role="group" aria-label={t('statusGroup')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+          {renderToggles(STATUS_TOGGLES)}
+        </div>
+        <div role="group" aria-label={t('extraGroup')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+          {renderToggles(EXTRA_TOGGLES)}
+          {readyListHasFilters(query) ? (
             <CmxButton
-              key={focus}
               type="button"
-              aria-pressed={active}
-              variant={active ? 'primary' : 'outline'}
+              variant="ghost"
               size="sm"
-              className={cn('shrink-0 whitespace-nowrap')}
-              onClick={() => onChange(focus)}
+              className="shrink-0 whitespace-nowrap"
+              onClick={() => onChange({ ...EMPTY_READY_LIST_QUERY, desk: query.desk, page: 1 })}
             >
-              {t(focus)}
+              {tCommon('clear')}
             </CmxButton>
-          )
-        })}
+          ) : null}
+        </div>
       </div>
     </section>
   )

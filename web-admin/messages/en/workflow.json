@@ -223,22 +223,27 @@
     "searchPlaceholder": "Search by order #, name, phone, email...",
     "focus": {
       "title": "Ready desk",
-      "description": "Same Ready page and pickup card. Pickup desk is this list with Waiting at counter selected, or /dashboard/ready?focus=counter.",
+      "description": "Filters stack. Pickup desk is this same Ready page and includes both staged counter orders and direct handover. Confirm pickup still opens Ready Details.",
       "all": "All in Ready area",
+      "desk": "Pickup desk",
       "counter": "Waiting at counter",
       "shelf": "Not yet available",
       "collection": "Collection due",
       "no_rack": "No rack",
+      "statusGroup": "Handover status",
+      "extraGroup": "Also match",
       "counterTitle": "Pickup desk",
-      "counterDescription": "Orders waiting at the counter. Confirm pickup still opens Ready Details — not a second workflow page.",
+      "counterDescription": "Staged at the counter and direct handover from Ready. Confirm pickup still opens Ready Details — not a second workflow page. Add collection due or no rack without leaving this desk.",
       "empty": {
         "all": "No orders in the Ready area",
+        "desk": "No Ready-area orders for the pickup desk",
         "counter": "No orders waiting at the counter",
         "shelf": "No orders still waiting to be made available",
         "collection": "No Ready-area orders with a remaining balance",
-        "no_rack": "No Ready-area orders missing a rack"
+        "no_rack": "No Ready-area orders missing a rack",
+        "filtered": "No Ready-area orders match these filters"
       },
-      "emptyHint": "Try another desk filter, or open Ready Details from All in Ready area."
+      "emptyHint": "Turn a filter off, or clear filters to see the full Ready area."
     },
     "sortBy": {
       "orderNo": "Order #",

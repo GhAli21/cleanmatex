@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { Search } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -20,17 +20,17 @@ import {
   type PickupReleaseSummary,
 } from '@/lib/types/pickup-release'
 import {
-  READY_LIST_FOCUS,
-  READY_LIST_FOCUS_API_QUERY,
-  READY_LIST_FOCUS_QUERY,
-  parseReadyListFocus,
+  parseReadyListQuery,
+  readyListEmptyKey,
   readyListPath,
-  type ReadyListFocus,
+  readyListQueryToApiFilters,
+  type ReadyListQuery,
 } from '@/lib/constants/ready-list-focus'
 import { CmxButton, CmxCard, CmxInput, CmxSelect, CmxSkeleton } from '@ui/primitives'
 import { CmxEmptyState } from '@ui/data-display'
 import { CmxSummaryMessage } from '@ui/feedback'
 import { CmxPagination } from '@ui/navigation'
+import { cn } from '@lib/utils'
 
 interface ReadyListApiOrder extends CanonicalOrderFinancialRowLike {
   id: string
@@ -62,14 +62,13 @@ interface ReadyListRow {
 }
 
 /**
- * Ready-area worklist. Desk presets live in `?focus=` so Pickup desk can alias
- * this same route later (`/dashboard/ready?focus=counter`).
+ * Ready-area worklist. Desk filters stack in the URL so Pickup desk can alias
+ * `/dashboard/ready?focus=counter` and still add due / rack / status toggles.
  */
 export function ReadyListScreen() {
   const t = useTranslations('workflow')
   const locale = useLocale()
   const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const { currencyCode, decimalPlaces } = useTenantCurrency()
   const moneyLocale = locale === 'ar' ? 'ar' : 'en'
@@ -77,30 +76,30 @@ export function ReadyListScreen() {
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
   const { currentTenant } = useAuth()
   const useNewWorkflowSystem = useWorkflowSystemMode()
-  const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sortBy, setSortBy] = useState('ready_by')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
-  const focus = parseReadyListFocus(searchParams.get(READY_LIST_FOCUS_QUERY))
+  const query = useMemo(() => parseReadyListQuery(searchParams), [searchParams])
+  const emptyKey = readyListEmptyKey(query)
+  const apiFilters = readyListQueryToApiFilters(query)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput), 300)
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  const { orders: rawOrders, pagination, isLoading, error } = useScreenOrders<ReadyListApiOrder>('ready', {
-    page,
+  const { orders: rawOrders, pagination, isLoading, isFetching, error } = useScreenOrders<ReadyListApiOrder>('ready', {
+    page: query.page,
     limit: 20,
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
     search: debouncedSearch || undefined,
     sortBy,
     sortOrder,
-    additionalFilters: focus === READY_LIST_FOCUS.ALL
-      ? undefined
-      : { [READY_LIST_FOCUS_API_QUERY]: focus },
+    additionalFilters: Object.keys(apiFilters).length > 0 ? apiFilters : undefined,
+    keepPreviousData: true,
   })
 
   const orders: ReadyListRow[] = useMemo(() => {
@@ -131,18 +130,17 @@ export function ReadyListScreen() {
     })
   }, [rawOrders, t])
 
-  const listPath = readyListPath(focus)
+  const listPath = readyListPath(query)
 
-  const setFocus = (next: ReadyListFocus) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (next === READY_LIST_FOCUS.ALL) {
-      params.delete(READY_LIST_FOCUS_QUERY)
-    } else {
-      params.set(READY_LIST_FOCUS_QUERY, next)
+  const replaceQuery = (next: ReadyListQuery) => {
+    router.replace(readyListPath(next))
+  }
+
+  const setSearch = (value: string) => {
+    setSearchInput(value)
+    if (query.page > 1) {
+      replaceQuery({ ...query, page: 1 })
     }
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname)
-    setPage(1)
   }
 
   const paymentStatusBadge = (status: string) => {
@@ -163,35 +161,21 @@ export function ReadyListScreen() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-4 p-6">
-        <CmxSkeleton className="h-10 w-64" />
-        <CmxSkeleton className="h-16 w-full" />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <CmxSkeleton className="h-48 w-full" />
-          <CmxSkeleton className="h-48 w-full" />
-          <CmxSkeleton className="h-48 w-full" />
-        </div>
-      </div>
-    )
-  }
+  const showInitialSkeleton = isLoading && orders.length === 0
 
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">
-          {focus === READY_LIST_FOCUS.COUNTER ? t('ready.focus.counterTitle') : t('screens.ready')}
+          {query.desk ? t('ready.focus.counterTitle') : t('screens.ready')}
         </h1>
         <p className="mt-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-          {focus === READY_LIST_FOCUS.COUNTER
-            ? t('ready.focus.counterDescription')
-            : t('ready.description')}
+          {query.desk ? t('ready.focus.counterDescription') : t('ready.description')}
         </p>
       </div>
 
       <div className="mb-4">
-        <ReadyListFocusChips value={focus} onChange={setFocus} />
+        <ReadyListFocusChips query={query} onChange={replaceQuery} />
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
@@ -199,7 +183,7 @@ export function ReadyListScreen() {
           <CmxInput
             type="search"
             value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder={t('ready.searchPlaceholder')}
             leftIcon={<Search className="h-4 w-4" aria-hidden />}
             aria-label={t('ready.searchPlaceholder')}
@@ -234,13 +218,24 @@ export function ReadyListScreen() {
         </div>
       ) : null}
 
-      {orders.length === 0 ? (
+      {showInitialSkeleton ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <CmxSkeleton className="h-48 w-full" />
+          <CmxSkeleton className="h-48 w-full" />
+          <CmxSkeleton className="h-48 w-full" />
+        </div>
+      ) : orders.length === 0 ? (
         <CmxEmptyState
-          title={t(`ready.focus.empty.${focus}`)}
+          title={t(`ready.focus.empty.${emptyKey}`)}
           description={t('ready.focus.emptyHint')}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
+            isFetching ? 'opacity-70' : undefined,
+          )}
+        >
           {orders.map((order) => (
             <Link
               key={order.id}
@@ -306,12 +301,12 @@ export function ReadyListScreen() {
         totalPages={pagination.totalPages}
         pageSize={pagination.limit}
         totalItems={pagination.total}
-        onPageChange={setPage}
+        onPageChange={(page) => replaceQuery({ ...query, page })}
         onPageSizeChange={() => undefined}
         showPageSizeSelector={false}
         showWhenSinglePage={false}
         labels={{
-          noItems: t(`ready.focus.empty.${focus}`),
+          noItems: t(`ready.focus.empty.${emptyKey}`),
         }}
       />
     </div>

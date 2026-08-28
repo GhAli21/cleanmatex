@@ -6,7 +6,7 @@
 
 - One primary CTA from `listAvailableActions`; show `blockedReasons` clearly (Cmx + `cmxMessage`)
 - No transition graphs; no raw status pickers on happy path
-- Ready: **Mark ready** vs **Release** separated. Ready **list** desk filters use `?focus=` on the same page (`counter` = Pickup desk / waiting at counter). Confirm pickup remains Ready Details only.
+- Ready: **Mark ready** vs **Release** separated. Ready **list** filters stack on the same page (`?focus=counter` = Pickup desk / both handover paths; `staged`, `unreleased`, `due`, `norack` combine). Confirm pickup remains Ready Details only.
 - Delivery: list opens `/dashboard/delivery/{id}`. **Confirm delivery** is a stage-owned card (same pattern as Ready pickup). Generic ActionBar `CONFIRM_DELIVERY` is hidden. An active stop shows the existing proof panel; otherwise staff confirm from the order with optional notes. No dummy route is created.
 - EN/AR + RTL
 

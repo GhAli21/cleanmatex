@@ -1,27 +1,34 @@
 # 02 — HQ Studio issue-code spec
 
-**Date:** 2026-08-27  
-**For:** HQ compiler (`WfSemanticProfileCompilerService`) and future `WorkflowPolicyValidator` (ADR-SAAS-MNG-0010)  
+**Date:** 2026-08-27
+**For:** HQ `WorkflowPolicyValidator` on the direct normalized profile-version model (ADR-SAAS-MNG-0010)
 **Vocabulary:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md)  
 **Situations:** [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md)
 
-Paste this into HQ as the Validation contract. Every **new** code is `snake_case` like existing compiler codes. Do not invent a second taxonomy.
+**Implementation authority:** `workflow_live_profile_runtime_20260827.plan.md`
+in both the tenant and HQ repositories. Keep this code taxonomy synchronized
+with that plan whenever a policy capability, validator rule, or stage-owned
+service contract changes.
+
+Paste this into HQ as the validation contract. Every **new** code is `snake_case`.
+Legacy compiler-code aliases may be mapped during the coordinated cutover, but
+they are not a second validator or runtime authority.
 
 ## 1. Severity and gate
 
 | Severity | Meaning |
 |----------|---------|
-| `error` | Block Check policy, Compile, Pilot, Publish |
-| `warn` | Allow those; show bilingual copy + fix |
-| `assign_error` | Compile may pass; Assign must fail |
+| `error` | Block Check policy, Pilot, and Publish |
+| `warn` | Allow those; show bilingual copy and a fix |
+| `assign_error` | Check policy may pass; Assign must fail |
 | `assign_warn` | Assign may succeed; show impact |
 
 | Gate | When it runs |
 |------|----------------|
-| `check_policy` | Live normalized rows (ADR-0010 target; today also compile) |
-| `compile` | Artifact build (until runtime no longer requires artifacts) |
+| `check_policy` | Live normalized rows for the selected saved `policy_revision` |
 | `assign` | Tenant / branch / service assignment write |
-| `publish` / `pilot` | Lifecycle; must require latest `check_policy`/`compile` ok on the same `policy_revision` |
+| `publish` / `pilot` | Lifecycle; validates the same saved `policy_revision` in the command transaction |
+| `template_import` | Preview/final import; validates mapped rows before save |
 
 Issue object (target):
 
@@ -30,20 +37,22 @@ interface WfPolicyIssue {
   code: string
   severity: 'error' | 'warn' | 'assign_error' | 'assign_warn'
   path: string           // e.g. modules.pickup_handover | executions.{id} | initial_rules.{id}
-  message: string        // EN
-  message2: string       // AR
-  hint: string           // EN fix
-  hint2: string          // AR fix
+  message_key: string    // HQ i18n key; API does not duplicate EN/AR prose
+  hint_key: string       // HQ i18n key for the remediation
+  params: Record<string, string | number | boolean>
+  source: 'validator' | 'assignment' | 'template_import'
 }
 ```
 
-`ok === issues.filter(i => i.severity === 'error').length === 0` for Pilot/Publish. Assign uses `assign_*` separately.
+`ok === issues.filter(i => i.severity === 'error').length === 0` for Check
+policy/Pilot/Publish. Assign additionally blocks `assign_error`. The server
+always revalidates; a stale browser result is never authorization to proceed.
 
 ## 2. Status vs today
 
 | Status | Meaning |
 |--------|---------|
-| `exists` | Already emitted by `WfSemanticProfileCompilerService` |
+| `exists` | Existing code retained or mapped during cutover |
 | `extend` | Exists but uniqueness/scope must change |
 | `new` | Not coded; add |
 
@@ -57,13 +66,13 @@ Wire these to Studio fields. Copy may be improved; do not rename codes without a
 |------|----------------|
 | `profile_policy_missing` | `policy` |
 | `profile_no_enabled_modules` | `modules` |
-| `unsupported_capability_enabled` | `policy.capabilities.{flag}` |
+| `unsupported_capability_enabled` | `policy.capabilities.{flag}` for returns, required OTP, or unsupported conditional routing |
 | `stage_sequence_blank_status` | `policy.stage_sequence` |
 | `stage_sequence_duplicate_status` | `policy.stage_sequence` |
 | `module_status_without_enabled_module` | `module_statuses.{id}` |
 | `status_owner_not_primary_module` | `module_statuses.{id}` |
 | `status_multiple_primary_owners` | `statuses.{status_code}.owners` |
-| `execution_binding_duplicate` | `executions` — **extend** uniqueness to include channel |
+| `execution_binding_duplicate` | `executions` — duplicate parent edge; child channels have their own uniqueness |
 | `execution_without_enabled_module` | `executions.{id}` |
 | `execution_on_observer_module` | `executions.{id}` |
 | `execution_not_from_status_owner` | `executions.{id}` — **extend**: exempt fulfilment observe-and-execute (see §4.3) |
@@ -83,7 +92,7 @@ Wire these to Studio fields. Copy may be improved; do not rename codes without a
 | `initial_rule_status_not_in_stage_sequence` | `initial_rules.{id}` |
 | `initial_rule_status_without_owner` | `initial_rules.{id}` |
 | `initial_rule_ambiguous` | `initial_rules` |
-| `graph_missing_fulfilment_end` | `policy.stage_sequence` |
+| `graph_missing_fulfilment_end` | Retained compatibility code; derive from `policy.stage_sequence` / executions rather than a graph artifact |
 | `initial_status_unreachable_fulfilment` | `initial_rules.{id}` |
 | `pickup_module_missing` | `modules.pickup_handover` |
 | `delivery_release_module_missing` | `modules.ready_release` |
@@ -100,13 +109,15 @@ Wire these to Studio fields. Copy may be improved; do not rename codes without a
 | `execution_evidence_runtime_unavailable` | `executions.{id}` |
 | `execution_evidence_policy_missing` | `executions.{id}` |
 
-EN/AR for `exists` codes: keep current compiler `detail` strings until HQ i18n keys are added; then bind `message` / `message2` here.
+Each issue must resolve EN/AR through `message_key`, `hint_key`, and `params`.
+Retain old compiler detail only in compatibility logging while callers migrate.
 
 ---
 
 ## 4. Codes — new or extend (implement these)
 
-Severity `error` and gate `check_policy`+`compile` unless stated.
+Severity `error` and gate `check_policy` unless stated. Pilot, Publish,
+assignment, and starter import invoke the same validator in their transaction.
 
 ### 4.1 Module coupling
 
@@ -228,7 +239,11 @@ Severity `error` and gate `check_policy`+`compile` unless stated.
 
 #### `execution_binding_duplicate` — **extend**
 
-Uniqueness key must become `screen_key + from_status + action_code + to_status + channel_code`.
+An execution parent is unique by
+`version_id + screen_key + from_status + action_code + to_status`. Child
+channels are unique by `execution_id + channel_code`. One execution may expose
+several legitimate channels (`staff_web`, `mobile`, `api`); do not duplicate its
+parent row per channel.
 
 #### `execution_permission_invalid` — **new**
 
@@ -348,7 +363,7 @@ If observer membership is missing, emit `direct_pickup_from_ready_not_declared` 
 |-------|--------|
 | Severity | `error` if any method is required; else `warn` |
 | Path | `evidence` / `executions.{CONFIRM_DELIVERY}` |
-| Trigger | Routed profile (stop gate On) without compiled executable POD methods / `pod_evidence_valid` |
+| Trigger | Routed profile (stop gate On) without normalized executable POD methods / `pod_evidence_valid` |
 | EN | Routed delivery has no executable proof-of-delivery evidence. |
 | AR | التوصيل الموجّه بلا إثبات تسليم قابل للتنفيذ. |
 
@@ -358,8 +373,8 @@ If observer membership is missing, emit `direct_pickup_from_ready_not_declared` 
 |-------|--------|
 | Path | `executions.{id}` |
 | Trigger | `requires_evidence = true` on an exec (generic flag) |
-| EN | Generic requires_evidence is not supported. Tenant returns EVIDENCE_RUNTIME_UNAVAILABLE. Use compiled evidence rows and pod_evidence_valid. |
-| AR | خيار requires_evidence العام غير مدعوم. استخدم صفوف الإثبات المترجمة وبوابة pod_evidence_valid. |
+| EN | Generic requires_evidence is not supported. Tenant returns EVIDENCE_RUNTIME_UNAVAILABLE. Use normalized evidence rows and pod_evidence_valid. |
+| AR | خيار requires_evidence العام غير مدعوم. استخدم صفوف الإثبات المهيكلة وبوابة pod_evidence_valid. |
 
 #### `pickup_execution_missing` — **new**
 
@@ -448,7 +463,17 @@ Per **context**, not only same-priority overlap (that remains `initial_rule_ambi
 | EN | Initial status cannot be a fulfilment terminal. |
 | AR | حالة البداية لا يجوز أن تكون نهاية استيفاء. |
 
-### 4.5 Graph
+### 4.5 Transition reachability and optional-stage routing
+
+#### `partial_pickup_runtime_unavailable` / `partial_delivery_runtime_unavailable` — **new**
+
+| Field | Value |
+|-------|--------|
+| Path | `policy.capabilities.partial_pickup` / `policy.capabilities.partial_delivery` |
+| Trigger | The capability is enabled but the corresponding stage-owned service cannot atomically validate piece selection, collection/evidence gates, fulfilment record, status change, and audit. |
+| EN | Partial fulfilment is enabled but its atomic operational service is not available. |
+| AR | تم تفعيل التسليم الجزئي ولكن خدمة التشغيل الذرية الخاصة به غير متاحة. |
+| Hint | Disable the capability or finish the dedicated pickup/delivery partial-fulfilment service and its tests. |
 
 #### `optional_stage_skip_ambiguous` — **new**
 
@@ -559,7 +584,7 @@ Two active rows at the same tenant + branch + service.
 
 Two `is_default` rows at tenant scope (null branch, null service).
 
-EN: Two default assignments exist for this tenant.  
+EN: Two default assignments exist for this tenant.
 AR: يوجد تعيينان افتراضيان لهذا المستأجر.
 
 #### `assign_service_scope_never_used` — **new** (`assign_warn`)
@@ -574,29 +599,33 @@ Different profiles per service. Mixed carts will return `PROFILE_SERVICE_SCOPE_C
 
 #### `assign_missing_published_for_unpinned` — **exists** — keep
 
-#### `assign_missing_current_artifact` — **new** (`assign_error` / `publish` error until ADR-0010 cutover)
+#### `assign_policy_invalid` — **new** (`assign_error`)
 
 | Field | Value |
 |-------|--------|
-| Path | `version.current_artifact_id` |
-| Trigger | `current_artifact_id` is null |
-| EN | This version has no current compiled artifact. Tenant order create will fail. |
-| AR | لا يوجد أثر مُجمَّع حالي لهذا الإصدار. سيفشل إنشاء الطلب في تطبيق المستأجر. |
-| Hint | Run Compile / Check policy until commit sets current_artifact_id, or finish live-normalized cutover on both repos. |
+| Path | `version_id` / validation result |
+| Trigger | The selected version has blocking live-policy issues or is not lifecycle eligible for this assignment |
+| EN | This version cannot be assigned because its live workflow policy is incomplete or unavailable. Tenant order creation would fail closed. |
+| AR | لا يمكن تعيين هذا الإصدار لأن سياسة سير العمل الحية غير مكتملة أو غير متاحة. سيفشل إنشاء الطلب بأمان. |
+| Hint | Resolve blocking Check policy issues, save the policy, then assign an eligible Pilot or Published version. |
 
 #### `assign_does_not_move_open_orders` — **new** (`assign_warn`)
 
-EN: `{n}` open orders stay on profile {p} version {v}. Reassignment affects new orders only.  
+EN: `{n}` open orders stay on profile {p} version {v}. Reassignment affects new orders only.
 AR: `{n}` طلبات مفتوحة تبقى على الملف {p} الإصدار {v}. إعادة التعيين تؤثر على الطلبات الجديدة فقط.
 
 ### 4.8 Dirty policy / flags
 
-#### `policy_dirty_after_compile` — **new** (`error` on Pilot/Publish)
+#### `policy_check_stale` — **new** (`warn` in UI; server rechecks on every protected write)
 
-Trigger: `policy_revision` advanced since last VALID compile/check.
+Trigger: the browser displays validation for a revision older than the saved
+`policy_revision`.
 
-EN: Policy changed after the last successful check. Run Check policy again.  
+EN: Policy changed after the last successful check. Run Check policy again.
 AR: تغيّرت السياسة بعد آخر فحص ناجح. أعد فحص السياسة.
+
+This is not a server-side bypass: Pilot, Publish, assignment, and template
+import always validate live rows inside their own transaction.
 
 #### `policy_flag_without_runtime_surface` — **new** (`error`)
 
@@ -608,14 +637,20 @@ Note: tenant TypeScript currently ignores many flags and reads modules/execs/gat
 
 ## 5. Implementation notes for HQ
 
-1. Add `severity` to compile issues. Today every issue is hard; Warn codes in this spec will otherwise block valid lean shops (`canceling` Off, `returning` Off).
+1. Add severity and structured i18n keys to validator issues. Warn codes must
+   not block valid lean shops (`canceling` Off, `returning` Off).
 2. Run **create-path matrix** as data, not prose: list of contexts in, winner rule id out.
 3. Run **archetypes** as fixtures: Lean plant must fail `pickup_without_ready_release`.
-4. Keep bilingual `message` / `message2` / `hint` / `hint2` in the API so Studio does not hardcode English.
-5. After ADR-0010, emit the same codes from `WorkflowPolicyValidator` with **no** artifact. Until then, Publish still requires `current_artifact_id` (`assign_missing_current_artifact`).
+4. Return message/hint keys plus parameters; Studio resolves bilingual copy and
+   does not hardcode English.
+5. Emit these codes from `WorkflowPolicyValidator` directly from normalized
+   rows, with no artifact, compiler commit, or runtime fallback.
 6. Do not lower tenant fail-closed behaviour to “make Studio green”. If a combo is illegal at runtime, it is `error` here.
 7. Fix HQ **presets** so direct `CONFIRM_PICKUP` is always `pickup_handover` + observer `ready`, never `ready_release`. Stop using `CONFIRM_PICKUP:pickup_handover:ready:ready_release` as the “move it to the owner” example.
 8. Studio copy: “wrong module” means `screen_key`, not “wrong dashboard page”.
+9. When partial fulfilment is enabled, require an implemented atomic
+   stage-service contract; otherwise emit `partial_pickup_runtime_unavailable`
+   or `partial_delivery_runtime_unavailable` as a blocking issue.
 
 ## 6. Highest-value first (HQ sprint order)
 
@@ -626,7 +661,7 @@ Note: tenant TypeScript currently ignores many flags and reads modules/execs/gat
 5. `initial_rule_uncovered_create_path` + per-context winner
 6. `generic_requires_evidence_forbidden`
 7. `delivery_stop_gate_on_simple_profile`
-8. `assign_missing_current_artifact`
-9. Channel-aware `execution_binding_duplicate`
+8. `assign_policy_invalid`
+9. Parent/channel-aware `execution_binding_duplicate`
 10. Skip-edge missing/ambiguous
 11. Gate requires disabled module

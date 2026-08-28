@@ -94,7 +94,7 @@ Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) s
 
 Unknown screen keys return an empty page. `status_filter` remains for non-floor lists and as an optional extra narrowing filter. Staff S10 completion remains a separate command.
 
-Ready list desk presets (same page, not a pickup URL): `GET /api/v1/orders?workflow_screen=ready&ready_focus=counter|shelf|collection|no_rack`. `counter` / `pickup` narrows to `ready_for_pickup` (Pickup-desk alias of `/dashboard/ready?focus=counter`). The Ready queue also includes `pickup_handover` memberships for `ready` / `ready_for_pickup` only — never `delivered`.
+Ready list desk filters (same page, not a pickup URL): `GET /api/v1/orders?workflow_screen=ready` plus optional stacked flags `ready_staged=1`, `ready_unreleased=1`, `ready_due=1`, `ready_norack=1`. These flags apply **only** when `workflow_screen` is `ready` or `ready_release`. Pickup-desk alias `ready_focus=counter` does **not** hide `ready` (direct handover). Legacy exclusive `ready_focus=shelf|collection|no_rack` still maps to unreleased / due / no-rack. The Ready queue also includes `pickup_handover` memberships for `ready` / `ready_for_pickup` only — never `delivered`.
 
 ## 4. Create
 

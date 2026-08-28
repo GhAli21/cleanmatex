@@ -2,7 +2,7 @@
 
 ## Unreleased — 2026-08-28
 
-- Ready list desk filters on the same page: `/dashboard/ready?focus=counter` (Pickup-desk alias), `shelf`, `collection`, `no_rack`. Confirm pickup stays on Ready Details. The Ready worklist includes `pickup_handover` statuses `ready` / `ready_for_pickup` only.
+- Ready list filters stack on the same page: `/dashboard/ready?focus=counter` is the Pickup-desk alias (both handover statuses). `staged`, `unreleased`, `due`, and `norack` combine; legacy exclusive `focus=shelf|collection|no_rack` still maps. Confirm pickup stays on Ready Details. The Ready worklist includes `pickup_handover` statuses `ready` / `ready_for_pickup` only.
 - Added [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md): canonical definitions for page, module, `screen_key`, execution, channel, and UI chrome, with Ready/pickup/delivery examples. §1.1 explains that a page may host two modules (Ready Details) without owning their actions.
 
 ## Unreleased — 2026-08-27
