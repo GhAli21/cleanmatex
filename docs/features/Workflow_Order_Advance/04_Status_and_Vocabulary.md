@@ -146,6 +146,10 @@ Code authority: `web-admin/lib/constants/workflow-cancel-return.ts`.
 
 Enhanced cancel may still require disposition + Fin unwind. When `workflow_engine_v2` is on, ADR lock applies (no auto unwind; narrow cancel).
 
-## 6. Initial rules
+## 6. Page vs module vs `screen_key`
+
+Status and action codes above are not pages. For **page**, **module**, **`screen_key`**, execution, channel, ActionBar vs stage card, and Ready/pickup/delivery host vs owner, use [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md).
+
+## 7. Initial rules
 
 Every `order_source_code` × modifiers; optional `order_type_id`; retail-only → operationally completed **policy**, not `closed`.

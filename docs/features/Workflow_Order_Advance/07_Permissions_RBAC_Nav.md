@@ -1,6 +1,6 @@
 # 07 — Permissions, RBAC, Navigation
 
-**Status:** P7R access-contract refresh · **Date:** 2026-08-21
+**Status:** P7R Delivery floor + access-contract refresh · **Date:** 2026-08-27
 
 ## 1. Permission model
 
@@ -25,15 +25,20 @@ HQ routes live in cleanmatexsaas contracts.
 
 No tenant nav entry for editing transitions/gates/initial rules.
 
-## 4. Delivery proof/audit access
+## 4. Delivery floor and proof/audit access
 
 | Surface | Permission contract | Notes |
 |---------|---------------------|-------|
-| `GET /api/v1/delivery/orders/{orderId}/proof` | `orders:read` | Tenant-scoped read of proof/audit data. No new permission code or permission-seed migration is required because it reuses the existing order read permission. |
+| `/dashboard/delivery` | `orders:read` page gate (contract also records `drivers:read`) | Delivery worklist. Open goes to `/dashboard/delivery/{id}`. |
+| `/dashboard/delivery/[id]` | `orders:read` | Floor detail: ActionBar + stage-owned Confirm Delivery. |
+| `GET /api/v1/delivery/orders/{orderId}/active-stop` | `orders:read` | Chooses stop-owned vs order-keyed writer. |
+| `POST /api/v1/delivery/orders/{orderId}/complete` | `delivery:pod` + `orders:transition` | Order-keyed `CONFIRM_DELIVERY` when no active stop. |
+| `POST /api/v1/delivery/stops/{stopId}/complete` | `delivery:pod` + `orders:transition` | Stop-owned POD + route + `CONFIRM_DELIVERY`. |
+| `GET /api/v1/delivery/orders/{orderId}/proof` | `orders:read` | Tenant-scoped read of proof/audit data. No new permission code. |
 | Order Details → **Delivery Proof** | Order Details page contract plus `orders:read` API dependency | The tab is read-only and cannot complete delivery or mutate financial data. |
-| Delivery Stop Detail → proof/audit card | `drivers:read` + `orders:read` page gate; `orders:read` audit API dependency | The stricter Delivery page gate remains in force even though the shared audit endpoint itself needs only order read access. |
+| Delivery Stop Detail → proof/audit card | `drivers:read` + `orders:read` page gate; `orders:read` audit API dependency | The stricter stop-detail page gate remains in force even though the shared audit endpoint itself needs only order read access. |
 
-No navigation entry was added for proof/audit; it is intentionally embedded in the existing Delivery and Order Details surfaces. The planned Workboard will require its own RBAC, access contract, and dual-written navigation change before it is introduced.
+No new permission code or permission-seed migration is required for the floor screen. No extra navigation entry was added; Delivery remains the existing `orders_delivery` item. Workboard is a separate dual-written nav change (`0455`).
 
 ## 5. Workboard access
 

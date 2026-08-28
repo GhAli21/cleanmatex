@@ -1,5 +1,21 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-08-28
+
+- Ready list desk filters on the same page: `/dashboard/ready?focus=counter` (Pickup-desk alias), `shelf`, `collection`, `no_rack`. Confirm pickup stays on Ready Details. The Ready worklist includes `pickup_handover` statuses `ready` / `ready_for_pickup` only.
+- Added [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md): canonical definitions for page, module, `screen_key`, execution, channel, and UI chrome, with Ready/pickup/delivery examples. §1.1 explains that a page may host two modules (Ready Details) without owning their actions.
+
+## Unreleased — 2026-08-27
+
+- Added planning handoff [future_work_in_wf/](future_work_in_wf/README.md): HQ Studio validation gaps, implementable issue-code spec (EN/AR), and versioned remaining work (V1.0 close-out through V2) for tenant and HQ.
+
+## 0.4.16-p7r-delivery-floor — 2026-08-27
+
+- Delivery floor now matches packing/Ready: list rows open `/dashboard/delivery/{id}` with `WorkflowActionBar` plus a stage-owned Confirm Delivery card. Generic `CONFIRM_DELIVERY` stays hidden from the ActionBar.
+- Added order-keyed `POST /api/v1/delivery/orders/{orderId}/complete` and `GET /api/v1/delivery/orders/{orderId}/active-stop`. An active pending/in-transit stop uses the existing stop complete command; no dummy route is created.
+- Simple vs routed delivery is HQ profile policy, not a new catalog seed. Catalog already has `CONFIRM_DELIVERY` on `driver_delivery` (`TR_OFD_DELIV` has no `gate_set_code`). Bind `delivery_stop_active` / required POD evidence only on routed profiles; leave them unbound for simple tenants, then compile and publish.
+- Legacy route create/assign/capturePOD stay `503`. Generic `/actions` and `/transition` still return `403 USE_DELIVERY_COMPLETE_COMMAND`. Fail/cancel delivery commands remain out of scope. S10 routed POD canary remains unsigned.
+
 ## Unreleased — 2026-08-22
 
 - Added versioned stage-owned command adapters for Processing, Assembly, QA pass/fail, Packing, and Ready release. Cookie sessions require CSRF; bearer JWTs share the same `orders:transition` gate. Callers cannot send a guessed `toStatus`.

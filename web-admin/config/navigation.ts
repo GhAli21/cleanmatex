@@ -237,8 +237,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: 'Delivery',
     icon: Truck,
     path: '/dashboard/delivery',
-    roles: ['none'],
-    //roles: ['admin', 'operator'],
+    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
   },
   {
     key: 'users',

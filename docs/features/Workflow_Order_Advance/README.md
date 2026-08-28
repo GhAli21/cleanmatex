@@ -34,9 +34,9 @@ See [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md).
 9. Rename tables only when responsibility is wrong  
 10. Full seed + graph validation; EN/AR; RLS; canary  
 
-The staff delivery principle above is an unmet release gate, not a completed claim. Legacy route creation and direct staff delivery shortcuts remain fail-closed until POD evidence, payment/release checks, stop/route updates, the order transition, history, and outbox share one rollback-safe operation. Public `/track/{token}` confirm-received remains available under its separately tested customer contract.
+The staff delivery principle above is an unmet **S10 routed-POD** release gate, not a claim that staff cannot complete delivery at all. Floor Confirm Delivery is live as a stage-owned command: `/dashboard/delivery/{id}` uses order-keyed complete when no stop exists, or the stop proof panel when a pending/in-transit stop exists. Dummy routes are never created. Legacy route creation, driver assign, OTP, and capturePOD remain fail-closed. Generic `/actions` cannot run `CONFIRM_DELIVERY`. Public `/track/{token}` confirm-received remains available under its separately tested customer contract.
 
-The implemented P7R proof/audit surface is read-only. Authorized staff can review delivery outcome, payment state, handover actor/time/notes, and time-limited evidence links on Delivery Stop Detail and Order Details. It does not enable staff delivery completion or expose private storage keys.
+The implemented P7R proof/audit surface is read-only. Authorized staff can review delivery outcome, payment state, handover actor/time/notes, and time-limited evidence links on Delivery Stop Detail and Order Details. It does not by itself enable completion or expose private storage keys.
 
 The P7R Workboard is read-only. It resolves queue membership and owner routing only through each order's immutable compiled profile artifact. Orders without a valid snapshot are excluded from operational queues; the Workboard never offers a raw status mutation or a second transition writer.
 
@@ -60,9 +60,13 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 | [WORKFLOW_TABLES_INVENTORY.md](WORKFLOW_TABLES_INVENTORY.md) | All `work` / `wf` tables: Gen 0–3, live vs deprecated |
 | [01_PRD.md](01_PRD.md) … [13_Production_Readiness_Checklist.md](13_Production_Readiness_Checklist.md) | Design pack |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Work packages |
+| [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md) | Page vs module vs `screen_key` (and related workflow entities) |
+| [future_work_in_wf/](future_work_in_wf/README.md) | HQ Studio validation gaps + V1.0→V2 remaining-work plan |
 | [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md) | Remote SQL runbook |
 
 ## HQ (cleanmatexsaas) handoff
+
+**Validation + version plan (give to HQ Studio):** [future_work_in_wf/](future_work_in_wf/README.md) — issue-code spec for Check policy/Compile, and the tenant+HQ remaining-work plan through V2.
 
 SaaS-only implementation for **live** workflow config screens:
 

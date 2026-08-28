@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** P7R stage-command contracts are active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and atomic Delivery complete; warning/override gate decisions and compiled POD method lists are live for semantic snapshot orders; floor lists use `workflow_screen` membership; staff S10 canary remains unsigned · **Date:** 2026-08-22
+**Status:** P7R stage-command contracts are active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and Delivery (order-keyed or stop-owned); warning/override gate decisions and compiled POD method lists are live for semantic snapshot orders; floor lists use `workflow_screen` membership; staff S10 routed POD canary remains unsigned · **Date:** 2026-08-27
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions
@@ -94,6 +94,8 @@ Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) s
 
 Unknown screen keys return an empty page. `status_filter` remains for non-floor lists and as an optional extra narrowing filter. Staff S10 completion remains a separate command.
 
+Ready list desk presets (same page, not a pickup URL): `GET /api/v1/orders?workflow_screen=ready&ready_focus=counter|shelf|collection|no_rack`. `counter` / `pickup` narrows to `ready_for_pickup` (Pickup-desk alias of `/dashboard/ready?focus=counter`). The Ready queue also includes `pickup_handover` memberships for `ready` / `ready_for_pickup` only — never `delivered`.
+
 ## 4. Create
 
 Existing create must call `InitialStatusResolver`; persist source/type/snapshot/`state_version=1`. No retail→`closed` shortcut. For a semantic profile snapshot, every create path (normal intake, remote intake, retail, and Quick Drop) resolves only the immutable artifact initial rules. An unmatched semantic rule returns `422 PROFILE_INITIAL_RULE_UNMATCHED`; it never falls back to legacy `intake` or `preparing` shortcuts.
@@ -162,7 +164,7 @@ Errors: `400 IDEMPOTENCY_KEY_REQUIRED`, `404 ORDER_NOT_FOUND`, `409 VERSION_CONF
 
 The legacy server action is an authenticated compatibility adapter only. It ignores client-supplied tenant/user arguments and resolves both from the server session before invoking the same command.
 
-## 10. Staff Delivery private evidence and completion (P7R, server-disabled)
+## 10. Staff Delivery private evidence and completion (P7R)
 
 `POST /api/v1/delivery/stops/{stopId}/evidence`
 
@@ -200,7 +202,7 @@ validates the chosen code again and never trusts a client-side method list.
 
 `POST /api/v1/delivery/stops/{stopId}/complete`
 
-This is the only target staff command for completing a delivery. It is a stage-owned application service, not a UI-specific status writer. The server resolves the authenticated tenant and actor, requires `delivery:pod` and `orders:transition`, and validates CSRF. Its rollout guard is intentionally independent of legacy Delivery write endpoints.
+This is the **stop-owned** staff command. Use it when the order already has a pending or in-transit delivery stop. It is a stage-owned application service, not a UI-specific status writer. The server resolves the authenticated tenant and actor, requires `delivery:pod` and `orders:transition`, and validates CSRF. Its rollout guard is intentionally independent of legacy Delivery write endpoints.
 
 Headers: authenticated session and standard CSRF protection. Body:
 
@@ -237,6 +239,29 @@ Errors: `400 INVALID_REQUEST`, `404 STOP_NOT_FOUND`, `409 VERSION_CONFLICT`, `40
 
 The command does not accept payment legs. A due balance must be collected through the existing Order Fin collection contract before delivery is retried; this preserves a single auditable money-write path. Local database-backed tests now cover pay-on-collection blocking, cross-tenant stop isolation, OTP reject, already-delivered, engine-failure rollback, happy-path route counters, stale-version rollback, idempotent replay, and serialized dual-complete. Complete requires `delivery:pod` and `orders:transition`. Workflow `VERSION_CONFLICT` maps to HTTP 409. Staff `CONFIRM_DELIVERY` on `POST /api/v1/orders/{id}/actions` and `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`. OTP expiry/retry controls remain deferred to VNext; compiled profiles may list OTP as optional authoring only. Staff S10 canary still requires an explicit rollout decision.
 
+### 10.0a Order-keyed floor complete (no planned stop)
+
+`GET /api/v1/delivery/orders/{orderId}/active-stop`
+
+Requires `orders:read`. Returns `{ stop }` or `{ stop: null }` for the current pending/in-transit stop on an active route. The Delivery floor uses this to choose the writer. It does not create a stop.
+
+`POST /api/v1/delivery/orders/{orderId}/complete`
+
+This is the **order-keyed** staff command used by `/dashboard/delivery/{id}` when no planned stop exists. Requires `delivery:pod` and `orders:transition`, CSRF, and header `Idempotency-Key`. The server never invents a dummy route.
+
+```json
+{
+  "expectedStateVersion": 12,
+  "podNotes": "Handed to the customer at the door."
+}
+```
+
+The command locks the tenant order; refuses if status is not `out_for_delivery` (`ORDER_NOT_OUT_FOR_DELIVERY`); refuses if a pending/in-transit stop exists (`409 USE_STOP_COMPLETE_COMMAND`); blocks remaining `PAY_ON_COLLECTION`; compiles notes-only evidence (`NOTES`); then executes engine `CONFIRM_DELIVERY` on screen `driver_delivery` with `handoverMode: ad_hoc`.
+
+Errors: `400 INVALID_REQUEST`, `400 IDEMPOTENCY_KEY_REQUIRED`, `404 ORDER_NOT_FOUND`, `409 USE_STOP_COMPLETE_COMMAND`, `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `409 IDEMPOTENCY_IN_FLIGHT`, `422 ORDER_NOT_OUT_FOR_DELIVERY`, `422 DELIVERY_COLLECTION_REQUIRED`, `422 POD_METHOD_INVALID` (compiled photo/signature required with no stop to attach), `409 PROFILE_*`, `503 DELIVERY_HARDENING_REQUIRED`.
+
+Simple tenants must **not** bind hard `delivery_stop_active` on `CONFIRM_DELIVERY` in the published artifact, or the floor button stays disabled. Do not add that gate to catalog `TR_OFD_DELIV`; it would force every tenant to have a stop. Routed tenants bind `delivery_stop_active` and POD evidence, then complete from the stop command.
+
 ### 10.1 Delivery proof and handover audit (P7R)
 
 `GET /api/v1/delivery/orders/{orderId}/proof`
@@ -253,9 +278,9 @@ read time. Invalid/missing private evidence does not fail the audit response; it
 omitted and logged. Legacy HTTP(S) proof URLs remain readable only as a compatibility
 fallback. The UI can refresh links after expiry; no URL is written back to the database.
 
-This read contract is available independently of the staff delivery-completion rollout.
-It does not enable `POST /api/v1/delivery/stops/{stopId}/complete`, create evidence,
-or mutate an order. Completion remains subject to its separate P7R assurance gates.
+This read contract is available independently of which staff completion writer is used.
+It does not enable `POST /api/v1/delivery/stops/{stopId}/complete` or
+`POST /api/v1/delivery/orders/{orderId}/complete`, create evidence, or mutate an order.
 
 Errors: `403 FORBIDDEN`, `404 ORDER_NOT_FOUND`. The contract does not mutate the
 workflow, payment, POD, release, or delivery-stop state.
@@ -351,14 +376,13 @@ Errors: `400 INVALID_REQUEST|IDEMPOTENCY_KEY_REQUIRED|REASON_REQUIRED`,
 `401 UNAUTHORIZED`, `403 ACTION_NOT_ALLOWED`, `404 NOT_FOUND`,
 `409 VERSION_CONFLICT|IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED`.
 
-Staff delivery completion remains the separate server-disabled
-`POST /api/v1/delivery/stops/{stopId}/complete` contract.
+Staff delivery completion uses the stage-owned writers in section 10 (`orders/{orderId}/complete` or `stops/{stopId}/complete`), not generic `/actions`.
 
 ## 12. P0 sign-off gaps
 
 - [x] state_version contract
 - [x] blocker reason shape
-- [ ] Staff Delivery endpoint and atomic transaction implemented, but server rollout and database-backed atomicity/evidence/payment tests remain pending
+- [x] Staff Delivery stage-owned writers implemented (order-keyed + stop-owned); S10 routed POD canary remains unsigned
 - [x] Existing path inventory (baseline for P2 align) — see below
 - [ ] HQ OpenAPI link once saas contract exists (**accepted defer** to HQ integration doc)
 - [ ] Release JSON schema finalized with Fin (**accepted defer** to P4 with Fin owners)

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { Prisma } from '@prisma/client'
 
+import { READY_AREA_STATUSES } from '@/lib/constants/ready-list-focus'
 import { WORKFLOW_SCREEN_KEY_SET } from '@/lib/constants/workflow-screens'
 import { prisma } from '@/lib/db/prisma'
 import {
@@ -49,6 +50,10 @@ export interface StageWorklistQueryInput {
   pageSize: number
   search?: string
   statusNarrow?: string[]
+  /** Ready desk: outstanding balance still due. */
+  collectionDue?: boolean
+  /** Ready desk: no usable rack location. */
+  missingRack?: boolean
   receivedFrom?: string
   receivedTo?: string
   readyByFrom?: string
@@ -108,6 +113,14 @@ function buildWhereSql(
     clauses.push(Prisma.sql`o.current_status IN (${Prisma.join(statusNarrow)})`)
   }
 
+  if (input.collectionDue) {
+    clauses.push(Prisma.sql`COALESCE(o.outstanding_amount, 0) > 0`)
+  }
+
+  if (input.missingRack) {
+    clauses.push(Prisma.sql`NULLIF(BTRIM(COALESCE(o.rack_location, '')), '') IS NULL`)
+  }
+
   if (input.search) {
     const pattern = `%${input.search.replace(/[\\%_]/g, '\\$&')}%`
     clauses.push(Prisma.sql`(
@@ -150,19 +163,26 @@ function orderBySql(input: StageWorklistQueryInput): Prisma.Sql {
   }
 }
 
+const READY_QUEUE_SCREENS = new Set(['ready', 'ready_release'])
+const READY_AREA_STATUS_SET = new Set(READY_AREA_STATUSES.map(normalise))
+
 function statusesForSemanticScreen(
   screens: string[],
   artifact: SemanticWorkflowArtifact,
 ): string[] {
   const wanted = new Set(screens.map(normalise))
+  const isReadyQueue = [...wanted].some((screen) => READY_QUEUE_SCREENS.has(screen))
   const statuses = new Set<string>()
   for (const membership of artifact.module_statuses) {
     const screen = normalise(membership.screen_key)
     const status = normalise(membership.status_code)
-    if (!wanted.has(screen)) continue
-    if (isSemanticScreenStatusMember(artifact, membership.screen_key, membership.status_code)) {
-      statuses.add(status)
+    const hostedOnReadyPage = isReadyQueue && screen === 'pickup_handover'
+    if (!wanted.has(screen) && !hostedOnReadyPage) continue
+    if (!isSemanticScreenStatusMember(artifact, membership.screen_key, membership.status_code)) {
+      continue
     }
+    if (isReadyQueue && !READY_AREA_STATUS_SET.has(status)) continue
+    statuses.add(status)
   }
   return [...statuses]
 }

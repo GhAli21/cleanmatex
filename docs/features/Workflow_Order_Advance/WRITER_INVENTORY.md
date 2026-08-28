@@ -12,7 +12,9 @@ Track every path that mutates order operational status. Exit criterion: all prod
 | Stage screens | processing / assembly / qa / packing Complete buttons | ✅ Via stage APIs through `postStaffWorkflowCommand` |
 | Ready | `/dashboard/ready/[id]` | ✅ Fulfilment panel + ActionBar; `RELEASE_FOR_PICKUP` / `CONFIRM_PICKUP` are stage-owned |
 | Pickup complete | `POST /api/v1/pickup/orders/[orderId]/complete` | ✅ Atomic `CONFIRM_PICKUP` |
-| Delivery complete | `POST /api/v1/delivery/stops/[stopId]/complete` | ✅ Atomic POD + stop + route + `CONFIRM_DELIVERY` |
+| Delivery floor | `/dashboard/delivery/[id]` | ✅ ActionBar + stage-owned handover; hides generic `CONFIRM_DELIVERY` |
+| Delivery complete (no stop) | `POST /api/v1/delivery/orders/[orderId]/complete` | ✅ Notes-only `CONFIRM_DELIVERY` when no pending/in-transit stop; refuses to invent a route (`USE_STOP_COMPLETE_COMMAND` if a stop exists) |
+| Delivery complete (stop) | `POST /api/v1/delivery/stops/[stopId]/complete` | ✅ Atomic POD + stop + route + `CONFIRM_DELIVERY` |
 | POD capture | `POST …/stops/{stopId}/pod` and `DeliveryService.capturePOD` | Legacy path **503** `DELIVERY_HARDENING_REQUIRED`; not a production writer |
 | Physical intake | `POST …/confirm-physical-intake` | Engine-only `CONFIRM_PHYSICAL_INTAKE` |
 | Batch auto-ready | `POST …/batch-update` | Engine `COMPLETE_PACKING` when enabled; otherwise safely skips |

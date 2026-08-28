@@ -122,4 +122,41 @@ describe('stage worklist membership', () => {
     expect(result).toEqual({ orderIds: [], total: 0 })
     expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })
+
+  it('includes pickup_handover ready-area statuses on the Ready queue and excludes delivered', async () => {
+    const snapshot = {
+      wf_profile_id: '33333333-3333-3333-3333-333333333333',
+      wf_version_no: 1,
+      wf_profile_version_id: '44444444-4444-4444-4444-444444444444',
+      wf_profile_artifact_id: '55555555-5555-5555-5555-555555555555',
+      wf_profile_revision: 1,
+      wf_profile_checksum: 'a'.repeat(64),
+      wf_profile_schema_version: 1,
+    }
+    mockQueryRaw
+      .mockResolvedValueOnce([snapshot])
+      .mockResolvedValueOnce([{ id: 'order-counter' }])
+      .mockResolvedValueOnce([{ total: BigInt(1) }])
+    mockLoadSemanticArtifact.mockResolvedValue({
+      modules: [
+        { screen_key: 'ready_release', module_mode: 'primary_owner', is_enabled: true },
+        { screen_key: 'pickup_handover', module_mode: 'primary_owner', is_enabled: true },
+      ],
+      module_statuses: [
+        { screen_key: 'ready_release', status_code: 'ready', visibility_mode: 'owner' },
+        { screen_key: 'pickup_handover', status_code: 'ready_for_pickup', visibility_mode: 'owner' },
+        { screen_key: 'pickup_handover', status_code: 'delivered', visibility_mode: 'owner' },
+      ],
+    })
+
+    const result = await listStageWorklistOrderPage('11111111-1111-1111-1111-111111111111', {
+      screen: 'ready',
+      page: 1,
+      pageSize: 20,
+      statusNarrow: ['ready_for_pickup'],
+    })
+
+    expect(result).toEqual({ orderIds: ['order-counter'], total: 1 })
+    expect(mockQueryRaw).toHaveBeenCalledTimes(3)
+  })
 })

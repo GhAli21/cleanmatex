@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Prompt"
+  short_description: "Choose and tailor CleanMateX prompts"
+  default_prompt: "Use $build-prompt to choose and assemble the right CleanMateX prompt for this task."

@@ -22,6 +22,13 @@ This guide is the practical handoff for engineers extending or debugging the V1 
   - `web-admin/app/public/orders/[tenantId]/[orderNo]/page.tsx`
   - `web-admin/app/api/v1/public/orders/[tenantId]/[orderNo]/route.ts`
   - `web-admin/app/api/v1/public/orders/[tenantId]/[orderNo]/confirm-received/route.ts`
+- Delivery floor vertical slice:
+  - `web-admin/lib/services/delivery/delivery-completion.service.ts` (`completeDelivery`, `completeDeliveryByOrder`)
+  - `web-admin/app/api/v1/delivery/orders/[orderId]/complete/route.ts`
+  - `web-admin/app/api/v1/delivery/orders/[orderId]/active-stop/route.ts`
+  - `web-admin/src/features/delivery/ui/delivery-order-detail-screen.tsx`
+  - `web-admin/src/features/delivery/ui/delivery-handover-card.tsx`
+  - `web-admin/app/dashboard/delivery/[id]/page.tsx`
 - Delivery proof/audit vertical slice:
   - `web-admin/lib/services/delivery/delivery-proof-audit.service.ts`
   - `web-admin/app/api/v1/delivery/orders/[orderId]/proof/route.ts`
@@ -51,7 +58,9 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Public order reads and confirm actions must remain tenant-safe and must not bypass the workflow engine when `workflow_engine_v2` is enabled.
 - Keep proof/audit assembly in `DeliveryProofAuditService`; UI code may only consume the API model and must not query POD, route, or storage tables directly.
 - Keep Workboard assembly in `WorkboardQueryService`. It resolves compiled-artifact memberships per order, returns an owning stage path, and must never add workflow or money mutations to this route.
-- Floor Processing, Assembly, QA, Packing, and Ready/Release commands must use the versioned stage adapters. Do not post a guessed `toStatus` from a floor table or ActionBar.
+- Floor Processing, Assembly, QA, Packing, Ready/Release, and Delivery commands must use the versioned stage adapters. Do not post a guessed `toStatus` from a floor table or ActionBar.
+- Delivery Details owns Confirm Delivery the same way Ready owns pickup. Hide generic `CONFIRM_DELIVERY` on the ActionBar. If an active stop exists, use the stop complete command; otherwise use order-keyed complete. Never auto-create a route or stop.
+- Simple vs routed delivery is compiled profile policy. Catalog already has `CONFIRM_DELIVERY` on `driver_delivery` with no transition `gate_set_code`. HQ binds `delivery_stop_active` / POD evidence only for routed tenants. Do not seed that gate onto `TR_OFD_DELIV`.
 - Ready Details owns make-available, remaining collection, and confirm-pickup in one fulfilment panel. Collection remains the existing Order Fin modal; never add a screen-local money or status writer.
 - Ready embeds `PickupHandoverCard` inside `ReadyFulfilmentPanel`. A semantic profile must explicitly compile the `pickup_handover` command surface, its `ready_for_pickup` membership, `CONFIRM_PICKUP` execution, and permitted channel. If any are absent, the UI explains the policy gap and never substitutes a screen-local delivery writer.
 - Semantic order actions load `semantic-workflow-artifact.service.ts` and project it through `semantic-workflow-runtime.service.ts`. Do not add a fallback from a semantic snapshot to a current tenant assignment, graph pin, or mutable workflow catalog: a missing, partial, or invalid snapshot is a typed command failure.
@@ -65,13 +74,14 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Do not infer a stage owner from a hard-coded status map. If a Workboard status has no owner, return the configuration gap and keep the order out of the queue until configuration is repaired.
 - Never return private storage object keys. Only sign keys inside the exact `{tenantId}/delivery/{stopId}/` scope, use the configured five-minute TTL, and omit an unavailable proof item rather than failing the complete audit response.
 - Floor queues must send `workflow_screen`. Do not rebuild membership from a client status list; semantic orders can use statuses the live contract does not mention, and a live-contract status must not pull a semantic order onto a screen its artifact does not own.
-- The proof read does not authorize delivery completion. Keep staff completion behind its separate payment, evidence, idempotency, concurrency, RBAC, route-counter, and rollback release gates.
+- The proof read does not authorize delivery completion. Staff writers are `POST /api/v1/delivery/orders/{orderId}/complete` (no stop) and `POST /api/v1/delivery/stops/{stopId}/complete` (active stop). Keep payment, evidence, idempotency, concurrency, RBAC, and rollback on those commands. Generic `/actions` `CONFIRM_DELIVERY` must stay `403 USE_DELIVERY_COMPLETE_COMMAND`.
 
 ## Suggested next engineering steps
 
-1. Make the explicit staff S10 rollout decision after canary/e2e. Legacy capturePOD/route writers must stay closed.
-2. Synchronize HQ/tenant close-out docs (`p7r-profile-cross-project-docs`). Residual assurance (performance soak, visual a11y/RTL) stays with that close-out and S10.
-3. Implement durable B2B finance only in the B2B bounded context through the existing payment-hold seam. HQ can bind the piece/QA/fulfilment/evidence gates now that `0463_sys_wf_gate_ops_fulfilment.sql` is applied locally and remotely.
+1. Make the explicit staff S10 routed-POD rollout decision after canary/e2e. Legacy capturePOD/route writers must stay closed.
+2. For simple tenants, compile `CONFIRM_DELIVERY` on `driver_delivery` without `delivery_stop_active`. For routed tenants, bind the stop and POD evidence gates, then compile.
+3. Synchronize HQ/tenant close-out docs (`p7r-profile-cross-project-docs`). Residual assurance (performance soak, visual a11y/RTL) stays with that close-out and S10.
+4. Implement durable B2B finance only in the B2B bounded context through the existing payment-hold seam. HQ can bind the piece/QA/fulfilment/evidence gates now that `0463_sys_wf_gate_ops_fulfilment.sql` is applied locally and remotely.
 
 ## Key references
 

@@ -6,6 +6,7 @@ Run from `web-admin`:
 
 ```bash
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
+npx jest __tests__/services/complete-delivery-by-order.service.test.ts __tests__/services/delivery-completion.service.test.ts --runInBand
 npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
 npx jest __tests__/services/workflow-gate-evaluator.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-profile-resolution.service.test.ts __tests__/services/initial-status-resolver.service.test.ts --runInBand --forceExit
 npx jest __tests__/services/workboard-query.service.test.ts __tests__/services/stage-worklist-query.service.test.ts --runInBand
@@ -35,6 +36,8 @@ npm run build
 
 2026-08-22 extended-gate evidence: focused evaluator tests cover piece/QA/collection/release/stop/POD facts, missing-fact fail-closed behavior, discovery-vs-execute POD, and unsupported partial/return/OTP. Catalog seed `0463_sys_wf_gate_ops_fulfilment.sql` applied locally and remotely by the operator.
 
+2026-08-27 delivery-floor evidence: order-keyed `completeDeliveryByOrder` unit tests pass (collection block, refuse existing stop, notes-only complete, compiled photo without a stop). Existing stop-complete unit tests remain green. Access contract `/dashboard/delivery/[id]` check/sync passed. `web-admin` typecheck, ESLint on touched files, i18n parity, and production build passed, including routes `/dashboard/delivery/[id]`, `POST /api/v1/delivery/orders/[orderId]/complete`, and `GET /api/v1/delivery/orders/[orderId]/active-stop`. No new workflow catalog migration. Simple vs routed remains HQ profile gate binding plus compile/publish.
+
 2026-08-22 delivery-assurance evidence: focused Jest plus local DB integration (9/9) pass. DB coverage includes pay-on-collection blocking, cross-tenant isolation, OTP reject, already-delivered, engine-failure rollback, happy path with route counters, stale-version rollback, idempotent replay, and serialized dual-complete. Complete route RBAC requires `delivery:pod` and `orders:transition`. Staff `CONFIRM_DELIVERY` through `/actions` remains 403.
 
 2026-08-22 floor-worklist evidence: stage-worklist unit tests prove unknown screens fail closed, semantic processing membership appears without a live contract, and a semantic order whose artifact does not own the screen is excluded from that queue.
@@ -50,7 +53,7 @@ npm run build
 3. Confirm the API returns `404 ORDER_NOT_FOUND` for an order outside the authenticated tenant and does not reveal that tenant's proof, actor, stop, or evidence data.
 4. Confirm a private evidence key is never returned. Evidence links must be signed only for the matching `{tenantId}/delivery/{stopId}/` scope and expire after five minutes.
 5. Wait for or simulate link expiry, select **Refresh links**, and confirm new authorized links load without any workflow, payment, POD, release, stop, route, history, or outbox mutation.
-6. Confirm the audit card alone offers no delivery-completion control while staff delivery remains a release blocker.
+6. Confirm the audit card alone offers no delivery-completion control. Complete from Delivery Details or Stop Detail, not from the proof tab.
 
 ## Public tracking focused scenarios
 
@@ -124,7 +127,8 @@ Expected: `wf_profile_id` is the assigned profile and `wf_version_no` is its res
 | S07 | Hold | Hold a `processing` order with a valid reason. | `processing → on_hold`; `hold_from_status=processing`; version/history/outbox advance once. |
 | S08 | Resume | Resume the held order. | `on_hold → processing`; `hold_from_status` is cleared; version/history/outbox advance once. |
 | S09 | Stop | Hold again, then permanently stop with a valid reason. | `on_hold → stopped`; hold marker clears; stopped is terminal and actions no longer appear after refresh. |
-| S10 | Staff POD delivery | On Delivery Stop Detail, complete an `out_for_delivery` stop with required POD evidence (not the generic Actions tab). | Stop, POD, route counters, and `CONFIRM_DELIVERY` commit together; order becomes `delivered`; `delivered_at` is populated. Unsigned until operator/e2e canary. |
+| S10 | Staff POD delivery (routed) | On Delivery Stop Detail, complete an `out_for_delivery` stop with required POD evidence (not the generic Actions tab). | Stop, POD, route counters, and `CONFIRM_DELIVERY` commit together; order becomes `delivered`; `delivered_at` is populated. Unsigned until operator/e2e canary. |
+| S10b | Staff simple delivery (no stop) | On `/dashboard/delivery/{id}`, confirm an `out_for_delivery` order whose compiled profile does not bind `delivery_stop_active` and has no pending stop. | Order becomes `delivered` through `POST /api/v1/delivery/orders/{orderId}/complete`; no route/stop row is created. If a stop exists, the API returns `USE_STOP_COMPLETE_COMMAND`. |
 | S11 | Public ready confirmation | Open opaque `/track/{token}` for a `ready` order and confirm receipt anonymously. | `ready → delivered`; confirmation becomes disabled; refresh remains delivered. |
 | S12 | Public OFD confirmation | Repeat public confirmation for `out_for_delivery`. | `out_for_delivery → delivered` through the same engine action. |
 | S13 | Public idempotency | Confirm an already delivered order again through the API. | Idempotent success; no second state-version increment, history row, or outbox event. |
@@ -145,7 +149,7 @@ Use a disposable `preparing` order and an operator with both `orders:update` and
 5. Send a request without `Idempotency-Key`. Verify HTTP `400 IDEMPOTENCY_KEY_REQUIRED` and no mutation.
 6. Attempt the same order ID from another tenant. Verify HTTP `404 ORDER_NOT_FOUND` and no mutation.
 
-Staff delivery completion uses `POST /api/v1/delivery/stops/{stopId}/complete` with POD evidence and the pay-on-collection gate. Legacy `capturePOD`, route create/assign, and OTP generate/verify remain HTTP `503 DELIVERY_HARDENING_REQUIRED`. Staff `CONFIRM_DELIVERY` through `/actions` or `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`. S10 canary still needs an explicit rollout decision; public S11-S15 confirmation follows its separately approved customer contract.
+Staff delivery completion uses two stage-owned writers. No planned stop: `POST /api/v1/delivery/orders/{orderId}/complete`. Active stop: `POST /api/v1/delivery/stops/{stopId}/complete` with POD evidence. Both enforce the pay-on-collection gate. The floor never invents a dummy route. Legacy `capturePOD`, route create/assign, and OTP generate/verify remain HTTP `503 DELIVERY_HARDENING_REQUIRED`. Staff `CONFIRM_DELIVERY` through `/actions` or `/transition` returns `403 USE_DELIVERY_COMPLETE_COMMAND`. S10 canary still needs an explicit rollout decision; public S11-S15 confirmation follows its separately approved customer contract. S10b requires HQ to leave `delivery_stop_active` unbound on `CONFIRM_DELIVERY`.
 
 Local database assurance: `npm run test:db-integration -- delivery-completion.db.test.ts` covers collection blocking, cross-tenant isolation, OTP reject, already-delivered, engine-failure rollback, happy-path route counters, stale-version rollback, idempotent replay, and serialized dual-complete. That is automated coverage for the S10 command path; it is not the signed operator/e2e canary.
 
@@ -161,6 +165,8 @@ Normal stage and control actions should use:
   - `POST /api/v1/packing/{id}/complete`
   - `POST /api/v1/ready/{id}/release-pickup` and `POST /api/v1/ready/{id}/release-delivery`
   - `POST /api/v1/pickup/orders/{orderId}/complete`
+  - `POST /api/v1/delivery/orders/{orderId}/complete` (no stop)
+  - `POST /api/v1/delivery/stops/{stopId}/complete` (active stop)
 - `POST /api/v1/orders/{id}/actions` only for unmapped control/cancel/return commands
 - `POST /api/v1/orders/{id}/transition` only as the legacy V2-off compatibility adapter
 

@@ -1,6 +1,6 @@
 # 13 — Production Readiness Checklist (V1.0)
 
-**Status:** **NO-GO for V1.0 staff delivery**; public tracking contract remains available · **Date:** 2026-08-14
+**Status:** **NO-GO for V1.0 routed staff POD (S10)**; Delivery floor confirm and public tracking remain available under their own gates · **Date:** 2026-08-27
 
 ## Design / P0
 
@@ -40,9 +40,13 @@
 - [ ] T01–T18 pass on pilot tenants
 - [ ] Profile runtime enforcement acceptance suite passes before enabling profile-governed operational flows
 
+## 2026-08-27 release audit note
+
+Staff **routed POD (S10)** is still not production-signed. Direct generic **Mark delivered** / `/actions` `CONFIRM_DELIVERY` remain forbidden. The Delivery floor now confirms from `/dashboard/delivery/{id}` using order-keyed complete when no stop exists, or the stop complete command when a stop exists. Dummy routes are not created. Legacy capturePOD/route writers stay `503`. Simple floor confirm depends on HQ leaving `delivery_stop_active` unbound on the published artifact. Public anonymous confirm-received remains governed by its separately approved contract.
+
 ## 2026-08-14 release audit verdict
 
-Staff delivery is not production-ready. Direct **Mark delivered** controls are disabled as containment. The P7R atomic completion command now composes POD, stop/route, engine, history, and outbox writes, but its server rollout remains disabled until database-backed rollback, payment, evidence-storage, RBAC, tenancy, and concurrency acceptance tests pass. The separate proof/audit read surface may be used to review completed handovers but cannot be treated as staff-delivery approval. Public anonymous confirm-received remains governed by its separately approved contract and completed smoke.
+Staff routed POD was not production-ready at this checkpoint. Direct **Mark delivered** controls were disabled as containment. The P7R atomic stop-completion command composes POD, stop/route, engine, history, and outbox writes. The separate proof/audit read surface may be used to review completed handovers but cannot be treated as staff-delivery approval. Public anonymous confirm-received remains governed by its separately approved contract and completed smoke.
 
 ## Explicitly not required for V1.0 go-live
 

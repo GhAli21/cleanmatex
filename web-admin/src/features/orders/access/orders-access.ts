@@ -1725,7 +1725,10 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
           permissions: ['orders:read'],
           requireAllPermissions: true,
         },
-        notes: ['workflow_screen selects artifact, pinned-graph, or live catalog membership.'],
+        notes: [
+          'workflow_screen=ready selects artifact membership, including pickup_handover ready-area statuses.',
+          'ready_focus=counter is the Pickup-desk alias of this same route (?focus=counter), not a second page.',
+        ],
       },
     ],
     notes: ORDER_NOTES,

@@ -17,6 +17,10 @@ import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
+import {
+  parseReadyListFocus,
+  readyListFocusToWorklist,
+} from '@/lib/constants/ready-list-focus';
 
 /**
  * POST /api/v1/orders
@@ -229,6 +233,7 @@ export async function GET(request: NextRequest) {
     const orderSourceCode = searchParams.get('order_source_code')?.trim() || '';
     const physicalIntakeStatus = searchParams.get('physical_intake_status')?.trim() || '';
     const workflowScreen = searchParams.get('workflow_screen')?.trim() || '';
+    const readyFocus = parseReadyListFocus(searchParams.get('ready_focus'));
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -371,7 +376,13 @@ export async function GET(request: NextRequest) {
     let stageWorklistTotal: number | null = null;
     let stageWorklistOrderIds: string[] | null = null;
     if (workflowScreen) {
-      const statusNarrow = (statusFilter || currentStatus || currentStage)
+      const focusNarrow = readyListFocusToWorklist(readyFocus);
+      const statusNarrow = (
+        focusNarrow.statusNarrow?.join(',')
+        || statusFilter
+        || currentStatus
+        || currentStage
+      )
         ?.split(',')
         .map((value) => value.trim())
         .filter(Boolean);
@@ -381,6 +392,8 @@ export async function GET(request: NextRequest) {
         pageSize: limit,
         search: search || undefined,
         statusNarrow,
+        collectionDue: focusNarrow.collectionDue,
+        missingRack: focusNarrow.missingRack,
         receivedFrom: receivedFrom || undefined,
         receivedTo: receivedTo || undefined,
         readyByFrom: readyByFrom || undefined,

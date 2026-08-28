@@ -1,7 +1,7 @@
 # Delivery Proof and Handover Audit
 
 **Status:** Implemented read surface; not a staff delivery-completion approval.  
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-27
 
 ## Responsibility
 
@@ -54,6 +54,6 @@ fallback. They must not be used as a reason to make the private bucket public.
 ## Release boundary
 
 This surface may be verified independently as a read-only operational aid. It does not
-enable staff delivery completion. That command remains behind the P7R database-backed
-rollback, tenancy, concurrency, payment, evidence, route-counter, RBAC, idempotency,
-pilot, monitoring, and rollback acceptance gates.
+enable staff delivery completion. Floor confirm uses
+`POST /api/v1/delivery/orders/{orderId}/complete` or
+`POST /api/v1/delivery/stops/{stopId}/complete`; this audit card remains read-only.

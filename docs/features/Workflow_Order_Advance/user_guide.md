@@ -46,24 +46,25 @@ Use this flow only when the customer is physically at the branch and staff have
 handed over the items. It is different from making an order available on the
 pickup shelf.
 
-1. Open the Ready order and verify the customer/order number.
-2. Check the **Pickup availability** card. A Ready order has one of two states:
+1. Open **Ready**. Use the desk chips (or `/dashboard/ready?focus=counter` for Pickup desk) so the list matches the job: all Ready-area, waiting at counter, not yet available, collection due, or no rack.
+2. Open the Ready order and verify the customer/order number.
+3. Check the **Pickup availability** card. A Ready order has one of two states:
    - **Not yet available for pickup**: use **Make available for pickup** when the items are staged for collection.
    - **Available for pickup**: the release timestamp is shown; the release actions are no longer offered.
-3. Use the **Pickup and collection** panel for the three first-class actions:
+4. Use the **Pickup and collection** panel for the three first-class actions:
    **Make available for pickup**, **Collect remaining payment**, and **Confirm customer pickup**.
    Do not look for a second workflow bar to confirm handover.
-4. If a **Collect remaining payment** button is shown, collect the balance using
+5. If a **Collect remaining payment** button is shown, collect the balance using
    the existing payment screen. Do not confirm the pickup before payment is
    posted.
-5. If the customer is present now and the order is still **Not yet available for
+6. If the customer is present now and the order is still **Not yet available for
    pickup**, choose **Confirm customer pickup now**. This direct counter path
    moves `ready` to `delivered` and creates one fulfilled pickup audit record in
    the same transaction. Do not use it merely to stage an order on the shelf.
-6. If the order is already **Available for pickup**, use **Confirm customer
+7. If the order is already **Available for pickup**, use **Confirm customer
    pickup**. This staged path moves `ready_for_pickup` to `delivered`.
-7. Optionally add a handover note and confirm the dialog.
-8. Verify the order is `delivered` and disappears from the Ready worklist after
+8. Optionally add a handover note and confirm the dialog.
+9. Verify the order is `delivered` and disappears from the Ready worklist after
    refresh.
 
 **Make available for pickup** changes the order to `ready_for_pickup`. It does
@@ -156,13 +157,20 @@ Authorized operations staff can review a completed delivery without changing the
 
 The audit view is read-only. It does not create a delivery stop, collect payment, release an order, or complete staff delivery.
 
-## Staff delivery containment
+## Staff delivery floor
 
-The Delivery dashboard permits the read-only proof/audit review above, but route creation, driver assignment, OTP generation/verification, POD capture, and direct staff **Mark delivered** actions remain disabled while atomic delivery hardening is open. Direct calls to staff delivery mutation APIs must return HTTP `503` with `DELIVERY_HARDENING_REQUIRED` and must not write route, stop, POD, order, history, or outbox data.
+Delivery list rows open `/dashboard/delivery/{id}`, the same ActionBar + stage-owned complete pattern as Ready.
 
-Do not bypass this containment or use the generic order Actions tab to mark an order delivered. Continue using the opaque public `/track/{token}` confirm-received flow only for its approved customer contract.
+1. Open **Orders → Delivery** and select an `out_for_delivery` order.
+2. If **Confirm delivery** is missing, the assigned profile has not compiled that action on `driver_delivery`. Ask HQ to add `CONFIRM_DELIVERY` and publish.
+3. If the button is disabled with a stop gate, the profile binds `delivery_stop_active`. Either complete from an existing stop, or HQ must unbind that gate for simple (no-route) tenants and republish.
+4. Pay-on-collection with a remaining balance: collect through the existing payment modal first, then confirm.
+5. With no planned stop, confirm from the order (optional notes). The server does not create a dummy route.
+6. With a pending/in-transit stop, the existing proof panel is shown; complete there with the compiled POD method.
 
-**S10** is the production smoke for staff proof-of-delivery: capture POD on an `out_for_delivery` order and confirm POD, stop, route counters, and `CONFIRM_DELIVERY` succeed together. The atomic complete API is implemented; S10 is still unsigned until the operator/e2e canary is recorded.
+Do not use the generic Order Actions tab to mark an order delivered. Route creation, driver assignment, OTP generate/verify, and legacy POD capture remain disabled (`503 DELIVERY_HARDENING_REQUIRED`). Continue using opaque public `/track/{token}` confirm-received only for its approved customer contract.
+
+**S10** is the production smoke for **routed** staff proof-of-delivery: complete an `out_for_delivery` stop with required POD evidence (not the generic Actions tab) and confirm POD, stop, route counters, and `CONFIRM_DELIVERY` succeed together. That canary is still unsigned. Simple floor confirm is a separate HQ-policy smoke: profile must not bind `delivery_stop_active`.
 
 ## Workboard supervisor queue
 

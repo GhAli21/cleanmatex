@@ -1,6 +1,6 @@
 ---
 name: Workflow Order Advance
-overview: Engine-first workflow cutover and opaque public tracking are deployed, but V1.0 is not production-ready. Staff delivery uses an atomic complete command (POD + stop + route + CONFIRM_DELIVERY) and now enforces compiled optional delivery evidence (signature, photo, POD, notes) for semantic snapshot orders; pickup completion enforces required compiled pickup notes. OTP may be authored as optional but completion still rejects it. Legacy capturePOD/route writers stay 503. Production smoke S10 (staff POD delivery) is implemented in code and local DB tests but not signed as a canary. Graph-pin execution is retired for snapshot orders. Automated semantic-profile assurance is in place. Remaining work is e2e/canary, HQ/tenant close-out docs, warning/override gate runtime if still open, and the deferred B2B credit/invoice feature.
+overview: Historical Workflow Order Advance plan. The compiled semantic artifact profile runtime is superseded for all new work on 2026-08-27 by `.cursor/plans/workflow_live_profile_runtime_20260827.plan.md` and HQ ADR-SAAS-MNG-0010. Stage-owned commands, finance, fulfilment, audit, idempotency, and tenant isolation remain valid; profile policy authority moves to normalized live profile-version tables.
 todos:
   - id: p0-readme
     content: Write README + index (audits, Full Pack reference, non-goals)

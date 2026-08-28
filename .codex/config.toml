@@ -9,5 +9,19 @@ url = "http://192.168.100.24:54321/mcp"
 [mcp_servers.supabase_remote]
 url = "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
 
+[mcp_servers.supabase_remote_db]
+url = "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+
+[mcp_servers.supabase_remote_with_token]
+command = "npx"
+args = [
+    "-y",
+    "@supabase/mcp-server-supabase@latest",
+    "--access-token",
+    "sbp_266a2fde84f49a466df4d6f8c05f9d388791f3c8",
+    "--project-ref",
+    "ndjjycdgtponhosvztdg",
+]
+
 [history]
 persistence = "save-all"

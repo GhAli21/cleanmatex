@@ -1,13 +1,13 @@
 # 08 — UI/UX Screens
 
-**Status:** P6 tenant profile + public tracking refresh · **Date:** 2026-07-25
+**Status:** P7R Delivery floor matches Ready · **Date:** 2026-08-27
 
 ## 1. Floor UX
 
 - One primary CTA from `listAvailableActions`; show `blockedReasons` clearly (Cmx + `cmxMessage`)
 - No transition graphs; no raw status pickers on happy path
-- Ready: **Mark ready** vs **Release** separated
-- Delivery: finalize via **Confirm delivery** (POD collected in same flow / attached evidence) — not a separate “POD saves status” control
+- Ready: **Mark ready** vs **Release** separated. Ready **list** desk filters use `?focus=` on the same page (`counter` = Pickup desk / waiting at counter). Confirm pickup remains Ready Details only.
+- Delivery: list opens `/dashboard/delivery/{id}`. **Confirm delivery** is a stage-owned card (same pattern as Ready pickup). Generic ActionBar `CONFIRM_DELIVERY` is hidden. An active stop shows the existing proof panel; otherwise staff confirm from the order with optional notes. No dummy route is created.
 - EN/AR + RTL
 
 ## 2. Per-screen integration (V1.0)
@@ -18,9 +18,9 @@
 | Preparation | `preparation` | `COMPLETE_PREPARATION` |
 | Processing | `processing` | leave actions |
 | Assembly / QA / Packing | profile-gated | actions + gates |
-| Ready | `ready_release` | `MARK_READY` / `RELEASE_*` |
-| Pickup | `pickup_counter` | Fin + release + engine |
-| Delivery | `driver_delivery` | Target: atomic `CONFIRM_DELIVERY`; staff writes currently fail-closed pending hardening |
+| Ready | `ready_release` | `MARK_READY` / `RELEASE_*`; stage-owned pickup panel |
+| Pickup | `pickup_handover` | Fin + release + engine; embedded on Ready Details |
+| Delivery | `driver_delivery` | `/dashboard/delivery/[id]`: ActionBar + stage-owned complete; stop panel when a stop exists |
 | Cancel/Return | | Fin then engine |
 
 ## 3. Tenant settings (not a Studio graph editor)
@@ -39,8 +39,9 @@
 
 ## 5. HQ configuration UX
 
-- Lives in Platform HQ (cleanmatexsaas): draft → validate → publish → assign
+- Lives in Platform HQ (cleanmatexsaas): draft → validate → compile → publish → assign
 - Tenant app consumes published assignments via HQ API
+- Simple vs routed delivery is authored here: bind `delivery_stop_active` (and POD evidence) on `CONFIRM_DELIVERY` only for routed profiles. Do not add that gate to catalog `TR_OFD_DELIV`. Preset screens already include `driver_delivery`; the published artifact must still declare the execution edge.
 
 ## 6. Delivery proof and handover audit
 
@@ -54,6 +55,7 @@
 
 - [01_PRD.md](01_PRD.md)
 - [07_Permissions_RBAC_Nav.md](07_Permissions_RBAC_Nav.md)
+- [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md) — page vs module vs `screen_key`
 
 ## 8. Workboard
 
