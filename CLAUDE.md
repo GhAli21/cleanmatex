@@ -13,6 +13,7 @@
 | Dashboard route gating | `/refill-ui-access-contract-permissions` And `/rebuild-ui-access-contract` |
 | RBAC role create / update | `/update-rbac-role` |
 | Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
+| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
 
 **If the skill is not loaded — do not write. Load it, then write.**
 
@@ -109,6 +110,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
 | Dashboard route gating (contract, page/API gates, inventories) | `/rebuild-ui-access-contract` |
 | Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
+| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant generated catalog pin |
 
 **How to enforce:**
 - Plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -270,6 +272,7 @@ npm run build                      # Build (run after changes)
 - `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
 - `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
 - `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
+- `/manage-wf-policy-issues-catalog` — **HQ repo only** (`cleanmatexsaas`). Add/update/retire Check-policy issue catalog rows. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/`
 
 ---
 

@@ -17,14 +17,15 @@ This folder holds three related deliverables:
 |------|---------|---------|
 | [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md) | Definitions: page vs module vs `screen_key`, actions, executions, channels, UI chrome, worked examples | Anyone touching Studio or tenant workflow |
 | [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md) | Situations, couplings, archetypes, warn vs block | HQ Studio / `WorkflowPolicyValidator` owners |
-| [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Implementable issue codes (severity, path, EN/AR, fix) | HQ `WorkflowPolicyValidator` (legacy compiler aliases during cutover only) |
+| [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Narrative for planned codes and operator intent | HQ `WorkflowPolicyValidator` authors |
+| [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md) | **Emit registry** — severity, gates, Studio tab, Auto Fix IDs, seed_must_pass. Maintain in HQ via `/manage-wf-policy-issues-catalog` | HQ catalog generate; tenant seed CI |
 | [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) | Must / Should / Could by version, both repos | Product + both engineering tracks |
 
 ## Authority and limits
 
 - Tenant runtime truth **today:** `WorkflowPolicyResolver` on live profile-version rows (`web-admin/lib/services/workflow/workflow-policy-resolver.service.ts`), consumed by create, floor lists, engine, pickup, Workboard, delivery, and public tracking. Workboard groups by `wf_profile_version_id`. Privacy-safe observe events and support diagnosis: [live_runtime_support.md](../technical_docs/live_runtime_support.md).
-- HQ policy truth **today:** `WfSemanticProfileCompilerService`. **Target:** `WorkflowPolicyValidator` + Check policy. Soft Studio graph advice is **not** a publish gate.
-- DB minimum check: `sys_wf_prof_ver_validate_live` in applied `0470` (+ `0471`) — structural only; it does **not** replace file 02. The guard allows only `pickup_handover` / `CONFIRM_PICKUP` / observed `ready` → `delivered`, and rejects other observer executes. Do not edit applied 0470.
+- HQ policy truth **today:** `WorkflowPolicyValidator` + Check policy, with issue metadata from the typed catalog (`catalog/`). Add/update/retire codes only in HQ after loading `/manage-wf-policy-issues-catalog`. `WfSemanticProfileCompilerService` still emits compatibility codes that the validator maps. Soft Studio graph advice is **not** a publish gate.
+- DB minimum check: `sys_wf_prof_ver_validate_live` in applied `0470` (+ `0471`) — structural only; it does **not** replace the catalog. The guard allows only `pickup_handover` / `CONFIRM_PICKUP` / observed `ready` → `delivered`, and rejects other observer executes. Do not edit applied 0470.
 - Vocabulary: [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md) is canonical for page vs module vs `screen_key`.
 - Full Pack under `CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/` is **reference** for V2, not V1.0 authority.
 - Do **not** build a tenant Workflow Studio. HQ authors; tenant consumes.

@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-27
 **For:** cleanmatexsaas Workflow Studio — live-policy validation, Pilot, Publish, Assign
-**Companion:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)
+**Companion:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md), [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md)  
+**Catalog maintenance:** HQ `/manage-wf-policy-issues-catalog` — do not add a Check-policy `code` only in this file.
 **Implementation plans:**
 `F:\jhapp\cleanmatex\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md`
 and

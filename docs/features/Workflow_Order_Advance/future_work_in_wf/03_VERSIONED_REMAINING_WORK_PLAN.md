@@ -3,6 +3,7 @@
 **Date:** 2026-08-27  
 **Repos:** `cleanmatex` (tenant app + **all** migrations) · `cleanmatexsaas` (HQ authoring)  
 **Validation handoff:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md), [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md), [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)  
+**Catalog maintenance:** add/update Check-policy issue codes only in HQ via `/manage-wf-policy-issues-catalog`. File 02 is narrative, not the emit registry.  
 **Scope lock:** [ADR_SCOPE_AND_CORRECTION_PASS.md](../ADR_SCOPE_AND_CORRECTION_PASS.md)  
 **Runtime target:** [LIVE_NORMALIZED_PROFILE_RUNTIME.md](../LIVE_NORMALIZED_PROFILE_RUNTIME.md) and HQ `ADR-SAAS-MNG-0010`  
 **Full Pack:** `CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/` is **reference for V2**, not V1.0 authority

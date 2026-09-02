@@ -68,6 +68,8 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 
 **Validation + version plan (give to HQ Studio):** [future_work_in_wf/](future_work_in_wf/README.md) — issue-code spec for Check policy/Compile, and the tenant+HQ remaining-work plan through V2.
 
+**Check-policy issue catalog:** generated pin in [generated/](generated/README.md). Add/update/retire codes in HQ (`cleanmatexsaas`) after loading `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant pin.
+
 SaaS-only implementation for **live** workflow config screens:
 
 - `F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\Workflow_Engine_HQ\HQ_BUILD_LIVE_WORKFLOW_SCREENS.md` ← start here (used tables only)

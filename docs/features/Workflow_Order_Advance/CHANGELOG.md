@@ -1,5 +1,9 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-03
+
+- HQ Check-policy issue catalog is the emit registry (severity, gates, Studio tab, Auto Fix IDs, seed_must_pass). Tenant pin: [generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md](generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md). File 02 remains narrative for planned codes. Maintain the catalog in HQ via `/manage-wf-policy-issues-catalog`; never hand-edit generated JSON.
+
 ## Unreleased — 2026-08-29
 
 - Public tracking OFD confirm maps engine `PROFILE_*` to HTTP 409 and `ACTION_NOT_ALLOWED` to 403 (same helper as stage adapters). GET tracking no longer returns rack location.

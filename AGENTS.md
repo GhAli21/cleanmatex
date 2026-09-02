@@ -13,6 +13,7 @@
 | New permission code | Seed into DB via migration — see CRITICAL RULE #11 |
 | Dashboard route gating | Golden path in `.cursor/rules/ui-access-contract-pattern.mdc` + `/rebuild-ui-access-contract` |
 | Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
+| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
 
 **Skipping these rules = build failure and rejected PR.**
 
@@ -102,6 +103,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Any navigation add/modify (sidebar, routes, menu items) | Dual-write: `navigation.ts` + `sys_components_cd` migration |
 | Dashboard route/action/API access gating | `/rebuild-ui-access-contract` + `ui-access-contract-pattern.mdc` |
 | Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
+| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant generated catalog pin |
 
 ---
 

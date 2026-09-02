@@ -1,0 +1,2924 @@
+{
+  "catalog_version": "1.0.0",
+  "schema_version": 1,
+  "generated_from": "cleanmatexsaas/platform-api/src/modules/workflow-engine-config/catalog",
+  "issues": [
+    {
+      "code": "profile_policy_missing",
+      "category": "profile",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy",
+      "studio_tab": "overview",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.profile_policy_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.profile_policy_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "profile_no_enabled_modules",
+      "category": "profile",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.profile_no_enabled_modules.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.profile_no_enabled_modules.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "stage_sequence_blank_status",
+      "category": "journey",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.stage_sequence",
+      "studio_tab": "overview",
+      "locator": [
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.stage_sequence_blank_status.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.stage_sequence_blank_status.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "remove_blank_stages"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "stage_sequence_duplicate_status",
+      "category": "journey",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.stage_sequence",
+      "studio_tab": "overview",
+      "locator": [
+        "statusCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.stage_sequence_duplicate_status.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.stage_sequence_duplicate_status.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "dedupe_stage"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "unsupported_capability_enabled",
+      "category": "profile",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.capabilities",
+      "studio_tab": "overview",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.unsupported_capability_enabled.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.unsupported_capability_enabled.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "module_status_without_enabled_module",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "module_statuses",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "statusCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.module_status_without_enabled_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.module_status_without_enabled_module.steps",
+      "autofix": {
+        "mode": "options",
+        "option_ids": [
+          "enable_named_module",
+          "remove_status_from_disabled_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "status_owner_not_primary_module",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "module_statuses",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "statusCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.status_owner_not_primary_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.status_owner_not_primary_module.steps",
+      "autofix": {
+        "mode": "options",
+        "option_ids": [
+          "observe_on_non_primary",
+          "promote_to_primary_owner"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "status_multiple_primary_owners",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "statuses.owners",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "statusCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.status_multiple_primary_owners.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.status_multiple_primary_owners.steps",
+      "autofix": {
+        "mode": "options",
+        "option_ids": [
+          "keep_typical_owner",
+          "keep_first_owner",
+          "keep_second_owner"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_binding_duplicate",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "toStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_binding_duplicate.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_binding_duplicate.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "normalize_duplicate_bindings"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_without_enabled_module",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_without_enabled_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_without_enabled_module.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_on_observer_module",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_on_observer_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_on_observer_module.steps",
+      "autofix": {
+        "mode": "options",
+        "option_ids": [
+          "move_command_to_owner",
+          "promote_to_primary_owner"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": "direct_counter_pickup_confirm",
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_not_from_status_owner",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_not_from_status_owner.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_not_from_status_owner.steps",
+      "autofix": {
+        "mode": "options",
+        "option_ids": [
+          "use_ready_for_pickup_from",
+          "move_command_to_owner",
+          "give_command_screen_ownership"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": "direct_counter_pickup_confirm",
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_status_not_in_stage_sequence",
+      "category": "journey",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "overview",
+      "locator": [
+        "statusCode",
+        "actionCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_status_not_in_stage_sequence.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_status_not_in_stage_sequence.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "append_stage"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_status_without_owner",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "statusCode",
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_status_without_owner.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_status_without_owner.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "assign_typical_owner"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_without_channel",
+      "category": "channel",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.channels",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_without_channel.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_without_channel.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "add_staff_web_channel"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "public_channel_non_hard_gate_forbidden",
+      "category": "channel",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_channel_non_hard_gate_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_channel_non_hard_gate_forbidden.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "hard_block_public_gates"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "public_channel_execution_forbidden",
+      "category": "channel",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.channels",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "toStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_channel_execution_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_channel_execution_forbidden.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_definition_inactive",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_definition_inactive.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_definition_inactive.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_input_schema_version_mismatch",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_input_schema_version_mismatch.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_input_schema_version_mismatch.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_warning_not_supported",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_warning_not_supported.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_warning_not_supported.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_override_not_supported",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_not_supported.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_not_supported.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_override_permission_inactive",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_permission_inactive.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_permission_inactive.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_override_reason_too_short",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_reason_too_short.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_override_reason_too_short.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_non_blocking_message_missing",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_non_blocking_message_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_non_blocking_message_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "gate_decision_runtime_unavailable",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_decision_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_decision_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "initial_rule_missing",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "ruleCode",
+        "priority"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "initial_rule_status_not_in_stage_sequence",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "ruleCode",
+        "statusCode",
+        "priority",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_status_not_in_stage_sequence.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_status_not_in_stage_sequence.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "append_stage"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "initial_rule_status_without_owner",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "statusCode",
+        "ruleCode",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_status_without_owner.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_status_without_owner.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "assign_typical_owner"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "initial_rule_ambiguous",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "ruleCode",
+        "priority"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_ambiguous.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_ambiguous.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "graph_missing_fulfilment_end",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.stage_sequence",
+      "studio_tab": "modules",
+      "locator": [
+        "statusCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.graph_missing_fulfilment_end.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.graph_missing_fulfilment_end.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "initial_status_unreachable_fulfilment",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "rules",
+      "locator": [
+        "ruleCode",
+        "statusCode",
+        "priority"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_unreachable_fulfilment.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_unreachable_fulfilment.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "start_initial_at_intake"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "pickup_module_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.pickup_handover",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_module_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_module_missing.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "delivery_release_module_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.ready_release",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_release_module_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_release_module_missing.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "delivery_module_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.driver_delivery",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_module_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_module_missing.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "public_tracking_module_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.public_tracking",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_tracking_module_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_tracking_module_missing.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "rack_release_module_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.ready_release",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.rack_release_module_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.rack_release_module_missing.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "pickup_policy_without_pickup",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.pickup",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_policy_without_pickup.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_policy_without_pickup.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "turn_off_pickup_controls"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "delivery_policy_without_delivery",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "policy.delivery",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_policy_without_delivery.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_policy_without_delivery.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "turn_off_delivery_controls"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_method_duplicate",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_method_duplicate.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_method_duplicate.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_runtime_unavailable",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_without_delivery",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_without_delivery.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_without_delivery.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_without_pickup",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_without_pickup.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_without_pickup.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_otp_unsupported",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_unsupported.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_unsupported.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_minimum_count_invalid",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_minimum_count_invalid.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_minimum_count_invalid.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "evidence_otp_runtime_unavailable",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_evidence_runtime_unavailable",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_evidence_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_evidence_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "execution_evidence_policy_missing",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "fulfilment",
+      "locator": [
+        "actionCode",
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_evidence_policy_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_evidence_policy_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "pickup_without_ready_release",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "modules.pickup_handover",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_without_ready_release.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_without_ready_release.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "enable_named_module"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "confirm_pickup_not_on_pickup_handover",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import",
+        "seed"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey",
+        "actionCode",
+        "fromStatus",
+        "toStatus",
+        "displayOrder"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.confirm_pickup_not_on_pickup_handover.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.confirm_pickup_not_on_pickup_handover.steps",
+      "autofix": {
+        "mode": "single",
+        "option_ids": [
+          "move_confirm_pickup_to_handover"
+        ]
+      },
+      "seed_must_pass": true,
+      "exception_of": null,
+      "db_guard": "overlap",
+      "aliases": [],
+      "implementation_status": "emitted"
+    },
+    {
+      "code": "pickup_handover_missing_for_counter",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules.pickup_handover",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_handover_missing_for_counter.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_handover_missing_for_counter.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "delivery_without_ready_release",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules.driver_delivery",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_without_ready_release.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_without_ready_release.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "public_tracking_requires_pickup_release",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules.public_tracking",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_tracking_requires_pickup_release.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_tracking_requires_pickup_release.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "workboard_must_be_observer",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules.workboard",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.workboard_must_be_observer.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.workboard_must_be_observer.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "module_without_status_membership",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.module_without_status_membership.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.module_without_status_membership.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "owner_module_without_execution",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.owner_module_without_execution.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.owner_module_without_execution.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "disabled_stage_without_skip_edge",
+      "category": "journey",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.stage_sequence",
+      "studio_tab": "overview",
+      "locator": [
+        "statusCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.disabled_stage_without_skip_edge.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.disabled_stage_without_skip_edge.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "core_processing_missing",
+      "category": "module_coupling",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules.processing",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.core_processing_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.core_processing_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "staff_web_channel_missing",
+      "category": "channel",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.channels",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.staff_web_channel_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.staff_web_channel_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "public_web_channel_missing",
+      "category": "channel",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.channels",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_web_channel_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_web_channel_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "execution_permission_invalid",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.execution_permission_invalid.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.execution_permission_invalid.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "legacy_mark_ready_forbidden",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.legacy_mark_ready_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.legacy_mark_ready_forbidden.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "return_action_not_supported",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.return_action_not_supported.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.return_action_not_supported.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "invalid_cross_cutting_module",
+      "category": "ownership",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "modules",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.invalid_cross_cutting_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.invalid_cross_cutting_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "terminal_status_forward_action",
+      "category": "execution",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "fromStatus"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.terminal_status_forward_action.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.terminal_status_forward_action.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "pickup_action_on_wrong_module",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_action_on_wrong_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_action_on_wrong_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "delivery_action_on_wrong_module",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_action_on_wrong_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_action_on_wrong_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "release_action_on_wrong_module",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.release_action_on_wrong_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.release_action_on_wrong_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "delivery_stop_gate_on_simple_profile",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_stop_gate_on_simple_profile.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.delivery_stop_gate_on_simple_profile.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "staff_delivery_execution_missing",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.staff_delivery_execution_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.staff_delivery_execution_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "routed_delivery_evidence_incomplete",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.routed_delivery_evidence_incomplete.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.routed_delivery_evidence_incomplete.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "generic_requires_evidence_forbidden",
+      "category": "evidence",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "fulfilment",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.generic_requires_evidence_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.generic_requires_evidence_forbidden.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "pickup_execution_missing",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_execution_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.pickup_execution_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "direct_pickup_from_ready_not_declared",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.allow_direct_counter_pickup",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.direct_pickup_from_ready_not_declared.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.direct_pickup_from_ready_not_declared.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "public_pickup_requires_release_path",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_pickup_requires_release_path.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_pickup_requires_release_path.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "public_cannot_own_pickup_action",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "screenKey"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.public_cannot_own_pickup_action.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.public_cannot_own_pickup_action.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "evidence_otp_optional_dead",
+      "category": "evidence",
+      "severity": "warn",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "evidence",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_optional_dead.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.evidence_otp_optional_dead.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "initial_rule_uncovered_create_path",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "ruleCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_uncovered_create_path.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_uncovered_create_path.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "initial_rule_no_winner",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_no_winner.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_no_winner.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "initial_rule_multiple_winners",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "ruleCode",
+        "priority"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_multiple_winners.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_rule_multiple_winners.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "initial_status_closed_forbidden",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "statusCode",
+        "ruleCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_closed_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_closed_forbidden.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "initial_status_fulfilment_forbidden",
+      "category": "initial_rule",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "initial_rules",
+      "studio_tab": "initialRules",
+      "locator": [
+        "statusCode",
+        "ruleCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_fulfilment_forbidden.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.initial_status_fulfilment_forbidden.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "partial_pickup_runtime_unavailable",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.capabilities",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.partial_pickup_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.partial_pickup_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "partial_delivery_runtime_unavailable",
+      "category": "fulfilment",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.capabilities",
+      "studio_tab": "fulfilment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.partial_delivery_runtime_unavailable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.partial_delivery_runtime_unavailable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "optional_stage_skip_ambiguous",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "fromStatus",
+        "toStatus"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.optional_stage_skip_ambiguous.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.optional_stage_skip_ambiguous.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "optional_stage_skip_missing",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "overview",
+      "locator": [
+        "statusCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.optional_stage_skip_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.optional_stage_skip_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "enabled_stage_unreachable",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.stage_sequence",
+      "studio_tab": "overview",
+      "locator": [
+        "statusCode",
+        "sequenceIndex"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.enabled_stage_unreachable.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.enabled_stage_unreachable.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "illegal_cycle",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "fromStatus",
+        "toStatus",
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.illegal_cycle.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.illegal_cycle.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "back_step_forbidden_by_policy",
+      "category": "reachability",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode",
+        "fromStatus",
+        "toStatus"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.back_step_forbidden_by_policy.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.back_step_forbidden_by_policy.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "gate_evaluator_missing",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_evaluator_missing.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_evaluator_missing.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "gate_requires_disabled_module",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "modules",
+      "locator": [
+        "screenKey",
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_requires_disabled_module.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_requires_disabled_module.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "fulfilment_missing_collection_gate",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.fulfilment_missing_collection_gate.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.fulfilment_missing_collection_gate.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "rack_gate_wrong_action",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.rack_gate_wrong_action.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.rack_gate_wrong_action.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "gate_parameters_invalid",
+      "category": "gate",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "executions.gates",
+      "studio_tab": "rules",
+      "locator": [
+        "actionCode"
+      ],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.gate_parameters_invalid.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.gate_parameters_invalid.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "override_permission_not_in_tenant_roles",
+      "category": "assignment",
+      "severity": "assign_warn",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.override_permission_not_in_tenant_roles.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.override_permission_not_in_tenant_roles.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_scope_conflict",
+      "category": "assignment",
+      "severity": "assign_error",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_scope_conflict.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_scope_conflict.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_duplicate_tenant_default",
+      "category": "assignment",
+      "severity": "assign_error",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_duplicate_tenant_default.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_duplicate_tenant_default.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_service_scope_never_used",
+      "category": "assignment",
+      "severity": "assign_warn",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_service_scope_never_used.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_service_scope_never_used.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_mixed_service_split_required",
+      "category": "assignment",
+      "severity": "assign_warn",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_mixed_service_split_required.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_mixed_service_split_required.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_pilot_not_demo_tenant",
+      "category": "assignment",
+      "severity": "assign_error",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_pilot_not_demo_tenant.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_pilot_not_demo_tenant.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_missing_published_for_unpinned",
+      "category": "assignment",
+      "severity": "assign_error",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_missing_published_for_unpinned.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_missing_published_for_unpinned.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_policy_invalid",
+      "category": "assignment",
+      "severity": "assign_error",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_policy_invalid.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_policy_invalid.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "assign_does_not_move_open_orders",
+      "category": "assignment",
+      "severity": "assign_warn",
+      "gates": [
+        "assign"
+      ],
+      "path": "assignment",
+      "studio_tab": "assignment",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.assign_does_not_move_open_orders.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.assign_does_not_move_open_orders.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "policy_check_stale",
+      "category": "lifecycle",
+      "severity": "warn",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy",
+      "studio_tab": "validation",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.policy_check_stale.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.policy_check_stale.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    },
+    {
+      "code": "policy_flag_without_runtime_surface",
+      "category": "profile",
+      "severity": "error",
+      "gates": [
+        "check_policy",
+        "pilot",
+        "publish",
+        "starter_import"
+      ],
+      "path": "policy.capabilities",
+      "studio_tab": "overview",
+      "locator": [],
+      "message_key": "workflowEngineConfig.studio.compileIssues.codes.policy_flag_without_runtime_surface.meaning",
+      "hint_key": "workflowEngineConfig.studio.compileIssues.codes.policy_flag_without_runtime_surface.steps",
+      "autofix": {
+        "mode": "none",
+        "option_ids": []
+      },
+      "seed_must_pass": false,
+      "exception_of": null,
+      "db_guard": "none",
+      "aliases": [],
+      "implementation_status": "planned"
+    }
+  ]
+}

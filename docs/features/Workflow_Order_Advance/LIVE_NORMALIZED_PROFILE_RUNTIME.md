@@ -9,7 +9,10 @@ Vocabulary: [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF
 `WorkflowPolicyResolver` is the **only** tenant policy loader. HQ
 `WorkflowPolicyValidator` authors/checks policy; the tenant must not grow a
 second Check-policy engine. The DB helper `sys_wf_prof_ver_validate_live` is
-integrity-only.
+integrity-only. Check-policy issue metadata lives in the HQ catalog
+([generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md](generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md)).
+Add/update/retire codes in HQ after loading `/manage-wf-policy-issues-catalog`;
+do not hand-edit the tenant pin. Tenant uses `seed_must_pass` for platform seed CI.
 
 Floor worklists, Workboard, available-actions, command execution, pickup,
 delivery, and public tracking consume this resolver. Workboard grouping uses

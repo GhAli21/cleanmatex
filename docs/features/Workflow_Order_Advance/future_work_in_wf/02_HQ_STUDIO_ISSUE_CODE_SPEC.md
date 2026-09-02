@@ -1,7 +1,17 @@
 # 02 — HQ Studio issue-code spec
 
-**Date:** 2026-08-27
+**Date:** 2026-08-27  
+**Updated:** 2026-09-03 — emit registry moved to the generated catalog  
 **For:** HQ `WorkflowPolicyValidator` on the direct normalized profile-version model (ADR-SAAS-MNG-0010)
+
+**Living registry (authority):** [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md)  
+Pinned JSON: [wf-policy-issue-catalog.json](../generated/wf-policy-issue-catalog.json)  
+HQ TypeScript: `cleanmatexsaas/platform-api/src/modules/workflow-engine-config/catalog/`  
+**Maintain in HQ:** load `/manage-wf-policy-issues-catalog` before adding, updating, promoting, demoting, or retiring a code. Do not hand-edit the generated pin.
+
+This file remains the **narrative** for planned codes and operator-facing EN/AR intent.  
+Do not add a new Check-policy `code` here without a catalog row in the same change.
+
 **Vocabulary:** [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md)  
 **Situations:** [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md)
 

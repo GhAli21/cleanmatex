@@ -412,7 +412,8 @@ HQ Studio: `cleanmatexsaas` `WorkflowPolicyValidator` and Module coverage UI. Do
 ## 9. Related docs
 
 - Validation situations: [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md)
-- Issue codes: [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)
+- Issue codes (narrative): [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md)
+- Issue catalog (emit registry): [GENERATED_WF_POLICY_ISSUE_CATALOG.md](../generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md) — maintain in HQ via `/manage-wf-policy-issues-catalog`
 - Version plan (includes page table): [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) §8
 - Status / action / transition codes: [04_Status_and_Vocabulary.md](../04_Status_and_Vocabulary.md)
 - Floor UX: [08_UI_UX_Screens.md](../08_UI_UX_Screens.md)
