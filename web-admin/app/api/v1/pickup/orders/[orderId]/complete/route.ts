@@ -15,6 +15,7 @@ import {
 } from '@/lib/auth/request-permission-auth';
 import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolvePosEligibleWorkflowCommandChannel } from '@/lib/api/workflow-command-pos-channel';
 import {
   completePickup,
   PickupCompletionError,
@@ -95,6 +96,11 @@ export async function POST(
       actorName: auth.userName,
       idempotencyKey: idempotencyKey.data,
       ...parsed.data,
+      channel: await resolvePosEligibleWorkflowCommandChannel({
+        request,
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+      }),
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (error) {

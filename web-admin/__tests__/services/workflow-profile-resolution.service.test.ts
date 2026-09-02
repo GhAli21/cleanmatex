@@ -13,8 +13,6 @@ import {
 const TENANT_ID = '11111111-1111-1111-1111-111111111111';
 const PROFILE_ID = 'a1000000-0000-4000-8000-000000000001';
 const VERSION_ID = 'b1000000-0000-4000-8000-000000000001';
-const ARTIFACT_ID = 'c1000000-0000-4000-8000-000000000001';
-const CHECKSUM = 'a'.repeat(64);
 
 function executableVersion(
   versionNo: number,
@@ -28,31 +26,19 @@ function executableVersion(
     based_on_template_id: basedOnTemplateId,
     version_status: versionStatus,
     policy_revision: 3,
-    compiled_schema_version: 1,
-    compiled_checksum: CHECKSUM,
-    current_artifact_id: ARTIFACT_ID,
   };
 }
 
-function validArtifact() {
-  return {
-    artifact_id: ARTIFACT_ID,
-    version_id: VERSION_ID,
-    policy_revision: 3,
-    artifact_schema_version: 1,
-    artifact_checksum: CHECKSUM,
-    compiled_artifact: {
-      initial_rules: [{
-        rule_code: 'DEFAULT',
-        order_source_code: null,
-        order_type_id: null,
-        is_retail: null,
-        is_quick_drop: null,
-        initial_status: 'intake',
-        priority: 1,
-      }],
-    },
-  };
+function validInitialRules() {
+  return [{
+    rule_code: 'DEFAULT',
+    order_source_code: null,
+    order_type_id: null,
+    is_retail: null,
+    is_quick_drop: null,
+    initial_status: 'intake',
+    priority: 1,
+  }];
 }
 
 function transactionWithRows(...rows: unknown[][]) {
@@ -95,7 +81,7 @@ describe('workflow profile resolution', () => {
       }],
       [{ is_hq_test_demo: false }],
       [executableVersion(2, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')],
-      [validArtifact()],
+      validInitialRules(),
     );
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toEqual({
@@ -103,18 +89,18 @@ describe('workflow profile resolution', () => {
       versionNo: 2,
       basedOnTemplateId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       versionId: VERSION_ID,
-      artifactId: ARTIFACT_ID,
+      artifactId: null,
       policyRevision: 3,
-      artifactSchemaVersion: 1,
-      artifactChecksum: CHECKSUM,
+      artifactSchemaVersion: null,
+      artifactChecksum: null,
       initialRules: [expect.objectContaining({ rule_code: 'DEFAULT', initial_status: 'intake' })],
     });
 
-    const artifactSql = sqlTextFromQueryRawCall(
+    const initSql = sqlTextFromQueryRawCall(
       (tx as { $queryRaw: jest.Mock }).$queryRaw.mock.calls[3] as unknown[],
     );
-    expect(artifactSql).toContain('sys_wf_prof_ver_artifact_cf');
-    expect(artifactSql).not.toMatch(/\bis_active\b/);
+    expect(initSql).toContain('sys_wf_prof_ver_init_cf');
+    expect(initSql).not.toContain('sys_wf_prof_ver_artifact_cf');
   });
 
   it('uses a branch assignment ahead of the tenant default', async () => {
@@ -140,7 +126,7 @@ describe('workflow profile resolution', () => {
       ],
       [{ is_hq_test_demo: false }],
       [executableVersion(3, null)],
-      [validArtifact()],
+      validInitialRules(),
     );
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID, branchId })).resolves.toMatchObject({
@@ -188,7 +174,7 @@ describe('workflow profile resolution', () => {
       }],
       [{ is_hq_test_demo: false }],
       [executableVersion(1, null)],
-      [validArtifact()],
+      validInitialRules(),
       [{
         wf_profile_id: PROFILE_ID,
         wf_version_no: 2,
@@ -199,7 +185,7 @@ describe('workflow profile resolution', () => {
       }],
       [{ is_hq_test_demo: false }],
       [executableVersion(2, null)],
-      [validArtifact()],
+      validInitialRules(),
     );
 
     await expect(resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
@@ -242,12 +228,12 @@ describe('workflow profile resolution', () => {
       }],
       [{ is_hq_test_demo: true }],
       [executableVersion(1, null, 'PILOT')],
-      [validArtifact()],
+      validInitialRules(),
     );
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toMatchObject({
       versionNo: 1,
-      artifactId: ARTIFACT_ID,
+      artifactId: null,
     });
   });
 
@@ -285,7 +271,7 @@ describe('workflow profile resolution', () => {
         { ...executableVersion(2, null, 'PILOT'), version_id: 'b1000000-0000-4000-8000-000000000002' },
         executableVersion(1, null, 'PUBLISHED'),
       ],
-      [validArtifact()],
+      validInitialRules(),
     );
 
     await expect(resolveWorkflowProfileBindingWithPrisma(tx, { tenantId: TENANT_ID })).resolves.toMatchObject({

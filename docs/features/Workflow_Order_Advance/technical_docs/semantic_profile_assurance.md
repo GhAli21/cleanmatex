@@ -1,5 +1,7 @@
 # Semantic profile assurance
 
+**Superseded for live runtime:** use [live_runtime_assurance.md](live_runtime_assurance.md). This file records the compiled-artifact assurance slice and is not V1.0 runtime law.
+
 Automated coverage for the tenant semantic-profile runtime. This is not the
 staff S10 operator/e2e canary.
 

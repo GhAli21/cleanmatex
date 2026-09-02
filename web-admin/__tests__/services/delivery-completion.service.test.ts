@@ -92,7 +92,7 @@ describe('completeDelivery', () => {
     mockIdempotencyUpdateMany.mockResolvedValue({ count: 1 });
     mockExecuteRaw.mockResolvedValue(1);
     mockExecuteAction.mockResolvedValue({ ok: true, currentStatus: 'delivered', stateVersion: 6 });
-    mockLoadArtifact.mockResolvedValue(null);
+    mockLoadArtifact.mockResolvedValue({ evidence: [] });
   });
 
   it('rejects over-limit photo receipts inside the shared command before a workflow write', async () => {
@@ -166,6 +166,7 @@ describe('completeDelivery', () => {
         tenantId: COMMAND.tenantId,
         orderId,
         actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+        channel: 'staff_web',
         input: expect.objectContaining({ podId: '55555555-5555-4555-8555-555555555555' }),
       }),
       expect.anything(),
@@ -240,6 +241,23 @@ describe('completeDelivery', () => {
     })).rejects.toMatchObject<DeliveryCompletionError>({
       code: 'STOP_NOT_FOUND',
       httpStatus: 404,
+    });
+
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unbound stop instead of confirming delivery without live policy', async () => {
+    mockLoadArtifact.mockResolvedValue(null);
+    mockQueryRaw
+      .mockResolvedValueOnce([lockedStop()])
+      .mockResolvedValueOnce([]);
+
+    await expect(completeDelivery({
+      ...COMMAND,
+      signatureEvidenceId: EVIDENCE_ID,
+    })).rejects.toMatchObject<DeliveryCompletionError>({
+      code: 'DELIVERY_POLICY_UNAVAILABLE',
+      httpStatus: 422,
     });
 
     expect(mockExecuteAction).not.toHaveBeenCalled();

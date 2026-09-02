@@ -31,7 +31,7 @@ interface ProfilePairRow {
 }
 
 interface StatusScope {
-  artifactId: string
+  versionId: string
   statuses: string[]
 }
 
@@ -91,7 +91,7 @@ function uniqueStatuses(values: Iterable<string>): string[] {
 function scopePredicate(scope: StatusScope): Prisma.Sql {
   const statusClause = Prisma.sql`o.current_status IN (${Prisma.join(scope.statuses)})`
   return Prisma.sql`(
-    o.wf_profile_artifact_id = ${scope.artifactId}::uuid
+    o.wf_profile_version_id = ${scope.versionId}::uuid
     AND ${statusClause}
   )`
 }
@@ -187,7 +187,7 @@ function statusesForSemanticScreen(
   return [...statuses]
 }
 
-/** Loads a compiled artifact for queue scoping; incomplete snapshots are skipped, not listed via a graph pin. */
+/** Loads live policy for queue scoping; incomplete bindings are skipped. */
 async function loadSemanticArtifactForScope(
   pair: ProfilePairRow,
 ): Promise<SemanticWorkflowArtifact | null> {
@@ -215,25 +215,23 @@ async function resolveScopes(
     FROM public.org_orders_mst
     WHERE tenant_org_id = ${tenantId}::uuid
       AND COALESCE(rec_status, 1) <> 0
-      AND (
-        (wf_profile_id IS NOT NULL AND wf_version_no IS NOT NULL)
-        OR wf_profile_artifact_id IS NOT NULL
-        OR wf_profile_version_id IS NOT NULL
-        OR wf_profile_revision IS NOT NULL
-        OR wf_profile_checksum IS NOT NULL
-        OR wf_profile_schema_version IS NOT NULL
-      )
+      AND wf_profile_id IS NOT NULL
+      AND wf_version_no IS NOT NULL
+      AND wf_profile_version_id IS NOT NULL
   `
 
   const scopes: StatusScope[] = []
+  const seenVersions = new Set<string>()
 
   for (const pair of profilePairs) {
+    if (!pair.wf_profile_version_id || seenVersions.has(pair.wf_profile_version_id)) continue
+    seenVersions.add(pair.wf_profile_version_id)
     const artifact = await loadSemanticArtifactForScope(pair)
-    if (!artifact || !pair.wf_profile_artifact_id) continue
+    if (!artifact) continue
     const statuses = statusesForSemanticScreen(screens, artifact)
     if (statuses.length > 0) {
       scopes.push({
-        artifactId: pair.wf_profile_artifact_id,
+        versionId: pair.wf_profile_version_id,
         statuses,
       })
     }
@@ -243,8 +241,8 @@ async function resolveScopes(
 }
 
 /**
- * Lists the current page of floor-screen order IDs using each order's runtime
- * policy. Orders without a complete valid compiled artifact are excluded.
+ * Lists the current page of floor-screen order IDs using each order's live
+ * profile-version policy. Orders without a complete version binding are excluded.
  *
  * @param tenantId Authenticated tenant resolved by the API adapter.
  * @param input Floor screen, paging, and optional operator filters.

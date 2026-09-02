@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolvePosEligibleWorkflowCommandChannel } from '@/lib/api/workflow-command-pos-channel';
 import { logger } from '@/lib/utils/logger';
 import {
   WorkflowEngineError,
@@ -88,10 +90,17 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
     }
 
     try {
+      const channel = await resolvePosEligibleWorkflowCommandChannel({
+        request,
+        tenantId,
+        userId,
+        orderBranchId: order.branch_id,
+      });
       const available = await listAvailableActions({
         tenantId,
         orderId,
         screen: 'new_order',
+        channel,
       });
       await executeAction({
         tenantId,
@@ -105,6 +114,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
           notes: body.receivedInfo ?? 'Physical intake confirmed',
           physicalIntakeInfo: body.physicalIntakeInfo ?? null,
         },
+        channel,
         idempotencyKey:
           request.headers.get('Idempotency-Key')?.trim() ||
           `confirm-physical-intake:${orderId}`,
@@ -128,8 +138,15 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
           success: false,
           error: message,
           code: error instanceof WorkflowEngineError ? error.code : undefined,
+          blockedReasons:
+            error instanceof WorkflowEngineError ? error.blockedReasons : undefined,
         },
-        { status: error instanceof WorkflowEngineError && error.code === 'VERSION_CONFLICT' ? 409 : 400 },
+        {
+          status:
+            error instanceof WorkflowEngineError
+              ? httpStatusForWorkflowEngineError(error.code)
+              : 400,
+        },
       );
     }
 

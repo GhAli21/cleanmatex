@@ -39,8 +39,14 @@ jest.mock('@/lib/services/order-service', () => ({
 
 jest.mock('@/lib/services/workflow/workflow-engine.service', () => ({
   WorkflowEngineError: class WorkflowEngineError extends Error {
-    code?: string;
+    code: string;
     blockedReasons?: string[];
+
+    constructor(code: string, message: string, blockedReasons?: string[]) {
+      super(message);
+      this.code = code;
+      this.blockedReasons = blockedReasons;
+    }
   },
   executeAction: jest.fn(),
   listAvailableActions: jest.fn(),
@@ -83,6 +89,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   executeAction,
   listAvailableActions,
+  WorkflowEngineError,
 } from '@/lib/services/workflow/workflow-engine.service';
 import { completePickup } from '@/lib/services/pickup/pickup-completion.service';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
@@ -327,8 +334,62 @@ describe('public-order-tracking service', () => {
         orderNo: 'ORD-20260813-0002',
       });
 
-      expect(result).toMatchObject({ status: 400, body: { success: false } });
+      expect(result).toMatchObject({
+        status: 400,
+        body: { success: false, code: 'ORDER_STATUS_NOT_CONFIRMABLE' },
+      });
       expect(executeAction).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Public confirm-received rejected',
+        expect.objectContaining({
+          event: 'wf.public_confirm.rejected',
+          tenantId: 'tenant-1',
+          orderId: 'order-1',
+          httpStatus: 400,
+        }),
+      );
+    });
+
+    it('maps an unbound live-policy confirm to HTTP 409', async () => {
+      mockOrderLookup('out_for_delivery');
+      (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
+      (executeAction as jest.Mock).mockRejectedValueOnce(
+        new WorkflowEngineError(
+          'PROFILE_SNAPSHOT_INCOMPLETE',
+          'The order has an incomplete workflow profile binding.',
+        ),
+      );
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 409,
+        body: { success: false, code: 'PROFILE_SNAPSHOT_INCOMPLETE' },
+      });
+    });
+
+    it('maps a public channel mismatch to HTTP 403', async () => {
+      mockOrderLookup('out_for_delivery');
+      (listAvailableActions as jest.Mock).mockResolvedValueOnce({ stateVersion: 7 });
+      (executeAction as jest.Mock).mockRejectedValueOnce(
+        new WorkflowEngineError(
+          'ACTION_NOT_ALLOWED',
+          'This action is not available on the public tracking channel.',
+        ),
+      );
+
+      const result = await confirmPublicOrderReceivedResponse(request as never, {
+        tenantId: 'tenant-1',
+        orderNo: 'ORD-20260813-0002',
+      });
+
+      expect(result).toMatchObject({
+        status: 403,
+        body: { success: false, code: 'ACTION_NOT_ALLOWED' },
+      });
     });
   });
 });

@@ -9,6 +9,7 @@
 -- Safety: Forward-only and non-destructive. It does not delete artifact rows
 --         or historical order values; application deployment switches reads
 --         to normalized tables after this migration is reviewed and applied.
+-- Status: OPEN review draft. Not applied. Not accepted. Do not treat as live.
 -- Dependencies: 0457, 0458, 0464, 0468, 0469.
 -- ============================================================================
 
@@ -133,6 +134,60 @@ BEGIN
     WHERE executable.version_id = p_version_id
       AND executable.is_active = true
       AND executable.rec_status = 1
+      AND executable.action_code = 'CONFIRM_PICKUP'
+      AND executable.screen_key <> 'pickup_handover'
+  ) THEN
+    RAISE EXCEPTION
+      'sys_wf_prof_ver_validate_live: CONFIRM_PICKUP must be bound on pickup_handover';
+  END IF;
+
+  -- Ordinary executables need owner visibility on the executing module.
+  -- Direct counter pickup is the only V1 exception: pickup_handover may
+  -- CONFIRM_PICKUP from observed ready to delivered. Observer membership is
+  -- not a general execute grant.
+  IF EXISTS (
+    SELECT 1
+    FROM public.sys_wf_prof_ver_exec_cf AS executable
+    WHERE executable.version_id = p_version_id
+      AND executable.is_active = true
+      AND executable.rec_status = 1
+      AND NOT (
+        executable.screen_key = 'pickup_handover'
+        AND executable.action_code = 'CONFIRM_PICKUP'
+        AND executable.from_status = 'ready'
+        AND executable.to_status = 'delivered'
+        AND EXISTS (
+          SELECT 1
+          FROM public.sys_wf_prof_ver_module_cf AS pickup_module
+          INNER JOIN public.sys_wf_prof_ver_mod_st_cf AS ready_observe
+            ON ready_observe.version_id = pickup_module.version_id
+           AND ready_observe.screen_key = pickup_module.screen_key
+          INNER JOIN public.sys_wf_prof_ver_module_cf AS ready_owner
+            ON ready_owner.version_id = pickup_module.version_id
+          INNER JOIN public.sys_wf_prof_ver_mod_st_cf AS ready_owned
+            ON ready_owned.version_id = ready_owner.version_id
+           AND ready_owned.screen_key = ready_owner.screen_key
+          WHERE pickup_module.version_id = executable.version_id
+            AND pickup_module.screen_key = 'pickup_handover'
+            AND pickup_module.module_mode = 'primary_owner'
+            AND pickup_module.is_enabled = true
+            AND pickup_module.is_active = true
+            AND pickup_module.rec_status = 1
+            AND ready_observe.status_code = 'ready'
+            AND ready_observe.visibility_mode = 'observer'
+            AND ready_observe.is_active = true
+            AND ready_observe.rec_status = 1
+            AND ready_owner.screen_key = 'ready_release'
+            AND ready_owner.module_mode = 'primary_owner'
+            AND ready_owner.is_enabled = true
+            AND ready_owner.is_active = true
+            AND ready_owner.rec_status = 1
+            AND ready_owned.status_code = 'ready'
+            AND ready_owned.visibility_mode = 'owner'
+            AND ready_owned.is_active = true
+            AND ready_owned.rec_status = 1
+        )
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM public.sys_wf_prof_ver_module_cf AS module_row
@@ -187,7 +242,7 @@ $$;
 REVOKE ALL ON FUNCTION public.sys_wf_prof_ver_validate_live(UUID) FROM PUBLIC;
 
 COMMENT ON FUNCTION public.sys_wf_prof_ver_validate_live(UUID) IS
-  'Internal relational completeness guard for Pilot, Published, and assigned workflow profile versions; not a runtime policy resolver or public RPC.';
+  'Internal relational completeness guard for Pilot, Published, and assigned workflow profile versions. Allows only the declared pickup_handover CONFIRM_PICKUP from observed ready to delivered; not a runtime policy resolver or public RPC.';
 
 -- ---------------------------------------------------------------------------
 -- 3) Lifecycle remains strict, but Pilot/Published validity is now proven

@@ -73,7 +73,7 @@ describe('completeDeliveryByOrder', () => {
     }));
     mockIdempotencyUpdateMany.mockResolvedValue({ count: 1 });
     mockExecuteAction.mockResolvedValue({ ok: true, currentStatus: 'delivered', stateVersion: 6 });
-    mockLoadArtifact.mockResolvedValue(null);
+    mockLoadArtifact.mockResolvedValue({ evidence: [] });
   });
 
   it('blocks pay-on-collection handover before a workflow write', async () => {
@@ -122,6 +122,7 @@ describe('completeDeliveryByOrder', () => {
         orderId: COMMAND.orderId,
         screen: 'driver_delivery',
         actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
+        channel: 'staff_web',
         input: expect.objectContaining({
           handoverMode: 'ad_hoc',
           podMethodCode: 'NOTES',
@@ -130,6 +131,20 @@ describe('completeDeliveryByOrder', () => {
       }),
       expect.anything(),
     );
+  });
+
+  it('rejects an unbound order instead of confirming delivery without live policy', async () => {
+    mockLoadArtifact.mockResolvedValue(null);
+    mockQueryRaw
+      .mockResolvedValueOnce([lockedOrder()])
+      .mockResolvedValueOnce([]);
+
+    await expect(completeDeliveryByOrder(COMMAND)).rejects.toMatchObject<DeliveryCompletionError>({
+      code: 'DELIVERY_POLICY_UNAVAILABLE',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteAction).not.toHaveBeenCalled();
   });
 
   it('rejects compiled photo proof when there is no stop to attach evidence to', async () => {

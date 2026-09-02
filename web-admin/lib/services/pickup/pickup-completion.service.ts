@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/utils/logger';
+import { observeWorkflowFulfilmentCommitted } from '@/lib/services/workflow/workflow-observability';
 import {
   claimIdempotencyKey,
   deleteIdempotencyHash,
@@ -18,6 +19,7 @@ import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import {
   loadSemanticWorkflowArtifactForOrder,
   SemanticWorkflowArtifactError,
+  type SemanticWorkflowCommandChannel,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 import {
   assertCompiledPickupEvidence,
@@ -36,6 +38,7 @@ export type PickupCompletionErrorCode =
   | 'PICKUP_PARTIAL_RELEASE_UNSUPPORTED'
   | 'PICKUP_NOTES_REQUIRED'
   | 'PICKUP_POLICY_UNAVAILABLE'
+  | 'PICKUP_DIRECT_NOT_ALLOWED'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
 
@@ -75,6 +78,11 @@ export interface CompletePickupCommand {
   handoverNotes?: string;
   /** Public confirmation may only fulfil an already released pickup order. */
   requireReleasedPickup?: boolean;
+  /**
+   * Server-derived command channel. Public released-pickup confirm stays on
+   * `staff_web` because 0472 binds CONFIRM_PICKUP to staff_web/pos, not public_web.
+   */
+  channel?: SemanticWorkflowCommandChannel;
 }
 
 /** Replay-safe outcome for a completed pickup handover. */
@@ -290,7 +298,7 @@ async function loadPickupArtifact(order: LockedPickupOrder) {
     if (error instanceof SemanticWorkflowArtifactError) {
       throw new PickupCompletionError(
         'PICKUP_POLICY_UNAVAILABLE',
-        'The compiled pickup policy could not be loaded.',
+        'The pickup policy could not be loaded.',
         422,
       );
     }
@@ -298,8 +306,10 @@ async function loadPickupArtifact(order: LockedPickupOrder) {
   }
 }
 
-async function assertPickupEvidence(order: LockedPickupOrder, handoverNotes?: string): Promise<void> {
-  const artifact = await loadPickupArtifact(order);
+async function assertPickupEvidence(
+  artifact: Awaited<ReturnType<typeof loadPickupArtifact>>,
+  handoverNotes?: string,
+): Promise<void> {
   try {
     assertCompiledPickupEvidence({
       evidence: artifact?.evidence ?? [],
@@ -311,6 +321,21 @@ async function assertPickupEvidence(order: LockedPickupOrder, handoverNotes?: st
     }
     throw error;
   }
+}
+
+/**
+ * Direct `ready` handover is allowed only when the live profile switch is on.
+ * Staged `ready_for_pickup` does not use this switch.
+ */
+function assertDirectCounterPickupAllowed(
+  artifact: Awaited<ReturnType<typeof loadPickupArtifact>>,
+): void {
+  if (artifact?.allow_direct_counter_pickup === true) return;
+  throw new PickupCompletionError(
+    'PICKUP_DIRECT_NOT_ALLOWED',
+    'This workflow profile requires a pickup release before counter handover.',
+    422,
+  );
 }
 
 /**
@@ -391,7 +416,18 @@ export async function completePickup(
         );
       }
 
-      await assertPickupEvidence(order, params.handoverNotes);
+      const pickupPolicy = await loadPickupArtifact(order);
+      if (!pickupPolicy) {
+        throw new PickupCompletionError(
+          'PICKUP_POLICY_UNAVAILABLE',
+          'The pickup policy could not be loaded.',
+          422,
+        );
+      }
+      await assertPickupEvidence(pickupPolicy, params.handoverNotes);
+      if (isDirectCounterPickup) {
+        assertDirectCounterPickupAllowed(pickupPolicy);
+      }
 
       const openReleases = await lockReleasedPickupRecords(tx, params.tenantId, params.orderId);
       const now = new Date();
@@ -418,6 +454,7 @@ export async function completePickup(
           handoverNotes: params.handoverNotes?.trim() || null,
         },
         idempotencyKey: `pickup:${params.idempotencyKey}`,
+        channel: params.channel ?? 'staff_web',
       }, tx);
 
       const commandResult: CompletePickupResult = {
@@ -448,6 +485,12 @@ export async function completePickup(
       releaseIds: result.releaseIds,
       feature: 'pickup',
       action: 'complete_pickup',
+    });
+    observeWorkflowFulfilmentCommitted({
+      kind: 'pickup',
+      tenantId: params.tenantId,
+      orderId: params.orderId,
+      channel: params.channel,
     });
     return result;
   } catch (error) {

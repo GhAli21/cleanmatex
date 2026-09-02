@@ -19,6 +19,7 @@ import {
   DELIVERY_HARDENING_ERROR,
   STAFF_DELIVERY_COMPLETION_ENABLED,
 } from '@/lib/config/delivery-safety';
+import { resolvePosEligibleWorkflowCommandChannel } from '@/lib/api/workflow-command-pos-channel';
 
 const completeDeliverySchema = z.object({
   expectedStateVersion: z.number().int().nonnegative(),
@@ -69,6 +70,11 @@ export async function POST(
       actorUserId: auth.userId,
       actorName: auth.userName,
       ...parsed.data,
+      channel: await resolvePosEligibleWorkflowCommandChannel({
+        request,
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+      }),
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (error) {

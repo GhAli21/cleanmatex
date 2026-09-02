@@ -5,6 +5,7 @@
 Run from `web-admin`:
 
 ```bash
+npx jest __tests__/services/workflow-policy-resolver.service.test.ts __tests__/services/semantic-workflow-artifact.service.test.ts __tests__/services/semantic-workflow-runtime.service.test.ts __tests__/services/workflow-engine.no-legacy.test.ts --runInBand
 npx jest __tests__/api/v1/preparation-completion.route.test.ts __tests__/api/v1/delivery-safety.route.test.ts --runInBand
 npx jest __tests__/services/complete-delivery-by-order.service.test.ts __tests__/services/delivery-completion.service.test.ts --runInBand
 npx jest __tests__/services/delivery-proof-audit.service.test.ts __tests__/api/v1/delivery-proof-audit.route.test.ts --runInBand
@@ -17,6 +18,8 @@ npx eslint . --quiet
 npx tsc --noEmit
 npm run build
 ```
+
+2026-08-29 live-runtime assurance evidence: resolver unit tests prove Published cache, Pilot reload, RETIRED/mismatch fail-closed, no assignment/artifact SQL, and missing-channel invalid. Runtime tests prove 0472 `mobile` deny on staff_web-only floor execs and `public_web` deny on `CONFIRM_PICKUP`. Source scan covers resolver, create binding, Workboard, floor lists, pickup, delivery, and public tracking. See [technical_docs/live_runtime_assurance.md](technical_docs/live_runtime_assurance.md). Residual: S10 canary, performance soak, local demo assignment if using local DB.
 
 2026-08-21 implementation evidence: focused Delivery proof/audit service and API tests pass, in addition to the existing Preparation and Delivery fail-closed API coverage. Earlier evidence: 8 Jest suites / 49 tests passed; anonymous Playwright 2/2 passed; full ESLint passed; production build passed across 271 pages/routes. Standalone TypeScript diagnostics outside this cutover must still be tracked separately.
 

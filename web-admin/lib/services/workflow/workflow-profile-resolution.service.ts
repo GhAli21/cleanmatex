@@ -3,16 +3,16 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Prisma } from '@prisma/client';
 
-/** Persisted workflow profile/version snapshot for a newly created order. */
+/** Persisted workflow profile/version binding for a newly created order. */
 export interface ResolvedWorkflowProfileBinding {
   profileId: string;
   versionNo: number;
   basedOnTemplateId: string | null;
   versionId: string;
-  artifactId: string;
+  artifactId: string | null;
   policyRevision: number;
-  artifactSchemaVersion: number;
-  artifactChecksum: string;
+  artifactSchemaVersion: number | null;
+  artifactChecksum: string | null;
   initialRules: ResolvedWorkflowInitialRule[];
 }
 
@@ -72,18 +72,6 @@ interface VersionRow {
   based_on_template_id: string | null;
   version_status: 'PILOT' | 'PUBLISHED';
   policy_revision: number;
-  compiled_schema_version: number | null;
-  compiled_checksum: string | null;
-  current_artifact_id: string | null;
-}
-
-interface ArtifactRow {
-  artifact_id: string;
-  version_id: string;
-  policy_revision: number;
-  artifact_schema_version: number;
-  artifact_checksum: string;
-  compiled_artifact: unknown;
 }
 
 function assignmentMatches(
@@ -171,63 +159,44 @@ function chooseExecutableVersion(
   return version;
 }
 
-function parseInitialRules(compiledArtifact: unknown): ResolvedWorkflowInitialRule[] {
-  if (!compiledArtifact || typeof compiledArtifact !== 'object') {
-    throw new WorkflowProfileResolutionError('The workflow artifact is malformed. Contact your platform administrator.');
-  }
-  const candidate = compiledArtifact as { initial_rules?: unknown };
-  if (!Array.isArray(candidate.initial_rules)) {
-    throw new WorkflowProfileResolutionError('The workflow artifact has no initial-rule contract. Contact your platform administrator.');
+function parseInitialRules(rows: ResolvedWorkflowInitialRule[]): ResolvedWorkflowInitialRule[] {
+  if (rows.length === 0) {
+    throw new WorkflowProfileResolutionError(
+      'The assigned workflow profile has no initial-rule contract. Contact your platform administrator.',
+    );
   }
 
-  return candidate.initial_rules.map((rule) => {
-    if (!rule || typeof rule !== 'object') {
-      throw new WorkflowProfileResolutionError('The workflow artifact contains an invalid initial rule.');
-    }
-    const value = rule as Partial<ResolvedWorkflowInitialRule>;
+  return rows.map((rule) => {
     if (
-      typeof value.rule_code !== 'string'
-      || typeof value.initial_status !== 'string'
-      || !Number.isInteger(value.priority)
+      typeof rule.rule_code !== 'string'
+      || typeof rule.initial_status !== 'string'
+      || !Number.isInteger(rule.priority)
     ) {
-      throw new WorkflowProfileResolutionError('The workflow artifact contains an invalid initial-rule shape.');
+      throw new WorkflowProfileResolutionError('The workflow profile contains an invalid initial-rule shape.');
     }
     return {
-      rule_code: value.rule_code,
-      order_source_code: typeof value.order_source_code === 'string' ? value.order_source_code : null,
-      order_type_id: typeof value.order_type_id === 'string' ? value.order_type_id : null,
-      is_retail: typeof value.is_retail === 'boolean' ? value.is_retail : null,
-      is_quick_drop: typeof value.is_quick_drop === 'boolean' ? value.is_quick_drop : null,
-      initial_status: value.initial_status,
-      priority: value.priority,
+      rule_code: rule.rule_code,
+      order_source_code: typeof rule.order_source_code === 'string' ? rule.order_source_code : null,
+      order_type_id: typeof rule.order_type_id === 'string' ? rule.order_type_id : null,
+      is_retail: typeof rule.is_retail === 'boolean' ? rule.is_retail : null,
+      is_quick_drop: typeof rule.is_quick_drop === 'boolean' ? rule.is_quick_drop : null,
+      initial_status: rule.initial_status,
+      priority: rule.priority,
     };
   });
 }
 
-function buildBinding(version: VersionRow, artifact: ArtifactRow): ResolvedWorkflowProfileBinding {
-  if (
-    !version.current_artifact_id
-    || version.current_artifact_id !== artifact.artifact_id
-    || version.version_id !== artifact.version_id
-    || version.policy_revision !== artifact.policy_revision
-    || version.compiled_schema_version !== artifact.artifact_schema_version
-    || version.compiled_checksum !== artifact.artifact_checksum
-  ) {
-    throw new WorkflowProfileResolutionError(
-      'The assigned workflow profile artifact does not match its version metadata. Contact your platform administrator.',
-    );
-  }
-
+function buildBinding(version: VersionRow, initialRules: ResolvedWorkflowInitialRule[]): ResolvedWorkflowProfileBinding {
   return {
     profileId: version.profile_id,
     versionNo: version.version_no,
     basedOnTemplateId: version.based_on_template_id,
     versionId: version.version_id,
-    artifactId: artifact.artifact_id,
-    policyRevision: artifact.policy_revision,
-    artifactSchemaVersion: artifact.artifact_schema_version,
-    artifactChecksum: artifact.artifact_checksum,
-    initialRules: parseInitialRules(artifact.compiled_artifact),
+    artifactId: null,
+    policyRevision: version.policy_revision,
+    artifactSchemaVersion: null,
+    artifactChecksum: null,
+    initialRules: parseInitialRules(initialRules),
   };
 }
 
@@ -243,10 +212,8 @@ function bindingIdentity(binding: ResolvedWorkflowProfileBinding): string {
   return [
     binding.profileId,
     binding.versionNo,
-    binding.artifactId,
+    binding.versionId,
     binding.policyRevision,
-    binding.artifactSchemaVersion,
-    binding.artifactChecksum,
   ].join(':');
 }
 
@@ -326,7 +293,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
 
   const { data: versionData, error: versionError } = await supabase
     .from('sys_wf_profile_ver_mst')
-    .select('version_id, profile_id, version_no, based_on_template_id, version_status, policy_revision, compiled_schema_version, compiled_checksum, current_artifact_id')
+    .select('version_id, profile_id, version_no, based_on_template_id, version_status, policy_revision')
     .eq('profile_id', assignment.wf_profile_id)
     .in('version_status', ['PILOT', 'PUBLISHED'])
     .eq('is_active', true)
@@ -334,24 +301,16 @@ export async function resolveWorkflowProfileBindingWithSupabase(
     .order('version_no', { ascending: false });
   if (versionError) throw versionError;
   const version = chooseExecutableVersion(assignment, (versionData ?? []) as VersionRow[], Boolean(tenantData?.is_hq_test_demo));
-  if (!version.current_artifact_id) {
-    throw new WorkflowProfileResolutionError('The assigned workflow profile has no current compiled artifact.');
-  }
 
-  // Artifacts are immutable compiler output: they have rec_status, not is_active.
-  const { data: artifactData, error: artifactError } = await supabase
-    .from('sys_wf_prof_ver_artifact_cf')
-    .select('artifact_id, version_id, policy_revision, artifact_schema_version, artifact_checksum, compiled_artifact')
-    .eq('artifact_id', version.current_artifact_id)
+  const { data: initialRuleData, error: initialRuleError } = await supabase
+    .from('sys_wf_prof_ver_init_cf')
+    .select('rule_code, order_source_code, order_type_id, is_retail, is_quick_drop, initial_status, priority')
     .eq('version_id', version.version_id)
-    .eq('compile_state', 'VALID')
+    .eq('is_active', true)
     .eq('rec_status', 1)
-    .maybeSingle();
-  if (artifactError) throw artifactError;
-  if (!artifactData) {
-    throw new WorkflowProfileResolutionError('The assigned workflow profile artifact is unavailable.');
-  }
-  return buildBinding(version, artifactData as ArtifactRow);
+    .order('priority', { ascending: true });
+  if (initialRuleError) throw initialRuleError;
+  return buildBinding(version, (initialRuleData ?? []) as ResolvedWorkflowInitialRule[]);
 }
 
 /**
@@ -404,10 +363,7 @@ export async function resolveWorkflowProfileBindingWithPrisma(
       v.version_no,
       v.based_on_template_id::text,
       v.version_status,
-      v.policy_revision,
-      v.compiled_schema_version,
-      v.compiled_checksum,
-      v.current_artifact_id::text
+      v.policy_revision
     FROM public.sys_wf_profile_ver_mst v
     INNER JOIN public.sys_wf_profiles_cd p ON p.profile_id = v.profile_id
     WHERE v.profile_id = ${assignment.wf_profile_id}::uuid
@@ -419,29 +375,22 @@ export async function resolveWorkflowProfileBindingWithPrisma(
     ORDER BY v.version_no DESC
   `);
   const version = chooseExecutableVersion(assignment, versions, isHqTestDemo);
-  if (!version.current_artifact_id) {
-    throw new WorkflowProfileResolutionError('The assigned workflow profile has no current compiled artifact.');
-  }
-  // Artifacts are immutable compiler output: they have rec_status, not is_active.
-  const artifactRows = await tx.$queryRaw<ArtifactRow[]>(Prisma.sql`
+  const initialRules = await tx.$queryRaw<ResolvedWorkflowInitialRule[]>(Prisma.sql`
     SELECT
-      artifact_id::text,
-      version_id::text,
-      policy_revision,
-      artifact_schema_version,
-      artifact_checksum,
-      compiled_artifact
-    FROM public.sys_wf_prof_ver_artifact_cf
-    WHERE artifact_id = ${version.current_artifact_id}::uuid
-      AND version_id = ${version.version_id}::uuid
-      AND compile_state = 'VALID'
+      rule_code,
+      order_source_code,
+      order_type_id,
+      is_retail,
+      is_quick_drop,
+      initial_status,
+      priority
+    FROM public.sys_wf_prof_ver_init_cf
+    WHERE version_id = ${version.version_id}::uuid
+      AND is_active = true
       AND rec_status = 1
-    LIMIT 1
+    ORDER BY priority, rule_code
   `);
-  if (!artifactRows[0]) {
-    throw new WorkflowProfileResolutionError('The assigned workflow profile artifact is unavailable.');
-  }
-  return buildBinding(version, artifactRows[0]);
+  return buildBinding(version, initialRules);
 }
 
 /**

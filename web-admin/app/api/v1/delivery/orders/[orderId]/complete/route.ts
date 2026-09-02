@@ -20,6 +20,7 @@ import {
   STAFF_DELIVERY_COMPLETION_ENABLED,
 } from '@/lib/config/delivery-safety';
 import { isValidUUID } from '@/lib/utils/validation-helpers';
+import { resolvePosEligibleWorkflowCommandChannel } from '@/lib/api/workflow-command-pos-channel';
 
 const routeParamsSchema = z.object({
   orderId: z.string().refine(isValidUUID, 'Invalid order UUID.'),
@@ -85,6 +86,11 @@ export async function POST(
       actorName: auth.userName,
       idempotencyKey: idempotencyKey.data,
       ...parsed.data,
+      channel: await resolvePosEligibleWorkflowCommandChannel({
+        request,
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+      }),
     });
     return NextResponse.json({ success: true, data: result }, { status: 200 });
   } catch (error) {

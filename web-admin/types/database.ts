@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   graphql_public: {
     Tables: {
@@ -22241,7 +22241,8 @@ export type Database = {
           order_id: string
           override_reason: string | null
           override_reason_min_length: number
-          profile_artifact_id: string
+          profile_artifact_id: string | null
+          profile_version_id: string | null
           request_correlation_id: string
           tenant_org_id: string
           workflow_action_code: string
@@ -22263,7 +22264,8 @@ export type Database = {
           order_id: string
           override_reason?: string | null
           override_reason_min_length?: number
-          profile_artifact_id: string
+          profile_artifact_id?: string | null
+          profile_version_id?: string | null
           request_correlation_id: string
           tenant_org_id: string
           workflow_action_code: string
@@ -22285,7 +22287,8 @@ export type Database = {
           order_id?: string
           override_reason?: string | null
           override_reason_min_length?: number
-          profile_artifact_id?: string
+          profile_artifact_id?: string | null
+          profile_version_id?: string | null
           request_correlation_id?: string
           tenant_org_id?: string
           workflow_action_code?: string
@@ -22305,6 +22308,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_wf_prof_ver_artifact_cf"
             referencedColumns: ["artifact_id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_version"
+            columns: ["profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
           },
           {
             foreignKeyName: "fk_wfgd_gate"
@@ -36845,6 +36855,17 @@ export type Database = {
           version_status: string
         }[]
       }
+      sys_wf_prof_ver_delete_draft_sem: {
+        Args: {
+          p_actor_id?: string
+          p_profile_id: string
+          p_version_no: number
+        }
+        Returns: {
+          version_id: string
+          version_no: number
+        }[]
+      }
       sys_wf_prof_ver_retire_sem: {
         Args: {
           p_actor_id?: string
@@ -36876,6 +36897,10 @@ export type Database = {
           version_no: number
           version_status: string
         }[]
+      }
+      sys_wf_prof_ver_validate_live: {
+        Args: { p_version_id: string }
+        Returns: undefined
       }
       test_assert: {
         Args: { condition: boolean; message?: string }

@@ -26,6 +26,62 @@ function normalise(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function isDirectCounterPickupExecution(
+  artifact: SemanticWorkflowArtifact,
+  execution: SemanticWorkflowExecution,
+): boolean {
+  if (
+    normalise(execution.screen_key) !== 'pickup_handover'
+    || execution.action_code !== 'CONFIRM_PICKUP'
+    || normalise(execution.from_status) !== 'ready'
+    || normalise(execution.to_status) !== 'delivered'
+  ) {
+    return false;
+  }
+
+  const pickup = artifact.modules.find(
+    (module) =>
+      module.is_enabled
+      && module.module_mode === 'primary_owner'
+      && normalise(module.screen_key) === 'pickup_handover',
+  );
+  const observesReady = artifact.module_statuses.some(
+    (membership) =>
+      normalise(membership.screen_key) === 'pickup_handover'
+      && normalise(membership.status_code) === 'ready'
+      && membership.visibility_mode === 'observer',
+  );
+  const readyReleaseOwnsReady = artifact.modules.some(
+    (module) =>
+      module.is_enabled
+      && module.module_mode === 'primary_owner'
+      && normalise(module.screen_key) === 'ready_release',
+  ) && artifact.module_statuses.some(
+    (membership) =>
+      normalise(membership.screen_key) === 'ready_release'
+      && normalise(membership.status_code) === 'ready'
+      && membership.visibility_mode === 'owner',
+  );
+
+  return Boolean(
+    pickup
+    && observesReady
+    && readyReleaseOwnsReady
+    && artifact.allow_direct_counter_pickup,
+  );
+}
+
+function executionHasCommandAuthority(
+  artifact: SemanticWorkflowArtifact,
+  execution: SemanticWorkflowExecution,
+): boolean {
+  return isSemanticScreenStatusCommandEnabled(
+    artifact,
+    execution.screen_key,
+    execution.from_status,
+  ) || isDirectCounterPickupExecution(artifact, execution);
+}
+
 function executionAllowsChannel(
   execution: SemanticWorkflowExecution,
   channel: SemanticWorkflowCommandChannel,
@@ -119,16 +175,10 @@ export function loadSemanticActionTransitions(
   const fromStatus = normalise(input.fromStatus);
   const actionCode = input.actionCode?.trim();
 
-  // A malformed or over-permissive compiler artifact must not turn an observer
-  // surface into a command surface. This guard is shared by action listing and
-  // execution, so no client channel can bypass stage ownership.
-  if (!isSemanticScreenStatusCommandEnabled(artifact, screen, fromStatus)) {
-    return [];
-  }
-
   return artifact.executions
     .filter((execution) =>
-      normalise(execution.screen_key) === screen
+      executionHasCommandAuthority(artifact, execution)
+      && normalise(execution.screen_key) === screen
       && normalise(execution.from_status) === fromStatus
       && (!actionCode || execution.action_code === actionCode)
       && executionAllowsChannel(execution, input.channel),

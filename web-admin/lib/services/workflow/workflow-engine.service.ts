@@ -14,6 +14,10 @@ import {
   hashPayload,
   stakeIdempotencyHash,
 } from '@/lib/utils/idempotency';
+import {
+  classifyWorkflowCommandError,
+  observeWorkflowCommand,
+} from '@/lib/services/workflow/workflow-observability';
 import { resolveOrderControlTransition } from '@/lib/workflow/order-control-transition';
 import {
   loadSemanticWorkflowArtifactForOrder,
@@ -302,9 +306,8 @@ function runtimeArtifact(
 }
 
 /**
- * Resolves the immutable runtime policy named by the order itself. Orders
- * without a complete artifact snapshot are intentionally non-operational so
- * a mutable catalog can never redefine their workflow after creation.
+ * Resolves the live runtime policy named by the order's profile-version binding.
+ * Artifact columns are historical audit only.
  */
 async function resolveWorkflowRuntimeForOrder(
   order: LockedOrderRow,
@@ -321,7 +324,7 @@ async function resolveWorkflowRuntimeForOrder(
 
   throw new WorkflowEngineError(
     'PROFILE_SNAPSHOT_INCOMPLETE',
-    'This order has no compiled workflow profile snapshot and cannot be operated. Recreate the order under an assigned workflow profile.',
+    'This order has no workflow profile-version binding and cannot be operated. Recreate the order under an assigned workflow profile.',
   );
 }
 async function isScreenStatusMemberForOrder(
@@ -637,11 +640,11 @@ export async function listAvailableActions(
         locale: params.locale,
       });
       gateBlockedReasons = classified.hardReasons;
-      if (classified.hardReasons.length === 0 && params.actorUserId && order.wf_profile_artifact_id) {
+      if (classified.hardReasons.length === 0 && params.actorUserId && order.wf_profile_version_id) {
         gateDecisions = buildAvailableGateDecisions({
           tenantId: params.tenantId,
           orderId: params.orderId,
-          artifactId: order.wf_profile_artifact_id,
+          artifactId: order.wf_profile_version_id,
           actionCode: row.action_code,
           screen,
           channel,
@@ -687,13 +690,49 @@ export async function listAvailableActions(
 /**
  * Execute a configured workflow action with optimistic concurrency (`state_version`),
  * idempotency, dual-write status fields, history, and central outbox emit.
+ *
+ * @param params Tenant-authenticated command
+ * @param transaction Optional outer transaction from a stage-owned service
  */
 export async function executeAction(
   params: ExecuteActionParams,
   transaction?: PrismaTransactionClient,
 ): Promise<ExecuteActionResult> {
+  const startedAt = Date.now();
   const screen = normalizeScreen(params.screen);
   const channel = params.channel ?? 'staff_web';
+  try {
+    return await executeConfiguredAction(params, transaction, startedAt, screen, channel);
+  } catch (error) {
+    const code = error && typeof error === 'object' && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : undefined;
+    observeWorkflowCommand({
+      tenantId: params.tenantId,
+      orderId: params.orderId,
+      screen,
+      actionCode: params.actionCode,
+      channel,
+      outcome: classifyWorkflowCommandError(error),
+      errorCode: code,
+      latencyMs: Date.now() - startedAt,
+      requestId: params.requestCorrelationId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Command body kept separate so observe can wrap every throw without
+ * touching each fail-closed branch.
+ */
+async function executeConfiguredAction(
+  params: ExecuteActionParams,
+  transaction: PrismaTransactionClient | undefined,
+  startedAt: number,
+  screen: string,
+  channel: SemanticWorkflowCommandChannel,
+): Promise<ExecuteActionResult> {
   const idempotencyPayload = buildIdempotencyPayload(params);
   const payloadHash = hashPayload(idempotencyPayload);
 
@@ -722,6 +761,16 @@ export async function executeAction(
       });
       const cache = cachedRow?.response_cache as unknown as CachedExecuteResult | null;
       if (cache?.result) {
+        observeWorkflowCommand({
+          tenantId: params.tenantId,
+          orderId: params.orderId,
+          screen,
+          actionCode: params.actionCode,
+          channel,
+          outcome: 'replay',
+          latencyMs: Date.now() - startedAt,
+          requestId: params.requestCorrelationId,
+        });
         return cache.result;
       }
     }
@@ -832,18 +881,14 @@ export async function executeAction(
       transaction: tx,
     });
     if (transition.is_semantic && (transition.semantic_gates?.length ?? 0) > 0) {
-      if (!order.wf_profile_artifact_id) {
-        throw new WorkflowEngineError(
-          'PROFILE_SNAPSHOT_INCOMPLETE',
-          'This order is missing its compiled workflow artifact.',
-        );
-      }
       try {
         await assertAndRecordSemanticGateDecisions({
           tx,
           tenantId: params.tenantId,
           orderId: params.orderId,
-          artifactId: order.wf_profile_artifact_id ?? '',
+          artifactId: order.wf_profile_version_id ?? order.wf_profile_artifact_id ?? '',
+          profileVersionId: order.wf_profile_version_id,
+          profileArtifactId: order.wf_profile_artifact_id,
           actionCode: params.actionCode,
           screen,
           channel,
@@ -1158,6 +1203,16 @@ export async function executeAction(
   // in one rollback boundary; standalone callers retain the existing behavior.
   const result = transaction ? await run(transaction) : await prisma.$transaction(run);
 
+  observeWorkflowCommand({
+    tenantId: params.tenantId,
+    orderId: params.orderId,
+    screen,
+    actionCode: params.actionCode,
+    channel,
+    outcome: 'ok',
+    latencyMs: Date.now() - startedAt,
+    requestId: params.requestCorrelationId,
+  });
   return result;
 }
 

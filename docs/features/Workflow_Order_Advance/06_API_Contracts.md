@@ -1,6 +1,6 @@
 # 06 — API Contracts
 
-**Status:** P7R stage-command contracts are active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and Delivery (order-keyed or stop-owned); warning/override gate decisions and compiled POD method lists are live for semantic snapshot orders; floor lists use `workflow_screen` membership; staff S10 routed POD canary remains unsigned · **Date:** 2026-08-27
+**Status:** Live normalized profile-version runtime is the tenant policy source. Stage-command contracts remain active for Preparation, Processing, Assembly, QA, Packing, Ready/Release, Pickup, and Delivery (order-keyed or stop-owned). Warning/override gate decisions persist `profile_version_id`. Public confirm maps `PROFILE_*` to HTTP 409. Staff S10 routed POD canary remains unsigned · **Date:** 2026-08-29
 Routes below are **target contracts** for V1.0; align to existing `/api/v1/orders/...` style in P2 implementation. Gaps listed at end must be closed before P0 sign-off.
 
 ## 1. Available actions
@@ -74,23 +74,39 @@ Staff delivery `GET /api/v1/delivery/pod-methods?stopId=` returns catalog method
 
 **Errors:** `409 VERSION_CONFLICT`, `409 IDEMPOTENCY_CONFLICT`, `422 GATE_FAILED` (+ reasons), `400 REASON_REQUIRED`, `400 UNSUPPORTED_GATE_MODE`, `400 EVIDENCE_RUNTIME_UNAVAILABLE`, `409 PROFILE_SNAPSHOT_INCOMPLETE|PROFILE_ARTIFACT_UNAVAILABLE|PROFILE_ARTIFACT_INVALID|PROFILE_EXECUTION_INVALID`, `403 FORBIDDEN`, `404 NOT_FOUND`.
 
-For an order with a semantic profile snapshot, the service reads only the exact immutable artifact identified by the order. It checks the artifact's screen membership, action edge, and server-assigned command channel. An ordinary command requires an enabled `primary_owner` module and an `owner` status membership; observer visibility is read-only even if malformed artifact input contains an execution. An enabled `cross_cutting_command` module is the deliberate exception for a separately declared command surface such as `public_tracking`; it still requires a declared membership, execution edge, and permitted server-assigned channel. The service does not re-resolve the tenant assignment or read mutable profile, graph-pin, screen, transition, or action-catalog configuration. `public_tracking` calls the same command with `channel=public_web`; authenticated internal adapters use `staff_web` until mobile, POS, API, and integration adapters are introduced.
+For an order bound to a live profile version, the engine loads policy through `WorkflowPolicyResolver` (normalized profile-version rows). It checks screen membership, action edge, and the **server-assigned** command channel. An ordinary command requires an enabled `primary_owner` module and an `owner` status membership; observer visibility is read-only. An enabled `cross_cutting_command` module is the deliberate exception for a separately declared command surface such as `public_tracking`; it still requires a declared membership, execution edge, and permitted server-assigned channel. The service does not re-resolve the tenant assignment or read compiled artifacts, graph pins, templates, or action-catalog configuration as runtime fallback. Unbound orders fail closed with typed `PROFILE_*` codes.
+
+**Channel (server-derived, never from the client body or a channel header):**
+
+| Credential / adapter | Channel |
+|---|---|
+| Cookie session on generic staff APIs (`/actions`, `/transition`, stage commands, available-actions) | `staff_web` |
+| `Authorization: Bearer` JWT on those same adapters | `mobile` |
+| Public tracking confirm of OFD | `public_web` on screen `public_tracking` |
+| Public tracking confirm of released pickup | pickup service / `pickup_handover` (0472 binds `CONFIRM_PICKUP` to `staff_web`+`pos`, not `public_web`) |
+| Cookie session on pickup complete, confirm-physical-intake, and delivery complete **and** a tenant-scoped `OPEN` POS session for that actor (order branch must match when the adapter has it) | `pos` |
+| Cookie session on those fulfilment adapters without an OPEN till, or POS lookup failure | `staff_web` |
+| Paused POS session, or OPEN till at another branch | `staff_web` |
+
+A client-supplied `channel` field is ignored (stripped). Bearer credentials cannot escalate to `staff_web` or `pos`. Generic `/actions` never becomes `pos` even if a till is open — that would mislabel processing/QA. 0472 floor execute rows (processing, packing, QA, …) are `staff_web` only, so a mobile bearer completing processing receives `403 ACTION_NOT_ALLOWED` until HQ publishes a version that includes `mobile`.
+
+`public_tracking` OFD confirm uses `channel=public_web`. Integrity failures (`PROFILE_*`) map to HTTP `409` on public confirm, stage commands, `/actions`, `/transition`, available-actions, pickup, and confirm-physical-intake. `ACTION_NOT_ALLOWED` maps to `403`. Structured `wf.*` observe events record tenant/order/channel/outcome only — never tracking tokens, notes, proof keys, or money. Support diagnosis: [technical_docs/live_runtime_support.md](technical_docs/live_runtime_support.md).
 
 Semantic hard-block gates are evaluated from tenant-scoped facts read under the command transaction lock. `rack_required`, preparation gates, `fin_release_eligible`, piece/QA gates, pickup/delivery collection, pickup-release, delivery-stop, and POD-evidence therefore return identical `GATE_FAILED` reasons during action discovery and command execution, except `pod_evidence_valid` which is discovery-allowed and execute-enforced from command input. A positive outstanding balance returns `GATE_FIN_RELEASE`. Missing piece/QA/fulfilment facts return `GATE_FACTS_UNAVAILABLE` in semantic mode. `CREDIT_INVOICE` invokes the B2B fulfilment payment-hold seam; its current result is non-blocking because order creation owns the existing B2B credit decision. Clients must not implement B2B finance policy: the future B2B feature will replace the seam with its own durable policy without changing this workflow contract. Partial fulfilment, returns, and OTP proof remain fail closed.
 
 ### 2.1 Workflow context compatibility read
 
-`GET /api/v1/orders/{id}/workflow-context` remains a read-only compatibility endpoint for existing floor-page context displays. For a semantic order it returns only the pinned artifact profile/version/revision and enabled module keys. Its `assembly_enabled`, `qa_enabled`, and `packing_enabled` booleans are display hints, never a destination-selection contract. A partial or invalid semantic snapshot returns the typed `PROFILE_*` code with HTTP `409`; it never falls back to mutable templates. Template-stage resolution remains only for legacy orders without a semantic snapshot.
+`GET /api/v1/orders/{id}/workflow-context` remains a read-only compatibility endpoint for existing floor-page context displays. For a live-bound order it returns the pinned profile/version and enabled module keys. Its `assembly_enabled`, `qa_enabled`, and `packing_enabled` booleans are display hints, never a destination-selection contract. A missing or invalid live binding returns the typed `PROFILE_*` code with HTTP `409`; it never falls back to compiled artifacts or mutable templates.
 
 ## 3. Worklist
 
 `GET /api/v1/orders?workflow_screen={screenKey}`
 
-Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) send `workflow_screen` instead of a client-computed `status_filter`. The server includes an order when that screen is a member of the order's runtime policy:
+Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) send `workflow_screen` instead of a client-computed `status_filter`. The server includes an order when that screen is a member of the order's **live profile-version** policy:
 
-- semantic snapshot → immutable artifact module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`)
-- profile/version pin without a compiled artifact → excluded (fail closed)
-- incomplete or unsnapshotted historic order → excluded from operational floor lists (fail closed; audit/history remains readable)
+- live version binding → module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`)
+- profile/version pin without a complete live binding → excluded (fail closed)
+- unbound historic order → excluded from operational floor lists (fail closed; audit/history remains readable)
 
 Unknown screen keys return an empty page. `status_filter` remains for non-floor lists and as an optional extra narrowing filter. Staff S10 completion remains a separate command.
 
@@ -98,7 +114,7 @@ Ready list desk filters (same page, not a pickup URL): `GET /api/v1/orders?workf
 
 ## 4. Create
 
-Existing create must call `InitialStatusResolver`; persist source/type/snapshot/`state_version=1`. No retail→`closed` shortcut. For a semantic profile snapshot, every create path (normal intake, remote intake, retail, and Quick Drop) resolves only the immutable artifact initial rules. An unmatched semantic rule returns `422 PROFILE_INITIAL_RULE_UNMATCHED`; it never falls back to legacy `intake` or `preparing` shortcuts.
+Existing create must call `InitialStatusResolver`; persist source/type/`wf_profile_id`+`wf_profile_version_id`+`wf_version_no`/`state_version=1` (artifact columns stay null on new orders). No retail→`closed` shortcut. Every create path (normal intake, remote intake, retail, and Quick Drop) resolves only live profile-version initial rules. An unmatched rule returns `422 PROFILE_INITIAL_RULE_UNMATCHED`; it never falls back to legacy `intake` or `preparing` shortcuts.
 
 When multiple active assignments match the same tenant/branch/service specificity, only exact duplicate bindings may be timestamp-ordered. Different profile/version bindings are rejected as a configuration conflict before an order is created; clients must direct the operator to HQ policy administration. Order creation resolves each distinct item `serviceCategoryCode` as the existing assignment `service_code` context. If service scopes select different immutable snapshots, it returns `422 PROFILE_SERVICE_SCOPE_CONFLICT`; the client must split the order rather than silently pinning the first item policy.
 
@@ -132,9 +148,11 @@ Exact HQ OpenAPI: document in cleanmatexsaas integration contract; tenant app co
 | Canonical path | `POST /api/v1/public/track/{token}/confirm-received` |
 | Legacy compatibility | `POST /api/v1/public/orders/{tenantId}/{orderNo}/confirm-received` remains available during rollout and old readable page links redirect to `/track/{token}` when a token exists |
 | Auth | None (public link); IP rate limit |
-| Allowed from | `ready`, `out_for_delivery` (idempotent if already `delivered`) |
-| V2 action | `CONFIRM_DELIVERY` on screen `public_tracking` |
+| Allowed from | `ready_for_pickup` (pickup service + release required), `out_for_delivery` (`CONFIRM_DELIVERY` / `public_web`). Status `ready` is rejected (`422 PICKUP_RELEASE_REQUIRED`); already `delivered` is idempotent |
+| V2 action | OFD: `CONFIRM_DELIVERY` on screen `public_tracking`. Released pickup: `CONFIRM_PICKUP` via the pickup service on `pickup_handover` (never bound on `public_tracking`) |
 | Actor | System user `WORKFLOW_SYSTEM_ACTOR` (`0437`) — satisfies history FK |
+| Errors | Pickup service codes keep their HTTP mapping. Engine `PROFILE_*` → `409`. `ACTION_NOT_ALLOWED` → `403`. `VERSION_CONFLICT` → `409` |
+| Privacy | GET tracking does **not** return `rackLocation` or other internal staff shelf data |
 | Flag off | Legacy `WorkflowService.changeStatus` with same system actor UUID |
 | Payment notice | Read APIs also expose `payment_type_code`, `outstanding_amount`, and `pay_on_collection_amount` so the public page can warn before confirm |
 
@@ -142,7 +160,7 @@ Staff physical intake remains `POST …/confirm-physical-intake` → `CONFIRM_PH
 
 ## 8. Mobile / cmx-api
 
-V1.0: use same action APIs; **no second transition surface**. Offline: must send `expectedStateVersion`; 409 → refresh actions.
+V1.0: use the same action APIs; **no second transition surface**. Offline: must send `expectedStateVersion`; 409 → refresh actions. Bearer JWT on tenant adapters is channel `mobile`. Floor 0472 execute rows that list only `staff_web` will return `403 ACTION_NOT_ALLOWED` for those mobile calls until HQ publishes mobile channels.
 
 ## 9. Preparation completion (P7R, active)
 
@@ -424,11 +442,10 @@ The response remains read-only and tenant-scoped. It returns:
 
 It has no mutation endpoint.
 
-For a semantic order pinned to `wf_profile_artifact_id`, the service evaluates
-the exact immutable artifact's `workboard` membership and primary-owner stage
-membership. Its owner metrics group by that artifact identity, preventing
-separate compiled revisions from being conflated. Profile-stamped orders
-without a compiled artifact are excluded. Unsnapshotted historic orders use
-the live tenant contract. A status without
-an active owner is excluded and returned as a configuration gap rather than
-guessed or mutated.
+For an order bound to `wf_profile_version_id`, the service evaluates
+the live version's `workboard` membership and primary-owner stage
+membership. Owner metrics group by that version identity (plus
+`policy_revision` while Pilot), so distinct live policy versions are
+never merged. Orders without a complete version binding are excluded.
+A status without an active owner is excluded and returned as a
+configuration gap rather than guessed or mutated.

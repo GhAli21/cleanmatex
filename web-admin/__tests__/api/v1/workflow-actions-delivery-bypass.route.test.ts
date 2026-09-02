@@ -63,4 +63,31 @@ describe('POST /api/v1/orders/[id]/actions staff delivery bypass', () => {
     });
     expect(executeActionMock).not.toHaveBeenCalled();
   });
+
+  it('derives staff_web from a cookie session and ignores a client channel field', async () => {
+    executeActionMock.mockResolvedValue({
+      ok: true,
+      currentStatus: 'processing',
+      stateVersion: 5,
+    });
+
+    const response = await POST(
+      request({
+        screen: 'processing',
+        actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
+        expectedStateVersion: 4,
+        channel: 'public_web',
+      }),
+      { params: Promise.resolve({ id: ORDER_ID }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(executeActionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        screen: 'processing',
+        actionCode: WORKFLOW_ACTIONS.COMPLETE_PROCESSING,
+        channel: 'staff_web',
+      }),
+    );
+  });
 });

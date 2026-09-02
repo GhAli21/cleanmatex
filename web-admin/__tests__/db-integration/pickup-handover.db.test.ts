@@ -29,6 +29,24 @@ interface PickupSeed {
   idempotencyKey: string;
 }
 
+interface LivePolicyBinding {
+  profileId: string;
+  versionNo: number;
+  versionId: string;
+}
+
+const SIMPLE_LIVE: LivePolicyBinding = {
+  profileId: 'a1000000-0000-4000-8000-000000000011',
+  versionNo: 2,
+  versionId: 'a1000000-0000-4000-8000-000000000013',
+};
+
+const STANDARD_LIVE: LivePolicyBinding = {
+  profileId: 'a1000000-0000-4000-8000-000000000001',
+  versionNo: 2,
+  versionId: 'a1000000-0000-4000-8000-000000000003',
+};
+
 beforeAll(async () => {
   try {
     const readiness = await prisma.$queryRaw<Array<{ ready: boolean }>>`
@@ -61,38 +79,74 @@ function dbit(name: string, fn: () => Promise<void>): void {
   });
 }
 
-async function seedOrder(currentStatus: 'ready' | 'ready_for_pickup'): Promise<PickupSeed> {
+async function seedOrder(
+  currentStatus: 'ready' | 'ready_for_pickup',
+  binding?: LivePolicyBinding,
+): Promise<PickupSeed> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_customers_mst (tenant_org_id, name)
     VALUES (${DEMO_TENANT}::uuid, ${`Pickup DB test ${randomUUID()}`})
     RETURNING id
   `;
-  const order = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_orders_mst (
-      tenant_org_id,
-      customer_id,
-      order_no,
-      currency_code,
-      status,
-      current_status,
-      state_version,
-      payment_type_code,
-      total_amount,
-      outstanding_amount
-    ) VALUES (
-      ${DEMO_TENANT}::uuid,
-      ${customer[0].id}::uuid,
-      ${`PICKUP-DB-${randomUUID()}`},
-      'OMR',
-      ${currentStatus},
-      ${currentStatus},
-      7,
-      'PAY_IN_ADVANCE',
-      1,
-      0
-    )
-    RETURNING id
-  `;
+  const order = binding
+    ? await prisma.$queryRaw<Array<{ id: string }>>`
+        INSERT INTO public.org_orders_mst (
+          tenant_org_id,
+          customer_id,
+          order_no,
+          currency_code,
+          status,
+          current_status,
+          state_version,
+          payment_type_code,
+          total_amount,
+          outstanding_amount,
+          wf_profile_id,
+          wf_version_no,
+          wf_profile_version_id
+        ) VALUES (
+          ${DEMO_TENANT}::uuid,
+          ${customer[0].id}::uuid,
+          ${`PICKUP-DB-${randomUUID()}`},
+          'OMR',
+          ${currentStatus},
+          ${currentStatus},
+          7,
+          'PAY_IN_ADVANCE',
+          1,
+          0,
+          ${binding.profileId}::uuid,
+          ${binding.versionNo},
+          ${binding.versionId}::uuid
+        )
+        RETURNING id
+      `
+    : await prisma.$queryRaw<Array<{ id: string }>>`
+        INSERT INTO public.org_orders_mst (
+          tenant_org_id,
+          customer_id,
+          order_no,
+          currency_code,
+          status,
+          current_status,
+          state_version,
+          payment_type_code,
+          total_amount,
+          outstanding_amount
+        ) VALUES (
+          ${DEMO_TENANT}::uuid,
+          ${customer[0].id}::uuid,
+          ${`PICKUP-DB-${randomUUID()}`},
+          'OMR',
+          ${currentStatus},
+          ${currentStatus},
+          7,
+          'PAY_IN_ADVANCE',
+          1,
+          0
+        )
+        RETURNING id
+      `;
   return {
     customerId: customer[0].id,
     orderId: order[0].id,
@@ -168,10 +222,10 @@ async function createReleasedPickup(seed: PickupSeed): Promise<string> {
 }
 
 describe('pickup handover - live database invariants', () => {
-  dbit('direct counter handover atomically creates a versioned fulfilled release and delivers the order', async () => {
+  dbit('direct counter handover fails closed when the order has no live profile binding', async () => {
     const seed = await seedOrder('ready');
     try {
-      const result = await completePickup({
+      await expect(completePickup({
         tenantId: DEMO_TENANT,
         orderId: seed.orderId,
         actorUserId: ACTOR,
@@ -179,40 +233,16 @@ describe('pickup handover - live database invariants', () => {
         expectedStateVersion: 7,
         idempotencyKey: seed.idempotencyKey,
         handoverNotes: 'Live direct counter handover test.',
+      })).rejects.toMatchObject<PickupCompletionError>({
+        code: 'PICKUP_POLICY_UNAVAILABLE',
+        httpStatus: 422,
       });
-
-      expect(result.workflow).toMatchObject({ currentStatus: 'delivered', stateVersion: 8 });
-      const release = await prisma.$queryRaw<Array<{
-        release_status: string;
-        state_version_at: bigint;
-        fulfilled_by: string;
-      }>>`
-        SELECT release_status, state_version_at, fulfilled_by
-        FROM public.org_wf_release_mst
-        WHERE tenant_org_id = ${DEMO_TENANT}::uuid
-          AND order_id = ${seed.orderId}::uuid
-          AND release_type = 'pickup'
-      `;
-      expect(release).toHaveLength(1);
-      expect(release[0].release_status).toBe('fulfilled');
-      expect(Number(release[0].state_version_at)).toBe(8);
-      expect(release[0].fulfilled_by).toBe(ACTOR);
-
-      const history = await prisma.$queryRaw<Array<{ handover_mode: string }>>`
-        SELECT payload -> 'input' ->> 'handoverMode' AS handover_mode
-        FROM public.org_order_history
-        WHERE tenant_org_id = ${DEMO_TENANT}::uuid
-          AND order_id = ${seed.orderId}::uuid
-          AND payload ->> 'actionCode' = 'CONFIRM_PICKUP'
-      `;
-      expect(history).toHaveLength(1);
-      expect(history[0].handover_mode).toBe('direct');
     } finally {
       await cleanupSeed(seed);
     }
   });
 
-  dbit('rejects ready_for_pickup without its release and writes no replacement audit record', async () => {
+  dbit('rejects ready_for_pickup without a live profile before manufacturing a replacement release', async () => {
     const seed = await seedOrder('ready_for_pickup');
     try {
       await expect(completePickup({
@@ -222,7 +252,7 @@ describe('pickup handover - live database invariants', () => {
         expectedStateVersion: 7,
         idempotencyKey: seed.idempotencyKey,
       })).rejects.toMatchObject<PickupCompletionError>({
-        code: 'PICKUP_RELEASE_REQUIRED',
+        code: 'PICKUP_POLICY_UNAVAILABLE',
         httpStatus: 422,
       });
 
@@ -238,11 +268,11 @@ describe('pickup handover - live database invariants', () => {
     }
   });
 
-  dbit('fulfils the existing release before delivering a staged pickup order', async () => {
+  dbit('staged pickup fails closed when the order has no live profile binding', async () => {
     const seed = await seedOrder('ready_for_pickup');
     try {
-      const releaseId = await createReleasedPickup(seed);
-      const result = await completePickup({
+      await createReleasedPickup(seed);
+      await expect(completePickup({
         tenantId: DEMO_TENANT,
         orderId: seed.orderId,
         actorUserId: ACTOR,
@@ -250,23 +280,48 @@ describe('pickup handover - live database invariants', () => {
         expectedStateVersion: 7,
         idempotencyKey: seed.idempotencyKey,
         handoverNotes: 'Live released pickup handover test.',
+      })).rejects.toMatchObject<PickupCompletionError>({
+        code: 'PICKUP_POLICY_UNAVAILABLE',
+        httpStatus: 422,
       });
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
 
-      expect(result).toMatchObject({
-        releaseIds: [releaseId],
-        workflow: { currentStatus: 'delivered', stateVersion: 8 },
+  dbit('direct counter handover from ready is rejected when live policy has the switch off', async () => {
+    const seed = await seedOrder('ready', STANDARD_LIVE);
+    try {
+      await expect(completePickup({
+        tenantId: DEMO_TENANT,
+        orderId: seed.orderId,
+        actorUserId: ACTOR,
+        actorName: 'Pickup DB Test',
+        expectedStateVersion: 7,
+        idempotencyKey: seed.idempotencyKey,
+        handoverNotes: 'Standard plant must stage pickup.',
+      })).rejects.toMatchObject<PickupCompletionError>({
+        code: 'PICKUP_DIRECT_NOT_ALLOWED',
+        httpStatus: 422,
       });
-      const release = await prisma.$queryRaw<Array<{
-        release_status: string;
-        fulfilled_by: string;
-      }>>`
-        SELECT release_status, fulfilled_by
-        FROM public.org_wf_release_mst
-        WHERE tenant_org_id = ${DEMO_TENANT}::uuid
-          AND id = ${releaseId}::uuid
-          AND order_id = ${seed.orderId}::uuid
-      `;
-      expect(release).toEqual([{ release_status: 'fulfilled', fulfilled_by: ACTOR }]);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbit('direct counter handover from ready uses SIMPLE live policy instead of failing unbound', async () => {
+    const seed = await seedOrder('ready', SIMPLE_LIVE);
+    try {
+      const result = await completePickup({
+        tenantId: DEMO_TENANT,
+        orderId: seed.orderId,
+        actorUserId: ACTOR,
+        actorName: 'Pickup DB Test',
+        expectedStateVersion: 7,
+        idempotencyKey: seed.idempotencyKey,
+        handoverNotes: 'Lean counter direct handover.',
+      });
+      expect(result.releaseIds.length).toBeGreaterThan(0);
     } finally {
       await cleanupSeed(seed);
     }

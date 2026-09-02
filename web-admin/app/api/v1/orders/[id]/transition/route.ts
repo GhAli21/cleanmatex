@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolveWorkflowCommandChannel } from '@/lib/api/workflow-command-channel';
 import {
   WorkflowEngineError,
   executeAction,
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           rackLocation: nestedInput.rackLocation ?? nestedInput.rack_location,
           metadata: body.metadata ?? nestedInput.metadata,
         },
+        channel: resolveWorkflowCommandChannel(request),
         idempotencyKey,
       };
 

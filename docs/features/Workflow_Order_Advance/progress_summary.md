@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
-**Updated:** 2026-08-27
-**Overall:** Engine cutover, public tracking, counter pickup, stage-owned floor commands (including Delivery Details), artifact-backed floor worklists, atomic staff delivery (order-keyed or stop-owned), warning/override gate decisions, compiled POD method lists, and automated semantic-profile unit assurance are implemented. `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, preventing new incomplete active snapshots. HQ effective preview and tenant-context simulation now use the same immutable artifact as the tenant runtime. S10 routed POD and P7 hardening remain unsigned until pre-cutover test orders are recreated and canary evidence is complete.
+**Updated:** 2026-08-29
+**Overall:** Gate 1 schema is live (0470 + 0471 applied locally and remotely; types regenerated). Gate 2 tenant slice loads live profile-version rows for create, Ready lists, engine, and pickup; **0472 live business-level policy seed is applied locally.** Workboard groups by `wf_profile_version_id`. **0473 gate-decision version column is applied locally and remotely.** HQ Gate 2 Check policy / Pilot / Publish / assign-without-artifact and `hq.wf.*` observability are in. Remote demo tenant has default `WF_V2_SIMPLE` latest Published; local DB still has no assignment row. Delivery fail-closes without live policy. Public OFD confirm maps `PROFILE_*` to 409. Command adapters derive `staff_web` vs `mobile` from the credential; pickup/intake/delivery assign `pos` only after a verified OPEN POS session. Privacy-safe `wf.*` observe events, the live-runtime support runbook, and automated live-runtime assurance (cache/Pilot/channel/source scan) are in. Unbound orders fail closed; direct `CONFIRM_PICKUP` also requires `allow_direct_counter_pickup`. S10 routed POD remains unsigned.
 
 ## Accurate status
 
@@ -22,8 +22,8 @@ Counter pickup now uses an authenticated atomic stage command/API with release f
 Ready worklists, detail, and public tracking now distinguish not-yet-released from available-for-pickup without exposing internal rack/staff data
 Public Ready confirmation requires an active pickup release and reuses the counter-handover command; duplicate active release actions are blocked server-side
 Delivery proof/audit is a reusable tenant-scoped read surface on Delivery Stop Detail and Order Details; private object keys stay server-side and evidence links are signed for five minutes
-Workboard is implemented as a dedicated `workboard:read` supervisor projection with tenant filters and stage-owned deep links; queue membership and ownership resolve only from the order artifact ID, and orders without valid snapshots are excluded from operational visibility
-Workboard owner metrics now group by the complete profile snapshot identity, including `wf_profile_artifact_id`, so supervisor totals never merge separate compiled policy artifacts
+Workboard is implemented as a dedicated `workboard:read` supervisor projection with tenant filters and stage-owned deep links; queue membership and ownership resolve from the order live `wf_profile_version_id`, and orders without a complete version binding are excluded from operational visibility
+Workboard owner metrics now group by live profile version identity (`wf_profile_version_id`), so supervisor totals never merge distinct live policy versions
 Semantic Profile Runtime governance accepted: ADR-SAAS-MNG-0009 replaces the P0 graph-pin as the future runtime, with DRAFT -> PILOT -> PUBLISHED -> RETIRED, HQ-only Pilot assignment governance, and identical tenant production paths for test/demo execution
 Semantic Profile Runtime schema migration `0457` applied locally and remotely by operator; generated database types regenerated and updated
 Semantic Profile Runtime action cutover: semantic-order action listing/execution reads only the order-pinned immutable artifact; it enforces screen visibility, channel bindings, action edges, reason requirements, evidence fail-closed behavior, and typed profile-integrity failures without mutable catalog fallback

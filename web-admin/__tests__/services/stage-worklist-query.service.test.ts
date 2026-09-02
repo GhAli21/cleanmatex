@@ -23,6 +23,7 @@ jest.mock('@/lib/db/prisma', () => ({
 }))
 jest.mock('@/lib/services/workflow/semantic-workflow-artifact.service', () => ({
   loadSemanticWorkflowArtifactForOrder: (...args: unknown[]) => mockLoadSemanticArtifact(...args),
+  SemanticWorkflowArtifactError: class SemanticWorkflowArtifactError extends Error {},
 }))
 
 import {
@@ -48,7 +49,7 @@ describe('stage worklist membership', () => {
     expect(mockQueryRaw).not.toHaveBeenCalled()
   })
 
-  it('lists a semantic processing order through its immutable artifact', async () => {
+  it('lists a semantic processing order through its live profile version', async () => {
     const snapshot = {
       wf_profile_id: '33333333-3333-3333-3333-333333333333',
       wf_version_no: 1,
@@ -77,7 +78,7 @@ describe('stage worklist membership', () => {
     expect(result).toEqual({ orderIds: ['order-semantic'], total: 1 })
   })
 
-  it('does not list a semantic order whose artifact does not own the requested screen', async () => {
+  it('does not list a semantic order whose live policy does not own the requested screen', async () => {
     const snapshot = {
       wf_profile_id: '33333333-3333-3333-3333-333333333333',
       wf_version_no: 1,
@@ -103,11 +104,10 @@ describe('stage worklist membership', () => {
     expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })
 
-  it('does not list a profile-stamped order through a pinned graph', async () => {
+  it('does not list a profile-stamped order without a version binding', async () => {
     mockQueryRaw.mockResolvedValueOnce([
-      { wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3 },
+      { wf_profile_id: '22222222-2222-2222-2222-222222222222', wf_version_no: 3, wf_profile_version_id: null },
     ])
-    mockLoadSemanticArtifact.mockResolvedValue(null)
 
     const result = await listStageWorklistOrderPage('11111111-1111-1111-1111-111111111111', {
       screen: 'processing',
@@ -115,10 +115,7 @@ describe('stage worklist membership', () => {
       pageSize: 20,
     })
 
-    expect(mockLoadSemanticArtifact).toHaveBeenCalledWith({
-      wf_profile_id: '22222222-2222-2222-2222-222222222222',
-      wf_version_no: 3,
-    })
+    expect(mockLoadSemanticArtifact).not.toHaveBeenCalled()
     expect(result).toEqual({ orderIds: [], total: 0 })
     expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })

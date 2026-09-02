@@ -62,15 +62,15 @@ describe('listDeliveryPodMethods', () => {
     ]);
   });
 
-  it('narrows methods to compiled delivery evidence and synthesizes NOTES', async () => {
+  it('narrows methods to live delivery evidence without requiring an artifact id', async () => {
     queryRaw.mockResolvedValue([{
       wf_profile_id: 'p',
       wf_version_no: 1,
       wf_profile_version_id: 'v',
-      wf_profile_artifact_id: 'a',
+      wf_profile_artifact_id: null,
       wf_profile_revision: 1,
-      wf_profile_checksum: 'c',
-      wf_profile_schema_version: 1,
+      wf_profile_checksum: null,
+      wf_profile_schema_version: null,
     }]);
     loadArtifact.mockResolvedValue({
       evidence: [{

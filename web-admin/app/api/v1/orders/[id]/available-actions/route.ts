@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { AvailableActionsQuerySchema } from '@/lib/validations/workflow-schema';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolveWorkflowCommandChannel } from '@/lib/api/workflow-command-channel';
 import {
   WorkflowEngineError,
   listAvailableActions,
@@ -47,6 +48,7 @@ export async function GET(
       screen: queryParsed.data.screen,
       locale: queryParsed.data.locale,
       actorUserId: authCheck.userId,
+      channel: resolveWorkflowCommandChannel(request),
     });
 
     return NextResponse.json({

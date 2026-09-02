@@ -7,10 +7,10 @@ import {
 } from '@/lib/auth/request-permission-auth';
 import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolveWorkflowCommandChannel } from '@/lib/api/workflow-command-channel';
 import { executeWorkflowStageCommand } from '@/lib/services/workflow/workflow-stage-command.service';
 import { isValidUUID } from '@/lib/utils/validation-helpers';
 import type { WorkflowActionCode } from '@/lib/constants/workflow-actions';
-import type { SemanticWorkflowCommandChannel } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 
 const orderIdSchema = z.string().refine(isValidUUID, 'Invalid order UUID.');
 const idempotencyKeySchema = z.string().trim().min(1).max(255);
@@ -47,10 +47,6 @@ function workflowErrorResponse(error: WorkflowEngineError): NextResponse {
     },
     { status },
   );
-}
-
-function resolveChannel(isBearer: boolean): SemanticWorkflowCommandChannel {
-  return isBearer ? 'mobile' : 'staff_web';
 }
 
 /**
@@ -133,7 +129,7 @@ export function createWorkflowStageCommandHandler(
         actionCode: config.actionCode,
         expectedStateVersion: parsed.data.expectedStateVersion,
         idempotencyKey: idempotencyKey.data,
-        channel: resolveChannel(isBearer),
+        channel: resolveWorkflowCommandChannel(request),
         input: {
           ...(parsed.data.rackLocation ? { rackLocation: parsed.data.rackLocation } : {}),
           ...(reason ? { notes: reason, reason } : {}),

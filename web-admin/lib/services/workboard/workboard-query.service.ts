@@ -72,7 +72,7 @@ interface WorkboardRowSql {
   ready_by_at: Date | null
   wf_profile_id: string | null
   wf_version_no: number | null
-  wf_profile_artifact_id: string | null
+  wf_profile_version_id: string | null
   assignee_name: string | null
 }
 
@@ -86,18 +86,18 @@ interface WorkboardOwnerMetricRow {
   current_status: string
   wf_profile_id: string | null
   wf_version_no: number | null
-  wf_profile_artifact_id: string | null
+  wf_profile_version_id: string | null
   total: bigint
 }
 
 interface StatusScope {
-  artifactId: string
+  versionId: string
   ownerByStatus: Map<string, OwnerScreenKey>
 }
 
-function scopeKey(artifactId: string | null): string {
-  // The sentinel cannot match an operational scope because those require an artifact.
-  return artifactId ? `semantic:${artifactId}` : 'semantic:missing'
+function scopeKey(versionId: string | null): string {
+  // New orders bind a version only. Artifact id is historical and must not hide the queue.
+  return versionId ? `live:${versionId}` : 'live:missing'
 }
 
 function createEmptyOwnerCounts(): Record<OwnerScreenKey, number> {
@@ -129,7 +129,7 @@ function ageMinutes(receivedAt: Date | null, lastTransitionAt: Date | null): num
 }
 
 /**
- * Uses the artifact's primary-owner membership to route a semantic queue item.
+ * Uses live primary-owner membership to route a queue item.
  * Workboard itself is an observer: it may expose a queue row but never execute
  * an action or infer an owner from mutable screen memberships.
  */
@@ -156,10 +156,11 @@ function ownerForSemanticStatus(
   return (ownerMembership?.screen_key as OwnerScreenKey | undefined) ?? null
 }
 
-function scopeFromSemanticArtifact(
+function scopeFromLivePolicy(
   snapshot: ProfilePairRow,
   artifact: SemanticWorkflowArtifact,
-): StatusScope {
+): StatusScope | null {
+  if (!snapshot.wf_profile_version_id) return null
   const ownerByStatus = new Map<string, OwnerScreenKey>()
   for (const membership of artifact.module_statuses) {
     const statusCode = membership.status_code.trim().toLowerCase()
@@ -168,7 +169,7 @@ function scopeFromSemanticArtifact(
   }
 
   return {
-    artifactId: snapshot.wf_profile_artifact_id!,
+    versionId: snapshot.wf_profile_version_id,
     ownerByStatus,
   }
 }
@@ -177,7 +178,7 @@ function scopePredicate(scope: StatusScope): Prisma.Sql {
   const statuses = [...scope.ownerByStatus.keys()]
   const statusClause = Prisma.sql`o.current_status IN (${Prisma.join(statuses)})`
   return Prisma.sql`(
-    o.wf_profile_artifact_id = ${scope.artifactId}::uuid
+    o.wf_profile_version_id = ${scope.versionId}::uuid
     AND ${statusClause}
   )`
 }
@@ -260,7 +261,7 @@ function buildOwnerSummary(
 
   for (const metric of ownerMetrics) {
     const owner = ownerByScope
-      .get(scopeKey(metric.wf_profile_artifact_id))
+      .get(scopeKey(metric.wf_profile_version_id))
       ?.get(metric.current_status)
 
     if (!owner) {
@@ -280,9 +281,11 @@ function buildOwnerSummary(
  */
 export class WorkboardQueryService {
   /**
-   * Lists the operational queue using each order's compiled immutable artifact.
-   * Orders without a valid snapshot are excluded from operational visibility.
+   * Lists the operational queue using each order's live profile-version policy.
+   * Orders without a complete version binding are excluded from visibility.
    *
+   * @param tenantId Authenticated tenant resolved by the API adapter.
+   * @param input Supervisor filters and paging. Never used as a tenant selector.
    * @example
    * await WorkboardQueryService.list(tenantId, { page: 1, pageSize: 25 })
    */
@@ -304,18 +307,16 @@ export class WorkboardQueryService {
       FROM public.org_orders_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND COALESCE(rec_status, 1) <> 0
-        AND (
-          (wf_profile_id IS NOT NULL AND wf_version_no IS NOT NULL)
-          OR wf_profile_artifact_id IS NOT NULL
-          OR wf_profile_version_id IS NOT NULL
-          OR wf_profile_revision IS NOT NULL
-          OR wf_profile_checksum IS NOT NULL
-          OR wf_profile_schema_version IS NOT NULL
-        )
+        AND wf_profile_id IS NOT NULL
+        AND wf_version_no IS NOT NULL
+        AND wf_profile_version_id IS NOT NULL
     `)
     const scopes: StatusScope[] = []
+    const seenVersions = new Set<string>()
 
     for (const pair of profilePairs) {
+      if (!pair.wf_profile_version_id || seenVersions.has(pair.wf_profile_version_id)) continue
+      seenVersions.add(pair.wf_profile_version_id)
       let artifact: SemanticWorkflowArtifact | null = null
       try {
         artifact = await loadSemanticWorkflowArtifactForOrder(pair satisfies SemanticWorkflowOrderSnapshot)
@@ -323,9 +324,9 @@ export class WorkboardQueryService {
         if (error instanceof SemanticWorkflowArtifactError) continue
         throw error
       }
-      if (!artifact || !pair.wf_profile_artifact_id) continue
-      const scope = scopeFromSemanticArtifact(pair, artifact)
-      if (scope.ownerByStatus.size > 0) scopes.push(scope)
+      if (!artifact) continue
+      const scope = scopeFromLivePolicy(pair, artifact)
+      if (scope && scope.ownerByStatus.size > 0) scopes.push(scope)
     }
     if (scopes.length === 0) return this.emptyResponse(input, gaps)
 
@@ -380,7 +381,7 @@ export class WorkboardQueryService {
               COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
               o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
               COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.wf_profile_id::text,
-              o.wf_version_no, o.wf_profile_artifact_id::text,
+              o.wf_version_no, o.wf_profile_version_id::text,
               COALESCE(u.display_name, u.name) AS assignee_name
             FROM public.org_orders_mst o
             LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
@@ -411,7 +412,7 @@ export class WorkboardQueryService {
         : Promise.resolve([{ total: BigInt(0), blocked: BigInt(0), overdue: BigInt(0) }] as WorkboardMetricRow[]),
       prisma.$queryRaw<WorkboardOwnerMetricRow[]>(Prisma.sql`
         SELECT o.current_status, o.wf_profile_id::text, o.wf_version_no,
-          o.wf_profile_artifact_id::text,
+          o.wf_profile_version_id::text,
           COUNT(*)::bigint AS total
         FROM public.org_orders_mst o
         LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
@@ -419,9 +420,9 @@ export class WorkboardQueryService {
           AND task.tenant_org_id = o.tenant_org_id AND task.is_active = true
           AND COALESCE(task.rec_status, 1) <> 0
         WHERE ${baseWhereSql}
-        -- Artifact identity is part of the immutable policy snapshot. Grouping by it
-        -- keeps two revisions of the same profile from being merged in supervisor counts.
-        GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_artifact_id
+        -- Live version identity is the operational policy binding. Grouping by it
+        -- keeps distinct profile versions from being merged in supervisor counts.
+        GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_version_id
       `),
       prisma.$queryRaw<StatusLabelRow[]>(Prisma.sql`
         SELECT status_code, name, name2 FROM public.sys_wf_statuses_cd
@@ -442,12 +443,12 @@ export class WorkboardQueryService {
       `),
     ])
 
-    const ownerByScope = new Map(scopes.map((scope) => [scopeKey(scope.artifactId), scope.ownerByStatus]))
+    const ownerByScope = new Map(scopes.map((scope) => [scopeKey(scope.versionId), scope.ownerByStatus]))
     const summaryByOwner = buildOwnerSummary(ownerMetrics, ownerByScope)
     const labels = new Map(statusLabels.map((row) => [row.status_code, row]))
     const mappedRows: WorkboardOrderRow[] = rows.flatMap((row) => {
       const owner = ownerByScope
-        .get(scopeKey(row.wf_profile_artifact_id))
+        .get(scopeKey(row.wf_profile_version_id))
         ?.get(row.current_status)
       if (!owner) return []
       return [{

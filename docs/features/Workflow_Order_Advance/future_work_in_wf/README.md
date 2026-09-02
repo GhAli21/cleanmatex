@@ -8,7 +8,7 @@
 This folder holds three related deliverables:
 
 1. **Shared vocabulary** so page, module, and `screen_key` are not treated as the same thing.
-2. **All profile-setup gaps** HQ should fold into Validation / Check policy / Compile / Pilot / Publish / Assign.
+2. **All profile-setup gaps** HQ should fold into Validation / Check policy / Pilot / Publish / Assign (not Compile-as-authority).
 3. **The remaining product plan** from V1.0 close-out through V1.1, V1.2, V1.3, and V2, split by tenant vs HQ.
 
 ## Read in this order
@@ -16,15 +16,16 @@ This folder holds three related deliverables:
 | File | Purpose | Give to |
 |------|---------|---------|
 | [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md) | Definitions: page vs module vs `screen_key`, actions, executions, channels, UI chrome, worked examples | Anyone touching Studio or tenant workflow |
-| [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md) | Situations, couplings, archetypes, warn vs block | HQ Studio / compiler owners |
-| [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Implementable issue codes (severity, path, EN/AR, fix) | HQ `WfSemanticProfileCompilerService` / future `WorkflowPolicyValidator` |
+| [01_HQ_STUDIO_VALIDATION_GAPS.md](01_HQ_STUDIO_VALIDATION_GAPS.md) | Situations, couplings, archetypes, warn vs block | HQ Studio / `WorkflowPolicyValidator` owners |
+| [02_HQ_STUDIO_ISSUE_CODE_SPEC.md](02_HQ_STUDIO_ISSUE_CODE_SPEC.md) | Implementable issue codes (severity, path, EN/AR, fix) | HQ `WorkflowPolicyValidator` (legacy compiler aliases during cutover only) |
 | [03_VERSIONED_REMAINING_WORK_PLAN.md](03_VERSIONED_REMAINING_WORK_PLAN.md) | Must / Should / Could by version, both repos | Product + both engineering tracks |
 
 ## Authority and limits
 
-- Tenant runtime truth: `cleanmatex` `web-admin/lib/services/workflow/*` and stage-owned pickup/delivery/public-tracking services.
-- HQ compile truth today: `cleanmatexsaas` `WfSemanticProfileCompilerService`. Soft Studio graph advice is **not** a publish gate.
-- DB minimum check today: `sys_wf_prof_ver_validate_live` (migration `0470`) — structural only; it does **not** replace the issue spec in file 02.
+- Tenant runtime truth **today:** `WorkflowPolicyResolver` on live profile-version rows (`web-admin/lib/services/workflow/workflow-policy-resolver.service.ts`), consumed by create, floor lists, engine, pickup, Workboard, delivery, and public tracking. Workboard groups by `wf_profile_version_id`. Privacy-safe observe events and support diagnosis: [live_runtime_support.md](../technical_docs/live_runtime_support.md).
+- HQ policy truth **today:** `WfSemanticProfileCompilerService`. **Target:** `WorkflowPolicyValidator` + Check policy. Soft Studio graph advice is **not** a publish gate.
+- DB minimum check: `sys_wf_prof_ver_validate_live` in applied `0470` (+ `0471`) — structural only; it does **not** replace file 02. The guard allows only `pickup_handover` / `CONFIRM_PICKUP` / observed `ready` → `delivered`, and rejects other observer executes. Do not edit applied 0470.
+- Vocabulary: [00_WF_ENTITY_GLOSSARY.md](00_WF_ENTITY_GLOSSARY.md) is canonical for page vs module vs `screen_key`.
 - Full Pack under `CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/` is **reference** for V2, not V1.0 authority.
 - Do **not** build a tenant Workflow Studio. HQ authors; tenant consumes.
 

@@ -118,6 +118,17 @@ export function PickupHandoverCard({
         promptForCollection();
         return;
       }
+      if (
+        error instanceof PickupApiError
+        && (
+          error.code === 'PICKUP_POLICY_UNAVAILABLE'
+          || error.code === 'PICKUP_DIRECT_NOT_ALLOWED'
+          || error.code.startsWith('PROFILE_')
+        )
+      ) {
+        showError(t('notConfigured'));
+        return;
+      }
       showError(error instanceof Error ? error.message : t('failed'));
     }
   };

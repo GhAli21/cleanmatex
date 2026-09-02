@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/utils/logger';
+import { observeWorkflowFulfilmentCommitted } from '@/lib/services/workflow/workflow-observability';
 import {
   claimIdempotencyKey,
   deleteIdempotencyHash,
@@ -17,6 +18,7 @@ import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import {
   loadSemanticWorkflowArtifactForOrder,
   SemanticWorkflowArtifactError,
+  type SemanticWorkflowCommandChannel,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 import {
   assertCompiledDeliveryEvidence,
@@ -81,6 +83,8 @@ export interface CompleteDeliveryCommand {
   podNotes?: string;
   signatureEvidenceId?: string;
   photoEvidenceIds?: string[];
+  /** Server-derived channel; cookie POS with an OPEN till may be `pos`. */
+  channel?: SemanticWorkflowCommandChannel;
 }
 
 /** Successful result persisted in the delivery idempotency record for safe replay. */
@@ -100,6 +104,8 @@ export interface CompleteOrderDeliveryCommand {
   expectedStateVersion: number;
   idempotencyKey: string;
   podNotes?: string;
+  /** Server-derived channel; cookie POS with an OPEN till may be `pos`. */
+  channel?: SemanticWorkflowCommandChannel;
 }
 
 /** Replay-safe outcome for a floor-screen delivery handover without a planned route. */
@@ -280,7 +286,7 @@ async function loadOrderArtifact(stop: LockedDeliveryStop) {
     if (error instanceof SemanticWorkflowArtifactError) {
       throw new DeliveryCompletionError(
         'DELIVERY_POLICY_UNAVAILABLE',
-        'The compiled delivery policy could not be loaded.',
+        'The live delivery policy could not be loaded.',
         422,
       );
     }
@@ -312,7 +318,14 @@ async function validateEvidence(
   }
 
   const artifact = await loadOrderArtifact(stop);
-  const compiledEvidence = artifact?.evidence ?? [];
+  if (!artifact) {
+    throw new DeliveryCompletionError(
+      'DELIVERY_POLICY_UNAVAILABLE',
+      'The live delivery policy could not be loaded.',
+      422,
+    );
+  }
+  const compiledEvidence = artifact.evidence ?? [];
   if (!hasCompiledDeliveryEvidence(compiledEvidence)) {
     const methodRows = await tx.$queryRaw<Array<{ code: string }>>`
       SELECT code
@@ -635,6 +648,7 @@ export async function completeDelivery(
           photoObjectKeys: evidence.photoObjectKeys,
         },
         idempotencyKey: `delivery:${params.idempotencyKey}`,
+        channel: params.channel ?? 'staff_web',
       }, tx);
 
       await refreshRouteProgress(tx, params.tenantId, stop.route_id, params.actorUserId, now);
@@ -669,6 +683,12 @@ export async function completeDelivery(
       podId: result.podId,
       feature: 'delivery',
       action: 'complete_delivery',
+    });
+    observeWorkflowFulfilmentCommitted({
+      kind: 'delivery',
+      tenantId: params.tenantId,
+      orderId: result.orderId,
+      channel: params.channel,
     });
     return result;
   } catch (error) {
@@ -757,14 +777,22 @@ async function assertOrderKeyedDeliveryEvidence(
     if (error instanceof SemanticWorkflowArtifactError) {
       throw new DeliveryCompletionError(
         'DELIVERY_POLICY_UNAVAILABLE',
-        'The compiled delivery policy could not be loaded.',
+        'The live delivery policy could not be loaded.',
         422,
       );
     }
     throw error;
   }
 
-  const evidence = artifact?.evidence ?? [];
+  if (!artifact) {
+    throw new DeliveryCompletionError(
+      'DELIVERY_POLICY_UNAVAILABLE',
+      'The live delivery policy could not be loaded.',
+      422,
+    );
+  }
+
+  const evidence = artifact.evidence ?? [];
   if (!hasCompiledDeliveryEvidence(evidence)) return;
 
   try {
@@ -880,6 +908,7 @@ export async function completeDeliveryByOrder(
           handoverNotes: params.podNotes?.trim() || null,
         },
         idempotencyKey: `delivery-order:${params.idempotencyKey}`,
+        channel: params.channel ?? 'staff_web',
       }, tx);
 
       const commandResult: CompleteOrderDeliveryResult = {
@@ -908,6 +937,12 @@ export async function completeDeliveryByOrder(
       orderId: result.orderId,
       feature: 'delivery',
       action: 'complete_delivery_by_order',
+    });
+    observeWorkflowFulfilmentCommitted({
+      kind: 'delivery',
+      tenantId: params.tenantId,
+      orderId: result.orderId,
+      channel: params.channel,
     });
     return result;
   } catch (error) {

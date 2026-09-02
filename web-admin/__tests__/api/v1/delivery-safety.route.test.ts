@@ -10,6 +10,7 @@ const allPermissionsHandler = jest.fn();
 const createRouteMock = jest.fn();
 const capturePODMock = jest.fn();
 const completeDeliveryMock = jest.fn();
+const getMyActivePosSessionMock = jest.fn();
 const createDeliveryEvidenceUploadMock = jest.fn();
 const validateCSRFMock = jest.fn();
 
@@ -32,6 +33,10 @@ jest.mock('@/lib/services/delivery-service', () => ({
 jest.mock('@/lib/services/delivery/delivery-completion.service', () => ({
   completeDelivery: (...args: unknown[]) => completeDeliveryMock(...args),
   DeliveryCompletionError: class DeliveryCompletionError extends Error {},
+}));
+
+jest.mock('@/lib/services/pos-session.service', () => ({
+  getMyActivePosSession: (...args: unknown[]) => getMyActivePosSessionMock(...args),
 }));
 
 jest.mock('@/lib/services/delivery/delivery-evidence.service', () => ({
@@ -63,6 +68,7 @@ describe('delivery write safety boundary', () => {
     validateCSRFMock.mockResolvedValue(null);
     requirePermissionFactory.mockReturnValue(permissionHandler);
     requireAllPermissionsFactory.mockReturnValue(allPermissionsHandler);
+    getMyActivePosSessionMock.mockResolvedValue({ type: 'NONE' });
   });
 
   it('fails route creation closed after authorization without calling the service', async () => {
@@ -123,6 +129,7 @@ describe('delivery write safety boundary', () => {
     expect(completeDeliveryMock).toHaveBeenCalledWith(expect.objectContaining({
       tenantId: AUTH_CONTEXT.tenantId,
       podMethodCode: 'PHOTO',
+      channel: 'staff_web',
     }));
   });
 

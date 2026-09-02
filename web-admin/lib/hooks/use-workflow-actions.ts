@@ -98,7 +98,8 @@ export function useWorkflowActions(
       const res = await fetch(`/api/v1/orders/${orderId}/available-actions?${qs.toString()}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error || t('actionFailed'));
+        const profileBlocked = typeof json.code === 'string' && json.code.startsWith('PROFILE_');
+        throw new Error(profileBlocked ? t('profileUnavailable') : (json.error || t('actionFailed')));
       }
       const payload = json.data ?? json;
       setStateVersion(payload.stateVersion ?? null);

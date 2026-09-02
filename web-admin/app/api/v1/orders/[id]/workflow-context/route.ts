@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/v1/orders/[id]/workflow-context
  *
- * Session-authenticated, tenant-scoped. Every operational order must expose
- * its display-only context from the immutable artifact captured at creation.
+ * Session-authenticated, tenant-scoped. Display-only context is projected
+ * from the order's live profile-version policy, never from a compiled artifact.
  *
  * Metrics are not loaded here — callers already have order items in UI state.
  */
@@ -99,7 +99,7 @@ export async function GET(
 
     return NextResponse.json(
       {
-        error: 'This order has no compiled workflow profile snapshot and cannot expose workflow context. Recreate the order under an assigned workflow profile.',
+        error: 'This order has no live workflow profile binding and cannot expose workflow context. Recreate the order under an assigned workflow profile.',
         code: 'PROFILE_SNAPSHOT_INCOMPLETE',
       },
       { status: 409 },

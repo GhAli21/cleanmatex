@@ -260,6 +260,8 @@ export async function assertAndRecordSemanticGateDecisions(input: {
   tenantId: string;
   orderId: string;
   artifactId: string;
+  profileVersionId?: string | null;
+  profileArtifactId?: string | null;
   actionCode: string;
   screen: string;
   channel: SemanticWorkflowCommandChannel;
@@ -379,6 +381,8 @@ async function persistAcceptedDecision(
     tenantId: string;
     orderId: string;
     artifactId: string;
+    profileVersionId?: string | null;
+    profileArtifactId?: string | null;
     actionCode: string;
     screen: string;
     channel: SemanticWorkflowCommandChannel;
@@ -413,6 +417,7 @@ async function persistAcceptedDecision(
       tenant_org_id,
       order_id,
       profile_artifact_id,
+      profile_version_id,
       workflow_action_code,
       workflow_screen_key,
       gate_code,
@@ -431,7 +436,8 @@ async function persistAcceptedDecision(
     ) VALUES (
       ${input.tenantId}::uuid,
       ${input.orderId}::uuid,
-      ${input.artifactId}::uuid,
+      ${input.profileArtifactId ?? null}::uuid,
+      ${input.profileVersionId ?? input.artifactId}::uuid,
       ${input.actionCode},
       ${input.screen},
       ${decision.gateCode},

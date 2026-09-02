@@ -612,6 +612,7 @@
     "canaryOff": "Workflow Engine V2 is off for this tenant. Use the legacy screen actions.",
     "actionSuccess": "Action completed",
     "actionFailed": "Action failed",
+    "profileUnavailable": "This order's workflow profile is not available. Recreate it under an assigned profile, or ask HQ to publish the bound version.",
     "rackLocationLabel": "Rack location",
     "rackLocationPlaceholder": "e.g., Rack A-12",
     "rackLocationHelp": "Required before release or moving to ready. Saved with the action.",

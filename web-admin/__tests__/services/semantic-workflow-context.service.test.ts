@@ -8,6 +8,7 @@ const artifact: SemanticWorkflowArtifact = {
   profile_version_no: 2,
   policy_revision: 4,
   policy_schema_version: 1,
+  allow_direct_counter_pickup: false,
   policy: null,
   initial_rules: [],
   module_statuses: [],

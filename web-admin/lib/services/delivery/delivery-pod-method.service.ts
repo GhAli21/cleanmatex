@@ -24,7 +24,7 @@ const SYNTHETIC_METHODS: Record<string, Pick<DeliveryPodMethod, 'name' | 'name2'
  *
  * OTP is intentionally excluded until its expiry, resend, retry, and audit
  * controls are released as a complete capability. When a stop is supplied,
- * compiled snapshot evidence narrows the catalog instead of widening it.
+ * live profile evidence narrows the catalog instead of widening it.
  */
 export async function listDeliveryPodMethods(input?: {
   tenantId?: string;

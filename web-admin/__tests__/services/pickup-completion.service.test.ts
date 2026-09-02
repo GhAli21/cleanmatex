@@ -69,7 +69,10 @@ describe('completePickup', () => {
     mockExecuteRaw.mockResolvedValue(1);
     mockIdempotencyUpdateMany.mockResolvedValue({ count: 1 });
     mockExecuteAction.mockResolvedValue({ ok: true, currentStatus: 'delivered', stateVersion: 8 });
-    mockLoadArtifact.mockResolvedValue(null);
+    mockLoadArtifact.mockResolvedValue({
+      allow_direct_counter_pickup: false,
+      evidence: [],
+    });
   });
 
   it('blocks pay-on-collection pickup before a release or workflow write', async () => {
@@ -133,6 +136,7 @@ describe('completePickup', () => {
         actionCode: WORKFLOW_ACTIONS.CONFIRM_PICKUP,
         screen: 'pickup_handover',
         expectedStateVersion: COMMAND.expectedStateVersion,
+        channel: 'staff_web',
       }),
       expect.anything(),
     );
@@ -163,6 +167,7 @@ describe('completePickup', () => {
   });
 
   it('completes an explicit direct counter handover from ready and creates a fulfilled pickup audit', async () => {
+    mockLoadArtifact.mockResolvedValue({ allow_direct_counter_pickup: true });
     mockQueryRaw
       .mockResolvedValueOnce([
         {
@@ -188,6 +193,46 @@ describe('completePickup', () => {
     );
     const directReleaseInsert = mockQueryRaw.mock.calls[mockQueryRaw.mock.calls.length - 1];
     expect(directReleaseInsert).toContain(COMMAND.expectedStateVersion + 1);
+  });
+
+  it('rejects a ready-status handover when live policy does not allow direct counter pickup', async () => {
+    mockLoadArtifact.mockResolvedValue({ allow_direct_counter_pickup: false });
+    mockQueryRaw.mockResolvedValueOnce([
+      {
+        id: COMMAND.orderId,
+        current_status: 'ready',
+        payment_type_code: 'PAY_IN_ADVANCE',
+        outstanding_amount: '0.0000',
+      },
+    ]);
+
+    await expect(completePickup(COMMAND)).rejects.toMatchObject<PickupCompletionError>({
+      code: 'PICKUP_DIRECT_NOT_ALLOWED',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unbound order instead of confirming pickup without live policy', async () => {
+    mockLoadArtifact.mockResolvedValue(null);
+    mockQueryRaw.mockResolvedValueOnce([
+      {
+        id: COMMAND.orderId,
+        current_status: 'ready_for_pickup',
+        payment_type_code: 'PAY_IN_ADVANCE',
+        outstanding_amount: '0.0000',
+      },
+    ]);
+
+    await expect(completePickup(COMMAND)).rejects.toMatchObject<PickupCompletionError>({
+      code: 'PICKUP_POLICY_UNAVAILABLE',
+      httpStatus: 422,
+    });
+
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+    expect(mockExecuteAction).not.toHaveBeenCalled();
   });
 
   it('rejects compiled required pickup notes before a release or workflow write', async () => {

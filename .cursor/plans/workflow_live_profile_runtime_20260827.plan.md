@@ -10,35 +10,38 @@ todos:
     content: Confirm the shared direct-live-policy contract, order-version binding, lifecycle, and no-fallback rules.
     status: completed
   - id: lwpr-tenant-schema
-    content: Correct, review, and apply the forward-only shared-schema cutover migration only after this plan and the coordinated application release are approved; 0470 must support the explicit direct-counter pickup observation exception before application.
-    status: pending
+    content: "0470 applied locally and remotely (plus 0471). Guard allows only pickup_handover CONFIRM_PICKUP from observed ready to delivered. Types regenerated. Do not edit applied 0470."
+    status: completed
   - id: lwpr-tenant-baseline
-    content: Define and prove complete catalog, starter-profile, test-demo assignment, and read-only preflight baseline data before acceptance testing.
-    status: pending
+    content: "0472 live policy seed applied. Read-only preflight in. HQ Check policy/assign-without-artifact in. Remote demo tenant has default WF_V2_SIMPLE latest Published. Local DB still has no assignment."
+    status: completed
+  - id: lwpr-tenant-profile-level-seed
+    content: "0472 applied locally. Live policy v2 (v1 for WF_V2_ROUTED_POD) seeded for laundry business levels. Do not edit 0444/0445/0470/0471/0472."
+    status: completed
   - id: lwpr-tenant-resolver
     content: Implement the tenant-scoped normalized WorkflowPolicyResolver and policy row mapper with fail-closed behavior.
-    status: pending
+    status: completed
   - id: lwpr-tenant-order-binding
     content: Update new-order resolution and initial-status selection to persist only the direct profile/version binding.
-    status: pending
+    status: completed
   - id: lwpr-tenant-command-cutover
-    content: Move workflow context, action listing, command execution, worklists, pickup, delivery, public tracking, mobile, and integrations to the resolver.
-    status: pending
+    content: "Workboard, delivery fail-close, 0473 ledger, public-tracking PROFILE_* HTTP mapping, server-derived staff_web/mobile, and verified POS pos on pickup/intake/delivery (OPEN till, no client header). Generic /actions stays credential-only."
+    status: completed
   - id: lwpr-tenant-api-security
-    content: Document and enforce versioned contracts, request validation, server-derived tenant/channel, idempotency, optimistic concurrency, public-token boundaries, and integration safety.
-    status: pending
+    content: "Documented live-policy contracts, server-derived tenant/channel, public-token privacy (no rack), PROFILE_* 409, ignored client channel fields, privacy-safe observe events, and the live-runtime support runbook."
+    status: completed
   - id: lwpr-tenant-observability
-    content: Add privacy-safe resolver/command telemetry, metrics, alert ownership, and a support runbook.
-    status: pending
+    content: "Privacy-safe wf.* observe events, in-process counters, support runbook (technical_docs/live_runtime_support.md), and 09 observability refresh. Successful policy loads stay DEBUG."
+    status: completed
   - id: lwpr-tenant-assurance
-    content: Prove tenant isolation, lifecycle, gates, evidence, payments, concurrency, idempotency, and no artifact fallback with automated tests.
-    status: pending
+    content: "Unit+source-scan live runtime plus HQ Check policy. Residual: local demo assign if using local DB, S10, soak, Studio rewrite / compiler retirement."
+    status: in_progress
   - id: lwpr-tenant-progress
     content: After every completed implementation step, update this plan and the paired HQ plan with status, evidence, changed contracts, validation results, risks, and the next concrete action.
-    status: pending
+    status: completed
   - id: lwpr-tenant-docs-per-phase
     content: Create or refresh tenant and coordinated HQ documentation after each verified phase, including runtime contract, APIs, permissions, UI, testing, deployment, risks, rollout, and current status.
-    status: pending
+    status: in_progress
   - id: lwpr-tenant-docs-final
     content: As the final completion task, load and use the documentation skill to audit, create, refresh, cross-link, and verify the complete canonical workflow documentation pack with no stale compiled-runtime claims.
     status: pending
@@ -52,9 +55,10 @@ This is the tenant-application half of the direct normalized workflow profile
 runtime. It implements [ADR-SAAS-MNG-0010](F:/jhapp/cleanmatexsaas/docs/features/SAAS_Platform_Management/ADRs/ADR-SAAS-MNG-0010_Live_Normalized_Workflow_Profile_Runtime.md).
 
 No additional implementation task in phases 2 through 12 starts until the
-product owner reviews and approves this plan together with the HQ plan. The
-existing 0470 migration is a review draft only; this plan never authorizes its
-execution, which remains the product owner's normal Supabase workflow.
+product owner reviews and approves this plan together with the HQ plan.
+
+**0470 is applied** locally and remotely (`0470` + `0471`). Types are regenerated.
+Do not edit applied 0470. Further schema changes use a later sequence. Agents never apply migrations.
 
 ### 1.1 Cross-Project Execution Order
 
@@ -63,9 +67,7 @@ This is not an HQ-first or tenant-first delivery. It is a coordinated sequence:
 1. **Joint contract freeze:** approve both plans/ADR, the issue taxonomy,
    direct-counter pickup exception, API contracts, baseline seed, and preflight
    requirements.
-2. **Tenant-owned shared schema:** correct/review `0470`, add its database
-   allow/reject tests, then the product owner applies it locally and regenerates
-   types in both repositories. No application assumes the new schema before it.
+2. **Tenant-owned shared schema (applied):** 0470 + 0471 are live locally and remotely. Types regenerated. Do not edit applied 0470.
 3. **Coordinated build streams:** HQ implements policy authoring, validation,
    lifecycle, assignment, and starter-template import while tenant implements
    the direct resolver, order binding, and stage-owned policy consumers against
@@ -81,6 +83,25 @@ This is not an HQ-first or tenant-first delivery. It is a coordinated sequence:
 
 Do not finish HQ Studio without a tested tenant consumer, and do not cut tenant
 runtime over until HQ can create and validate a complete usable policy.
+
+### 1.2 Authority And Execution Gates
+
+**Vocabulary:** `docs/features/Workflow_Order_Advance/future_work_in_wf/00_WF_ENTITY_GLOSSARY.md`.
+**Runtime law:** `docs/features/Workflow_Order_Advance/LIVE_NORMALIZED_PROFILE_RUNTIME.md`.
+**Decision:** HQ ADR-SAAS-MNG-0010 (Accepted). Validator = HQ; resolver = tenant.
+
+Do not execute phases 2–9 as one waterfall. Ship **gates**:
+
+| Gate | Done when |
+|------|-----------|
+| **0 Contract freeze** | ADR + glossary + both contracts + issue taxonomy + pickup `ready`→`delivered` exception agreed. |
+| **1 Schema** | **Done.** 0470 + 0471 applied locally and remotely. Guard allows only pickup_handover CONFIRM_PICKUP from observed ready to delivered. Types regenerated. Do not edit applied 0470. |
+| **2 Vertical slice** | HQ: save, Check policy, Pilot, assign demo tenant. Tenant: **business-level live-policy seed migration** (§5.2) + resolver + create (version binding only) + Ready list + Ready Details **staged and direct** `CONFIRM_PICKUP` + collection/evidence atomicity. One demo order proves Pilot edit is visible. No artifact read on that path. Floor UX: `PROFILE_*` → 4xx + EN/AR empty/blocked, Cmx, RTL. |
+| **3 Remaining runtime** | Plant floors, **Workboard groups by `wf_profile_version_id`**, delivery, public tracking, worklists. Delete leftover artifact reads as each path is cut. |
+| **4 Studio completeness** | Remaining HQ sections, Effective preview = resolver shape, assignment “new orders only.” |
+| **5 Retire compiler** | Grep/audit clean. Remote 0470 + both apps in **one** window. |
+
+Starter-template import, observability polish, and open-order migrate stay after Gate 2. Do not enable partial fulfilment on the starter until the atomic piece service is in the slice.
 
 ## 2. Fixed Decisions
 
@@ -151,41 +172,27 @@ actions from a screen name or catalog fallback.
 | New-order assignment | `org_wf_profile_assign_cf` |
 | Order binding | `org_orders_mst` profile/version fields |
 
-### 4.2 Forward Migration
+### 4.2 0470 is applied
 
-Review [0470_live_normalized_workflow_profile_runtime.sql](F:/jhapp/cleanmatex/supabase/migrations/0470_live_normalized_workflow_profile_runtime.sql) before it is applied. It:
+**Fact:** `0470_live_normalized_workflow_profile_runtime` and `0471_fix_sys_wf_prof_ver_commit_art_ambiguous_version_id` are applied locally and remotely. Types are regenerated. Do not edit those files; later schema work uses a new sequence.
 
-- removes compiled-artifact completeness requirements from active orders;
-- keeps direct profile/version/order binding complete;
-- validates Pilot, Published, and assigned versions from relational policy rows;
-- retains strict lifecycle and Published immutability;
-- restricts Pilot assignment to `org_tenants_mst.is_hq_test_demo = true`;
-- allows partial pickup/delivery switches to be configured; and
-- keeps historical artifact rows non-destructively for audit only.
+`sys_wf_prof_ver_validate_live` **allows** only this tuple when pickup has observer membership for `ready` and `ready_release` remains owner of `ready`: `screen_key = pickup_handover`, `action_code = CONFIRM_PICKUP`, `from_status = ready`, `to_status = delivered`. It **rejects** `CONFIRM_PICKUP` on any other module and every other executable that lacks owner visibility. Coverage: `web-admin/__tests__/db-integration/wf-prof-ver-validate-live.db.test.ts`.
+
+**Gate 2 tenant slice:** resolver, version-only create binding, Ready lists, engine, and pickup read live rows. Direct counter pickup also requires `sys_wf_prof_ver_policy_cf.allow_direct_counter_pickup`. Unbound orders fail closed. **Workboard groups by `wf_profile_version_id`.** **0472** and **0473** are applied locally and remotely. Do not edit those files.
 
 Do not drop artifact rows/columns in this phase. Physical retirement is a later
 maintenance migration after development data recreation and proof that no
 application consumer remains.
 
-### 4.3 Migration Review Checks
+### 4.3 Applied-schema follow-ups
 
-1. Verify altered objects locally and remotely.
-2. Classify active development orders without a direct binding as historical,
-   or repair them through an approved data plan.
-3. Verify no migration uses `CASCADE`.
-4. Confirm constraint names against the applied schema.
-5. **Before applying 0470:** correct the relational ownership guard so it allows
-   only `pickup_handover` / `CONFIRM_PICKUP` from observed `ready` when the
-   direct-counter edge is explicitly configured. It must reject all other
-   observer execution attempts. Add database integration coverage for both
-   allow and reject cases.
-6. Re-review every `sys_wf_prof_ver_validate_live` rule against
-   `01_HQ_STUDIO_VALIDATION_GAPS.md` and the HQ issue-code specification. The
-   DB helper remains a minimal integrity guard; it must not recreate a compiler
-   or become the detailed policy validator.
-7. Apply local first, regenerate types, run tenant/HQ tests, then apply remote
-   in the approved release window.
-8. Record version, timestamp, and test evidence in both `current_status.md` files.
+0470/0471 review checks are complete. Remaining data work:
+
+1. Classify active development orders without a direct binding as historical, or repair them through an approved data plan.
+2. Keep DB tests for direct-counter **allow** and all other observer-execute **reject**.
+3. Do not edit applied 0470/0471. New schema uses a later sequence.
+4. Baseline seed and preflight remain Gate 2 blockers for a demo Pilot order.
+5. **Business-level live-policy seed** is a dedicated later-seq tenant migration (`lwpr-tenant-profile-level-seed`). Existing `0444`/`0445` headers are not executable live policy.
 
 ## 5. Phase 0 - Operational Baseline, Seed, And Preflight
 
@@ -197,6 +204,7 @@ Pilot or Published version, maintain a complete, reviewable baseline for:
 - active workflow status, screen, action, gate, and initial-rule catalog rows;
 - typed gate evaluator support and allowed channel codes;
 - a recommended laundry starter policy represented as normalized profile rows;
+- **complete live policy seeds for multiple laundry business levels** (see §5.2);
 - evidence method catalog/configuration supported by pickup and delivery;
 - a dedicated `is_hq_test_demo = true` tenant, test branch where applicable,
   test customer, and non-production payment/delivery provider setup; and
@@ -206,7 +214,44 @@ No runtime service seeds data implicitly. HQ supplies a deliberate starter
 template/example; shared reference data is created only through reviewed,
 idempotent migration or seed scripts owned by the tenant repository.
 
-### 5.2 Preflight Command And Acceptance Evidence
+### 5.2 Business-level live-policy seed migration (planned)
+
+**Why:** Gate 2 cannot prove a demo order while `sys_wf_prof_ver_*` policy rows are empty. `0444` seeded `WF_V2_STANDARD` and `0445` seeded additional **profile headers / screen lists** (`WF_V2_SIMPLE`, `WF_V2_ASSEMBLY_QA`, `WF_V2_PICKUP_DELIVERY`, `WF_V2_OUTSOURCE`, `WF_V2_ISSUE_REPROCESS`). Those files are applied history. They are **not** complete live normalized policy (no `policy_cf` / `module_cf` / `mod_st_cf` / `exec_cf` / channels / gates / init / evidence). Do **not** edit `0444`, `0445`, `0470`, or `0471`.
+
+**Task:** create a **new later-seq** tenant migration, tentatively
+`0472_wf_live_policy_business_level_seed.sql` (confirm next seq at write time).
+Agents create the SQL file only. The product owner reviews and applies it locally, then remotely. Never apply via MCP/CLI/agent.
+
+**Status (2026-08-28):** `0472_wf_live_policy_business_level_seed.sql` is **applied locally**. Existing PUBLISHED v1 headers stay historical; live policy is version_no = 2 (v1 for new `WF_V2_ROUTED_POD`). The file also restored `sys_wf_prof_cfg_guard` channel/gate `version_id` lookup that 0470 overwrote. Do not edit 0472. Demo assignment is still HQ/explicit; tenant preflight is read-only.
+
+**What to seed:** complete, idempotent live policy for distinct laundry **business levels**, aligned to shop archetypes in `docs/features/Workflow_Order_Advance/future_work_in_wf/01_HQ_STUDIO_VALIDATION_GAPS.md` §6. Reuse existing `WF_V2_*` profile codes where they still match; add a new code only when an archetype has no header.
+
+| Business level | Archetype (file 01) | Profile code to reuse or add | Must include |
+|---|---|---|---|
+| Small counter shop | Lean plant / counter-only | `WF_V2_SIMPLE` | `processing` + `ready_release` + `pickup_handover`; `CONFIRM_PICKUP` on pickup with `staff_web`; skip Off prep/assembly/QA/packing; `driver_delivery` Off |
+| Standard plant | Full floor (no extra QA) | `WF_V2_STANDARD` | Intake → process → Ready → pickup and/or delivery; one primary owner per non-terminal status |
+| QA plant | Full floor + assembly/QA | `WF_V2_ASSEMBLY_QA` | Assembly + QA owners; fail/pass edges; skip only Off optional stages |
+| Pickup + delivery shop | Lean or full + both fulfilment | `WF_V2_PICKUP_DELIVERY` | Ready hosts pickup and delivery; pickup module owns `CONFIRM_PICKUP`; delivery owns `CONFIRM_DELIVERY` |
+| Simple delivery (no stop) | Simple delivery | Reuse `WF_V2_PICKUP_DELIVERY` or a dedicated code if stop-gated policy would pollute it | `driver_delivery` + `CONFIRM_DELIVERY` + `staff_web`; **do not** bind `delivery_stop_active` |
+| Routed POD | Routed POD | Dedicated code if needed (do not overload simple delivery) | `delivery_stop_active` + POD evidence methods; no dummy tenant routes |
+| Outsource / issue-reprocess | Partner / exception paths | `WF_V2_OUTSOURCE`, `WF_V2_ISSUE_REPROCESS` | Only if catalog actions/gates exist; otherwise document as later seed, do not fake edges |
+
+**Direct counter pickup:** only on levels that truly skip staging. Bind `CONFIRM_PICKUP` on `pickup_handover` from observed `ready` → `delivered`, with `ready_release` still owning `ready`, and set `allow_direct_counter_pickup = true`. Never bind `CONFIRM_PICKUP` on `ready_release` or `public_tracking`. Public confirm still requires a pickup release.
+
+**Seed rules:**
+
+- Upsert with `ON CONFLICT ... DO UPDATE` (or equivalent) so re-runs are safe.
+- Write **live** rows: `sys_wf_prof_ver_policy_cf`, `module_cf`, `mod_st_cf`, `exec_cf`, `exec_ch_cf`, `exec_gate_cf`, `init_cf`, `evidence_cf`. Bilingual `name`/`name2` on profile/version headers.
+- Each seeded version must pass `sys_wf_prof_ver_validate_live`.
+- Prefer **Pilot** on the HQ test/demo path and **Published** only when the version is intended as an immutable starter. Do **not** auto-assign tenants in this migration.
+- Demo assignment (`org_wf_profile_assign_cf` for `is_hq_test_demo`) stays a separate reviewed step in `lwpr-tenant-baseline`.
+- No `CASCADE`. No runtime service seeds these rows implicitly.
+- Partial fulfilment stays Off until the atomic piece service exists.
+- Add allow/reject DB tests: at least one lean-counter allow for direct `CONFIRM_PICKUP`, and reject `CONFIRM_PICKUP` on the wrong module.
+
+**HQ:** does not create this migration. After apply, Studio treats these versions as starter-template sources (`Use as starter template` is explicit). Check policy must pass each seeded level before assign.
+
+### 5.3 Preflight Command And Acceptance Evidence
 
 Design a read-only `workflow-policy-preflight` service/script that receives a
 tenant, branch, service scope, and profile version. It reports, without mutating
@@ -432,14 +477,12 @@ Record confirmed exit status only.
 ## 14. Phase 9 - Release And Rollback
 
 1. Approve both plans and ADR-0010.
-2. Correct/review 0470's direct-counter pickup guard and add its database tests.
-3. Apply 0470 locally.
-4. Regenerate types in both repositories.
-5. Deploy HQ direct policy APIs and tenant readers together to local/staging.
-6. Seed/import a complete Pilot profile, assign it to an HQ demo tenant, and run acceptance.
-7. Deploy applications and apply 0470 remotely in the approved window.
-8. Monitor policy errors, gates, order creation, and commands.
-9. Retire artifact runtime only after evidence confirms direct runtime authority.
+2. **0470 + 0471 applied** locally and remotely; types regenerated. Do not edit those files.
+3. Seed/import a complete Pilot profile, assign it to an HQ demo tenant, and run Gate 2 acceptance.
+4. Deploy HQ direct policy APIs and tenant readers together to staging.
+5. Gate 5 remaining work is compiler/artifact retirement and coordinated app release, not a second remote 0470 apply.
+6. Monitor policy errors, gates, order creation, and commands.
+7. Retire artifact runtime only after evidence confirms direct runtime authority.
 
 Migration is forward-only. For defects, deactivate/replace assignment with a
 known valid Published version for new orders; halt unsafe stage action only if

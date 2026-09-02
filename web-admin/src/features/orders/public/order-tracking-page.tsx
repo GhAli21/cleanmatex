@@ -40,7 +40,6 @@ interface PublicOrderData {
     receivedAt: string | null;
     readyBy: string | null;
     bagCount?: number | null;
-    rackLocation?: string | null;
     pickupAvailability?: {
         availableForPickup: boolean;
         releasedAt: string | null;

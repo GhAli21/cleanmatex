@@ -11,6 +11,7 @@ describe('semantic snapshot execution isolation', () => {
     expect(source).not.toContain('sys_wf_screen_status_cd');
     expect(source).not.toContain('sys_wf_action_trans_cd');
     expect(source).not.toContain("kind: 'legacy'");
+    expect(source).not.toContain('sys_wf_prof_ver_artifact_cf');
     expect(source).toContain('loadSemanticActionTransitions');
     expect(source).toContain('PROFILE_SNAPSHOT_INCOMPLETE');
   });
@@ -31,5 +32,30 @@ describe('semantic snapshot execution isolation', () => {
     expect(transitionSource).not.toContain('isWorkflowEngineV2Enabled');
     expect(transitionSource).not.toContain('/transition');
     expect(transitionSource).toContain('postStaffWorkflowCommand');
+  });
+
+  it('loads live profile-version rows and never compiled artifact tables', () => {
+    const files = [
+      'lib/services/workflow/workflow-policy-resolver.service.ts',
+      'lib/services/workflow/semantic-workflow-artifact.service.ts',
+      'lib/services/workflow/workflow-profile-resolution.service.ts',
+      'lib/services/workflow/stage-worklist-query.service.ts',
+      'lib/services/workboard/workboard-query.service.ts',
+      'lib/services/pickup/pickup-completion.service.ts',
+      'lib/services/delivery/delivery-completion.service.ts',
+      'lib/services/public-order-tracking.service.ts',
+    ];
+    for (const relative of files) {
+      const source = readFileSync(join(process.cwd(), relative), 'utf8');
+      expect(source).not.toContain('sys_wf_prof_ver_artifact_cf');
+    }
+    const resolver = readFileSync(
+      join(process.cwd(), 'lib/services/workflow/workflow-policy-resolver.service.ts'),
+      'utf8',
+    );
+    expect(resolver).not.toContain('current_artifact_id');
+    expect(resolver).not.toContain('org_wf_profile_assign_cf');
+    expect(resolver).toContain('sys_wf_prof_ver_exec_cf');
+    expect(resolver).toContain('sys_wf_prof_ver_mod_st_cf');
   });
 });

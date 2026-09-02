@@ -141,6 +141,8 @@ Confirm pickup still opens **Ready Details** and still executes `pickup_handover
 
 `web-admin/lib/constants/workflow-screens.ts` lists **floor worklist** keys. It **omits** `pickup_handover` on purpose: pickup is not a standalone worklist screen. The catalog and profile modules still include it.
 
+**Policy vs host alias:** new profile rows always use `ready_release` / `driver_delivery`. Tenant floor URLs and `workflow_screen=ready` / `delivery` are **host aliases only**. Do not write those aliases into live executions or modules.
+
 ### 2.2 Module (profile module)
 
 | | |
@@ -220,8 +222,8 @@ A check evaluated **inside** the command transaction against locked order facts 
 | | |
 |--|--|
 | **What** | “Module M may see / own status S.” |
-| **`visibility_mode`** | `owner` — this module is the primary owner of that status (and may execute ordinary commands from it). `observer` — show on worklist / card; **cannot** execute as an observer module. |
-| **Exception** | Fulfilment: `pickup_handover` is `primary_owner` of `ready_for_pickup`, and should **observe** `ready` for explicit **direct** `CONFIRM_PICKUP`. Observing `ready` does **not** move ownership of `ready` off `ready_release`. |
+| **`visibility_mode`** | `owner` — this module is the primary owner of that status (and may execute ordinary commands from it). `observer` — show on worklist / card. Observer **membership** is not a general execute grant. |
+| **Exception** | Fulfilment only: `pickup_handover` stays `primary_owner` of `ready_for_pickup`. It may **observe** status `ready` so a declared `CONFIRM_PICKUP` edge from `ready` → `delivered` can run. That is observer **membership on a status**, not `module_mode = observer`. Observing `ready` does **not** move ownership of `ready` off `ready_release`. `module_mode = observer` (Workboard) still cannot execute. |
 
 ### 2.11 Initial rule
 
@@ -234,7 +236,7 @@ Matcher that chooses the order’s **first** `current_status` at create (source,
 | **Profile** | Named HQ policy product (`sys_wf_profiles_cd`). |
 | **Profile version** | Draft/Pilot/Published revision (`sys_wf_profile_ver_mst`). Pilot is editable only for test/demo tenants; Published is immutable. |
 | **Policy / live rows** | Modules, memberships, executions/channels/gates, initial rules, evidence, and switches used directly by runtime. |
-| **Validation** | `WorkflowPolicyValidator` plus the DB relational guard; neither creates a runtime artifact. |
+| **Validation** | HQ `WorkflowPolicyValidator` (detailed Check policy) plus the DB relational guard; neither creates a runtime artifact. Tenant `WorkflowPolicyResolver` loads the bound version’s live rows; it does not validate Studio. |
 | **Assignment** | Which tenant / branch / service uses which version. Affects **new** orders only. |
 | **Order binding** | `wf_profile_id`, `wf_profile_version_id`, and `wf_version_no` on `org_orders_mst`. Existing orders retain this direct binding when assignment changes. |
 
@@ -371,7 +373,7 @@ Same customer button, two different owners depending on status.
 | “Public tracking” | Staff floor | Customer **page** `/track/{token}` + module `public_tracking` |
 | “Delivery confirm” | One binding | Staff: `driver_delivery`. Public OFD: `public_tracking`. Never Ready/pickup |
 | “Workboard stage” | A plant owner | Observer queue only |
-| “Reassign profile” | Move in-flight QA orders | New orders only; snapshot stays |
+| “Reassign profile” | Move in-flight QA orders | New orders only; the order’s `wf_profile_id` / `wf_profile_version_id` / `wf_version_no` binding stays |
 
 ---
 
@@ -396,7 +398,7 @@ Same customer button, two different owners depending on status.
 | Catalog screen keys (floor list) | `web-admin/lib/constants/workflow-screens.ts` |
 | Action codes | `web-admin/lib/constants/workflow-actions.ts` |
 | Leave-action defaults | `web-admin/lib/constants/workflow-leave-actions.ts` |
-| Direct policy resolver | `web-admin/lib/services/workflow/workflow-policy-resolver.service.ts` |
+| Direct policy resolver | **Target (ADR-0010):** `web-admin/lib/services/workflow/workflow-policy-resolver.service.ts`. Until cutover, semantic orders still load the compiled artifact via `semantic-workflow-artifact.service.ts`. |
 | Pickup card screen | `web-admin/src/features/pickup/hooks/use-pickup-handover.ts` (`pickup_handover`) |
 | Ready release actions | `web-admin/src/features/pickup/ui/ready-fulfilment-panel.tsx` (`ready_release`) |
 | Pickup execute | `web-admin/lib/services/pickup/pickup-completion.service.ts` |

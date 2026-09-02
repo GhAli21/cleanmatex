@@ -6,6 +6,7 @@ const validateCSRFMock = jest.fn();
 const requireRequestPermissionMock = jest.fn();
 const usesBearerAuthenticationMock = jest.fn();
 const completePickupMock = jest.fn();
+const getMyActivePosSessionMock = jest.fn();
 
 jest.mock('@/lib/middleware/csrf', () => ({
   validateCSRF: (...args: unknown[]) => validateCSRFMock(...args),
@@ -14,6 +15,10 @@ jest.mock('@/lib/middleware/csrf', () => ({
 jest.mock('@/lib/auth/request-permission-auth', () => ({
   requireRequestPermission: (...args: unknown[]) => requireRequestPermissionMock(...args),
   usesBearerAuthentication: (...args: unknown[]) => usesBearerAuthenticationMock(...args),
+}));
+
+jest.mock('@/lib/services/pos-session.service', () => ({
+  getMyActivePosSession: (...args: unknown[]) => getMyActivePosSessionMock(...args),
 }));
 
 jest.mock('@/lib/services/pickup/pickup-completion.service', () => ({
@@ -45,6 +50,7 @@ describe('POST /api/v1/pickup/orders/[orderId]/complete', () => {
     validateCSRFMock.mockResolvedValue(null);
     requireRequestPermissionMock.mockResolvedValue({ ...AUTH_CONTEXT, mode: 'session' });
     usesBearerAuthenticationMock.mockReturnValue(false);
+    getMyActivePosSessionMock.mockResolvedValue({ type: 'NONE' });
     completePickupMock.mockResolvedValue({
       orderId: ORDER_ID,
       releaseIds: ['44444444-4444-4444-4444-444444444444'],
@@ -89,6 +95,7 @@ describe('POST /api/v1/pickup/orders/[orderId]/complete', () => {
       expectedStateVersion: 7,
       handoverNotes: 'Collected at the branch counter.',
       idempotencyKey: 'pickup-command-001',
+      channel: 'staff_web',
     });
     expect(response.status).toBe(200);
   });
@@ -119,6 +126,26 @@ describe('POST /api/v1/pickup/orders/[orderId]/complete', () => {
     expect(response.status).toBe(200);
     expect(validateCSRFMock).not.toHaveBeenCalled();
     expect(requireRequestPermissionMock).toHaveBeenCalledWith(expect.anything(), 'orders:transition');
+    expect(completePickupMock).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: 'mobile' }),
+    );
+  });
+
+  it('assigns pos when the actor has a verified OPEN POS session', async () => {
+    getMyActivePosSessionMock.mockResolvedValueOnce({
+      type: 'ACTIVE',
+      session: { status: 'OPEN', branch_id: AUTH_CONTEXT.tenantId },
+    });
+
+    const response = await POST(
+      request({ expectedStateVersion: 7 }, { 'Idempotency-Key': 'pickup-command-pos' }),
+      { params: Promise.resolve({ orderId: ORDER_ID }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(completePickupMock).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: 'pos' }),
+    );
   });
 
   it('rejects a malformed order ID before authentication or command execution', async () => {

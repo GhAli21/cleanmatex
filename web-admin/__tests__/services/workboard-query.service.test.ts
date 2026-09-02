@@ -34,7 +34,7 @@ const snapshot = {
   wf_profile_id: '33333333-3333-3333-3333-333333333333',
   wf_version_no: 1,
   wf_profile_version_id: '44444444-4444-4444-4444-444444444444',
-  wf_profile_artifact_id: '55555555-5555-5555-5555-555555555555',
+  wf_profile_artifact_id: null,
   wf_profile_revision: 1,
   wf_profile_checksum: 'a'.repeat(64),
   wf_profile_schema_version: 1,
@@ -73,18 +73,18 @@ describe('WorkboardQueryService', () => {
 
     const result = await WorkboardQueryService.list(TENANT_ID, { page: 1, pageSize: 25 })
 
-    expect(mockLoadSemanticArtifact).toHaveBeenCalledWith({ wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1 })
+    expect(mockLoadSemanticArtifact).not.toHaveBeenCalled()
     expect(result).toMatchObject({ total: 0, rows: [] })
     expect(mockQueryRaw).toHaveBeenCalledTimes(1)
   })
 
-  it('routes a semantic order to its artifact-defined owner without exposing a workflow writer', async () => {
+  it('routes a live-policy order to its owner without requiring an artifact id', async () => {
     mockLoadSemanticArtifact.mockResolvedValue(semanticWorkboardArtifact())
     mockQueryRaw
       .mockResolvedValueOnce([snapshot])
-      .mockResolvedValueOnce([{ id: 'order-semantic', order_no: 'ORD-SEM', customer_name: 'Customer', customer_phone: null, branch_name: null, current_status: 'processing', priority: 'normal', has_issue: false, is_rejected: false, received_at: new Date('2026-08-20T10:00:00Z'), last_transition_at: null, ready_by_at: null, wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_artifact_id: snapshot.wf_profile_artifact_id, assignee_name: null }])
+      .mockResolvedValueOnce([{ id: 'order-semantic', order_no: 'ORD-SEM', customer_name: 'Customer', customer_phone: null, branch_name: null, current_status: 'processing', priority: 'normal', has_issue: false, is_rejected: false, received_at: new Date('2026-08-20T10:00:00Z'), last_transition_at: null, ready_by_at: null, wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, assignee_name: null }])
       .mockResolvedValueOnce([{ total: BigInt(1), blocked: BigInt(0), overdue: BigInt(0) }])
-      .mockResolvedValueOnce([{ current_status: 'processing', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_artifact_id: snapshot.wf_profile_artifact_id, total: BigInt(1) }])
+      .mockResolvedValueOnce([{ current_status: 'processing', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, total: BigInt(1) }])
       .mockResolvedValueOnce([{ status_code: 'processing', name: 'Processing' }])
       .mockResolvedValueOnce([{ priority: 'normal' }])
     mockBranchesFindMany.mockResolvedValue([])
@@ -98,7 +98,7 @@ describe('WorkboardQueryService', () => {
     expect(result.summary.byOwner.processing).toBe(1)
     const ownerMetricsQuery = mockQueryRaw.mock.calls[3]?.[0] as { strings?: TemplateStringsArray }
     expect(ownerMetricsQuery.strings?.join('')).toContain(
-      'GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_artifact_id',
+      'GROUP BY o.current_status, o.wf_profile_id, o.wf_version_no, o.wf_profile_version_id',
     )
   })
 
@@ -106,11 +106,11 @@ describe('WorkboardQueryService', () => {
     mockLoadSemanticArtifact.mockResolvedValue(semanticWorkboardArtifact())
     mockQueryRaw
       .mockResolvedValueOnce([snapshot])
-      .mockResolvedValueOnce([{ id: 'order-3', order_no: 'ORD-3', customer_name: 'Customer', customer_phone: null, branch_name: null, current_status: 'processing', priority: 'normal', has_issue: false, is_rejected: false, received_at: new Date('2026-08-20T10:00:00Z'), last_transition_at: null, ready_by_at: null, wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_artifact_id: snapshot.wf_profile_artifact_id, assignee_name: null }])
+      .mockResolvedValueOnce([{ id: 'order-3', order_no: 'ORD-3', customer_name: 'Customer', customer_phone: null, branch_name: null, current_status: 'processing', priority: 'normal', has_issue: false, is_rejected: false, received_at: new Date('2026-08-20T10:00:00Z'), last_transition_at: null, ready_by_at: null, wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, assignee_name: null }])
       .mockResolvedValueOnce([{ total: BigInt(1), blocked: BigInt(0), overdue: BigInt(0) }])
       .mockResolvedValueOnce([
-        { current_status: 'processing', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_artifact_id: snapshot.wf_profile_artifact_id, total: BigInt(1) },
-        { current_status: 'qa_pending', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_artifact_id: snapshot.wf_profile_artifact_id, total: BigInt(1) },
+        { current_status: 'processing', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, total: BigInt(1) },
+        { current_status: 'qa_pending', wf_profile_id: snapshot.wf_profile_id, wf_version_no: 1, wf_profile_version_id: snapshot.wf_profile_version_id, total: BigInt(1) },
       ])
       .mockResolvedValueOnce([
         { status_code: 'processing', name: 'Processing' },

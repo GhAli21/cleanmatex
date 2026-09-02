@@ -1,8 +1,19 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-08-29
+
+- Public tracking OFD confirm maps engine `PROFILE_*` to HTTP 409 and `ACTION_NOT_ALLOWED` to 403 (same helper as stage adapters). GET tracking no longer returns rack location.
+- Shared `resolveWorkflowCommandChannel`: cookie session → `staff_web`, bearer JWT → `mobile`. Pickup, physical intake, and delivery complete additionally assign `pos` after a tenant-scoped OPEN POS session is verified (no client header). Client channel fields are ignored.
+- Privacy-safe workflow observe events (`wf.policy.*`, `wf.command.*`, pickup/delivery commit, public confirm reject) with in-process counters. Support runbook: [technical_docs/live_runtime_support.md](technical_docs/live_runtime_support.md).
+- Live-runtime assurance: Published cache vs Pilot reload, RETIRED/mismatch fail-closed, no assignment/artifact SQL at execute, 0472 `mobile`/`public_web` denies, and a broader no-artifact source scan. Matrix: [technical_docs/live_runtime_assurance.md](technical_docs/live_runtime_assurance.md).
+- API contract (`06_API_Contracts.md`) now describes live profile-version runtime, server-derived channels, Workboard version grouping, and public confirm privacy/error mapping.
+
 ## Unreleased — 2026-08-28
 
 - Ready list filters stack on the same page: `/dashboard/ready?focus=counter` is the Pickup-desk alias (both handover statuses). `staged`, `unreleased`, `due`, and `norack` combine; legacy exclusive `focus=shelf|collection|no_rack` still maps. Confirm pickup stays on Ready Details. The Ready worklist includes `pickup_handover` statuses `ready` / `ready_for_pickup` only.
+- Locked live-normalized runtime law: glossary vocabulary, tenant contract, and HQ ADR-0010 (Accepted). Validator is HQ-only; resolver is tenant-only. Execution is gated (contract freeze → 0470 guard → vertical slice → remaining consumers), not a single waterfall. Direct `CONFIRM_PICKUP` stays `pickup_handover` from observed `ready` → `delivered`.
+- **0470 applied** locally and remotely (plus `0471`). Tenant runtime now loads live profile-version rows for create, floor lists, engine, and pickup. New orders persist version binding only; artifact columns stay null. Direct `CONFIRM_PICKUP` from observed `ready` requires live `allow_direct_counter_pickup` plus the pickup observer edge. Unbound orders fail closed. Workboard groups by `wf_profile_version_id`.
+- **0473 applied** locally and remotely. Gate warning/override ledger rows may name `profile_version_id` with a nullable historical `profile_artifact_id`. Delivery completion now fails closed when live policy is missing, matching pickup.
 - Added [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md): canonical definitions for page, module, `screen_key`, execution, channel, and UI chrome, with Ready/pickup/delivery examples. §1.1 explains that a page may host two modules (Ready Details) without owning their actions.
 
 ## Unreleased — 2026-08-27

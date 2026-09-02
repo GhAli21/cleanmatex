@@ -1,9 +1,13 @@
 import 'server-only';
 
 import { z } from 'zod';
-import { prisma } from '@/lib/db/prisma';
+import {
+  clearLiveWorkflowPolicyCache,
+  loadLiveWorkflowPolicyForOrder,
+  SemanticWorkflowArtifactError,
+} from '@/lib/services/workflow/workflow-policy-resolver.service';
 
-const ARTIFACT_CACHE_LIMIT = 256;
+export { SemanticWorkflowArtifactError } from '@/lib/services/workflow/workflow-policy-resolver.service';
 
 const semanticInitialRuleSchema = z.object({
   rule_code: z.string().min(1),
@@ -74,6 +78,7 @@ const semanticArtifactSchema = z.object({
   profile_version_no: z.number().int().positive(),
   policy_revision: z.number().int().positive(),
   policy_schema_version: z.number().int().positive(),
+  allow_direct_counter_pickup: z.boolean(),
   initial_rules: z.array(semanticInitialRuleSchema),
   modules: z.array(semanticModuleSchema),
   module_statuses: z.array(semanticModuleStatusSchema),
@@ -81,13 +86,13 @@ const semanticArtifactSchema = z.object({
   evidence: z.array(semanticEvidenceSchema),
 }).passthrough();
 
-/** Immutable compiler output shape that tenant runtime services are allowed to execute. */
+/** Live normalized policy projection consumed by tenant runtime services. */
 export type SemanticWorkflowArtifact = z.infer<typeof semanticArtifactSchema>;
 
-/** Exact command channels supported by the semantic profile compiler. */
+/** Exact command channels supported by profile-version executable bindings. */
 export type SemanticWorkflowCommandChannel = z.infer<typeof semanticExecutionChannelSchema>['channel_code'];
 
-/** Explicit executable transition emitted by the HQ semantic profile compiler. */
+/** Explicit executable transition from live profile-version rows. */
 export type SemanticWorkflowExecution = z.infer<typeof semanticExecutionSchema>;
 
 export interface SemanticWorkflowOrderSnapshot {
@@ -100,124 +105,27 @@ export interface SemanticWorkflowOrderSnapshot {
   wf_profile_schema_version: number | null;
 }
 
-type ArtifactRow = {
-  artifact_id: string;
-  version_id: string;
-  policy_revision: number;
-  artifact_schema_version: number;
-  artifact_checksum: string;
-  compiled_artifact: unknown;
-};
-
-/** Typed error surface for callers that must reject unsafe semantic snapshots. */
-export class SemanticWorkflowArtifactError extends Error {
-  constructor(
-    readonly code: 'PROFILE_SNAPSHOT_INCOMPLETE' | 'PROFILE_ARTIFACT_UNAVAILABLE' | 'PROFILE_ARTIFACT_INVALID',
-    message: string,
-  ) {
-    super(message);
-    this.name = 'SemanticWorkflowArtifactError';
-  }
-}
-
-const artifactCache = new Map<string, SemanticWorkflowArtifact>();
-
-function hasAnySemanticSnapshotValue(snapshot: SemanticWorkflowOrderSnapshot): boolean {
-  return Boolean(
-    snapshot.wf_profile_id
-    || snapshot.wf_version_no != null
-    || snapshot.wf_profile_version_id
-    || snapshot.wf_profile_artifact_id
-    || snapshot.wf_profile_revision != null
-    || snapshot.wf_profile_checksum
-    || snapshot.wf_profile_schema_version != null,
-  );
-}
-
-function cacheArtifact(cacheKey: string, artifact: SemanticWorkflowArtifact): void {
-  artifactCache.set(cacheKey, artifact);
-  if (artifactCache.size > ARTIFACT_CACHE_LIMIT) {
-    const oldestKey = artifactCache.keys().next().value;
-    if (oldestKey) artifactCache.delete(oldestKey);
-  }
-}
-
 /**
- * Loads only the immutable artifact named by an already tenant-locked order
- * snapshot. It never resolves a current assignment or falls back to catalogs,
- * templates, or pinned graphs, so reassignment cannot alter an in-flight order.
+ * Loads live normalized policy for a tenant-locked order binding.
+ * Artifact id/checksum are historical audit only and are not required.
  */
 export async function loadSemanticWorkflowArtifactForOrder(
   snapshot: SemanticWorkflowOrderSnapshot,
 ): Promise<SemanticWorkflowArtifact | null> {
-  if (!hasAnySemanticSnapshotValue(snapshot)) return null;
+  const policy = await loadLiveWorkflowPolicyForOrder(snapshot);
+  if (!policy) return null;
 
-  if (
-    !snapshot.wf_profile_id
-    || snapshot.wf_version_no == null
-    || !snapshot.wf_profile_version_id
-    || !snapshot.wf_profile_artifact_id
-    || snapshot.wf_profile_revision == null
-    || !snapshot.wf_profile_checksum
-    || snapshot.wf_profile_schema_version == null
-  ) {
-    throw new SemanticWorkflowArtifactError(
-      'PROFILE_SNAPSHOT_INCOMPLETE',
-      'The order has an incomplete semantic workflow snapshot.',
-    );
-  }
-
-  const cacheKey = `${snapshot.wf_profile_artifact_id}:${snapshot.wf_profile_checksum}`;
-  const cached = artifactCache.get(cacheKey);
-  if (cached) return cached;
-
-  // Artifacts are immutable compiler output: they have rec_status, not is_active.
-  const rows = await prisma.$queryRaw<ArtifactRow[]>`
-    SELECT
-      artifact_id::text,
-      version_id::text,
-      policy_revision,
-      artifact_schema_version,
-      artifact_checksum,
-      compiled_artifact
-    FROM public.sys_wf_prof_ver_artifact_cf
-    WHERE artifact_id = ${snapshot.wf_profile_artifact_id}::uuid
-      AND version_id = ${snapshot.wf_profile_version_id}::uuid
-      AND policy_revision = ${snapshot.wf_profile_revision}
-      AND artifact_schema_version = ${snapshot.wf_profile_schema_version}
-      AND artifact_checksum = ${snapshot.wf_profile_checksum}
-      AND compile_state = 'VALID'
-      AND rec_status = 1
-    LIMIT 1
-  `;
-  const row = rows[0];
-  if (!row) {
-    throw new SemanticWorkflowArtifactError(
-      'PROFILE_ARTIFACT_UNAVAILABLE',
-      'The order workflow artifact is unavailable or no longer matches its snapshot.',
-    );
-  }
-
-  const parsed = semanticArtifactSchema.safeParse(row.compiled_artifact);
-  if (
-    !parsed.success
-    || parsed.data.profile_id !== snapshot.wf_profile_id
-    || parsed.data.profile_version_id !== snapshot.wf_profile_version_id
-    || parsed.data.profile_version_no !== snapshot.wf_version_no
-    || parsed.data.policy_revision !== snapshot.wf_profile_revision
-    || parsed.data.artifact_schema_version !== snapshot.wf_profile_schema_version
-  ) {
+  const parsed = semanticArtifactSchema.safeParse(policy);
+  if (!parsed.success) {
     throw new SemanticWorkflowArtifactError(
       'PROFILE_ARTIFACT_INVALID',
-      'The order workflow artifact failed semantic snapshot validation.',
+      'The live workflow policy failed projection validation.',
     );
   }
-
-  cacheArtifact(cacheKey, parsed.data);
   return parsed.data;
 }
 
-/** Test-only cache reset; production artifacts are immutable and safe to cache by checksum. */
+/** Test-only cache reset for the live Published policy cache. */
 export function clearSemanticWorkflowArtifactCache(): void {
-  artifactCache.clear();
+  clearLiveWorkflowPolicyCache();
 }

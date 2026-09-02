@@ -18,6 +18,8 @@ import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
 import { completePickup, PickupCompletionError } from '@/lib/services/pickup/pickup-completion.service';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
 import { PICKUP_RELEASE_STATES } from '@/lib/types/pickup-release';
+import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { observePublicConfirmRejected } from '@/lib/services/workflow/workflow-observability';
 import {
   buildLegacyPublicTrackingPath,
   buildPublicTrackingPath,
@@ -80,7 +82,6 @@ interface PublicOrderQueryRow {
   customer_notes: string | null;
   branch_id: string | null;
   bag_count: number | string | null;
-  rack_location: string | null;
   org_customers_mst?: PublicOrderCustomerRow | null;
   org_order_items_dtl?: PublicOrderItemRow[] | null;
 }
@@ -103,6 +104,31 @@ interface PublicConfirmLookupRow {
 interface PublicApiResult {
   status: number;
   body: Record<string, unknown>;
+}
+
+/**
+ * Returns a public confirm failure after recording a privacy-safe observe event.
+ * Tracking tokens and notes stay out of the observe payload.
+ *
+ * @param tenantId Tenant that owns the tracking reference
+ * @param orderId Order id when the lookup already succeeded
+ * @param status HTTP status for the client
+ * @param body Client JSON without proof or token fields
+ * @returns Same status/body pair for the route adapter
+ */
+function rejectPublicConfirm(
+  tenantId: string,
+  orderId: string | undefined,
+  status: number,
+  body: Record<string, unknown>,
+): PublicApiResult {
+  observePublicConfirmRejected({
+    tenantId,
+    orderId,
+    code: typeof body.code === 'string' ? body.code : undefined,
+    httpStatus: status,
+  });
+  return { status, body };
 }
 
 interface PublicTrackingResolution extends PublicOrderReference {
@@ -340,7 +366,6 @@ export async function getPublicOrderTrackingResponse(
           customer_notes,
           branch_id,
           bag_count,
-          rack_location,
           org_customers_mst(
             id,
             name,
@@ -420,7 +445,6 @@ export async function getPublicOrderTrackingResponse(
               payOnCollectionAmount: financialSnapshot.payOnCollectionAmount,
             },
             bagCount: order.bag_count ? Number(order.bag_count) : null,
-            rackLocation: order.rack_location,
             pickupAvailability: {
               availableForPickup:
                 String(order.current_status || order.status || '').trim().toLowerCase() ===
@@ -492,10 +516,11 @@ export async function confirmPublicOrderReceivedResponse(
 
   try {
     if (!tenantId || !orderNo) {
-      return {
-        status: 400,
-        body: { success: false, error: 'Tenant ID and order number are required' },
-      };
+      return rejectPublicConfirm(tenantId || '', undefined, 400, {
+        success: false,
+        error: 'Tenant ID and order number are required',
+        code: 'CONFIRM_PARAMS_REQUIRED',
+      });
     }
 
     const supabase = await createClient();
@@ -517,10 +542,11 @@ export async function confirmPublicOrderReceivedResponse(
         error: error?.message,
       });
 
-      return {
-        status: 404,
-        body: { success: false, error: 'Order not found' },
-      };
+      return rejectPublicConfirm(tenantId, undefined, 404, {
+        success: false,
+        error: 'Order not found',
+        code: 'ORDER_NOT_FOUND',
+      });
     }
 
     const fromStatus = String(order.current_status || order.status || '')
@@ -534,13 +560,11 @@ export async function confirmPublicOrderReceivedResponse(
       'delivered',
     ];
     if (!allowedFromStatuses.includes(fromStatus)) {
-      return {
-        status: 400,
-        body: {
-          success: false,
-          error: 'Order cannot be confirmed received in the current state',
-        },
-      };
+      return rejectPublicConfirm(tenantId, order.id, 400, {
+        success: false,
+        error: 'Order cannot be confirmed received in the current state',
+        code: 'ORDER_STATUS_NOT_CONFIRMABLE',
+      });
     }
 
     const toStatus: OrderStatus = 'delivered';
@@ -557,14 +581,11 @@ export async function confirmPublicOrderReceivedResponse(
     if (fromStatus === 'ready_for_pickup') {
       const pickupRelease = await getPickupReleaseSummary({ tenantId, orderId: order.id });
       if (pickupRelease.state !== PICKUP_RELEASE_STATES.AVAILABLE_FOR_PICKUP) {
-        return {
-          status: 422,
-          body: {
-            success: false,
-            error: 'This order is not yet available for pickup.',
-            code: 'PICKUP_RELEASE_REQUIRED',
-          },
-        };
+        return rejectPublicConfirm(tenantId, order.id, 422, {
+          success: false,
+          error: 'This order is not yet available for pickup.',
+          code: 'PICKUP_RELEASE_REQUIRED',
+        });
       }
 
       try {
@@ -596,26 +617,20 @@ export async function confirmPublicOrderReceivedResponse(
         };
       } catch (pickupError) {
         const isPickupError = pickupError instanceof PickupCompletionError;
-        return {
-          status: isPickupError ? pickupError.httpStatus : 400,
-          body: {
-            success: false,
-            error: pickupError instanceof Error ? pickupError.message : 'Unable to confirm pickup.',
-            code: isPickupError ? pickupError.code : undefined,
-          },
-        };
+        return rejectPublicConfirm(tenantId, order.id, isPickupError ? pickupError.httpStatus : 400, {
+          success: false,
+          error: pickupError instanceof Error ? pickupError.message : 'Unable to confirm pickup.',
+          code: isPickupError ? pickupError.code : undefined,
+        });
       }
     }
 
     if (fromStatus === 'ready') {
-      return {
-        status: 422,
-        body: {
-          success: false,
-          error: 'This order is not yet available for pickup.',
-          code: 'PICKUP_RELEASE_REQUIRED',
-        },
-      };
+      return rejectPublicConfirm(tenantId, order.id, 422, {
+        success: false,
+        error: 'This order is not yet available for pickup.',
+        code: 'PICKUP_RELEASE_REQUIRED',
+      });
     }
 
     const notes = 'Customer confirmed receipt via public tracking link';
@@ -690,19 +705,20 @@ export async function confirmPublicOrderReceivedResponse(
         orderNo,
         error: message,
       });
-      return {
-        status:
-          engineError instanceof WorkflowEngineError && engineError.code === 'VERSION_CONFLICT'
-            ? 409
-            : 400,
-        body: {
+      return rejectPublicConfirm(
+        tenantId,
+        order.id,
+        engineError instanceof WorkflowEngineError
+          ? httpStatusForWorkflowEngineError(engineError.code)
+          : 400,
+        {
           success: false,
           error: message,
           code: engineError instanceof WorkflowEngineError ? engineError.code : undefined,
           blockedReasons:
             engineError instanceof WorkflowEngineError ? engineError.blockedReasons : undefined,
         },
-      };
+      );
     }
   } catch (error) {
     logger.error('Public confirm-received failed', error as Error, {
@@ -713,12 +729,10 @@ export async function confirmPublicOrderReceivedResponse(
       durationMs: Date.now() - startedAt,
     });
 
-    return {
-      status: 500,
-      body: {
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
-      },
-    };
+    return rejectPublicConfirm(tenantId, undefined, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error',
+      code: 'PUBLIC_CONFIRM_INTERNAL_ERROR',
+    });
   }
 }

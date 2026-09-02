@@ -3,6 +3,7 @@
 const mockFindFirst = jest.fn();
 const mockUpdate = jest.fn();
 const mockRequirePermission = jest.fn();
+const getMyActivePosSessionMock = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -21,6 +22,10 @@ jest.mock('@/lib/db/tenant-context', () => ({
 
 jest.mock('@/lib/middleware/require-permission', () => ({
   requirePermission: jest.fn(() => mockRequirePermission),
+}));
+
+jest.mock('@/lib/services/pos-session.service', () => ({
+  getMyActivePosSession: (...args: unknown[]) => getMyActivePosSessionMock(...args),
 }));
 
 jest.mock('@/lib/utils/logger', () => ({
@@ -53,6 +58,7 @@ import { POST } from '@/app/api/v1/orders/[id]/confirm-physical-intake/route';
 import {
   executeAction,
   listAvailableActions,
+  WorkflowEngineError,
 } from '@/lib/services/workflow/workflow-engine.service';
 
 describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
@@ -67,9 +73,11 @@ describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
       id: 'order-1',
       current_status: 'draft',
       physical_intake_status: 'pending_dropoff',
+      branch_id: 'branch-1',
       sys_order_sources_cd: { requires_remote_intake_confirm: true },
     });
     mockUpdate.mockResolvedValue({ id: 'order-1' });
+    getMyActivePosSessionMock.mockResolvedValue({ type: 'NONE' });
     (listAvailableActions as jest.Mock).mockResolvedValue({ stateVersion: 5 });
     (executeAction as jest.Mock).mockResolvedValue({
       ok: true,
@@ -98,7 +106,13 @@ describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
       tenantId: 'tenant-1',
       orderId: 'order-1',
       screen: 'new_order',
+      channel: 'staff_web',
     });
+    expect(getMyActivePosSessionMock).toHaveBeenCalledWith(expect.objectContaining({
+      tenantId: 'tenant-1',
+      userId: 'user-1',
+      branchId: 'branch-1',
+    }));
     expect(executeAction).toHaveBeenCalledWith(expect.objectContaining({
       tenantId: 'tenant-1',
       orderId: 'order-1',
@@ -107,6 +121,7 @@ describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
       expectedStateVersion: 5,
       actorUserId: 'user-1',
       actorName: 'Test User',
+      channel: 'staff_web',
       idempotencyKey: 'physical-intake-request-1',
     }));
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
@@ -131,6 +146,35 @@ describe('POST /api/v1/orders/[id]/confirm-physical-intake', () => {
     expect(payload).toMatchObject({ success: true, data: { idempotent: true } });
     expect(listAvailableActions).not.toHaveBeenCalled();
     expect(executeAction).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('maps an incomplete live-policy binding to HTTP 409', async () => {
+    (executeAction as jest.Mock).mockRejectedValueOnce(
+      new WorkflowEngineError(
+        'PROFILE_SNAPSHOT_INCOMPLETE',
+        'The order has an incomplete workflow profile binding.',
+      ),
+    );
+    const request = new NextRequest(
+      'https://cmx.cleanmatex.com/api/v1/orders/order-1/confirm-physical-intake',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'Idempotency-Key': 'physical-intake-profile-409',
+        },
+        body: JSON.stringify({ receivedInfo: 'Received at counter' }),
+      },
+    );
+
+    const response = await POST(request, { params: Promise.resolve({ id: 'order-1' }) });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      code: 'PROFILE_SNAPSHOT_INCOMPLETE',
+    });
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

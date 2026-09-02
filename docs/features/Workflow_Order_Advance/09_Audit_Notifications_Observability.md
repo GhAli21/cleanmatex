@@ -1,6 +1,6 @@
 # 09 — Audit, Notifications, Observability
 
-**Status:** P0 correction pass · **Date:** 2026-07-24
+**Status:** Live normalized runtime observe events are in tenant services · **Date:** 2026-08-29
 
 ## 1. History
 
@@ -13,10 +13,18 @@ Every `executeAction` writes order history (actionCode, from/to, actor, state_ve
 - Single emitter during dual-path cutover (no double notify)
 - Consumers: notifications, Fin/ERP — compatibility matrix required before flip
 
-## 3. Logs (P2 before canary)
+## 3. Logs
 
-`tenantId`, `orderId`, `screen`, `actionCode`, `from`, `to`, `gates`, `stateVersion`, `idempotencyKey`, `latencyMs`, `outcome`
+Structured observe helper: `web-admin/lib/services/workflow/workflow-observability.ts`.
+
+Command INFO: `wf.command.ok` / `wf.command.idempotent_replay` with `tenantId`, `orderId`, `screen`, `actionCode`, `channel`, `latencyMs`, optional `requestId` / `profileVersionId`.
+
+Fail-closed WARN: `wf.policy.incomplete|unavailable`, `wf.command.denied|conflict|profile_integrity`, `wf.public_confirm.rejected`.
+
+Successful policy loads are DEBUG (`wf.policy.loaded` / `wf.policy.cache_hit`) so floor worklists do not flood INFO.
+
+**Never log** tracking tokens, POD object keys, notes, or money amounts. Support procedure: [technical_docs/live_runtime_support.md](technical_docs/live_runtime_support.md). HQ Studio/on-call events are `hq.wf.*` in the sibling HQ repo.
 
 ## 4. Metrics
 
-Success/fail, gate blocks, version conflicts, idempotency replay, outbox lag
+In-process counters (same event names) plus log aggregation. Count policy integrity failures, command denials/conflicts/replays, pickup/delivery commits, and public confirm rejects. Alert thresholds are in the support runbook. Outbox lag remains the existing outbox alerts.

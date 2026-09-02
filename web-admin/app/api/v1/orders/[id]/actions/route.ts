@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { ExecuteWorkflowActionRequestSchema } from '@/lib/validations/workflow-schema';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
+import { resolveWorkflowCommandChannel } from '@/lib/api/workflow-command-channel';
 import {
   WorkflowEngineError,
   executeAction,
@@ -75,6 +76,7 @@ export async function POST(
       actorUserId: userId,
       actorName: userName,
       input: parsed.data.input,
+      channel: resolveWorkflowCommandChannel(request),
       idempotencyKey,
       gateDecisions: parsed.data.gateDecisions,
     };
