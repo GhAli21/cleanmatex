@@ -15,6 +15,7 @@ This guide covers the operator-owned V1.0 engine cutover, public tracking, count
 7. `0452_delivery_evidence_upload_receipts.sql` (durable tenant-stop evidence receipt prerequisite)
 8. `0455_workboard_permission_navigation.sql` (Workboard permission + Orders child navigation)
 9. `0463_sys_wf_gate_ops_fulfilment.sql` (piece/QA/fulfilment/evidence gate catalog seed; operator confirmed applied locally and remotely on 2026-08-22)
+10. `0479`–`0487` create-hydration / home-collection / hold programme (operator confirmed applied locally and remotely on 2026-09-04, types regen)
 
 Do not modify older migrations. Apply them in normal sequence in the environment you are promoting.
 
@@ -43,6 +44,7 @@ Do not modify older migrations. Apply them in normal sequence in the environment
 8. Validate a legacy readable public link still opens during the compatibility window.
 9. For one delivered pilot order, verify proof/audit from both Delivery Stop Detail and Order Details. Confirm the same tenant-scoped result appears, a private evidence link can be refreshed after expiry, and no private object key is present in the API response.
 10. After applying `0455`, verify a permitted supervisor can open Workboard, filter tenant work, and deep-link to the owner stage; verify a user without `workboard:read` cannot access the page or API.
+11. After **0479–0486**: confirm Home Collection appears under Orders, mobile `HOME_COLLECTION` creates `awaiting_collection`, Assign/Confirm/Fail work, and Hold from `preparing`/`ready` resumes to the same status.
 
 Do not treat staff S10 as accepted merely because proof/audit is visible, because the floor confirm card is visible, or because the atomic complete APIs are enabled. Legacy capturePOD/route writers stay 503. Sign S10 only after the explicit routed-POD rollout decision. Simple floor confirm still requires the assigned compiled profile to omit `delivery_stop_active` on `CONFIRM_DELIVERY`.
 
@@ -63,6 +65,8 @@ Do not treat staff S10 as accepted merely because proof/audit is visible, becaus
 - Private evidence keys never appear in browser payloads or logs; only short-lived signed URLs are returned to authorized users
 - Refreshing a proof link performs no workflow, payment, POD, release, stop, route, history, or outbox mutation
 - Workboard exposes no workflow, payment, POD, release, assignment, history, or outbox mutation; rows resolve against pinned V2 profile membership when present
+- `/dashboard/home-collection` requires `orders:read`; confirm uses `POST /api/v1/home-collection/orders/{orderId}/complete` with `orders:transition`
+- Nested hold and hold from terminal statuses are rejected; resume restores `org_orders_mst.hold_from_status`
 
 ## Rollback boundary
 

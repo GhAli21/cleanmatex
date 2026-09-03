@@ -152,6 +152,13 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
+        key: 'orders_home_collection',
+        label: 'Home Collection',
+        path: '/dashboard/home-collection',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+        permissions: ['orders:read'],
+      },
+      {
         key: 'orders_processing',
         label: 'Processing',
         path: '/dashboard/processing',

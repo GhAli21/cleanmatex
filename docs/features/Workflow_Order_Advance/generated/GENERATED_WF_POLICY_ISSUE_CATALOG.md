@@ -1,6 +1,6 @@
 # Generated — workflow policy issue catalog
 
-**Catalog version:** `1.1.0`  
+**Catalog version:** `1.3.0`  
 **Schema version:** `1`  
 **Generated from:** `cleanmatexsaas/platform-api/src/modules/workflow-engine-config/catalog`
 
@@ -13,9 +13,9 @@ Markdown 01/02 remain narrative for situations and planned work.
 
 A platform-shipped profile version (including DRAFT repair seeds) must not emit these Check-policy errors:
 
-`profile_policy_missing`, `profile_no_enabled_modules`, `profile_no_primary_owner_module`, `stage_sequence_blank_status`, `stage_sequence_duplicate_status`, `unsupported_capability_enabled`, `module_status_without_enabled_module`, `status_owner_not_primary_module`, `status_multiple_primary_owners`, `execution_binding_duplicate`, `execution_without_enabled_module`, `execution_on_observer_module`, `execution_not_from_status_owner`, `execution_status_not_in_stage_sequence`, `execution_status_without_owner`, `execution_without_channel`, `public_channel_non_hard_gate_forbidden`, `public_channel_execution_forbidden`, `gate_definition_inactive`, `gate_input_schema_version_mismatch`, `gate_warning_not_supported`, `gate_override_not_supported`, `gate_override_permission_inactive`, `gate_override_reason_too_short`, `gate_non_blocking_message_missing`, `gate_decision_runtime_unavailable`, `initial_rule_missing`, `initial_rule_status_not_in_stage_sequence`, `initial_rule_status_without_owner`, `initial_rule_ambiguous`, `graph_missing_fulfilment_end`, `initial_status_unreachable_fulfilment`, `pickup_module_missing`, `delivery_release_module_missing`, `delivery_module_missing`, `public_tracking_module_missing`, `rack_release_module_missing`, `pickup_policy_without_pickup`, `delivery_policy_without_delivery`, `evidence_method_duplicate`, `evidence_runtime_unavailable`, `evidence_without_delivery`, `evidence_without_pickup`, `evidence_otp_unsupported`, `evidence_minimum_count_invalid`, `evidence_otp_runtime_unavailable`, `execution_evidence_runtime_unavailable`, `execution_evidence_policy_missing`, `pickup_without_ready_release`, `confirm_pickup_not_on_pickup_handover`
+`profile_policy_missing`, `profile_no_enabled_modules`, `profile_no_primary_owner_module`, `stage_sequence_blank_status`, `stage_sequence_duplicate_status`, `unsupported_capability_enabled`, `module_status_without_enabled_module`, `status_owner_not_primary_module`, `status_multiple_primary_owners`, `execution_binding_duplicate`, `execution_without_enabled_module`, `execution_on_observer_module`, `execution_not_from_status_owner`, `execution_status_not_in_stage_sequence`, `execution_status_without_owner`, `execution_without_channel`, `public_channel_non_hard_gate_forbidden`, `public_channel_execution_forbidden`, `gate_definition_inactive`, `gate_input_schema_version_mismatch`, `gate_warning_not_supported`, `gate_override_not_supported`, `gate_override_permission_inactive`, `gate_override_reason_too_short`, `gate_non_blocking_message_missing`, `gate_decision_runtime_unavailable`, `initial_rule_missing`, `initial_rule_status_not_in_stage_sequence`, `initial_rule_status_without_owner`, `initial_rule_ambiguous`, `initial_rule_preset_missing`, `initial_rule_preset_unknown`, `initial_rule_preset_status_mismatch`, `initial_rule_wildcard_draft`, `home_collection_type_without_module`, `home_collection_missing_confirm_edge`, `graph_missing_fulfilment_end`, `initial_status_unreachable_fulfilment`, `pickup_module_missing`, `delivery_release_module_missing`, `delivery_module_missing`, `public_tracking_module_missing`, `rack_release_module_missing`, `pickup_policy_without_pickup`, `delivery_policy_without_delivery`, `evidence_method_duplicate`, `evidence_runtime_unavailable`, `evidence_without_delivery`, `evidence_without_pickup`, `evidence_without_home_collection`, `evidence_otp_unsupported`, `evidence_minimum_count_invalid`, `evidence_otp_runtime_unavailable`, `execution_evidence_runtime_unavailable`, `execution_evidence_policy_missing`, `pickup_without_ready_release`, `confirm_pickup_not_on_pickup_handover`
 
-## Emitted (51)
+## Emitted (60)
 
 | Code | Category | Severity | Gates | Studio tab | Auto Fix | Seed must pass | Status |
 |---|---|---|---|---|---|---|---|
@@ -49,6 +49,14 @@ A platform-shipped profile version (including DRAFT repair seeds) must not emit 
 | `initial_rule_status_not_in_stage_sequence` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | append_stage | yes | emitted |
 | `initial_rule_status_without_owner` | ownership | error | check_policy, pilot, publish, starter_import, seed | modules | assign_typical_owner | yes | emitted |
 | `initial_rule_ambiguous` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | none | yes | emitted |
+| `initial_rule_preset_missing` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | none | yes | emitted |
+| `initial_rule_preset_unknown` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | none | yes | emitted |
+| `initial_rule_preset_status_mismatch` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | none | yes | emitted |
+| `initial_rule_wildcard_draft` | initial_rule | error | check_policy, pilot, publish, starter_import, seed | initialRules | none | yes | emitted |
+| `initial_rule_coverage_gap` | initial_rule | warn | check_policy, pilot, publish, starter_import | initialRules | none | no | emitted |
+| `home_collection_type_without_module` | module_coupling | error | check_policy, pilot, publish, starter_import, seed | modules | enable_named_module | yes | emitted |
+| `home_collection_missing_confirm_edge` | module_coupling | error | check_policy, pilot, publish, starter_import, seed | rules | none | yes | emitted |
+| `hold_edge_incomplete` | execution | warn | check_policy, pilot, publish, starter_import | rules | none | no | emitted |
 | `graph_missing_fulfilment_end` | reachability | error | check_policy, pilot, publish, starter_import, seed | modules | none | yes | emitted |
 | `initial_status_unreachable_fulfilment` | reachability | error | check_policy, pilot, publish, starter_import, seed | rules | start_initial_at_intake | yes | emitted |
 | `pickup_module_missing` | module_coupling | error | check_policy, pilot, publish, starter_import, seed | modules | enable_named_module | yes | emitted |
@@ -62,6 +70,7 @@ A platform-shipped profile version (including DRAFT repair seeds) must not emit 
 | `evidence_runtime_unavailable` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
 | `evidence_without_delivery` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
 | `evidence_without_pickup` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
+| `evidence_without_home_collection` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
 | `evidence_otp_unsupported` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
 | `evidence_minimum_count_invalid` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
 | `evidence_otp_runtime_unavailable` | evidence | error | check_policy, pilot, publish, starter_import, seed | fulfilment | none | yes | emitted |
@@ -71,7 +80,7 @@ A platform-shipped profile version (including DRAFT repair seeds) must not emit 
 | `confirm_pickup_not_on_pickup_handover` | fulfilment | error | check_policy, pilot, publish, starter_import, seed | rules | move_confirm_pickup_to_handover | yes | emitted |
 | `live_structural_report_unavailable` | lifecycle | error | check_policy, pilot, publish, starter_import, seed | validation | none | no | emitted |
 
-## Planned (55)
+## Planned (54)
 
 | Code | Category | Severity | Gates | Studio tab | Auto Fix | Seed must pass | Status |
 |---|---|---|---|---|---|---|---|
@@ -102,7 +111,6 @@ A platform-shipped profile version (including DRAFT repair seeds) must not emit 
 | `public_pickup_requires_release_path` | fulfilment | error | check_policy, pilot, publish, starter_import | rules | none | no | planned |
 | `public_cannot_own_pickup_action` | fulfilment | error | check_policy, pilot, publish, starter_import | rules | none | no | planned |
 | `evidence_otp_optional_dead` | evidence | warn | check_policy, pilot, publish, starter_import | fulfilment | none | no | planned |
-| `initial_rule_uncovered_create_path` | initial_rule | error | check_policy, pilot, publish, starter_import | initialRules | none | no | planned |
 | `initial_rule_no_winner` | initial_rule | error | check_policy, pilot, publish, starter_import | initialRules | none | no | planned |
 | `initial_rule_multiple_winners` | initial_rule | error | check_policy, pilot, publish, starter_import | initialRules | none | no | planned |
 | `initial_status_closed_forbidden` | initial_rule | error | check_policy, pilot, publish, starter_import | initialRules | none | no | planned |

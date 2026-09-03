@@ -36,6 +36,13 @@ const STAGE_COMMANDS: Record<string, WorkflowStageCommandTarget> = {
     path: (orderId) => `/api/v1/ready/${orderId}/release-delivery`,
     inputKeys: ['rackLocation'],
   },
+  [`home_collection:${WORKFLOW_ACTIONS.ASSIGN_HOME_COLLECTION}`]: {
+    path: (orderId) => `/api/v1/home-collection/${orderId}/assign`,
+  },
+  [`home_collection:${WORKFLOW_ACTIONS.FAIL_HOME_COLLECTION}`]: {
+    path: (orderId) => `/api/v1/home-collection/${orderId}/fail`,
+    inputKeys: ['reason', 'notes'],
+  },
 };
 
 /**

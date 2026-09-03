@@ -10,6 +10,7 @@ export const WORKFLOW_SCREEN_KEYS = [
   'packing',
   'ready_release',
   'driver_delivery',
+  'home_collection',
   'new_order',
   'workboard',
   'canceling',
@@ -25,4 +26,5 @@ export const WORKFLOW_SCREEN_KEY_SET = new Set<string>(WORKFLOW_SCREEN_KEYS)
 /** Canonical screen keys for call sites that must not use historical aliases. */
 export const WORKFLOW_SCREENS = {
   DRIVER_DELIVERY: 'driver_delivery',
+  HOME_COLLECTION: 'home_collection',
 } as const satisfies Record<string, WorkflowScreenKey>

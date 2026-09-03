@@ -5,6 +5,15 @@ status: awaiting_plan_review
 depends_on:
   - F:\jhapp\cleanmatexsaas\.cursor\plans\workflow_live_profile_runtime_20260827.plan.md
   - F:\jhapp\cleanmatexsaas\docs\features\SAAS_Platform_Management\ADRs\ADR-SAAS-MNG-0010_Live_Normalized_Workflow_Profile_Runtime.md
+extends_with:
+  - F:\jhapp\cleanmatex\.cursor\plans\wf_create_hydration_collection_hold_20260903.plan.md
+  - F:\jhapp\cleanmatex\docs\features\Workflow_Order_Advance\future_work_in_wf\04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md
+relationship: |
+  This 20260827 plan remains the live-policy PLATFORM programme (Gates 0–5).
+  It is NOT replaced by the 20260903 create-hydration / HOME_COLLECTION / hold plan.
+  That later plan builds ON this runtime (init_cf, resolver, Check policy) and adds
+  product capabilities. Finish residual Gate 4/5 + assurance here; implement product
+  WPs in the 20260903 plan without reopening ADR-0010 architecture.
 todos:
   - id: lwpr-tenant-governance
     content: Confirm the shared direct-live-policy contract, order-version binding, lifecycle, and no-fallback rules.

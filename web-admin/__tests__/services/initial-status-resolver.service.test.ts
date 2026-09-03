@@ -14,6 +14,7 @@ describe('semantic initial-status resolver', () => {
       is_quick_drop: true,
       initial_status: 'preparing',
       priority: 10,
+      create_preset_code: 'STAFF_IN_HAND',
     },
     {
       rule_code: 'STANDARD',
@@ -23,6 +24,7 @@ describe('semantic initial-status resolver', () => {
       is_quick_drop: false,
       initial_status: 'intake',
       priority: 20,
+      create_preset_code: 'STAFF_IN_HAND',
     },
   ];
 
@@ -44,6 +46,7 @@ describe('semantic initial-status resolver', () => {
         is_quick_drop: false,
         initial_status: 'delivered',
         priority: 100,
+        create_preset_code: 'RETAIL_SOLD',
       },
       {
         rule_code: 'INIT_TO_PROCESSING',
@@ -53,6 +56,7 @@ describe('semantic initial-status resolver', () => {
         is_quick_drop: null,
         initial_status: 'processing',
         priority: 111,
+        create_preset_code: 'POS_IN_HAND',
       },
     ], {
       orderSourceCode: 'pos',

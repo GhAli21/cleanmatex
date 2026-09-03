@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-08-26T18:37:38.125Z
-Git SHA: b880e996
+Generated: 2026-09-03T19:45:41.366Z
+Git SHA: c6b296bf
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 148 |
+| Access contracts | 150 |
 | Permission usages | 318 |
 | Feature flag usages | 86 |
 | Setting usages | 40 |
 | Plan limit usages | 8 |
-| Navigation entries | 100 |
+| Navigation entries | 101 |
 | Flag catalog entries | 295 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -67,6 +67,8 @@ Git SHA: b880e996
 | /dashboard/erp-lite/usage-maps | Usage Mapping Console | erp_lite_usage_map:view | erp_lite_enabled, erp_lite_usage_map_enabled | 0 |
 | /dashboard/help | Help | — | — | 0 |
 | /dashboard/help/platform-inventories | Platform Inventories | help:platform_inventories | — | 0 |
+| /dashboard/home-collection | Home Collection | orders:read | — | 0 |
+| /dashboard/home-collection/[id] | Home Collection Details | orders:read | — | 0 |
 | /dashboard/internal_fin | Internal Finance And Operations | — | — | 0 |
 | /dashboard/internal_fin/ar/aging | AR Aging | ar_aging:view | — | 0 |
 | /dashboard/internal_fin/ar/credits | AR Credits | ar_credits:view | — | 0 |

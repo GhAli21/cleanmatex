@@ -25,6 +25,32 @@ export const CANCEL_RETURN_BLOCKED_STATUSES = [
   'stopped',
 ] as const;
 
+/**
+ * Plant statuses that may HOLD_ORDER_WORK (0436 catalog edges).
+ * Nested hold (`on_hold`) and terminals are excluded.
+ */
+export const HOLD_ALLOWED_STATUSES = [
+  'preparing',
+  'preparation', // legacy synonym
+  'processing',
+  'assembly',
+  'qa',
+  'packing',
+  'ready',
+  'out_for_delivery',
+] as const;
+
+/** Statuses that must never enter hold (nested or terminal). */
+export const HOLD_BLOCKED_STATUSES = [
+  'on_hold',
+  'draft',
+  'delivered',
+  'cancelled',
+  'stopped',
+  'closed',
+  'returned',
+] as const;
+
 export type CancelAllowedStatus = (typeof CANCEL_ALLOWED_STATUSES)[number];
 export type ReturnAllowedStatus = (typeof RETURN_ALLOWED_STATUSES)[number];
 
@@ -65,16 +91,9 @@ export function isReturnEligibleStatus(status: string | null | undefined): boole
 
 export function canHoldOrderWork(status: string | null | undefined): boolean {
   const s = normalizeStatus(status);
-  return (
-    s === 'preparing' ||
-    s === 'preparation' ||
-    s === 'processing' ||
-    s === 'assembly' ||
-    s === 'qa' ||
-    s === 'packing' ||
-    s === 'ready' ||
-    s === 'out_for_delivery'
-  );
+  if (!s) return false;
+  if ((HOLD_BLOCKED_STATUSES as readonly string[]).includes(s)) return false;
+  return (HOLD_ALLOWED_STATUSES as readonly string[]).includes(s);
 }
 
 export function canResumeOrderWork(status: string | null | undefined): boolean {

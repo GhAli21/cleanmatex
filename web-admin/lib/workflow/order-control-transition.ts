@@ -1,4 +1,5 @@
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { canHoldOrderWork } from '@/lib/constants/workflow-cancel-return';
 
 /** Minimum audit-note length required by hold and permanent-stop actions. */
 export const MIN_ORDER_CONTROL_NOTE_LENGTH = 10;
@@ -57,15 +58,36 @@ export function resolveOrderControlTransition(input: {
   }
 
   if (isHold) {
+    const current = input.currentStatus.trim().toLowerCase();
+    const existingHoldFrom = input.holdFromStatus?.trim() ?? '';
+    if (current === 'on_hold' || existingHoldFrom.length > 0) {
+      return {
+        ok: false,
+        message: 'Cannot hold: this order is already on hold.',
+      };
+    }
+    if (!canHoldOrderWork(current)) {
+      return {
+        ok: false,
+        message: 'Cannot hold from this status.',
+      };
+    }
     return {
       ok: true,
       toStatus: 'on_hold',
-      nextHoldFromStatus: input.currentStatus,
+      nextHoldFromStatus: current,
       clearHoldFromStatus: false,
     };
   }
 
   if (isResume) {
+    const current = input.currentStatus.trim().toLowerCase();
+    if (current !== 'on_hold') {
+      return {
+        ok: false,
+        message: 'Cannot resume: order is not on hold.',
+      };
+    }
     const resumeTo = input.holdFromStatus?.trim().toLowerCase() ?? '';
     if (!resumeTo) {
       return {

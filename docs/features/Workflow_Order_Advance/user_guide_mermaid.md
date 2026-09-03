@@ -22,3 +22,18 @@ flowchart TD
   Click --> Delivered[Order marked delivered]
   Delivered --> Disabled
 ```
+
+## Home collection vs branch drop-off
+
+```mermaid
+flowchart TD
+  Book[Customer books remotely] --> Type{Fulfilment type}
+  Type -->|pickup / bring_in| Draft[draft + awaiting drop-off at branch]
+  Type -->|home_collection / C and D| Await[awaiting_collection]
+  Draft --> Branch[Staff confirm physical intake at branch]
+  Await --> Floor[/dashboard/home-collection]
+  Floor --> Assign[Assign]
+  Assign --> Confirm{Confirm or Fail}
+  Confirm -->|Confirm| Intake[intake + received stamps]
+  Confirm -->|Fail| Await
+```

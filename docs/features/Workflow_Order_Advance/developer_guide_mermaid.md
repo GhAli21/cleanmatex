@@ -47,3 +47,39 @@ sequenceDiagram
   end
   API-->>Customer: success/error payload
 ```
+
+## Create hydration
+
+```mermaid
+sequenceDiagram
+  participant Client as POS / booking / staff create
+  participant OrderSvc as OrderService
+  participant CreateWf as resolveOrderCreateWorkflowState
+  participant Resolver as WorkflowPolicyResolver
+  participant Hydrator as hydrateOrderCreateColumns
+
+  Client->>OrderSvc: create order facts
+  OrderSvc->>CreateWf: source, type, retail, QD
+  CreateWf->>Resolver: live Initial rules + create_preset_code
+  CreateWf->>Hydrator: preset + actor
+  Hydrator-->>CreateWf: physical_intake_* / preparation_* bag
+  CreateWf-->>OrderSvc: status + hydrated columns
+  OrderSvc->>OrderSvc: INSERT org_orders_mst (no workflow if-tree)
+```
+
+## Home collection confirm
+
+```mermaid
+sequenceDiagram
+  participant Floor as Home collection floor
+  participant Complete as POST /home-collection/orders/{id}/complete
+  participant Svc as completeHomeCollection
+  participant Engine as WorkflowEngine
+
+  Floor->>Complete: expectedStateVersion + notes
+  Complete->>Svc: tenant-scoped confirm
+  Svc->>Svc: stamp physical_intake received
+  Svc->>Engine: CONFIRM_HOME_COLLECTION screen=home_collection
+  Engine-->>Svc: intake
+  Svc-->>Floor: success
+```

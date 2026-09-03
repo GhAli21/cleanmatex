@@ -56,21 +56,27 @@ changes require a new version and a new-order assignment.
 
 ## Ownership and fulfilment rule
 
-An ordinary stage action may execute only on its source-status owner. The narrow
-V1 exception is direct counter pickup: `pickup_handover` may execute
-`CONFIRM_PICKUP` from observed `ready` to `delivered` only when the profile
-explicitly declares that observer membership, the direct pickup edge, and
-`allow_direct_counter_pickup`. Pickup remains `primary_owner` of `ready_for_pickup`. The command must use the same
-locked collection, evidence, fulfilment, order transition, audit, and
-idempotency transaction as staged pickup. Observers never receive general
-execution rights. Workboard (`module_mode = observer`) never executes.
+An ordinary stage action may execute only on its source-status owner. Named
+observer-execute exceptions (status Observer on a command module, not
+`module_mode = observer`):
 
-`public_tracking` may execute public OFD `CONFIRM_DELIVERY`. Released customer
-pickup still runs `pickup_handover` via the pickup service. Do not bind
-`CONFIRM_PICKUP` onto `public_tracking`. The DB helper
-`sys_wf_prof_ver_live_rpt` allows that public OFD confirm and reports every
-other structural miss as catalog codes (`0476` + `0477` applied locally and
-remotely). Do not edit those migrations.
+- `pickup_handover` `CONFIRM_PICKUP` from observed `ready` → `delivered` when
+  `ready_release` owns `ready` and `allow_direct_counter_pickup` is on
+- `public_tracking` `CONFIRM_DELIVERY` from observed `out_for_delivery` on
+  `public_web` when `driver_delivery` owns OFD
+- `canceling` `CANCEL_ORDER` from observed `intake` → `cancelled` when
+  `new_order` owns `intake`
+- `order_control` `HOLD_ORDER_WORK` from observed allowlisted plant statuses
+  (`preparing`, `processing`, `assembly`, `qa`, `packing`, `ready`,
+  `out_for_delivery`) → `on_hold` when the typical Owner module owns that
+  status (0486 catalog exceptions + profile edges)
+
+Workboard (`module_mode = observer`) never executes. Pickup remains
+`primary_owner` of `ready_for_pickup`. Do not bind `CONFIRM_PICKUP` onto
+`public_tracking`. `sys_wf_prof_ver_live_rpt` encodes those exceptions
+(`0478`; do not edit applied `0476`/`0477`). Seed repair in `0478` demotes the
+second Owner on intake / processing / OFD to Observer. Apply `0478` before
+relying on Check policy for those rows.
 
 Partial pickup or delivery is enabled only when the corresponding stage-owned
 service can atomically validate selected pieces, financial/evidence gates,
@@ -93,10 +99,13 @@ tenant runtime fallback data.
 
 ## Migration gate
 
-**0470 is applied** locally and remotely (`live_normalized_workflow_profile_runtime`), plus follow-up `0471`–`0475`. Types have been regenerated.
+**0470 is applied** locally and remotely (`live_normalized_workflow_profile_runtime`), plus follow-up `0471`–`0487`. Types have been regenerated for the applied set.
 
 Runtime loads **live normalized profile-version rows**. Artifact columns on orders are historical audit only and are not written for new orders. `WorkflowPolicyResolver` is the tenant policy loader; `sys_wf_prof_ver_validate_live` remains integrity-only for Pilot/Publish/assignment.
 
-The helper allows only `pickup_handover` / `CONFIRM_PICKUP` / observed `ready` → `delivered`, and rejects other observer executes. Coverage: `web-admin/__tests__/db-integration/wf-prof-ver-validate-live.db.test.ts`.
+The helper allows the named observer-execute exceptions in `0478` (pickup,
+public OFD, cancel from observed intake, hold from observed processing) and
+rejects other observer executes. Coverage:
+`web-admin/__tests__/db-integration/wf-prof-ver-validate-live.db.test.ts`.
 
-Do not edit applied `0470`–`0475`. Further schema changes use a later sequence. Agents never apply migrations. Workboard grouping, delivery fail-closed, public-tracking HTTP mapping, verified POS `pos` on pickup/intake/delivery, privacy-safe observe events, and live-runtime unit/source-scan assurance are in. Local and remote each have one active profile assignment. Remaining: S10 canary, soak, and Gate 5 compiler-retirement docs.
+Do not edit applied `0470`–`0477`. Apply `0478` to demote extra Owners. Agents never apply migrations. Workboard grouping, delivery fail-closed, public-tracking HTTP mapping, verified POS `pos` on pickup/intake/delivery, privacy-safe observe events, and live-runtime unit/source-scan assurance are in. Local and remote each have one active profile assignment. Remaining: S10 canary, soak, and Gate 5 compiler-retirement docs.

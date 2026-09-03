@@ -1,6 +1,6 @@
 # Workflow Order Advance
 
-**Status:** Automated delivery assurance is complete. Migration `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, and semantic-only runtime cutover is active. **Staff POD delivery smoke S10 remains unsigned** until pre-cutover unsnapshotted test orders are recreated and the operator/e2e canary (`p7-harden`) is complete.
+**Status:** Automated delivery assurance is complete. Migration `0464_require_semantic_order_snapshots.sql` is applied locally and remotely, and semantic-only runtime cutover is active. **Create hydration / home collection / hold (T0–T4 + 0487)** landed on **0479–0487** (operator applied local + remote; types regen). **Staff POD delivery smoke S10 remains unsigned** until pre-cutover unsnapshotted test orders are recreated and the operator/e2e canary (`p7-harden`) is complete.
 **Version:** see [version.txt](version.txt) · [OVERNIGHT_CHECKPOINT.md](OVERNIGHT_CHECKPOINT.md)  
 **Authority:** This folder + [ADR_SCOPE_AND_CORRECTION_PASS.md](ADR_SCOPE_AND_CORRECTION_PASS.md) + Cursor plan  
 **Reference only:** [`CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/`](CleanMateX_Order_Workflow_V1_Full_Pack_v1.0/)  
@@ -62,6 +62,7 @@ NEXT_PUBLIC_WORKFLOW_ENGINE_V2=true
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Work packages |
 | [future_work_in_wf/00_WF_ENTITY_GLOSSARY.md](future_work_in_wf/00_WF_ENTITY_GLOSSARY.md) | Page vs module vs `screen_key` (and related workflow entities) |
 | [future_work_in_wf/](future_work_in_wf/README.md) | HQ Studio validation gaps + V1.0→V2 remaining-work plan |
+| [future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | Create presets, Initial-rule matrix, home collection, hold (tenant T0–T4 + leftover close-out done; HQ H1–H3 + leftover close-out done; catalog 1.3.0) |
 | [DISCOVERY_REMOTE.md](DISCOVERY_REMOTE.md) | Remote SQL runbook |
 
 ## HQ (cleanmatexsaas) handoff

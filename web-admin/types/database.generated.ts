@@ -22310,13 +22310,6 @@ export type Database = {
             referencedColumns: ["artifact_id"]
           },
           {
-            foreignKeyName: "fk_wfgd_version"
-            columns: ["profile_version_id"]
-            isOneToOne: false
-            referencedRelation: "sys_wf_profile_ver_mst"
-            referencedColumns: ["version_id"]
-          },
-          {
             foreignKeyName: "fk_wfgd_gate"
             columns: ["gate_code"]
             isOneToOne: false
@@ -22357,6 +22350,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_wfgd_version"
+            columns: ["profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_profile_ver_mst"
+            referencedColumns: ["version_id"]
           },
         ]
       }
@@ -33726,6 +33726,75 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_wf_create_presets_cd: {
+        Row: {
+          create_preset_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string
+          description2: string | null
+          is_active: boolean
+          name: string
+          name2: string | null
+          physical_intake_status: string
+          preparation_status: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          stamp_physical_intake: boolean
+          stamp_prepared: boolean
+          stamp_received: boolean
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          create_preset_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description: string
+          description2?: string | null
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          physical_intake_status: string
+          preparation_status: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          stamp_physical_intake?: boolean
+          stamp_prepared?: boolean
+          stamp_received?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          create_preset_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string
+          description2?: string | null
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          physical_intake_status?: string
+          preparation_status?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          stamp_physical_intake?: boolean
+          stamp_prepared?: boolean
+          stamp_received?: boolean
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       sys_wf_gate_defs_cd: {
         Row: {
           created_at: string
@@ -33872,6 +33941,117 @@ export type Database = {
           {
             foreignKeyName: "sys_wf_initial_rules_cd_initial_status_fkey"
             columns: ["initial_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+        ]
+      }
+      sys_wf_observer_exec_x_cd: {
+        Row: {
+          action_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string
+          description2: string | null
+          exception_code: string
+          exec_module_mode: string
+          from_status: string
+          is_active: boolean
+          name: string
+          name2: string | null
+          owner_screen_key: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          required_channel_code: string | null
+          screen_key: string
+          to_status: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description: string
+          description2?: string | null
+          exception_code: string
+          exec_module_mode: string
+          from_status: string
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          owner_screen_key: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          required_channel_code?: string | null
+          screen_key: string
+          to_status: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string
+          description2?: string | null
+          exception_code?: string
+          exec_module_mode?: string
+          from_status?: string
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          owner_screen_key?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          required_channel_code?: string | null
+          screen_key?: string
+          to_status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sys_wf_observer_exec_x_cd_action_code_fkey"
+            columns: ["action_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_actions_cd"
+            referencedColumns: ["action_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_observer_exec_x_cd_from_status_fkey"
+            columns: ["from_status"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_statuses_cd"
+            referencedColumns: ["status_code"]
+          },
+          {
+            foreignKeyName: "sys_wf_observer_exec_x_cd_owner_screen_key_fkey"
+            columns: ["owner_screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_observer_exec_x_cd_screen_key_fkey"
+            columns: ["screen_key"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_screens_cd"
+            referencedColumns: ["screen_key"]
+          },
+          {
+            foreignKeyName: "sys_wf_observer_exec_x_cd_to_status_fkey"
+            columns: ["to_status"]
             isOneToOne: false
             referencedRelation: "sys_wf_statuses_cd"
             referencedColumns: ["status_code"]
@@ -34282,6 +34462,7 @@ export type Database = {
       }
       sys_wf_prof_ver_init_cf: {
         Row: {
+          create_preset_code: string | null
           created_at: string
           created_by: string | null
           created_info: string | null
@@ -34305,6 +34486,7 @@ export type Database = {
           version_id: string
         }
         Insert: {
+          create_preset_code?: string | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
@@ -34328,6 +34510,7 @@ export type Database = {
           version_id: string
         }
         Update: {
+          create_preset_code?: string | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
@@ -34351,6 +34534,13 @@ export type Database = {
           version_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sys_wf_prof_ver_init_cf_create_preset_code_fkey"
+            columns: ["create_preset_code"]
+            isOneToOne: false
+            referencedRelation: "sys_wf_create_presets_cd"
+            referencedColumns: ["create_preset_code"]
+          },
           {
             foreignKeyName: "sys_wf_prof_ver_init_cf_initial_status_fkey"
             columns: ["initial_status"]
@@ -36866,6 +37056,33 @@ export type Database = {
           version_no: number
         }[]
       }
+      sys_wf_prof_ver_demote_sem: {
+        Args: {
+          p_actor_id?: string
+          p_profile_id: string
+          p_target_status: string
+          p_version_no: number
+        }
+        Returns: {
+          version_id: string
+          version_status: string
+        }[]
+      }
+      sys_wf_prof_ver_live_rpt: {
+        Args: { p_version_id: string }
+        Returns: {
+          action_code: string
+          exec_id: string
+          from_status: string
+          init_status: string
+          issue_code: string
+          issue_path: string
+          owner_screen: string
+          rule_code: string
+          screen_key: string
+          to_status: string
+        }[]
+      }
       sys_wf_prof_ver_retire_sem: {
         Args: {
           p_actor_id?: string
@@ -36952,12 +37169,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -36981,11 +37198,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -37006,11 +37223,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -37031,11 +37248,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -37048,11 +37265,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

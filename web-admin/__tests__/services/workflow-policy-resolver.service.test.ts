@@ -111,6 +111,7 @@ function liveRowsFor(sql: string): unknown[] {
       is_quick_drop: null,
       initial_status: 'intake',
       priority: 1,
+      create_preset_code: 'BRANCH_DEFAULT',
     }];
   }
   if (sql.includes('sys_wf_prof_ver_evidence_cf')) {

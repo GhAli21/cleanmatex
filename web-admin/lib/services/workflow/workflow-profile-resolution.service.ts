@@ -31,6 +31,8 @@ export interface ResolvedWorkflowInitialRule {
   is_quick_drop: boolean | null;
   initial_status: string;
   priority: number;
+  /** HQ create-time hydration preset; required after 0480/0481. */
+  create_preset_code: string | null;
 }
 
 /** Assignment context supplied by a single service-category order item. */
@@ -195,6 +197,7 @@ function parseInitialRules(rows: ResolvedWorkflowInitialRule[]): ResolvedWorkflo
       is_quick_drop: typeof rule.is_quick_drop === 'boolean' ? rule.is_quick_drop : null,
       initial_status: rule.initial_status,
       priority: rule.priority,
+      create_preset_code: typeof rule.create_preset_code === 'string' ? rule.create_preset_code : null,
     };
   });
 }
@@ -321,7 +324,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
 
   const { data: initialRuleData, error: initialRuleError } = await supabase
     .from('sys_wf_prof_ver_init_cf')
-    .select('rule_code, order_source_code, order_type_id, is_retail, is_quick_drop, initial_status, priority')
+    .select('rule_code, order_source_code, order_type_id, is_retail, is_quick_drop, initial_status, priority, create_preset_code')
     .eq('version_id', version.version_id)
     .eq('is_active', true)
     .eq('rec_status', 1)
@@ -401,7 +404,8 @@ export async function resolveWorkflowProfileBindingWithPrisma(
       is_retail,
       is_quick_drop,
       initial_status,
-      priority
+      priority,
+      create_preset_code
     FROM public.sys_wf_prof_ver_init_cf
     WHERE version_id = ${version.version_id}::uuid
       AND is_active = true

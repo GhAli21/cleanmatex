@@ -282,3 +282,53 @@ During and after the smoke window:
 5. Exercise each filter, sorting, quick-focus card, clear-filters action, and pagination; every row/count must remain tenant-scoped.
 6. Verify the owner-stage quick-focus cards continue to show `summary.byOwner` totals for the current non-stage filters even after selecting one owner stage.
 7. Confirm the screen has no status, collection, release, POD, or assignment mutation.
+
+## Create hydration + home collection (§9 matrix — 2026-09-03)
+
+Automated (Jest):
+
+```bash
+npx jest __tests__/services/order-create-workflow.service.test.ts __tests__/constants/order-types-booking.test.ts --runInBand
+```
+
+| ID | Scenario | Expect | Evidence |
+|----|----------|--------|----------|
+| C1–C4 | POS / mobile remote create | See `order-create-workflow.service.test.ts` | Jest |
+| C5 | Mobile + `HOME_COLLECTION` | `awaiting_collection` + `HOME_COLLECTION_PENDING` + `pending_dropoff` | Jest |
+| C6 | Mobile + `COLLECTION_AND_DELIVERY` | same inbound start as C5 | Jest |
+| C8 | Rule without preset | fail closed at create / Check policy | Jest `order-create-workflow.service.test.ts`; `createOrder` + `createOrderInTransaction` map to profile 422; HQ persist + catalog; live_rpt **0487 applied** |
+| C9 | Wildcard draft Initial rule | Check policy / live_rpt blocks | HQ persist from any Studio tab + catalog; live_rpt **0487 applied** |
+| HC1 | ASSIGN then CONFIRM home collection | plant status + intake received | Manual smoke on `/dashboard/home-collection` |
+| HC2 | FAIL home collection | back to awaiting + audit note | Manual smoke via ActionBar |
+
+Staff UX / labels:
+
+1. **Orders → Home Collection** appears after nav migration `0485_nav_home_collection.sql` (dual-write with `navigation.ts`).
+2. Order list badge **Awaiting home collection** for `awaiting_collection` status (distinct from **Awaiting drop-off** on remote `draft`).
+3. Order full detail shows sky banner + link to home collection floor when status is `awaiting_collection` and intake is pending.
+4. Order type field shows localized labels: **Branch drop-off** vs **Home collection** vs **Collection & delivery** (EN/AR `orders.orderTypes.*`).
+5. Mobile booking API accepts `fulfillmentType` `home_collection` and `collection_and_delivery` and maps to the correct `order_type_id`.
+
+Access contract:
+
+```bash
+npm run check:ui-access-contract -- --route=/dashboard/home-collection --wire
+npm run check:ui-access-contract -- --route=/dashboard/home-collection/[id] --wire
+```
+
+## Hold hardening (§9 H1–H4 — 2026-09-04)
+
+Automated (Jest):
+
+```bash
+npx jest __tests__/lib/workflow/order-control-transition.test.ts __tests__/services/workflow-cancel-return-eligibility.test.ts --runInBand
+```
+
+| ID | Scenario | Expect | Evidence |
+|----|----------|--------|----------|
+| H1 | Hold from processing | `on_hold`, `hold_from_status=processing` | Jest |
+| H2 | Resume | back to processing, column cleared | Jest |
+| H3 | Hold from preparing / ready | resume restores the exact prior status | Jest |
+| H4 | Nested hold / terminal / draft | reject; do not overwrite `hold_from_status` | Jest |
+
+Floor smoke (**0486 applied**): on a live profile that owns the status, ActionBar Hold from `preparing` and `ready` must appear, then Resume must restore that same status.

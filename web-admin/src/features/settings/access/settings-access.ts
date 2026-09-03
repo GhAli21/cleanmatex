@@ -294,7 +294,10 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
     ],
-    notes: SETTINGS_NOTES,
+    notes: [
+      ...SETTINGS_NOTES,
+      'Legacy JSON editor retired; this route redirects to /dashboard/settings/workflows.',
+    ],
   },
   {
     routePattern: '/dashboard/settings/workflows/[id]/edit',
@@ -314,7 +317,10 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
       },
     ],
-    notes: SETTINGS_NOTES,
+    notes: [
+      ...SETTINGS_NOTES,
+      'Legacy JSON editor retired; this route redirects to /dashboard/settings/workflows.',
+    ],
   },
   {
     routePattern: '/dashboard/settings/workflow-roles',

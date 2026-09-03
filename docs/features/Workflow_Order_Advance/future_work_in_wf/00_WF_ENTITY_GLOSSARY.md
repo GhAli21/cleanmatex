@@ -223,7 +223,7 @@ A check evaluated **inside** the command transaction against locked order facts 
 |--|--|
 | **What** | “Module M may see / own status S.” |
 | **`visibility_mode`** | `owner` — this module is the primary owner of that status (and may execute ordinary commands from it). `observer` — show on worklist / card. Observer **membership** is not a general execute grant. |
-| **Exception** | Fulfilment only: `pickup_handover` stays `primary_owner` of `ready_for_pickup`. It may **observe** status `ready` so a declared `CONFIRM_PICKUP` edge from `ready` → `delivered` can run. That is observer **membership on a status**, not `module_mode = observer`. Observing `ready` does **not** move ownership of `ready` off `ready_release`. `module_mode = observer` (Workboard) still cannot execute. |
+| **Exception** | Named observer **membership** (not `module_mode = observer`): `pickup_handover` may observe `ready` for `CONFIRM_PICKUP`; `public_tracking` may observe `out_for_delivery` for public `CONFIRM_DELIVERY`; `canceling` may observe `intake` for `CANCEL_ORDER`; `order_control` may observe allowlisted plant statuses for `HOLD_ORDER_WORK` (`processing`, `preparing`, `assembly`, `qa`, `packing`, `ready`, `out_for_delivery`). Typical Owners stay on those statuses. Workboard `module_mode = observer` still cannot execute. |
 
 ### 2.11 Initial rule
 

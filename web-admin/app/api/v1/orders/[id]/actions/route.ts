@@ -16,6 +16,10 @@ import {
   STAFF_DELIVERY_STAGE_COMMAND_ERROR,
   isStaffDeliveryBypassAction,
 } from '@/lib/services/delivery/staff-delivery-command-guard';
+import {
+  STAFF_HOME_COLLECTION_STAGE_COMMAND_ERROR,
+  isStaffHomeCollectionBypassAction,
+} from '@/lib/services/home-collection/staff-home-collection-command-guard';
 
 /**
  * POST /api/v1/orders/[id]/actions
@@ -65,6 +69,9 @@ export async function POST(
     // Public confirm-received uses a dedicated service, not this adapter.
     if (isStaffDeliveryBypassAction(parsed.data.actionCode)) {
       return NextResponse.json(STAFF_DELIVERY_STAGE_COMMAND_ERROR, { status: 403 });
+    }
+    if (isStaffHomeCollectionBypassAction(parsed.data.actionCode)) {
+      return NextResponse.json(STAFF_HOME_COLLECTION_STAGE_COMMAND_ERROR, { status: 403 });
     }
 
     const execParams = {

@@ -98,6 +98,7 @@ type InitRow = {
   is_quick_drop: boolean | null;
   initial_status: string;
   priority: number;
+  create_preset_code: string | null;
 };
 
 type EvidenceRow = {
@@ -340,7 +341,8 @@ async function assembleLivePolicy(
           is_retail,
           is_quick_drop,
           initial_status,
-          priority
+          priority,
+          create_preset_code
         FROM public.sys_wf_prof_ver_init_cf
         WHERE version_id = ${version.version_id}::uuid
           AND is_active = true

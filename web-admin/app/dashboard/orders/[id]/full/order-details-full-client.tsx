@@ -95,6 +95,7 @@ interface OrderDetailsFullClientProps {
   returnUrl?: string;
   returnLabel?: string;
   translations: Record<string, string>;
+  orderTypeLabels?: Record<string, string>;
   locale: 'en' | 'ar';
 }
 
@@ -144,6 +145,7 @@ export function OrderDetailsFullClient({
   returnUrl = '/dashboard/orders',
   returnLabel,
   translations: t,
+  orderTypeLabels = {},
   locale,
 }: OrderDetailsFullClientProps) {
   const isRTL = useRTL();
@@ -431,6 +433,9 @@ export function OrderDetailsFullClient({
     }
     const tRecord = t as Record<string, string>;
     if (key === 'status' && typeof value === 'string') return tRecord[`status_${value}`] ?? String(value);
+    if (key === 'order_type_id' && typeof value === 'string') {
+      return orderTypeLabels[value] ?? String(value);
+    }
     if (key === 'priority' && typeof value === 'string') return tRecord[`priority_${value}`] ?? String(value);
     if (key === 'preparation_status' && typeof value === 'string') return tRecord[`prepStatus_${value}`] ?? String(value);
     const amountKeys = [
@@ -1389,6 +1394,24 @@ export function OrderDetailsFullClient({
 
   return (
     <div className="space-y-6">
+      {String(order.physical_intake_status ?? '') === 'pending_dropoff' &&
+        String(order.current_status ?? order.status ?? '') === 'awaiting_collection' &&
+        typeof order.id === 'string' && (
+          <div
+            className={`rounded-lg border border-sky-200 bg-sky-50 p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+            role="status"
+          >
+            <p className="mb-3 text-sm text-sky-900">
+              {t.awaitingHomeCollectionHint ??
+                'This order is waiting for inbound home collection. Use the home collection floor to assign and confirm.'}
+            </p>
+            <Link href={`/dashboard/home-collection/${order.id}`}>
+              <CmxButton type="button" variant="default" className="bg-sky-700 hover:bg-sky-800">
+                {t.openHomeCollectionFloor ?? 'Open home collection floor'}
+              </CmxButton>
+            </Link>
+          </div>
+        )}
       {String(order.physical_intake_status ?? '') === 'pending_dropoff' &&
         String(order.current_status ?? order.status ?? '') === 'draft' && (
           <div

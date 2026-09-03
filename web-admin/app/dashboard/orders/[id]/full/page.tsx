@@ -19,6 +19,7 @@ import {
   type OrderPreferenceDtlColumn,
 } from '@/lib/orders/order-preferences-dtl';
 import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
+import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 import {
   isUuidLike,
   sanitizeOrderDetailsReturnUrl,
@@ -238,9 +239,14 @@ async function OrderDetailsFullContent({
     ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])
   ) as Record<OrderPreferenceDtlColumn, string>;
 
+  const orderTypeLabels = Object.fromEntries(
+    Object.values(ORDER_TYPE_IDS).map((code) => [code, tOrders(`orderTypes.${code}`)]),
+  );
+
   return (
     <OrderDetailsFullClient
       order={serializedOrder}
+      orderTypeLabels={orderTypeLabels}
       publicTrackingPath={publicTrackingPath}
       allPayments={financialData?.payments ?? []}
       orderInvoices={orderInvoices}
@@ -314,6 +320,8 @@ async function OrderDetailsFullContent({
         awaitingDropoffHint: tOrders('awaitingDropoffHint'),
         confirmIntakeCta: tOrders('confirmIntakeCta'),
         confirmIntakeWorking: tOrders('confirmIntakeWorking'),
+        awaitingHomeCollectionHint: tOrders('awaitingHomeCollectionHint'),
+        openHomeCollectionFloor: tOrders('openHomeCollectionFloor'),
         tabsMaster: tFull('tabs.master'),
         tabsItems: tFull('tabs.items'),
         tabsHistory: tFull('tabs.history'),

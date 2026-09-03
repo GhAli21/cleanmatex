@@ -37,7 +37,12 @@ describe('workflow cancel/hold/stop eligibility (ADR lock)', () => {
   it('allows hold/resume/stop per ADR', () => {
     expect(canHoldOrderWork('processing')).toBe(true);
     expect(canHoldOrderWork('preparing')).toBe(true);
+    expect(canHoldOrderWork('ready')).toBe(true);
     expect(canHoldOrderWork('on_hold')).toBe(false);
+    expect(canHoldOrderWork('draft')).toBe(false);
+    expect(canHoldOrderWork('delivered')).toBe(false);
+    expect(canHoldOrderWork('cancelled')).toBe(false);
+    expect(canHoldOrderWork('stopped')).toBe(false);
     expect(canResumeOrderWork('on_hold')).toBe(true);
     expect(canResumeOrderWork('processing')).toBe(false);
     expect(canStopOrderWork('ready')).toBe(true);

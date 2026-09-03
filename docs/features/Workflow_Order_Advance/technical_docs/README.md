@@ -7,5 +7,6 @@
 - [delivery_proof_audit.md](delivery_proof_audit.md) — tenant-safe proof/audit read model, signed evidence links, UI reuse, and rollout boundary
 - [live_runtime_support.md](live_runtime_support.md) — privacy-safe log events, diagnosis, and escalation for the live profile-version runtime
 - [live_runtime_assurance.md](live_runtime_assurance.md) — automated coverage for live profile-version runtime (no compiled-artifact fallback)
+- Create presets / home collection / hold: [../future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](../future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) (0479–0487 applied)
 
 Local-only demo assignment (review, do not migrate): `scripts/workflow/local_demo_wf_v2_simple_assign.sql`

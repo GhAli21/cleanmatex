@@ -136,6 +136,8 @@ Use disposable test orders for this smoke. `cancelled` and `stopped` are termina
 | Resume | Click **Resume order work**. | Status changes from `on_hold` back to `processing`; `hold_from_status` is cleared. |
 | Stop | Hold Order B again with a valid reason, then click **Stop order work** with a valid reason. | Status changes from `on_hold` to terminal `stopped`; `hold_from_status` is cleared. |
 | Terminal check | Refresh the stopped order. | Hold, resume, stop, and cancel actions are no longer available. |
+| Hold from preparing | After **0486**, open a `preparing` order and Hold with a valid reason. | Status becomes `on_hold`; `hold_from_status=preparing`. Resume returns to `preparing`. |
+| Nested / terminal hold | Try Hold again while already `on_hold`, or Hold a `delivered`/`cancelled`/`stopped` order. | Rejected; `hold_from_status` is not overwritten. |
 
 ### Browser/API checks
 
@@ -145,6 +147,17 @@ For hold, resume, and stop, browser developer tools should show successful calls
 - `POST /api/v1/orders/{id}/actions`
 
 Cancellation loads available actions with `screen=canceling` and executes through the same `POST /api/v1/orders/{id}/actions` endpoint. Each successful action should return HTTP `200`, increment `stateVersion`, write order history, and enqueue an `ORDER_WORKFLOW_TRANSITIONED` outbox event.
+
+## Home collection floor
+
+Inbound dirty-item collection is **not** branch pickup (`PICKUP`).
+
+1. Create a mobile booking with fulfilment `home_collection` (order type `HOME_COLLECTION`). The order starts at `awaiting_collection` with pending intake.
+2. Open **Orders → Home Collection** (`/dashboard/home-collection`).
+3. Assign the order, then on the detail page confirm collection received (or Fail with a reason of at least 10 characters).
+4. Confirm moves the order to plant `intake` and stamps physical intake. Fail returns it to `awaiting_collection`.
+
+Do not use **Mark received at branch** (remote drop-off) for these orders. That banner is only for remote `draft` + `pending_dropoff`.
 
 ## Delivery proof and handover review
 

@@ -18,6 +18,7 @@ const semanticInitialRuleSchema = z.object({
   is_quick_drop: z.boolean().nullable(),
   initial_status: z.string().min(1),
   priority: z.number().int(),
+  create_preset_code: z.string().nullable().optional(),
 }).passthrough();
 
 const semanticModuleSchema = z.object({

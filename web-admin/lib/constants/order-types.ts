@@ -45,6 +45,8 @@ export const ORDER_TYPE_IDS = {
   POS: 'POS',
   WALK_IN: 'WALK_IN',
   PICKUP: 'PICKUP',
+  HOME_COLLECTION: 'HOME_COLLECTION',
+  COLLECTION_AND_DELIVERY: 'COLLECTION_AND_DELIVERY',
   DELIVERY: 'DELIVERY',
   EXPRESS: 'EXPRESS',
   ONLINE: 'ONLINE',
@@ -61,6 +63,22 @@ export const ORDER_TYPE_ID_VALUES = Object.values(ORDER_TYPE_IDS) as [
   OrderTypeId,
   ...OrderTypeId[],
 ];
+
+/** Maps customer-mobile booking fulfillmentType to sys_order_type_cd (DB-mirror). */
+export function resolveOrderTypeFromBookingFulfillment(fulfillmentType: string): OrderTypeId {
+  switch (fulfillmentType) {
+    case 'delivery':
+      return ORDER_TYPE_IDS.DELIVERY;
+    case 'home_collection':
+      return ORDER_TYPE_IDS.HOME_COLLECTION;
+    case 'collection_and_delivery':
+      return ORDER_TYPE_IDS.COLLECTION_AND_DELIVERY;
+    case 'pickup':
+      return ORDER_TYPE_IDS.PICKUP;
+    default:
+      return ORDER_TYPE_IDS.POS;
+  }
+}
 
 /**
  * Priority Levels

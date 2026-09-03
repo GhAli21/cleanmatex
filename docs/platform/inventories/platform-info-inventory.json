@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-26T18:37:38.125Z",
-  "gitSha": "b880e996",
+  "generatedAt": "2026-09-03T19:45:41.366Z",
+  "gitSha": "c6b296bf",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -36,8 +36,8 @@
     "featureFlagUsages": 86,
     "settingUsages": 40,
     "planLimitUsages": 8,
-    "accessContracts": 148,
-    "navigationEntries": 100,
+    "accessContracts": 150,
+    "navigationEntries": 101,
     "flagCatalogEntries": 295
   },
   "permissionUsages": [
@@ -10715,6 +10715,56 @@
       ]
     },
     {
+      "id": "access_contract:/dashboard/home-collection",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/home-collection",
+      "label": "Home Collection",
+      "sourceFile": "web-admin/src/features/orders/access/orders-access.ts",
+      "page": {
+        "permissions": [
+          "orders:read"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [],
+      "apiDependencyCount": 1,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/orders/access/orders-access.ts"
+        }
+      ]
+    },
+    {
+      "id": "access_contract:/dashboard/home-collection/_id_",
+      "kind": "access_contract",
+      "routePattern": "/dashboard/home-collection/[id]",
+      "label": "Home Collection Details",
+      "sourceFile": "web-admin/src/features/orders/access/orders-access.ts",
+      "page": {
+        "permissions": [
+          "orders:read"
+        ],
+        "permissionPrefixes": [],
+        "featureFlags": [],
+        "workflowRoles": [],
+        "tenantRoles": [],
+        "requireAllPermissions": true
+      },
+      "actions": [],
+      "apiDependencyCount": 0,
+      "provenance": [
+        {
+          "sourceType": "access-contract-ts",
+          "sourcePath": "web-admin/src/features/orders/access/orders-access.ts"
+        }
+      ]
+    },
+    {
       "id": "access_contract:/dashboard/receipts/_orderId_",
       "kind": "access_contract",
       "routePattern": "/dashboard/receipts/[orderId]",
@@ -11793,6 +11843,29 @@
       ]
     },
     {
+      "id": "nav:section_orders_home_collection_/dashboard/home-collection",
+      "kind": "navigation_entry",
+      "key": "orders_home_collection",
+      "label": "Home Collection",
+      "path": "/dashboard/home-collection",
+      "depth": "section",
+      "permissions": [
+        "orders:read"
+      ],
+      "roles": [
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "operator"
+      ],
+      "provenance": [
+        {
+          "sourceType": "navigation-ts",
+          "sourcePath": "web-admin/config/navigation.ts"
+        }
+      ]
+    },
+    {
       "id": "nav:section_orders_processing_/dashboard/processing",
       "kind": "navigation_entry",
       "key": "orders_processing",
@@ -12018,7 +12091,10 @@
       "depth": "section",
       "permissions": [],
       "roles": [
-        "none"
+        "super_admin",
+        "tenant_admin",
+        "admin",
+        "operator"
       ],
       "provenance": [
         {

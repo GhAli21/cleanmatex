@@ -59,7 +59,7 @@ Not a new product version. Unsigned / in-flight V1.0.
 
 | ID | Item | Tenant | HQ |
 |----|------|--------|-----|
-| V10-C1 | Retire leftover tenant JSON editors | `/dashboard/settings/workflows/new` and `[id]/edit`; hide duplicate **AssemblyJh** nav | Keep `410 LEGACY_WORKFLOW_RETIRED` |
+| V10-C1 | Retire leftover tenant JSON editors | **Done:** `/dashboard/settings/workflows/new` and `[id]/edit` redirect to the hub; JSON add/edit links removed | Keep `410 LEGACY_WORKFLOW_RETIRED` |
 | V10-C2 | Visual a11y / RTL pass | Floor + Workboard + Ready pickup panel | Studio Validation panel |
 
 ### V1.0 exit
@@ -83,6 +83,7 @@ Short train after S10 so V1.1 is not blocked by compiler debt.
 | V10x-M2 | `WorkflowPolicyValidator` | Shared issue codes from file 02 | Studio **Check policy** (replace Compile-as-authority) |
 | V10x-M3 | Open-order **version migrate** command (ADR-0010) | Preview eligible orders; validate current status vs target policy; permission + reason + confirmation; idempotent; audit per order; **never** automatic on reassign | HQ UI to launch and monitor migrate |
 | V10x-M4 | Channel uniqueness + permission existence | Execute already fail-closed | File 02 `execution_binding_duplicate` extend + `execution_permission_invalid` |
+| V10x-M5 | Create hydration + Initial-rule matrix + hold harden + home collection | **T0–T4 + leftover close-out done** (0479–0487 applied). `createOrderInTransaction` maps preset errors; home-collection actions gated; JSON editors retired. See [04 plan](04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md) | **H1–H3 + leftover close-out done** (Studio persist blocked for missing preset / wildcard-draft; catalog **1.3.0** `evidence_without_home_collection`) |
 
 ### Should
 

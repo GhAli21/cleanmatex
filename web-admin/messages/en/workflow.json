@@ -6,7 +6,8 @@
     "qa": "Quality Check",
     "ready": "Ready",
     "packing": "Packing",
-    "delivery": "Delivery"
+    "delivery": "Delivery",
+    "homeCollection": "Home collection"
   },
   "labels": {
     "customer": "Customer",
@@ -332,6 +333,35 @@
     "notesHelp": "This note is saved with the pickup audit record.",
     "success": "Customer pickup confirmed. The order is now delivered.",
     "failed": "Unable to confirm customer pickup."
+  },
+  "homeCollection": {
+    "description": "Orders awaiting inbound collection from the customer",
+    "empty": "No home collection orders",
+    "confirmTitle": "Confirm home collection",
+    "confirmDescription": "Confirm only after dirty items have been collected from the customer and received at the branch.",
+    "confirmAction": "Confirm collection received",
+    "notConfigured": "Home collection confirmation is not configured for this workflow profile.",
+    "dialogTitle": "Confirm home collection",
+    "dialogDescription": "Confirm that items from {customerName} (order {orderNo}) were collected and are ready for plant intake.",
+    "notesLabel": "Collection notes (optional)",
+    "notesPlaceholder": "For example, collected from customer address, 2 bags",
+    "success": "Home collection confirmed. The order is now at intake.",
+    "failed": "Unable to confirm home collection.",
+    "fallbacks": {
+      "unknownCustomer": "Unknown customer"
+    },
+    "actions": {
+      "open": "Open",
+      "backToList": "Back to home collection"
+    },
+    "messages": {
+      "loadFailed": "Failed to load home collection orders",
+      "notFound": "Order not found"
+    },
+    "statuses": {
+      "awaiting_collection": "Awaiting collection",
+      "out_for_collection": "Out for collection"
+    }
   },
   "packing": {
     "description": "Orders pending packing",

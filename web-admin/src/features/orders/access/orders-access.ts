@@ -2144,6 +2144,96 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
+    routePattern: '/dashboard/home-collection',
+    label: 'Home Collection',
+    page: {
+      permissions: ['orders:read'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Floor worklist',
+        method: 'GET',
+        path: '/api/v1/orders',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        notes: ['workflow_screen=home_collection via useScreenOrders.'],
+      },
+    ],
+    notes: ORDER_NOTES,
+  },
+  {
+    routePattern: '/dashboard/home-collection/[id]',
+    label: 'Home Collection Details',
+    page: {
+      permissions: ['orders:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      confirmHomeCollection: {
+        label: 'Confirm collection received',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      assignHomeCollection: {
+        label: 'Assign home collection',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      failHomeCollection: {
+        label: 'Fail home collection',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Order state',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/state',
+        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
+      },
+      {
+        label: 'Assign home collection',
+        method: 'POST',
+        path: '/api/v1/home-collection/[id]/assign',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Fail home collection',
+        method: 'POST',
+        path: '/api/v1/home-collection/[id]/fail',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Complete home collection (intake stamp + confirm)',
+        method: 'POST',
+        path: '/api/v1/home-collection/orders/[orderId]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: [
+      'CONFIRM_HOME_COLLECTION uses stage-owned complete route; generic /actions is blocked for staff.',
+    ],
+  },
+  {
     routePattern: '/dashboard/receipts/[orderId]',
     label: 'Receipt Details',
     page: {},

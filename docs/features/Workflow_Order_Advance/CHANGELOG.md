@@ -1,7 +1,19 @@
 # Changelog — Workflow Order Advance
 
+## Unreleased — 2026-09-04
+
+- **WF leftover close-out:** `createOrderInTransaction` maps `OrderCreatePresetError` to the same 422 profile codes as `createOrder`. Home-collection confirm/assign/fail require `orders:transition`. Legacy JSON editors at `/dashboard/settings/workflows/new` and `[id]/edit` redirect to the hub.
+- **HQ leftover close-out:** Studio persist from any tab is blocked when Initial rules lack a create preset or include a wildcard Draft. Check-policy catalog **1.3.0** emits `evidence_without_home_collection`.
+- **0487 applied** locally and remotely; types regenerated. `sys_wf_prof_ver_live_rpt` emits `initial_rule_preset_missing`, `initial_rule_preset_unknown`, `initial_rule_wildcard_draft`. Do not edit applied 0479–0487.
+- **HQ H1–H3 coded** in `cleanmatexsaas`: Studio Initial-rule preset picker + catalog selects; Check-policy catalog **1.2.0** (later bumped to **1.3.0**); `POST .../simulate-create`; home_collection evidence channel. Tenant pin regenerated under `generated/`.
+
 ## Unreleased — 2026-09-03
 
+- **DOC-FINAL 2026-09-04:** Pack refresh after **0479–0486 applied** (local + remote, types regen). Tenant T0–T4 complete. HQ Studio WPs H1–H3 remain in `cleanmatexsaas`.
+- **T3 complete:** Engine rejects nested hold, hold from terminal/`draft`, and resume without `hold_from_status`. Jest H1–H4 pass. **0486** HOLD edges + observer exceptions **applied**.
+- **T4 complete:** Order type labels (EN/AR `orders.orderTypes.*`), distinct remote-dropoff vs home-collection banners, mobile booking `home_collection` / `collection_and_delivery` fulfillment mapping, access contracts + page gates for `/dashboard/home-collection`, nav dual-write (`navigation.ts` + **0485** applied). Jest: C5/C6 + booking type mapping.
+- **T0/T1/T2a/T2b complete:** **0479–0484 applied** (operator, local + remote; types regen). **T2b runtime:** home-collection stage routes, completion service (intake stamps + CONFIRM), reusable `HomeCollectionHandoverCard`, list/detail at `/dashboard/home-collection`.
+- **0478 applied** locally and remotely. Typical-owner Observer repair + Cancel/Hold reporter exceptions are live. Do not edit applied `0478`.
 - New-order start-rule matching now includes `orderTypeId` (Studio “Order type code”). Create-time `PROFILE_*` failures return HTTP 422 with staff EN/AR copy in `workflow.profileErrors` instead of a generic 500 or “not configured” toast. Floor writers (ActionBar, processing Mark Ready, pickup/delivery handover, delivery proof complete, preparation complete, assembly complete, cancel/return) split runtime integrity codes instead of one `profileUnavailable` sentence or raw English `json.error`.
 - HQ Check-policy issue catalog is the emit registry (severity, gates, Studio tab, Auto Fix IDs, seed_must_pass). Tenant pin: [generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md](generated/GENERATED_WF_POLICY_ISSUE_CATALOG.md). File 02 remains narrative for planned codes. Maintain the catalog in HQ via `/manage-wf-policy-issues-catalog`; never hand-edit generated JSON.
 - **0474 applied** locally and remotely. HQ Published→Pilot/Draft demote (`sys_wf_prof_ver_demote_sem`) is live. Do not edit applied `0474`.

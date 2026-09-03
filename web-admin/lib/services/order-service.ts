@@ -15,7 +15,7 @@ import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-p
 import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
-import { resolveInitialStatus } from '@/lib/services/workflow/initial-status-resolver.service';
+import { resolveOrderCreateWorkflowState } from '@/lib/services/workflow/order-create-workflow.service';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
 import { isOrderEditable } from '@/lib/utils/order-editability';
 import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
@@ -63,12 +63,20 @@ import {
   WorkflowProfileResolutionError,
 } from '@/lib/services/workflow/workflow-profile-resolution.service';
 import { SemanticInitialStatusResolutionError } from '@/lib/services/workflow/initial-status-resolver.service';
+import { OrderCreatePresetError } from '@/lib/services/workflow/order-create-hydrator';
 import {
   staffEnForWorkflowProfileError,
 } from '@/lib/services/workflow/workflow-profile-error-catalog';
 
 function createOrderFailureFromProfileError(error: unknown): CreateOrderResult | null {
   if (error instanceof SemanticInitialStatusResolutionError) {
+    return {
+      success: false,
+      error: staffEnForWorkflowProfileError(error.code) ?? error.message,
+      errorCode: error.code,
+    };
+  }
+  if (error instanceof OrderCreatePresetError) {
     return {
       success: false,
       error: staffEnForWorkflowProfileError(error.code) ?? error.message,
@@ -351,9 +359,8 @@ export interface UpdateOrderResult {
 
 export class OrderService {
   /**
-   * Shared workflow + physical-intake resolution for createOrder / createOrderInTransaction.
-   * The assigned compiled workflow profile is the only source of the initial
-   * order status. This keeps creation and later runtime execution on one policy.
+   * Shared workflow + create-hydration resolution for createOrder paths.
+   * Initial status and column stamps come from profile Initial rules + presets.
    */
   private static async computeCreateOrderWorkflowState(args: {
     tenantId: string;
@@ -364,7 +371,10 @@ export class OrderService {
     initialWorkflowScreen?: string;
     orderTypeId?: string | null;
     sourceRow: OrderSourceCatalogRow;
-    semanticInitialRules: Parameters<typeof resolveInitialStatus>[0]['semanticInitialRules'];
+    semanticInitialRules: Parameters<typeof resolveOrderCreateWorkflowState>[0]['semanticInitialRules'];
+    userId?: string | null;
+    physicalIntakeInfo?: string | null;
+    receivedInfo?: string | null;
   }): Promise<{
     v_initialStatus: string;
     v_transitionFrom: string;
@@ -375,93 +385,32 @@ export class OrderService {
     receivedAt: Date | null;
     contractScreen: string;
     isRetailOnlyOrder: boolean;
+    hydrated: Awaited<ReturnType<typeof resolveOrderCreateWorkflowState>>['hydrated'];
   }> {
-    const {
-      items,
-      isQuickDrop,
-      quickDropQuantity,
-      physicalIntakeStatus,
-      initialWorkflowScreen,
-      orderTypeId,
-      sourceRow,
-    } = args;
-
-    const isRetailOnlyOrder =
-      items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
-
-    if (isRetailOnlyOrder) {
-      // V1.0 ADR: retail must not auto-close; the profile rule decides its initial stage.
-      const resolved = await resolveInitialStatus({
-        orderSourceCode: sourceRow.order_source_code,
-        orderTypeId,
-        isRetail: true,
-        isQuickDrop,
-        semanticInitialRules: args.semanticInitialRules,
-      });
-      const retailStatus = resolved.initialStatus === 'closed' ? 'ready' : resolved.initialStatus;
-      return {
-        v_initialStatus: retailStatus,
-        v_transitionFrom: retailStatus,
-        v_orderStatus: retailStatus,
-        v_current_status: retailStatus,
-        v_current_stage: retailStatus,
-        physicalIntakeStatus: 'received',
-        receivedAt: new Date(),
-        contractScreen: 'retail',
-        isRetailOnlyOrder: true,
-      };
-    }
-
-    let useRemoteIntake = false;
-    if (physicalIntakeStatus === 'pending_dropoff') {
-      useRemoteIntake = true;
-    } else if (physicalIntakeStatus === 'received' || physicalIntakeStatus === 'not_applicable') {
-      useRemoteIntake = false;
-    } else {
-      useRemoteIntake = sourceRow.requires_remote_intake_confirm;
-    }
-
-    if (useRemoteIntake) {
-      const screen = initialWorkflowScreen ?? 'new_order';
-      const resolved = await resolveInitialStatus({
-        orderSourceCode: sourceRow.order_source_code,
-        orderTypeId,
-        isRetail: false,
-        isQuickDrop,
-        semanticInitialRules: args.semanticInitialRules,
-      });
-      const contractStatus = resolved.initialStatus;
-      return {
-        v_initialStatus: contractStatus,
-        v_transitionFrom: contractStatus,
-        v_orderStatus: contractStatus,
-        v_current_status: contractStatus,
-        v_current_stage: contractStatus,
-        physicalIntakeStatus: 'pending_dropoff',
-        receivedAt: null,
-        contractScreen: screen,
-        isRetailOnlyOrder: false,
-      };
-    }
-
-    const resolved = await resolveInitialStatus({
-      orderSourceCode: sourceRow.order_source_code,
-      orderTypeId,
-      isRetail: false,
-      isQuickDrop,
+    const resolved = await resolveOrderCreateWorkflowState({
+      items: args.items,
+      isQuickDrop: args.isQuickDrop,
+      physicalIntakeStatus: args.physicalIntakeStatus,
+      initialWorkflowScreen: args.initialWorkflowScreen,
+      orderTypeId: args.orderTypeId,
+      sourceRow: args.sourceRow,
       semanticInitialRules: args.semanticInitialRules,
+      userId: args.userId,
+      physicalIntakeInfo: args.physicalIntakeInfo,
+      receivedInfo: args.receivedInfo,
     });
-    const initialStatus = resolved.initialStatus;
+
     return {
-      v_initialStatus: initialStatus,
-      v_transitionFrom: initialStatus,
-      v_orderStatus: initialStatus,
-      v_current_status: initialStatus,
-      v_current_stage: initialStatus,
-      physicalIntakeStatus: 'received',
-      receivedAt: new Date(),
-      contractScreen: initialWorkflowScreen ?? 'new_order',
-      isRetailOnlyOrder: false,
+      v_initialStatus: resolved.v_initialStatus,
+      v_transitionFrom: resolved.v_transitionFrom,
+      v_orderStatus: resolved.v_orderStatus,
+      v_current_status: resolved.v_current_status,
+      v_current_stage: resolved.v_current_stage,
+      physicalIntakeStatus: resolved.physicalIntakeStatus,
+      receivedAt: resolved.receivedAt,
+      contractScreen: resolved.contractScreen,
+      isRetailOnlyOrder: resolved.isRetailOnlyOrder,
+      hydrated: resolved.hydrated,
     };
   }
 
@@ -529,6 +478,9 @@ export class OrderService {
         orderTypeId,
         sourceRow: sourceValidated.row,
         semanticInitialRules: workflowProfileBinding.initialRules,
+        userId,
+        physicalIntakeInfo: params.physicalIntakeInfo,
+        receivedInfo: params.receivedInfo,
       });
 
       const {
@@ -541,6 +493,7 @@ export class OrderService {
         receivedAt,
         contractScreen,
         isRetailOnlyOrder,
+        hydrated,
       } = wf;
 
       if (isRetailOnlyOrder) {
@@ -659,9 +612,18 @@ export class OrderService {
         rec_status: 1,
         order_source_code: orderSourceCode,
         physical_intake_status: physicalIntakeStatus,
-        physical_intake_info: params.physicalIntakeInfo ?? null,
-        received_info: params.receivedInfo ?? null,
+        physical_intake_at: hydrated.physical_intake_at
+          ? hydrated.physical_intake_at.toISOString()
+          : null,
+        physical_intake_by: hydrated.physical_intake_by,
+        physical_intake_info: hydrated.physical_intake_info,
+        received_info: hydrated.received_info,
         received_at: receivedAt ? receivedAt.toISOString() : null,
+        preparation_status: hydrated.preparation_status,
+        prepared_at: hydrated.prepared_at
+          ? hydrated.prepared_at.toISOString()
+          : null,
+        prepared_by: hydrated.prepared_by,
       };
 
       if (currencyCode != null) {
@@ -1173,23 +1135,33 @@ export class OrderService {
       return { success: false, error: sourceValidated.error };
     }
 
-    const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
-      tenantId,
-      branchId,
-      serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
-    });
+    let wf: Awaited<ReturnType<typeof OrderService.computeCreateOrderWorkflowState>>;
+    try {
+      const workflowProfileBinding = await resolveWorkflowProfileBindingForOrderWithPrisma(tx, {
+        tenantId,
+        branchId,
+        serviceCodes: items.flatMap((item) => item.serviceCategoryCode ? [item.serviceCategoryCode] : []),
+      });
 
-    const wf = await OrderService.computeCreateOrderWorkflowState({
-      tenantId,
-      items,
-      isQuickDrop,
-      quickDropQuantity,
-      physicalIntakeStatus: params.physicalIntakeStatus,
-      initialWorkflowScreen: params.initialWorkflowScreen,
-      orderTypeId,
-      sourceRow: sourceValidated.row,
-      semanticInitialRules: workflowProfileBinding.initialRules,
-    });
+      wf = await OrderService.computeCreateOrderWorkflowState({
+        tenantId,
+        items,
+        isQuickDrop,
+        quickDropQuantity,
+        physicalIntakeStatus: params.physicalIntakeStatus,
+        initialWorkflowScreen: params.initialWorkflowScreen,
+        orderTypeId,
+        sourceRow: sourceValidated.row,
+        semanticInitialRules: workflowProfileBinding.initialRules,
+        userId,
+        physicalIntakeInfo: params.physicalIntakeInfo,
+        receivedInfo: params.receivedInfo,
+      });
+    } catch (error) {
+      const profileFailure = createOrderFailureFromProfileError(error);
+      if (profileFailure) return profileFailure;
+      throw error;
+    }
 
     const {
       v_initialStatus,
@@ -1200,6 +1172,7 @@ export class OrderService {
       physicalIntakeStatus,
       receivedAt,
       isRetailOnlyOrder,
+      hydrated,
     } = wf;
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
@@ -1287,9 +1260,14 @@ export class OrderService {
         rec_status: 1,
         order_source_code: orderSourceCode,
         physical_intake_status: physicalIntakeStatus,
-        physical_intake_info: params.physicalIntakeInfo ?? undefined,
-        received_info: params.receivedInfo ?? undefined,
+        physical_intake_at: hydrated.physical_intake_at ?? undefined,
+        physical_intake_by: hydrated.physical_intake_by ?? undefined,
+        physical_intake_info: hydrated.physical_intake_info ?? undefined,
+        received_info: hydrated.received_info ?? undefined,
         received_at: receivedAt,
+        preparation_status: hydrated.preparation_status,
+        prepared_at: hydrated.prepared_at ?? undefined,
+        prepared_by: hydrated.prepared_by ?? undefined,
         ...(currencyCode && { currency_code: currencyCode, currency_ex_rate: currencyExRate }),
         ...(vatRate != null && { vat_rate: vatRate }),
         ...(taxRate != null && { tax_rate: taxRate }),

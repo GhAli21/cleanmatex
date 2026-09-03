@@ -76,6 +76,18 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - Floor queues must send `workflow_screen`. Do not rebuild membership from a client status list; semantic orders can use statuses the live contract does not mention, and a live-contract status must not pull a semantic order onto a screen its artifact does not own.
 - The proof read does not authorize delivery completion. Staff writers are `POST /api/v1/delivery/orders/{orderId}/complete` (no stop) and `POST /api/v1/delivery/stops/{stopId}/complete` (active stop). Keep payment, evidence, idempotency, concurrency, RBAC, and rollback on those commands. Generic `/actions` `CONFIRM_DELIVERY` must stay `403 USE_DELIVERY_COMPLETE_COMMAND`.
 
+## Create hydration, home collection, and hold (20260903)
+
+Tenant programme plan: [future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md). Operator applied **0479–0486**.
+
+- Create orchestration lives in `web-admin/lib/services/workflow/order-create-workflow.service.ts`. Hydration is pure in `order-create-hydrator.ts` from `sys_wf_create_presets_cd` (`lib/constants/workflow-create-presets.ts`). Do not add retail/remote `if` trees back into `OrderService`.
+- Matched Initial rules must carry `create_preset_code`. Unknown or missing presets fail closed.
+- Home collection floor:
+  - UI: `/dashboard/home-collection` and `/dashboard/home-collection/[id]` (`orders:read`)
+  - Thin commands: `POST /api/v1/home-collection/{id}/assign`, `POST /api/v1/home-collection/{id}/fail`
+  - Confirm: `POST /api/v1/home-collection/orders/{orderId}/complete` (intake stamps + `CONFIRM_HOME_COLLECTION`). Generic `/actions` for that confirm is blocked.
+- `hold_from_status` is on `org_orders_mst` (0436). Engine guards are in `lib/workflow/order-control-transition.ts`. HOLD edges beyond `processing` are profile policy from **0486**.
+
 ## Suggested next engineering steps
 
 1. Make the explicit staff S10 routed-POD rollout decision after canary/e2e. Legacy capturePOD/route writers must stay closed.
@@ -91,4 +103,4 @@ This guide is the practical handoff for engineers extending or debugging the V1 
 - [12_Test_Plan.md](12_Test_Plan.md)
 - [technical_docs/public_tracking_token_rollout.md](technical_docs/public_tracking_token_rollout.md)
 - [technical_docs/delivery_proof_audit.md](technical_docs/delivery_proof_audit.md)
-- [technical_docs/semantic_profile_assurance.md](technical_docs/semantic_profile_assurance.md)
+- [future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md](future_work_in_wf/04_CREATE_HYDRATION_COLLECTION_HOLD_PLAN.md)

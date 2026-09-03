@@ -76,6 +76,18 @@ Staff delivery `GET /api/v1/delivery/pod-methods?stopId=` returns catalog method
 
 For an order bound to a live profile version, the engine loads policy through `WorkflowPolicyResolver` (normalized profile-version rows). It checks screen membership, action edge, and the **server-assigned** command channel. An ordinary command requires an enabled `primary_owner` module and an `owner` status membership; observer visibility is read-only. An enabled `cross_cutting_command` module is the deliberate exception for a separately declared command surface such as `public_tracking`; it still requires a declared membership, execution edge, and permitted server-assigned channel. The service does not re-resolve the tenant assignment or read compiled artifacts, graph pins, templates, or action-catalog configuration as runtime fallback. Unbound orders fail closed with typed `PROFILE_*` codes.
 
+`HOLD_ORDER_WORK` / `RESUME_ORDER_WORK` / `STOP_ORDER_WORK` stay on `POST /api/v1/orders/{orderId}/actions` with `screen=order_control`. Hold is allowed only from plant statuses in the 0436 catalog (`preparing`, `processing`, `assembly`, `qa`, `packing`, `ready`, `out_for_delivery`). Nested hold, `draft`, and terminals (`delivered`, `cancelled`, `stopped`, `closed`, `returned`) are rejected. Resume always restores `hold_from_status` and fails if that column is missing. Profile HOLD edges beyond `processing` are seeded by **0486** (applied).
+
+### 2.2 Home collection stage commands
+
+| Method | Path | Permission | Purpose |
+|--------|------|------------|---------|
+| POST | `/api/v1/home-collection/{id}/assign` | `orders:transition` | `ASSIGN_HOME_COLLECTION` |
+| POST | `/api/v1/home-collection/{id}/fail` | `orders:transition` | `FAIL_HOME_COLLECTION` (reason ≥ 10) |
+| POST | `/api/v1/home-collection/orders/{orderId}/complete` | `orders:transition` | Stamp intake received + `CONFIRM_HOME_COLLECTION` → `intake` |
+
+Headers: `Idempotency-Key` required. Confirm body: `{ "expectedStateVersion": n, "collectionNotes"?: string }`. Staff `CONFIRM_HOME_COLLECTION` through generic `/actions` returns `403 USE_HOME_COLLECTION_COMPLETE_COMMAND`. Dashboard routes `/dashboard/home-collection` and `/dashboard/home-collection/[id]` require `orders:read`.
+
 **Channel (server-derived, never from the client body or a channel header):**
 
 | Credential / adapter | Channel |
@@ -102,9 +114,9 @@ Semantic hard-block gates are evaluated from tenant-scoped facts read under the 
 
 `GET /api/v1/orders?workflow_screen={screenKey}`
 
-Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery) send `workflow_screen` instead of a client-computed `status_filter`. The server includes an order when that screen is a member of the order's **live profile-version** policy:
+Floor queues (Preparation, Processing, Assembly, QA, Packing, Ready, Delivery, Home Collection) send `workflow_screen` instead of a client-computed `status_filter`. The server includes an order when that screen is a member of the order's **live profile-version** policy:
 
-- live version binding → module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`)
+- live version binding → module membership (`ready` aliases to `ready_release`, `delivery` aliases to `driver_delivery`, `home_collection` stays `home_collection`)
 - profile/version pin without a complete live binding → excluded (fail closed)
 - unbound historic order → excluded from operational floor lists (fail closed; audit/history remains readable)
 
@@ -117,6 +129,8 @@ Ready list desk filters (same page, not a pickup URL): `GET /api/v1/orders?workf
 Existing create must call `InitialStatusResolver`; persist source/type/`wf_profile_id`+`wf_profile_version_id`+`wf_version_no`/`state_version=1` (artifact columns stay null on new orders). No retail→`closed` shortcut. Every create path (normal intake, remote intake, retail, and Quick Drop) resolves only live profile-version initial rules, including `orderTypeId`. An unmatched rule returns `422 PROFILE_INITIAL_RULE_UNMATCHED`; it never falls back to legacy `intake` or `preparing` shortcuts. Other create-time profile failures also return **422** with a stable `errorCode` and staff-facing `error`: `PROFILE_ASSIGNMENT_REQUIRED`, `PROFILE_ASSIGNMENT_CONFLICT`, `PROFILE_SERVICE_SCOPE_CONFLICT`, `PROFILE_NO_EXECUTABLE_VERSION`, `PROFILE_NO_INITIAL_RULES`, `PROFILE_INITIAL_RULES_INVALID`, `PROFILE_INACTIVE`, `PROFILE_RESOLUTION_FAILED`. Floor/runtime integrity stays **409**: `PROFILE_SNAPSHOT_INCOMPLETE`, `PROFILE_ARTIFACT_UNAVAILABLE`, `PROFILE_ARTIFACT_INVALID`, `PROFILE_EXECUTION_INVALID`. Locale copy lives in `workflow.profileErrors`.
 
 When multiple active assignments match the same tenant/branch/service specificity, only exact duplicate bindings may be timestamp-ordered. Different profile/version bindings are rejected as a configuration conflict before an order is created; clients must direct the operator to HQ policy administration. Order creation resolves each distinct item `serviceCategoryCode` as the existing assignment `service_code` context. If service scopes select different immutable snapshots, it returns `422 PROFILE_SERVICE_SCOPE_CONFLICT`; the client must split the order rather than silently pinning the first item policy.
+
+Create stamps (`physical_intake_*`, `received_at`, `preparation_*`) come from the matched Initial rule’s `create_preset_code` (`sys_wf_create_presets_cd`, 0480). Tenant code hydrates through `resolveOrderCreateWorkflowState` / `hydrateOrderCreateColumns`. Do not hardcode retail or remote intake in `OrderService`. Mobile booking `fulfillmentType` `home_collection` / `collection_and_delivery` maps to `HOME_COLLECTION` / `COLLECTION_AND_DELIVERY`. HQ Studio authors presets via required `create_preset_code` on each Initial rule; Check policy catalog **1.3.0** maps missing/unknown preset, wildcard-draft, and `evidence_without_home_collection`. Tenant **0487** (applied) is the live_rpt emitter for the reporter codes.
 
 ## 5. Release (V1.0)
 

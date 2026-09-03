@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { CopyPlus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
@@ -235,18 +234,6 @@ export function WorkflowsSettingsScreen({
       render: (row: WorkflowConfigRow) =>
         new Date(row.updated_at || row.created_at).toLocaleString(),
     },
-    {
-      key: 'actions',
-      header: tCommon('actions'),
-      render: (row: WorkflowConfigRow) => (
-        <CmxButton variant="ghost" size="sm" asChild>
-          <Link href={`/dashboard/settings/workflows/${row.id}/edit`}>
-            <Pencil className="h-3.5 w-3.5 me-1" />
-            {tCommon('edit')}
-          </Link>
-        </CmxButton>
-      ),
-    },
   ]
 
   const contractColumns = [
@@ -358,14 +345,6 @@ export function WorkflowsSettingsScreen({
       label: t('tabs.workflowConfig'),
       content: (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <CmxButton asChild>
-              <Link href="/dashboard/settings/workflows/new">
-                <Plus className="h-4 w-4 me-2" />
-                {t('workflowConfig.addNew')}
-              </Link>
-            </CmxButton>
-          </div>
           {configs.length === 0 ? (
             <CmxEmptyState title={t('workflowConfig.empty')} />
           ) : (

@@ -7,6 +7,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { OrderService } from '@/lib/services/order-service';
+import { resolveOrderTypeFromBookingFulfillment } from '@/lib/constants/order-types';
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
@@ -37,7 +38,13 @@ const submitBookingSchema = z.object({
   serviceId: z.string().uuid().optional().nullable(),
   addressId: z.string().uuid().optional().nullable(),
   slotId: z.string().min(1).optional().nullable(),
-  fulfillmentType: z.enum(['pickup', 'delivery', 'bring_in']),
+  fulfillmentType: z.enum([
+    'pickup',
+    'delivery',
+    'bring_in',
+    'home_collection',
+    'collection_and_delivery',
+  ]),
   items: z.array(bookingItemSchema).min(1).max(100),
   servicePreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
   pickupPreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
@@ -870,12 +877,7 @@ export async function POST(request: NextRequest) {
       currencyCode: moneyConfig.currencyCode,
       vatRate,
     });
-    const orderTypeId =
-      body.fulfillmentType === 'delivery'
-        ? 'DELIVERY'
-        : body.fulfillmentType === 'pickup'
-          ? 'PICKUP'
-          : 'POS';
+    const orderTypeId = resolveOrderTypeFromBookingFulfillment(body.fulfillmentType);
     const paymentTypeCode =
       body.fulfillmentType === 'delivery' ? 'PAY_ON_DELIVERY' : 'PAY_ON_COLLECTION';
     const addressDescription = address ? buildAddressDescription(address) : null;

@@ -1,7 +1,7 @@
 # Progress summary — Workflow Order Advance
 
-**Updated:** 2026-09-03
-**Overall:** Gate 1–4 schema is live (`0470`–`0477` applied locally and remotely). Check policy and the write lock share `sys_wf_prof_ver_live_rpt` catalog codes. HQ still needs deploy for catalog 1.1.0. Gate 2 tenant slice loads live profile-version rows for create, Ready lists, engine, and pickup; **0472 live business-level policy seed and 0475 SIMPLE DRAFT repair are applied.** Workboard groups by `wf_profile_version_id`. **0473 gate-decision version column and 0474 Published demote are applied locally and remotely.** HQ Gate 2 Check policy / Pilot / Publish / assign-without-artifact / demote and `hq.wf.*` observability are in. Local and remote each have one active profile assignment. Delivery fail-closes without live policy. Public OFD confirm maps `PROFILE_*` to 409. Command adapters derive `staff_web` vs `mobile` from the credential; pickup/intake/delivery assign `pos` only after a verified OPEN POS session. Privacy-safe `wf.*` observe events, the live-runtime support runbook, and automated live-runtime assurance (cache/Pilot/channel/source scan) are in. Unbound orders fail closed; direct `CONFIRM_PICKUP` also requires `allow_direct_counter_pickup`. S10 routed POD remains unsigned.
+**Updated:** 2026-09-04  
+**Overall:** Create hydration leftover close-out **done**. Catalog **1.3.0**. **Next:** floor smoke HC1/HC2 + H1–H4; S10 canary unsigned.
 
 ## Accurate status
 

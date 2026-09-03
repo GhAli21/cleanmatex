@@ -18,6 +18,7 @@ const FLOOR_SCREEN_ALIASES: Record<string, string[]> = {
   ready_release: ['ready_release', 'ready'],
   delivery: ['delivery', 'driver_delivery'],
   driver_delivery: ['driver_delivery', 'delivery'],
+  home_collection: ['home_collection'],
 }
 
 interface ProfilePairRow {
